@@ -13,8 +13,7 @@ import cheerio from 'cheerio'
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } from './common.js'
 import { parseCmd } from './parsing.js'
-import { fetchUser, generateFileName } from './util.js'
-import { argv0 } from 'process'
+import { downloadSync, fetchUser, generateFileName } from './util.js'
 
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]})
@@ -199,6 +198,44 @@ const commands = {
                 text: {
                     description: "what to say",
                     required: true
+                }
+            }
+        }
+    },
+    uptime: {
+        run: async(msg, args) => {
+            let uptime = client.uptime
+            let fmt = args[0] || "%d:%h:%m:%s"
+            let days, hours, minutes, seconds;
+            seconds = uptime / 1000
+            days = 0
+            hours = 0
+            minutes = 0
+            while(seconds >= 60){
+                seconds -= 60
+                minutes += 1
+            }
+            while(minutes >= 60){
+                minutes -= 60
+                hours += 1
+            }
+            while(hours >= 24){
+                hours -= 24
+                days += 1
+            }
+            return {
+                content: fmt
+                        .replace(/((?<!%)%d|(?<!\\)\{d(ays)?\})/g, `${days}`)
+                        .replace(/((?<!%)%h|(?<!\\)\{h(ours)?\})/g, `${hours}`)
+                        .replace(/((?<!%)%m|(?<!\\)\{m(inutes)?\})/g, `${minutes}`)
+                        .replace(/((?<!%)%s|(?<!\\)\{s(econds)?\})/g, `${seconds}`)
+            }
+        },
+        help: {
+            "info": "gives up time of the bot",
+            arguments: {
+                fmt: {
+                    "description": "the format to show the uptime in<br>%s: seconds, %m: minutes, %h: hours, %d: days<br>{s}: seconds, {m}: minutes, {h}: hours, {d}: days<br>{seconds}: seconds, {minutes}: minutes, {hours}: hours, {days}: days"
                 }
             }
         }
@@ -928,6 +965,11 @@ ${styles}
     },
     "user-info": {
         run: async(msg, args) => {
+            if(!args[0]){
+                return {
+                    content: "no member given!"
+                }
+            }
             const member = await fetchUser(msg.guild, args[0])
             if(!member){
                 return {
@@ -966,6 +1008,57 @@ ${styles}
         },
         help: {
             aliases: []
+        }
+    },
+    "cmd-use": {
+        run: async(msg, args) => {
+            let data = generateCmdUseFile()
+            return {
+                content: data
+            }
+        }
+    },
+    grep: {
+        run: async(msg, args) => {
+            let regex = args[0]
+            if(!regex){
+                return {
+                    content: "no search given"
+                }
+            }
+            let data = args.slice(1).join(" ").trim()
+            if(!data){
+                if(msg.attachments?.at(0)){
+                    data = downloadSync(msg.attachments.at(0).attachment).toString()
+                }
+                else return {content: "no data given to search through"}
+            }
+            let match = data.matchAll(new RegExp(regex, "g"))
+            let finds = ""
+            for(let find of match){
+                if(find[1]){
+                    finds += `Found ${find.slice(1).join(", ")} at character ${find.index + 1}\n`
+                }
+                else {
+                    finds += `Found ${find[0]} at character ${find.index + 1}\n`
+                }
+            }
+            return {
+                content: finds
+            }
+        },
+        help: {
+            "info": "search through text with a search",
+            "arguments": {
+                search: {
+                    description: "a regular expression search",
+                    required: true
+                },
+                data: {
+                    description: "either a file, or text to search through",
+                    required: true
+                }
+            }
         }
     }
 }
@@ -1024,8 +1117,10 @@ async function doCmd(msg, returnJson=false){
             canRun = false
         }
         let rv;
-        if(canRun)
+        if(canRun){
             rv = await commands[command].run(msg, args)
+            addToCmdUse(command)
+        }
         else rv = {content: "You do not have permissions to run this command"}
         if(returnJson){
             return rv;
@@ -1071,6 +1166,7 @@ client.on("messageCreate", async(m) => {
 
 client.on("interactionCreate", async(interaction) => {
     if(interaction.isCommand()){
+        addToCmdUse(`/${interaction.commandName}`)
         if(interaction.commandName == 'attack'){
             let user = interaction.options.get("user")['value']
             await interaction.reply(`Attacking ${user}...`)
@@ -1098,6 +1194,7 @@ client.on("interactionCreate", async(interaction) => {
         }
     }
     else if(interaction.isUserContextMenu()){
+        addToCmdUse(`/${interaction.commandName}`)
         if(interaction.commandName == 'ping'){
             interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`)
         }
@@ -1119,5 +1216,38 @@ client.on("interactionCreate", async(interaction) => {
         }
     }
 })
+
+function generateCmdUseFile(){
+    let data = ""
+    for(let cmd in CMDUSE){
+        data += `${cmd}:${CMDUSE[cmd]}\n`
+    }
+    return data
+}
+
+function addToCmdUse(cmd){
+    if(CMDUSE[cmd]){
+        CMDUSE[cmd] += 1
+    } else {
+        CMDUSE[cmd] = 1
+    }
+    fs.writeFileSync("cmduse", generateCmdUseFile())
+}
+
+function loadCmdUse(){
+    let cmduse = {}
+    if(!fs.existsSync("cmduse")){
+        return {}
+    }
+    let data = fs.readFileSync("cmduse", "utf-8")
+    for(let line of data.split("\n")){
+        if(!line) continue
+        let [cmd, times] = line.split(":")
+        cmduse[cmd] = parseInt(times)
+    }
+    return cmduse
+}
+
+let CMDUSE = loadCmdUse()
 
 client.login(token)

@@ -1,4 +1,5 @@
 import { DiscordAPIError } from "discord.js";
+import {execFileSync} from 'child_process'
 
 async function fetchUser(guild, find){
     let res;
@@ -27,7 +28,12 @@ function generateFileName(cmd, userId){
     return `${cmd}::${userId}.txt`
 }
 
+function downloadSync(url){
+    return execFileSync(`curl`, ['--silent', url])
+}
+
 export{
     fetchUser,
-    generateFileName
+    generateFileName,
+    downloadSync
 }
