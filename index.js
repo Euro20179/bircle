@@ -825,6 +825,13 @@ ${styles}
             }
         }
     },
+    code: {
+        run: async(msg, args) => {
+            return {
+                content: "https://github.com/euro20179/bircle"
+            }
+        }
+    },
     WHITELIST: {
         run: async(msg, args) => {
             let user = args[0]
