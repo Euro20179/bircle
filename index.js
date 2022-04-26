@@ -12,7 +12,7 @@ import got from 'got'
 import cheerio from 'cheerio'
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } from './common.js'
-import { parseCmd } from './parsing.js'
+import { parseCmd, parsePosition } from './parsing.js'
 import { downloadSync, fetchUser, generateFileName } from './util.js'
 
 
@@ -286,7 +286,7 @@ const commands = {
             }
             const img = canvas.createCanvas(width, height)
             const ctx = img.getContext("2d")
-            ctx.fillStyle = args[2] || "black"
+            ctx.fillStyle = args[2] || opts['color'] || "black"
             ctx.fillRect(0, 0, width, height)
             let fmt = fmts[opts["fmt"]] || "image/png"
             let ext = exts[fmt]
@@ -333,8 +333,8 @@ const commands = {
             let size = opts["size"] || "20px"
             let font = opts["font"] || "Arial"
             let color = opts["color"] || "red"
-            let x = opts["x"] || 0
-            let y = opts["y"] || 0
+            let x = opts["x"] || "0"
+            let y = opts["y"] || "0"
             if(!img) {
                 img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
             }
@@ -356,16 +356,9 @@ const commands = {
                     ctx.font = `${size} ${font}`
                     ctx.fillStyle = color
                     let textInfo = ctx.measureText(args.join(" ").trim() || "?")
-                    console.log(textInfo)
                     let [textW, textH] = [textInfo.width, textInfo.emHeightAscent]
-                    if(x == "center"){
-                        x = img.width / 2 - textW / 2
-                    }
-                    if(y == "center"){
-                        y = img.height / 2 - textH / 2
-                    }
-                    x = parseInt(x)
-                    y = parseInt(y)
+                    x = parsePosition(x, img.width, textW)
+                    y = parsePosition(y, img.height, textH)
                     y += textH
                     ctx.fillText(args.join(" ").trim() || "?", x, y)
                     const buffer = canv.toBuffer("image/png")
@@ -1013,6 +1006,13 @@ ${styles}
     "cmd-use": {
         run: async(msg, args) => {
             let data = generateCmdUseFile()
+                        .split("\n")
+                        .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
+                        .filter(v => v[0]) // remove empty strings
+                        .sort((a, b) => a[1] - b[1]) // sort from least to greatest
+                        .reverse() //sort from greatest to least
+                        .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
+                        .join("\n")
             return {
                 content: data
             }

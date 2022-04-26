@@ -10,3 +10,4 @@
 412365502112071681: the genie says yes;END
 334538784043696130: the genie says no;END
 334538784043696130: [echo the genie says $(choose yes | no);END
+334538784043696130: Not in a million years;END

@@ -150,6 +150,59 @@ function parseCmd({msg, content, command, customEscapes, customFormats}){
     return [command, args, doFirsts]
 }
 
+function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
+    console.log(v1, op, v2)
+    const conversions = {
+        "center": areaSize / 2 - objectSize / 2,
+        "left": areaSize - objectSize,
+        "right": 0,
+        "bottom": areaSize - objectSize,
+        "top": 0
+    }
+    if(conversions[v1] !== undefined){
+        v1 = conversions[v1]
+    } else v1 = parseInt(v1)
+    if(conversions[v2] !== undefined){
+        v2 = conversions[v2]
+    } else v2 = parseInt(v2)
+    if(v1 == undefined || v1 == null)
+        return parseInt(v2)
+    switch(op){
+        case "+":
+            return v1 + v2;
+        case "-":
+            return v1 - v2;
+        case "*":
+            return v1 * v2;
+        case "/":
+            return Math.round(v1 / v2);
+    }
+    return parseInt(v2)
+}
+
+function parsePosition(position, areaSize, objectSize){
+    let firstVal, secondVal, operator
+    let curValue = ""
+    console.log(position)
+    for(let char of position){
+        switch(char){
+            case "-":
+            case "+":
+            case "/":
+            case "*":
+                operator = char
+                firstVal = curValue
+                curValue = ""
+                break
+            default:
+                curValue += char
+        }
+    }
+    secondVal = curValue
+    return operateOnPositionValues(firstVal, operator, secondVal, areaSize, objectSize)
+}
+
 export{
-    parseCmd
+    parseCmd,
+    parsePosition
 }
