@@ -1103,25 +1103,31 @@ async function doCmd(msg, returnJson=false){
         msg.content = oldContent
     }
     if(command in commands >= 0){
-        if(! commands[command]){
-            return
-        }
         let canRun = true
-        if(commands[command].permCheck){
-            canRun = commands[command].permCheck(msg)
-        }
-        if(WHITELIST[msg.author.id]?.includes(command)){
-            canRun = true
-        }
-        if(BLACKLIST[msg.author.id]?.includes(command)){
-            canRun = false
-        }
+        let exists = true
         let rv;
-        if(canRun){
-            rv = await commands[command].run(msg, args)
-            addToCmdUse(command)
+        if(! commands[command]){
+            rv = {content: `${command} does not exist`}
+            exists = false
         }
-        else rv = {content: "You do not have permissions to run this command"}
+        if(exists){
+            if(commands[command].permCheck){
+                canRun = commands[command].permCheck(msg)
+            }
+            if(WHITELIST[msg.author.id]?.includes(command)){
+                canRun = true
+            }
+            if(BLACKLIST[msg.author.id]?.includes(command)){
+                canRun = false
+            }
+            if(canRun){
+                rv = await commands[command].run(msg, args)
+                addToCmdUse(command)
+            }
+            else rv = {content: "You do not have permissions to run this command"}
+        } else {
+            rv = {content: `${command} does not exist`}
+        }
         if(returnJson){
             return rv;
         }
