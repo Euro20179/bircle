@@ -6,3 +6,5 @@ GUILD
 help.html
 prefix
 cmduse
+command-perms/*
+!command-perms/holder

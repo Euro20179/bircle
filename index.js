@@ -935,7 +935,7 @@ ${styles}
             }
             user = await fetchUser(msg.guild, user)
             if(addOrRemove == "a"){
-                addToPermList(BLACKLSIT, "blacklists", user, cmds)
+                addToPermList(BLACKLIST, "blacklists", user, cmds)
 
                 return {
                     content: `${user} has been blacklisted from ${cmds.join(" ")}`
