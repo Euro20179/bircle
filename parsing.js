@@ -11,6 +11,10 @@ function buildFormat(sequence, msg, curArg, customFormats){
     switch(sequence){
         case "user":
             return `<@${msg.author.id}>`
+        case "rand":
+            if(args && args?.length > 0)
+                return args[Math.floor(Math.random() * args.length)]
+            return "{rand}"
         case "arg":
             return curArg
     }

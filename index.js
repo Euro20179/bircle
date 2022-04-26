@@ -653,10 +653,16 @@ ${fs.readdirSync("./command-results").join("\n")}
                     embed.addField("Straight line distance time", `${straightLineDist / speed} hours`)
             }
             if(!drivingDist && !straightLineDist){
-                let dist = Math.floor(Math.random() * 1000 + 500)
-                embed.addField("Fictional distance", `${dist} miles`)
-                if(speed)
-                    embed.addField("Fictional distance time", `${dist / speed} hours`)
+                let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
+                return {
+                    content: options[Math.floor(Math.random() * options.length)]
+                        .slice(20)
+                        .replaceAll("{from}", from)
+                        .replaceAll("{to}", to)
+                        .replaceAll("{f}", decodeURI(from))
+                        .replaceAll("{t}", decodeURI(to))
+                        .trim()
+                }
             }
             return {
                 embeds: [embed]
@@ -919,12 +925,54 @@ ${styles}
         permCheck: (msg) => {
             return ADMINS.includes(msg.author.id)
         }
+    },
+    "user-info": {
+        run: async(msg, args) => {
+            const member = await fetchUser(msg.guild, args[0])
+            if(!member){
+                return {
+                    content: "member not found"
+                }
+            }
+            const user = member.user
+            if(args[1]){
+                const fmt = args[1]
+                return {
+                    content: fmt
+                                .replaceAll("{id}", user.id || "#!N/A")
+                                .replaceAll("{username}", user.username || "#!N/A")
+                                .replaceAll("{nickname}", member.nickName || "#!N/A")
+                                .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                                .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                                .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                                .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                                .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A")
+                }
+            }
+            let embed = new MessageEmbed()
+            embed.setColor(member.displayColor)
+            embed.setThumbnail(user.avatarURL())
+            embed.addField("Id", user.id || "#!N/A", true)
+            embed.addField("Username", user.username || "#!N/A", true)
+            embed.addField("Nickname", member.nickName || "#!N/A", true)
+            embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
+            embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
+            embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
+            embed.addField("Joined at", member.joinedAt.toString() || "#!N/A", true)
+            embed.addField("Boosting since", member.premiumSince?.toString() || "#!N/A", true)
+            return {
+                embeds: [embed]
+            }
+        },
+        help: {
+            aliases: []
+        }
     }
 }
 
 function alias(a, o){
     commands[a] = commands[o]
-    let aliases = commands[o].help.aliases
+    let aliases = commands[o].help?.aliases
     if(aliases){
         commands[o].help.aliases.push(a)
     }
@@ -933,6 +981,8 @@ function alias(a, o){
     }
 }
 alias("e", "echo")
+alias("ui", "user-info")
+alias("userinfo", "user-info")
 
 const rest = new REST({version: "9"}).setToken(token);
 
