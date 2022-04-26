@@ -1,5 +1,7 @@
 TOKEN
 tsconfig.json
-package-lock.json
-package.json
 node_modules
+CLIENT
+GUILD
+help.html
+prefix
