@@ -1,4 +1,5 @@
 import {prefix, vars} from './common.js'
+import {format} from './util.js'
 
 function buildFormat(sequence, msg, curArg, customFormats){
     let args
@@ -15,6 +16,33 @@ function buildFormat(sequence, msg, curArg, customFormats){
             if(args && args?.length > 0)
                 return args[Math.floor(Math.random() * args.length)]
             return "{rand}"
+        case "time":
+                let date = new Date()
+                if(!args.length){
+                    return date.toString()
+                }
+                let hours = date.getHours()
+                let AMPM = hours < 12 ? "AM" : "PM"
+                if(args[0].trim() == '12'){
+                    hours > 12 ? hours = hours - 12 : hours
+                    args.splice(0, 1)
+                }
+                return format(args.join("|"), {
+                    "d": `${date.getDate()}`,
+                    "H": `${hours}`,
+                    "M": `${date.getMinutes()}`,
+                    "S": `${date.getSeconds()}`,
+                    "T": `${hours}:${date.getMinutes()}:${date.getSeconds()}`,
+                    "t": `${hours}:${date.getMinutes()}`,
+                    "1": `${date.getMilliseconds()}`,
+                    "z": `${date.getTimezoneOffset()}`,
+                    "x": AMPM,
+                    "D": `${date.getMonth()}/${date.getDate()}/${date.getFullYear()}`,
+                    "m": `${date.getMonth()}`,
+                    "d": `${date.getDate()}`,
+                    "Y": `${date.getFullYear()}`,
+                    "w": `${date.getDay()}`
+                })
         case "arg":
             return curArg
     }

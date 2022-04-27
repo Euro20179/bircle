@@ -72,6 +72,7 @@ const slashCommands = [
         createChatCommandOption(INTEGER, "height", "height of image", {required: true, min: 0, max: 5000}),
         createChatCommandOption(STRING, "color", "color of image", {})
     ]),
+    createChatCommand("help", "get help", []),
     {
         name: "ping",
         type: 2
@@ -154,7 +155,7 @@ function generateHTMLFromCommandHelp(name, command){
                 let desc = options[option].description || ""
                 let requiresValue = options[option].requiresValue || false
                 html += `<li class="command-option">
-    <details class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">${option}</summary>${desc}</details></li>`
+    <details class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary>${desc}</details></li>`
             }
             html += "</ul>"
 
@@ -224,18 +225,14 @@ const commands = {
                 days += 1
             }
             return {
-                content: fmt
-                        .replace(/((?<!%)%d|(?<!\\)\{d(ays)?\})/g, `${days}`)
-                        .replace(/((?<!%)%h|(?<!\\)\{h(ours)?\})/g, `${hours}`)
-                        .replace(/((?<!%)%m|(?<!\\)\{m(inutes)?\})/g, `${minutes}`)
-                        .replace(/((?<!%)%s|(?<!\\)\{s(econds)?\})/g, `${seconds}`)
+                content: format(fmt, {"d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`})
             }
         },
         help: {
             "info": "gives up time of the bot",
             arguments: {
                 fmt: {
-                    "description": "the format to show the uptime in<br>%s: seconds, %m: minutes, %h: hours, %d: days<br>{s}: seconds, {m}: minutes, {h}: hours, {d}: days<br>{seconds}: seconds, {minutes}: minutes, {hours}: hours, {days}: days"
+                    "description": "the format to show the uptime in<br>%s: seconds, %m: minutes, %h: hours, %d: days<br>{s}: seconds, {m}: minutes, {h}: hours, {d}: days"
                 }
             }
         }
@@ -1011,7 +1008,7 @@ ${styles}
             }
         },
         help: {
-            info: `[user-info <user> [format]<br>
+            info: `[user-info &lt;user&gt; [format]<br>
 valid formats:<br>
 <ul>
     <li>
@@ -1236,6 +1233,16 @@ client.on("interactionCreate", async(interaction) => {
                     fs.rmSync(file.attachment)
                 }
             }
+        }
+        else if(interaction.commandName == 'help'){
+            await interaction.reply({
+                content: "use `[help -n -plain`, slash commands r boring, so i will not support them that much\nbegrudgingly, here is the current help file",
+                files: [{
+                    attachment: './help.html',
+                    name: "heres some help.html",
+                    description: "lmao"
+                }]
+            })
         }
     }
     else if(interaction.isUserContextMenu()){
