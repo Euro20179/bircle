@@ -262,7 +262,7 @@ const commands = {
             [opts, args] = getOpts(args)
             let gradient = opts['gradient']?.split(">")
             const width = parseFloat(args[0]) || parseFloat(opts['w']) || parseFloat(opts['width']) || parseFloat(opts['size']) || 100
-            const height = parseFloat(args[1]) || parseFloat(opts['h']) || parseFloat(opts['height']) || parseFloat(opts['size']) || 100
+            const height = parseFloat(args[1]) || parseFloat(opts['h']) || parseFloat(opts['height']) || parseFloat(opts['size']) || width || 100
             if(width < 0){
                 return {
                     content: "Width must be > 0"
@@ -431,8 +431,10 @@ const commands = {
             let opts;
             [opts, args] = getOpts(args)
             let color = opts['color'] || "white"
+            let outline = opts['outline']
             let img = opts['img']
             let gradient = opts['gradient']?.split(">")
+            let [shadow, shadowBlur] = (opts['shadow']?.split(":") || [null, null])
             let [x, y, width, height] = args.slice(0,4)
             if(!x){
                 x = opts['x'] || "0"
@@ -480,7 +482,24 @@ const commands = {
                         ctx.fillStyle = await createGradient(gradient, grad_angle, x, y, width, height, msg, ctx)
                     }
                     else ctx.fillStyle = color
+                    if(shadow){
+                        ctx.shadowColor = shadow
+                        ctx.shadowBlur = parseInt(shadowBlur || opts['shadow-blur']) || 20
+                    }
                     ctx.fillRect(x, y, width, height)
+                    if(outline){
+                        let [color, lineWidth] = outline.split(":")
+                        ctx.lineWidth = parseInt(lineWidth || opts['o-width'] || "1")
+                        let outline_gradient = color.split(">")
+                        if((outline_gradient?.length || 0) <= 1)
+                            outline_gradient = opts['o-gradient']?.split(">")
+                        if(outline_gradient){
+                            let grad_angle = (opts['o-grad-angle'] || 0.0) * Math.PI / 180
+                            ctx.strokeStyle = await createGradient(outline_gradient, grad_angle, x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth, msg, ctx)
+                        }
+                        else ctx.strokeStyle = color || opts['o-color'] || 'white'
+                        ctx.strokeRect(x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth)
+                    }
                     const buffer = canv.toBuffer("image/png")
                     fs.writeFileSync(fn, buffer)
                     msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
@@ -518,10 +537,31 @@ const commands = {
                     description: "color of the rectangle"
                 },
                 gradient: {
-                    description: "Use a gradient, syntax: <code>-gradient=color1>color2...</code>"
+                    description: "Use a gradient, syntax: <code>-gradient=color1>color2...[:angle]</code>"
                 },
                 "grad-angle": {
                     description: "The angle of the gradient, in degrees"
+                },
+                "shadow": {
+                    description: "The shadow of the rectangle, syntax: <code>-shadow=color[:blur]</code>"
+                },
+                "shadow-blur": {
+                    description: "Blur of the shadow"
+                },
+                "outline": {
+                    description: "Outline of the rectangle, syntax: <code>-outline=color[>color2][:size]</code>"
+                },
+                "o-color": {
+                    description: "Color of the outline, overrides outline-color"
+                },
+                "o-width": {
+                    description: "Width of the outline, overrides outline-width"
+                },
+                "o-gradient": {
+                    description: "Same as outline-gradient, and overrides it"
+                },
+                "o-grad-angle": {
+                    description: "Outline gradient angle, overrides outline-grad-angle"
                 },
                 "width": {
                     description: "The width of the rectangle"
