@@ -13,7 +13,7 @@ import cheerio from 'cheerio'
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } from './common.js'
 import { parseCmd, parsePosition } from './parsing.js'
-import { downloadSync, fetchUser, generateFileName } from './util.js'
+import { downloadSync, fetchUser, format, generateFileName } from './util.js'
 
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]})
@@ -971,17 +971,28 @@ ${styles}
             }
             const user = member.user
             if(args[1]){
-                const fmt = args[1]
+                const fmt = args.slice(1).join(" ")
                 return {
-                    content: fmt
-                                .replaceAll("{id}", user.id || "#!N/A")
-                                .replaceAll("{username}", user.username || "#!N/A")
-                                .replaceAll("{nickname}", member.nickName || "#!N/A")
-                                .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                                .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                                .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                                .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
-                                .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A")
+                    content: format(fmt
+                                    .replaceAll("{id}", user.id || "#!N/A")
+                                    .replaceAll("{username}", user.username || "#!N/A")
+                                    .replaceAll("{nickname}", member.nickName || "#!N/A")
+                                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                                    {
+                                        i: user.id || "#!N/A",
+                                        u: user.username || "#!N/A",
+                                        n: member.nickName || "#!N/A",
+                                        X: member.displayHexColor.toString() || "#!N/A",
+                                        x: member.displayColor.toString() || "#!N/A",
+                                        c: user.createdAt.toString() || "#!N/A",
+                                        j: member.joinedAt.toString() || "#!N/A",
+                                        b: member.premiumSince?.toString() || "#!N/A"
+                                    }
+                    )
                 }
             }
             let embed = new MessageEmbed()
@@ -1000,6 +1011,34 @@ ${styles}
             }
         },
         help: {
+            info: `[user-info <user> [format]<br>
+valid formats:<br>
+<ul>
+    <li>
+    <code>{id}</code> or <code>{i}</code> or <code>%i</code>: user id
+    </li>
+    <li>
+    <code>{username}</code> or <code>{u}</code> or <code>%u</code>: user username
+    </li>
+    <li>
+    <code>{nickname}</code> or <code>{n}</code> or <code>%n</code>: user nickname
+    </li>
+    <li>
+    <code>{0xcolor}</code> or <code>{X}</code> or <code>%X</code>: user color in hex
+    </li>
+    <li>
+    <code>{color}</code> or <code>{x}</code> or <code>%x</code>: user color
+    </li>
+    <li>
+    <code>{created}</code> or <code>{c}</code> or <code>%c</code>: when the user was created
+    </li>
+    <li>
+    <code>{joined}</code> or <code>{j}</code> or <code>%j</code>: when the user joined the server
+    </li>
+    <li>
+    <code>{boost}</code> or <code>{b}</code> or <code>%b</code>: when the user started boosting the server
+    </li>
+</ul>`,
             aliases: []
         }
     },

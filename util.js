@@ -32,8 +32,21 @@ function downloadSync(url){
     return execFileSync(`curl`, ['--silent', url])
 }
 
+function format(str, formats, doPercent, doBraces){
+    if(doBraces === undefined) doBraces = true
+    if(doPercent === undefined) doPercent = true
+    for(let fmt in formats){
+        if(fmt.length > 1){
+            str = str.replaceAll(`{${fmt}}`, formats[fmt])
+        }
+        else str = str.replaceAll(new RegExp(`((?<!%)%${fmt}|(?<!\\\\)\\{${fmt}\\})`, "g"), formats[fmt])
+    }
+    return str
+}
+
 export{
     fetchUser,
     generateFileName,
-    downloadSync
+    downloadSync,
+    format
 }
