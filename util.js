@@ -44,9 +44,25 @@ function format(str, formats, doPercent, doBraces){
     return str
 }
 
+async function createGradient(gradient, gradientAngle, x, y, width, height, msg, ctx){
+    let grad = ctx.createLinearGradient(x, y, (Math.cos(gradientAngle) * width) + x, (Math.sin(gradientAngle) * height) + y)
+    let colorStep = 1 / (gradient.length - 1)
+    for(let i = 0; i < gradient.length; i++){
+        try{
+            console.log(i * colorStep, gradient[i])
+            grad.addColorStop(i * colorStep, gradient[i])
+        }
+        catch(err){
+            await msg.channel.send(`${gradient[i]} is not a color`)
+        }
+    }
+    return grad
+}
+
 export{
     fetchUser,
     generateFileName,
     downloadSync,
-    format
+    format,
+    createGradient
 }

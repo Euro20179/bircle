@@ -13,7 +13,7 @@ import cheerio from 'cheerio'
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } from './common.js'
 import { parseCmd, parsePosition } from './parsing.js'
-import { downloadSync, fetchUser, format, generateFileName } from './util.js'
+import { downloadSync, fetchUser, format, generateFileName, createGradient } from './util.js'
 
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]})
@@ -260,8 +260,9 @@ const commands = {
         run: async (msg, args) => {
             let opts = {};
             [opts, args] = getOpts(args)
-            const width = parseFloat(args[0]) || 100
-            const height = parseFloat(args[1]) || 100
+            let gradient = opts['gradient']?.split(">")
+            const width = parseFloat(args[0]) || parseFloat(opts['w']) || parseFloat(opts['width']) || parseFloat(opts['size']) || 100
+            const height = parseFloat(args[1]) || parseFloat(opts['h']) || parseFloat(opts['height']) || parseFloat(opts['size']) || 100
             if(width < 0){
                 return {
                     content: "Width must be > 0"
@@ -283,7 +284,14 @@ const commands = {
             }
             const img = canvas.createCanvas(width, height)
             const ctx = img.getContext("2d")
-            ctx.fillStyle = args[2] || opts['color'] || "black"
+            if(gradient){
+                let [lastGrad, grad_angle] = gradient.slice(-1)[0].split(":")
+                grad_angle = parseFloat(grad_angle) * Math.PI / 180
+                if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
+                else gradient[gradient.length - 1] = lastGrad
+                ctx.fillStyle = await createGradient(gradient, grad_angle, x, y, width, height, msg, ctx)
+            }
+            else ctx.fillStyle = args[2] || opts['color'] || "black"
             ctx.fillRect(0, 0, width, height)
             let fmt = fmts[opts["fmt"]] || "image/png"
             let ext = exts[fmt]
@@ -318,6 +326,220 @@ const commands = {
             options: {
                 "fmt": {
                     description: "The image format to use, can be png, or jpg, eg: -fmt=png"
+                },
+                "gradient": {
+                    description: "Put a gradient instead of solid color, stynax: <code>-gradient=color1>color2>color3...</code>"
+                },
+                "grad-angle": {
+                    description: "The angle to put the gradient at in degrees"
+                },
+                "size": {
+                    description: "Width, and height of the image, syntax: <code>-size=number</code>"
+                },
+                "height": {
+                    description: "Height of the image"    
+                },
+                "h":{
+                    description: "Height of the image, overrides -height"
+                },
+                "width": {
+                    description: "Width of the image"
+                },
+                "w": {
+                    description: "Width of the image, overrides -width"
+                }
+            }
+        }
+    },
+    polygon: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let gradient = opts['gradient']?.split(">")
+            let color = opts['color'] || "white"
+            let img = opts['img']
+            if(msg.attachments?.at(0)){
+                img = msg.attachments.at(0)?.attachment
+            }
+            if(!img) {
+                img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+            }
+            if(!img){
+                return {content: "no img found"}
+            }
+            args = args.join(" ")
+            let positions = []
+            for(let pos of args.split('|')){
+                let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
+                positions.push([x, y])
+            }
+            https.request(img, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async() => {
+                    let fn = `${generateFileName("polygon", msg.author.id)}.png`
+                    fs.writeFileSync(fn, data.read())
+                    let img = await canvas.loadImage(fn)
+                    fs.rmSync(fn)
+                    let canv = new canvas.Canvas(img.width, img.height)
+                    let ctx = canv.getContext("2d")
+                    ctx.drawImage(img, 0, 0, img.width, img.height)
+                    ctx.beginPath()
+
+                    let startX = parsePosition(positions[0][0], img.width)
+                    let startY = parsePosition(positions[0][1], img.height)
+                    ctx.moveTo(startX, startY)
+                    let minX = startX, minY = startY
+                    let maxX = startX, maxY = startY
+                    for(let pos of positions.slice(1)){
+                        let x = parsePosition(pos[0], img.width)
+                        let y = parsePosition(pos[1], img.width)
+                        if(x < minX) minX = x;
+                        if(x > maxX) maxX = x;
+                        if(y < minY) minY = y;
+                        if(y > maxY) maxY = y
+                        ctx.lineTo(x, y)
+                    }
+                    let width = maxX - minX
+                    let height = maxY - minY
+                    if(gradient){
+                        let [lastGrad, grad_angle] = gradient.slice(-1)[0].split(":")
+                        grad_angle = parseFloat(grad_angle) * Math.PI / 180
+                        if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
+                        else gradient[gradient.length - 1] = lastGrad
+                        ctx.fillStyle = await createGradient(gradient, grad_angle, startX, startY, width, height, msg, ctx)
+                    }
+                    else ctx.fillStyle = color
+                    ctx.fill()
+                    const buffer = canv.toBuffer("image/png")
+                    fs.writeFileSync(fn, buffer)
+                    msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
+                        fs.rmSync(fn)
+                    }).catch(err => {
+                    })
+                })
+            }).end()
+            return {
+                content: "generating img"
+            }
+        }
+    },
+    rect: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let color = opts['color'] || "white"
+            let img = opts['img']
+            let gradient = opts['gradient']?.split(">")
+            let [x, y, width, height] = args.slice(0,4)
+            if(!x){
+                x = opts['x'] || "0"
+            }
+            if(!y){
+                y = opts['y'] || "0"
+            }
+            if(!width){
+                width = opts['w'] || opts['width'] || opts['size'] || "50"
+            }
+            if(!height){
+                height = opts['h'] || opts['height'] || opts['size'] || width || "50"
+            }
+            width = parseInt(width)
+            height = parseInt(height)
+            if(msg.attachments?.at(0)){
+                img = msg.attachments.at(0)?.attachment
+            }
+            if(!img) {
+                img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+            }
+            if(!img){
+                return {content: "no img found"}
+            }
+            https.request(img, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async() => {
+                    let fn = `${generateFileName("rect", msg.author.id)}.png`
+                    fs.writeFileSync(fn, data.read())
+                    let img = await canvas.loadImage(fn)
+                    fs.rmSync(fn)
+                    let canv = new canvas.Canvas(img.width, img.height)
+                    let ctx = canv.getContext("2d")
+                    ctx.drawImage(img, 0, 0, img.width, img.height)
+                    x = parsePosition(x, img.width, width)
+                    y = parsePosition(y, img.height, height)
+                    if(gradient){
+                        let [lastGrad, grad_angle] = gradient.slice(-1)[0].split(":")
+                        grad_angle = parseFloat(grad_angle) * Math.PI / 180
+                        if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
+                        else gradient[gradient.length - 1] = lastGrad
+                        ctx.fillStyle = await createGradient(gradient, grad_angle, x, y, width, height, msg, ctx)
+                    }
+                    else ctx.fillStyle = color
+                    ctx.fillRect(x, y, width, height)
+                    const buffer = canv.toBuffer("image/png")
+                    fs.writeFileSync(fn, buffer)
+                    msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
+                        fs.rmSync(fn)
+                    }).catch(err => {
+                    })
+                })
+            }).end()
+            return {
+                content: "generating img"
+            }
+        },
+        help: {
+            info: "Generate rectangles :))",
+            arguments: {
+                x: {
+                    description: "x position of rectangle",
+                    required: false
+                },
+                y: {
+                    description: "y position of rectangle",
+                    requires: "x"
+                },
+                width: {
+                    description: "width of rectangle",
+                    requires: "y"
+                },
+                height: {
+                    description: "height of rectangle",
+                    requires: "width"
+                }
+            },
+            options: {
+                color: {
+                    description: "color of the rectangle"
+                },
+                gradient: {
+                    description: "Use a gradient, syntax: <code>-gradient=color1>color2...</code>"
+                },
+                "grad-angle": {
+                    description: "The angle of the gradient, in degrees"
+                },
+                "width": {
+                    description: "The width of the rectangle"
+                },
+                "w": {
+                    description: "The width of the rectangle, overrides -width"
+                },
+                "height": {
+                    description: "The height of the rectangle"
+                },
+                "h": {
+                    description: "The height of the rectangle, overrides -height"
+                },
+                "size": {
+                    description: "The width, and height of the rectangle, given as 1 number"
+                },
+                "img": {
+                    description: "A link to the image to use"
                 }
             }
         }
@@ -330,10 +552,18 @@ const commands = {
             let size = opts["size"] || "20px"
             let font = opts["font"] || "Arial"
             let color = opts["color"] || "red"
+            let rotation = opts['rotate'] || opts['angle'] || "0.0"
+            rotation = parseFloat(rotation)
             let x = opts["x"] || "0"
             let y = opts["y"] || "0"
+            if(msg.attachments?.at(0)){
+                img = msg.attachments.at(0)?.attachment
+            }
             if(!img) {
                 img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+            }
+            if(!img){
+                return {content: "no img found"}
             }
 
             let fn = `${generateFileName("text", msg.author.id)}.png`
@@ -357,11 +587,16 @@ const commands = {
                     x = parsePosition(x, img.width, textW)
                     y = parsePosition(y, img.height, textH)
                     y += textH
+                    if(rotation){
+                        ctx.translate(x, y)
+                        ctx.textAlign = "right"
+                        ctx.rotate(rotation * Math.PI / 180)
+                    }
                     ctx.fillText(args.join(" ").trim() || "?", x, y)
                     const buffer = canv.toBuffer("image/png")
-                    fs.writeFileSync(`./out.png`, buffer)
-                    msg.channel.send({files: [{attachment: './out.png', name: './out.png',}]}).then(res => {
-                        fs.rmSync('./out.png')
+                    fs.writeFileSync(fn, buffer)
+                    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        fs.rmSync(fn)
                     }).catch(err => {
                     })
                 })

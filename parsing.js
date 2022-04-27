@@ -179,13 +179,24 @@ function parseCmd({msg, content, command, customEscapes, customFormats}){
 }
 
 function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
-    console.log(v1, op, v2)
-    const conversions = {
-        "center": areaSize / 2 - objectSize / 2,
-        "left": areaSize - objectSize,
-        "right": 0,
-        "bottom": areaSize - objectSize,
-        "top": 0
+    let conversions
+    if(!objectSize){
+        conversions = {
+            "center": areaSize / 2,
+            "right": areaSize,
+            "left": 0,
+            "bottom": areaSize,
+            "top": 0
+        }
+    }
+    else{
+        conversions = {
+            "center": areaSize / 2 - objectSize / 2,
+            "right": areaSize - objectSize,
+            "left": 0,
+            "bottom": areaSize - objectSize,
+            "top": 0
+        }
     }
     if(conversions[v1] !== undefined){
         v1 = conversions[v1]
@@ -204,6 +215,8 @@ function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
             return v1 * v2;
         case "/":
             return Math.round(v1 / v2);
+        case "%":
+            return Math.round(areaSize * (v1/100))
     }
     return parseInt(v2)
 }
@@ -211,12 +224,13 @@ function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
 function parsePosition(position, areaSize, objectSize){
     let firstVal, secondVal, operator
     let curValue = ""
-    console.log(position)
     for(let char of position){
         switch(char){
+            case " ": continue
             case "-":
             case "+":
             case "/":
+            case "%":
             case "*":
                 operator = char
                 firstVal = curValue
