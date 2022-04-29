@@ -78,6 +78,11 @@ const slashCommands = [
         createChatCommandOption(INTEGER, "height", "height of image", {required: true, min: 0, max: 5000}),
         createChatCommandOption(STRING, "color", "color of image", {})
     ]),
+    createChatCommand("ccmd", "create a custom command, WOWZERS", [
+        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", {required: true}),
+        createChatCommandOption(STRING, "command", "the command to run (NO SPACES)", {required: true}),
+        createChatCommandOption(STRING, "args", "arguments to use for command", {})
+    ]),
     createChatCommand("help", "get help", []),
     {
         name: "ping",
@@ -169,15 +174,30 @@ const commands = {
         run: async (msg, args) => {
             let opts
             [opts, args] = getOpts(args)
+            let embedText = opts['e'] || opts['embed']
+            let embed
+            if(embedText){
+                embed = new MessageEmbed()
+                embed.setTitle(embedText)
+                let color
+                if(color = opts['color'] || opts['e-color'] || opts['embed-color']){
+                    try{
+                        embed.setColor(color)
+                    }
+                    catch(err){
+                    }
+                }
+            }
             args = args.join(" ")
-            if(!args){
+            if(!args && !embed){
                 return {
                     content: "cannot send nothing"
                 }
             }
             return {
                 delete: !(opts["D"] || opts['no-del']),
-                content: args
+                content: args,
+                embeds: embed ? [embed] : undefined
             }
         },
         help: {
@@ -357,6 +377,9 @@ const commands = {
             if(msg.attachments?.at(0)){
                 img = msg.attachments.at(0)?.attachment
             }
+            if(msg.reply?.attachments?.at(0)){
+                img = msg.reply.attachments.at(0)?.attachment
+            }
             if(!img) {
                 img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
             }
@@ -448,6 +471,9 @@ const commands = {
             height = parseInt(height)
             if(msg.attachments?.at(0)){
                 img = msg.attachments.at(0)?.attachment
+            }
+            if(msg.reply?.attachments?.at(0)){
+                img = msg.reply.attachments.at(0)?.attachment
             }
             if(!img) {
                 img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
@@ -651,6 +677,9 @@ const commands = {
             if(msg.attachments?.at(0)){
                 img = msg.attachments.at(0)?.attachment
             }
+            if(msg.reply?.attachments?.at(0)){
+                img = msg.reply.attachments.at(0)?.attachment
+            }
             if(!img) {
                 img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
             }
@@ -712,6 +741,9 @@ const commands = {
             let y = opts["y"] || "0"
             if(msg.attachments?.at(0)){
                 img = msg.attachments.at(0)?.attachment
+            }
+            if(msg.reply?.attachments?.at(0)){
+                img = msg.reply.attachments.at(0)?.attachment
             }
             if(!img) {
                 img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
@@ -1744,16 +1776,9 @@ valid formats:<br>
             let realCmd = args[0]
             args = args.slice(1)
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
-            return {
-                content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``
-            }
-        }
-    },
-    "reload-alias": {
-        run: async(msg, args) => {
             createAliases()
             return {
-                content: "Reloaded"
+                content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``
             }
         }
     },
@@ -1850,11 +1875,10 @@ async function doCmd(msg, returnJson=false){
         else rv = {content: "You do not have permissions to run this command"}
     }
     else if(aliases[command]){
-        msg.content = `${prefix}${aliases[command].join(" ")} ${args}`
+        msg.content = `${prefix}${aliases[command].join(" ")} ${args.join(" ")}`
         command = aliases[command][0]
         //finds the original command
         while(aliases[command]?.[0]){
-            console.log(command)
             command = aliases[command][0]
         }
         rv = await doCmd(msg, true)
@@ -1885,6 +1909,8 @@ async function doCmd(msg, returnJson=false){
             }]
         }
     }
+    if(!rv.content)
+        delete rv['content']
     await msg.channel.send(rv)
     if(rv.files){
         for(let file of rv.files){
@@ -1952,6 +1978,21 @@ client.on("interactionCreate", async(interaction) => {
                     description: "lmao"
                 }]
             })
+        }
+        else if(interaction.commandName == "ccmd"){
+            interaction.author = interaction.member.user
+            let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value]
+            let args = interaction.options.get("args")?.value
+            if(args){
+                arglist = arglist.concat(args.split(" "))
+            }
+            let rv = await commands['alias'].run(interaction, arglist)
+            await interaction.reply(rv)
+            if(rv.files){
+                for(let file of rv.files){
+                    fs.rmSync(file.attachment)
+                }
+            }
         }
     }
     else if(interaction.isUserContextMenu()){

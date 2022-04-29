@@ -5,3 +5,9 @@
 334538784043696130: invert filter invert;END
 334538784043696130: last !!;END
 334538784043696130: l last;END
+334538784043696130: ccmd alias ;END
+334538784043696130: HELLO echo -D {user};END
+334538784043696130: test echo -D {user};END
+334538784043696130: y echo -D;END
+334538784043696130: Y echo {user};END
+334538784043696130: coloredlines color >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>;END
