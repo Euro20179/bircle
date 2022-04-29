@@ -27,6 +27,11 @@ let SPAM_ALLOWED = true
 
 let SPAMS = {}
 
+let lastCommand;
+let snipe;
+
+const illegalLastCmds = ["!!", "spam"]
+
 function createChatCommand(name, description, options){
     return {
         name: name,
@@ -162,7 +167,7 @@ function generateHTMLFromCommandHelp(name, command){
 const commands = {
     echo:{
         run: async (msg, args) => {
-            let opts, _
+            let opts
             [opts, args] = getOpts(args)
             args = args.join(" ")
             if(!args){
@@ -171,7 +176,7 @@ const commands = {
                 }
             }
             return {
-                delete: !opts["D"],
+                delete: !(opts["D"] || opts['no-del']),
                 content: args
             }
         },
@@ -181,6 +186,9 @@ const commands = {
             options: {
                 "D": {
                     description: "If given, dont delete original message"
+                },
+                "no-del": {
+                    description: "same as -D"
                 }
             },
             arguments: {
@@ -1748,6 +1756,22 @@ valid formats:<br>
                 content: "Reloaded"
             }
         }
+    },
+    "!!": {
+        run: async(msg, args) => {
+            if(!lastCommand){
+                return {content: "You ignorance species, there have not been any commands run."}
+            }
+            return await doCmd(lastCommand, true)
+        }
+    },
+    snipe: {
+        run: async(msg, args) => {
+            if(!snipe){
+                return {content: "You idiot, nothing was ever said ever in the history of this server"}
+            }
+            return {content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, files: snipe.attachments?.toJSON(), deleteFiles: false, embeds: snipe.embeds}
+        }
     }
 }
 
@@ -1827,10 +1851,19 @@ async function doCmd(msg, returnJson=false){
     }
     else if(aliases[command]){
         msg.content = `${prefix}${aliases[command].join(" ")} ${args}`
+        command = aliases[command][0]
+        //finds the original command
+        while(aliases[command]?.[0]){
+            console.log(command)
+            command = aliases[command][0]
+        }
         rv = await doCmd(msg, true)
     }
     else {
         rv = {content: `${command} does not exist`}
+    }
+    if(!illegalLastCmds.includes(command)){
+        lastCommand = msg
     }
     if(returnJson){
         return rv;
@@ -1855,7 +1888,7 @@ async function doCmd(msg, returnJson=false){
     await msg.channel.send(rv)
     if(rv.files){
         for(let file of rv.files){
-            if(file.delete !== false)
+            if(file.delete !== false && rv.deleteFiles)
                 fs.rmSync(file.attachment)
         }
     }
@@ -1863,6 +1896,11 @@ async function doCmd(msg, returnJson=false){
 
 client.on('ready', () => {
     console.log("ONLINE")
+})
+
+client.on("messageDelete", async(m) => {
+    if(m.author.id != client.id)
+        snipe = m
 })
 
 client.on("messageCreate", async(m) => {
