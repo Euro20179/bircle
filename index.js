@@ -10,13 +10,14 @@ import {Client, Intents, Message, MessageEmbed } from 'discord.js'
 import canvas from 'canvas'
 import got from 'got'
 import cheerio from 'cheerio'
+import jimp from 'jimp'
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } from './common.js'
 import { parseCmd, parsePosition } from './parsing.js'
-import { downloadSync, fetchUser, format, generateFileName, createGradient } from './util.js'
+import { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex } from './util.js'
 
 
-const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]})
+const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS]})
 
 const token = fs.readFileSync("./TOKEN", "utf-8")
 const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8")
@@ -84,7 +85,7 @@ const slashCommands = [
 ]
 
 function getContentFromResult(result){
-    return result["content"] || ""
+    return result['content'] || ""
 }
 
 function turnArgsToString(args){
@@ -261,8 +262,8 @@ const commands = {
             let opts = {};
             [opts, args] = getOpts(args)
             let gradient = opts['gradient']?.split(">")
-            const width = parseFloat(args[0]) || parseFloat(opts['w']) || parseFloat(opts['width']) || parseFloat(opts['size']) || 100
-            const height = parseFloat(args[1]) || parseFloat(opts['h']) || parseFloat(opts['height']) || parseFloat(opts['size']) || width || 100
+            const width = Math.min(parseFloat(args[0]) || parseFloat(opts['w']) || parseFloat(opts['width']) || parseFloat(opts['size']) || 100, 2000)
+            const height = Math.min(parseFloat(args[1]) || parseFloat(opts['h']) || parseFloat(opts['height']) || parseFloat(opts['size']) || width || 100, 2000)
             if(width < 0){
                 return {
                     content: "Width must be > 0"
@@ -289,7 +290,7 @@ const commands = {
                 grad_angle = parseFloat(grad_angle) * Math.PI / 180
                 if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
                 else gradient[gradient.length - 1] = lastGrad
-                ctx.fillStyle = await createGradient(gradient, grad_angle, x, y, width, height, msg, ctx)
+                ctx.fillStyle = await createGradient(gradient, grad_angle, 0, 0, width, height, msg, ctx)
             }
             else ctx.fillStyle = args[2] || opts['color'] || "black"
             ctx.fillRect(0, 0, width, height)
@@ -311,11 +312,11 @@ const commands = {
         help: {
             arguments: {
                 width: {
-                    description: "the width of the image",
+                    description: "the width of the image, max of 2000",
                     required: false
                 },
                 height: {
-                    description: "the height of the image",
+                    description: "the height of the image, max of 2000",
                     requires: "width"
                 },
                 color: {
@@ -334,7 +335,7 @@ const commands = {
                     description: "The angle to put the gradient at in degrees"
                 },
                 "size": {
-                    description: "Width, and height of the image, syntax: <code>-size=number</code>"
+                    description: "Width, and height of the image, syntax: <code>-size=number</code>, max of 2000"
                 },
                 "height": {
                     description: "Height of the image"    
@@ -486,7 +487,10 @@ const commands = {
                         ctx.shadowColor = shadow
                         ctx.shadowBlur = parseInt(shadowBlur || opts['shadow-blur']) || 20
                     }
-                    ctx.fillRect(x, y, width, height)
+                    if(color == 'transparent'){
+                        ctx.clearRect(x, y, width, height)
+                    }
+                    else ctx.fillRect(x, y, width, height)
                     if(outline){
                         let [color, lineWidth] = outline.split(":")
                         ctx.lineWidth = parseInt(lineWidth || opts['o-width'] || "1")
@@ -534,7 +538,7 @@ const commands = {
             },
             options: {
                 color: {
-                    description: "color of the rectangle"
+                    description: "color of the rectangle, if color is 'transparent', it will make that section of the image transparent"
                 },
                 gradient: {
                     description: "Use a gradient, syntax: <code>-gradient=color1>color2...[:angle]</code>"
@@ -580,6 +584,121 @@ const commands = {
                 },
                 "img": {
                     description: "A link to the image to use"
+                }
+            }
+        }
+    },
+    scale: {
+        run: async(msg, args) => {
+            let opts, img;
+            [opts, args] = getOpts(args)
+            let xScale = args[0] || "2.0"
+            let yScale = args[1] || "2.0"
+            if(msg.attachments?.at(0)){
+                img = msg.attachments.at(0)?.attachment
+            }
+            if(!img) {
+                img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+            }
+            if(!img){
+                return {content: "no img found"}
+            }
+            https.request(img, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                let fn = `${generateFileName("scale", msg.author.id)}.png`
+                resp.on("end", async() => {
+                    fs.writeFileSync(fn, data.read())
+                    let img = await canvas.loadImage(fn)
+                    fs.rmSync(fn)
+                    xScale = Math.min(parsePosition(xScale, img.width, img.width, parseFloat), 2000)
+                    yScale = Math.min(parsePosition(yScale, img.height, img.height, parseFloat), 2000)
+                    let canv = new canvas.Canvas(img.width * xScale, img.height * yScale)
+                    let ctx = canv.getContext("2d")
+                    ctx.drawImage(img, 0, 0, img.width * xScale, img.height * yScale)
+                    let buffer
+                    try{
+                        buffer = canv.toBuffer("image/png")
+                    }
+                    catch(err){
+                        await msg.channel.send("Could not generate image")
+                        return
+                    }
+                    fs.writeFileSync(fn, buffer)
+                    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        fs.rmSync(fn)
+                    }).catch(err => {
+                    })
+                })
+            }).end()
+            return {
+                content: "generating img"
+            }
+        },
+        help: {
+            arguments: {
+                "scale-width": {
+                    description: "The amount to scale the width by"
+                },
+                'scale-height': {
+                    description: 'The amount to scale the height by'
+                }
+            }
+        }
+    },
+    filter: {
+        run: async(msg, args) => {
+            args = args.join(" ")
+            let filters = args.split("|")
+            let img
+            if(msg.attachments?.at(0)){
+                img = msg.attachments.at(0)?.attachment
+            }
+            if(!img) {
+                img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+            }
+            if(!img){
+                return {content: "no img found"}
+            }
+            https.request(img, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                let fn = `${generateFileName("scale", msg.author.id)}.png`
+                resp.on("end", async() => {
+                    fs.writeFileSync(fn, data.read())
+                    let img = await canvas.loadImage(fn)
+                    fs.rmSync(fn)
+                    let canv = new canvas.Canvas(img.width, img.height)
+                    let ctx = canv.getContext("2d")
+                    ctx.drawImage(img, 0, 0, img.width, img.height)
+                    let buffer = canv.toBuffer("image/png")
+                    let jimpImg = await jimp.read(buffer)
+                    for(let filter of filters){
+                        let args;
+                        [filter, args] = filter.split(":")
+                        jimpImg = await applyJimpFilter(jimpImg, filter, args)
+                    }
+                    buffer = await jimpImg.getBufferAsync("image/png")
+                    fs.writeFileSync(fn, buffer)
+                    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        fs.rmSync(fn)
+                    }).catch(err => {
+                    })
+                })
+            }).end()
+            return {
+                content: "generating img"
+            }
+        },
+        help: {
+            info: "Filters:<br>rotate[:angle]<br>flip[:hor|vert]<br>brightness[:val]<br>grey|greyscale|gray|grayscale<br>invert<br>contrast[:val]",
+            arguments: {
+                filter: {
+                    description: "The filters to use, each filter is seperated by |"
                 }
             }
         }
@@ -633,7 +752,7 @@ const commands = {
                         ctx.rotate(rotation * Math.PI / 180)
                     }
                     ctx.fillText(args.join(" ").trim() || "?", x, y)
-                    const buffer = canv.toBuffer("image/png")
+                    let buffer = canv.toBuffer("image/png")
                     fs.writeFileSync(fn, buffer)
                     msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
                         fs.rmSync(fn)
@@ -643,6 +762,38 @@ const commands = {
             }).end()
             return {
                 content: "generating img"
+            }
+        },
+        help: {
+            info: "Put text on an image",
+            arguments: {
+                text: {
+                    description: "The text to put",
+                    required: true
+                },
+                img: {
+                    description: "Image file to use"
+                }
+            },
+            options: {
+                img: {
+                    description: "Link to image to use"
+                },
+                size: {
+                    description: "Size of the text"
+                },
+                font: {
+                    description: "Font of text (restricted to fonts i have installed)"
+                },
+                color: {
+                    description: "Color of the text"
+                },
+                x: {
+                    description: "x of the text"
+                },
+                y: {
+                    description: "y of the text"
+                }
             }
         }
     },
@@ -662,6 +813,161 @@ const commands = {
             }
             return {
                 content: ans.join(sep) || "```invalid message```"
+            }
+        }
+    },
+    weather: {
+        run: async(msg, args) => {
+            let url = "https://www.wttr.in"
+            let town = args.join(" ") || "tokyo"
+
+            https.request(`${url}/${encodeURI(town)}?format=1`, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on('end', async() => {
+                    data = data.read().toString()
+                    let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
+                    let condition, temp, unit
+                    try{
+                        [condition, temp, unit] = tempData.slice(1,4)
+                    }
+                    catch(err){
+                        await msg.channel.send({content: "Could not find weather :("})
+                        return
+                    }
+                    temp = Number(temp)
+                    let tempC, tempF
+                    if(unit == "C"){
+                        tempF = temp * 9/5 + 32
+                        tempC = temp
+                    } else if(unit == "F"){
+                        tempC = (temp - 32) * 5/9
+                        tempF = temp
+                    }
+                    let color = "DARK_BUT_NOT_BLACK"
+                    if(tempF >= 110) color = "#aa0000"
+                    if(tempF < 110) color = "#ff0000"
+                    if(tempF < 100) color = "#ff412e"
+                    if(tempF < 90) color = "ORANGE"
+                    if(tempF < 75) color = "YELLOW"
+                    if(tempF < 60) color = "GREEN"
+                    if(tempF < 45) color = "BLUE"
+                    if(tempF < 32) color = "#5be6ff"
+                    if(tempF < 0) color = "PURPLE"
+                    let embed = new MessageEmbed()
+                    embed.setTitle(town)
+                    embed.setColor(color)
+                    embed.addField("condition", condition, false)
+                    embed.addField("Temp F", `${tempF}F`, true)
+                    embed.addField("Temp C", `${tempC}C`, true)
+                    embed.setFooter({text: `For more info, visit ${url}/${encodeURI(town)}`})
+                    await msg.channel.send({embeds: [embed]})
+                })
+            }).end()
+            return {
+                content: 'getting weather'
+            }
+        },
+        help: {
+            info: "Get weather for a specific place, default: tokyo",
+            arguments: {
+                "location": {
+                    description: "Where do you want the weather for"
+                }
+            }
+        }
+    },
+    rotate: {
+        run: async(msg, args) => {
+            return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`])
+        }
+    },
+    color: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            args = args.join(" ")
+            let color = args || "RANDOM"
+            let colors = args.split(">")
+
+            const width = Math.min(parseInt(opts['w']) || 250, 2000)
+            const height = Math.min(parseInt(opts['h']) || 250, 2000)
+            const img = canvas.createCanvas(width, height)
+            const ctx = img.getContext("2d")
+
+            let content = color
+            let fn = `${generateFileName("color", msg.author.id)}.png`
+            if(colors.length > 1){
+                let grad_angle = 0
+                let gradient = []
+                let colorStrings = []
+                for(let i = 0; i < Math.min(colors.length, 1e9); i++){
+                    let R, G, B
+                    if(colors[i]){
+                        colorStrings.push(colors[i])
+                        gradient.push(colors[i])
+                    }
+                    else{
+                        [R, G, B] = randomColor()
+                        gradient.push(`rgb(${R}, ${G}, ${B})`)
+                        colorStrings.push(rgbToHex(R, G, B))
+                    }
+                }
+                ctx.fillStyle = await createGradient(gradient, grad_angle, 0, 0, width, height, msg, ctx)
+                content = colorStrings.join(" > ")
+            }
+            else{
+                if(color == "RANDOM"){
+                    let [R, G, B] = randomColor()
+                    color = `rgb(${R}, ${G}, ${B})`
+                    content = rgbToHex(R, G, B)
+                }
+                ctx.fillStyle = color
+            }
+            ctx.fillRect(0, 0, width, height)
+            const buffer = img.toBuffer('image/png')
+            fs.writeFileSync(fn, buffer)
+            return {
+                files:[
+                    {
+                        attachment: fn,
+                        name: `file.png`,
+                        description: "why can i describe this"
+                    }
+                ],
+                content: content
+            }
+        },
+        help: {
+            info: "Generate a random color",
+            arguments: {
+                "color": {
+                    description: "The color to generate, can also be >, which will create a gradient"
+                }
+            },
+            options: {
+                "width": {
+                    description: "width of image"
+                },
+                "height": {
+                    description: "height of image"
+                }
+            }
+        }
+    },
+    "l-bl": {
+        run: async(msg, args) => {
+            return {
+                content: fs.readFileSync("command-perms/blacklists", "utf-8")
+            }
+        }
+    },
+    "l-wl": {
+        run: async(msg, args) => {
+            return {
+                content: fs.readFileSync("command-perms/whitelists", "utf-8")
             }
         }
     },
@@ -690,6 +996,10 @@ const commands = {
     },
     stop: {
         run: async(msg, args) => {
+            if(!Object.keys(SPAMS).length){
+                return {
+                }
+            }
             if(args[0]){
                 if(SPAMS[args[0]]){
                     delete SPAMS[args[0]]
@@ -747,11 +1057,11 @@ const commands = {
                 }
             }
             let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
-            let options = data.map((value, i) => `${i + 1}:\t${value.trim()}`)
+            let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
             let fn = generateFileName("remove", msg.author.id)
             fs.writeFileSync(fn, options.join("\n"))
             await msg.channel.send({
-                content: "Say the number of what you want to remove",
+                content: "Say the number of what you want to remove, or type cancel",
                 files: [{
                     attachment: fn,
                     name: "remove.txt"
@@ -760,6 +1070,11 @@ const commands = {
             fs.rmSync(fn)
             try{
                 let m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 1, time: 30000, errors: ['time']})
+                if(['cancel', 'c'].includes(m.at(0).content)){
+                    return {
+                        content: "cancelled"
+                    }
+                }
                 let num = parseInt(m.at(0).content)
                 if(!num){
                     await msg.channel.send(`${num} is not a valid number`)
@@ -1064,7 +1379,7 @@ ${styles}
                 }
                 fs.writeFileSync("help.html", html)
             }
-            if(opts["p"]){
+            if(opts["p"] || opts['t']){
                 opts["plain"] = true
             }
             if(opts["m"]){
@@ -1103,6 +1418,13 @@ ${styles}
                     name: `help.${ext}`,
                     description: "help"
                 })
+            }
+            if(fs.existsSync("output.txt")){
+                let content = fs.readFileSync("output.txt", "utf-8")
+                fs.rmSync('output.txt')
+                return {
+                    content: `\`\`\`\n${content}\n\`\`\``
+                }
             }
             if(files.length > 0){
                 return {
@@ -1226,6 +1548,54 @@ ${styles}
         },
         permCheck: (msg) => {
             return ADMINS.includes(msg.author.id)
+        }
+    },
+    "rand-user": {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let member 
+            if(!opts['f'])
+                member = msg.channel.guild.members.cache.random()
+            if(!member)
+                member = (await msg.channel.guild.members.fetch()).random()
+            let fmt = args.join(" ") || "%u (%n)"
+            let user = member.user
+            return {
+                    content: format(fmt
+                                    .replaceAll("{id}", user.id || "#!N/A")
+                                    .replaceAll("{username}", user.username || "#!N/A")
+                                    .replaceAll("{nickname}", member.nickName || "#!N/A")
+                                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                                    {
+                                        i: user.id || "#!N/A",
+                                        u: user.username || "#!N/A",
+                                        n: member.nickName || "#!N/A",
+                                        X: member.displayHexColor.toString() || "#!N/A",
+                                        x: member.displayColor.toString() || "#!N/A",
+                                        c: user.createdAt.toString() || "#!N/A",
+                                        j: member.joinedAt.toString() || "#!N/A",
+                                        b: member.premiumSince?.toString() || "#!N/A"
+                                    }
+                    )
+            }
+        },
+        help: {
+            info: "Gives a random server member",
+            arguments: {
+                "fmt": {
+                    description: "The format to print the user, default: \"%u (%n)\"<br>Formats:<br>%i: user id<br>%u: username<br>%n: nickname<br>%X: hex color<br>%x: color<br>%c: Created at<br>%j: Joined at<br>%b: premium since"
+                }
+            },
+            options: {
+                "f": {
+                    description: "Fetch all members in guild, instead of using preloaded members"
+                }
+            }
         }
     },
     "user-info": {
@@ -1371,8 +1741,42 @@ valid formats:<br>
                 }
             }
         }
+    },
+    alias: {
+        run: async(msg, args) => {
+            let cmd
+            [cmd, ...args] = args
+            let realCmd = args[0]
+            args = args.slice(1)
+            fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
+            return {
+                content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``
+            }
+        }
+    },
+    "reload-alias": {
+        run: async(msg, args) => {
+            createAliases()
+            return {
+                content: "Reloaded"
+            }
+        }
     }
 }
+
+let aliases = {}
+function createAliases(){
+    let data = fs.readFileSync("command-results/alias", "utf-8")
+    for (let cmd of data.split(';END')){
+        if(!cmd.trim()) continue
+        let [user, args] = cmd.split(":")
+        args = args.trim()
+        let [actualCmd, ...rest] = args.split(" ")
+        actualCmd = actualCmd.trim()
+        aliases[actualCmd] = rest
+    }
+}
+createAliases()
 
 function alias(a, o){
     commands[a] = commands[o]
@@ -1384,9 +1788,6 @@ function alias(a, o){
         commands[o].help.aliases = [a]
     }
 }
-alias("e", "echo")
-alias("ui", "user-info")
-alias("userinfo", "user-info")
 
 const rest = new REST({version: "9"}).setToken(token);
 
@@ -1406,65 +1807,69 @@ const rest = new REST({version: "9"}).setToken(token);
 })();
 
 async function doCmd(msg, returnJson=false){
-    let [command, args, doFirsts] = parseCmd({msg: msg})
+    let [command, args, doFirsts] = await parseCmd({msg: msg})
     for(let idx in doFirsts){
         let oldContent = msg.content
-        msg.content = doFirsts[idx]
+        let cmd = doFirsts[idx]
+        msg.content = cmd
         args[idx] = args[idx].replaceAll("%{}", getContentFromResult(await doCmd(msg, true)).trim())
         msg.content = oldContent
     }
-    if(command in commands >= 0){
-        let canRun = true
-        let exists = true
-        let rv;
-        if(! commands[command]){
-            rv = {content: `${command} does not exist`}
-            exists = false
+    let canRun = true
+    let exists = true
+    let rv;
+    if(! commands[command]){
+        rv = {content: `${command} does not exist`}
+        exists = false
+    }
+    if(exists){
+        if(commands[command].permCheck){
+            canRun = commands[command].permCheck(msg)
         }
-        if(exists){
-            if(commands[command].permCheck){
-                canRun = commands[command].permCheck(msg)
-            }
-            if(WHITELIST[msg.author.id]?.includes(command)){
-                canRun = true
-            }
-            if(BLACKLIST[msg.author.id]?.includes(command)){
-                canRun = false
-            }
-            if(canRun){
-                rv = await commands[command].run(msg, args)
-                addToCmdUse(command)
-            }
-            else rv = {content: "You do not have permissions to run this command"}
-        } else {
-            rv = {content: `${command} does not exist`}
+        if(WHITELIST[msg.author.id]?.includes(command)){
+            canRun = true
         }
-        if(returnJson){
-            return rv;
+        if(BLACKLIST[msg.author.id]?.includes(command)){
+            canRun = false
         }
-        if(!Object.keys(rv).length){
-            return
+        if(canRun){
+            rv = await commands[command].run(msg, args)
+            addToCmdUse(command)
         }
-        if(rv.delete){
-            msg.delete()
-        }
-        if(rv.content?.length >= 2000){
-            fs.writeFileSync("out", rv.content)
-            delete rv["content"]
-            if(rv.files){
-                rv.files.push({attachment: "out", name: "cmd.txt", description: "command output too long"})
-            } else{
-                rv.files = [{
-                    attachment: "out", name: "cmd.txt", description: "command output too long"
-                }]
-            }
-        }
-        await msg.channel.send(rv)
+        else rv = {content: "You do not have permissions to run this command"}
+    }
+    else if(aliases[command]){
+        msg.content = `${prefix}${aliases[command].join(" ")} ${args}`
+        rv = await doCmd(msg, true)
+    }
+    else {
+        rv = {content: `${command} does not exist`}
+    }
+    if(returnJson){
+        return rv;
+    }
+    if(!Object.keys(rv).length){
+        return
+    }
+    if(rv.delete){
+        msg.delete()
+    }
+    if(rv.content?.length >= 2000){
+        fs.writeFileSync("out", rv.content)
+        delete rv["content"]
         if(rv.files){
-            for(let file of rv.files){
-                if(file.delete !== false)
-                    fs.rmSync(file.attachment)
-            }
+            rv.files.push({attachment: "out", name: "cmd.txt", description: "command output too long"})
+        } else{
+            rv.files = [{
+                attachment: "out", name: "cmd.txt", description: "command output too long"
+            }]
+        }
+    }
+    await msg.channel.send(rv)
+    if(rv.files){
+        for(let file of rv.files){
+            if(file.delete !== false)
+                fs.rmSync(file.attachment)
         }
     }
 }
@@ -1475,6 +1880,10 @@ client.on('ready', () => {
 
 client.on("messageCreate", async(m) => {
     let content = m.content
+    if(content == 'u!stop'){
+        m.content = '[stop'
+        content = m.content
+    }
     if(content.slice(0, prefix.length) !== prefix){
         return
     }

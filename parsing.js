@@ -1,7 +1,7 @@
 import {prefix, vars} from './common.js'
 import {format} from './util.js'
 
-function buildFormat(sequence, msg, curArg, customFormats){
+async function buildFormat(sequence, msg, curArg, customFormats){
     let args
     [sequence, ...args] = sequence.split("|")
     for(let format in customFormats){
@@ -16,6 +16,32 @@ function buildFormat(sequence, msg, curArg, customFormats){
             if(args && args?.length > 0)
                 return args[Math.floor(Math.random() * args.length)]
             return "{rand}"
+        case "ruser":
+            let fmt = args.join(" ") || "%u"
+            let member = msg.channel.guild.members.cache.random()
+            if(!member)
+                member = (await msg.channel.guild.members.fetch()).random()
+            let user = member.user
+            return format(fmt
+                    .replaceAll("{id}", user.id || "#!N/A")
+                    .replaceAll("{username}", user.username || "#!N/A")
+                    .replaceAll("{nickname}", member.nickName || "#!N/A")
+                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                    {
+                        i: user.id || "#!N/A",
+                        u: user.username || "#!N/A",
+                        n: member.nickName || "#!N/A",
+                        X: member.displayHexColor.toString() || "#!N/A",
+                        x: member.displayColor.toString() || "#!N/A",
+                        c: user.createdAt.toString() || "#!N/A",
+                        j: member.joinedAt.toString() || "#!N/A",
+                        b: member.premiumSince?.toString() || "#!N/A"
+                    }
+                )
         case "time":
                 let date = new Date()
                 if(!args.length){
@@ -92,7 +118,7 @@ function getCommand(content){
     return content.split(" ")[0].replace(prefix, "")
 }
 
-function parseCmd({msg, content, command, customEscapes, customFormats}){
+async function parseCmd({msg, content, command, customEscapes, customFormats}){
     if(!content) content = msg.content
     if(!command){
         command = getCommand(content.slice(prefix.length))
@@ -120,12 +146,13 @@ function parseCmd({msg, content, command, customEscapes, customFormats}){
                     curArg += "$"
                         break;
                 }
-                if(curArg.indexOf("%{}") === -1) curArg += "%{}"
                 if(ch === "("){
+                    if(curArg.indexOf("%{}") === -1) curArg += "%{}"
                     let inside = "["
                     let parenCount = 1
                     for(i++; parenCount != 0; i++){
                         ch = content[i]
+                        if(!ch) break
                         if(ch == "("){
                             parenCount++
                         } else if(ch == ")"){
@@ -133,8 +160,8 @@ function parseCmd({msg, content, command, customEscapes, customFormats}){
                         }
                         if(parenCount != 0) inside += ch;
                     }
-                    doFirsts[argNo] = inside
                     i--
+                    doFirsts[argNo] = inside
                 }
                 break;
             case "\\":
@@ -158,14 +185,19 @@ function parseCmd({msg, content, command, customEscapes, customFormats}){
                 break;
             case "{":
                 let value = ""
+                let parenCount = 1
                 for(i++; i < content.length; i++){
                     ch = content[i]
-                    if(ch == "}"){
-                        break;
+                    if(ch == "{"){
+                        parenCount++
                     }
+                    if(ch == "}"){
+                        parenCount--
+                    }
+                    if(parenCount == 0) break
                     value += ch
                 }
-                curArg += buildFormat(value, msg, curArg, customFormats)
+                curArg += await buildFormat(value, msg, curArg, customFormats)
                 break;
             default:
                 curArg += ch
@@ -178,7 +210,7 @@ function parseCmd({msg, content, command, customEscapes, customFormats}){
     return [command, args, doFirsts]
 }
 
-function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
+function operateOnPositionValues(v1, op, v2, areaSize, objectSize, numberConv){
     let conversions
     if(!objectSize){
         conversions = {
@@ -200,12 +232,12 @@ function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
     }
     if(conversions[v1] !== undefined){
         v1 = conversions[v1]
-    } else v1 = parseInt(v1)
+    } else v1 = numberConv(v1)
     if(conversions[v2] !== undefined){
         v2 = conversions[v2]
-    } else v2 = parseInt(v2)
+    } else v2 = numberConv(v2)
     if(v1 == undefined || v1 == null)
-        return parseInt(v2)
+        return numberConv(v2)
     switch(op){
         case "+":
             return v1 + v2;
@@ -218,10 +250,11 @@ function operateOnPositionValues(v1, op, v2, areaSize, objectSize){
         case "%":
             return Math.round(areaSize * (v1/100))
     }
-    return parseInt(v2)
+    return numberConv(v2)
 }
 
-function parsePosition(position, areaSize, objectSize){
+function parsePosition(position, areaSize, objectSize, numberConv){
+    if(!numberConv) numberConv = parseInt
     let firstVal, secondVal, operator
     let curValue = ""
     for(let char of position){
@@ -241,7 +274,7 @@ function parsePosition(position, areaSize, objectSize){
         }
     }
     secondVal = curValue
-    return operateOnPositionValues(firstVal, operator, secondVal, areaSize, objectSize)
+    return operateOnPositionValues(firstVal, operator, secondVal, areaSize, objectSize, numberConv)
 }
 
 export{

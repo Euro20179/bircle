@@ -1,0 +1,5 @@
+334538784043696130: rainbow color red>orange>yellow>green>blue>purple;END
+334538784043696130: e echo;END
+334538784043696130: ui user-info ;END
+334538784043696130: userinfo user-info ;END
+334538784043696130: invert filter invert;END

@@ -1,6 +1,14 @@
 import { DiscordAPIError } from "discord.js";
 import {execFileSync} from 'child_process'
 
+function randomColor(){
+    let colors = []
+    for(let i = 0; i < 3; i++){
+        colors.push(Math.floor(Math.random() * 256))
+    }
+    return colors
+}
+
 async function fetchUser(guild, find){
     let res;
     if(res = find.match(/<@!?(\d{18})>/)){
@@ -49,7 +57,6 @@ async function createGradient(gradient, gradientAngle, x, y, width, height, msg,
     let colorStep = 1 / (gradient.length - 1)
     for(let i = 0; i < gradient.length; i++){
         try{
-            console.log(i * colorStep, gradient[i])
             grad.addColorStop(i * colorStep, gradient[i])
         }
         catch(err){
@@ -59,10 +66,65 @@ async function createGradient(gradient, gradientAngle, x, y, width, height, msg,
     return grad
 }
 
+async function applyJimpFilter(img, filter, arg){
+    switch(filter){
+        case "rotate":
+            let deg, resize
+            if(arg?.length)
+                [deg, resize] = arg.split(",")
+            deg = parseFloat(deg) || 90.0
+            resize = resize ?? true
+            if(resize=="false")
+                resize = false
+            return img.rotate(deg, resize)
+        case "flip":
+            let hor, vert
+            if(arg){
+                if(arg == "horizontal" || arg == "hor"){
+                    hor = true
+                    vert = false
+                }
+                else if(arg == 'vertical' || arg == "vert"){
+                    hor = false
+                    vert = true
+                }
+            } else {
+                hor = true
+                vert = false
+            }
+            return img.flip(hor, vert)
+        case "brightness":{
+            let val = parseInt(arg) || .5
+            return img.brightness(val)
+        }
+        case "grey":
+        case "greyscale":
+        case "gray":
+        case "grayscale":
+            return img.greyscale()
+        case "invert":
+            return img.invert()
+        case "contrast":{
+            let val = parseInt(arg) || .5
+            return img.contrast(val)
+        }
+        default:
+            return img
+    }
+}
+
+function rgbToHex(r, g, b){
+    let [rhex, ghex, bhex] = [r.toString(16), g.toString(16), b.toString(16)]
+    return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
+}
+
 export{
     fetchUser,
     generateFileName,
     downloadSync,
     format,
-    createGradient
+    createGradient,
+    applyJimpFilter,
+    randomColor,
+    rgbToHex,
 }
