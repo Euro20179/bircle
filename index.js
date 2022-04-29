@@ -88,19 +88,6 @@ function getContentFromResult(result){
     return result['content'] || ""
 }
 
-function turnArgsToString(args){
-    let ans = ""
-    for(let arg of args){
-        if(typeof arg !== "string"){
-            ans += `${getContentFromResult(arg).trim()} `
-        }
-        else{
-            ans += `${arg.trim()} `
-        }
-    }
-    return ans
-}
-
 function getOpts(args){
     let opts = {} 
     let newArgs = []
@@ -177,7 +164,7 @@ const commands = {
         run: async (msg, args) => {
             let opts, _
             [opts, args] = getOpts(args)
-            args = turnArgsToString(args).trim();
+            args = args.join(" ")
             if(!args){
                 return {
                     content: "cannot send nothing"
