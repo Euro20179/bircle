@@ -1436,12 +1436,18 @@ variables:
                     content: "No help can be given :("
                 }
             }
+	    if(!Object.keys(opts).length){
+		opts['p'] = true
+	    }
             if(!fs.existsSync("help.html") || opts["n"] || args.length > 0){
                 await msg.channel.send("generating new help file")
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
 ${styles}
 </style>`
+		for(let command in commandsToUse){
+		    html += generateHTMLFromCommandHelp(command, commands[command])
+		}
                 fs.writeFileSync("help.html", html)
             }
             if(opts["p"] || opts['t']){
