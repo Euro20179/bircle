@@ -1,6 +1,5 @@
 ///<reference path="index.d.ts" />
 
-import { abort } from "process"
 
 const fs = require("fs")
 const https = require('https')
@@ -1074,10 +1073,9 @@ const commands = {
                 }
             }
             let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
-            let options = data.map((value, i) => value.trim() ? [i + 1, value.trim()] : "")
+            let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
             let fn = generateFileName("remove", msg.author.id)
-	    //TODO: allow typing of numbers in chat
-            fs.writeFileSync(fn, options.map(v => `${v[0]}:\t${v[1]}`).join("\n"))
+            fs.writeFileSync(fn, options)
             await msg.channel.send({
                 content: "Say the number of what you want to remove, or type cancel",
                 files: [{
@@ -1087,7 +1085,7 @@ const commands = {
             })
             fs.rmSync(fn)
             try{
-                let m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 1, time: 30000, errors: ['time']})
+                let m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 20, time: 30000, errors: ['time']})
                 if(['cancel', 'c'].includes(m.at(0).content)){
                     return {
                         content: "cancelled"
@@ -1210,6 +1208,31 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
         }
+    },
+    rccmd: {
+	run: async(msg, args) => {
+	    let name = args[0]
+	    if(!name){
+		return {
+		    content: "No command name given"
+		}
+	    }
+	    let commands = args.map(v => v.trim())
+	    let data = fs.readFileSync("command-results/alias", "utf-8").split(";END")
+	    for(let i = 0; i < commands.length; i++){
+		let command = commands[i]
+		let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
+		let idx = data.indexOf(line)
+		if(idx >= 0){
+		    data.splice(idx, 1)
+		}
+	    }
+	    fs.writeFileSync("command-results/alias", data.join(";END"))
+            aliases = createAliases()
+	    return {
+		content: `Removed: ${JSON.stringify(commands)}`
+	    }
+	}
     },
     "8": {
         run: async(msg: typeof Message, args: ArgumentList) => {
@@ -1973,7 +1996,10 @@ client.on("interactionCreate", async(interaction: typeof Interaction) => {
             }
             let rv = await commands['alias'].run(interaction, arglist)
             await interaction.reply(rv)
-        }
+        } else if(interaction.commandName == 'rccmd'){
+	    let rv = await commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])
+	    await interaction.reply(rv)
+	}
     }
     else if(interaction.isUserContextMenu()){
         addToCmdUse(`/${interaction.commandName}`)
