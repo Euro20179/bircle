@@ -1,0 +1,26 @@
+{
+  "name": "bircle",
+  "version": "1.0.0",
+  "description": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^17.0.25",
+    "discord.js": "^13.6.0"
+  },
+  "dependencies": {
+    "@discordjs/rest": "^0.4.1",
+    "@types/sharp": "^0.30.2",
+    "cheerio": "^1.0.0-rc.10",
+    "discord-api-types": "^0.31.2",
+    "got": "^11.8.3",
+    "jimp": "^0.16.1",
+    "printf": "^0.6.1",
+    "sharp": "^0.30.4"
+  }
+}
