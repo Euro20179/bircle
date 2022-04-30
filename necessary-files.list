@@ -1,4 +1,0 @@
-CLIENT: contains bot client id
-GUILD: contains guild id
-TOKEN: contains bot token
-prefix: contains bot prefix
