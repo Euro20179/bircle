@@ -1,5 +1,5 @@
-import {prefix, vars} from './common.js'
-import {format} from './util.js'
+const {prefix, vars} = require('./common.js')
+const {format} = require('./util.js')
 
 async function buildFormat(sequence, msg, curArg, customFormats){
     let args
@@ -277,7 +277,7 @@ function parsePosition(position, areaSize, objectSize, numberConv){
     return operateOnPositionValues(firstVal, operator, secondVal, areaSize, objectSize, numberConv)
 }
 
-export{
-    parseCmd,
-    parsePosition
+module.exports = {
+    parseCmd: parseCmd,
+    parsePosition: parsePosition,
 }

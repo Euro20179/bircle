@@ -7,5 +7,7 @@ help.html
 prefix
 cmduse
 command-perms/*
+command-results/*
+index.js
 
 !command-perms/holder

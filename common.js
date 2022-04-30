@@ -1,4 +1,4 @@
-import { fstat, readFileSync, writeFileSync } from "fs";
+const { readFileSync, writeFileSync } = require("fs");
 
 const prefix = readFileSync("./prefix", "utf-8")
 
@@ -63,16 +63,15 @@ let vars = {
     vcount: () => Object.keys(vars).length,
     sender: (msg) => `<@${msg.author.id}>`   
 }
-
-export{
-    prefix,
-    vars,
-    ADMINS,
-    FILE_SHORTCUTS,
-    WHITELIST,
-    BLACKLIST,
-    reloadBlackList,
-    reloadWhiteList,
-    addToPermList,
-    removeFromPermList
+module.exports = {
+    prefix: prefix,
+    vars: vars,
+    ADMINS: ADMINS,
+    FILE_SHORTCUTS: FILE_SHORTCUTS,
+    WHITELIST: WHITELIST,
+    BLACKLIST: BLACKLIST,
+    reloadBlackList: reloadBlackList,
+    reloadWhiteList: reloadWhiteList,
+    addToPermList: addToPermList,
+    removeFromPermList: removeFromPermList
 }

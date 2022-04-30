@@ -1,5 +1,4 @@
-import { DiscordAPIError } from "discord.js";
-import {execFileSync} from 'child_process'
+const {execFileSync} = require('child_process')
 
 function randomColor(){
     let colors = []
@@ -52,18 +51,26 @@ function format(str, formats, doPercent, doBraces){
     return str
 }
 
-async function createGradient(gradient, gradientAngle, x, y, width, height, msg, ctx){
-    let grad = ctx.createLinearGradient(x, y, (Math.cos(gradientAngle) * width) + x, (Math.sin(gradientAngle) * height) + y)
+async function createGradient(gradient, width, height){
+    let gradientSvg = "<linearGradient id=\"gradient\">"
+    let styleSvg = "<style type=\"text/css\"><![CDATA[#rect{fill: url(#gradient);}"
     let colorStep = 1 / (gradient.length - 1)
     for(let i = 0; i < gradient.length; i++){
-        try{
-            grad.addColorStop(i * colorStep, gradient[i])
-        }
-        catch(err){
-            await msg.channel.send(`${gradient[i]} is not a color`)
-        }
+	let grad = gradient[i]
+	gradientSvg += `<stop class="stop${i}" offset="${i*colorStep*100}%" />`
+	styleSvg += `.stop${i}{stop-color: ${grad};}`
     }
-    return grad
+    styleSvg += "]]></style>"
+    gradientSvg += "</linearGradient>"
+
+    let svg = Buffer.from(`<svg>
+		    <defs>
+			${gradientSvg}
+			${styleSvg}
+		    </defs>
+		    <rect id="rect" x="0" y="0" width="${width}" height="${height}" />
+		</svg>`)
+    return svg
 }
 
 async function applyJimpFilter(img, filter, arg){
@@ -118,13 +125,13 @@ function rgbToHex(r, g, b){
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
 
-export{
-    fetchUser,
-    generateFileName,
-    downloadSync,
-    format,
-    createGradient,
-    applyJimpFilter,
-    randomColor,
-    rgbToHex,
+module.exports = {
+    fetchUser: fetchUser,
+    generateFileName: generateFileName,
+    downloadSync: downloadSync,
+    format: format,
+    createGradient: createGradient,
+    applyJimpFilter: applyJimpFilter,
+    randomColor: randomColor,
+    rgbToHex: rgbToHex,
 }
