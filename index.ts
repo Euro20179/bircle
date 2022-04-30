@@ -1,19 +1,20 @@
 ///<reference path="index.d.ts" />
 
 
-const fs = require("fs")
-const https = require('https')
-const Stream = require('stream')
+import fs = require("fs")
+import https = require('https')
+import Stream = require('stream')
 const { execSync } = require('child_process')
 
 const {REST} = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-const {Client, Intents, MessageEmbed, Message, Interaction } = require('discord.js')
+import {Client, Intents, MessageEmbed, Message, Interaction, GuildMember, ColorResolvable } from 'discord.js'
 
-let sharp = require('sharp')
-const got = require('got')
-const cheerio = require('cheerio')
-const jimp = require('jimp')
+import sharp = require('sharp')
+import got = require('got')
+import cheerio = require('cheerio')
+import jimp = require('jimp')
+import { CLIENT_RENEG_LIMIT } from "tls"
 
 const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
@@ -29,8 +30,8 @@ let SPAM_ALLOWED = true
 
 let SPAMS: {[id: string]: boolean} = {}
 
-let lastCommand: typeof Message;
-let snipe: typeof Message;
+let lastCommand:  Message;
+let snipe:  Message;
 
 const illegalLastCmds = ["!!", "spam"]
 
@@ -103,8 +104,8 @@ function getContentFromResult(result: CommandReturn){
     return result['content'] || ""
 }
 
-function getOpts(args: Array<string>){
-    let opts: {[k: string]: string | boolean} = {} 
+function getOpts(args: Array<string>): [Opts, ArgumentList]{
+    let opts: Opts = {} 
     let newArgs = []
     let idxOfFirstRealArg = 0
     for(let arg of args){
@@ -174,7 +175,7 @@ function generateHTMLFromCommandHelp(name: string, command: any){
     return `${html}</div><hr>`
 }
 
-function getImgFromMsgAndOpts(opts: {}, msg: typeof Message){
+function getImgFromMsgAndOpts(opts: {}, msg: Message){
     let img: undefined | string = opts['img']
     if(msg.attachments?.at(0)){
         img = msg.attachments.at(0)?.attachment
@@ -183,14 +184,14 @@ function getImgFromMsgAndOpts(opts: {}, msg: typeof Message){
         img = msg.reply.attachments.at(0)?.attachment
     }
     if(!img) {
-        img = msg.channel.messages.cache.filter((m: typeof Message) => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+        img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.first())?.last()?.attachments?.first()?.attachment
     }
     return img
 }
 
-const commands = {
+const commands: {[command: string]: Command} = {
     echo:{
-        run: async (msg: typeof Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
 	    let wait = parseInt(opts['wait']) || 0
@@ -207,7 +208,7 @@ const commands = {
                 let color
                 if(color = opts['color'] || opts['e-color'] || opts['embed-color']){
                     try{
-                        embed.setColor(color)
+                        embed.setColor(color as ColorResolvable)
                     }
                     catch(err){
                     }
@@ -220,6 +221,9 @@ const commands = {
                     content: "cannot send nothing"
                 }
             }
+	    if(wait){
+		await new Promise((res) => setTimeout(res, wait * 1000))
+	    }
             return {
                 delete: !(opts["D"] || opts['no-del']),
                 content: args,
@@ -257,8 +261,13 @@ const commands = {
         }
     },
     uptime: {
-        run: async(msg: typeof Message, args:ArgumentList) => {
+        run: async(msg: Message, args:ArgumentList) => {
             let uptime = client.uptime
+	    if(!uptime){
+		return {
+		    content: "No uptime found"
+		}
+	    }
             let fmt = args[0] || "%d:%h:%m:%s"
             let days, hours, minutes, seconds;
             seconds = uptime / 1000
@@ -291,9 +300,16 @@ const commands = {
         }
     },
     rand: {
-        run: async (msg, args) => {
+        run: async (msg: Message, args: ArgumentList) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 1
+	    if(opts["round"]){
+		return {
+		    content: String(Math.floor(Math.random() * (high - low) + low))
+		}
+	    }
             return {
                 content: String(Math.random() * (high - low) + low)
             }
@@ -310,8 +326,8 @@ const commands = {
         }
     },
     img: {
-        run: async (msg: typeof Message, args: ArgumentList) => {
-            let opts = {};
+        run: async (msg: Message, args: ArgumentList) => {
+            let opts
             [opts, args] = getOpts(args)
             let gradient = opts['gradient']?.split(">")
             const width = Math.min(parseFloat(args[0]) || parseFloat(opts['w']) || parseFloat(opts['width']) || parseFloat(opts['size']) || 100, 2000)
@@ -397,7 +413,7 @@ const commands = {
         }
     },
     polygon: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
 	    return {
 		content: "Broken"
@@ -473,7 +489,7 @@ const commands = {
         }
     },
     rect: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let color: string = opts['color'] || "white"
@@ -620,7 +636,7 @@ const commands = {
         }
     },
     scale: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let xScale = args[0] || "2.0"
@@ -675,7 +691,7 @@ const commands = {
         }
     },
     filter: {
-        run: async(msg: typeof Message, args:ArgumentList) => {
+        run: async(msg: Message, args:ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             args = args.join(" ")
@@ -727,7 +743,7 @@ const commands = {
     },
     /*
     text: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
@@ -813,13 +829,15 @@ const commands = {
     },
     */
     choose: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let times = 1
             let sep = String(opts["sep"] || opts["s"] || "\n")
-            if(opts["times"] || opts["t"]){
-                times = parseInt(opts["t"])
+            if(opts["t"]){
+		if(typeof opts['t'] == 'string')
+		    times = parseInt(opts["t"])
+		else times = 3
             }
             let ans = []
             args = args.join(" ").split("|")
@@ -832,7 +850,7 @@ const commands = {
         }
     },
     weather: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let url = "https://www.wttr.in"
             let town = args.join(" ") || "tokyo"
 
@@ -842,7 +860,9 @@ const commands = {
                     data.push(chunk)
                 })
                 resp.on('end', async() => {
-                    data = data.read().toString()
+		    //@ts-ignore
+                    data = data.read().toString() as string
+		    //@ts-ignore
                     let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
                     let condition, temp, unit
                     try{
@@ -861,6 +881,10 @@ const commands = {
                         tempC = (temp - 32) * 5/9
                         tempF = temp
                     }
+		    else{
+			tempC = 843902438
+			tempF = tempC * 9/5 + 32
+		    }
                     let color = "DARK_BUT_NOT_BLACK"
                     if(tempF >= 110) color = "#aa0000"
                     if(tempF < 110) color = "#ff0000"
@@ -873,7 +897,7 @@ const commands = {
                     if(tempF < 0) color = "PURPLE"
                     let embed = new MessageEmbed()
                     embed.setTitle(town)
-                    embed.setColor(color)
+                    embed.setColor(color as ColorResolvable)
                     embed.addField("condition", condition, false)
                     embed.addField("Temp F", `${tempF}F`, true)
                     embed.addField("Temp C", `${tempC}C`, true)
@@ -895,12 +919,12 @@ const commands = {
         }
     },
     rotate: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`])
         }
     },
     color: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             args = args.join(" ")
@@ -974,21 +998,21 @@ const commands = {
         }
     },
     "l-bl": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/blacklists", "utf-8")
             }
         }
     },
     "l-wl": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/whitelists", "utf-8")
             }
         }
     },
     spam: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let times = parseInt(args[0])
             if(times){
                 args.splice(0, 1)
@@ -1011,7 +1035,7 @@ const commands = {
         }
     },
     stop: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             if(!Object.keys(SPAMS).length){
                 return {
                 }
@@ -1037,7 +1061,7 @@ const commands = {
         }
     },
     "var": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let name, value
             [name, value] = args.join(" ").split("=")
             vars[name] = () => value
@@ -1055,7 +1079,7 @@ const commands = {
         }
     },
     remove: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if(!file){
                 return {
@@ -1124,7 +1148,7 @@ const commands = {
         }
     },
     "command-file": {
-        run : async(msg: typeof Message, args: ArgumentList) => {
+        run : async(msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
             if(opts["l"]){
@@ -1166,7 +1190,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
     },
     add: {
-        run: async(msg: typeof Message, args: ArgumentList) =>{
+        run: async(msg: Message, args: ArgumentList) =>{
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if(!file){
                 return {
@@ -1244,7 +1268,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 	}
     },
     "8": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let content = args.join(" ")
             let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
             return {
@@ -1264,7 +1288,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
     },
     distance: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let speed = opts['speed']
@@ -1349,7 +1373,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
     },
     "list-cmds": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let values = ''
             for(let cmd in commands){
                 values += `${cmd}\n`
@@ -1506,14 +1530,14 @@ ${styles}
         }
     },
     code: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             return {
                 content: "https://github.com/euro20179/bircle"
             }
         }
     },
     WHITELIST: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let user = args[0]
             if(!user){
                 return {
@@ -1551,7 +1575,7 @@ ${styles}
         }
     },
     BLACKLIST: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let user = args[0]
             if(!user){
                 return {
@@ -1589,7 +1613,7 @@ ${styles}
         }
     },
     END: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             await msg.channel.send("STOPPING")
             client.destroy()
             return {
@@ -1601,7 +1625,7 @@ ${styles}
         }
     },
     "rand-user": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let member 
@@ -1615,7 +1639,7 @@ ${styles}
                     content: format(fmt
                                     .replaceAll("{id}", user.id || "#!N/A")
                                     .replaceAll("{username}", user.username || "#!N/A")
-                                    .replaceAll("{nickname}", member.nickName || "#!N/A")
+                                    .replaceAll("{nickname}", member.nickname || "#!N/A")
                                     .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
                                     .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
                                     .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
@@ -1624,7 +1648,7 @@ ${styles}
                                     {
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
-                                        n: member.nickName || "#!N/A",
+                                        n: member.nickname || "#!N/A",
                                         X: member.displayHexColor.toString() || "#!N/A",
                                         x: member.displayColor.toString() || "#!N/A",
                                         c: user.createdAt.toString() || "#!N/A",
@@ -1649,7 +1673,7 @@ ${styles}
         }
     },
     "user-info": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             if(!args[0]){
                 return {
                     content: "no member given!"
@@ -1668,7 +1692,7 @@ ${styles}
                     content: format(fmt
                                     .replaceAll("{id}", user.id || "#!N/A")
                                     .replaceAll("{username}", user.username || "#!N/A")
-                                    .replaceAll("{nickname}", member.nickName || "#!N/A")
+                                    .replaceAll("{nickname}", member.nickname || "#!N/A")
                                     .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
                                     .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
                                     .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
@@ -1677,7 +1701,7 @@ ${styles}
                                     {
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
-                                        n: member.nickName || "#!N/A",
+                                        n: member.nickname || "#!N/A",
                                         X: member.displayHexColor.toString() || "#!N/A",
                                         x: member.displayColor.toString() || "#!N/A",
                                         c: user.createdAt.toString() || "#!N/A",
@@ -1692,7 +1716,7 @@ ${styles}
             embed.setThumbnail(user.avatarURL())
             embed.addField("Id", user.id || "#!N/A", true)
             embed.addField("Username", user.username || "#!N/A", true)
-            embed.addField("Nickname", member.nickName || "#!N/A", true)
+            embed.addField("Nickname", member.nickname || "#!N/A", true)
             embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
             embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
             embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
@@ -1735,7 +1759,7 @@ valid formats:<br>
         }
     },
     "cmd-use": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let data = generateCmdUseFile()
                         .split("\n")
                         .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
@@ -1750,7 +1774,7 @@ valid formats:<br>
         }
     },
     grep: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let regex = args[0]
             if(!regex){
                 return {
@@ -1793,7 +1817,7 @@ valid formats:<br>
         }
     },
     alias: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             let cmd
             [cmd, ...args] = args
             let realCmd = args[0]
@@ -1806,7 +1830,7 @@ valid formats:<br>
         }
     },
     "!!": {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             if(!lastCommand){
                 return {content: "You ignorance species, there have not been any commands run."}
             }
@@ -1814,7 +1838,7 @@ valid formats:<br>
         }
     },
     snipe: {
-        run: async(msg: typeof Message, args: ArgumentList) => {
+        run: async(msg: Message, args: ArgumentList) => {
             if(!snipe){
                 return {content: "You idiot, nothing was ever said ever in the history of this server"}
             }
@@ -1829,8 +1853,11 @@ function createAliases(){
     for (let cmd of data.split(';END')){
         if(!cmd.trim()) continue
         let [_, ...args] = cmd.split(":")
+	//@ts-ignore
 	args = args.join(":")
+	//@ts-ignore
         args = args.trim()
+	//@ts-ignore
         let [actualCmd, ...rest] = args.split(" ")
         actualCmd = actualCmd.trim()
         a[actualCmd] = rest
@@ -1941,12 +1968,12 @@ client.on('ready', () => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async(m: typeof Message) => {
+client.on("messageDelete", async(m:  Message) => {
     if(m.author.id != client.id)
         snipe = m
 })
 
-client.on("messageCreate", async(m: typeof Message) => {
+client.on("messageCreate", async(m:  Message) => {
     let content = m.content
     if(content == 'u!stop'){
         m.content = '[stop'
@@ -1958,13 +1985,16 @@ client.on("messageCreate", async(m: typeof Message) => {
     await doCmd(m)
 })
 
-client.on("interactionCreate", async(interaction: typeof Interaction) => {
+client.on("interactionCreate", async(interaction: Interaction) => {
     if(interaction.isCommand()){
         addToCmdUse(`/${interaction.commandName}`)
         if(interaction.commandName == 'attack'){
-            let user = interaction.options.get("user")['value']
+            let user = interaction.options.get("user")?.['value']
+	    if(!user){
+		await interaction.reply("NO USER GIVEN???")
+	    }
             await interaction.reply(`Attacking ${user}...`)
-            await interaction.channel.send(`${user} has been attacked by <@${interaction.user.id}>`)
+            await interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`)
         }
         else if(interaction.commandName == 'ping'){
             let user = interaction.options.get("user")?.value || `<@${interaction.user.id}>`
@@ -1973,7 +2003,7 @@ client.on("interactionCreate", async(interaction: typeof Interaction) => {
             SPAM_ALLOWED = true
             for(let i = 0; i < times; i++){
                 if(!SPAM_ALLOWED) break
-                await interaction.channel.send(`<@${user}> has been pinged`)
+                await interaction.channel?.send(`<@${user}> has been pinged`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
         }
@@ -1997,8 +2027,9 @@ client.on("interactionCreate", async(interaction: typeof Interaction) => {
             })
         }
         else if(interaction.commandName == "ccmd"){
-            interaction.author = interaction.member.user
-            let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value]
+	    //@ts-ignore
+            interaction.author = interaction.member?.user
+            let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value].filter(v => String(v)) as string[]
             let args = interaction.options.get("text")?.value
             if(args){
                 arglist = arglist.concat(args.split(" "))
@@ -2018,18 +2049,20 @@ client.on("interactionCreate", async(interaction: typeof Interaction) => {
         }
         else if(interaction.commandName == 'info'){
             const user = interaction.targetUser
-            const member = interaction.targetMember
+            const member: GuildMember = interaction.targetMember as GuildMember
             let embed = new MessageEmbed()
-            embed.setColor(interaction.targetMember.displayColor)
-            embed.setThumbnail(user.avatarURL())
+            embed.setColor(member.displayColor)
+	    if(user.avatarURL())
+		//@ts-ignore
+		embed.setThumbnail(user.avatarURL())
             embed.addField("Id", user.id || "#!N/A", true)
             embed.addField("Username", user.username || "#!N/A", true)
-            embed.addField("Nickname", member.nickName || "#!N/A", true)
-            embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
-            embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
+            embed.addField("Nickname", member?.nickname || "#!N/A", true)
+            embed.addField("0xColor", member?.displayHexColor?.toString() || "#!N/A", true)
+            embed.addField("Color", member?.displayColor?.toString() || "#!N/A", true)
             embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
-            embed.addField("Joined at", member.joinedAt.toString() || "#!N/A", true)
-            embed.addField("Boosting since", member.premiumSince?.toString() || "#!N/A", true)
+            embed.addField("Joined at", member?.joinedAt?.toString() || "#!N/A", true)
+            embed.addField("Boosting since", member?.premiumSince?.toString() || "#!N/A", true)
             interaction.reply({embeds: [embed]})
         }
     }
