@@ -1,6 +1,4 @@
 ///<reference path="index.d.ts" />
-//
-////test
 
 import { abort } from "process"
 
@@ -21,7 +19,6 @@ const jimp = require('jimp')
 const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex } = require('./util.js')
-
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS]})
 
@@ -1766,7 +1763,7 @@ valid formats:<br>
             let realCmd = args[0]
             args = args.slice(1)
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
-            createAliases()
+            aliases = createAliases()
             return {
                 content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``
             }
