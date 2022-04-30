@@ -29,14 +29,14 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 
 let SPAM_ALLOWED = true
 
-let SPAMS = {}
+let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand: typeof Message;
 let snipe: typeof Message;
 
 const illegalLastCmds = ["!!", "spam"]
 
-function createChatCommand(name, description, options){
+function createChatCommand(name: string, description: string, options){
     return {
         name: name,
         description: description,
@@ -102,8 +102,8 @@ function getContentFromResult(result: CommandReturn){
     return result['content'] || ""
 }
 
-function getOpts(args){
-    let opts = {} 
+function getOpts(args: Array<string>){
+    let opts: {[k: string]: string | boolean} = {} 
     let newArgs = []
     let idxOfFirstRealArg = 0
     for(let arg of args){
@@ -174,7 +174,7 @@ function generateHTMLFromCommandHelp(name: string, command: any){
 }
 
 function getImgFromMsgAndOpts(opts: {}, msg: typeof Message){
-    let img = opts['img']
+    let img: undefined | string = opts['img']
     if(msg.attachments?.at(0)){
         img = msg.attachments.at(0)?.attachment
     }
@@ -182,16 +182,17 @@ function getImgFromMsgAndOpts(opts: {}, msg: typeof Message){
         img = msg.reply.attachments.at(0)?.attachment
     }
     if(!img) {
-        img = msg.channel.messages.cache.filter(m => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+        img = msg.channel.messages.cache.filter((m: typeof Message) => m.attachments?.first())?.last()?.attachments?.first()?.attachment
     }
     return img
 }
 
 const commands = {
     echo:{
-        run: async (msg, args) => {
+        run: async (msg: typeof Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
+	    let wait = parseInt(opts['wait']) || 0
             let embedText = opts['e'] || opts['embed']
             let embed
             if(embedText){
@@ -308,7 +309,7 @@ const commands = {
         }
     },
     img: {
-        run: async (msg, args) => {
+        run: async (msg: typeof Message, args: ArgumentList) => {
             let opts = {};
             [opts, args] = getOpts(args)
             let gradient = opts['gradient']?.split(">")
