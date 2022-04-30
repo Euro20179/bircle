@@ -1,6 +1,6 @@
 const { readFileSync, writeFileSync } = require("fs");
 
-const prefix = readFileSync("./prefix", "utf-8")
+const prefix = readFileSync("./prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 

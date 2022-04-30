@@ -23,9 +23,9 @@ const { downloadSync, fetchUser, format, generateFileName, createGradient, apply
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS]})
 
-const token = fs.readFileSync("./TOKEN", "utf-8")
-const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8")
-const GUILD_ID = fs.readFileSync("./GUILD", "utf-8")
+const token = fs.readFileSync("./TOKEN", "utf-8").trim()
+const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8").trim()
+const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 
 let SPAM_ALLOWED = true
 
