@@ -1962,7 +1962,7 @@ client.on("interactionCreate", async(interaction: typeof Interaction) => {
         else if(interaction.commandName == "ccmd"){
             interaction.author = interaction.member.user
             let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value]
-            let args = interaction.options.get("args")?.value
+            let args = interaction.options.get("text")?.value
             if(args){
                 arglist = arglist.concat(args.split(" "))
             }
