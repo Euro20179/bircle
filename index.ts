@@ -86,6 +86,9 @@ const slashCommands = [
         createChatCommandOption(STRING, "command", "the command to run (NO SPACES)", {required: true}),
         createChatCommandOption(STRING, "text", "text to give to the commmand", {})
     ]),
+    createChatCommand("rccmd", "remove a custom command, WOWZERS", [
+        createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", {required: true}),
+    ]),
     createChatCommand("help", "get help", []),
     {
         name: "ping",
@@ -1071,9 +1074,10 @@ const commands = {
                 }
             }
             let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
-            let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
+            let options = data.map((value, i) => value.trim() ? [i + 1, value.trim()] : "")
             let fn = generateFileName("remove", msg.author.id)
-            fs.writeFileSync(fn, options.join("\n"))
+	    //TODO: allow typing of numbers in chat
+            fs.writeFileSync(fn, options.map(v => `${v[0]}:\t${v[1]}`).join("\n"))
             await msg.channel.send({
                 content: "Say the number of what you want to remove, or type cancel",
                 files: [{
@@ -1792,7 +1796,8 @@ function createAliases(){
     let data = fs.readFileSync("command-results/alias", "utf-8")
     for (let cmd of data.split(';END')){
         if(!cmd.trim()) continue
-        let [_, args] = cmd.split(":")
+        let [_, ...args] = cmd.split(":")
+	args = args.join(":")
         args = args.trim()
         let [actualCmd, ...rest] = args.split(" ")
         actualCmd = actualCmd.trim()
