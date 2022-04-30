@@ -84,7 +84,7 @@ const slashCommands = [
     createChatCommand("ccmd", "create a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command (NO SPACES)", {required: true}),
         createChatCommandOption(STRING, "command", "the command to run (NO SPACES)", {required: true}),
-        createChatCommandOption(STRING, "args", "arguments to use for command", {})
+        createChatCommandOption(STRING, "text", "text to give to the commmand", {})
     ]),
     createChatCommand("help", "get help", []),
     {

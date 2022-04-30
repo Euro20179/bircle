@@ -10,8 +10,35 @@ async function buildFormat(sequence, msg, curArg, customFormats){
         }
     }
     switch(sequence){
-        case "user":
-            return `<@${msg.author.id}>`
+	case "cmd":
+	    return msg.content.split(" ")[0].slice(prefix.length)
+	case 'content':
+	    return msg.content.split(" ").slice(1).join(" ").trim()
+        case "user":{
+	    let fmt = args.join(" ") || "<@%i>"
+            let member = await msg.channel.guild.members.fetch(msg.author.id)
+            let user = member.user
+            return format(fmt
+                    .replaceAll("{id}", user.id || "#!N/A")
+                    .replaceAll("{username}", user.username || "#!N/A")
+                    .replaceAll("{nickname}", member.nickName || "#!N/A")
+                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                    {
+                        i: user.id || "#!N/A",
+                        u: user.username || "#!N/A",
+                        n: member.nickName || "#!N/A",
+                        X: member.displayHexColor.toString() || "#!N/A",
+                        x: member.displayColor.toString() || "#!N/A",
+                        c: user.createdAt.toString() || "#!N/A",
+                        j: member.joinedAt.toString() || "#!N/A",
+                        b: member.premiumSince?.toString() || "#!N/A"
+                    }
+                )
+	}
         case "rand":
             if(args && args?.length > 0)
                 return args[Math.floor(Math.random() * args.length)]
@@ -148,7 +175,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 }
                 if(ch === "("){
                     if(curArg.indexOf("%{}") === -1) curArg += "%{}"
-                    let inside = "["
+                    let inside = prefix
                     let parenCount = 1
                     for(i++; parenCount != 0; i++){
                         ch = content[i]
