@@ -194,7 +194,7 @@ const commands: {[command: string]: Command} = {
         run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
-	    let wait = parseInt(opts['wait']) || 0
+	    let wait = parseInt(String(opts['wait'])) || 0
             let embedText = opts['e'] || opts['embed']
             let embed
             if(embedText){
@@ -234,7 +234,6 @@ const commands: {[command: string]: Command} = {
         },
         help: {
             info: "the bot will say the <code>text</code>",
-            aliases: [],
             options: {
                 "D": {
                     description: "If given, dont delete original message"
@@ -1443,14 +1442,6 @@ variables:
                 let html = `<style>
 ${styles}
 </style>`
-                let skip = []
-                for(let cmd in commandsToUse){
-                    if(skip.includes(cmd)) continue
-                    if(commands[cmd]["help"]?.aliases){
-                        skip = skip.concat(commands[cmd].help.aliases)
-                    }
-                    html += generateHTMLFromCommandHelp(cmd, commands[cmd])
-                }
                 fs.writeFileSync("help.html", html)
             }
             if(opts["p"] || opts['t']){
@@ -1755,7 +1746,6 @@ valid formats:<br>
     <code>{boost}</code> or <code>{b}</code> or <code>%b</code>: when the user started boosting the server
     </li>
 </ul>`,
-            aliases: []
         }
     },
     "cmd-use": {

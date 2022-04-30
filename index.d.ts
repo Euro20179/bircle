@@ -16,7 +16,7 @@ declare global{
 
     interface CommandReturn {
 	content?: string,
-	embeds?: Array<typeof MessageEmbed>
+	embeds?: Array<MessageEmbed>
 	files?: FileArray,
 	deleteFiles?: boolean
 	delete?: boolean
@@ -24,6 +24,9 @@ declare global{
 
     interface CommandHelp{
 	info?: string,
+	/**
+	 * @deprecated Use /ccmd <alias name> <command> <text> instead, ie: no built in aliases
+	 */
 	aliases?: string[],
 	arguments?: {
 	    [key: string]: {
