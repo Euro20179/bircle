@@ -10,7 +10,7 @@ function randomColor(){
 
 async function fetchUser(guild, find){
     let res;
-    if(res = find.match(/<@!?(\d{18})>/)){
+    if(res = find?.match(/<@!?(\d{18})>/)){
         find = res[1]
     }
     let user = (await guild.members.search({query: find}))?.at(0)

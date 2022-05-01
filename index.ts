@@ -324,6 +324,77 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    roles: {
+	run: async(msg, args) => {
+	    let users = []
+	    for(let arg of args){
+		users.push(await fetchUser(msg.guild, arg))
+	    }
+	    if(users.length == 0){
+		users.push(await fetchUser(msg.guild, msg.author.id))
+	    }
+	    let embeds = []
+	    for(let user of users){
+		let roles = user._roles
+		if(!roles){
+		    return {
+			contnet: "Could not find roles"
+		    }
+		}
+		let embed = new MessageEmbed()
+		embed.setTitle(`Roles for: ${user.user.username}`)
+		let roleList = []
+		for(let role of roles){
+		    roleList.push(await msg.guild?.roles.fetch(role))
+		}
+		embed.addField("Role count", String(roleList.length))
+		embed.addField("Roles", roleList.join(" "))
+		embeds.push(embed)
+	    }
+	    return {
+		embeds: embeds
+	    }
+	}
+    },
+    whohas: {
+	run: async(msg, args) => {
+	    let role = args[0]
+	    if(!role){
+		return {content: "No role given"}
+	    }
+	    let roleRef = await msg.guild?.roles.fetch()
+	    if(!roleRef){
+		return {content: "no roles found somehow"}
+	    }
+	    let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase() || v.name.toLowerCase().startsWith(role.toLowerCase()))?.at(0)
+	    if(!realRole){
+		return {
+		    content: "Could not find role"
+		}
+	    }
+	    let memberTexts = [""]
+	    let embed = new MessageEmbed()
+	    let i = 0
+	    let memberCount = 0
+	    for (let member of realRole.members){
+		memberTexts[i] += `<@${member[1].id}> `
+		memberCount += 1
+		if(memberTexts[i].length > 1000){
+		    embed.addField(`members`, memberTexts[i])
+		    i++
+		    memberTexts.push("")
+		}
+	    }
+	    if(!memberTexts[0].length){
+		return {content: "No one"}
+	    }
+	    if(embed.fields.length < 1){
+		embed.addField(`members: ${i}`, memberTexts[i])
+	    }
+	    embed.addField("Member count", String(memberCount))
+	    return {embeds: [embed]}
+	}
+    },
     img: {
         run: async (msg: Message, args: ArgumentList) => {
             let opts
