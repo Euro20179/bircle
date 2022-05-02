@@ -206,6 +206,14 @@ const commands: {[command: string]: Command} = {
 	    catch(err){
 		console.log(err)
 	    }
+	},
+	help: {
+	    info: "Run a calculation",
+	    arguments: {
+		equation: {
+		    description: "The equation to evaluate"
+		}
+	    }
 	}
     },
     echo:{
