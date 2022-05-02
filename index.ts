@@ -871,7 +871,6 @@ const commands: {[command: string]: Command} = {
                     x = parsePosition(x, width, textW)
                     y = parsePosition(y, height, textH)
 		    let buffer = await img.composite([{input: await newText.png().toBuffer(), top: y + textH, left: x + textW}]).png().toBuffer()
-		    */
 		    let buffer = await sharp(Buffer.from(svg)).png().toBuffer()
                     fs.writeFileSync(fn, buffer)
                     msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
