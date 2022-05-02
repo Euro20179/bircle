@@ -8,8 +8,9 @@ const { execSync } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, Message, Interaction, GuildMember, ColorResolvable } from 'discord.js'
+import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable } from 'discord.js'
 
+import svg2img = require("svg2img")
 import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
@@ -32,7 +33,7 @@ let SPAM_ALLOWED = true
 let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand:  Message;
-let snipe:  Message;
+let snipe:  Message | PartialMessage;
 
 const illegalLastCmds = ["!!", "spam"]
 
@@ -88,6 +89,9 @@ const slashCommands = [
     ]),
     createChatCommand("rccmd", "remove a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", {required: true}),
+    ]),
+    createChatCommand("say", "says something", [
+	createChatCommandOption(STRING, "something", "the something to say", {required: true})
     ]),
     createChatCommand("help", "get help", []),
     {
@@ -857,12 +861,21 @@ const commands: {[command: string]: Command} = {
 		    let img = sharp(d)
 		    let imgMeta = await img.metadata()
 		    let [width, height] = [imgMeta.width, imgMeta.height]
-		    let svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><!--<image width="${width}" height="${height}" xlink:href="data:image/png;base64,${d.toString("base64")}" />--> <text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
-		    console.log(svg)
+		    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"> <text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
+		    svg2img(svg, (err, buf) => {
+			console.log(err, buf)
+			fs.writeFileSync('foo.png', buf)
+			img.composite([{input: 'foo.png'}]).png().toBuffer().then(buf => {
+			    fs.writeFileSync(fn, buf)
+			    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+				fs.rmSync(fn)
+			    }).catch(err => {
+			    })
+			})
+		    })
 		    /*
 		    let textMeta = await newText.metadata()
 		    let [textW, textH] = [textMeta.width, textMeta.height]
-		    /*
                     ctx.drawImage(img, 0, 0, img.width, img.height)
                     ctx.font = `${size} ${font}`
                     ctx.fillStyle = color
@@ -870,13 +883,6 @@ const commands: {[command: string]: Command} = {
                     let [textW, textH] = [textInfo.width, textInfo.emHeightAscent]
                     x = parsePosition(x, width, textW)
                     y = parsePosition(y, height, textH)
-		    let buffer = await img.composite([{input: await newText.png().toBuffer(), top: y + textH, left: x + textW}]).png().toBuffer()
-		    let buffer = await sharp(Buffer.from(svg)).png().toBuffer()
-                    fs.writeFileSync(fn, buffer)
-                    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
-                        fs.rmSync(fn)
-                    }).catch(err => {
-                    })
                 })
             }).end()
             return {
@@ -916,7 +922,7 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
-	*/
+    */
     choose: {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
@@ -1151,9 +1157,12 @@ const commands: {[command: string]: Command} = {
     },
     "var": {
         run: async(msg: Message, args: ArgumentList) => {
-            let name, value
-            [name, value] = args.join(" ").split("=")
-            vars[name] = () => value
+            let [name, ...value] = args.join(" ").split("=")
+	    if(!value.length){
+		return {content: "no value given, syntax `[var x=value"}
+	    }
+	    let realVal = value.join(" ")
+            vars[name] = () => realVal
             return {
                 content: vars[name]()
             }
@@ -1199,12 +1208,12 @@ const commands: {[command: string]: Command} = {
             fs.rmSync(fn)
             try{
                 let m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 20, time: 30000, errors: ['time']})
-                if(['cancel', 'c'].includes(m.at(0).content)){
+                if(['cancel', 'c'].includes(m.at(0)?.content || "c")){
                     return {
                         content: "cancelled"
                     }
                 }
-                let num = parseInt(m.at(0).content)
+                let num = parseInt(m.at(0)?.content || "0")
                 if(!num){
                     await msg.channel.send(`${num} is not a valid number`)
                 }
@@ -1381,8 +1390,8 @@ ${fs.readdirSync("./command-results").join("\n")}
             let opts;
             [opts, args] = getOpts(args)
             let speed = opts['speed']
-            args = args.join(" ")
-            let [from, to] = args.split("|")
+	    let joinedArgs = args.join(" ")
+            let [from, to] = joinedArgs.split("|")
             if(!to){
                 return {content: "No second place given, fmt: `place 1 | place 2`"}
             }
@@ -2054,7 +2063,7 @@ client.on('ready', () => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async(m:  Message) => {
+client.on("messageDelete", async(m) => {
     if(m.author.id != client.id)
         snipe = m
 })
@@ -2094,6 +2103,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
             }
         }
         else if(interaction.commandName == 'img'){
+	    //@ts-ignore
             let rv = await commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value])
             await interaction.reply(rv)
             if(rv.files){
@@ -2116,16 +2126,21 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    //@ts-ignore
             interaction.author = interaction.member?.user
             let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value].filter(v => String(v)) as string[]
-            let args = interaction.options.get("text")?.value
+            let args = interaction.options.get("text")?.value as string
             if(args){
                 arglist = arglist.concat(args.split(" "))
             }
+	    //@ts-ignore
             let rv = await commands['alias'].run(interaction, arglist)
             await interaction.reply(rv)
         } else if(interaction.commandName == 'rccmd'){
 	    interaction.author = interaction.member.user
+	    //@ts-ignore
 	    let rv = await commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])
 	    await interaction.reply(rv)
+	}
+	else if(interaction.commandName == 'say'){
+	    await interaction.reply({contnet: interaction.options.get("something")?.value || "How did we get here"})
 	}
     }
     else if(interaction.isUserContextMenu()){

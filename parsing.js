@@ -130,7 +130,11 @@ function buildEscape(letter, sequence, msg, curArg){
         case "D":
             return (new Date(parseInt(sequence))).toString()
         case "V":
-            return vars[sequence](msg, curArg) || "\\V"
+	    try{
+		return vars[sequence](msg, curArg) || "\\V"
+	    } catch(err){
+		return "\\V"
+	    }
         case "\\":
             return "\\"
         default:
