@@ -84,8 +84,12 @@ const slashCommands = [
     ]),
     createChatCommand("ccmd", "create a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command (NO SPACES)", {required: true}),
-        createChatCommandOption(STRING, "command", "the command to run (NO SPACES)", {required: true}),
-        createChatCommandOption(STRING, "text", "text to give to the commmand", {})
+        createChatCommandOption(STRING, "text", "what to say", {required: true})
+    ]),
+    createChatCommand("alias", "A more powerful ccmd", [
+        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", {required: true}),
+        createChatCommandOption(STRING, "command", "command to run", {required: true}),
+        createChatCommandOption(STRING, "text", "Text to give to command", {})
     ]),
     createChatCommand("rccmd", "remove a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", {required: true}),
@@ -2123,7 +2127,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
                 }]
             })
         }
-        else if(interaction.commandName == "ccmd"){
+        else if(interaction.commandName == "alias"){
 	    //@ts-ignore
             interaction.author = interaction.member?.user
             let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value].filter(v => String(v)) as string[]
@@ -2134,7 +2138,20 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    //@ts-ignore
             let rv = await commands['alias'].run(interaction, arglist)
             await interaction.reply(rv)
-        } else if(interaction.commandName == 'rccmd'){
+        }
+	else if(interaction.commandName == 'ccmd'){
+	    //@ts-ignore
+            interaction.author = interaction.member?.user
+            let arglist = [String(interaction.options.get("name")?.value), "say"] as string[]
+            let args = interaction.options.get("text")?.value as string
+            if(args){
+                arglist = arglist.concat(args.split(" "))
+            }
+	    //@ts-ignore
+            let rv = await commands['alias'].run(interaction, arglist)
+            await interaction.reply(rv)
+	}
+	else if(interaction.commandName == 'rccmd'){
 	    interaction.author = interaction.member.user
 	    //@ts-ignore
 	    let rv = await commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])

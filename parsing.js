@@ -12,7 +12,7 @@ async function buildFormat(sequence, msg, curArg, customFormats){
     switch(sequence){
 	case "cmd":
 	    return msg.content.split(" ")[0].slice(prefix.length)
-	case 'content':
+	case 'c':
 	    return msg.content.split(" ").slice(1).join(" ").trim()
         case "user":{
 	    let fmt = args.join(" ") || "<@%i>"
@@ -130,6 +130,12 @@ function buildEscape(letter, sequence, msg, curArg){
         case "D":
             return (new Date(parseInt(sequence))).toString()
         case "V":
+	    let num = Number(sequence)
+	    //basically checks if it's a n
+	    if(!isNaN(num)){
+		let args = msg.content.split(" ")
+		return String(args[num])
+	    }
 	    try{
 		return vars[sequence](msg, curArg) || "\\V"
 	    } catch(err){
