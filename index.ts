@@ -883,7 +883,6 @@ const commands: {[command: string]: Command} = {
                 content: "generating img"
             }
         },
-	*/
         help: {
             info: "Put text on an image",
             arguments: {
@@ -917,6 +916,7 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+	*/
     choose: {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
