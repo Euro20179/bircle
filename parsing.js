@@ -1,5 +1,5 @@
 const {prefix, vars} = require('./common.js')
-const {format} = require('./util.js')
+const {format, safeEval} = require('./util.js')
 
 async function buildFormat(sequence, msg, curArg, customFormats){
     let args
@@ -183,6 +183,23 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     curArg += "$"
                         break;
                 }
+		if(ch === '['){
+                    if(curArg.indexOf("%{}") === -1) curArg += "%{}"
+		    let inside = ""
+                    let parenCount = 1
+                    for(i++; parenCount != 0; i++){
+                        ch = content[i]
+                        if(!ch) break
+                        if(ch == "["){
+                            parenCount++
+                        } else if(ch == "]"){
+                            parenCount--
+                        }
+                        if(parenCount != 0) inside += ch;
+                    }
+                    i--
+		    curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author})))
+		}
                 if(ch === "("){
                     if(curArg.indexOf("%{}") === -1) curArg += "%{}"
                     let inside = prefix
@@ -204,6 +221,10 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
             case "\\":
                 i++
                 ch = content[i]
+		if(ch === undefined){
+		    curArg += "\\"
+		    break
+		}
                 let prefixLetter = ch
                 i++
                 ch = content[i]

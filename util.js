@@ -1,4 +1,5 @@
 const {execFileSync} = require('child_process')
+const vm = require('vm')
 
 function randomColor(){
     let colors = []
@@ -125,6 +126,36 @@ function rgbToHex(r, g, b){
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
 
+function safeEval (code, context, opts) {
+  let sandbox = {}
+  let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
+  sandbox[resultKey] = {}
+  let clearContext = `
+    (function() {
+      Function = undefined;
+      const keys = Object.getOwnPropertyNames(this).concat(['constructor']);
+      keys.forEach((key) => {
+        const item = this[key];
+        if (!item || typeof item.constructor !== 'function') return;
+        this[key].constructor = undefined;
+      });
+    })();
+  `
+  code = clearContext + resultKey + '=' + code
+  if (context) {
+    Object.keys(context).forEach(function (key) {
+      sandbox[key] = context[key]
+    })
+  }
+    try{
+      vm.runInNewContext(code, sandbox, opts)
+      return sandbox[resultKey]
+    }
+    catch(err){
+	return undefined
+    }
+}
+
 module.exports = {
     fetchUser: fetchUser,
     generateFileName: generateFileName,
@@ -134,4 +165,5 @@ module.exports = {
     applyJimpFilter: applyJimpFilter,
     randomColor: randomColor,
     rgbToHex: rgbToHex,
+    safeEval: safeEval
 }

@@ -20,7 +20,7 @@ import { CLIENT_RENEG_LIMIT } from "tls"
 
 const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex } = require('./util.js')
+const { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval } = require('./util.js')
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS]})
 
@@ -198,6 +198,16 @@ function getImgFromMsgAndOpts(opts: {}, msg: Message){
 }
 
 const commands: {[command: string]: Command} = {
+    calc: {
+	run: async(msg, args) => {
+	    try{
+		return {content: String(safeEval(args.join(" "), {user: msg.author, args: args}))}
+	    }
+	    catch(err){
+		console.log(err)
+	    }
+	}
+    },
     echo:{
         run: async (msg: Message, args: ArgumentList) => {
             let opts
