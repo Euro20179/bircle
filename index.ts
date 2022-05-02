@@ -1,12 +1,12 @@
 ///<reference path="index.d.ts" />
 
-
 import fs = require("fs")
+
 import https = require('https')
 import Stream = require('stream')
 const { execSync } = require('child_process')
 
-const {REST} = require('@discordjs/rest')
+const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 import {Client, Intents, MessageEmbed, Message, Interaction, GuildMember, ColorResolvable } from 'discord.js'
 
@@ -14,6 +14,7 @@ import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
 import jimp = require('jimp')
+
 import { CLIENT_RENEG_LIMIT } from "tls"
 
 const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
@@ -52,7 +53,6 @@ const ROLE = 8
 const MENTIONABLE = 9
 const NUMBER = 10
 const ATTACH = 11
-
 
 function createChatCommandOption(type: number, name: string, description: string, {min, max, required}: {min?: number, max?: number | null, required?: boolean}){
     let obj = {
@@ -399,9 +399,15 @@ const commands: {[command: string]: Command} = {
         run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
-            let gradient = opts['gradient']?.split(">")
-            const width = Math.min(parseFloat(args[0]) || parseFloat(opts['w']) || parseFloat(opts['width']) || parseFloat(opts['size']) || 100, 2000)
-            const height = Math.min(parseFloat(args[1]) || parseFloat(opts['h']) || parseFloat(opts['height']) || parseFloat(opts['size']) || width || 100, 2000)
+            let gradOpt = opts['gradient']
+	    let gradient;
+	    if(typeof gradOpt == 'boolean'){
+		gradOpt = false
+	    } else if(gradOpt) {
+		gradient = gradOpt.split(">")
+	    }
+            const width = Math.min(parseFloat(args[0]) || parseFloat(opts['w'] as string) || parseFloat(opts['width'] as string) || parseFloat(opts['size'] as string) || 100, 2000)
+            const height = Math.min(parseFloat(args[1]) || parseFloat(opts['h'] as string) || parseFloat(opts['height'] as string) || parseFloat(opts['size'] as string) || width || 100, 2000)
             if(width < 0){
                 return {
                     content: "Width must be > 0"
@@ -417,12 +423,17 @@ const commands: {[command: string]: Command} = {
 		img = await sharp(await createGradient(gradient, width, height)).toBuffer()
             }
 	    else{
+		let colorHint = args[2] || opts['color'] || "black"
+		let color = "black"
+		if(typeof colorHint !== 'boolean'){
+		    color = colorHint
+		}
 		img = await sharp({
 		    create: {
 			width: width,
 			height: height,
 			channels: 4,
-			background: args[2] || opts['color'] || "black"
+			background: color
 		    }
 		}).png().toBuffer()
 	    }
@@ -584,8 +595,8 @@ const commands: {[command: string]: Command} = {
             if(!height){
                 height = opts['h'] || opts['height'] || opts['size'] || width || "50"
             }
-            width = parseInt(width) || 50
-            height = parseInt(height) || 50
+            width = parseInt(width as string) || 50
+            height = parseInt(height as string) || 50
             https.request(img, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -603,12 +614,18 @@ const commands: {[command: string]: Command} = {
 			newImg = sharp(await createGradient(gradient, width, height))
                     }
                     else {
+			let trueColor
+			if(typeof color === 'boolean'){
+			    trueColor = 'black'
+			} else {
+			    trueColor = color;
+			}
 			newImg = sharp({
 			    create: {
 				width: width,
 				height: height,
 				channels: 4,
-				background: color
+				background: trueColor
 			    }
 			})
 		    }
@@ -820,7 +837,7 @@ const commands: {[command: string]: Command} = {
             if(!img){
                 return {content: "no img found"}
             }
-            let size = opts["size"] || "20x"
+            let size = opts["size"] || "20"
             let font = opts["font"] || "Arial"
             let color = opts["color"] || "red"
             let rotation = opts['rotate'] || opts['angle'] || "0.0"
@@ -836,12 +853,13 @@ const commands: {[command: string]: Command} = {
                     data.push(chunk)
                 })
                 resp.on("end", async() => {
-		    let img = sharp(data.read())
+		    let d = data.read()
+		    let img = sharp(d)
 		    let imgMeta = await img.metadata()
 		    let [width, height] = [imgMeta.width, imgMeta.height]
-		    let svg = `<svg><text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
+		    let svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><!--<image width="${width}" height="${height}" xlink:href="data:image/png;base64,${d.toString("base64")}" />--> <text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
 		    console.log(svg)
-		    let newText = sharp(Buffer.from(svg))
+		    /*
 		    let textMeta = await newText.metadata()
 		    let [textW, textH] = [textMeta.width, textMeta.height]
 		    /*
@@ -852,7 +870,9 @@ const commands: {[command: string]: Command} = {
                     let [textW, textH] = [textInfo.width, textInfo.emHeightAscent]
                     x = parsePosition(x, width, textW)
                     y = parsePosition(y, height, textH)
-		    let buffer = await img.composite([{input: await newText.png().toBuffer(), top: y, left: x}]).png().toBuffer()
+		    let buffer = await img.composite([{input: await newText.png().toBuffer(), top: y + textH, left: x + textW}]).png().toBuffer()
+		    */
+		    let buffer = await sharp(Buffer.from(svg)).png().toBuffer()
                     fs.writeFileSync(fn, buffer)
                     msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
                         fs.rmSync(fn)
@@ -864,6 +884,7 @@ const commands: {[command: string]: Command} = {
                 content: "generating img"
             }
         },
+	*/
         help: {
             info: "Put text on an image",
             arguments: {
@@ -897,7 +918,6 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
-    */
     choose: {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;

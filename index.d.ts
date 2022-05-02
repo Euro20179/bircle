@@ -31,7 +31,8 @@ declare global{
 	arguments?: {
 	    [key: string]: {
 		description: string,
-		required?: boolean
+		required?: boolean,
+		requires?: string
 	    }
 	},
 	options?: {
