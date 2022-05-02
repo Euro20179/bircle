@@ -1117,11 +1117,12 @@ const commands: {[command: string]: Command} = {
                 send = String(times)
                 times = 10
             }
+	    let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             while(SPAMS[id] && times--){
-                await msg.channel.send(send)
+                await msg.channel.send(format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)}))
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
