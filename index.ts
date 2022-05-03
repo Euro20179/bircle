@@ -216,6 +216,22 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    "if": {
+	run: async(msg, args) => {
+	    console.log(args)
+	    let [condition, cmd] = args.join(" ").split(";")
+	    if(safeEval(condition, {user: msg.author, args: args})){
+		msg.content = `${prefix}${cmd.trim()}`
+		return await doCmd(msg, true)
+	    }
+	    let elseCmd = args.join(" ").split(`${prefix}else;`)[1]?.trim()
+	    if(elseCmd){
+		msg.content = `${prefix}${elseCmd.trim()}`
+		return await doCmd(msg, true)
+	    }
+	    return {content: "?"}
+	}
+    },
     echo:{
         run: async (msg: Message, args: ArgumentList) => {
             let opts
