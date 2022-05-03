@@ -399,6 +399,62 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    sport: {
+	run: async(msg, args) => {
+	    https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async() => {
+		    let html = data.read().toString()
+		    let embed = new MessageEmbed()
+		    //winner should be in *****
+		    let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
+		    try{
+			inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+			    .replace(/&#(\d+);/gi, function(match, numStr) {
+				var num = parseInt(numStr, 10);
+				return String.fromCharCode(num);
+			    });
+		    }
+		    catch(err){
+			await msg.channel.send("No results")
+			return
+		    }
+		    homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+		    awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+		    let [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+		    homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
+		    awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+		    embed.setTitle(`${args.join(" ")}`)
+		    if(awayScore >= homeScore){
+			awayTeam = `***${awayTeam}***`
+			awayScore = `***${awayScore}***`
+			embed.setColor("#ff0000")
+		    } else {
+			homeTeam = `***${homeTeam}***`
+			homeScore = `***${homeScore}***`
+			embed.setColor("#00ff00")
+		    }
+		    embed.addField("Time", inning)
+		    embed.addField(`${homeTeam}`, String(homeScore))
+		    embed.addField(`${awayTeam}`, String(awayScore))
+		    await msg.channel.send({embeds: [embed]})
+		})
+	    }).end()
+	    return {
+		content: "getting data"
+	    }
+	}, help: {
+	    info: "Print information about a sport game",
+	    arguments: {
+		team: {
+		    description: "The team to get info on"
+		}
+	    }
+	}
+    },
     whohas: {
 	run: async(msg, args) => {
 	    let role = args[0]
