@@ -13,9 +13,6 @@ async function buildFormat(sequence, msg, curArg, customFormats){
 	case "cmd":
 	    return msg.content.split(" ")[0].slice(prefix.length)
 	case 'c':
-	    if(args){
-		return msg.content.split(" ")[Number(args[0])]?.trim()
-	    }
 	    return msg.content.split(" ").slice(1).join(" ").trim()
         case "user":{
 	    let fmt = args.join(" ") || "<@%i>"

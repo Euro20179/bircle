@@ -2044,7 +2044,15 @@ async function doCmd(msg, returnJson=false){
 	    aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
             command = aliases[command][0]
         }
-        msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")} ${args.join(" ")}`
+        msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
+	let oldC = msg.content
+	for(let i = 0; i < args.length; i++){
+	    let e = new RegExp(`(?<!\\\\)\\\{arg${i+1}\\\}`, "g")
+	    msg.content = msg.content.replaceAll(e, args[i])
+	}
+	if(oldC == msg.content){
+	    msg.content = msg.content + ` ${args.join(" ")}`
+	}
         rv = await doCmd(msg, true)
     }
     else {
