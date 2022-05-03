@@ -12,6 +12,18 @@ async function buildFormat(sequence, msg, curArg, customFormats){
     switch(sequence){
 	case "cmd":
 	    return msg.content.split(" ")[0].slice(prefix.length)
+	case "fhex":
+	case "fbase":{
+	    let [num, base] = args
+	    console.log(num, base)
+	    return parseInt(num, parseInt(base) || 16)
+	}
+	case "hex":
+	case "base":{
+	    let [num, base] = args
+	    console.log(num, base)
+	    return Number(num).toString(parseInt(base) || 16)
+	}
 	case "rev":
 	case "reverse":
 	    if(args.length > 1)

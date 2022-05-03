@@ -98,6 +98,7 @@ const slashCommands = [
 	createChatCommandOption(STRING, "something", "the something to say", {required: true})
     ]),
     createChatCommand("help", "get help", []),
+    createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", {required: true})]),
     {
         name: "ping",
         type: 2
@@ -2203,6 +2204,12 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	}
 	else if(interaction.commandName == 'say'){
 	    await interaction.reply({contnet: interaction.options.get("something")?.value || "How did we get here"})
+	}
+	else if(interaction.commandName == "dad"){
+	    //@ts-ignore
+	    interaction.author = interaction.member.user
+	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
+	    await interaction.reply(rv)
 	}
     }
     else if(interaction.isUserContextMenu()){
