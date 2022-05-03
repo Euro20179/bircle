@@ -9,6 +9,14 @@ function randomColor(){
     return colors
 }
 
+function mulString(str, amount){
+    let ans = ""
+    for(let i = 0; i < amount; i++){
+	ans += str
+    }
+    return ans
+}
+
 async function fetchUser(guild, find){
     let res;
     if(res = find?.match(/<@!?(\d{18})>/)){
@@ -165,5 +173,6 @@ module.exports = {
     applyJimpFilter: applyJimpFilter,
     randomColor: randomColor,
     rgbToHex: rgbToHex,
-    safeEval: safeEval
+    safeEval: safeEval,
+    mulStr: mulString
 }

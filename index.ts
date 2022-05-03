@@ -20,9 +20,9 @@ import { CLIENT_RENEG_LIMIT } from "tls"
 
 const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval } = require('./util.js')
+const { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
 
-const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS]})
+const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES]})
 
 const token = fs.readFileSync("./TOKEN", "utf-8").trim()
 const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8").trim()
@@ -452,6 +452,119 @@ const commands: {[command: string]: Command} = {
 		team: {
 		    description: "The team to get info on"
 		}
+	    }
+	}
+    },
+    hangman: {
+	run: async(msg, args) => {
+	    let opponent = msg.author
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let caseSensitive = opts['case']
+	    let word;
+	    if(args[0])
+		opponent = await fetchUser(msg.guild, args[0])
+	    if(opts["random"]){
+		let channels = (await msg.guild.channels.fetch()).toJSON()
+		let channel = channels[Math.floor(Math.random() * channels.length)]
+		while(!channel.isText())
+		    channel = channels[Math.floor(Math.random() * channels.length)]
+		let messages
+		try{
+		    messages = await channel.messages.fetch({limit: 100})
+		}
+		catch(err){
+		    messages = await msg.channel.messages.fetch({limit: 100})
+		}
+		let times = 0;
+		while(!(word = messages.random()?.content)){
+		    times++
+		    if(times > 20) break
+		}
+		await msg.author.send("Type a word, (even though you picked random)")
+	    }
+	    else{
+		await msg.author.send("Type a word")
+	    }
+	    let collector = msg.author.dmChannel?.createMessageCollector({time: 30000, max: 1})
+	    collector.on("collect", async(m) => {
+		if(!opts['random'])
+		    word = m.content
+		if(!caseSensitive){
+		    word = word.toLowerCase()
+		}
+		let wordLength = word.length
+		let guessed = ""
+		let disp = ""
+		let lives = parseInt(opts["lives"]) || 10
+		for(let i = 0; i < wordLength; i++){
+		    if(word[i] == " "){
+			disp += '   '
+		    }
+		    else {
+			disp += "\\_ "
+		    }
+		}
+		await msg.channel.send({content: `${disp}\n<@${opponent.id}>, guess`})
+		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || m.content == "STOP") && m.author.id == opponent.id, idle: 40000})
+		collection.on("collect", async(m) => {
+		    if(guessed.indexOf(m.content) > -1){
+			await msg.channel.send(`Youve already guessed ${m.content}`)
+			return
+		    }
+		    else if(m.content == word){
+			await msg.channel.send(`YOU WIN, it was\n${word}`)
+			collection.stop()
+			return
+		    }
+		    else if(m.content == "STOP"){
+			await msg.channel.send("STOPPED")
+			collector.stop()
+			collection.stop()
+			return
+		    }
+		    else guessed += m.content
+		    if(word.indexOf(m.content) < 0)
+			lives--
+		    if(lives < 1){
+			await msg.channel.send(`You lost, the word was: \`${word}\``)
+			return
+		    }
+		    let correctIndecies: {[k: number]: string} = {}
+		    for(let i = 0; i < guessed.length; i++){
+			let letter = guessed[i]
+			//@ts-ignore
+			let tempWord = String(word)
+			let totalIdx = 0
+			let idx;
+			while((idx = tempWord.indexOf(letter)) >= 0){
+			    correctIndecies[idx + totalIdx] = letter
+			    totalIdx += idx + 1
+			    tempWord = tempWord.slice(idx + 1)
+			}
+		    }
+		    let disp = ""
+		    for(let i = 0; i < wordLength; i++){
+			if(correctIndecies[i]){
+			    disp += correctIndecies[i]
+			}
+			else if(word[i] == " "){
+			    disp += '   '
+			}
+			else {
+			    disp += "\\_ "
+			}
+		    }
+		    if(disp.replaceAll("   ", " ") == word){
+			await msg.channel.send("YOU WIN")
+			collection.stop()
+			return
+		    }
+		    await msg.channel.send({content: `${disp}\n<@${opponent.id}>, guess (${lives} lives left)`})
+		})
+	    })
+	    return {
+		content: "STARTING HANGMAN, WOOOOOO"
 	    }
 	}
     },
@@ -2265,6 +2378,22 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    //@ts-ignore
 	    interaction.author = interaction.member.user
 	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
+	    await interaction.reply(rv)
+	}
+	else if(interaction.commandName == "hangman"){
+	    let caseSensitive = interaction.options.get("case")?.value
+	    let lives = interaction.options.get("lives")?.value
+	    let user = interaction.options.get("user")?.value
+	    let cmdsArgs = []
+	    if(caseSensitive){
+		cmdsArgs.push("-case")
+	    }
+	    if(lives !== undefined){
+		cmdsArgs.push(`-lives=${lives}`)
+	    }
+	    cmdsArgs.push(user)
+	    interaction.author = interaction.member.user
+	    let rv = await commands['hangman'].run(interaction, cmdsArgs)
 	    await interaction.reply(rv)
 	}
     }
