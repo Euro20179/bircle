@@ -2037,12 +2037,14 @@ async function doCmd(msg, returnJson=false){
         else rv = {content: "You do not have permissions to run this command"}
     }
     else if(aliases[command]){
-        msg.content = `${prefix}${aliases[command].join(" ")} ${args.join(" ")}`
+	let aliasPreArgs = aliases[command].slice(1);
         command = aliases[command][0]
         //finds the original command
         while(aliases[command]?.[0]){
+	    aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
             command = aliases[command][0]
         }
+        msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")} ${args.join(" ")}`
         rv = await doCmd(msg, true)
     }
     else {
