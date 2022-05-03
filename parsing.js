@@ -14,7 +14,9 @@ async function buildFormat(sequence, msg, curArg, customFormats){
 	    return msg.content.split(" ")[0].slice(prefix.length)
 	case "rev":
 	case "reverse":
-	    return [...sequence].reverse().join("")
+	    if(args.length > 1)
+		return args.reverse().join(" ")
+	    return [...args.join(" ")].reverse().join("")
 	case 'c':
 	    return msg.content.split(" ").slice(1).join(" ").trim()
         case "user":{
