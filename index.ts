@@ -217,20 +217,6 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
-    "reset-log": {
-	run: async(msg, args) => {
-	    fs.writeFileSync(LOGFILE, "")
-	    return {content: "Reset log file"}
-	},
-	permCheck: msg => {
-	    return ADMINS.includes(msg.author.id)
-	}
-    },
-    "log": {
-	run: async(msg, args) => {
-	    return {files: [{attachment: LOGFILE}]}
-	}
-    },
     "if": {
 	run: async(msg, args) => {
 	    console.log(args)
@@ -2257,7 +2243,6 @@ async function doCmd(msg, returnJson=false){
     let args: Array<string>
     let doFirsts: {[item: number]: string}
     [command, args, doFirsts] = await parseCmd({msg: msg})
-    fs.appendFile(LOGFILE, `[${new Date()}]: ${prefix}${command}: (args)${JSON.stringify(args)}, (doFirsts) ${JSON.stringify(doFirsts)}\n`, err => console.log(err))
     for(let idx in doFirsts){
         let oldContent = msg.content
         let cmd = doFirsts[idx]
@@ -2265,7 +2250,6 @@ async function doCmd(msg, returnJson=false){
         args[idx] = args[idx].replaceAll("%{}", getContentFromResult(await doCmd(msg, true)).trim())
         msg.content = oldContent
     }
-    fs.appendFile(LOGFILE, `[${new Date()}]: ${prefix}${command}: (args)${JSON.stringify(args)}\n\n`, err => console.log(err))
     let canRun = true
     let exists = true
     let rv: CommandReturn;
