@@ -524,7 +524,7 @@ const commands: {[command: string]: Command} = {
 		    if(word.indexOf(m.content) < 0)
 			lives--
 		    if(lives < 1){
-			await msg.channel.send(`You lost, the word was: \`${word}\``)
+			await msg.channel.send(`You lost, the word was:\n${word}`)
 			return
 		    }
 		    let correctIndecies: {[k: number]: string} = {}
@@ -553,7 +553,7 @@ const commands: {[command: string]: Command} = {
 			}
 		    }
 		    if(disp.replaceAll("   ", " ") == word){
-			await msg.channel.send("YOU WIN")
+			await msg.channel.send(`YOU WIN, it was\n${word}`)
 			collection.stop()
 			return
 		    }
