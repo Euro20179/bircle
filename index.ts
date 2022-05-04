@@ -424,7 +424,14 @@ const commands: {[command: string]: Command} = {
 		    }
 		    homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
 		    awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-		    let [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+		    let homeScore, awayScore
+		    try{
+			[homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+		    }
+		    catch(err){
+			await msg.channel.send("Failed to get data")
+			return
+		    }
 		    homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
 		    awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
 		    embed.setTitle(`${args.join(" ")}`)
