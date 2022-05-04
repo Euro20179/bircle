@@ -97,6 +97,7 @@ const slashCommands = [
 	createChatCommandOption(STRING, "something", "the something to say", {required: true})
     ]),
     createChatCommand("help", "get help", []),
+    createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", {required: true})]),
     createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", {required: true})]),
     {
         name: "ping",
@@ -479,6 +480,58 @@ const commands: {[command: string]: Command} = {
 		    description: "The team to get info on"
 		}
 	    }
+	}
+    },
+    wordle: {
+	run: async(msg, args) => {
+	    let opts: Opts
+	    [opts, args] = getOpts(args)
+	    let min = parseInt(opts["min"] as string) || 5
+	    let max = parseInt(opts["max"] as string) || 5
+	    let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
+	    console.log(words)
+	    let word = words[Math.floor(Math.random() * words.length)].toLowerCase()
+	    let guesses = []
+	    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP"})
+	    let guessCount = parseInt(opts["lives"] as string) || 6
+	    let display: string[] = []
+	    await msg.channel.send(`The word is ${word.length} characters long`)
+	    for(let i = 0; i < guessCount; i++){
+		display.push(mulStr("⬛ ", word.length))
+	    }
+	    await msg.channel.send(display.join("\n"))
+	    collector.on("collect", async(m) => {
+		if(m.content == "STOP"){
+		    collector.stop()
+		    await msg.channel.send("stopped")
+		    return
+		}
+		guesses.push(m.content)
+		let nextInDisplay = ""
+		for(let i = 0; i < word.length; i++){
+		    let correct = word[i]
+		    let guessed = m.content[i]
+		    if(correct == guessed)
+			nextInDisplay += `**${guessed}** `
+		    else if(word.includes(guessed))
+			nextInDisplay += `*${guessed}* `
+		    else nextInDisplay += `\`${guessed}\` `
+		}
+		display[6 - guessCount] = nextInDisplay
+		guessCount--
+		await msg.channel.send(display.join("\n"))
+		if(m.content == word){
+		    await msg.channel.send(`You win`)
+		    collector.stop()
+		    return
+		}
+		if(guessCount == 0){
+		    await msg.channel.send(`You lose, it was ${word}`)
+		    collector.stop()
+		    return
+		}
+	    })
+	    return {content: "starting wordle"}
 	}
     },
     hangman: {
@@ -1540,6 +1593,11 @@ ${fs.readdirSync("./command-results").join("\n")}
             }
         }
     },
+    "list-files": {
+	run: async(msg, args) => {
+	    return {content: fs.readdirSync('./command-results').join("\n")}
+	}
+    },
     add: {
         run: async(msg: Message, args: ArgumentList) =>{
             const file = FILE_SHORTCUTS[args[0]] || args[0]
@@ -1554,9 +1612,9 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
             if(!fs.existsSync(`./command-results/${file}`)){
-                return {
-                    content: "file does not exist"
-                }
+		if(file === "wordle")
+		    fs.writeFileSync(`./command-results/${file}`, "")
+		else return {content: `${file} does not exist`}
             }
             args = args.slice(1)
             const data = args?.join(" ")
@@ -2465,6 +2523,18 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    interaction.author = interaction.member?.user
 	    //@ts-ignore
 	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
+	    await interaction.reply(rv)
+	} 
+	else if(interaction.commandName == "add-wordle"){
+	    //@ts-ignore
+	    interaction.author = interaction.member?.user
+	    let resp = interaction.options.get("word")?.value as string
+	    if(resp.includes(" ")){
+		await interaction.reply("no spaces")
+		return
+	    }
+	    //@ts-ignore
+	    let rv = await commands['add'].run(interaction, ["wordle", resp])
 	    await interaction.reply(rv)
 	} 
 	else if(interaction.commandName == "hangman"){
