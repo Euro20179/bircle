@@ -1474,8 +1474,7 @@ const commands: {[command: string]: Command} = {
     stop: {
         run: async(msg: Message, args: ArgumentList) => {
             if(!Object.keys(SPAMS).length){
-                return {
-                }
+                return { content: "no spams to stop"}
             }
             if(args[0]){
                 if(SPAMS[args[0]]){
