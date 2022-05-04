@@ -492,6 +492,9 @@ const commands: {[command: string]: Command} = {
 	    }
 	    async function game(word: string){
 		let wordLength = word.length
+		if(!caseSensitive){
+		    word = word.toLowerCase()
+		}
 		let guessed = ""
 		let disp = ""
 		let lives = parseInt(opts["lives"]) || 10
@@ -584,11 +587,7 @@ const commands: {[command: string]: Command} = {
 		await msg.author.send("Type a word")
 		let collector = msg.author.dmChannel?.createMessageCollector({time: 30000, max: 1})
 		collector?.on("collect", async(m) => {
-		    if(!opts['random'])
-			word = m.content
-		    if(!caseSensitive){
-			word = word.toLowerCase()
-		    }
+		    word = m.content
 		    await game(word)
 		})
 	    }
