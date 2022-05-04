@@ -495,6 +495,7 @@ const commands: {[command: string]: Command} = {
 	    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP"})
 	    let guessCount = parseInt(opts["lives"] as string) || 6
 	    let display: string[] = []
+	    await msg.channel.send("key: **correct**, *wrong place*, `wrong`")
 	    await msg.channel.send(`The word is ${word.length} characters long`)
 	    for(let i = 0; i < guessCount; i++){
 		display.push(mulStr("⬛ ", word.length))
