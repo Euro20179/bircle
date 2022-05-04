@@ -20,7 +20,7 @@ import { CLIENT_RENEG_LIMIT } from "tls"
 
 const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { downloadSync, fetchUser, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
+const { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES]})
 
@@ -2004,6 +2004,29 @@ ${styles}
                 }
             }
         }
+    },
+    "channel-info": {
+	run: async(msg, args) => {
+	    let channel 
+	    if(!args.join(" ").trim().length)
+		channel = msg.channel
+	    else channel = await fetchChannel(msg.guild, args.join(" ").trim())
+	    let embed = new MessageEmbed()
+	    embed.setTitle(channel.name)
+	    embed.addField("Created", channel.createdAt.toString(), true)
+	    embed.addField("Id", channel.id.toString(), true)
+	    embed.addField("Type", channel.type, true)
+	    if(channel.topic){
+		embed.addField("Topic", channel.topic, true)
+	    }
+	    if(channel.nsfw){
+		embed.addField("NSFW?", channel.nsfw, true)
+	    }
+	    if(channel.position){
+		embed.addField("Position", channel.position.toString(), true)
+	    }
+	    return {embeds: [embed]}
+	}
     },
     "user-info": {
         run: async(msg: Message, args: ArgumentList) => {

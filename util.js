@@ -17,6 +17,12 @@ function mulString(str, amount){
     return ans
 }
 
+async function fetchChannel(guild, find){
+    let channels = await guild.channels.fetch()
+    let channel = channels.filter(channel => `<#${channel.id}>` == find || channel.id == find || channel.name == find || channel.name.indexOf(find) > -1).at(0)
+    return channel
+}
+
 async function fetchUser(guild, find){
     let res;
     if(res = find?.match(/<@!?(\d{18})>/)){
@@ -166,6 +172,7 @@ function safeEval (code, context, opts) {
 
 module.exports = {
     fetchUser: fetchUser,
+    fetchChannel: fetchChannel,
     generateFileName: generateFileName,
     downloadSync: downloadSync,
     format: format,
