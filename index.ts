@@ -8,9 +8,8 @@ const { execSync } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable } from 'discord.js'
+import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel } from 'discord.js'
 
-import svg2img = require("svg2img")
 import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
@@ -37,7 +36,7 @@ let snipe:  Message | PartialMessage;
 
 const illegalLastCmds = ["!!", "spam"]
 
-function createChatCommand(name: string, description: string, options){
+function createChatCommand(name: string, description: string, options: any){
     return {
         name: name,
         description: description,
@@ -56,7 +55,7 @@ const NUMBER = 10
 const ATTACH = 11
 
 function createChatCommandOption(type: number, name: string, description: string, {min, max, required}: {min?: number, max?: number | null, required?: boolean}){
-    let obj = {
+    let obj: {[key: string]: any} = {
         type: type,
         name: name,
         description: description,
@@ -184,18 +183,20 @@ function generateHTMLFromCommandHelp(name: string, command: any){
     return `${html}</div><hr>`
 }
 
-function getImgFromMsgAndOpts(opts: {}, msg: Message){
-    let img: undefined | string = opts['img']
+function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
+    let img: undefined | string | boolean | Stream | Buffer = opts['img']
     if(msg.attachments?.at(0)){
         img = msg.attachments.at(0)?.attachment
     }
+    //@ts-ignore
     if(msg.reply?.attachments?.at(0)){
+	//@ts-ignore
         img = msg.reply.attachments.at(0)?.attachment
     }
     if(!img) {
-        img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.first())?.last()?.attachments?.first()?.attachment
+        img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.first()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }
-    return img
+    return img as string
 }
 
 const commands: {[command: string]: Command} = {
@@ -207,6 +208,7 @@ const commands: {[command: string]: Command} = {
 	    catch(err){
 		console.log(err)
 	    }
+	    return {content: "Could not calculate"}
 	},
 	help: {
 	    info: "Run a calculation",
@@ -223,12 +225,12 @@ const commands: {[command: string]: Command} = {
 	    let [condition, cmd] = args.join(" ").split(";")
 	    if(safeEval(condition, {user: msg.author, args: args})){
 		msg.content = `${prefix}${cmd.trim()}`
-		return await doCmd(msg, true)
+		return await doCmd(msg, true) as CommandReturn
 	    }
 	    let elseCmd = args.join(" ").split(`${prefix}else;`)[1]?.trim()
 	    if(elseCmd){
 		msg.content = `${prefix}${elseCmd.trim()}`
-		return await doCmd(msg, true)
+		return await doCmd(msg, true) as CommandReturn
 	    }
 	    return {content: "?"}
 	}
@@ -257,9 +259,9 @@ const commands: {[command: string]: Command} = {
                     }
                 }
             }
-            args = args.join(" ")
+            let stringArgs = args.join(" ")
             let files = msg.attachments?.toJSON()
-            if(!args && !embed && !files.length){
+            if(!stringArgs && !embed && !files.length){
                 return {
                     content: "cannot send nothing"
                 }
@@ -267,14 +269,18 @@ const commands: {[command: string]: Command} = {
 	    if(wait){
 		await new Promise((res) => setTimeout(res, wait * 1000))
 	    }
-            return {
-                delete: !(opts["D"] || opts['no-del']),
-                content: args,
-                embeds: embed ? [embed] : undefined,
-                files: files,
-                deleteFiles: false
-            }
-        },
+	    let rv: CommandReturn = {delete: !(opts["D"] || opts['no-del']), deleteFiles: false}
+	    if(stringArgs){
+		rv["content"] = stringArgs
+	    }
+	    if(files.length){
+		rv["files"] = files as CommandFile[]
+	    }
+	    if(embed){
+		rv["embeds"] = [embed]
+	    }
+            return rv
+	},
         help: {
             info: "the bot will say the <code>text</code>",
             options: {
@@ -402,7 +408,7 @@ const commands: {[command: string]: Command} = {
     nick: {
 	run: async(msg, args) => {
 	    try{
-		(await msg.guild.members.fetch(client.user.id)).setNickname(args.join(" "))
+		(await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
 	    }
 	    catch(err){
 		return {content: "Could not set name"}
@@ -426,7 +432,7 @@ const commands: {[command: string]: Command} = {
 		    let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
 		    try{
 			inning = inning.match(/span class=".*?">(.*?)<\//)[1]
-			    .replace(/&#(\d+);/gi, function(match, numStr) {
+			    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
 				var num = parseInt(numStr, 10);
 				return String.fromCharCode(num);
 			    });
@@ -497,7 +503,7 @@ const commands: {[command: string]: Command} = {
 		}
 		let guessed = ""
 		let disp = ""
-		let lives = parseInt(opts["lives"]) || 10
+		let lives = parseInt(opts["lives"] as string) || 10
 		for(let i = 0; i < wordLength; i++){
 		    if(word[i] == " "){
 			disp += '   '
@@ -565,7 +571,10 @@ const commands: {[command: string]: Command} = {
 		})
 	    }
 	    if(opts["random"]){
-		let channels = (await msg.guild.channels.fetch()).toJSON()
+		let channels = (await msg.guild?.channels.fetch())?.toJSON()
+		if(!channels){
+		    return {content: "no channels found"}
+		}
 		let channel = channels[Math.floor(Math.random() * channels.length)]
 		while(!channel.isText())
 		    channel = channels[Math.floor(Math.random() * channels.length)]
@@ -577,6 +586,7 @@ const commands: {[command: string]: Command} = {
 		    messages = await msg.channel.messages.fetch({limit: 100})
 		}
 		let times = 0;
+		//@ts-ignore
 		while(!(word = messages.random()?.content)){
 		    times++
 		    if(times > 20) break
@@ -813,7 +823,7 @@ const commands: {[command: string]: Command} = {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
-            let color: string = opts['color'] || "white"
+            let color: string = <string>opts['color'] || "white"
             let outline = opts['outline']
             let img = getImgFromMsgAndOpts(opts, msg)
             if(!img){
@@ -821,22 +831,26 @@ const commands: {[command: string]: Command} = {
                     content: "no img found"
                 }
             }
-            let gradient: Array<string> | undefined = opts['gradient']?.split(">")
+	    let gradient: Array<string> | undefined
+	    if(typeof opts["gradient"] == 'string')
+		gradient = opts['gradient'].split(">")
             let [x, y, width, height] = args.slice(0,4)
             if(!x){
-                x = opts['x'] || "0"
+                x = typeof opts['x'] === 'string' ? opts['x'] : "0"
             }
             if(!y){
-                y = opts['y'] || "0"
+                y = typeof opts['y'] === 'string' ? opts['y'] : "0"
             }
             if(!width){
+		//@ts-ignore
                 width = opts['w'] || opts['width'] || opts['size'] || "50"
             }
             if(!height){
+		//@ts-ignore
                 height = opts['h'] || opts['height'] || opts['size'] || width || "50"
             }
-            width = parseInt(width as string) || 50
-            height = parseInt(height as string) || 50
+            let intWidth = parseInt(width as string) || 50
+            let intHeight = parseInt(height as string) || 50
             https.request(img, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -851,7 +865,7 @@ const commands: {[command: string]: Command} = {
 
 		    let newImg
                     if(gradient){
-			newImg = sharp(await createGradient(gradient, width, height))
+			newImg = sharp(await createGradient(gradient, intWidth, intHeight))
                     }
                     else {
 			let trueColor
@@ -862,14 +876,14 @@ const commands: {[command: string]: Command} = {
 			}
 			newImg = sharp({
 			    create: {
-				width: width,
-				height: height,
+				width: intWidth,
+				height: intHeight,
 				channels: 4,
 				background: trueColor
 			    }
 			})
 		    }
-		    let composedImg = await oldImg.composite([{input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight, height), left: parsePosition(x, oldWidth, width)}]).png().toBuffer()
+		    let composedImg = await oldImg.composite([{input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight, intHeight), left: parsePosition(x, oldWidth, intWidth)}]).png().toBuffer()
 		    /*
                     if(outline){
                         let [color, lineWidth] = outline.split(":")
@@ -962,6 +976,7 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    /*
     scale: {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
@@ -1021,8 +1036,8 @@ const commands: {[command: string]: Command} = {
         run: async(msg: Message, args:ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
-            args = args.join(" ")
-            let filters = args.split("|")
+            let stringArgs = args.join(" ")
+            let filters = stringArgs.split("|")
             let img = getImgFromMsgAndOpts(opts, msg)
             if(!img){
                 return {content: "no img found"}
@@ -1068,6 +1083,7 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    */
     /*
     text: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -1258,12 +1274,12 @@ const commands: {[command: string]: Command} = {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
-            args = args.join(" ")
-            let color = args || "RANDOM"
-            let colors = args.split(">")
+            let stringArgs = args.join(" ")
+            let color = stringArgs || "RANDOM"
+            let colors = stringArgs.split(">")
 
-            const width = Math.min(parseInt(opts['w']) || 250, 2000)
-            const height = Math.min(parseInt(opts['h']) || 250, 2000)
+            const width = Math.min(parseInt(opts['w'] as string) || 250, 2000)
+            const height = Math.min(parseInt(opts['h'] as string) || 250, 2000)
 
             let content = color
             let fn = `${generateFileName("color", msg.author.id)}.png`
@@ -1434,7 +1450,7 @@ const commands: {[command: string]: Command} = {
             let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
             let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
             let fn = generateFileName("remove", msg.author.id)
-            fs.writeFileSync(fn, options)
+            fs.writeFileSync(fn, options.join("\n"))
             await msg.channel.send({
                 content: "Say the number of what you want to remove, or type cancel",
                 files: [{
@@ -1626,7 +1642,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
-            let speed = opts['speed']
+            let speed = parseInt(opts['speed'] as string) || 1
 	    let joinedArgs = args.join(" ")
             let [from, to] = joinedArgs.split("|")
             if(!to){
@@ -1649,6 +1665,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             from = encodeURI(from.trim())
             to = encodeURI(to.trim())
             const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
+		//@ts-ignore
             const resp = await got(url, {
                 headers: {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
@@ -1813,6 +1830,7 @@ ${styles}
             for(let fmt in opts){
                 if(fmt.length == 1) continue
                 if(!fmt.match(/^\w+$/)) continue
+		//@ts-ignore
                 const ext = exts[fmt] || fmt
                 try{
                     execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
@@ -1963,11 +1981,13 @@ ${styles}
             [opts, args] = getOpts(args)
             let member 
             if(!opts['f'])
-                member = msg.channel.guild.members.cache.random()
+                member = (msg.channel as TextChannel).guild.members.cache.random()
             if(!member)
-                member = (await msg.channel.guild.members.fetch()).random()
+                member = (await (msg.channel as TextChannel).guild.members.fetch()).random()
             let fmt = args.join(" ") || "%u (%n)"
-            let user = member.user
+	    if(!member) return {content: "No member found"}
+            let user = member?.user
+	    if(!user) return {content: "No user found"}
             return {
                     content: format(fmt
                                     .replaceAll("{id}", user.id || "#!N/A")
@@ -1976,7 +1996,7 @@ ${styles}
                                     .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
                                     .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
                                     .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                                    .replaceAll("{joined}", member.joinedAt?.toString() || "#!N/A")
                                     .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
                                     {
                                         i: user.id || "#!N/A",
@@ -1985,7 +2005,7 @@ ${styles}
                                         X: member.displayHexColor.toString() || "#!N/A",
                                         x: member.displayColor.toString() || "#!N/A",
                                         c: user.createdAt.toString() || "#!N/A",
-                                        j: member.joinedAt.toString() || "#!N/A",
+                                        j: member.joinedAt?.toString() || "#!N/A",
                                         b: member.premiumSince?.toString() || "#!N/A"
                                     }
                     )
@@ -2114,11 +2134,12 @@ valid formats:<br>
         }
     },
     "cmd-use": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async(_msg: Message, _args: ArgumentList) => {
             let data = generateCmdUseFile()
                         .split("\n")
                         .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
                         .filter(v => v[0]) // remove empty strings
+			//@ts-ignore
                         .sort((a, b) => a[1] - b[1]) // sort from least to greatest
                         .reverse() //sort from greatest to least
                         .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
@@ -2139,7 +2160,7 @@ valid formats:<br>
             let data = args.slice(1).join(" ").trim()
             if(!data){
                 if(msg.attachments?.at(0)){
-                    data = downloadSync(msg.attachments.at(0).attachment).toString()
+                    data = downloadSync(msg.attachments?.at(0)?.attachment).toString()
                 }
                 else return {content: "no data given to search through"}
             }
@@ -2147,10 +2168,10 @@ valid formats:<br>
             let finds = ""
             for(let find of match){
                 if(find[1]){
-                    finds += `Found ${find.slice(1).join(", ")} at character ${find.index + 1}\n`
+                    finds += `Found ${find.slice(1).join(", ")} at character ${(find?.index ?? 0) + 1}\n`
                 }
                 else {
-                    finds += `Found ${find[0]} at character ${find.index + 1}\n`
+                    finds += `Found ${find[0]} at character ${(find?.index ?? 0) + 1}\n`
                 }
             }
             return {
@@ -2189,7 +2210,7 @@ valid formats:<br>
             if(!lastCommand){
                 return {content: "You ignorance species, there have not been any commands run."}
             }
-            return await doCmd(lastCommand, true)
+            return await doCmd(lastCommand, true) as CommandReturn
         }
     },
     snipe: {
@@ -2197,8 +2218,21 @@ valid formats:<br>
             if(!snipe){
                 return {content: "You idiot, nothing was ever said ever in the history of this server"}
             }
-            return {content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, files: snipe.attachments?.toJSON(), deleteFiles: false, embeds: snipe.embeds}
+	    let rv: CommandReturn = {deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``}
+	    let files = snipe.attachments?.toJSON()
+	    if(files){
+		rv["files"] = files as CommandFile[]
+	    }
+	    if(snipe.embeds){
+		rv["embeds"] = snipe.embeds
+	    }
+            return rv
         }
+    },
+    ping: {
+	run: async(msg, args) => {
+	    return {content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`}
+	}
     }
 }
 
@@ -2238,7 +2272,7 @@ const rest = new REST({version: "9"}).setToken(token);
     }
 })();
 
-async function doCmd(msg, returnJson=false){
+async function doCmd(msg: Message, returnJson=false){
     let command: string
     let args: Array<string>
     let doFirsts: {[item: number]: string}
@@ -2247,7 +2281,7 @@ async function doCmd(msg, returnJson=false){
         let oldContent = msg.content
         let cmd = doFirsts[idx]
         msg.content = cmd
-        args[idx] = args[idx].replaceAll("%{}", getContentFromResult(await doCmd(msg, true)).trim())
+        args[idx] = args[idx].replaceAll("%{}", getContentFromResult(await doCmd(msg, true) as CommandReturn).trim())
         msg.content = oldContent
     }
     let canRun = true
@@ -2259,7 +2293,7 @@ async function doCmd(msg, returnJson=false){
     }
     if(exists){
         if(commands[command].permCheck){
-            canRun = commands[command].permCheck(msg)
+            canRun = commands[command].permCheck?.(msg) ?? true
         }
         if(WHITELIST[msg.author.id]?.includes(command)){
             canRun = true
@@ -2290,7 +2324,7 @@ async function doCmd(msg, returnJson=false){
 	if(oldC == msg.content){
 	    msg.content = msg.content + ` ${args.join(" ")}`
 	}
-        rv = await doCmd(msg, true)
+        rv = await doCmd(msg, true) as CommandReturn
     }
     else {
         rv = {content: `${command} does not exist`}
@@ -2302,13 +2336,13 @@ async function doCmd(msg, returnJson=false){
         return rv;
     }
     if(!Object.keys(rv).length){
-        return
+        return 
     }
     if(rv.delete){
         msg.delete()
     }
-    if(rv.content?.length >= 2000){
-        fs.writeFileSync("out", rv.content)
+    if((rv.content?.length || 0) >= 2000){
+        fs.writeFileSync("out", rv.content as string)
         delete rv["content"]
         if(rv.files){
             rv.files.push({attachment: "out", name: "cmd.txt", description: "command output too long"})
@@ -2334,7 +2368,7 @@ client.on('ready', () => {
 })
 
 client.on("messageDelete", async(m) => {
-    if(m.author.id != client.id)
+    if(m.author?.id != client.user?.id)
         snipe = m
 })
 
@@ -2417,17 +2451,19 @@ client.on("interactionCreate", async(interaction: Interaction) => {
             await interaction.reply(rv)
 	}
 	else if(interaction.commandName == 'rccmd'){
-	    interaction.author = interaction.member.user
+	    //@ts-ignore
+	    interaction.author = interaction.member?.user
 	    //@ts-ignore
 	    let rv = await commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])
 	    await interaction.reply(rv)
 	}
 	else if(interaction.commandName == 'say'){
-	    await interaction.reply({contnet: interaction.options.get("something")?.value || "How did we get here"})
+	    await interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here")
 	}
 	else if(interaction.commandName == "dad"){
 	    //@ts-ignore
-	    interaction.author = interaction.member.user
+	    interaction.author = interaction.member?.user
+	    //@ts-ignore
 	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
 	    await interaction.reply(rv)
 	} 
@@ -2443,7 +2479,9 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 		cmdsArgs.push(`-lives=${lives}`)
 	    }
 	    cmdsArgs.push(user)
+	    //@ts-ignore
 	    interaction.author = interaction.member.user
+	    //@ts-ignore
 	    let rv = await commands['hangman'].run(interaction, cmdsArgs)
 	    await interaction.reply(rv)
 	}
