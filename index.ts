@@ -489,7 +489,9 @@ const commands: {[command: string]: Command} = {
 	    let min = parseInt(opts["min"] as string) || 5
 	    let max = parseInt(opts["max"] as string) || 5
 	    let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
-	    console.log(words)
+	    if(words.length == 0){
+		return {content: "no words found"}
+	    }
 	    let word = words[Math.floor(Math.random() * words.length)].toLowerCase()
 	    let guesses = []
 	    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP"})
