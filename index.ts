@@ -525,6 +525,7 @@ const commands: {[command: string]: Command} = {
 			lives--
 		    if(lives < 1){
 			await msg.channel.send(`You lost, the word was:\n${word}`)
+			collection.stop()
 			return
 		    }
 		    let correctIndecies: {[k: number]: string} = {}
