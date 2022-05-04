@@ -399,6 +399,19 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    nick: {
+	run: async(msg, args) => {
+	    try{
+		(await msg.guild.members.fetch(client.user.id)).setNickname(args.join(" "))
+	    }
+	    catch(err){
+		return {content: "Could not set name"}
+	    }
+	    return {
+		content: `Changed name to \`${args.join(" ")}\``
+	    }
+	}
+    },
     sport: {
 	run: async(msg, args) => {
 	    https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
@@ -2394,7 +2407,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    interaction.author = interaction.member.user
 	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
 	    await interaction.reply(rv)
-	}
+	} 
 	else if(interaction.commandName == "hangman"){
 	    let caseSensitive = interaction.options.get("case")?.value
 	    let lives = interaction.options.get("lives")?.value
