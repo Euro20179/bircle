@@ -488,6 +488,9 @@ const commands: {[command: string]: Command} = {
 	    [opts, args] = getOpts(args)
 	    let min = parseInt(opts["min"] as string) || 5
 	    let max = parseInt(opts["max"] as string) || 5
+	    if(min > max){
+		max = min
+	    }
 	    let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
 	    if(words.length == 0){
 		return {content: "no words found"}
