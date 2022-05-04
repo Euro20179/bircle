@@ -8,5 +8,6 @@ cmduse
 command-perms
 command-results
 index.js
+log.txt
 
 !command-perms/holder

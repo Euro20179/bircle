@@ -18,7 +18,7 @@ import jimp = require('jimp')
 
 import { CLIENT_RENEG_LIMIT } from "tls"
 
-const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
+const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
 
@@ -215,6 +215,20 @@ const commands: {[command: string]: Command} = {
 		    description: "The equation to evaluate"
 		}
 	    }
+	}
+    },
+    "reset-log": {
+	run: async(msg, args) => {
+	    fs.writeFileSync(LOGFILE, "")
+	    return {content: "Reset log file"}
+	},
+	permCheck: msg => {
+	    return ADMINS.includes(msg.author.id)
+	}
+    },
+    "log": {
+	run: async(msg, args) => {
+	    return {files: [{attachment: LOGFILE}]}
 	}
     },
     "if": {
@@ -2243,6 +2257,7 @@ async function doCmd(msg, returnJson=false){
     let args: Array<string>
     let doFirsts: {[item: number]: string}
     [command, args, doFirsts] = await parseCmd({msg: msg})
+    fs.appendFile(LOGFILE, `[${new Date()}]: ${prefix}${command}: (args)${JSON.stringify(args)}, (doFirsts) ${JSON.stringify(doFirsts)}\n`, err => console.log(err))
     for(let idx in doFirsts){
         let oldContent = msg.content
         let cmd = doFirsts[idx]
@@ -2250,6 +2265,7 @@ async function doCmd(msg, returnJson=false){
         args[idx] = args[idx].replaceAll("%{}", getContentFromResult(await doCmd(msg, true)).trim())
         msg.content = oldContent
     }
+    fs.appendFile(LOGFILE, `[${new Date()}]: ${prefix}${command}: (args)${JSON.stringify(args)}\n\n`, err => console.log(err))
     let canRun = true
     let exists = true
     let rv: CommandReturn;
