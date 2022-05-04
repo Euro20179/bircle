@@ -500,6 +500,15 @@ const commands: {[command: string]: Command} = {
 		display.push(mulStr("⬛ ", word.length))
 	    }
 	    await msg.channel.send(display.join("\n"))
+	    let letterCount: {[k: string]: number} = {}
+	    for(let letter of word){
+		if(letterCount[letter] === undefined){
+		    letterCount[letter] = 1
+		}
+		else{
+		    letterCount[letter] += 1
+		}
+	    }
 	    collector.on("collect", async(m) => {
 		if(m.content == "STOP"){
 		    collector.stop()
@@ -508,12 +517,18 @@ const commands: {[command: string]: Command} = {
 		}
 		guesses.push(m.content)
 		let nextInDisplay = ""
+		let guessLetterCount: {[key: string]: number} = {}
 		for(let i = 0; i < word.length; i++){
 		    let correct = word[i]
 		    let guessed = m.content[i]
+		    if(guessLetterCount[guessed] === undefined){
+			guessLetterCount[guessed] = 1
+		    } else {
+			guessLetterCount[guessed] += 1
+		    }
 		    if(correct == guessed)
 			nextInDisplay += `**${guessed}** `
-		    else if(word.includes(guessed))
+		    else if(word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
 			nextInDisplay += `*${guessed}* `
 		    else nextInDisplay += `\`${guessed}\` `
 		}
