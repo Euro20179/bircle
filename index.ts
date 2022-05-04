@@ -532,6 +532,20 @@ const commands: {[command: string]: Command} = {
 		}
 	    })
 	    return {content: "starting wordle"}
+	},
+	help: {
+	    info: "wordle",
+	    options: {
+		"min": {
+		    description: "The minimum length of the word, default: 5"
+		},
+		"max": {
+		    description: "The maximum length of the word, default: 5"
+		},
+		"lives": {
+		    description: "Lives, default: 6"
+		}
+	    }
 	}
     },
     hangman: {
