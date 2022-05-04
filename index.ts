@@ -2026,7 +2026,10 @@ ${styles}
         },
         permCheck: msg => {
             return ADMINS.includes(msg.author.id)
-        }
+        },
+	help: {
+	    info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
+	}
     },
     BLACKLIST: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2064,7 +2067,10 @@ ${styles}
         },
         permCheck: msg => {
             return ADMINS.includes(msg.author.id)
-        }
+        },
+	help: {
+	    info: "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd"
+	}
     },
     END: {
         run: async(msg: Message, args: ArgumentList) => {
