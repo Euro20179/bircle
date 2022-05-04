@@ -1541,7 +1541,6 @@ const commands: {[command: string]: Command} = {
             let fn = generateFileName("remove", msg.author.id)
             fs.writeFileSync(fn, options.join("\n"))
             await msg.channel.send({
-                content: "Say the number of what you want to remove, or type cancel",
                 files: [{
                     attachment: fn,
                     name: "remove.txt"
@@ -1549,34 +1548,44 @@ const commands: {[command: string]: Command} = {
             })
             fs.rmSync(fn)
             try{
-                let m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 20, time: 30000, errors: ['time']})
-                if(['cancel', 'c'].includes(m.at(0)?.content || "c")){
-                    return {
-                        content: "cancelled"
-                    }
-                }
-                let num = parseInt(m.at(0)?.content || "0")
-                if(!num){
-                    await msg.channel.send(`${num} is not a valid number`)
-                }
-                let removal = data[num -1]
-                let userCreated = removal.split(":")[0].trim()
-                if(userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                    return {
-                        content: "You did not create that message, and are not a bot admin"
-                    }
-                }
-                data.splice(num - 1, 1)
-                fs.writeFileSync(`command-results/${file}`, data.join(";END"))
-                return {
-                    content: `removed ${removal} from ${file}`
-                }
+                let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 30000})
+		collector.on("collect", async(m) => {
+		    if(['cancel', 'c'].includes(m.content || "c")){
+			collector.stop()
+			return
+		    }
+		    let removedList = []
+		    for(let numStr of m.content.split(" ")){
+			let num = parseInt(numStr || "0")
+			if(!num){
+			    await msg.channel.send(`${num} is not a valid number`)
+			    return
+			}
+			let removal = data[num -1]
+			let userCreated = removal.split(":")[0].trim()
+			if(userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
+			    await msg.channel.send({
+				content: "You did not create that message, and are not a bot admin"
+			    })
+			    continue
+			}
+			removedList.push(data[num -1])
+			delete data[num - 1]
+		    }
+		    data = data.filter(v => typeof v != 'undefined')
+		    fs.writeFileSync(`command-results/${file}`, data.join(";END"))
+		    await msg.channel.send({
+			content: `removed ${removedList.join("\n")} from ${file}`
+		    })
+		    collector.stop()
+		})
             }
             catch(err){
                 return {
                     content: "didnt respond in time"
                 }
             }
+	    return {content: 'Say the number of what you want to remove or type cancel'}
         },
         help: {
             arguments: {
