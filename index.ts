@@ -458,41 +458,19 @@ const commands: {[command: string]: Command} = {
     hangman: {
 	run: async(msg, args) => {
 	    let opponent = msg.author
-	    let opts;
+	    let opts: Opts;
 	    [opts, args] = getOpts(args)
 	    let caseSensitive = opts['case']
-	    let word;
+	    let word: string;
 	    if(args[0])
 		opponent = await fetchUser(msg.guild, args[0])
-	    if(opts["random"]){
-		let channels = (await msg.guild.channels.fetch()).toJSON()
-		let channel = channels[Math.floor(Math.random() * channels.length)]
-		while(!channel.isText())
-		    channel = channels[Math.floor(Math.random() * channels.length)]
-		let messages
-		try{
-		    messages = await channel.messages.fetch({limit: 100})
-		}
-		catch(err){
-		    messages = await msg.channel.messages.fetch({limit: 100})
-		}
-		let times = 0;
-		while(!(word = messages.random()?.content)){
-		    times++
-		    if(times > 20) break
-		}
-		await msg.author.send("Type a word, (even though you picked random)")
+	    try{
+		await msg.author.createDM()
 	    }
-	    else{
-		await msg.author.send("Type a word")
+	    catch(err){
+		return {content: "Could not dm you"}
 	    }
-	    let collector = msg.author.dmChannel?.createMessageCollector({time: 30000, max: 1})
-	    collector.on("collect", async(m) => {
-		if(!opts['random'])
-		    word = m.content
-		if(!caseSensitive){
-		    word = word.toLowerCase()
-		}
+	    async function game(word: string){
 		let wordLength = word.length
 		let guessed = ""
 		let disp = ""
@@ -519,7 +497,6 @@ const commands: {[command: string]: Command} = {
 		    }
 		    else if(m.content == "STOP"){
 			await msg.channel.send("STOPPED")
-			collector.stop()
 			collection.stop()
 			return
 		    }
@@ -562,7 +539,38 @@ const commands: {[command: string]: Command} = {
 		    }
 		    await msg.channel.send({content: `${disp}\n<@${opponent.id}>, guess (${lives} lives left)`})
 		})
-	    })
+	    }
+	    if(opts["random"]){
+		let channels = (await msg.guild.channels.fetch()).toJSON()
+		let channel = channels[Math.floor(Math.random() * channels.length)]
+		while(!channel.isText())
+		    channel = channels[Math.floor(Math.random() * channels.length)]
+		let messages
+		try{
+		    messages = await channel.messages.fetch({limit: 100})
+		}
+		catch(err){
+		    messages = await msg.channel.messages.fetch({limit: 100})
+		}
+		let times = 0;
+		while(!(word = messages.random()?.content)){
+		    times++
+		    if(times > 20) break
+		}
+		await game(word)
+	    }
+	    else{
+		await msg.author.send("Type a word")
+		let collector = msg.author.dmChannel?.createMessageCollector({time: 30000, max: 1})
+		collector?.on("collect", async(m) => {
+		    if(!opts['random'])
+			word = m.content
+		    if(!caseSensitive){
+			word = word.toLowerCase()
+		    }
+		    await game(word)
+		})
+	    }
 	    return {
 		content: "STARTING HANGMAN, WOOOOOO"
 	    }
