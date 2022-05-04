@@ -98,6 +98,7 @@ const slashCommands = [
     ]),
     createChatCommand("help", "get help", []),
     createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", {required: true})]),
+    createChatCommand("add-8", "add a response to 8ball", [createChatCommandOption(STRING, "response", "the response", {required: true})]),
     createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", {required: true})]),
     {
         name: "ping",
@@ -1675,7 +1676,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                     requires: "file"
                 }
             }
-        }
+        },
+	permCheck: m => ADMINS.includes(m.author.id)
     },
     rccmd: {
 	run: async(msg, args) => {
@@ -2560,6 +2562,14 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
 	    await interaction.reply(rv)
 	} 
+	else if(interaction.commandName == "add-8"){
+	    //@ts-ignore
+	    interaction.author = interaction.member?.user
+	    let resp = interaction.options.get("response")?.value as string
+	    //@ts-ignore
+	    let rv = await commands['add'].run(interaction, ["8", resp])
+	    await interaction.reply(rv)
+	}
 	else if(interaction.commandName == "add-wordle"){
 	    //@ts-ignore
 	    interaction.author = interaction.member?.user
