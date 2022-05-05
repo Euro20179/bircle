@@ -381,6 +381,26 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    pfp: {
+	run: async(msg, args) => {
+	    let opts: Opts
+	    [opts, args] = getOpts(args)
+	    let link = args[0]
+	    if(!link){
+		link = getImgFromMsgAndOpts(opts, msg)
+	    }
+	    if(!link)
+		return {content: "no link given"}
+	    try{
+		await client.user?.setAvatar(link)
+	    }
+	    catch(err){
+		console.log(err)
+		return {content: "coult not set pfp"}
+	    }
+	    return {content: 'set pfp'}
+	}
+    },
     uptime: {
         run: async(msg: Message, args:ArgumentList) => {
             let uptime = client.uptime
