@@ -398,7 +398,7 @@ const commands: {[command: string]: Command} = {
 		console.log(err)
 		return {content: "coult not set pfp"}
 	    }
-	    return {content: 'set pfp'}
+	    return {content: 'set pfp', delete: opts['d'] || opts['delete']}
 	}
     },
     uptime: {
@@ -500,6 +500,8 @@ const commands: {[command: string]: Command} = {
     },
     nick: {
 	run: async(msg, args) => {
+	    let opts: Opts;
+	    [opts, args] = getOpts(args)
 	    try{
 		(await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
 	    }
@@ -507,7 +509,8 @@ const commands: {[command: string]: Command} = {
 		return {content: "Could not set name"}
 	    }
 	    return {
-		content: `Changed name to \`${args.join(" ")}\``
+		content: `Changed name to \`${args.join(" ")}\``,
+		delete: opts['d'] || opts['delete']
 	    }
 	}
     },
