@@ -28,6 +28,7 @@ async function fetchUser(guild, find){
     if(res = find?.match(/<@!?(\d{18})>/)){
         find = res[1]
     }
+    await guild.members.fetch()
     let user = (await guild.members.search({query: find}))?.at(0)
     if(!user){
         try{

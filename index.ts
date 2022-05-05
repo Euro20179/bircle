@@ -8,7 +8,7 @@ const { execSync } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel } from 'discord.js'
+import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow } from 'discord.js'
 
 import sharp = require('sharp')
 import got = require('got')
@@ -29,6 +29,7 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 
 let SPAM_ALLOWED = true
 
+let BUTTONS: {[id: string]: string} = {}
 let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand:  Message;
@@ -309,6 +310,24 @@ const commands: {[command: string]: Command} = {
                 }
             }
         }
+    },
+    button: {
+	run: async(msg, args) => {
+	    let opts: Opts
+	    [opts, args] = getOpts(args)
+	    let content = opts['content']
+	    if(typeof content === 'boolean'){
+		content = `button:${msg.author.id}`
+	    }
+	    let text = args.join(" ") || "hi"
+	    let button = new MessageButton({customId: `button:${msg.author.id}`, label:text, style: "PRIMARY"})
+	    let row = new MessageActionRow({type: "BUTTON", components: [button]})
+	    let m = await msg.channel.send({components: [row], content: content})
+	    if(opts['say'])
+		BUTTONS[msg.author.id] = String(opts['say'])
+	    else BUTTONS[msg.author.id] = text
+	    return {noSend: true}
+	}
     },
     uptime: {
         run: async(msg: Message, args:ArgumentList) => {
@@ -640,6 +659,7 @@ const commands: {[command: string]: Command} = {
 			}
 		    }
 		    let disp = ""
+		    console.log(word, wordLength, word.split(""))
 		    for(let i = 0; i < wordLength; i++){
 			if(correctIndecies[i]){
 			    disp += correctIndecies[i]
@@ -2450,6 +2470,9 @@ async function doCmd(msg: Message, returnJson=false){
     if(rv.delete){
         msg.delete()
     }
+    if(rv.noSend){
+	return
+    }
     if((rv.content?.length || 0) >= 2000){
         fs.writeFileSync("out", rv.content as string)
         delete rv["content"]
@@ -2494,7 +2517,15 @@ client.on("messageCreate", async(m:  Message) => {
 })
 
 client.on("interactionCreate", async(interaction: Interaction) => {
-    if(interaction.isCommand()){
+    if(interaction.isButton()){
+	if(interaction.customId == `button:${interaction.member?.user.id}`){
+	    //@ts-ignore
+	    interaction.reply(String(BUTTONS[interaction.member?.user.id]))
+	    //@ts-ignore
+	    delete BUTTONS[interaction.member?.user.id]
+	}
+    }
+    else if(interaction.isCommand()){
         addToCmdUse(`/${interaction.commandName}`)
         if(interaction.commandName == 'attack'){
             let user = interaction.options.get("user")?.['value']

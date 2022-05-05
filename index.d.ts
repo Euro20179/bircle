@@ -20,6 +20,7 @@ declare global{
 	files?: FileArray,
 	deleteFiles?: boolean
 	delete?: boolean
+	noSend?: boolean
     }
 
     interface CommandHelp{
