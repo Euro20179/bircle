@@ -8,7 +8,7 @@ const { execSync } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow } from 'discord.js'
+import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu } from 'discord.js'
 
 import sharp = require('sharp')
 import got = require('got')
@@ -30,6 +30,7 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 let SPAM_ALLOWED = true
 
 let BUTTONS: {[id: string]: string} = {}
+let POLLS: {[id: string]: {[k: string]: number}} = {}
 let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand:  Message;
@@ -238,6 +239,14 @@ const commands: {[command: string]: Command} = {
 	    return {content: "?"}
 	}
     },
+    "argc": {
+	run: async(msg, args) => {
+	    return {content: String(args.length)}
+	},
+	help: {
+	    info: "Prints the number of arguments given to this command"
+	}
+    },
     echo:{
         run: async (msg: Message, args: ArgumentList) => {
             let opts
@@ -327,6 +336,49 @@ const commands: {[command: string]: Command} = {
 		BUTTONS[msg.author.id] = String(opts['say'])
 	    else BUTTONS[msg.author.id] = text
 	    return {noSend: true}
+	}
+    },
+    "pcount": {
+	run: async(msg, args) => {
+	    let id = args[0]
+	    if(!id){
+		return {content: "no id given"}
+	    }
+	    let str = ""
+	    for(let key in POLLS[`poll:${id}`]){
+		str += `${key}: ${POLLS[`poll:${id}`][key]}`
+	    }
+	    return {content: str}
+	}
+    },
+    poll: {
+	run: async(msg, args) => {
+	    let actionRow = new MessageActionRow()
+	    let opts: Opts;
+	    [opts, args] = getOpts(args)
+	    let id = opts['id'] || String(Math.floor(Math.random() * 100000000))
+	    args = args.join(" ").split("|")
+	    let choices = []
+	    for(let arg of args){
+		choices.push({label: arg, value: arg})
+	    }
+	    if(choices.length < 1){
+		return {content: "no options given"}
+	    }
+	    let selection = new MessageSelectMenu({customId: `poll:${id}`, placeholder: "Select one", options: choices})
+	    actionRow.addComponents(selection)
+	    POLLS[`poll:${id}`] = {}
+	    await msg.channel.send({components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`})
+	    return {noSend: true}
+	},
+	help:{
+	    info: "create a poll",
+	    arguments: {
+		options: { description: "Options seperated by |" }
+	    },
+	    options: {
+		title: { description: "Title of the poll, no spaces" }
+	    }
 	}
     },
     uptime: {
@@ -2523,6 +2575,18 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    interaction.reply(String(BUTTONS[interaction.member?.user.id]))
 	    //@ts-ignore
 	    delete BUTTONS[interaction.member?.user.id]
+	}
+    }
+    else if(interaction.isSelectMenu()){
+	if(interaction.customId.includes("poll")){
+	    if(POLLS[interaction.customId]){
+		if(POLLS[interaction.customId][interaction.values[0]])
+		    POLLS[interaction.customId][interaction.values[0]] += 1
+		else 
+		    POLLS[interaction.customId][interaction.values[0]] = 1
+	    }
+	    else POLLS[interaction.customId] = {[interaction.values[0]]: 1}
+	    interaction.reply({content: interaction.values.toString(), ephemeral: true})
 	}
     }
     else if(interaction.isCommand()){
