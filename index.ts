@@ -382,6 +382,7 @@ const commands: {[command: string]: Command} = {
 	}
     },
     pfp: {
+	//@ts-ignore
 	run: async(msg, args) => {
 	    let opts: Opts
 	    [opts, args] = getOpts(args)
@@ -498,7 +499,30 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    "create-file": {
+	run: async(msg, args) => {
+	    let file = args[0]
+	    if(!file){
+		return {content: "No file specified"}
+	    }
+	    fs.writeFileSync(`./command-results/${file}`, "")
+	    return {content: `${file} created`}
+	},
+	permCheck: m => ADMINS.includes(m.author.id)
+    },
+    todo: {
+	run: async(msg, args) => {
+	    let item = args.join(" ")
+	    return await commands['add'].run(msg, ["todo", item])
+	}
+    },
+    "todo-list": {
+	run: async(msg, args) => {
+	    return {content: fs.readFileSync('./command-results/todo', "utf-8")}
+	}
+    },
     nick: {
+		//@ts-ignore
 	run: async(msg, args) => {
 	    let opts: Opts;
 	    [opts, args] = getOpts(args)
@@ -510,6 +534,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    return {
 		content: `Changed name to \`${args.join(" ")}\``,
+		//@ts-ignore
 		delete: opts['d'] || opts['delete']
 	    }
 	}
