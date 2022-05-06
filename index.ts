@@ -518,8 +518,9 @@ const commands: {[command: string]: Command} = {
     },
     "todo-list": {
 	run: async(msg, args) => {
-	    let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ")[1]}`).join("\n")
-	    return {content: data}
+	    let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ")[1]}`)
+	    let strdata = data.slice(0, data.length - 1).join("\n")
+	    return {content: strdata}
 	}
     },
     nick: {
