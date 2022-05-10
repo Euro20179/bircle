@@ -34,7 +34,8 @@ let POLLS: {[id: string]: {title: string, votes: {[k: string]: string[]}}} = {}
 let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand:  Message;
-let snipe:  Message | PartialMessage;
+let snipes:  (Message | PartialMessage)[] = [];
+let purgeSnipe: (Message | PartialMessage)[];
 
 const illegalLastCmds = ["!!", "spam"]
 
@@ -703,9 +704,9 @@ const commands: {[command: string]: Command} = {
 	    let caseSensitive = opts['case']
 	    let word: string;
 	    let everyone = false
-	    let users = []
+	    let users: any[] = []
 	    for(let arg of args){
-		if(['all', 'everyone'].includes(arg){
+		if(['all', 'everyone'].includes(arg)){
 		    users.push("Everyone")
 		    everyone = true
 		    break
@@ -2458,11 +2459,45 @@ valid formats:<br>
             return await doCmd(lastCommand, true) as CommandReturn
         }
     },
+    "psnipe": {
+	run: async(msg, args) => {
+	    if(!purgeSnipe){
+		return {content: "Nothing has been purged yet"}
+	    }
+	    let content = ""
+	    let files: CommandFile[] = []
+	    let embeds: MessageEmbed[] = []
+	    for(let m of purgeSnipe){
+		if(m.content){
+		    content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
+		}
+		let mAttachments = m.attachments?.toJSON()
+		if(mAttachments){
+		    files = files.concat(mAttachments as CommandFile[])
+		}
+		if(m.embeds){
+		    embeds = embeds.concat(m.embeds)
+		}
+	    }
+	    return {content: content ? content : undefined, files: files, embeds: embeds}
+	},
+	help: {
+	    info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
+	}
+    },
     snipe: {
         run: async(msg: Message, args: ArgumentList) => {
-            if(!snipe){
-                return {content: "You idiot, nothing was ever said ever in the history of this server"}
-            }
+	    let snipeC = (parseInt(args[0]) - 1) || 0
+	    if(snipeC > 5){
+		return {content: "it only goes back 5"}
+	    }
+	    if(snipeC > snipes.length){
+		return {content: "Not that many messages have been deleted yet"}
+	    }
+	    if(!snipes.length){
+		return {content: "Nothing has been deleted"}
+	    }
+	    let snipe = snipes[snipeC]
 	    let rv: CommandReturn = {deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``}
 	    let files = snipe.attachments?.toJSON()
 	    if(files){
@@ -2472,7 +2507,15 @@ valid formats:<br>
 		rv["embeds"] = snipe.embeds
 	    }
             return rv
-        }
+        },
+	help: {
+	    info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
+	    arguments: {
+		number: {
+		    description: "the message you want to see"
+		}
+	    }
+	}
     },
     ping: {
 	run: async(msg, args) => {
@@ -2616,8 +2659,16 @@ client.on('ready', () => {
 })
 
 client.on("messageDelete", async(m) => {
-    if(m.author?.id != client.user?.id)
-        snipe = m
+    if(m.author?.id != client.user?.id){
+	snipes.push(m)
+	if(snipes.length > 5){
+	    snipes = snipes.filter((_, i) => i != 0)
+	}
+    }
+})
+
+client.on("messageDeleteBulk", async(m) => {
+    purgeSnipe = m.toJSON()
 })
 
 client.on("messageCreate", async(m:  Message) => {
