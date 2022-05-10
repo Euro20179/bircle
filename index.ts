@@ -30,7 +30,7 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 let SPAM_ALLOWED = true
 
 let BUTTONS: {[id: string]: string} = {}
-let POLLS: {[id: string]: {[k: string]: string[]}} = {}
+let POLLS: {[id: string]: {title: string, votes: {[k: string]: string[]}}} = {}
 let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand:  Message;
@@ -350,7 +350,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    let str = ""
 	    for(let key in POLLS[`poll:${id}`]){
-		str += `${key}: ${POLLS[`poll:${id}`][key].length}\n`
+		str += `${key}: ${POLLS[`poll:${id}`]["votes"][key].length}\n`
 	    }
 	    return {content: str}
 	}
@@ -371,7 +371,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    let selection = new MessageSelectMenu({customId: `poll:${id}`, placeholder: "Select one", options: choices})
 	    actionRow.addComponents(selection)
-	    POLLS[`poll:${id}`] = {}
+	    POLLS[`poll:${id}`] = {title: String(opts['title'] || "") || "Select one", votes: {} }
 	    await msg.channel.send({components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`})
 	    return {noSend: true}
 	},
@@ -2635,34 +2635,37 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	if(interaction.customId.includes("poll")){
 	    let id = interaction.customId
 	    let key = interaction.values[0]
-	    if(POLLS[id]){
+	    if(POLLS[id]["votes"]){
 		//checks if the user voted
-		for(let key in POLLS[id]){
-		    if (POLLS[id][key]?.length){
-			if(POLLS[id][key].includes(String(interaction.member?.user.id))){
+		for(let key in POLLS[id]["votes"]){
+		    if (POLLS[id]["votes"][key]?.length){
+			if(POLLS[id]["votes"][key].includes(String(interaction.member?.user.id))){
 			    return
 			}
 		    }
 		}
 
-		if(POLLS[id][key])
-		    POLLS[id][key].push(String(interaction.member?.user.id))
+		if(POLLS[id]["votes"][key])
+		    POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
 		else 
-		    POLLS[id][key] = [String(interaction.member?.user.id)]
+		    POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
 	    }
-	    else POLLS[id] = {[id]: [String(interaction.member?.user.id)]}
+	    else POLLS[id]["votes"] = {[id]: [String(interaction.member?.user.id)]}
 	    let str = ""
-	    for(let key in POLLS[id]){
-		str += `${key}: ${POLLS[id][key].length}\n`
+	    for(let key in POLLS[id]["votes"]){
+		str += `${key}: ${POLLS[id]["votes"][key].length}\n`
 	    }
 	    if(interaction.message instanceof Message){
-		if(str.length  > 1900){
+		if(str.length  > 1990 - POLLS[id]["title"].length){
 		    let fn = generateFileName("poll-reply", interaction.member?.user.id)
 		    fs.writeFileSync(fn, str)
 		    await interaction.message.edit({files: [{attachment: fn}]})
 		    fs.rmSync(fn)
 		}
-		else interaction.message.edit({content: str})
+		else {
+		    interaction.message.edit({content: `**${POLLS[id]["title"]}**\n${str}`})
+		    interaction.reply({content: `${interaction.values.toString()} is your vote`, ephemeral: true})
+		}
 	    }
 	    else interaction.reply({content: interaction.values.toString(), ephemeral: true})
 	}
