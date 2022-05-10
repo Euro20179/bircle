@@ -702,8 +702,19 @@ const commands: {[command: string]: Command} = {
 	    [opts, args] = getOpts(args)
 	    let caseSensitive = opts['case']
 	    let word: string;
-	    if(args[0])
-		opponent = await fetchUser(msg.guild, args[0])
+	    let everyone = false
+	    let users = []
+	    for(let arg of args){
+		if(['all', 'everyone'].includes(arg){
+		    users.push("Everyone")
+		    everyone = true
+		    break
+		}
+		opponent = await fetchUser(msg.guild, arg)
+		if(opponent){
+		    users.push(opponent)
+		}
+	    }
 	    try{
 		await msg.author.createDM()
 	    }
@@ -726,8 +737,8 @@ const commands: {[command: string]: Command} = {
 			disp += "\\_ "
 		    }
 		}
-		await msg.channel.send({content: `${disp}\n<@${opponent.id}>, guess`})
-		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || m.content == "STOP") && m.author.id == opponent.id, idle: 40000})
+		await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
+		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || m.content == "STOP") && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
 		collection.on("collect", async(m) => {
 		    if(guessed.indexOf(m.content) > -1){
 			await msg.channel.send(`Youve already guessed ${m.content}`)
@@ -765,7 +776,6 @@ const commands: {[command: string]: Command} = {
 			}
 		    }
 		    let disp = ""
-		    console.log(word, wordLength, word.split(""))
 		    for(let i = 0; i < wordLength; i++){
 			if(correctIndecies[i]){
 			    disp += correctIndecies[i]
@@ -782,7 +792,7 @@ const commands: {[command: string]: Command} = {
 			collection.stop()
 			return
 		    }
-		    await msg.channel.send({content: `${disp}\n<@${opponent.id}>, guess (${lives} lives left)`})
+		    await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess (${lives} lives left)`})
 		})
 	    }
 	    if(opts["random"]){
