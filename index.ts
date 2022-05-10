@@ -225,7 +225,7 @@ const commands: {[command: string]: Command} = {
 		equation: {
 		    description: "The equation to evaluate"
 		}
-	    }
+	    },
 	}
     },
     "if": {
@@ -1600,13 +1600,17 @@ const commands: {[command: string]: Command} = {
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             while(SPAMS[id] && times--){
-                await msg.channel.send(format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)}))
+		msg.content = `${prefix}echo -D ${format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
+		await doCmd(msg)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
                 content: "done"
             }
-        }
+        },
+	help: {
+	    info: "This technically runs the echo command with the -D option in the background, so any special syntax such as $() should work (if preceded with a \\)"
+	}
     },
     stop: {
         run: async(msg: Message, args: ArgumentList) => {
