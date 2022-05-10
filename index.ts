@@ -228,9 +228,13 @@ const commands: {[command: string]: Command} = {
 	    },
 	}
     },
+    del: {
+	run: async(msg, args) => {
+	    return {noSend: true, delete: true}
+	}
+    },
     "if": {
 	run: async(msg, args) => {
-	    console.log(args)
 	    let [condition, cmd] = args.join(" ").split(";")
 	    if(safeEval(condition, {user: msg.author, args: args})){
 		msg.content = `${prefix}${cmd.trim()}`
@@ -1612,6 +1616,32 @@ const commands: {[command: string]: Command} = {
 	    info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
 	}
     },
+    "do": {
+        run: async(msg: Message, args: ArgumentList) => {
+            let times = parseInt(args[0])
+            if(times){
+                args.splice(0, 1)
+            } else {
+		times = 10
+	    }
+            let cmdArgs = args.join(" ").trim()
+            if(cmdArgs == ""){
+                cmdArgs = String(times)
+            }
+	    let totalTimes = times
+            let id = String(Math.floor(Math.random() * 100000000))
+            await msg.channel.send(`starting ${id}`)
+            SPAMS[id] = true
+            while(SPAMS[id] && times--){
+		msg.content = `${prefix}${format(cmdArgs, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
+		await doCmd(msg)
+                await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+            }
+            return {
+                content: "done"
+            }
+	}
+    },
     spam: {
         run: async(msg: Message, args: ArgumentList) => {
             let times = parseInt(args[0])
@@ -2659,7 +2689,7 @@ async function doCmd(msg: Message, returnJson=false){
         return 
     }
     if(rv.delete){
-        msg.delete()
+	msg.delete().catch(err => console.log("Message not deleted"))
     }
     if(rv.noSend){
 	return
