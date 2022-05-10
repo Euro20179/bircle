@@ -30,7 +30,7 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 let SPAM_ALLOWED = true
 
 let BUTTONS: {[id: string]: string} = {}
-let POLLS: {[id: string]: {[k: string]: number}} = {}
+let POLLS: {[id: string]: {[k: string]: string[]}} = {}
 let SPAMS: {[id: string]: boolean} = {}
 
 let lastCommand:  Message;
@@ -97,6 +97,10 @@ const slashCommands = [
     ]),
     createChatCommand("say", "says something", [
 	createChatCommandOption(STRING, "something", "the something to say", {required: true})
+    ]),
+    createChatCommand("poll", "create a poll", [
+	createChatCommandOption(STRING, "options", "Options are seperated by |", {required: true}),
+	createChatCommandOption(STRING, "title", "The title of the poll", {required: false}),
     ]),
     createChatCommand("help", "get help", []),
     createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", {required: true})]),
@@ -346,7 +350,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    let str = ""
 	    for(let key in POLLS[`poll:${id}`]){
-		str += `${key}: ${POLLS[`poll:${id}`][key]}`
+		str += `${key}: ${POLLS[`poll:${id}`][key].length}\n`
 	    }
 	    return {content: str}
 	}
@@ -2629,14 +2633,38 @@ client.on("interactionCreate", async(interaction: Interaction) => {
     }
     else if(interaction.isSelectMenu()){
 	if(interaction.customId.includes("poll")){
-	    if(POLLS[interaction.customId]){
-		if(POLLS[interaction.customId][interaction.values[0]])
-		    POLLS[interaction.customId][interaction.values[0]] += 1
+	    let id = interaction.customId
+	    let key = interaction.values[0]
+	    if(POLLS[id]){
+		//checks if the user voted
+		for(let key in POLLS[id]){
+		    if (POLLS[id][key]?.length){
+			if(POLLS[id][key].includes(String(interaction.member?.user.id))){
+			    return
+			}
+		    }
+		}
+
+		if(POLLS[id][key])
+		    POLLS[id][key].push(String(interaction.member?.user.id))
 		else 
-		    POLLS[interaction.customId][interaction.values[0]] = 1
+		    POLLS[id][key] = [String(interaction.member?.user.id)]
 	    }
-	    else POLLS[interaction.customId] = {[interaction.values[0]]: 1}
-	    interaction.reply({content: interaction.values.toString(), ephemeral: true})
+	    else POLLS[id] = {[id]: [String(interaction.member?.user.id)]}
+	    let str = ""
+	    for(let key in POLLS[id]){
+		str += `${key}: ${POLLS[id][key].length}\n`
+	    }
+	    if(interaction.message instanceof Message){
+		if(str.length  > 1900){
+		    let fn = generateFileName("poll-reply", interaction.member?.user.id)
+		    fs.writeFileSync(fn, str)
+		    await interaction.message.edit({files: [{attachment: fn}]})
+		    fs.rmSync(fn)
+		}
+		else interaction.message.edit({content: str})
+	    }
+	    else interaction.reply({content: interaction.values.toString(), ephemeral: true})
 	}
     }
     else if(interaction.isCommand()){
@@ -2692,6 +2720,19 @@ client.on("interactionCreate", async(interaction: Interaction) => {
             let rv = await commands['alias'].run(interaction, arglist)
             await interaction.reply(rv)
         }
+	else if(interaction.commandName == 'poll'){
+	    //@ts-ignore
+	    interaction.author = interaction?.member.user
+	    let argList = []
+	    let title = interaction.options.get("title")?.value
+	    let options = interaction.options.get("options")?.value as string
+	    if(title){
+		argList.push(`-title=${title}`)
+	    }
+	    argList.push(options)
+	    //@ts-ignore
+	    await commands['poll'].run(interaction, argList)
+	}
 	else if(interaction.commandName == 'ccmd'){
 	    //@ts-ignore
             interaction.author = interaction.member?.user
