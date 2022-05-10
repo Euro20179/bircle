@@ -1584,6 +1584,34 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    ship: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    if(args.length < 2){
+		return {content: "2 users must be given", delete: opts['d'] as boolean}
+	    }
+	    let [user1Full, user2Full] = args.join(" ").split("|")
+	    if(!user1Full || !user2Full){
+		return {content: "2 users not given"}
+	    }
+	    let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
+	    let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
+	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" "))
+	    return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`}) , delete: opts['d'] as boolean}
+	},
+	help: {
+	    info: "Create your favorite fantacies!!!!"
+	}
+    },
+    aship: {
+	run: async(msg, args) => {
+	    return await commands['add'].run(msg, ["ship", args.join(" ")])
+	},
+	help: {
+	    info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
+	}
+    },
     spam: {
         run: async(msg: Message, args: ArgumentList) => {
             let times = parseInt(args[0])
