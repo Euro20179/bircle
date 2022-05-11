@@ -1,4 +1,4 @@
-import {MessageEmbed, Message} from "discord.js"
+import {MessageEmbed, Message, MessageMentionOptions} from "discord.js"
 
 declare global{
     type ArgumentList = Array<string>
@@ -20,7 +20,8 @@ declare global{
 	files?: FileArray,
 	deleteFiles?: boolean
 	delete?: boolean
-	noSend?: boolean
+	noSend?: boolean,
+	allowedMentions?: MessageMentionOptions
     }
 
     interface CommandHelp{

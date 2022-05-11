@@ -15,7 +15,6 @@ import got = require('got')
 import cheerio = require('cheerio')
 import jimp = require('jimp')
 
-import { CLIENT_RENEG_LIMIT } from "tls"
 
 const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
@@ -841,6 +840,100 @@ const commands: {[command: string]: Command} = {
 	    }
 	    return {
 		content: "STARTING HANGMAN, WOOOOOO"
+	    }
+	}
+    },
+    "comp-roles": {
+	run: async(msg, args) => {
+	    let [user1, user2] = args.join(" ").split("|")
+	    user1 = user1.trim()
+	    user2 = user2.trim()
+	    if(!user1){
+		return {content: "No users given"}
+	    }
+	    if(!user2){
+		return {content: "2 users must be given"}
+	    }
+	    let realUser1: GuildMember = await fetchUser(msg.guild, user1)
+	    if(!realUser1){
+		return {content: `${user1} not found`}
+	    }
+	    let realUser2: GuildMember = await fetchUser(msg.guild, user2)
+	    if(!realUser2){
+		return {content: `${user1} not found`}
+	    }
+	    let user1Roles = realUser1.roles.cache.toJSON()
+	    let user2Roles = realUser2.roles.cache.toJSON()
+	    let user1RoleIds = user1Roles.map(v => v.id)
+	    let user2RoleIds = user2Roles.map(v => v.id)
+	    let sameRoles = user1Roles.filter(v => user2RoleIds.includes(v.id))
+	    let user1Unique = user1Roles.filter(v => !user2RoleIds.includes(v.id))
+	    let user2Unique = user2Roles.filter(v => !user1RoleIds.includes(v.id))
+	    let embed = new MessageEmbed()
+	    let same = sameRoles.reduce((prev, cur) => `${prev} ${cur}`, "")
+	    let user1U = user1Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
+	    let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
+	    let u1Net = user1RoleIds.length - user2RoleIds.length
+	    embed.setTitle("roles")
+	    if(u1Net > 0){
+		embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
+	    }
+	    else if(u1Net < 0){
+		embed.setDescription(`${realUser1.displayName} has ${u1Net} less roles than ${realUser2.displayName}`)
+	    }
+	    else {
+		embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
+	    }
+	    embed.addField("Same Roles", same || "No same")
+	    embed.addField(`${realUser1.displayName} unique roles`, user1U || "No unique roles")
+	    embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
+	    return {embeds: [embed]}
+	}
+    },
+    "most-roles": {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let times = parseInt(args[0]) || 10
+	    await msg.guild?.members.fetch()
+	    let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
+	    let embed = new MessageEmbed()
+	    embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
+	    if(sortedMembers?.at(0)?.displayColor){
+		embed.setColor(sortedMembers?.at(0)?.displayColor || "RED")
+	    }
+	    let ret = ""
+	    for(let i = 0; i < times; i++){
+		let member = sortedMembers?.at(i)
+		ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
+		embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
+	    }
+	    let rv: CommandReturn = {allowedMentions: {parse: []}}
+	    if(!opts['E'] && !opts['c!'])
+		rv.embeds = [embed]
+	    if(opts['c'] || opts['c!']){
+		rv.content = ret
+	    }
+	    return rv
+	},
+	help: {
+	    info: "Display a list of users with the most roles",
+	    arguments: {
+		top: {
+		    description: "The top x users to display",
+		    required: false,
+		}
+	    },
+	    options: {
+		E: {
+		    description: "Dont display an embed"
+		},
+		c: {
+		    description: "Display the results as a list"
+		},
+		"c!": {
+		    description: "Display the results as a list instead of an embed"
+		}
 	    }
 	}
     },
