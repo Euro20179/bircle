@@ -879,7 +879,7 @@ const commands: {[command: string]: Command} = {
 		embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
 	    }
 	    else if(u1Net < 0){
-		embed.setDescription(`${realUser1.displayName} has ${u1Net} less roles than ${realUser2.displayName}`)
+		embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
 	    }
 	    else {
 		embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
