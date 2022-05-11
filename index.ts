@@ -2786,15 +2786,16 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    for(let key in POLLS[id]["votes"]){
 		str += `${key}: ${POLLS[id]["votes"][key].length}\n`
 	    }
+	    let dispId = id.slice(id.indexOf(":"))
 	    if(interaction.message instanceof Message){
 		if(str.length  > 1990 - POLLS[id]["title"].length){
 		    let fn = generateFileName("poll-reply", interaction.member?.user.id)
 		    fs.writeFileSync(fn, str)
-		    await interaction.message.edit({files: [{attachment: fn}]})
+		    await interaction.message.edit({files: [{attachment: fn}], content: dispId})
 		    fs.rmSync(fn)
 		}
 		else {
-		    interaction.message.edit({content: `**${POLLS[id]["title"]}**\n${str}`})
+		    interaction.message.edit({content: `**${POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}`})
 		    interaction.reply({content: `${interaction.values.toString()} is your vote`, ephemeral: true})
 		}
 	    }
