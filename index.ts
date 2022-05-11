@@ -2661,6 +2661,9 @@ valid formats:<br>
 		return {content: "Nothing has been deleted"}
 	    }
 	    let snipe = snipes[snipeC]
+	    if(!snipe){
+		return {content: "no snipe"}
+	    }
 	    let rv: CommandReturn = {deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``}
 	    let files = snipe.attachments?.toJSON()
 	    if(files){
@@ -2832,6 +2835,8 @@ client.on("messageDelete", async(m) => {
 
 client.on("messageDeleteBulk", async(m) => {
     purgeSnipe = m.toJSON()
+    if(purgeSnipe.length > 5)
+	purgeSnipe.length = 5
 })
 
 client.on("messageCreate", async(m:  Message) => {
