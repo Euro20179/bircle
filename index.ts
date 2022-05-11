@@ -118,7 +118,15 @@ const slashCommands = [
 ]
 
 function getContentFromResult(result: CommandReturn){
-    return result['content'] || ""
+    let res = ""
+    if(result.content)
+	res += result.content + "\n"
+    if(result.files){
+	for(let file of result.files){
+	    res += fs.readFileSync(file.attachment, "base64") + "\n"
+	}
+    }
+    return res
 }
 
 function getOpts(args: Array<string>): [Opts, ArgumentList]{
