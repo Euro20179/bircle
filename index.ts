@@ -860,7 +860,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    let realUser2: GuildMember = await fetchUser(msg.guild, user2)
 	    if(!realUser2){
-		return {content: `${user1} not found`}
+		return {content: `${user2} not found`}
 	    }
 	    let user1Roles = realUser1.roles.cache.toJSON()
 	    let user2Roles = realUser2.roles.cache.toJSON()
