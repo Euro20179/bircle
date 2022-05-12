@@ -1,5 +1,4 @@
 ///<reference path="index.d.ts" />
-
 import fs = require("fs")
 
 import https = require('https')
@@ -8,7 +7,7 @@ const { execSync } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu } from 'discord.js'
+import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction } from 'discord.js'
 
 import sharp = require('sharp')
 import got = require('got')
@@ -56,6 +55,11 @@ const MENTIONABLE = 9
 const NUMBER = 10
 const ATTACH = 11
 
+const CMD_CHAT_INPUT = 1
+const CMD_USER = 2
+const CMD_MESSAGE = 3
+
+
 function createChatCommandOption(type: number, name: string, description: string, {min, max, required}: {min?: number, max?: number | null, required?: boolean}){
     let obj: {[key: string]: any} = {
         type: type,
@@ -92,6 +96,10 @@ const slashCommands = [
         createChatCommandOption(STRING, "command", "command to run", {required: true}),
         createChatCommandOption(STRING, "text", "Text to give to command", {})
     ]),
+    createChatCommand("rps", "Rock paper scissors", [
+	createChatCommandOption(USER, "opponent", "opponent", {required: true}),
+	createChatCommandOption(STRING, "choice", "choice", {required: true})
+    ]),
     createChatCommand("rccmd", "remove a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", {required: true}),
     ]),
@@ -113,6 +121,10 @@ const slashCommands = [
     {
         name: "info",
         type: 2
+    },
+    {
+	name: "fileify",
+	type: 3
     }
 ]
 
@@ -426,9 +438,10 @@ const commands: {[command: string]: Command} = {
 		    content: "No uptime found"
 		}
 	    }
-            let fmt = args[0] || "%d:%h:%m:%s"
-            let days, hours, minutes, seconds;
-            seconds = uptime / 1000
+            let fmt = args[0] || "%d:%h:%m:%s.%M"
+            let days, hours, minutes, seconds, millis;
+            seconds = Math.floor(uptime / 1000)
+	    millis = String(uptime / 1000).split(".")[1]
             days = 0
             hours = 0
             minutes = 0
@@ -445,7 +458,7 @@ const commands: {[command: string]: Command} = {
                 days += 1
             }
             return {
-                content: format(fmt, {"d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`})
+                content: format(fmt, {"d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}`})
             }
         },
         help: {
@@ -752,6 +765,9 @@ const commands: {[command: string]: Command} = {
 		await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
 		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || m.content == "STOP") && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
 		collection.on("collect", async(m) => {
+		    if(!caseSensitive){
+			m.content = m.content.toLowerCase()
+		    }
 		    if(guessed.indexOf(m.content) > -1){
 			await msg.channel.send(`Youve already guessed ${m.content}`)
 			return
@@ -1019,7 +1035,6 @@ const commands: {[command: string]: Command} = {
 		}).png().toBuffer()
 	    }
             fs.writeFileSync(`./out.png`, img)
-		console.log("hi")
             return {
                 files:[
                     {
@@ -1307,9 +1322,9 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
-    /*
     scale: {
         run: async(msg: Message, args: ArgumentList) => {
+	    /*
             let opts;
             [opts, args] = getOpts(args)
             let xScale = args[0] || "2.0"
@@ -1348,6 +1363,7 @@ const commands: {[command: string]: Command} = {
                     })
                 })
             }).end()
+	    */
             return {
                 content: "generating img"
             }
@@ -1365,6 +1381,7 @@ const commands: {[command: string]: Command} = {
     },
     filter: {
         run: async(msg: Message, args:ArgumentList) => {
+	    /*
             let opts;
             [opts, args] = getOpts(args)
             let stringArgs = args.join(" ")
@@ -1401,6 +1418,7 @@ const commands: {[command: string]: Command} = {
                     })
                 })
             }).end()
+	    */
             return {
                 content: "generating img"
             }
@@ -1414,10 +1432,9 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
-    */
-    /*
     text: {
         run: async(msg: Message, args: ArgumentList) => {
+    /*
             let opts
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
@@ -1468,6 +1485,7 @@ const commands: {[command: string]: Command} = {
                     y = parsePosition(y, height, textH)
                 })
             }).end()
+	    */
             return {
                 content: "generating img"
             }
@@ -1505,7 +1523,6 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
-    */
     choose: {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
@@ -2004,7 +2021,6 @@ ${fs.readdirSync("./command-results").join("\n")}
 		let idx = data.indexOf(line)
 		if(idx >= 0){
 		    let [user, _] = line.trim().split(":")
-		    console.log(user, ADMINS, msg.author.id)
 		    if(user != msg.author.id && ADMINS.indexOf(user) < 0){
 			await msg.channel.send(`Cannot remove ${command}`)
 		    }
@@ -2130,9 +2146,18 @@ ${fs.readdirSync("./command-results").join("\n")}
     "list-cmds": {
         run: async(msg: Message, args: ArgumentList) => {
             let values = ''
+	    let typeConv = {1: "chat", 2: "user", 3: "message"}
             for(let cmd in commands){
                 values += `${cmd}\n`
             }
+	    for(let cmd of slashCommands){
+		//@ts-ignore
+		if(cmd.type){
+		    //@ts-ignore
+		    values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
+		}
+		else values += `/${cmd["name"]}\n`
+	    }
             return {
                 content: values
             }
@@ -2859,6 +2884,30 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    //@ts-ignore
 	    delete BUTTONS[interaction.member?.user.id]
 	}
+	if(interaction.customId.match(/button\.(rock|paper|scissors)/)){
+	    let intendedUser = interaction.customId.split(":")[1]
+	    let table: {[k: string]: string} = {"rock": "paper", "paper": "scissors", "scissors": "rock"}
+	    if(interaction.user.id != intendedUser){
+		interaction.reply({ephemeral: true, content: "You idiot, you already picked"})
+		return
+	    }
+	    let oppChoice = interaction.customId.split(":")[0].split(".")[1]
+	    let [userChoice, ogUser] = BUTTONS[interaction.customId].split(":")
+	    if(userChoice == oppChoice){
+		interaction.reply({content: "TIE"})
+	    }
+	    else if(table[userChoice] == oppChoice){
+		interaction.reply({content: `<@${ogUser}> user wins!`})
+	    }
+	    else{
+		interaction.reply({content: `<@${interaction.member?.user.id}> user wins!`})
+	    }
+	    for(let b in BUTTONS){
+		if(b.match(/button\.(rock|paper|scissors)/)){
+		    delete BUTTONS[b]
+		}
+	    }
+	}
     }
     else if(interaction.isSelectMenu()){
 	if(interaction.customId.includes("poll")){
@@ -3015,6 +3064,18 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    let rv = await commands['add'].run(interaction, ["wordle", resp])
 	    await interaction.reply(rv)
 	} 
+	else if(interaction.commandName == 'rps'){
+	    let opponent = interaction.options.get("opponent")?.value
+	    let choice = interaction.options.get("choice")?.value as string
+	    let rock = new MessageButton({customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY"})
+	    let paper = new MessageButton({customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY"})
+	    let scissors = new MessageButton({customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY"})
+	    BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+	    BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+	    BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+	    let row = new MessageActionRow({type: "BUTTON", components: [rock, paper, scissors]})
+	    interaction.reply({components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)`})
+	}
 	else if(interaction.commandName == "hangman"){
 	    let caseSensitive = interaction.options.get("case")?.value
 	    let lives = interaction.options.get("lives")?.value
@@ -3035,7 +3096,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	}
     }
     else if(interaction.isUserContextMenu()){
-        addToCmdUse(`/${interaction.commandName}`)
+        addToCmdUse(`${interaction.commandName}:user`)
         if(interaction.commandName == 'ping'){
             interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`)
         }
@@ -3057,6 +3118,14 @@ client.on("interactionCreate", async(interaction: Interaction) => {
             embed.addField("Boosting since", member?.premiumSince?.toString() || "#!N/A", true)
             interaction.reply({embeds: [embed]})
         }
+    }
+    else if(interaction.isMessageContextMenu()){
+        addToCmdUse(`${interaction.commandName}:message`)
+	if(interaction.commandName == 'fileify'){
+	    let fn = generateFileName("fileify", interaction.member?.user.id)
+	    fs.writeFileSync(fn, interaction.targetMessage.content)
+	    interaction.reply({files: [{attachment: fn, description: "Your file, sir"}]})
+	}
     }
 })
 
@@ -3083,7 +3152,7 @@ function loadCmdUse(){
         return {}
     }
     let data = fs.readFileSync("cmduse", "utf-8")
-    for(let line of data.split("\n")){
+   for(let line of data.split("\n")){
         if(!line) continue
         let [cmd, times] = line.split(":")
         cmduse[cmd] = parseInt(times)
