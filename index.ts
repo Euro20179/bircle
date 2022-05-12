@@ -3125,6 +3125,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    let fn = generateFileName("fileify", interaction.member?.user.id)
 	    fs.writeFileSync(fn, interaction.targetMessage.content)
 	    interaction.reply({files: [{attachment: fn, description: "Your file, sir"}]})
+	    fs.rmSync(fn)
 	}
     }
 })
