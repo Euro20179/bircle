@@ -217,11 +217,14 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
         img = msg.attachments.at(0)?.attachment
     }
     //@ts-ignore
-    if(msg.reply?.attachments?.at(0)){
+    else if(msg.reply?.attachments?.at(0)){
 	//@ts-ignore
         img = msg.reply.attachments.at(0)?.attachment
     }
-    if(!img) {
+    else if(msg.embeds?.at(0)?.image?.url){
+	img = msg.embeds?.at(0)?.image?.url
+    }
+    else if(!img) {
         img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.first()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }
     return img as string
@@ -265,6 +268,14 @@ const commands: {[command: string]: Command} = {
 		return await doCmd(msg, true) as CommandReturn
 	    }
 	    return {content: "?"}
+	}
+    },
+    getimg: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let img = getImgFromMsgAndOpts(opts, msg)
+	    return {content: String(img)}
 	}
     },
     "argc": {
@@ -1719,7 +1730,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
 	    let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
-	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" "))
+	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v)
 	    return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`}) , delete: opts['d'] as boolean}
 	},
 	help: {
@@ -2423,16 +2434,16 @@ ${styles}
             let user = member?.user
 	    if(!user) return {content: "No user found"}
             return {
-                    content: format(fmt
-                                    .replaceAll("{id}", user.id || "#!N/A")
-                                    .replaceAll("{username}", user.username || "#!N/A")
-                                    .replaceAll("{nickname}", member.nickname || "#!N/A")
-                                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                                    .replaceAll("{joined}", member.joinedAt?.toString() || "#!N/A")
-                                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                    content: format(fmt,
                                     {
+					id:  user.id || "#!N/A",
+					username: user.username || "#!N/A",
+					nickname: member.nickname || "#!N/A",
+					"0xcolor": member.displayHexColor.toString() || "#!N/A",
+					color: member.displayColor.toString() || "#!N/A",
+					created: user.createdAt.toString() || "#!N/A",
+					joined: member.joinedAt?.toString() || "#!N/A",
+					boost: member.premiumSince?.toString() || "#!N/A",
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
                                         n: member.nickname || "#!N/A",
