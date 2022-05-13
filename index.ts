@@ -234,7 +234,7 @@ const commands: {[command: string]: Command} = {
     calc: {
 	run: async(msg, args) => {
 	    try{
-		return {content: String(safeEval(args.join(" "), {user: msg.author, args: args}))}
+		return {content: String(safeEval(args.join(" "), {user: msg.author, args: args, lastCommand: lastCommand.content}))}
 	    }
 	    catch(err){
 		console.log(err)
@@ -2662,7 +2662,15 @@ valid formats:<br>
                 return {content: "You ignorance species, there have not been any commands run."}
             }
             return await doCmd(lastCommand, true) as CommandReturn
-        }
+        },
+	help: {
+	    info: "Run the last command that was run",
+	    options: {
+		see: {
+		    description: "Just echo the last command that was run instead of running it"
+		}
+	    }
+	}
     },
     "psnipe": {
 	run: async(msg, args) => {
