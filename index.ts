@@ -370,7 +370,7 @@ const commands: {[command: string]: Command} = {
 	    let text = args.join(" ") || "hi"
 	    let button = new MessageButton({customId: `button:${msg.author.id}`, label:text, style: "PRIMARY"})
 	    let row = new MessageActionRow({type: "BUTTON", components: [button]})
-	    let m = await msg.channel.send({components: [row], content: content})
+	    await msg.channel.send({components: [row], content: content})
 	    if(opts['say'])
 		BUTTONS[msg.author.id] = String(opts['say'])
 	    else BUTTONS[msg.author.id] = text
@@ -395,7 +395,7 @@ const commands: {[command: string]: Command} = {
 	    let actionRow = new MessageActionRow()
 	    let opts: Opts;
 	    [opts, args] = getOpts(args)
-	    let id = opts['id'] || String(Math.floor(Math.random() * 100000000))
+	    let id = String(Math.floor(Math.random() * 100000000))
 	    args = args.join(" ").split("|")
 	    let choices = []
 	    for(let arg of args){
