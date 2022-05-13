@@ -2654,6 +2654,10 @@ valid formats:<br>
     },
     "!!": {
         run: async(msg: Message, args: ArgumentList) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    if(opts['check'] || opts['print'] || opts['see'])
+		return {content: `\`${lastCommand.content}\``}
             if(!lastCommand){
                 return {content: "You ignorance species, there have not been any commands run."}
             }
