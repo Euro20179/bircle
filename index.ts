@@ -774,8 +774,15 @@ const commands: {[command: string]: Command} = {
 		    }
 		}
 		await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
-		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || m.content == "STOP") && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
+		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
 		collection.on("collect", async(m) => {
+		    if(m.content == '\\n' || m.content == "<enter>")
+			m.content = '\n'
+		    if(m.content == "STOP"){
+			await msg.channel.send("STOPPED")
+			collection.stop()
+			return
+		    }
 		    if(!caseSensitive){
 			m.content = m.content.toLowerCase()
 		    }
@@ -785,11 +792,6 @@ const commands: {[command: string]: Command} = {
 		    }
 		    else if(m.content == word){
 			await msg.channel.send(`YOU WIN, it was\n${word}`)
-			collection.stop()
-			return
-		    }
-		    else if(m.content == "STOP"){
-			await msg.channel.send("STOPPED")
 			collection.stop()
 			return
 		    }
@@ -1730,7 +1732,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
 	    let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
-	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v)
+	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
 	    return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`}) , delete: opts['d'] as boolean}
 	},
 	help: {
