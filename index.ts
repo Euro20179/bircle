@@ -276,6 +276,14 @@ const commands: {[command: string]: Command} = {
 	    [opts, args] = getOpts(args)
 	    let img = getImgFromMsgAndOpts(opts, msg)
 	    return {content: String(img)}
+	},
+	help: {
+	    info: "find the link to the image that would be used if you gave the same options to an image command",
+	    options: {
+		img: {
+		    description: "The image link to use"
+		}
+	    }
 	}
     },
     "argc": {
