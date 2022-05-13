@@ -1755,7 +1755,7 @@ const commands: {[command: string]: Command} = {
 	    let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
 	    let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
 	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-	    return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`}) , delete: opts['d'] as boolean}
+	    return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%`}) , delete: opts['d'] as boolean}
 	},
 	help: {
 	    info: "Create your favorite fantacies!!!!"
