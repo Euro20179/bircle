@@ -258,7 +258,7 @@ const commands: {[command: string]: Command} = {
     "if": {
 	run: async(msg, args) => {
 	    let [condition, cmd] = args.join(" ").split(";")
-	    if(safeEval(condition, {user: msg.author, args: args})){
+	    if(safeEval(condition, {user: msg.author, args: args, lastCommand: lastCommand.content})){
 		msg.content = `${prefix}${cmd.trim()}`
 		return await doCmd(msg, true) as CommandReturn
 	    }
