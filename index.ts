@@ -15,7 +15,7 @@ import cheerio = require('cheerio')
 import jimp = require('jimp')
 
 
-const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList } = require('./common.js')
+const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
 
@@ -2724,6 +2724,35 @@ valid formats:<br>
     ping: {
 	run: async(msg, args) => {
 	    return {content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`}
+	}
+    },
+    version: {
+	run: async(msg, args) => {
+	    let fmt = args[0] || "%v"
+	    console.log(VERSION)
+	    let {major, minor, bug, part, alpha, beta} = VERSION
+	    let mainDisplay = (() => {
+		let d = `${major}.${minor}.${bug}`
+		if(part)
+		    d += `.${part}`
+		if(alpha)
+		    d = `A.${d}`
+		if(beta)
+		    d = `B.${d}`
+		return d
+	    })()
+	    return {content: format(fmt, {
+		v: mainDisplay,
+		M: String(major),
+		m: String(minor),
+		b: String(bug),
+		p: part,
+		A: String(alpha),
+		B: String(beta)
+	    })}
+	},
+	help: {
+	    info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>"
 	}
     }
 }
