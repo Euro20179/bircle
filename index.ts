@@ -231,6 +231,51 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
 }
 
 const commands: {[command: string]: Command} = {
+    piglatin: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let sep = opts['sep']
+	    if(sep == undefined){
+		sep = " "
+	    } else sep = String(sep)
+	    let words = []
+	    for(let word of args){
+		if(word.match(/^[aeiou]/)){
+		    words.push(`${word}ay`)
+		}
+		else{
+		    let firstVowel = -1
+		    for(let i = 0; i < word.length; i++){
+			if(word[i].match(/[aeiou]/)){
+			    firstVowel = i
+			    break
+			}
+		    }
+		    if(firstVowel == -1){
+			words.push(`${word}ay`)
+		    }
+		    else{
+			words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
+		    }
+		}
+	    }
+	    return {content: words.join(sep)}
+	},
+	help: {
+	    info: "igpay atinlay",
+	    arguments: {
+		text: {
+		    description: "Text to igpay atinlay-ify"
+		}
+	    },
+	    options: {
+		sep: {
+		    description: "The seperator between words"
+		}
+	    }
+	}
+    },
     calc: {
 	run: async(msg, args) => {
 	    try{
