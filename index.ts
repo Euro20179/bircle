@@ -2728,6 +2728,11 @@ valid formats:<br>
     },
     version: {
 	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    if(opts['l']){
+		return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
+	    }
 	    let fmt = args[0] || "%v"
 	    console.log(VERSION)
 	    let {major, minor, bug, part, alpha, beta} = VERSION
@@ -2752,7 +2757,52 @@ valid formats:<br>
 	    })}
 	},
 	help: {
-	    info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>"
+	    info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>",
+	    options: {
+		l: {
+		    description: "List all versions"
+		}
+	    }
+	}
+    },
+    changelog: {
+	run: async(msg, args) => {
+	    let  opts;
+	    [opts, args] = getOpts(args)
+	    if(opts['l']){
+		return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
+	    }
+	    let version = args[0]
+	    if(!args[0]){
+		version = (() => {
+		    let d = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
+		    if(VERSION.part)
+			d += `.${VERSION.part}`
+		    if(VERSION.alpha)
+			d = `A.${d}`
+		    if(VERSION.beta)
+			d = `B.${d}`
+		    return d
+		})()
+	    }
+	    if(!fs.existsSync(`changelog/${version}.md`)){
+		return {content: `${version} does not exist`}
+	    }
+	    if(opts['f']){
+		return {files: [{attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}`}], deleteFiles: false}
+	    }
+	    return {content: fs.readFileSync(`changelog/${version}.md`, "utf-8")}
+	},
+	help: {
+	    info: "Get changelog for a version",
+	    options: {
+		l: {
+		    description: "List all versions"
+		},
+		f: {
+		    description: "Get changelog file instead of text"
+		}
+	    }
 	}
     }
 }
