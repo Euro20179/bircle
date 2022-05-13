@@ -9,5 +9,6 @@ command-perms
 command-results
 index.js
 log.txt
+make-changelog
 
 !command-perms/holder

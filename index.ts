@@ -294,6 +294,20 @@ const commands: {[command: string]: Command} = {
 	    info: "Prints the number of arguments given to this command"
 	}
     },
+    opts: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args ] = getOpts(args)
+	    let disp = ""
+	    for(let key in opts){
+		disp += `**${key}**: \`${opts[key]}\`\n`
+	    }
+	    return {content: disp || "#!N/A"}
+	},
+	help: {
+	    info: "Print the opts given"
+	}
+    },
     echo:{
         run: async (msg: Message, args: ArgumentList) => {
             let opts
