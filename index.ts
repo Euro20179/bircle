@@ -2244,12 +2244,20 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
     },
     help: {
+	//help command
         run: async (msg, args) => {
             let opts
             [opts, args] = getOpts(args)
             if(opts["g"]){
                 return {content: `\`\`\`
+Anything may be prefixed with a \\ to prevent it from happening immediately
+
 [command [args...]
+
+do first:
+    $(command)
+calc:
+    $[calculation]
 escapes:
     \\n: new line
     \\t: tab
@@ -2267,6 +2275,13 @@ escapes:
 formats:
     {user}: mention yourself
     {arg}: give back the current text that prefixes {arg}
+    {cmd}: the command
+    {fhex}: convert a number from a base
+    {hex}: convert a number to a base
+    {rev}: reverse a string
+    {c}: content used
+    {rand}: random number
+    {time}: time date format
 variables:
     random: random number
     rand: random number
