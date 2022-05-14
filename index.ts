@@ -1285,7 +1285,7 @@ const commands: {[command: string]: Command} = {
                 resp.on("end", async() => {
                     let fn = `${generateFileName("rect", msg.author.id)}.png`
                     fs.writeFileSync(fn, data.read())
-		    let oldImg = await sharp(fn).png()
+		    let oldImg = sharp(fn).png()
 		    let oldMeta = await oldImg.metadata()
 		    let [oldWidth, oldHeight] = [oldMeta.width, oldMeta.height]
 
