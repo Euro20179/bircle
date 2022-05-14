@@ -278,21 +278,35 @@ const commands: {[command: string]: Command} = {
     },
     calc: {
 	run: async(msg, args) => {
-	    try{
-		return {content: String(safeEval(args.join(" "), {user: msg.author, args: args, lastCommand: lastCommand.content}))}
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let sep = opts['sep']
+	    if(!sep){
+		sep = "\n"
+	    } else sep = String(sep)
+	    let ret = []
+	    for(let line of args.join(" ").split("\n")){
+		try{
+		    ret.push(String(safeEval(line, {user: msg.author, args: args, lastCommand: lastCommand?.content})))
+		}
+		catch(err){
+		    console.log(err)
+		}
 	    }
-	    catch(err){
-		console.log(err)
-	    }
-	    return {content: "Could not calculate"}
+	    return {content: ret.join(sep)}
 	},
 	help: {
 	    info: "Run a calculation",
 	    arguments: {
-		equation: {
-		    description: "The equation to evaluate"
+		"...equations": {
+		    description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
 		}
 	    },
+	    options: {
+		sep: {
+		    description: "If multiple equations are given, this seperates each answer"
+		}
+	    }
 	}
     },
     del: {
