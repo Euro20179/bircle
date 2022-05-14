@@ -2,6 +2,7 @@ TOKEN
 node_modules
 CLIENT
 GUILD
+REDDIT
 help.html
 prefix
 cmduse

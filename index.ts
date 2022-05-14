@@ -688,7 +688,8 @@ const commands: {[command: string]: Command} = {
 			awayTeam = `***${awayTeam}***`
 			awayScore = `***${awayScore}***`
 			embed.setColor("#ff0000")
-		    } else {
+		    }
+		    else {
 			homeTeam = `***${homeTeam}***`
 			homeScore = `***${homeScore}***`
 			embed.setColor("#00ff00")
@@ -2897,6 +2898,15 @@ valid formats:<br>
 		    description: "Get changelog file instead of text"
 		}
 	    }
+	}
+    },
+    spams: {
+	run: async(msg, args) => {
+	    let data = ""
+	    for(let id in SPAMS){
+		data += `${id}\n`
+	    }
+	    return {content: data || "No spams"}
 	}
     }
 }
