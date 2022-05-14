@@ -231,6 +231,11 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
 }
 
 const commands: {[command: string]: Command} = {
+    nothappening: {
+	run: async(msg, args) => {
+	    return {content: ["socialblade - socialblade blocks automated web requests"].join("\n")}
+	}
+    },
     piglatin: {
 	run: async(msg, args) => {
 	    let opts;
