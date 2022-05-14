@@ -201,7 +201,7 @@ function generateHTMLFromCommandHelp(name: string, command: any){
 
         }
         if(aliases !== []){
-            html += `<h2 class="commmand-aliases">Aliases</h2><ul class="command-alias-list">`
+            html += `<h2 class="command-aliases">Aliases</h2><ul class="command-alias-list">`
             for(let alias of aliases){
                 html += `<li class="command-alias">${alias}</li>`
             }
@@ -403,7 +403,7 @@ const commands: {[command: string]: Command} = {
             info: "the bot will say the <code>text</code>",
             options: {
                 "D": {
-                    description: "If given, dont delete original message"
+                    description: "If given, don't delete original message"
                 },
                 "no-del": {
                     description: "same as -D"
@@ -480,7 +480,7 @@ const commands: {[command: string]: Command} = {
 	help:{
 	    info: "create a poll",
 	    arguments: {
-		options: { description: "Options seperated by |" }
+		options: { description: "Options separated by |" }
 	    },
 	    options: {
 		title: { description: "Title of the poll, no spaces" }
@@ -503,7 +503,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    catch(err){
 		console.log(err)
-		return {content: "coult not set pfp"}
+		return {content: "could not set pfp"}
 	    }
 	    return {content: 'set pfp', delete: opts['d'] || opts['delete']}
 	}
@@ -854,7 +854,7 @@ const commands: {[command: string]: Command} = {
 			m.content = m.content.toLowerCase()
 		    }
 		    if(guessed.indexOf(m.content) > -1){
-			await msg.channel.send(`Youve already guessed ${m.content}`)
+			await msg.channel.send(`You've already guessed ${m.content}`)
 			return
 		    }
 		    else if(m.content == word){
@@ -1022,7 +1022,7 @@ const commands: {[command: string]: Command} = {
 	    },
 	    options: {
 		E: {
-		    description: "Dont display an embed"
+		    description: "Don't display an embed"
 		},
 		c: {
 		    description: "Display the results as a list"
@@ -1146,7 +1146,7 @@ const commands: {[command: string]: Command} = {
                     description: "The image format to use, can be png, or jpg, eg: -fmt=png"
                 },
                 "gradient": {
-                    description: "Put a gradient instead of solid color, stynax: <code>-gradient=color1>color2>color3...</code>"
+                    description: "Put a gradient instead of solid color, syntax: <code>-gradient=color1>color2>color3...</code>"
                 },
                 "grad-angle": {
                     description: "The angle to put the gradient at in degrees"
