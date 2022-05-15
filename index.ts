@@ -708,6 +708,13 @@ const commands: {[command: string]: Command} = {
     },
     todo: {
 	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    if(opts['list']){
+		let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
+		let strdata = data.slice(0, data.length - 1).join("\n")
+		return {content: strdata}
+	    }
 	    let item = args.join(" ")
 	    return await commands['add'].run(msg, ["todo", item])
 	}
