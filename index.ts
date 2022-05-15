@@ -838,6 +838,9 @@ const commands: {[command: string]: Command} = {
 		    users.push(opponent)
 		}
 	    }
+	    if(users.length == 0){
+		users.push(msg.author)
+	    }
 	    try{
 		await msg.author.createDM()
 	    }
@@ -861,7 +864,7 @@ const commands: {[command: string]: Command} = {
 		    }
 		}
 		await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
-		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
+		let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || (m.content[0] == 'e' && m.content.length > 2 && m.content.length < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
 		collection.on("collect", async(m) => {
 		    if(m.content == '\\n' || m.content == "<enter>")
 			m.content = '\n'
@@ -869,6 +872,11 @@ const commands: {[command: string]: Command} = {
 			await msg.channel.send("STOPPED")
 			collection.stop()
 			return
+		    }
+		    let match
+		    if(match = m.content.match(/e\s*(.)/u)){
+			m.content = match[1]
+			console.log(m.content)
 		    }
 		    if(!caseSensitive){
 			m.content = m.content.toLowerCase()
