@@ -233,7 +233,77 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
 const commands: {[command: string]: Command} = {
     nothappening: {
 	run: async(msg, args) => {
-	    return {content: ["socialblade - socialblade blocks automated web requests"].join("\n")}
+	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
+	}
+    },
+    wiki: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let baseurl = "en.wikipedia.org"
+	    let path = "/wiki/Special:Random"
+	    if(args[0]){
+		path = `/wiki/${args.join("_")}`
+	    }
+	    if(opts['full']){
+		path = String(opts['full'])
+	    }
+	    let sentences = parseInt(String(opts['s'])) || 1
+	    let options = {hostname: baseurl, path: path}
+	    if(path == "/wiki/Special:Random"){
+		https.get(options, req => {
+		    let data = new Stream.Transform()
+		    req.on("error", err => {
+			console.log(err)
+		    })
+		    req.on("data", chunk => {
+			data.push(chunk)
+		    })
+		    req.on("end", async() => {
+			//@ts-ignore
+			let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
+			await msg.channel.send(rv)
+		    })
+		}).end()
+		return {content: "Generating random article"}
+	    }
+	    else{
+		let resp
+		try{
+		    //@ts-ignore
+		    resp = await got(`https://${baseurl}${path}`)
+		}
+		catch(err){
+		    return {content: "not found"}
+		}
+		if(resp.headers?.location){
+		    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.location.split("/wiki/")[1]}`])
+		}
+		else{
+		    let $ = cheerio.load(resp.body)
+		    let text = $("p").text().trim().split("\n")
+		    if(!text.length){
+			return {content: "nothing"}
+		    }
+		    let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
+		    return {content: rv}
+		}
+	    }
+	    return {content: "how did we get here"}
+	}, 
+	help: {
+	    info: "Get information about something, defaults to random",
+	    arguments: {
+		page: {
+		    description: "The page to look at",
+		    required: false
+		}
+	    },
+	    options: {
+		s: {
+		    description: "The amount of sentences to see"
+		}
+	    }
 	}
     },
     piglatin: {
