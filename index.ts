@@ -7,7 +7,9 @@ const { execSync } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction } from 'discord.js'
+import {Client, Intents, MessageEmbed, User, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction } from 'discord.js'
+
+import uno = require("./uno")
 
 import sharp = require('sharp')
 import got = require('got')
@@ -17,7 +19,7 @@ import jimp = require('jimp')
 
 const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
+const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES]})
 
@@ -742,6 +744,278 @@ const commands: {[command: string]: Command} = {
 		//@ts-ignore
 		delete: opts['d'] || opts['delete']
 	    }
+	}
+    },
+    uno: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
+	    let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
+	    for(let player of requestPlayers){
+		let p = await fetchUser(msg.guild, player)
+		if(!p){
+		    await msg.channel.send(`${player} not found`)
+		    continue
+		}
+		players.push(p)
+	    }
+	    if(players.length == 1){
+		return {content: "No one to play with :("}
+	    }
+	    let max = parseInt(String(opts["max"])) || 9
+	    let cards = uno.createCards(max, {enableGive: opts['give']})
+	    let deck = new uno.Stack(cards)
+	    let pile = new uno.Stack([])
+	    let playerData: {[k: string]: uno.Hand} = {}
+	    let playerStats = {}
+	    let order = []
+	    for(let player of players){
+		playerData[player.id] = new uno.Hand(7, deck)
+		order.push(player.id)
+	    }
+	    let forcedDraw = 0
+	    let turns = cycle(order, i => {
+		let playerIds = Object.keys(playerData)
+		fetchUser(msg.guild, playerIds[i % playerIds.length]).then(u => {
+		    if(players.map(v => v.id).indexOf(going) < 0){
+			going = turns.next().value
+			return
+		    }
+		    if(forcedDraw){
+			msg.channel.send(`<@${going}> is forced to draw ${forcedDraw} cards`)
+			for(let i = 0; i < forcedDraw; i++){
+			    let rv = playerData[going].draw(deck)
+			    if(!rv){
+				msg.channel.send("Deck empty, shuffling pile into deck")
+				pile.shuffle()
+				deck = new uno.Stack(pile.cards)
+				pile = new uno.Stack([])
+			    }
+			}
+			forcedDraw = 0
+		    }
+		    if(!(pile.top()?.type == 'skip')){
+			let player = players[players.map(v => v.id).indexOf(going)]
+			let send = displayStack(playerData[player.id])
+			send += "\n-------------------------"
+			player.send({content: send})
+			if(pile.cards.length)
+			    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+		    }
+		    if(pile.cards.length){
+			msg.channel.send({content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`})
+		    }
+		    else{
+			msg.channel.send({content: `${u}, it's your turn`})
+		    }
+		})
+	    })
+	    let going = turns.next().value
+	    let cardsPlayed = 0
+	    let cardsDrawn = 0
+	    let choosing = false
+	    function displayStack(stack: uno.Stack | uno.Hand, count=-1){
+		let send = "card\n"
+		if(count < 0) count = stack.cards.length
+		for(let i = 0; i < count; i++){
+		    send += `${i + 1}:\n`
+		    send += stack.cards[i]?.display()
+		}
+		return send
+	    }
+	    for(let player of players){
+		await player.user.createDM()
+		let collection = player.user.dmChannel?.createMessageCollector({filter: (m) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false})
+		if(!collection){
+		    return {content: `Couldnt listen in ${player}'s dms`}
+		}
+		collection.on("collect", async(m) => {
+		    console.log(m.content)
+		    if(m.content.toLowerCase() == "stop"){
+			players = players.filter(v => v.id != m.author.id)
+			if(players.length == 0){
+			    await msg.channel.send("game over")
+			}
+			collection?.stop()
+			if(m.author.id == client.user?.id) return
+			await msg.channel.send(`${m.author} quit`)
+			going = turns.next().value
+			return
+		    }
+		    if(player.id != going) return
+		    if(m.content.toLowerCase() == "stack"){
+			await m.channel.send(displayStack(pile))
+			return
+		    }
+		    if(m.content.toLowerCase() == "cards"){
+			await m.channel.send(displayStack(playerData[player.id]))
+			return
+		    }
+		    if(m.content.toLowerCase() == 'draw'){
+			let rv = playerData[player.id].draw(deck)
+			cardsDrawn++
+			if(!rv){
+			    await msg.channel.send("Deck empty, shuffling pile into deck")
+			    pile.shuffle()
+			    deck = new uno.Stack(pile.cards)
+			    pile = new uno.Stack([])
+			    playerData[player.id].draw(deck)
+			}
+			await msg.channel.send(`${player} drew a card`)
+			let send = displayStack(playerData[player.id])
+			send += "\n-------------------------"
+			await m.channel.send(send)
+			await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+			if(pile.cards.length)
+			    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+			return
+		    }
+		    let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
+		    if(!selectedCard){
+			await player.user.send(`${m.content} is not a valid choice`)
+		    }
+		    else if(selectedCard.type == "+2"){
+			if(selectedCard.canBePlayed(pile)){
+			    cardsPlayed++;
+			    forcedDraw = 2
+			    pile.add(selectedCard)
+			    playerData[player.id].remove(Number(m.content) - 1)
+			    going = turns.next().value
+			}
+		    }
+		    else if(selectedCard.type == 'give'){
+			if(selectedCard.canBePlayed(pile)){
+			    cardsPlayed++;
+			    playerData[player.id].remove(Number(m.content) - 1)
+			    await player.send({content: displayStack(playerData[m.author.id])})
+			    await player.send("Pick a card from your deck to give to a random opponent")
+			    choosing = true
+			    try{
+				let cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+				while(!cardM){
+				    await m.channel.send("Not a valid card")
+				    cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+				}
+				while(!parseInt(cardM?.content as string)){
+				    console.log(cardM?.content, parseInt(cardM?.content))
+				    await m.channel.send("Not a valid card")
+				    cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+				}
+				let n = parseInt(cardM?.content as string)
+				let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
+				let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
+				let randomPlayer = tempPlayerData[Math.floor(Math.random() * tempPlayerData.length)]
+				let hand = playerData[randomPlayer]
+				playerData[m.author.id].remove(selectedRemovealCard)
+				hand.add(selectedRemovealCard)
+			    }
+			    catch(err){
+				console.log(err)
+				choosing = false
+			    }
+			    choosing = false
+			    pile.add(selectedCard)
+			    going = turns.next().value
+			}
+		    }
+		    else if(selectedCard.type == "wild"){
+			cardsPlayed++;
+			await player.send("Pick a color\nred, green, yellow, or blue")
+			try{
+			    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+			    if(!colorM){
+				await msg.channel.send("User picked incorrect color, using red")
+				selectedCard.color = "red"
+			    }
+			    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
+				selectedCard.color = colorM.content
+			    }
+			    else{
+				await msg.channel.send("User picked incorrect color, using red")
+				selectedCard.color = "red"
+			    }
+			}
+			catch(err){
+			    console.log(err)
+			    await msg.channel.send("Something went wrong, defaulting to red")
+			    selectedCard.color = "red"
+			}
+			pile.add(selectedCard)
+			playerData[player.id].remove(Number(m.content) - 1)
+			going = turns.next().value
+		    }
+		    else if(selectedCard.type == "wild+4"){
+			cardsPlayed++;
+			await player.send("Pick a color\nred, green, yellow, or blue")
+			try{
+			    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+			    console.log(colorM?.content)
+			    if(!colorM){
+				await msg.channel.send("User picked incorrect color, using red")
+				selectedCard.color = "red"
+			    }
+			    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
+				selectedCard.color = colorM.content
+			    }
+			    else{
+				await msg.channel.send("User picked incorrect color, using red")
+				selectedCard.color = "red"
+			    }
+			}
+			catch(err){
+			    console.log(err)
+			    await msg.channel.send("Something went wrong, defaulting to red")
+			    selectedCard.color = "red"
+			}
+			pile.add(selectedCard)
+			playerData[player.id].remove(Number(m.content) - 1)
+			forcedDraw = 4
+			going = turns.next().value
+		    }
+		    else if(selectedCard.type == 'skip'){
+			if(selectedCard.canBePlayed(pile)){
+			    cardsPlayed++
+			    let skipped = turns.next().value
+			    await msg.channel.send(`<@${skipped}> was skipped`)
+			    await new Promise(res => {
+				pile.add(selectedCard)
+				playerData[player.id].remove(Number(m.content) - 1)
+				res("")
+				let send = displayStack(playerData[player.id])
+				send += "\n-------------------------"
+				player.send({content: send})
+				if(pile.cards.length)
+				    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+			    })
+			    going = turns.next().value
+			}
+			else{
+			    await m.channel.send("You cannot play that card")
+			}
+		    }
+		    else {
+			if(selectedCard.canBePlayed(pile)){
+			    cardsPlayed++
+			    pile.add(selectedCard)
+			    playerData[player.id].remove(Number(m.content) - 1)
+			    going = turns.next().value
+			}
+			else{
+			    await m.channel.send("You cannot play that card")
+			}
+		    }
+		    await msg.channel.send(`${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards`)
+		    if(playerData[player.id].cards.length <= 0){
+			await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+			for(let player of players){
+			    await player.send("STOP")
+			}
+			collection?.stop()
+		    }
+		})
+	    }
+	    return {content:"Starting game"}
 	}
     },
     sport: {
@@ -3136,7 +3410,12 @@ async function doCmd(msg: Message, returnJson=false){
     }
     if(!rv.content)
         delete rv['content']
-    await msg.channel.send(rv)
+    try{
+	await msg.channel.send(rv)
+    }
+    catch(err){
+	await msg.channel.send("broken")
+    }
     if(rv.files){
         for(let file of rv.files){
             if(file.delete !== false && rv.deleteFiles)

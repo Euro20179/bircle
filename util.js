@@ -1,6 +1,13 @@
 const {execFileSync} = require('child_process')
 const vm = require('vm')
 
+function* cycle(iter, onNext){
+    for(let i = 0; true; i++){
+	onNext(i)
+	yield iter[i % iter.length]
+    }
+}
+
 function randomColor(){
     let colors = []
     for(let i = 0; i < 3; i++){
@@ -182,5 +189,6 @@ module.exports = {
     randomColor: randomColor,
     rgbToHex: rgbToHex,
     safeEval: safeEval,
-    mulStr: mulString
+    mulStr: mulString,
+    cycle: cycle
 }
