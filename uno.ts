@@ -35,6 +35,39 @@ class Card{
     }
 }
 
+class Minus1Card extends Card{
+    color: string
+    value: string
+    type = "-1"
+    constructor(color: string){
+	super(color, "-1")
+	this.color = color
+	this.value = "-1"
+    }
+    canBePlayed(stack: Stack){
+	let latest = stack.top()
+	if(!latest) return true
+	return latest.color == this.color || latest.type == '-1'
+    }
+    toString(){
+	return `${this.color}:-1`
+    }
+    display(){
+	switch(this.color){
+	    case "blue":
+		return `\`\`\`md\n# ${this.value}\n\`\`\``
+	    case "yellow":
+		return `\`\`\`fix\n${this.value}\n\`\`\``
+	    case "red":
+		return `\`\`\`diff\n- ${this.value}\n\`\`\``
+	    case "green":
+		return `\`\`\`python\n"${this.value}"\n\`\`\``
+	    default:
+		return `\`\`\`\n${this.color}: ${this.value}\n\`\`\``
+	}
+    }
+}
+
 class Plus4Card extends Card{
     color: string
     value: string
@@ -164,6 +197,39 @@ class WildCard extends Card{
     }
 }
 
+class ShuffleStackCard extends Card{
+    color: string
+    value: string
+    type = "shuffle-stack"
+    constructor(color: string){
+	super(color, "SHUFFLE STACK")
+	this.color = color
+	this.value = "SHUFFLE STACK"
+    }
+    canBePlayed(stack: Stack){
+	let latest = stack.top()
+	if(!latest) return true
+	return latest.type == "shuffle-stack" || latest.color == this.color
+    }
+    toString(){
+	return `${this.color}:shuffle-stack`
+    }
+    display(){
+	switch(this.color){
+	    case "blue":
+		return `\`\`\`md\n# ${this.value}\n\`\`\``
+	    case "yellow":
+		return `\`\`\`fix\n${this.value}\n\`\`\``
+	    case "red":
+		return `\`\`\`diff\n- ${this.value}\n\`\`\``
+	    case "green":
+		return `\`\`\`python\n"${this.value}"\n\`\`\``
+	    default:
+		return `\`\`\`\n${this.color}: ${this.value}\n\`\`\``
+	}
+    }
+}
+
 class GiveCard extends Card{
     color: string
     value: string
@@ -204,7 +270,7 @@ class Stack{
 	this.shuffle()
     }
     shuffle(){
-	this.cards.sort(() => Math.random() - .5)
+	this.cards = this.cards.sort(() => Math.random() - .5)
     }
     top(){
 	return this.cards[this.cards.length - 1]
@@ -284,7 +350,8 @@ function getWinners(players: {[k: string]: Hand}){
     return false
 }
 
-function createCards(numberMax: number, {enableGive}){
+//@ts-ignore
+function createCards(numberMax: number, {enableGive, enableShuffle, enable1}){
     if(!numberMax){
 	numberMax = 9
     }
@@ -303,6 +370,12 @@ function createCards(numberMax: number, {enableGive}){
 	cards.push(new Plus4Card(color))
 	if(enableGive){
 	    cards.push(new GiveCard(color))
+	}
+	if(enableShuffle){
+	    cards.push(new ShuffleStackCard(color))
+	}
+	if(enable1){
+	    cards.push(new Minus1Card(color))
 	}
     }
     return cards

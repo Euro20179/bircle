@@ -557,6 +557,9 @@ const commands: {[command: string]: Command} = {
 	    args = args.join(" ").split("|")
 	    let choices = []
 	    for(let arg of args){
+		if(!arg.trim()){
+		    continue
+		}
 		choices.push({label: arg, value: arg})
 	    }
 	    if(choices.length < 1){
@@ -764,20 +767,23 @@ const commands: {[command: string]: Command} = {
 		return {content: "No one to play with :("}
 	    }
 	    let max = parseInt(String(opts["max"])) || 9
-	    let cards = uno.createCards(max, {enableGive: opts['give']})
+	    if(max > 1000){
+		await msg.channel.send("The maximum is to high, defaulting to 1000")
+		max = 1000
+	    }
+	    let cards = uno.createCards(max, {enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1']})
 	    let deck = new uno.Stack(cards)
 	    let pile = new uno.Stack([])
 	    let playerData: {[k: string]: uno.Hand} = {}
-	    let playerStats = {}
 	    let order = []
 	    for(let player of players){
 		playerData[player.id] = new uno.Hand(7, deck)
 		order.push(player.id)
 	    }
 	    let forcedDraw = 0
-	    let turns = cycle(order, i => {
+	    let turns = cycle(order, (i: any) => {
 		let playerIds = Object.keys(playerData)
-		fetchUser(msg.guild, playerIds[i % playerIds.length]).then(u => {
+		fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
 		    if(players.map(v => v.id).indexOf(going) < 0){
 			going = turns.next().value
 			return
@@ -843,9 +849,24 @@ const commands: {[command: string]: Command} = {
 			going = turns.next().value
 			return
 		    }
+		    if(playerData[player.id].cards.length <= 0){
+			await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+			for(let player of players){
+			    await player.send("STOP")
+			}
+			collection?.stop()
+			return
+		    }
 		    if(player.id != going) return
 		    if(m.content.toLowerCase() == "stack"){
-			await m.channel.send(displayStack(pile))
+			let text = displayStack(pile)
+			if(text.length > 1900){
+			    text = ""
+			    for(let i = pile.cards.length - 1; i > pile.cards.length - 10; i--){
+				text += `${pile.cards[i].display()}\n`
+			    }
+			}
+			await m.channel.send(text)
 			return
 		    }
 		    if(m.content.toLowerCase() == "cards"){
@@ -883,6 +904,22 @@ const commands: {[command: string]: Command} = {
 			    playerData[player.id].remove(Number(m.content) - 1)
 			    going = turns.next().value
 			}
+			else{
+			    await m.channel.send("You cannot play that card")
+			}
+		    }
+		    else if(selectedCard.type == 'shuffle-stack'){
+			if(selectedCard.canBePlayed(pile)){
+			    cardsPlayed++
+			    playerData[player.id].remove(Number(m.content) - 1)
+			    await msg.channel.send("**stack was shuffled**")
+			    pile.add(selectedCard)
+			    pile.shuffle()
+			    going = turns.next().value
+			}
+			else{
+			    await m.channel.send("You cannot play that card")
+			}
 		    }
 		    else if(selectedCard.type == 'give'){
 			if(selectedCard.canBePlayed(pile)){
@@ -898,7 +935,7 @@ const commands: {[command: string]: Command} = {
 				    cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
 				}
 				while(!parseInt(cardM?.content as string)){
-				    console.log(cardM?.content, parseInt(cardM?.content))
+				    console.log(cardM?.content, parseInt(cardM?.content as string))
 				    await m.channel.send("Not a valid card")
 				    cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
 				}
@@ -916,6 +953,22 @@ const commands: {[command: string]: Command} = {
 			    }
 			    choosing = false
 			    pile.add(selectedCard)
+			    going = turns.next().value
+			}
+			else{
+			    await m.channel.send("You cannot play that card")
+			}
+		    }
+		    else if(selectedCard.type == '-1'){
+			if(selectedCard.canBePlayed(pile)){
+			    cardsPlayed++;
+			    playerData[player.id].remove(Number(m.content) - 1)
+			    pile.add(selectedCard)
+			    let randomPlayer = players.filter(v => v.id != player.id)[Math.floor(Math.random() * (players.length - 1))].id
+			    await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
+			    let newTopCard = playerData[randomPlayer].cards[0]
+			    playerData[randomPlayer].remove(0)
+			    pile.add(newTopCard)
 			    going = turns.next().value
 			}
 		    }
@@ -978,17 +1031,18 @@ const commands: {[command: string]: Command} = {
 			    cardsPlayed++
 			    let skipped = turns.next().value
 			    await msg.channel.send(`<@${skipped}> was skipped`)
+			    going = turns.next().value
 			    await new Promise(res => {
 				pile.add(selectedCard)
 				playerData[player.id].remove(Number(m.content) - 1)
-				res("")
-				let send = displayStack(playerData[player.id])
+				let gP = players.filter(v => v.id == going)[0]
+				let send = displayStack(playerData[going])
 				send += "\n-------------------------"
-				player.send({content: send})
+				gP.send({content: send})
 				if(pile.cards.length)
-				    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+				    gP.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+				res("")
 			    })
-			    going = turns.next().value
 			}
 			else{
 			    await m.channel.send("You cannot play that card")
@@ -1005,7 +1059,7 @@ const commands: {[command: string]: Command} = {
 			    await m.channel.send("You cannot play that card")
 			}
 		    }
-		    await msg.channel.send(`${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards`)
+		    await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
 		    if(playerData[player.id].cards.length <= 0){
 			await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
 			for(let player of players){
@@ -1016,6 +1070,28 @@ const commands: {[command: string]: Command} = {
 		})
 	    }
 	    return {content:"Starting game"}
+	},
+	help: {
+	    info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
+	    arguments: {
+		players: {
+		    description: "Players to play, seperated by |"
+		}
+	    },
+	    options: {
+		max: {
+		    description: "the amount of numbers, default: 10"
+		},
+		give: {
+		    description: "enable the give card"
+		},
+		shuffle: {
+		    description: "enable the shuffle card"
+		},
+		"1": {
+		    description: "enable the -1 card"
+		}
+	    }
 	}
     },
     sport: {
