@@ -238,6 +238,115 @@ const commands: {[command: string]: Command} = {
 	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
 	}
     },
+    "6": {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let getRankMode = opts['rank'] || false
+	    let content = args.join(" ")
+	    let requestedUsers = content.split("|")
+	    let embeds = []
+	    const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${GUILD_ID}`
+	    let data
+	    try{
+		//@ts-ignore
+		data = await got(url)
+	    }
+	    catch(err){
+		return {content: "Could not fetch data"}
+	    }
+	    if(!data?.body){
+		return {content: "No data found"}
+	    }
+	    const JSONData = JSON.parse(data.body)
+	    for(let requestedUser of requestedUsers){
+		if(!requestedUser) continue
+		let [ruser1, ruser2] = requestedUser.split("-")
+		if(ruser1.trim() && ruser2?.trim()){
+		    //@ts-ignore
+		    let member1, member2;
+		    if(getRankMode){
+			member1 = JSONData.players[Number(ruser1) - 1]
+			member1 = await fetchUser(msg.guild, member1.id)
+			member2 = JSONData.players[Number(ruser2) - 1]
+			member2 = await fetchUser(msg.guild, member2.id)
+		    }
+		    else{
+			member1 = await fetchUser(msg.guild, ruser1.trim())
+			member2 = await fetchUser(msg.guild, ruser2.trim())
+		    }
+		    if(!member1){
+			return {content: `Could not find ${ruser1}`}
+		    }
+		    if(!member2){
+			return {content: `Could not find ${ruser1}`}
+		    }
+		    //@ts-ignore
+		    const user1Data = JSONData.players.filter(v => v.id == member1.id)?.[0]
+		    //@ts-ignore
+		    const user2Data = JSONData.players.filter(v => v.id == member2.id)?.[0]
+		    if(!user1Data){
+			return {content: `No data for ${member1.user.username} found`}
+		    }
+		    if(!user2Data){
+			return {content: `No data for ${member2.user.username} found`}
+		    }
+		    const rank1 = JSONData.players.indexOf(user1Data)
+		    const rank2 = JSONData.players.indexOf(user2Data)
+		    const embed = new MessageEmbed()
+		    embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
+		    if(user1Data.level < user2Data.level)
+			embed.setColor("#00ff00")
+		    else if(user1Data.level == user2Data.level)
+			embed.setColor("#0000ff")
+		    else
+			embed.setColor("#00ff00")
+		    embed.addField("Level", String(user1Data.level - user2Data.level), true)
+		    embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
+		    embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
+		    embeds.push(embed)
+		    continue
+		}
+		let member;
+		if(getRankMode){
+		    member = JSONData.players[Number(requestedUser.trim()) - 1]
+		    member = await fetchUser(msg.guild, member.id)
+		}
+		else
+		    member = await fetchUser(msg.guild, requestedUser.trim())
+		if(!member){
+		    member = msg.author
+		}
+		//@ts-ignore
+		const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
+		if(!userData){
+		    return {content: `No data for ${member.user.username} found`}
+		}
+		const rank = JSONData.players.indexOf(userData)
+		const embed = new MessageEmbed()
+		embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
+		embed.setColor(member.displayColor)
+		embed.addField("Level", String(userData.level), true)
+		embed.addField("XP", String(userData.xp), true)
+		embed.addField("Message Count", String(userData.message_count), true)
+		embeds.push(embed)
+	    }
+	    return {embeds: embeds}
+	},
+	help: {
+	    info: "Get the mee6 rank of a user",
+	    arguments: {
+		users: {
+		    description: "A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users"
+		}
+	    },
+	    options: {
+		rank: {
+		    description: "Instead of searching by user, search by rank"
+		}
+	    }
+	}
+    },
     wiki: {
 	run: async(msg, args) => {
 	    let opts;
