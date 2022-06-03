@@ -3242,6 +3242,28 @@ valid formats:<br>
             }
         }
     },
+    head: {
+	run: async(msg, args) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
+	    let count = parseInt(String(opts['count'])) || 10
+	    let argText = args.join(" ")
+	    return {content: argText.split("\n").slice(0, count).join("\n")}
+	},
+	help: {
+	    info: "Say the first 10 lines of some text",
+	    arguments: {
+		text: {
+		    description: "Text"
+		}
+	    },
+	    options: {
+		count:{
+		    description: "The amount of lines to show"
+		}
+	    }
+	}
+    },
     grep: {
         run: async(msg: Message, args: ArgumentList) => {
             let regex = args[0]
