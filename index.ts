@@ -15,6 +15,7 @@ import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
 import jimp = require('jimp')
+import { exec } from "child_process"
 
 
 const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
@@ -350,24 +351,21 @@ const commands: {[command: string]: Command} = {
     ani: {
 	run: async(msg, args) => {
 	    const fn = generateFileName("ani", msg.author.id)
-	    try{
-		execSync(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${args.join(" ")} > ${fn}`)
-	    }
-	    catch(err){
-		if(err.status == 4){
-		    return {content: "nothing found"}
+	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${args.join(" ")}`, async(excep, stdout, stderr) => {
+		if(excep){
+		    console.log(excep)
 		}
 		else{
-		    return {content: "Error occured"}
+		    console.log(stdout)
+		    const JSONData = JSON.parse(stdout)
+		    let embed = new MessageEmbed()
+		    for(let item of JSONData){
+			embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
+		    }
+		    await msg.channel.send({embeds: [embed]})
 		}
-	    }
-	    const data = fs.readFileSync(`./${fn}`, "utf-8")
-	    const JSONData = JSON.parse(data)
-	    let embed = new MessageEmbed()
-	    for(let item of JSONData){
-		embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
-	    }
-	    return {embeds:  [embed]}
+	    })
+	    return {noSend: true}
 	},
 	help: {
 	    info: "get anime :)))))))))"
@@ -852,6 +850,11 @@ const commands: {[command: string]: Command} = {
 	    if(!file){
 		return {content: "No file specified"}
 	    }
+            if(!fs.existsSync(`./command-results/${file}`)){
+                return {
+                    content: "file does not exist"
+                }
+            }
 	    const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
 	    const lines = text.split("\n")
 	    return {content: lines[Math.floor(Math.random() * lines.length)]}
