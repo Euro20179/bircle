@@ -3,7 +3,7 @@ import fs = require("fs")
 
 import https = require('https')
 import Stream = require('stream')
-const { execSync } = require('child_process')
+const { execSync, exec } = require('child_process')
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
@@ -15,7 +15,6 @@ import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
 import jimp = require('jimp')
-import { exec } from "child_process"
 
 
 const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
@@ -356,8 +355,6 @@ const commands: {[command: string]: Command} = {
 		    console.log(excep)
 		}
 		else{
-		    fs.writeFileSync("test.file", stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-		    console.log(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
 		    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
 		    let embed = new MessageEmbed()
 		    for(let item of JSONData){
@@ -380,7 +377,7 @@ const commands: {[command: string]: Command} = {
 		    console.log(excep)
 		}
 		else{
-		    const JSONData = JSON.parse(stdout)
+		    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
 		    let embed = new MessageEmbed()
 		    for(let item of JSONData){
 			embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
