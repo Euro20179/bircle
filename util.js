@@ -178,6 +178,10 @@ function safeEval (code, context, opts) {
     }
 }
 
+function escapeShell(text){
+    return text.replaceAll(/\$/g, "\\$").replaceAll(";", "\\;")
+}
+
 module.exports = {
     fetchUser: fetchUser,
     fetchChannel: fetchChannel,
@@ -190,5 +194,6 @@ module.exports = {
     rgbToHex: rgbToHex,
     safeEval: safeEval,
     mulStr: mulString,
-    cycle: cycle
+    cycle: cycle,
+    escapeShell: escapeShell
 }

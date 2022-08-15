@@ -20,7 +20,7 @@ import { exec } from "child_process"
 
 const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr } = require('./util.js')
+const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell } = require('./util.js')
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES]})
 
@@ -308,7 +308,7 @@ const commands: {[command: string]: Command} = {
 		    embeds.push(embed)
 		    continue
 		}
-		let member;
+		let member: any;
 		if(getRankMode){
 		    member = JSONData.players[Number(requestedUser.trim()) - 1]
 		    member = await fetchUser(msg.guild, member.id)
@@ -348,15 +348,38 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
-    ani: {
+    yt: {
 	run: async(msg, args) => {
-	    const fn = generateFileName("ani", msg.author.id)
-	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${args.join(" ")}`, async(excep, stdout, stderr) => {
+	    const fn = generateFileName("yt", msg.author.id)
+	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async(excep, stdout, stderr) => {
 		if(excep){
 		    console.log(excep)
 		}
 		else{
-		    console.log(stdout)
+		    fs.writeFileSync("test.file", stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+		    console.log(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+		    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+		    let embed = new MessageEmbed()
+		    for(let item of JSONData){
+			embed.addField(`title: ${item.title}`, `url: ${item.url}`)
+		    }
+		    await msg.channel.send({embeds: [embed]})
+		}
+	    })
+	    return {noSend: true}
+	},
+	help: {
+	    info: "https://github.com/pystardust/ytfzf/wiki"
+	}
+    },
+    ani: {
+	run: async(msg, args) => {
+	    const fn = generateFileName("ani", msg.author.id)
+	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async(excep, stdout, stderr) => {
+		if(excep){
+		    console.log(excep)
+		}
+		else{
 		    const JSONData = JSON.parse(stdout)
 		    let embed = new MessageEmbed()
 		    for(let item of JSONData){
