@@ -846,6 +846,20 @@ const commands: {[command: string]: Command} = {
 	},
 	permCheck: m => ADMINS.includes(m.author.id)
     },
+    "rand-line": {
+	run: async(msg, args) => {
+	    let file = args[0]
+	    if(!file){
+		return {content: "No file specified"}
+	    }
+	    const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
+	    const lines = text.split("\n")
+	    return {content: lines[Math.floor(Math.random() * lines.length)]}
+	},
+	help: {
+	    info: "Gets a random line from a file"
+	}
+    },
     todo: {
 	run: async(msg, args) => {
 	    let opts;
