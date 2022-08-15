@@ -876,7 +876,7 @@ const commands: {[command: string]: Command} = {
                 }
             }
 	    const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
-	    const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, ""))
+	    const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
 	    return {content: lines[Math.floor(Math.random() * lines.length)]}
 	},
 	help: {
