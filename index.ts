@@ -2709,7 +2709,6 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
         },
-	permCheck: m => ADMINS.includes(m.author.id)
     },
     rccmd: {
 	run: async(msg, args) => {
