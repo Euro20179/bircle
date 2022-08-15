@@ -143,7 +143,7 @@ function getContentFromResult(result: CommandReturn){
 }
 
 function getOpts(args: Array<string>): [Opts, ArgumentList]{
-    let opts: Opts = {} 
+    let opts: Opts = {}
     let newArgs = []
     let idxOfFirstRealArg = 0
     for(let arg of args){
@@ -347,6 +347,32 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    ani: {
+	run: async(msg, args) => {
+	    const fn = generateFileName("ani", msg.author.id)
+	    try{
+		execSync(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${args.join(" ")} > ${fn}`)
+	    }
+	    catch(err){
+		if(err.status == 4){
+		    return {content: "nothing found"}
+		}
+		else{
+		    return {content: "Error occured"}
+		}
+	    }
+	    const data = fs.readFileSync(`./${fn}`, "utf-8")
+	    const JSONData = JSON.parse(data)
+	    let embed = new MessageEmbed()
+	    for(let item of JSONData){
+		embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
+	    }
+	    return {embeds:  [embed]}
+	},
+	help: {
+	    info: "get anime :)))))))))"
+	}
+    },
     wiki: {
 	run: async(msg, args) => {
 	    let opts;
@@ -401,7 +427,7 @@ const commands: {[command: string]: Command} = {
 		}
 	    }
 	    return {content: "how did we get here"}
-	}, 
+	},
 	help: {
 	    info: "Get information about something, defaults to random",
 	    arguments: {
@@ -1719,7 +1745,7 @@ const commands: {[command: string]: Command} = {
                     description: "Width, and height of the image, syntax: <code>-size=number</code>, max of 2000"
                 },
                 "height": {
-                    description: "Height of the image"    
+                    description: "Height of the image"
                 },
                 "h":{
                     description: "Height of the image, overrides -height"
@@ -3072,7 +3098,7 @@ ${styles}
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
-            let member 
+            let member
             if(!opts['f'])
                 member = (msg.channel as TextChannel).guild.members.cache.random()
             if(!member)
@@ -3120,7 +3146,7 @@ ${styles}
     },
     "channel-info": {
 	run: async(msg, args) => {
-	    let channel 
+	    let channel
 	    if(!args.join(" ").trim().length)
 		channel = msg.channel
 	    else channel = await fetchChannel(msg.guild, args.join(" ").trim())
@@ -3520,12 +3546,12 @@ const rest = new REST({version: "9"}).setToken(token);
 (async () => {
     try {
       console.log('Started refreshing application (/) commands.');
-  
+
       await rest.put(
         Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
         { body: slashCommands },
       );
-  
+
       console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
       console.error(error);
@@ -3596,7 +3622,7 @@ async function doCmd(msg: Message, returnJson=false){
         return rv;
     }
     if(!Object.keys(rv).length){
-        return 
+        return
     }
     if(rv.delete){
 	msg.delete().catch(err => console.log("Message not deleted"))
@@ -3711,7 +3737,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 
 		if(POLLS[id]["votes"][key])
 		    POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
-		else 
+		else
 		    POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
 	    }
 	    else POLLS[id]["votes"] = {[id]: [String(interaction.member?.user.id)]}
@@ -3829,7 +3855,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    //@ts-ignore
 	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
 	    await interaction.reply(rv)
-	} 
+	}
 	else if(interaction.commandName == "add-8"){
 	    //@ts-ignore
 	    interaction.author = interaction.member?.user
@@ -3849,7 +3875,7 @@ client.on("interactionCreate", async(interaction: Interaction) => {
 	    //@ts-ignore
 	    let rv = await commands['add'].run(interaction, ["wordle", resp])
 	    await interaction.reply(rv)
-	} 
+	}
 	else if(interaction.commandName == 'rps'){
 	    let opponent = interaction.options.get("opponent")?.value
 	    let choice = interaction.options.get("choice")?.value as string
