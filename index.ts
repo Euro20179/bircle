@@ -877,7 +877,7 @@ const commands: {[command: string]: Command} = {
             }
 	    const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
 	    const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, ""))
-	    return {content: lines[Math.floor(Math.random() * lines.length)]}
+	    return {content: lines[Math.floor(Math.random() * lines.length - 1)]}
 	},
 	help: {
 	    info: "Gets a random line from a file"
