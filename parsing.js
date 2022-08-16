@@ -109,7 +109,6 @@ async function buildFormat(sequence, msg, curArg, customFormats){
                     "x": AMPM,
                     "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
                     "m": `${date.getMonth() + 1}`,
-                    "d": `${date.getDate()}`,
                     "Y": `${date.getFullYear()}`,
                     "w": `${date.getDay()}`
                 })
