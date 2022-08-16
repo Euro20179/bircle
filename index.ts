@@ -238,6 +238,41 @@ const player = createAudioPlayer()
 let connection: any;
 
 const commands: {[command: string]: Command} = {
+    time: {
+	run: async(msg, args) => {
+	    let fmt = args.join(" ")
+	    console.log(fmt)
+
+	    const date = new Date()
+	    let hours = date.getHours()
+	    let AMPM = hours < 12 ? "AM" : "PM"
+	    return {content: fmt
+                    .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                    .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                    .replaceAll("date", `${date.getDate()}`)
+                    .replaceAll("hour", `${hours}`)
+                    .replaceAll("min", `${date.getMinutes()}`)
+                    .replaceAll("sec", `${date.getSeconds()}`)
+                    .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
+                    .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
+                    .replaceAll("milli", `${date.getMilliseconds()}`)
+                    .replaceAll("millis", `${date.getMilliseconds()}`)
+                    .replaceAll("tz", `${date.getTimezoneOffset()}`)
+                    .replaceAll("timezone", `${date.getTimezoneOffset()}`)
+                    .replaceAll("ampm", AMPM)
+                    .replaceAll("month", `${date.getMonth() + 1}`)
+                    .replaceAll("year", `${date.getFullYear()}`)
+                    .replaceAll("day", `${date.getDay()}`)
+                }
+	},
+	help: {
+	    arguments: {
+		format: {
+		    description: "the format to use for the time<br>formats:<br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
+		}
+	    }
+	}
+    },
     join:{
 	run: async(msg, args) => {
 	    const memberData = await fetchUser(msg.guild, msg.author.id)
@@ -2958,6 +2993,7 @@ formats:
     {c}: content used
     {rand[|item1|item2...]}: random item
     {time[|datetime format]}: time date format
+    {channel[|format]}: channel
 variables:
     random: random number
     rand: random number
