@@ -5,6 +5,7 @@ import https = require('https')
 import Stream = require('stream')
 const { execSync, exec } = require('child_process')
 
+const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 import {Client, Intents, MessageEmbed, User, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction } from 'discord.js'
@@ -15,13 +16,14 @@ import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
 import jimp = require('jimp')
+import { AudioPlayerStatus, createAudioResource, NoSubscriberBehavior } from "@discordjs/voice"
 
 
 const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell } = require('./util.js')
 
-const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES]})
+const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES]})
 
 const token = fs.readFileSync("./TOKEN", "utf-8").trim()
 const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8").trim()
@@ -232,7 +234,55 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
     return img as string
 }
 
+const player = createAudioPlayer()
+let connection: any;
+
 const commands: {[command: string]: Command} = {
+    join:{
+	run: async(msg, args) => {
+	    const memberData = await fetchUser(msg.guild, msg.author.id)
+	    const voiceState = memberData.voice
+	    if(!voiceState){
+		return {content: "NOT IN VC"}
+	    }
+	    connection = joinVoiceChannel({
+		    channelId: voiceState.channel.id,
+		    guildId: msg.guild.id,
+		    adapterCreator: msg.guild?.voiceAdapterCreator
+	    })
+	    return {noSend: true}
+	}
+
+    },
+    leave: {
+	run: async(msg, args) => {
+	    connection.destroy()
+	    connection = null
+	    return {noSend: true}
+	}
+    },
+    play: {
+	run: async(msg, args) => {
+	    if(!args[0]){
+		return {content: "no link"}
+	    }
+	    const fn = generateFileName("play", msg.author.id).replace(".txt", "")
+	    exec(`yt-dlp -x --audio-format=mp3 -o ${fn}.mp3 ${args[0]}`, () => {
+		const resource = createAudioResource(__dirname + "/" + fn + ".mp3")
+		//console.log(__dirname + "/" + fn + ".mp3", fs.existsSync(__dirname + "/" + fn + ".mp3")
+		if(!connection){
+		    return {content: "Not in vc"}
+		}
+		connection.subscribe(player)
+		player.on(AudioPlayerStatus.Playing, async() => {
+		    //fs.rmSync(__dirname + "/" + fn + ".mp3")
+		    await msg.channel.send("You are about to listen to some wonderful ***t u n e s***")
+		})
+		player.play(resource)
+	    })
+	    return {noSend: true}
+	}
+    },
     nothappening: {
 	run: async(msg, args) => {
 	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
@@ -517,7 +567,7 @@ const commands: {[command: string]: Command} = {
 	    let ret = []
 	    for(let line of args.join(" ").split("\n")){
 		try{
-		    ret.push(String(safeEval(line, {user: msg.author, args: args, lastCommand: lastCommand?.content})))
+		    ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, args: args, lastCommand: lastCommand?.content})))
 		}
 		catch(err){
 		    console.log(err)
@@ -2899,15 +2949,15 @@ escapes:
     \\V{variable name}: value of a variable
     \\\\: backslash
 formats:
+    {ruser[|fmt]}: generate a user
     {user}: mention yourself
-    {arg}: give back the current text that prefixes {arg}
     {cmd}: the command
-    {fhex}: convert a number from a base
-    {hex}: convert a number to a base
-    {rev}: reverse a string
+    {fhex|number}: convert a number from a base
+    {hex|number}: convert a number to a base
+    {rev|string}: reverse a string
     {c}: content used
-    {rand}: random number
-    {time}: time date format
+    {rand[|item1|item2...]}: random item
+    {time[|datetime format]}: time date format
 variables:
     random: random number
     rand: random number

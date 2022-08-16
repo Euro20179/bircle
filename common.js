@@ -6,7 +6,7 @@ const ADMINS = ["334538784043696130"]
 
 const LOGFILE = "log.txt"
 
-const VERSION = {major: 1, minor: 4, bug: 3, part: "2_B", beta: false, alpha: false}
+const VERSION = {major: 1, minor: 4, bug: 4, part: "", beta: false, alpha: false}
 
 let WHITELIST = {}
 function reloadWhiteList(){
