@@ -2611,6 +2611,21 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    "vars": {
+	run: async(msg, args) => {
+	    let rv = "Global Vars:\n"
+	    for(let v in vars){
+		rv += `${v.replaceAll("_", "\\_")}\n`
+	    }
+	    rv += "----------------------\nUser Vars:\n"
+	    if(userVars[msg.author.id]){
+		for(let v in userVars[msg.author.id]){
+		    rv += `${v.replaceAll("_", "\\_")}\n`
+		}
+	    }
+	    return {content: rv}
+	}
+    },
     "var": {
         run: async(msg: Message, args: ArgumentList) => {
             let [name, ...value] = args.join(" ").split("=")

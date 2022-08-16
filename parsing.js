@@ -163,6 +163,9 @@ function buildEscape(letter, sequence, msg, curArg){
 		return String(args[num])
 	    }
 	    try{
+		if(sequence.split(":")[0] == "g"){
+		return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || "\\V"
+		}
 		if(userVars[msg.author.id]){
 		    if(userVars[msg.author.id][sequence]){
 			return userVars[msg.author.id][sequence](msg, curArg)
