@@ -115,6 +115,15 @@ async function buildFormat(sequence, msg, curArg, customFormats){
                 })
         case "arg":
             return curArg
+	case "channel":
+	    return format(args.join("|"), {
+		"i": `${msg.channel.id}`,
+		"N!": `${msg.channel.nsfw}`,
+		"n": `${msg.channel.name}`,
+		"c": `${msg.channel.createdAt}`
+	    })
+
+
     }
     if(args.length > 0){
         return `{${sequence}|${args.join("|")}}`
