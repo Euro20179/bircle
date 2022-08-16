@@ -67,6 +67,7 @@ let vars = {
     vcount: () => Object.keys(vars).length,
     sender: (msg) => `<@${msg.author.id}>`
 }
+let userVars = {}
 module.exports = {
     prefix: prefix,
     vars: vars,
@@ -79,5 +80,6 @@ module.exports = {
     addToPermList: addToPermList,
     removeFromPermList: removeFromPermList,
     LOGFILE: LOGFILE,
-    VERSION: VERSION
+    VERSION: VERSION,
+    userVars: userVars
 }

@@ -1,4 +1,4 @@
-const {prefix, vars} = require('./common.js')
+const {prefix, vars, userVars} = require('./common.js')
 const {format, safeEval} = require('./util.js')
 
 async function buildFormat(sequence, msg, curArg, customFormats){
@@ -154,6 +154,7 @@ function buildEscape(letter, sequence, msg, curArg){
             return (new Date(sequence)).toString()
         case "D":
             return (new Date(parseInt(sequence))).toString()
+	case "v":
         case "V":
 	    let num = Number(sequence)
 	    //basically checks if it's a n
@@ -162,8 +163,14 @@ function buildEscape(letter, sequence, msg, curArg){
 		return String(args[num])
 	    }
 	    try{
+		if(userVars[msg.author.id]){
+		    if(userVars[msg.author.id][sequence]){
+			return userVars[msg.author.id][sequence](msg, curArg)
+		    }
+		}
 		return vars[sequence](msg, curArg) || "\\V"
 	    } catch(err){
+		console.log(err)
 		return "\\V"
 	    }
         case "\\":

@@ -19,7 +19,7 @@ import jimp = require('jimp')
 import { AudioPlayerStatus, createAudioResource, NoSubscriberBehavior } from "@discordjs/voice"
 
 
-const { LOGFILE, prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
+const { LOGFILE, prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell } = require('./util.js')
 
@@ -599,7 +599,7 @@ const commands: {[command: string]: Command} = {
 	    if(!sep){
 		sep = "\n"
 	    } else sep = String(sep)
-	    let ret = []
+	    let ret: any[] = []
 	    for(let line of args.join(" ").split("\n")){
 		try{
 		    ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, args: args, lastCommand: lastCommand?.content})))
@@ -607,6 +607,12 @@ const commands: {[command: string]: Command} = {
 		catch(err){
 		    console.log(err)
 		}
+	    }
+	    if(ret.length){
+		if(userVars && userVars[msg.author.id])
+		    userVars[msg.author.id]["__calc"] = () => ret.join(sep as string)
+		else
+		    userVars[msg.author.id] = {"__calc": () => ret.join(sep as string)}
 	    }
 	    return {content: ret.join(sep)}
 	},
@@ -3765,6 +3771,13 @@ async function doCmd(msg: Message, returnJson=false){
     }
     if(!rv.content)
         delete rv['content']
+    else
+	if(userVars[msg.author.id]){
+	    userVars[msg.author.id][`_!`] = () => rv.content
+	}
+	else
+	    userVars[msg.author.id] = {"_!": () => rv.content}
+	vars[`_!`] = () => rv.content
     try{
 	await msg.channel.send(rv)
     }
