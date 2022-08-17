@@ -296,6 +296,7 @@ const commands: {[command: string]: Command} = {
 	    return {noSend: true}
 	}
     },
+    /*
     play: {
 	run: async(msg, args) => {
 	    if(!args[0]){
@@ -318,6 +319,7 @@ const commands: {[command: string]: Command} = {
 	    return {noSend: true}
 	}
     },
+    */
     nothappening: {
 	run: async(msg, args) => {
 	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
