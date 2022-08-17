@@ -199,7 +199,7 @@ function generateHTMLFromCommandHelp(name: string, command: any){
                 let desc = options[option].description || ""
                 let requiresValue = options[option].requiresValue || false
                 html += `<li class="command-option">
-    <details class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary>${desc}</details></li>`
+    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary> ${desc}</details></li>`
             }
             html += "</ul>"
 
@@ -2628,15 +2628,30 @@ const commands: {[command: string]: Command} = {
     },
     "var": {
         run: async(msg: Message, args: ArgumentList) => {
+	    let opts;
+	    [opts, args] = getOpts(args)
             let [name, ...value] = args.join(" ").split("=")
 	    if(!value.length){
 		return {content: "no value given, syntax `[var x=value"}
 	    }
 	    let realVal = value.join(" ")
-            vars[name] = () => realVal
-            return {
-                content: vars[name]()
-            }
+	    if (opts['u']){
+		if(userVars[msg.author.id]){
+		    userVars[msg.author.id][name] = () => realVal
+		}
+		else{
+		    userVars[msg.author.id] = {[name]: () => realVal}
+		}
+		return {
+		    content: userVars[msg.author.id][name]()
+		}
+	    }
+	    else{
+		vars[name] = () => realVal
+		return {
+		    content: vars[name]()
+		}
+	    }
         },
         help: {
             arguments: {
