@@ -699,7 +699,11 @@ const commands: {[command: string]: Command} = {
                 embed = new MessageEmbed()
                 if(embedText !== true)
                     embed.setTitle(embedText)
-                let img = getImgFromMsgAndOpts(opts, msg)
+                let img;
+                if(opts['img'] == ""){
+                    img = null
+                }
+                else img = getImgFromMsgAndOpts(opts, msg)
                 if(img){
                     embed.setImage(img)
                 }
