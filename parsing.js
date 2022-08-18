@@ -60,6 +60,17 @@ async function buildFormat(sequence, msg, curArg, customFormats){
             if(args && args?.length > 0)
                 return args[Math.floor(Math.random() * args.length)]
             return "{rand}"
+        case "num":
+        case "number":
+            if(args && args?.length > 0){
+                let low = args[0]
+                let high = args[1] || low * 10
+                let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
+                if(dec)
+                    return String((Math.random() * (high - low)) + low)
+                return String(Math.floor((Math.random() * (high - low)) + low))
+            }
+            return String(Math.random())
         case "ruser":
             let fmt = args.join(" ") || "%u"
             let member = msg.channel.guild.members.cache.random()
