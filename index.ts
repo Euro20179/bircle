@@ -3485,7 +3485,7 @@ valid formats:<br>
             let data = generateCmdUseFile()
                         .split("\n")
                         .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
-                        .filter(v => v[0]) // remove empty strings
+                        .filter(v => v[0] && ! isNaN(Number(v[1]))) // remove empty strings
 			//@ts-ignore
                         .sort((a, b) => a[1] - b[1]) // sort from least to greatest
                         .reverse() //sort from greatest to least
