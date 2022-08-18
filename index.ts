@@ -8,7 +8,7 @@ const { execSync, exec } = require('child_process')
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, User, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction } from 'discord.js'
+import {Client, Intents, MessageEmbed, User, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction, GuildEmoji } from 'discord.js'
 
 import uno = require("./uno")
 
@@ -282,7 +282,7 @@ const commands: {[command: string]: Command} = {
 	    }
 	    connection = joinVoiceChannel({
 		    channelId: voiceState.channel.id,
-		    guildId: msg.guild.id,
+		    guildId: msg.guild?.id,
 		    adapterCreator: msg.guild?.voiceAdapterCreator
 	    })
 	    return {noSend: true}
@@ -441,7 +441,7 @@ const commands: {[command: string]: Command} = {
     yt: {
 	run: async(msg, args) => {
 	    const fn = generateFileName("yt", msg.author.id)
-	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async(excep, stdout, stderr) => {
+	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
 		if(excep){
 		    console.log(excep)
 		}
@@ -463,7 +463,7 @@ const commands: {[command: string]: Command} = {
     ani: {
 	run: async(msg, args) => {
 	    const fn = generateFileName("ani", msg.author.id)
-	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async(excep, stdout, stderr) => {
+	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
 		if(excep){
 		    console.log(excep)
 		}
@@ -3421,8 +3421,29 @@ valid formats:<br>
         }
     },
     "emote-use":{
-        run: async(_msg, _args) => {
-            return {noSend: true}
+        run: async(msg, _args) => {
+            let data = generateEmoteUseFile()
+                        .split("\n")
+                        .map(v => v.split(":"))
+                        .filter(v => v[0])
+            let newData: [string | GuildEmoji, string][] = []
+            for(let i = 0; i < data.length; i++){
+                let emoji: string | GuildEmoji | undefined | null = data[i][0];
+                try{
+                    emoji = await msg.guild?.emojis.fetch(data[i][0])
+                }
+                catch(err){
+                    emoji = data[i][0]
+                }
+                if(!emoji) emoji = data[i][0]
+                newData.push([emoji, data[i][1]])
+            }
+            let finalData = newData
+                            .sort((a, b) => Number(a[1]) - Number(b[1]))
+                            .reverse()
+                            .map(v => `${v[0]}: ${v[1]}`)
+                            .join("\n")
+            return {content: finalData}
         }
     },
     "cmd-use": {
@@ -3859,6 +3880,11 @@ client.on("messageDeleteBulk", async(m) => {
 
 client.on("messageCreate", async(m:  Message) => {
     let content = m.content
+    if(!m.author.bot){
+        for(let match of content.matchAll(/<a?:([^:]+):([\d]+)>/g)){
+            addToEmoteUse(match[2])
+        }
+    }
     if(content == 'u!stop'){
         m.content = '[stop'
         content = m.content
@@ -4131,6 +4157,24 @@ function generateCmdUseFile(){
     return data
 }
 
+function generateEmoteUseFile(){
+    let data = ""
+    for(let emote in EMOTEUSE){
+        data += `${emote}:${EMOTEUSE[emote]}\n`
+    }
+    return data
+}
+
+function addToEmoteUse(emote: string){
+    if(EMOTEUSE[emote]){
+        EMOTEUSE[emote] += 1
+    }
+    else{
+        EMOTEUSE[emote] = 1
+    }
+    fs.writeFileSync("emoteuse", generateEmoteUseFile())
+}
+
 function addToCmdUse(cmd: string){
     if(CMDUSE[cmd]){
         CMDUSE[cmd] += 1
@@ -4154,6 +4198,21 @@ function loadCmdUse(){
     return cmduse
 }
 
+function loadEmoteUse(){
+    let emoteuse: {[key: string]: number} = {}
+    if(!fs.existsSync("emoteuse")){
+        return {}
+    }
+    let data = fs.readFileSync("emoteuse", "utf-8")
+    for(let line of data.split("\n")){
+        if(!line) continue
+        let [emote, times] = line.split(":")
+        emoteuse[emote] = parseInt(times)
+    }
+    return emoteuse
+}
+
 let CMDUSE = loadCmdUse()
+let EMOTEUSE = loadEmoteUse()
 
 client.login(token)
