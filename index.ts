@@ -1715,53 +1715,53 @@ const commands: {[command: string]: Command} = {
 	}
     },
     "most-roles": {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let times = parseInt(args[0]) || 10
-	    await msg.guild?.members.fetch()
-	    let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
-	    let embed = new MessageEmbed()
-	    embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
-	    if(sortedMembers?.at(0)?.displayColor){
-		embed.setColor(sortedMembers?.at(0)?.displayColor || "RED")
-	    }
-	    let ret = ""
-	    for(let i = 0; i < times; i++){
-		let member = sortedMembers?.at(i)
-		ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
-		embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
-	    }
-	    let rv: CommandReturn = {allowedMentions: {parse: []}}
-	    if(!opts['E'] && !opts['c!'])
-		rv.embeds = [embed]
-	    if(opts['c'] || opts['c!']){
-		rv.content = ret
-	    }
-	    return rv
-	},
-	help: {
-	    info: "Display a list of users with the most roles",
-	    arguments: {
-		top: {
-		    description: "The top x users to display",
-		    required: false,
-		}
-	    },
-	    options: {
-		E: {
-		    description: "Don't display an embed"
-		},
-		c: {
-		    description: "Display the results as a list"
-		},
-		"c!": {
-		    description: "Display the results as a list instead of an embed"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let times = parseInt(args[0]) || 10
+            await msg.guild?.members.fetch()
+            let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
+            let embed = new MessageEmbed()
+            embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
+            if(sortedMembers?.at(0)?.displayColor){
+            embed.setColor(sortedMembers?.at(0)?.displayColor || "RED")
+            }
+            let ret = ""
+            for(let i = 0; i < times; i++){
+            let member = sortedMembers?.at(i)
+            ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
+            embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
+            }
+            let rv: CommandReturn = {allowedMentions: {parse: []}}
+            if(!opts['E'] && !opts['c!'])
+            rv.embeds = [embed]
+            if(opts['c'] || opts['c!']){
+            rv.content = ret
+            }
+            return rv
+        },
+        help: {
+            info: "Display a list of users with the most roles",
+            arguments: {
+                top: {
+                    description: "The top x users to display",
+                    required: false,
+                }
+            },
+            options: {
+                E: {
+                    description: "Don't display an embed"
+                },
+                c: {
+                    description: "Display the results as a list"
+                },
+                "c!": {
+                    description: "Display the results as a list instead of an embed"
+                }
+            }
+        }
     },
-    whohas: {
+        whohas: {
 	run: async(msg, args) => {
 	    let role = args[0]
 	    if(!role){
@@ -2542,25 +2542,33 @@ const commands: {[command: string]: Command} = {
 	    info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
 	}
     },
+    timeit: {
+        run: async(msg, args) => {
+                msg.content = `${prefix}${args.join(" ").trim()}`
+                let start = new Date().getTime()
+                await doCmd(msg)
+                return {content: `${new Date().getTime() - start} ms`}
+        }
+    },
     "do": {
         run: async(msg: Message, args: ArgumentList) => {
             let times = parseInt(args[0])
             if(times){
                 args.splice(0, 1)
             } else {
-		times = 10
-	    }
+                times = 10
+            }
             let cmdArgs = args.join(" ").trim()
             if(cmdArgs == ""){
                 cmdArgs = String(times)
             }
-	    let totalTimes = times
+            let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             while(SPAMS[id] && times--){
-		msg.content = `${prefix}${format(cmdArgs, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
-		await doCmd(msg)
+                msg.content = `${prefix}${format(cmdArgs, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
+                await doCmd(msg)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
