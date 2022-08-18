@@ -2758,6 +2758,32 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    "file": {
+        run: async(msg, args) => {
+            let fn = generateFileName("file", msg.author.id)
+            fs.writeFileSync(fn, args.join(" "))
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: `${fn}.txt`,
+                        description: `data`,
+                    }
+                ]
+            }
+        }
+    },
+    "rfile": {
+        run: async(msg, args) => {
+            let att = msg.attachments.at(0)
+            if(att){
+                //@ts-ignore
+                let data: string = await got(att.attachment).text()
+                return {content: data}
+            }
+            return {noSend: true}
+        }
+    },
     "command-file": {
         run : async(msg: Message, args: ArgumentList) => {
             let opts
