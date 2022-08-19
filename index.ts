@@ -3494,10 +3494,11 @@ valid formats:<br>
                         .map(v => v.split(":"))
                         .filter(v => v[0])
             let newData: [string | GuildEmoji, string][] = []
+            let cachedEmojis = await msg.guild?.emojis.fetch()
             for(let i = 0; i < data.length; i++){
                 let emoji: string | GuildEmoji | undefined | null = data[i][0];
                 try{
-                    emoji = await msg.guild?.emojis.fetch(data[i][0])
+                    emoji =  cachedEmojis?.find((v) => v.id == data[i][0])
                 }
                 catch(err){
                     emoji = data[i][0]
