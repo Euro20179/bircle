@@ -3835,13 +3835,15 @@ async function doCmd(msg: Message, returnJson=false){
                 return splitData[index]
             })
         })
-        args[idx] = args[idx].replaceAll("%{}", data)
+        //@ts-ignore
+        args[idx] = args[idx].replaceAll("%{}", data).replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
         for(let m of args[idx].matchAll(/%\{(\d+)\}/g)){
             args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
         }
         msg.content = oldContent
         idxNo++
     }
+    args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
     let canRun = true
     let exists = true
     let rv: CommandReturn;

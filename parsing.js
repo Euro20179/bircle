@@ -245,7 +245,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author, curArg: curArg})))
                 }
                 if(ch === "("){
-                    if(!curArg.match(/%\{\d*\}/g)) curArg += "%{}"
+                    if(!curArg.match(/(%\{\d*\}|%\{-1\})/g)) curArg += "%{}"
                     let inside = prefix
                     let parenCount = 1
                     for(i++; parenCount != 0; i++){
