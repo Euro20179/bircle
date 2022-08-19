@@ -15,13 +15,11 @@ async function buildFormat(sequence, msg, curArg, customFormats){
 	case "fhex":
 	case "fbase":{
 	    let [num, base] = args
-	    console.log(num, base)
 	    return parseInt(num, parseInt(base) || 16)
 	}
 	case "hex":
 	case "base":{
 	    let [num, base] = args
-	    console.log(num, base)
 	    return Number(num).toString(parseInt(base) || 16)
 	}
 	case "rev":
@@ -31,100 +29,100 @@ async function buildFormat(sequence, msg, curArg, customFormats){
 	    return [...args.join(" ")].reverse().join("")
 	case 'c':
 	    return msg.content.split(" ").slice(1).join(" ").trim()
-        case "user":{
-	    let fmt = args.join(" ") || "<@%i>"
-            let member = await msg.channel.guild.members.fetch(msg.author.id)
-            let user = member.user
-            return format(fmt
-                    .replaceAll("{id}", user.id || "#!N/A")
-                    .replaceAll("{username}", user.username || "#!N/A")
-                    .replaceAll("{nickname}", member.nickName || "#!N/A")
-                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
-                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
-                    {
-                        i: user.id || "#!N/A",
-                        u: user.username || "#!N/A",
-                        n: member.nickName || "#!N/A",
-                        X: member.displayHexColor.toString() || "#!N/A",
-                        x: member.displayColor.toString() || "#!N/A",
-                        c: user.createdAt.toString() || "#!N/A",
-                        j: member.joinedAt.toString() || "#!N/A",
-                        b: member.premiumSince?.toString() || "#!N/A"
-                    }
-                )
-	}
-        case "rand":
-            if(args && args?.length > 0)
-                return args[Math.floor(Math.random() * args.length)]
-            return "{rand}"
-        case "num":
-        case "number":
-            if(args && args?.length > 0){
-                let low = args[0]
-                let high = args[1] || low * 10
-                let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
-                if(dec)
-                    return String((Math.random() * (high - low)) + low)
-                return String(Math.floor((Math.random() * (high - low)) + low))
+    case "user":{
+    let fmt = args.join(" ") || "<@%i>"
+        let member = await msg.channel.guild.members.fetch(msg.author.id)
+        let user = member.user
+        return format(fmt
+                .replaceAll("{id}", user.id || "#!N/A")
+                .replaceAll("{username}", user.username || "#!N/A")
+                .replaceAll("{nickname}", member.nickName || "#!N/A")
+                .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                {
+                    i: user.id || "#!N/A",
+                    u: user.username || "#!N/A",
+                    n: member.nickName || "#!N/A",
+                    X: member.displayHexColor.toString() || "#!N/A",
+                    x: member.displayColor.toString() || "#!N/A",
+                    c: user.createdAt.toString() || "#!N/A",
+                    j: member.joinedAt.toString() || "#!N/A",
+                    b: member.premiumSince?.toString() || "#!N/A"
+                }
+            )
+    }
+    case "rand":
+        if(args && args?.length > 0)
+            return args[Math.floor(Math.random() * args.length)]
+        return "{rand}"
+    case "num":
+    case "number":
+        if(args && args?.length > 0){
+            let low = args[0]
+            let high = args[1] || low * 10
+            let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
+            if(dec)
+                return String((Math.random() * (high - low)) + low)
+            return String(Math.floor((Math.random() * (high - low)) + low))
+        }
+        return String(Math.random())
+    case "ruser":
+        let fmt = args.join(" ") || "%u"
+        let member = msg.channel.guild.members.cache.random()
+        if(!member)
+            member = (await msg.channel.guild.members.fetch()).random()
+        let user = member.user
+        return format(fmt
+                .replaceAll("{id}", user.id || "#!N/A")
+                .replaceAll("{username}", user.username || "#!N/A")
+                .replaceAll("{nickname}", member.nickName || "#!N/A")
+                .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                {
+                    i: user.id || "#!N/A",
+                    u: user.username || "#!N/A",
+                    n: member.nickName || "#!N/A",
+                    X: member.displayHexColor.toString() || "#!N/A",
+                    x: member.displayColor.toString() || "#!N/A",
+                    c: user.createdAt.toString() || "#!N/A",
+                    j: member.joinedAt.toString() || "#!N/A",
+                    b: member.premiumSince?.toString() || "#!N/A"
+                }
+            )
+    case "time":
+            let date = new Date()
+            if(!args.length){
+                return date.toString()
             }
-            return String(Math.random())
-        case "ruser":
-            let fmt = args.join(" ") || "%u"
-            let member = msg.channel.guild.members.cache.random()
-            if(!member)
-                member = (await msg.channel.guild.members.fetch()).random()
-            let user = member.user
-            return format(fmt
-                    .replaceAll("{id}", user.id || "#!N/A")
-                    .replaceAll("{username}", user.username || "#!N/A")
-                    .replaceAll("{nickname}", member.nickName || "#!N/A")
-                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
-                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
-                    {
-                        i: user.id || "#!N/A",
-                        u: user.username || "#!N/A",
-                        n: member.nickName || "#!N/A",
-                        X: member.displayHexColor.toString() || "#!N/A",
-                        x: member.displayColor.toString() || "#!N/A",
-                        c: user.createdAt.toString() || "#!N/A",
-                        j: member.joinedAt.toString() || "#!N/A",
-                        b: member.premiumSince?.toString() || "#!N/A"
-                    }
-                )
-        case "time":
-                let date = new Date()
-                if(!args.length){
-                    return date.toString()
-                }
-                let hours = date.getHours()
-                let AMPM = hours < 12 ? "AM" : "PM"
-                if(args[0].trim() == '12'){
-                    hours > 12 ? hours = hours - 12 : hours
-                    args.splice(0, 1)
-                }
-                return format(args.join("|"), {
-                    "d": `${date.getDate()}`,
-                    "H": `${hours}`,
-                    "M": `${date.getMinutes()}`,
-                    "S": `${date.getSeconds()}`,
-                    "T": `${hours}:${date.getMinutes()}:${date.getSeconds()}`,
-                    "t": `${hours}:${date.getMinutes()}`,
-                    "1": `${date.getMilliseconds()}`,
-                    "z": `${date.getTimezoneOffset()}`,
-                    "x": AMPM,
-                    "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
-                    "m": `${date.getMonth() + 1}`,
-                    "Y": `${date.getFullYear()}`,
-                    "w": `${date.getDay()}`
-                })
-        case "arg":
-            return curArg
+            let hours = date.getHours()
+            let AMPM = hours < 12 ? "AM" : "PM"
+            if(args[0].trim() == '12'){
+                hours > 12 ? hours = hours - 12 : hours
+                args.splice(0, 1)
+            }
+            return format(args.join("|"), {
+                "d": `${date.getDate()}`,
+                "H": `${hours}`,
+                "M": `${date.getMinutes()}`,
+                "S": `${date.getSeconds()}`,
+                "T": `${hours}:${date.getMinutes()}:${date.getSeconds()}`,
+                "t": `${hours}:${date.getMinutes()}`,
+                "1": `${date.getMilliseconds()}`,
+                "z": `${date.getTimezoneOffset()}`,
+                "x": AMPM,
+                "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+                "m": `${date.getMonth() + 1}`,
+                "Y": `${date.getFullYear()}`,
+                "w": `${date.getDay()}`
+            })
+    case "arg":
+        return curArg
 	case "channel":
 	    return format(args.join("|"), {
 		"i": `${msg.channel.id}`,
@@ -247,7 +245,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author, curArg: curArg})))
                 }
                 if(ch === "("){
-                    if(curArg.indexOf("%{}") === -1) curArg += "%{}"
+                    if(!curArg.match(/%\{\d*\}/g)) curArg += "%{}"
                     let inside = prefix
                     let parenCount = 1
                     for(i++; parenCount != 0; i++){

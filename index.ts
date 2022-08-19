@@ -325,13 +325,15 @@ const commands: {[command: string]: Command} = {
 	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
 	}
     },
-    "role-info": {
+    "rand-role": {
         run: async(msg, args) => {
-            let roles = await msg.guild.roles.fetch()
-            roles.forEach((role, id) => {
-                console.log(role.name, id)
-            })
-            return {noSend: true}
+            let roles = await msg.guild?.roles.fetch()
+            let role = roles?.random()
+            if(!role){
+                return {content: "Couldn't get random role"}
+            }
+            let fmt = args.join(" ") || "%n"
+            return {allowedMentions: {parse: []}, content: format(fmt, {n: role.name, i: role.id, c: role.color, C: role.createdAt, hc: role.hexColor, u: role.unicodeEmoji, p: role.position, I: role.icon})}
         }
     },
     "6": {
@@ -3818,12 +3820,27 @@ async function doCmd(msg: Message, returnJson=false){
     let args: Array<string>
     let doFirsts: {[item: number]: string}
     [command, args, doFirsts] = await parseCmd({msg: msg})
+    let idxNo = 0;
     for(let idx in doFirsts){
         let oldContent = msg.content
         let cmd = doFirsts[idx]
         msg.content = cmd
-        args[idx] = args[idx].replaceAll("%{}", getContentFromResult(await doCmd(msg, true) as CommandReturn).trim())
+        let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
+        let splitData = data.split(" ")
+        //replaces %{\d:} with the full result
+        args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
+        //replaces %{\d:\d} with the argno result
+        args = args.map((v) => {
+            return v.replaceAll(new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g"), (_fullMatch, index) => {
+                return splitData[index]
+            })
+        })
+        args[idx] = args[idx].replaceAll("%{}", data)
+        for(let m of args[idx].matchAll(/%\{(\d+)\}/g)){
+            args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
+        }
         msg.content = oldContent
+        idxNo++
     }
     let canRun = true
     let exists = true
@@ -3929,7 +3946,7 @@ client.on("guildMemberAdd", async(m) => {
     }
 })
 
-client.on('ready', () => {
+client.on('ready', async() => {
     console.log("ONLINE")
 })
 
