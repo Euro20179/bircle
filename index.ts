@@ -616,12 +616,12 @@ const commands: {[command: string]: Command} = {
 	    } else sep = String(sep)
 	    let ret: any[] = []
 	    for(let line of args.join(" ").split("\n")){
-		try{
-		    ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, args: args, lastCommand: lastCommand?.content})))
-		}
-		catch(err){
-		    console.log(err)
-		}
+            try{
+                ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, member: msg.member, args: args, lastCommand: lastCommand?.content})))
+            }
+            catch(err){
+                console.log(err)
+            }
 	    }
 	    if(ret.length){
 		if(userVars && userVars[msg.author.id])

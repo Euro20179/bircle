@@ -229,9 +229,9 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     curArg += "$"
                         break;
                 }
-		if(ch === '['){
+                if(ch === '['){
                     if(curArg.indexOf("%{}") === -1) curArg += "%{}"
-		    let inside = ""
+                    let inside = ""
                     let parenCount = 1
                     for(i++; parenCount != 0; i++){
                         ch = content[i]
@@ -244,8 +244,8 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                         if(parenCount != 0) inside += ch;
                     }
                     i--
-		    curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author, curArg: curArg})))
-		}
+                    curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author, curArg: curArg})))
+                }
                 if(ch === "("){
                     if(curArg.indexOf("%{}") === -1) curArg += "%{}"
                     let inside = prefix
