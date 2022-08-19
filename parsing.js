@@ -267,10 +267,10 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
             case "\\":
                 i++
                 ch = content[i]
-		if(ch === undefined){
-		    curArg += "\\"
-		    break
-		}
+                if(ch === undefined){
+                    curArg += "\\"
+                    break
+                }
                 let prefixLetter = ch
                 i++
                 ch = content[i]
