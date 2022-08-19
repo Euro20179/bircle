@@ -325,6 +325,15 @@ const commands: {[command: string]: Command} = {
 	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
 	}
     },
+    "role-info": {
+        run: async(msg, args) => {
+            let roles = await msg.guild.roles.fetch()
+            roles.forEach((role, id) => {
+                console.log(role.name, id)
+            })
+            return {noSend: true}
+        }
+    },
     "6": {
 	run: async(msg, args) => {
 	    let opts;
@@ -3892,6 +3901,15 @@ async function doCmd(msg: Message, returnJson=false){
         }
     }
 }
+
+client.on("guildMemberAdd", async(m) => {
+    try{
+        m.roles.add(await m.guild.roles.fetch("427570287232417793"))
+    }
+    catch(err){
+        console.log(err)
+    }
+})
 
 client.on('ready', () => {
     console.log("ONLINE")
