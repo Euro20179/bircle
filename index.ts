@@ -3076,6 +3076,10 @@ Anything may be prefixed with a \\ to prevent it from happening immediately
 
 do first:
     $(command)
+    put %{-1}$(command) to replace $(command) with nothing
+    %{0}$(command) gets replaced with the first word of the result
+    %{do-first-index:} gets replaces with the result of a specific $(command)
+    %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
 calc:
     $[calculation]
 escapes:
