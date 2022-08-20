@@ -655,11 +655,12 @@ const commands: {[command: string]: Command} = {
     "if": {
 	run: async(msg, args) => {
 	    let [condition, cmd] = args.join(" ").split(";")
-	    if(safeEval(condition, {user: msg.author, args: args, lastCommand: lastCommand.content})){
+        cmd = cmd.split(";end")[0]
+	    if(safeEval(condition, {user: msg.author, args: args, lastCommand: lastCommand?.content})){
 		msg.content = `${prefix}${cmd.trim()}`
 		return await doCmd(msg, true) as CommandReturn
 	    }
-	    let elseCmd = args.join(" ").split(`${prefix}else;`)[1]?.trim()
+	    let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
 	    if(elseCmd){
 		msg.content = `${prefix}${elseCmd.trim()}`
 		return await doCmd(msg, true) as CommandReturn
