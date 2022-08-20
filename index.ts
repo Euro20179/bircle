@@ -1720,6 +1720,10 @@ const commands: {[command: string]: Command} = {
                     let divideBy = parseInt(edit.slice(1))
                     edit = lastEdit.slice(0, lastEdit.length / divideBy)
                 }
+                else if(edit[0] == ";"){
+                    message = await msg.channel.send(edit.slice(1))
+                    continue
+                }
                 try{
                     await message.edit({content:edit})
                 }
