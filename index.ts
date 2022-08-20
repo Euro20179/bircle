@@ -1696,6 +1696,42 @@ const commands: {[command: string]: Command} = {
             }
         }
     },
+    "edit": {
+        run: async(msg, args) => {
+            let edits = args.join(" ").split("|")
+            let message = await msg.channel.send(edits[0])
+            edits = edits.slice(1)
+            let lastEdit = message.content
+            for(let edit of edits){
+                if(edit[0] == "-"){
+                    edit = lastEdit.replaceAll(edit.slice(1), "")
+                }
+                else if(edit[0] == "+"){
+                    edit = lastEdit + edit.slice(1)
+                }
+                else if(edit[0] == "*"){
+                    let times = parseInt(edit.slice(1))
+                    edit = lastEdit
+                    for(let i = 1; i < times; i++){
+                        edit += lastEdit
+                    }
+                }
+                else if(edit[0] == "/"){
+                    let divideBy = parseInt(edit.slice(1))
+                    edit = lastEdit.slice(0, lastEdit.length / divideBy)
+                }
+                try{
+                    await message.edit({content:edit})
+                }
+                catch(err){
+                    await msg.channel.send(`Could not edit message with: ${edit}`)
+                }
+                await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
+                lastEdit = message.content
+            }
+            return {noSend: true}
+        }
+    },
     "comp-roles": {
 	run: async(msg, args) => {
 	    let [user1, user2] = args.join(" ").split("|")
