@@ -1,6 +1,18 @@
 const {execFileSync} = require('child_process')
 const vm = require('vm')
 
+class UTF8String{
+    constructor(text){
+        this.text = [...text]
+    }
+    toString(){
+        return this.text.join("")
+    }
+    length(){
+        return this.text.length
+    }
+}
+
 function* cycle(iter, onNext){
     for(let i = 0; true; i++){
 	onNext(i)
@@ -201,5 +213,6 @@ module.exports = {
     cycle: cycle,
     escapeShell: escapeShell,
     strlen: strlen
+    UTF8String: UTF8String
 }
 
