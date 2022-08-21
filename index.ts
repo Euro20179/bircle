@@ -647,10 +647,34 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    d: {
+        run: async(msg, args) => {
+            msg.content = `${prefix}${args.join(" ")}`
+            await doCmd(msg, false)
+            return {noSend: true, delete: true}
+        },
+    },
     del: {
-	run: async(msg, args) => {
-	    return {noSend: true, delete: true}
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(!opts['N']) return {noSend: true, delete: true}
+            msg.content = `${prefix}${args.join(" ")}`
+            await doCmd(msg, false)
+            return {noSend: true, delete: true}
+        },
+        help: {
+            arguments: {
+                text: {
+                    description: "Text"
+                }
+            },
+            options: {
+                "N": {
+                    description: "Treat text as a command"
+                }
+            }
+        }
     },
     "if": {
 	run: async(msg, args) => {
@@ -1699,11 +1723,20 @@ const commands: {[command: string]: Command} = {
     },
     "edit": {
         run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(opts['d']) await msg.delete()
             let edits = args.join(" ").split("|")
             let message = await msg.channel.send(edits[0])
             edits = edits.slice(1)
             let lastEdit = message.content
             for(let edit of edits){
+                let match
+                if(match = edit.match(/^!(\d+)!$/)){
+                    let time = parseFloat(match[1])
+                    await new Promise(res => setTimeout(res, time * 1000))
+                    continue
+                }
                 if(edit[0] == "-"){
                     edit = lastEdit.replaceAll(edit.slice(1), "")
                 }
