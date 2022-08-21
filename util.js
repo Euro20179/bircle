@@ -212,7 +212,7 @@ module.exports = {
     mulStr: mulString,
     cycle: cycle,
     escapeShell: escapeShell,
-    strlen: strlen
+    strlen: strlen,
     UTF8String: UTF8String
 }
 
