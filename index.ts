@@ -3564,7 +3564,10 @@ valid formats:<br>
         }
     },
     "emote-use":{
-        run: async(msg, _args) => {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let serverOnly = opts['S'] ? false : true
             let data = generateEmoteUseFile()
                         .split("\n")
                         .map(v => v.split(":"))
@@ -3577,9 +3580,13 @@ valid formats:<br>
                     emoji =  cachedEmojis?.find((v) => v.id == data[i][0])
                 }
                 catch(err){
+                    if(serverOnly) continue
                     emoji = data[i][0]
                 }
-                if(!emoji) emoji = data[i][0]
+                if(!emoji){
+                    if(serverOnly) continue
+                    emoji = data[i][0]
+                }
                 newData.push([emoji, data[i][1]])
             }
             let finalData = newData
@@ -3588,6 +3595,13 @@ valid formats:<br>
                             .map(v => `${v[0]}: ${v[1]}`)
                             .join("\n")
             return {content: finalData}
+        },
+        help: {
+            options: {
+                "S": {
+                    description: "Show emote use of all emojis, even ones not from this server"
+                }
+            }
         }
     },
     "cmd-use": {
