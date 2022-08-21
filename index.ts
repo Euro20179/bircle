@@ -21,7 +21,7 @@ import { AudioPlayerStatus, createAudioResource, NoSubscriberBehavior } from "@d
 
 const { LOGFILE, prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell } = require('./util.js')
+const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen } = require('./util.js')
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES]})
 
@@ -1560,7 +1560,7 @@ const commands: {[command: string]: Command} = {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let caseSensitive = opts['case']
-            let word: string;
+            let wordstr: string;
             let everyone = false
             let users: any[] = []
             for(let arg of args){
@@ -1583,119 +1583,121 @@ const commands: {[command: string]: Command} = {
             catch(err){
             return {content: "Could not dm you"}
             }
-            async function game(word: string){
-            let wordLength = word.length
-            if(!caseSensitive){
-                word = word.toLowerCase()
-            }
-            let guessed = ""
-            let disp = ""
-            let lives = parseInt(opts["lives"] as string) || 10
-            for(let i = 0; i < wordLength; i++){
-                if(word[i] == " "){
-                disp += '   '
-                }
-                else {
-                disp += "\\_ "
-                }
-            }
-            await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
-            let collection = msg.channel.createMessageCollector({filter: m => (m.content.length < 2 || m.content == word || (m.content[0] == 'e' && m.content.length > 2 && m.content.length < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
-            collection.on("collect", async(m) => {
-                if(m.content == '\\n' || m.content == "<enter>")
-                m.content = '\n'
-                if(m.content == "STOP"){
-                await msg.channel.send("STOPPED")
-                collection.stop()
-                return
-                }
-                let match
-                if(match = m.content.match(/e\s*(.)/u)){
-                m.content = match[1]
-                console.log(m.content)
-                }
+            async function game(wordstr: string){
+                let wordLength = strlen(wordstr)
                 if(!caseSensitive){
-                m.content = m.content.toLowerCase()
+                    wordstr = wordstr.toLowerCase()
                 }
-                if(guessed.indexOf(m.content) > -1){
-                await msg.channel.send(`You've already guessed ${m.content}`)
-                return
-                }
-                else if(m.content == word){
-                await msg.channel.send(`YOU WIN, it was\n${word}`)
-                collection.stop()
-                return
-                }
-                else guessed += m.content
-                if(word.indexOf(m.content) < 0)
-                lives--
-                if(lives < 1){
-                await msg.channel.send(`You lost, the word was:\n${word}`)
-                collection.stop()
-                return
-                }
-                let correctIndecies: {[k: number]: string} = {}
-                for(let i = 0; i < guessed.length; i++){
-                let letter = guessed[i]
-                //@ts-ignore
-                let tempWord = String(word)
-                let totalIdx = 0
-                let idx;
-                while((idx = tempWord.indexOf(letter)) >= 0){
-                    correctIndecies[idx + totalIdx] = letter
-                    totalIdx += idx + 1
-                    tempWord = tempWord.slice(idx + 1)
-                }
-                }
+                let guessed = ""
                 let disp = ""
+                let lives = parseInt(opts["lives"] as string) || 10
+                let word = [...wordstr]
                 for(let i = 0; i < wordLength; i++){
-                if(correctIndecies[i]){
-                    disp += correctIndecies[i]
-                }
-                else if(word[i] == " "){
+                    if(word[i] == " "){
                     disp += '   '
-                }
-                else {
+                    }
+                    else {
                     disp += "\\_ "
+                    }
                 }
-                }
-                if(disp.replaceAll("   ", " ") == word){
-                await msg.channel.send(`YOU WIN, it was\n${word}`)
-                collection.stop()
-                return
-                }
-                await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess (${lives} lives left)`})
-            })
+                await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
+                let collection = msg.channel.createMessageCollector({filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
+                collection.on("collect", async(m) => {
+                    if(m.content == '\\n' || m.content == "<enter>")
+                    m.content = '\n'
+                    if(m.content == "STOP"){
+                        await msg.channel.send("STOPPED")
+                        collection.stop()
+                        return
+                    }
+                    let match
+                    if(match = m.content.match(/e\s*(.)/u)){
+                    m.content = match[1]
+                    console.log(m.content)
+                    }
+                    if(!caseSensitive){
+                    m.content = m.content.toLowerCase()
+                    }
+                    if([...guessed].indexOf(m.content) > -1){
+                    await msg.channel.send(`You've already guessed ${m.content}`)
+                    return
+                    }
+                    else if(m.content == wordstr){
+                    await msg.channel.send(`YOU WIN, it was\n${wordstr}`)
+                    collection.stop()
+                    return
+                    }
+                    else guessed += m.content
+                    if(word.indexOf(m.content) < 0)
+                    lives--
+                    if(lives < 1){
+                    await msg.channel.send(`You lost, the word was:\n${word}`)
+                    collection.stop()
+                    return
+                    }
+                    let correctIndecies: {[k: number]: string} = {}
+                    for(let i = 0; i < strlen(guessed); i++){
+                        let letter = [...guessed][i]
+                        //@ts-ignore
+                        let tempWord = [...word]
+                        let totalIdx = 0
+                        let idx;
+                        while((idx = [...tempWord].indexOf(letter)) >= 0){
+                            correctIndecies[idx + totalIdx] = letter
+                            totalIdx += idx + 1
+                            tempWord = tempWord.slice(idx + 1)
+                        }
+                    }
+                    let disp = ""
+                    console.log(wordLength, correctIndecies)
+                    for(let i = 0; i < wordLength; i++){
+                    if(correctIndecies[i]){
+                        disp += correctIndecies[i]
+                    }
+                    else if(word[i] == " "){
+                        disp += '   '
+                    }
+                    else {
+                        disp += "\\_ "
+                    }
+                    }
+                    if(disp.replaceAll("   ", " ") == wordstr){
+                    await msg.channel.send(`YOU WIN, it was\n${wordstr}`)
+                    collection.stop()
+                    return
+                    }
+                    await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess (${lives} lives left)`})
+                })
             }
             if(opts["random"]){
-            let channels = (await msg.guild?.channels.fetch())?.toJSON()
-            if(!channels){
-                return {content: "no channels found"}
-            }
-            let channel = channels[Math.floor(Math.random() * channels.length)]
-            while(!channel.isText())
-                channel = channels[Math.floor(Math.random() * channels.length)]
-            let messages
-            try{
-                messages = await channel.messages.fetch({limit: 100})
-            }
-            catch(err){
-                messages = await msg.channel.messages.fetch({limit: 100})
-            }
-            let times = 0;
-            //@ts-ignore
-            while(!(word = messages.random()?.content)){
-                times++
-                if(times > 20) break
-            }
-            await game(word)
+                let channels = (await msg.guild?.channels.fetch())?.toJSON()
+                if(!channels){
+                    return {content: "no channels found"}
+                }
+                let channel = channels[Math.floor(Math.random() * channels.length)]
+                while(!channel.isText())
+                    channel = channels[Math.floor(Math.random() * channels.length)]
+                let messages
+                try{
+                    messages = await channel.messages.fetch({limit: 100})
+                }
+                catch(err){
+                    messages = await msg.channel.messages.fetch({limit: 100})
+                }
+                let times = 0;
+                //@ts-ignore
+                while(!(wordstr = messages.random()?.content)){
+                    times++
+                    if(times > 20) break
+                }
+                await game(wordstr)
             }
             else{
             await msg.author.send("Type a word")
             let collector = msg.author.dmChannel?.createMessageCollector({time: 30000, max: 1})
             collector?.on("collect", async(m) => {
-                word = m.content
-                await game(word)
+                wordstr = m.content
+                await game(wordstr)
             })
             }
             return {

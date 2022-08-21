@@ -182,6 +182,10 @@ function escapeShell(text){
     return text.replaceAll(/\$/g, "\\$").replaceAll(";", "\\;")
 }
 
+function strlen(text){
+    return [...text].length
+}
+
 module.exports = {
     fetchUser: fetchUser,
     fetchChannel: fetchChannel,
@@ -195,5 +199,7 @@ module.exports = {
     safeEval: safeEval,
     mulStr: mulString,
     cycle: cycle,
-    escapeShell: escapeShell
+    escapeShell: escapeShell,
+    strlen: strlen
 }
+
