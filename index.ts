@@ -1804,6 +1804,13 @@ const commands: {[command: string]: Command} = {
                 lastEdit = message.content
             }
             return {noSend: true}
+        },
+        help: {
+            arguments: {
+                texts: {
+                    description: "Seperate each edit with a |<br><b>Sepcial Operators:</b><ul><li><i>-</i>: remove letters from the last edit</li><li><i>+</i>: add to the previous edit instead of replacing it</li><li><i>*</i>: Multiply the last edit a certain number of times</li><li><i>/</i>: divide the last edit by a number</li><li><i>;</i>start a new message</li><li><i>!&lt;number&gt;!</i>: Wait &lt;number&gt; seconds before going to the next edit</li></ul>"
+                }
+            }
         }
     },
     "comp-roles": {
@@ -3992,27 +3999,32 @@ async function doCmd(msg: Message, returnJson=false){
         }
         if(canRun){
             rv = await commands[command].run(msg, args)
+            //if normal command, it counts as use
             addToCmdUse(command)
         }
         else rv = {content: "You do not have permissions to run this command"}
     }
     else if(aliases[command]){
-	let aliasPreArgs = aliases[command].slice(1);
+        //if it's an alias, it counts as use
+        addToCmdUse(command)
+        let aliasPreArgs = aliases[command].slice(1);
         command = aliases[command][0]
         //finds the original command
         while(aliases[command]?.[0]){
-	    aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
+            //for every expansion, it counts as a use
+            addToCmdUse(command)
+            aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
             command = aliases[command][0]
         }
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
-	let oldC = msg.content
-	for(let i = 0; i < args.length; i++){
-	    let e = new RegExp(`(?<!\\\\)\\\{arg${i+1}\\\}`, "g")
-	    msg.content = msg.content.replaceAll(e, args[i])
-	}
-	if(oldC == msg.content){
-	    msg.content = msg.content + ` ${args.join(" ")}`
-	}
+        let oldC = msg.content
+        for(let i = 0; i < args.length; i++){
+            let e = new RegExp(`(?<!\\\\)\\\{arg${i+1}\\\}`, "g")
+            msg.content = msg.content.replaceAll(e, args[i])
+        }
+        if(oldC == msg.content){
+            msg.content = msg.content + ` ${args.join(" ")}`
+        }
         rv = await doCmd(msg, true) as CommandReturn
     }
     else {
