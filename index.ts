@@ -1047,6 +1047,23 @@ const commands: {[command: string]: Command} = {
 	},
 	permCheck: m => ADMINS.includes(m.author.id)
     },
+    "rt": {
+        run: async(msg, args) => {
+            msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(m => {
+                try{
+                    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 30000})
+                    let start = Date.now()
+                    collector.on("collect", async(m) => {
+                        await msg.channel.send(`${Date.now() - start}ms`)
+                        collector.stop()
+                    })
+                }
+                catch(err){
+                }
+            })
+            return {noSend: true}
+        }
+    },
     "rand-line": {
 	run: async(msg, args) => {
 	    let file = args[0]
@@ -4123,6 +4140,7 @@ async function doCmd(msg: Message, returnJson=false){
         //if it's an alias, it counts as use
         addToCmdUse(command)
         let aliasPreArgs = aliases[command].slice(1);
+        let userArgs = msg.content.split(" ").slice(1)
         command = aliases[command][0]
         //finds the original command
         while(aliases[command]?.[0]){
