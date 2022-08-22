@@ -3021,6 +3021,27 @@ ${fs.readdirSync("./command-results").join("\n")}
             }
         },
     },
+    "cmd-chain": {
+        run: async(msg, args) => {
+            let chain = []
+            let command = args[0]
+            chain.push(command)
+            //finds the original command
+            while(command = aliases[command]?.[0]){
+                chain.push(command)
+            }
+
+            return {content: chain.join(" -> ")}
+        },
+        help:{
+            info: "Shows which command the alias turns into when run",
+            arguments: {
+                cmd: {
+                    description: "The command to get the chain for"
+                }
+            }
+        }
+    },
     rccmd: {
 	run: async(msg, args) => {
 	    let name = args[0]
