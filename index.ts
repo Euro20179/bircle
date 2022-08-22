@@ -808,102 +808,136 @@ const commands: {[command: string]: Command} = {
         }
     },
     button: {
-	run: async(msg, args) => {
-	    let opts: Opts
-	    [opts, args] = getOpts(args)
-	    let content = opts['content']
-	    if(typeof content === 'boolean'){
-		content = `button:${msg.author.id}`
-	    }
-	    let text = args.join(" ") || "hi"
-	    let button = new MessageButton({customId: `button:${msg.author.id}`, label:text, style: "PRIMARY"})
-	    let row = new MessageActionRow({type: "BUTTON", components: [button]})
-	    await msg.channel.send({components: [row], content: content})
-	    if(opts['say'])
-		BUTTONS[msg.author.id] = String(opts['say'])
-	    else BUTTONS[msg.author.id] = text
-	    return {noSend: true}
-	}
+        run: async(msg, args) => {
+            let opts: Opts
+            [opts, args] = getOpts(args)
+            let content = opts['content']
+            let delAfter = NaN
+            if(opts['timealive'])
+                delAfter = parseInt(String(opts['timealive']))
+            if(typeof content === 'boolean'){
+                content = `button:${msg.author.id}`
+            }
+            let text = args.join(" ") || "hi"
+            let button = new MessageButton({customId: `button:${msg.author.id}`, label:text, style: "PRIMARY"})
+            let row = new MessageActionRow({type: "BUTTON", components: [button]})
+            let m = await msg.channel.send({components: [row], content: content})
+            if(opts['say'])
+                BUTTONS[msg.author.id] = String(opts['say'])
+            else BUTTONS[msg.author.id] = text
+            if(! isNaN(delAfter)){
+                setTimeout(async() => await m.delete(), delAfter * 1000)
+            }
+            return {noSend: true}
+        },
+        help: {
+            arguments: {
+                "text": {
+                    description: "Text on the button"
+                }
+            },
+            options: {
+                "timealive": {
+                    description: "How long before the button gets deleted"
+                },
+                "say": {
+                    description: "The text on the button"
+                }
+            }
+        }
     },
     "pcount": {
-	run: async(msg, args) => {
-	    let id = args[0]
-	    if(!id){
-		return {content: "no id given"}
-	    }
-	    let str = ""
-	    for(let key in POLLS[`poll:${id}`]){
-		str += `${key}: ${POLLS[`poll:${id}`]["votes"][key].length}\n`
-	    }
-	    return {content: str}
-	}
+        run: async(msg, args) => {
+            let id = args[0]
+            if(!id){
+                return {content: "no id given"}
+            }
+            let str = ""
+            for(let key in POLLS[`poll:${id}`]){
+                str += `${key}: ${POLLS[`poll:${id}`]["votes"][key].length}\n`
+            }
+            return {content: str}
+        },
+        help: {
+            arguments: {
+                "id": {
+                    description: "The id of the poll to get the count of"
+                }
+            }
+        }
     },
     poll: {
-	run: async(msg, args) => {
-	    let actionRow = new MessageActionRow()
-	    let opts: Opts;
-	    [opts, args] = getOpts(args)
-	    let id = String(Math.floor(Math.random() * 100000000))
-	    args = args.join(" ").split("|")
-	    let choices = []
-	    for(let arg of args){
-		if(!arg.trim()){
-		    continue
-		}
-		choices.push({label: arg, value: arg})
-	    }
-	    if(choices.length < 1){
-		return {content: "no options given"}
-	    }
-	    let selection = new MessageSelectMenu({customId: `poll:${id}`, placeholder: "Select one", options: choices})
-	    actionRow.addComponents(selection)
-	    POLLS[`poll:${id}`] = {title: String(opts['title'] || "") || "Select one", votes: {} }
-	    await msg.channel.send({components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`})
-	    return {noSend: true}
-	},
-	help:{
-	    info: "create a poll",
-	    arguments: {
-		options: { description: "Options separated by |" }
-	    },
-	    options: {
-		title: { description: "Title of the poll, no spaces" }
-	    }
-	}
+        run: async(msg, args) => {
+            let actionRow = new MessageActionRow()
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let id = String(Math.floor(Math.random() * 100000000))
+            args = args.join(" ").split("|")
+            let choices = []
+            for(let arg of args){
+            if(!arg.trim()){
+                continue
+            }
+            choices.push({label: arg, value: arg})
+            }
+            if(choices.length < 1){
+                return {content: "no options given"}
+            }
+            let selection = new MessageSelectMenu({customId: `poll:${id}`, placeholder: "Select one", options: choices})
+            actionRow.addComponents(selection)
+            POLLS[`poll:${id}`] = {title: String(opts['title'] || "") || "Select one", votes: {} }
+            await msg.channel.send({components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`})
+            return {noSend: true}
+        },
+        help:{
+            info: "create a poll",
+            arguments: {
+                options: { description: "Options separated by |" }
+            },
+            options: {
+                title: { description: "Title of the poll, no spaces" }
+            }
+        }
     },
     pfp: {
-	//@ts-ignore
-	run: async(msg, args) => {
-	    let opts: Opts
-	    [opts, args] = getOpts(args)
-	    let link = args[0]
-	    if(!link){
-		link = getImgFromMsgAndOpts(opts, msg)
-	    }
-	    if(!link)
-		return {content: "no link given"}
-	    try{
-		await client.user?.setAvatar(link)
-	    }
-	    catch(err){
-		console.log(err)
-		return {content: "could not set pfp"}
-	    }
-	    return {content: 'set pfp', delete: opts['d'] || opts['delete']}
-	}
+        run: async(msg, args) => {
+            let opts: Opts
+            [opts, args] = getOpts(args)
+            let link = args[0]
+            if(!link){
+                link = getImgFromMsgAndOpts(opts, msg)
+            }
+            if(!link)
+                return {content: "no link given"}
+            try{
+                await client.user?.setAvatar(link)
+            }
+            catch(err){
+                console.log(err)
+                return {content: "could not set pfp"}
+            }
+            return {content: 'set pfp', delete: Boolean(opts['d'] || opts['delete'])}
+        },
+        help: {
+            arguments: {
+                "link": {
+                    description: "Link to an image to use as the pfp"
+                }
+            }
+        }
     },
     uptime: {
-        run: async(msg: Message, args:ArgumentList) => {
+        run: async(_msg: Message, args:ArgumentList) => {
             let uptime = client.uptime
-	    if(!uptime){
-		return {
-		    content: "No uptime found"
-		}
-	    }
+            if(!uptime){
+                return {
+                    content: "No uptime found"
+                }
+            }
             let fmt = args[0] || "%d:%h:%m:%s.%M"
             let days, hours, minutes, seconds, millis;
             seconds = Math.floor(uptime / 1000)
-	    millis = String(uptime / 1000).split(".")[1]
+            millis = String(uptime / 1000).split(".")[1]
             days = 0
             hours = 0
             minutes = 0
@@ -1631,7 +1665,7 @@ const commands: {[command: string]: Command} = {
                     if(word.indexOf(m.content) < 0)
                     lives--
                     if(lives < 1){
-                    await msg.channel.send(`You lost, the word was:\n${word}`)
+                    await msg.channel.send(`You lost, the word was:\n${wordstr}`)
                     collection.stop()
                     return
                     }
@@ -1709,16 +1743,16 @@ const commands: {[command: string]: Command} = {
                 users: {
                     description: "List of users seperated by space to play against, or put all so everyone can play"
                 },
-                options: {
-                    "random": {
-                        description: "Picks a random message from the channel and uses that as the word"
-                    },
-                    "case": {
-                        description: "Enabled case sensitive"
-                    },
-                    "lives": {
-                        description: "The amount of lives to have"
-                    }
+            },
+            options: {
+                "random": {
+                    description: "Picks a random message from the channel and uses that as the word"
+                },
+                "case": {
+                    description: "Enabled case sensitive"
+                },
+                "lives": {
+                    description: "The amount of lives to have"
                 }
             }
         }
@@ -4036,7 +4070,9 @@ async function doCmd(msg: Message, returnJson=false){
 
 client.on("guildMemberAdd", async(m) => {
     try{
-        m.roles.add(await m.guild.roles.fetch("427570287232417793"))
+        let role = await m.guild.roles.fetch("427570287232417793")
+        if(role)
+            m.roles.add(role)
     }
     catch(err){
         console.log(err)
