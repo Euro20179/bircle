@@ -1051,7 +1051,7 @@ const commands: {[command: string]: Command} = {
         run: async(msg, args) => {
             msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(m => {
                 try{
-                    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 30000})
+                    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 3000})
                     let start = Date.now()
                     collector.on("collect", async(m) => {
                         await msg.channel.send(`${Date.now() - start}ms`)
@@ -1062,64 +1062,67 @@ const commands: {[command: string]: Command} = {
                 }
             })
             return {noSend: true}
+        },
+        help: {
+            info: "Gets your truely 100% accurate reaction time"
         }
     },
     "rand-line": {
-	run: async(msg, args) => {
-	    let file = args[0]
-	    if(!file){
-		return {content: "No file specified"}
-	    }
+        run: async(msg, args) => {
+            let file = args[0]
+            if(!file){
+                return {content: "No file specified"}
+            }
             if(!fs.existsSync(`./command-results/${file}`)){
                 return {
                     content: "file does not exist"
                 }
             }
-	    const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
-	    const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
-	    return {content: lines[Math.floor(Math.random() * lines.length)]}
-	},
-	help: {
-	    info: "Gets a random line from a file"
-	}
+            const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
+            const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
+            return {content: lines[Math.floor(Math.random() * lines.length)]}
+        },
+        help: {
+            info: "Gets a random line from a file"
+        }
     },
     todo: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    if(opts['list']){
-		let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
-		let strdata = data.slice(0, data.length - 1).join("\n")
-		return {content: strdata}
-	    }
-	    let item = args.join(" ")
-	    return await commands['add'].run(msg, ["todo", item])
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(opts['list']){
+                let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
+                let strdata = data.slice(0, data.length - 1).join("\n")
+                return {content: strdata}
+            }
+            let item = args.join(" ")
+            return await commands['add'].run(msg, ["todo", item])
+        }
     },
     "todo-list": {
-	run: async(msg, args) => {
-	    let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
-	    let strdata = data.slice(0, data.length - 1).join("\n")
-	    return {content: strdata}
-	}
+        run: async(msg, args) => {
+            let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
+            let strdata = data.slice(0, data.length - 1).join("\n")
+            return {content: strdata}
+        }
     },
     nick: {
 		//@ts-ignore
-	run: async(msg, args) => {
-	    let opts: Opts;
-	    [opts, args] = getOpts(args)
-	    try{
-		(await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
-	    }
-	    catch(err){
-		return {content: "Could not set name"}
-	    }
-	    return {
-		content: `Changed name to \`${args.join(" ")}\``,
-		//@ts-ignore
-		delete: opts['d'] || opts['delete']
-	    }
-	}
+        run: async(msg, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            try{
+                (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
+            }
+            catch(err){
+                return {content: "Could not set name"}
+            }
+            return {
+                content: `Changed name to \`${args.join(" ")}\``,
+                //@ts-ignore
+                delete: opts['d'] || opts['delete']
+            }
+        }
     },
     uno: {
 	run: async(msg, args) => {
@@ -2886,36 +2889,36 @@ const commands: {[command: string]: Command} = {
             fs.rmSync(fn)
             try{
                 let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 30000})
-		collector.on("collect", async(m) => {
-		    if(['cancel', 'c'].includes(m.content || "c")){
-			collector.stop()
-			return
-		    }
-		    let removedList = []
-		    for(let numStr of m.content.split(" ")){
-			let num = parseInt(numStr || "0")
-			if(!num){
-			    await msg.channel.send(`${num} is not a valid number`)
-			    return
-			}
-			let removal = data[num -1]
-			let userCreated = removal.split(":")[0].trim()
-			if(userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-			    await msg.channel.send({
-				content: "You did not create that message, and are not a bot admin"
-			    })
-			    continue
-			}
-			removedList.push(data[num -1])
-			delete data[num - 1]
-		    }
-		    data = data.filter(v => typeof v != 'undefined')
-		    fs.writeFileSync(`command-results/${file}`, data.join(";END"))
-		    await msg.channel.send({
-			content: `removed ${removedList.join("\n")} from ${file}`
-		    })
-		    collector.stop()
-		})
+                collector.on("collect", async(m) => {
+                    if(['cancel', 'c'].includes(m.content || "c")){
+                        collector.stop()
+                        return
+                    }
+                    let removedList = []
+                    for(let numStr of m.content.split(" ")){
+                    let num = parseInt(numStr || "0")
+                    if(!num){
+                        await msg.channel.send(`${num} is not a valid number`)
+                        return
+                    }
+                    let removal = data[num -1]
+                    let userCreated = removal.split(":")[0].trim()
+                    if(userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
+                        await msg.channel.send({
+                        content: "You did not create that message, and are not a bot admin"
+                        })
+                        continue
+                    }
+                    removedList.push(data[num -1])
+                    delete data[num - 1]
+                    }
+                    data = data.filter(v => typeof v != 'undefined')
+                    fs.writeFileSync(`command-results/${file}`, data.join(";END"))
+                    await msg.channel.send({
+                        content: `removed ${removedList.join("\n")} from ${file}`
+                    })
+                    collector.stop()
+                })
             }
             catch(err){
                 return {
