@@ -734,7 +734,7 @@ const commands: {[command: string]: Command} = {
         run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
-	    let wait = parseInt(String(opts['wait'])) || 0
+            let wait = parseInt(String(opts['wait'])) || 0
             let embedText = opts['e'] || opts['embed']
             let embed
             if(embedText){
@@ -742,7 +742,8 @@ const commands: {[command: string]: Command} = {
                 if(embedText !== true)
                     embed.setTitle(embedText)
                 let img;
-                if(opts['img'] == ""){
+                //esentially if the user put `-img=` or `-img`
+                if(opts['img'] == "" || opts['img'] === true){
                     img = null
                 }
                 else img = getImgFromMsgAndOpts(opts, msg)
@@ -796,7 +797,7 @@ const commands: {[command: string]: Command} = {
                     description: "Color of the embed"
                 },
                 "img": {
-                    description: "Image of the embed"
+                    description: "Image of the embed<br>If not provided, an image will be chosen from chat (if exists)<br>set -img= to stop this"
                 }
             },
             arguments: {
