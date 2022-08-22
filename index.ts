@@ -4114,6 +4114,23 @@ client.on("guildMemberAdd", async(m) => {
 })
 
 client.on('ready', async() => {
+
+    client.guilds.fetch("427567510611820544").then(guild => {
+        guild.members.fetch("334538784043696130").then(user => {
+            user.createDM().then(dmChannel => {
+                dmChannel.send("ONLINE").then(console.log).catch(console.log)
+            }).catch(console.log)
+        }).catch(console.log)
+        if(prefix != 'd['){
+            for(let member of ["334538784043696130"]){
+                guild.members.fetch(member).then(user => {
+                    user.createDM().then(dmChannel => {
+                        dmChannel.send(`USERBOT ONLINE\nVERSION: ${VERSION.major}.${VERSION.minor}.${VERSION.bug}${VERSION.part ? "." + VERSION.part : ""}`).then(() => console.log(`sent to: ${member}`)).catch(console.log)
+                    }).catch(console.log)
+                }).catch(console.log)
+            }
+        }
+    }).catch(console.log)
     console.log("ONLINE")
 })
 
