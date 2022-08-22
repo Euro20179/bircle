@@ -3478,6 +3478,37 @@ ${styles}
             return ADMINS.includes(msg.author.id)
         }
     },
+    "last-run": {
+        run: async(msg, args) => {
+            let lastRun;
+            let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
+            if(fs.existsSync("./command-results/last-run")){
+                let data = fs.readFileSync("./command-results/last-run", "utf-8")
+                console.log(data)
+                lastRun = new Date()
+                lastRun.setTime(Number(data))
+            }
+            else{
+                lastRun = new Date(Date.now())
+            }
+            let diff = Date.now() - lastRun.getTime()
+            let milliseconds = Math.floor(diff % 1000)
+            let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/,"0$1")
+            let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/,"0$1")
+            let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/,"0$1")
+            let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/,"0$1")
+            fs.writeFileSync("./command-results/last-run", String(Date.now()))
+            return {content: format(fmt, {T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / ( 1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString()})}
+        },
+        help: {
+            arguments: {
+                fmt: {
+                    description: "The format to show the time in"
+                }
+            },
+            info: "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>"
+        }
+    },
     "rand-user": {
         run: async(msg: Message, args: ArgumentList) => {
             let opts;
