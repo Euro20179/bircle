@@ -39,7 +39,8 @@ declare global{
 	},
 	options?: {
 	    [key: string]: {
-		description: string
+            description: string,
+            alternates?: string[]
 	    }
 	}
     }

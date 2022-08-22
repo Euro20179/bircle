@@ -152,8 +152,8 @@ function getOpts(args: Array<string>): [Opts, ArgumentList]{
         idxOfFirstRealArg++
         if(arg[0] == "-"){
             if(arg[1]){
-                let [opt, value] = arg.slice(1).split("=")
-                opts[opt] = value == undefined ? true : value;
+                let [opt, ...value] = arg.slice(1).split("=")
+                opts[opt] = value == undefined ? true : value.join("=");
             }
         }else{
             idxOfFirstRealArg--
@@ -197,9 +197,19 @@ function generateHTMLFromCommandHelp(name: string, command: any){
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for(let option in options){
                 let desc = options[option].description || ""
+                let alternates = options[option].alternates || []
                 let requiresValue = options[option].requiresValue || false
                 html += `<li class="command-option">
-    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary> ${desc}</details></li>`
+    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary> ${desc}</details>`
+                if(alternates){
+                    html += '<span class="option-alternates-title">Aliases:</span>'
+                    html += `<ul class="option-alternates">`
+                    for(let alternate of alternates){
+                        html += `<li class="option-alternate">-${alternate}</li>`
+                    }
+                    html += "</ul>"
+                }
+                html += "</li>"
             }
             html += "</ul>"
 
@@ -3519,27 +3529,27 @@ ${styles}
         }
     },
     "channel-info": {
-	run: async(msg, args) => {
-	    let channel
-	    if(!args.join(" ").trim().length)
-		channel = msg.channel
-	    else channel = await fetchChannel(msg.guild, args.join(" ").trim())
-	    let embed = new MessageEmbed()
-	    embed.setTitle(channel.name)
-	    embed.addField("Created", channel.createdAt.toString(), true)
-	    embed.addField("Id", channel.id.toString(), true)
-	    embed.addField("Type", channel.type, true)
-	    if(channel.topic){
-		embed.addField("Topic", channel.topic, true)
-	    }
-	    if(channel.nsfw){
-		embed.addField("NSFW?", channel.nsfw, true)
-	    }
-	    if(channel.position){
-		embed.addField("Position", channel.position.toString(), true)
-	    }
-	    return {embeds: [embed]}
-	}
+        run: async(msg, args) => {
+            let channel
+            if(!args.join(" ").trim().length)
+            channel = msg.channel
+            else channel = await fetchChannel(msg.guild, args.join(" ").trim())
+            let embed = new MessageEmbed()
+            embed.setTitle(channel.name)
+            embed.addField("Created", channel.createdAt.toString(), true)
+            embed.addField("Id", channel.id.toString(), true)
+            embed.addField("Type", channel.type, true)
+            if(channel.topic){
+                embed.addField("Topic", channel.topic, true)
+            }
+            if(channel.nsfw){
+                embed.addField("NSFW?", channel.nsfw, true)
+            }
+            if(channel.position){
+                embed.addField("Position", channel.position.toString(), true)
+            }
+            return {embeds: [embed]}
+        },
     },
     "user-info": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3624,6 +3634,57 @@ valid formats:<br>
     <code>{boost}</code> or <code>{b}</code> or <code>%b</code>: when the user started boosting the server
     </li>
 </ul>`,
+        }
+    },
+    "rand-emote": {
+        run: async(msg, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let amount = parseInt(String(opts['count'] || opts['c'])) || 1
+            let sep = opts['sep'] || opts['s'] || "\n"
+            sep = String(sep)
+            let send = ""
+            let emojis = await msg.guild?.emojis.fetch()
+            if(!emojis){
+                return {content: "Could not find emojis"}
+            }
+            if(Boolean(opts['a'])){
+                emojis = emojis.filter(e => e.animated ? true : false)
+
+            }
+            else if(Boolean(opts['A'])){
+                emojis = emojis.filter(e => e.animated ? false : true)
+            }
+            else if(opts['f']){
+                emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), {id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier})))
+            }
+            for(let i = 0; i < amount; i++){
+                send += String(emojis.random())
+                send += sep
+            }
+            return {content: send}
+        },
+        help: {
+            info: "Gives a random server emoji",
+            options: {
+                "c": {
+                    description: "The amount of emojis to send",
+                    alternates: ["count"]
+                },
+                "s": {
+                    description: "The character to seperate each emoji by",
+                    alternates: ["sep"]
+                },
+                "a": {
+                    description: "The emoji must be animated"
+                },
+                "A": {
+                    description: "The emoji can't be animated"
+                },
+                'f': {
+                    description: "Custom filter"
+                }
+            }
         }
     },
     "emote-use":{
