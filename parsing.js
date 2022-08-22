@@ -242,7 +242,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                         if(parenCount != 0) inside += ch;
                     }
                     i--
-                    curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author, curArg: curArg})))
+                    curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {user: msg.author, curArg: curArg}, {timeout: 1000})))
                 }
                 if(ch === "("){
                     if(!curArg.match(/(%\{\d*\}|%\{-1\})/g)) curArg += "%{}"

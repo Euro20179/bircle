@@ -162,6 +162,7 @@ function rgbToHex(r, g, b){
 
 function safeEval (code, context, opts) {
   let sandbox = {}
+
   let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
   sandbox[resultKey] = {}
   let clearContext = `

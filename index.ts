@@ -1,5 +1,6 @@
 ///<reference path="index.d.ts" />
 import fs = require("fs")
+import vm = require("vm")
 
 import https = require('https')
 import Stream = require('stream')
@@ -629,7 +630,7 @@ const commands: {[command: string]: Command} = {
 	    let ret: any[] = []
 	    for(let line of args.join(" ").split("\n")){
             try{
-                ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, member: msg.member, args: args, lastCommand: lastCommand?.content})))
+                ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, member: msg.member, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})))
             }
             catch(err){
                 console.log(err)
@@ -690,7 +691,7 @@ const commands: {[command: string]: Command} = {
 	run: async(msg, args) => {
 	    let [condition, cmd] = args.join(" ").split(";")
         cmd = cmd.split(";end")[0]
-	    if(safeEval(condition, {user: msg.author, args: args, lastCommand: lastCommand?.content})){
+	    if(safeEval(condition, {user: msg.author, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})){
 		msg.content = `${prefix}${cmd.trim()}`
 		return await doCmd(msg, true) as CommandReturn
 	    }
@@ -3687,7 +3688,7 @@ valid formats:<br>
                 emojis = emojis.filter(e => e.animated ? false : true)
             }
             else if(opts['f']){
-                emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), {id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier})))
+                emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), {id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier}, {timeout: 1000})))
             }
             for(let i = 0; i < amount; i++){
                 send += String(emojis.random())
