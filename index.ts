@@ -347,6 +347,33 @@ const commands: {[command: string]: Command} = {
             return {allowedMentions: {parse: []}, content: format(fmt, {n: role.name, i: role.id, c: role.color, C: role.createdAt, hc: role.hexColor, u: role.unicodeEmoji, p: role.position, I: role.icon})}
         }
     },
+    "cmd-search": {
+        run: async(msg, args) => {
+            let search = args.join(" ")
+            let results = []
+            for(let cmd in commands){
+                if(cmd.match(search)){
+                    if(commands[cmd].help?.info){
+                        results.push(`${cmd}: ${commands[cmd].help?.info}`)
+                    }
+                    else results.push(cmd)
+                }
+                else if(commands[cmd].help){
+                    let help = commands[cmd].help
+                    if(help?.info?.match(search)){
+                        results.push(`${cmd}: ${commands[cmd].help?.info}`)
+                    }
+                }
+            }
+            if(results.length == 0){
+                return {content: "No results"}
+            }
+            return {content: results.join("\n")}
+        },
+        help: {
+            info: "Search for commands with a search query"
+        }
+    },
     "6": {
 	run: async(msg, args) => {
 	    let opts;
