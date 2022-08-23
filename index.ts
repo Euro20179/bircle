@@ -3923,9 +3923,18 @@ ${styles}
             if(!args.join(" ").trim().length)
             channel = msg.channel
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
+            let pinned = await channel?.messages?.fetchPinned()
+            let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
             embed.setTitle(channel.name)
+            if(pinned){
+                let pinCount = pinned.size
+                let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
+                embed.addField("Pin Count", String(pinCount), true)
+                embed.addField("Days till full", String(daysTillFull), true)
+            }
             embed.addField("Created", channel.createdAt.toString(), true)
+            embed.addField("Days since Creation", String(daysSinceCreation), true)
             embed.addField("Id", channel.id.toString(), true)
             embed.addField("Type", channel.type, true)
             if(channel.topic){
