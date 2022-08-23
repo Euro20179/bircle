@@ -4303,7 +4303,7 @@ async function doCmd(msg: Message, returnJson=false){
                 return args.slice(argNo - 1, argTo).join(" ")
             }
             else{
-                return args[argNo]
+                return args[argNo - 1]
             }
         })
         if(oldC == msg.content){
