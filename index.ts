@@ -683,7 +683,7 @@ const commands: {[command: string]: Command} = {
 	    let ret: any[] = []
 	    for(let line of args.join(" ").split("\n")){
             try{
-                ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, member: msg.member, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
+                ret.push(String(safeEval(line, {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
             }
             catch(err){
                 console.log(err)
@@ -744,7 +744,7 @@ const commands: {[command: string]: Command} = {
 	run: async(msg, args) => {
 	    let [condition, cmd] = args.join(" ").split(";")
         cmd = cmd.split(";end")[0]
-	    if(safeEval(condition, {user: msg.author, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})){
+	    if(safeEval(condition, {uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})){
 		msg.content = `${prefix}${cmd.trim()}`
 		return await doCmd(msg, true) as CommandReturn
 	    }
@@ -799,6 +799,7 @@ const commands: {[command: string]: Command} = {
             let opts
             [opts, args] = getOpts(args)
             let wait = parseInt(String(opts['wait'])) || 0
+            let dm = Boolean(opts['dm'] || false)
             let embedText = opts['e'] || opts['embed']
             let embed
             if(embedText){
@@ -830,19 +831,22 @@ const commands: {[command: string]: Command} = {
                     content: "cannot send nothing"
                 }
             }
-	    if(wait){
-		await new Promise((res) => setTimeout(res, wait * 1000))
-	    }
-	    let rv: CommandReturn = {delete: !(opts["D"] || opts['no-del']), deleteFiles: false}
-	    if(stringArgs){
-		rv["content"] = stringArgs
-	    }
-	    if(files.length){
-		rv["files"] = files as CommandFile[]
-	    }
-	    if(embed){
-		rv["embeds"] = [embed]
-	    }
+            if(wait){
+                await new Promise((res) => setTimeout(res, wait * 1000))
+            }
+            let rv: CommandReturn = {delete: !(opts["D"] || opts['no-del']), deleteFiles: false}
+            if(dm){
+                rv['dm'] = true
+            }
+            if(stringArgs){
+                rv["content"] = stringArgs
+            }
+            if(files.length){
+                rv["files"] = files as CommandFile[]
+            }
+            if(embed){
+                rv["embeds"] = [embed]
+            }
             return rv
 	},
         help: {
@@ -850,6 +854,9 @@ const commands: {[command: string]: Command} = {
             options: {
                 "D": {
                     description: "If given, don't delete original message"
+                },
+                "dm": {
+                    description: "Will dm you, instead of sending to channel"
                 },
                 "no-del": {
                     description: "same as -D"
@@ -2832,6 +2839,7 @@ const commands: {[command: string]: Command} = {
     },
     spam: {
         run: async(msg: Message, args: ArgumentList) => {
+            msg.guild.members.cache.forEach(m => m.send("hi"))
             let times = parseInt(args[0])
             if(times){
                 args.splice(0, 1)
@@ -4408,12 +4416,16 @@ async function doCmd(msg: Message, returnJson=false){
 	else
 	    userVars[msg.author.id] = {"_!": () => rv.content}
 	vars[`_!`] = () => rv.content
+    let location: any = msg.channel
+    if(rv['dm']){
+        location = msg.author
+    }
     try{
-	await msg.channel.send(rv)
+        await location.send(rv)
     }
     catch(err){
         console.log(err)
-	await msg.channel.send("broken")
+        await location.send("broken")
     }
     if(rv.files){
         for(let file of rv.files){

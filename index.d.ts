@@ -21,7 +21,8 @@ declare global{
 	deleteFiles?: boolean
 	delete?: boolean
 	noSend?: boolean,
-	allowedMentions?: MessageMentionOptions
+	allowedMentions?: MessageMentionOptions,
+    dm?: boolean
     }
 
     interface CommandHelp{
