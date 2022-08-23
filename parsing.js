@@ -29,6 +29,11 @@ async function buildFormat(sequence, msg, curArg, customFormats){
 	    return [...args.join(" ")].reverse().join("")
 	case 'c':
 	    return msg.content.split(" ").slice(1).join(" ").trim()
+    case "channel": {
+        let fmt = args.join(" ") || "<#%i>"
+        let channel = msg.channel
+        return format(fmt, { i: channel.id, n: channel.name })
+    }
     case "user":{
     let fmt = args.join(" ") || "<@%i>"
         let member = await msg.channel.guild.members.fetch(msg.author.id)

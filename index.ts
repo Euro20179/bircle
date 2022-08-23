@@ -3381,6 +3381,7 @@ escapes:
 formats:
     {ruser[|fmt]}: generate a user
     {user}: mention yourself
+    {channel}: The current channel
     {cmd}: the command
     {fhex|number}: convert a number from a base
     {hex|number}: convert a number to a base
@@ -4265,7 +4266,7 @@ async function doCmd(msg: Message, returnJson=false){
         }
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
         let oldC = msg.content
-        msg.content = msg.content.replaceAll(/\{args#\}/g, String(args.length))
+        msg.content = msg.content.replaceAll(/(?<!\\)\{args#\}/g, String(args.length))
         msg.content = msg.content.replaceAll(/(?<!\\)\{args\.\.\.\}/g, args.join(" "))
         msg.content = msg.content.replaceAll(/(?<!\\)\{arg(\d+)(..\d+)?\}/g, (...repl) => {
             let argNo = parseInt(repl[1])
@@ -4296,10 +4297,10 @@ async function doCmd(msg: Message, returnJson=false){
         return
     }
     if(rv.delete){
-	msg.delete().catch(err => console.log("Message not deleted"))
+        msg.delete().catch(err => console.log("Message not deleted"))
     }
     if(rv.noSend){
-	return
+        return
     }
     if((rv.content?.length || 0) >= 2000){
         fs.writeFileSync("out", rv.content as string)
