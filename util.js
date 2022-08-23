@@ -199,6 +199,21 @@ function strlen(text){
     return [...text].length
 }
 
+function cmdCatToStr(cat){
+    switch(cat){
+        case 0:
+            return "util"
+        case 1:
+            return "game"
+        case 2:
+            return "fun"
+        case 3:
+            return "meta"
+        case 4:
+            return "images"
+    }
+}
+
 module.exports = {
     fetchUser: fetchUser,
     fetchChannel: fetchChannel,
@@ -214,6 +229,7 @@ module.exports = {
     cycle: cycle,
     escapeShell: escapeShell,
     strlen: strlen,
-    UTF8String: UTF8String
+    UTF8String: UTF8String,
+    cmdCatToStr: cmdCatToStr
 }
 

@@ -5,6 +5,8 @@ declare global{
 
     type Opts = {[k: string]: string | boolean}
 
+    type CommandCategory = typeof CommandCategory
+
     interface CommandFile{
 	attachment: string,
 	name?: string,
@@ -26,29 +28,30 @@ declare global{
     }
 
     interface CommandHelp{
-	info?: string,
-	/**
-	 * @deprecated Use /ccmd <alias name> <command> <text> instead, ie: no built in aliases
-	 */
-	aliases?: string[],
-	arguments?: {
-	    [key: string]: {
-		description: string,
-		required?: boolean,
-		requires?: string
-	    }
-	},
-	options?: {
-	    [key: string]: {
+        info?: string,
+        /**
+         * @deprecated Use /ccmd <alias name> <command> <text> instead, ie: no built in aliases
+         */
+        aliases?: string[],
+        arguments?: {
+            [key: string]: {
             description: string,
-            alternates?: string[]
-	    }
-	}
+            required?: boolean,
+            requires?: string
+            }
+        },
+        options?: {
+            [key: string]: {
+                description: string,
+                alternates?: string[]
+            }
+        },
     }
 
     interface Command{
-	run: (msg: Message, args: ArgumentList) => Promise<CommandReturn>;
-	permCheck?: (msg: Message) => boolean;
-	help?: CommandHelp
+        run: (msg: Message, args: ArgumentList) => Promise<CommandReturn>;
+        permCheck?: (msg: Message) => boolean;
+        help?: CommandHelp
+        category: CommandCategory
     }
 }

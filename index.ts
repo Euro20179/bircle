@@ -22,7 +22,16 @@ import { AudioPlayerStatus, createAudioResource, NoSubscriberBehavior } from "@d
 
 const { LOGFILE, prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String } = require('./util.js')
+const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
+
+
+enum CommandCategory{
+    UTIL,
+    GAME,
+    FUN,
+    META,
+    IMAGES
+}
 
 const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES]})
 
@@ -282,7 +291,8 @@ const commands: {[command: string]: Command} = {
                     description: "the format to use for the time<br>formats:<br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
     },
     join:{
         run: async(msg, args) => {
@@ -297,7 +307,8 @@ const commands: {[command: string]: Command} = {
                 adapterCreator: msg.guild?.voiceAdapterCreator
             })
             return {noSend: true}
-        }
+        },
+        category: CommandCategory.UTIL
 
     },
     leave: {
@@ -305,7 +316,8 @@ const commands: {[command: string]: Command} = {
             connection.destroy()
             connection = null
             return {noSend: true}
-        }
+        },
+        category: CommandCategory.UTIL
     },
     /*
     play: {
@@ -334,7 +346,8 @@ const commands: {[command: string]: Command} = {
     nothappening: {
         run: async(msg, args) => {
             return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
-        }
+        },
+        category: CommandCategory.META
     },
     "rand-role": {
         run: async(msg, args) => {
@@ -345,7 +358,8 @@ const commands: {[command: string]: Command} = {
             }
             let fmt = args.join(" ") || "%n"
             return {allowedMentions: {parse: []}, content: format(fmt, {n: role.name, i: role.id, c: role.color, C: role.createdAt, hc: role.hexColor, u: role.unicodeEmoji, p: role.position, I: role.icon})}
-        }
+        },
+        category: CommandCategory.UTIL
     },
     "cmd-search": {
         run: async(msg, args) => {
@@ -372,279 +386,285 @@ const commands: {[command: string]: Command} = {
         },
         help: {
             info: "Search for commands with a search query"
-        }
+        },
+        category: CommandCategory.META
     },
     "6": {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let getRankMode = opts['rank'] || false
-	    let content = args.join(" ")
-	    let requestedUsers = content.split("|")
-        if(!requestedUsers[0]){
-            requestedUsers[0] = msg.author.id
-        }
-	    let embeds = []
-	    const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${GUILD_ID}`
-	    let data
-	    try{
-		//@ts-ignore
-            data = await got(url)
-	    }
-	    catch(err){
-            return {content: "Could not fetch data"}
-	    }
-	    if(!data?.body){
-            return {content: "No data found"}
-	    }
-	    const JSONData = JSON.parse(data.body)
-	    for(let requestedUser of requestedUsers){
-            if(!requestedUser) continue
-            let [ruser1, ruser2] = requestedUser.split("-")
-            if(ruser1.trim() && ruser2?.trim()){
-                //@ts-ignore
-                let member1, member2;
-                if(getRankMode){
-                    member1 = JSONData.players[Number(ruser1) - 1]
-                    member1 = await fetchUser(msg.guild, member1.id)
-                    member2 = JSONData.players[Number(ruser2) - 1]
-                    member2 = await fetchUser(msg.guild, member2.id)
-                }
-                else{
-                    member1 = await fetchUser(msg.guild, ruser1.trim())
-                    member2 = await fetchUser(msg.guild, ruser2.trim())
-                }
-                if(!member1){
-                    return {content: `Could not find ${ruser1}`}
-                }
-                if(!member2){
-                    return {content: `Could not find ${ruser1}`}
-                }
-                //@ts-ignore
-                const user1Data = JSONData.players.filter(v => v.id == member1.id)?.[0]
-                //@ts-ignore
-                const user2Data = JSONData.players.filter(v => v.id == member2.id)?.[0]
-                if(!user1Data){
-                    return {content: `No data for ${member1.user.username} found`}
-                }
-                if(!user2Data){
-                    return {content: `No data for ${member2.user.username} found`}
-                }
-                const rank1 = JSONData.players.indexOf(user1Data)
-                const rank2 = JSONData.players.indexOf(user2Data)
-                const embed = new MessageEmbed()
-                embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
-                if(user1Data.level < user2Data.level)
-                    embed.setColor("#00ff00")
-                else if(user1Data.level == user2Data.level)
-                    embed.setColor("#0000ff")
-                else
-                    embed.setColor("#00ff00")
-                embed.addField("Level", String(user1Data.level - user2Data.level), true)
-                embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
-                embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
-                embeds.push(embed)
-                continue
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let getRankMode = opts['rank'] || false
+            let content = args.join(" ")
+            let requestedUsers = content.split("|")
+            if(!requestedUsers[0]){
+                requestedUsers[0] = msg.author.id
             }
-            let member: any;
-            if(getRankMode){
-                member = JSONData.players[Number(requestedUser.trim()) - 1]
-                member = await fetchUser(msg.guild, member.id)
-            }
-            else
-                member = await fetchUser(msg.guild, requestedUser.trim())
-            if(!member){
-                member = msg.author
-            }
-            console.log(member)
+            let embeds = []
+            const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${GUILD_ID}`
+            let data
+            try{
             //@ts-ignore
-            const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
-            if(!userData){
-                return {content: `No data for ${member.user.username} found`}
+                data = await got(url)
             }
-            const rank = JSONData.players.indexOf(userData)
-            const embed = new MessageEmbed()
-            embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
-            embed.setColor(member.displayColor)
-            embed.addField("Level", String(userData.level), true)
-            embed.addField("XP", String(userData.xp), true)
-            embed.addField("Message Count", String(userData.message_count), true)
-            embeds.push(embed)
-	    }
-	    return {embeds: embeds}
-	},
-	help: {
-	    info: "Get the mee6 rank of a user",
-	    arguments: {
-		users: {
-		    description: "A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users"
-		}
-	    },
-	    options: {
-		rank: {
-		    description: "Instead of searching by user, search by rank"
-		}
-	    }
-	}
+            catch(err){
+                return {content: "Could not fetch data"}
+            }
+            if(!data?.body){
+                return {content: "No data found"}
+            }
+            const JSONData = JSON.parse(data.body)
+            for(let requestedUser of requestedUsers){
+                if(!requestedUser) continue
+                let [ruser1, ruser2] = requestedUser.split("-")
+                if(ruser1.trim() && ruser2?.trim()){
+                    //@ts-ignore
+                    let member1, member2;
+                    if(getRankMode){
+                        member1 = JSONData.players[Number(ruser1) - 1]
+                        member1 = await fetchUser(msg.guild, member1.id)
+                        member2 = JSONData.players[Number(ruser2) - 1]
+                        member2 = await fetchUser(msg.guild, member2.id)
+                    }
+                    else{
+                        member1 = await fetchUser(msg.guild, ruser1.trim())
+                        member2 = await fetchUser(msg.guild, ruser2.trim())
+                    }
+                    if(!member1){
+                        return {content: `Could not find ${ruser1}`}
+                    }
+                    if(!member2){
+                        return {content: `Could not find ${ruser1}`}
+                    }
+                    //@ts-ignore
+                    const user1Data = JSONData.players.filter(v => v.id == member1.id)?.[0]
+                    //@ts-ignore
+                    const user2Data = JSONData.players.filter(v => v.id == member2.id)?.[0]
+                    if(!user1Data){
+                        return {content: `No data for ${member1.user.username} found`}
+                    }
+                    if(!user2Data){
+                        return {content: `No data for ${member2.user.username} found`}
+                    }
+                    const rank1 = JSONData.players.indexOf(user1Data)
+                    const rank2 = JSONData.players.indexOf(user2Data)
+                    const embed = new MessageEmbed()
+                    embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
+                    if(user1Data.level < user2Data.level)
+                        embed.setColor("#00ff00")
+                    else if(user1Data.level == user2Data.level)
+                        embed.setColor("#0000ff")
+                    else
+                        embed.setColor("#00ff00")
+                    embed.addField("Level", String(user1Data.level - user2Data.level), true)
+                    embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
+                    embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
+                    embeds.push(embed)
+                    continue
+                }
+                let member: any;
+                if(getRankMode){
+                    member = JSONData.players[Number(requestedUser.trim()) - 1]
+                    member = await fetchUser(msg.guild, member.id)
+                }
+                else
+                    member = await fetchUser(msg.guild, requestedUser.trim())
+                if(!member){
+                    member = msg.author
+                }
+                console.log(member)
+                //@ts-ignore
+                const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
+                if(!userData){
+                    return {content: `No data for ${member.user.username} found`}
+                }
+                const rank = JSONData.players.indexOf(userData)
+                const embed = new MessageEmbed()
+                embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
+                embed.setColor(member.displayColor)
+                embed.addField("Level", String(userData.level), true)
+                embed.addField("XP", String(userData.xp), true)
+                embed.addField("Message Count", String(userData.message_count), true)
+                embeds.push(embed)
+            }
+            return {embeds: embeds}
+        },
+        help: {
+            info: "Get the mee6 rank of a user",
+            arguments: {
+            users: {
+                description: "A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users"
+            }
+            },
+            options: {
+            rank: {
+                description: "Instead of searching by user, search by rank"
+            }
+            }
+        },
+        category: CommandCategory.FUN
     },
     yt: {
-	run: async(msg, args) => {
-	    const fn = generateFileName("yt", msg.author.id)
-	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
-		if(excep){
-		    console.log(excep)
-		}
-		else{
-		    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-		    let embed = new MessageEmbed()
-		    for(let item of JSONData){
-			embed.addField(`title: ${item.title}`, `url: ${item.url}`)
-		    }
-		    await msg.channel.send({embeds: [embed]})
-		}
-	    })
-	    return {noSend: true}
-	},
-	help: {
-	    info: "https://github.com/pystardust/ytfzf/wiki"
-	}
+        run: async(msg, args) => {
+            const fn = generateFileName("yt", msg.author.id)
+            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
+            if(excep){
+                console.log(excep)
+            }
+            else{
+                const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+                let embed = new MessageEmbed()
+                for(let item of JSONData){
+                embed.addField(`title: ${item.title}`, `url: ${item.url}`)
+                }
+                await msg.channel.send({embeds: [embed]})
+            }
+            })
+            return {noSend: true}
+        },
+        help: {
+            info: "https://github.com/pystardust/ytfzf/wiki"
+        },
+        category: CommandCategory.FUN
     },
     ani: {
-	run: async(msg, args) => {
-	    const fn = generateFileName("ani", msg.author.id)
-	    exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
-		if(excep){
-		    console.log(excep)
-		}
-		else{
-		    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-		    let embed = new MessageEmbed()
-		    for(let item of JSONData){
-			embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
-		    }
-		    await msg.channel.send({embeds: [embed]})
-		}
-	    })
-	    return {noSend: true}
-	},
-	help: {
-	    info: "get anime :)))))))))"
-	}
+        run: async(msg, args) => {
+            const fn = generateFileName("ani", msg.author.id)
+            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
+            if(excep){
+                console.log(excep)
+            }
+            else{
+                const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+                let embed = new MessageEmbed()
+                for(let item of JSONData){
+                embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
+                }
+                await msg.channel.send({embeds: [embed]})
+            }
+            })
+            return {noSend: true}
+        },
+        help: {
+            info: "get anime :)))))))))"
+        },
+        category: CommandCategory.FUN
     },
     wiki: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let baseurl = "en.wikipedia.org"
-	    let path = "/wiki/Special:Random"
-	    if(args[0]){
-		path = `/wiki/${args.join("_")}`
-	    }
-	    if(opts['full']){
-		path = String(opts['full'])
-	    }
-	    let sentences = parseInt(String(opts['s'])) || 1
-	    let options = {hostname: baseurl, path: path}
-	    if(path == "/wiki/Special:Random"){
-		https.get(options, req => {
-		    let data = new Stream.Transform()
-		    req.on("error", err => {
-			console.log(err)
-		    })
-		    req.on("data", chunk => {
-			data.push(chunk)
-		    })
-		    req.on("end", async() => {
-			//@ts-ignore
-			let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
-			await msg.channel.send(rv)
-		    })
-		}).end()
-		return {content: "Generating random article"}
-	    }
-	    else{
-		let resp
-		try{
-		    //@ts-ignore
-		    resp = await got(`https://${baseurl}${path}`)
-		}
-		catch(err){
-		    return {content: "not found"}
-		}
-		if(resp.headers?.location){
-		    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.location.split("/wiki/")[1]}`])
-		}
-		else{
-		    let $ = cheerio.load(resp.body)
-		    let text = $("p").text().trim().split("\n")
-		    if(!text.length){
-			return {content: "nothing"}
-		    }
-		    let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
-		    return {content: rv}
-		}
-	    }
-	    return {content: "how did we get here"}
-	},
-	help: {
-	    info: "Get information about something, defaults to random",
-	    arguments: {
-		page: {
-		    description: "The page to look at",
-		    required: false
-		}
-	    },
-	    options: {
-		s: {
-		    description: "The amount of sentences to see"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let baseurl = "en.wikipedia.org"
+            let path = "/wiki/Special:Random"
+            if(args[0]){
+            path = `/wiki/${args.join("_")}`
+            }
+            if(opts['full']){
+            path = String(opts['full'])
+            }
+            let sentences = parseInt(String(opts['s'])) || 1
+            let options = {hostname: baseurl, path: path}
+            if(path == "/wiki/Special:Random"){
+            https.get(options, req => {
+                let data = new Stream.Transform()
+                req.on("error", err => {
+                console.log(err)
+                })
+                req.on("data", chunk => {
+                data.push(chunk)
+                })
+                req.on("end", async() => {
+                //@ts-ignore
+                let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
+                await msg.channel.send(rv)
+                })
+            }).end()
+            return {content: "Generating random article"}
+            }
+            else{
+            let resp
+            try{
+                //@ts-ignore
+                resp = await got(`https://${baseurl}${path}`)
+            }
+            catch(err){
+                return {content: "not found"}
+            }
+            if(resp.headers?.location){
+                await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.location.split("/wiki/")[1]}`])
+            }
+            else{
+                let $ = cheerio.load(resp.body)
+                let text = $("p").text().trim().split("\n")
+                if(!text.length){
+                return {content: "nothing"}
+                }
+                let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
+                return {content: rv}
+            }
+            }
+            return {content: "how did we get here"}
+        },
+        help: {
+            info: "Get information about something, defaults to random",
+            arguments: {
+            page: {
+                description: "The page to look at",
+                required: false
+            }
+            },
+            options: {
+            s: {
+                description: "The amount of sentences to see"
+            }
+            }
+        },
+        category: CommandCategory.FUN
     },
     piglatin: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let sep = opts['sep']
-	    if(sep == undefined){
-		sep = " "
-	    } else sep = String(sep)
-	    let words = []
-	    for(let word of args){
-		if(word.match(/^[aeiou]/)){
-		    words.push(`${word}ay`)
-		}
-		else{
-		    let firstVowel = -1
-		    for(let i = 0; i < word.length; i++){
-			if(word[i].match(/[aeiou]/)){
-			    firstVowel = i
-			    break
-			}
-		    }
-		    if(firstVowel == -1){
-			words.push(`${word}ay`)
-		    }
-		    else{
-			words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
-		    }
-		}
-	    }
-	    return {content: words.join(sep)}
-	},
-	help: {
-	    info: "igpay atinlay",
-	    arguments: {
-		text: {
-		    description: "Text to igpay atinlay-ify"
-		}
-	    },
-	    options: {
-		sep: {
-		    description: "The seperator between words"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let sep = opts['sep']
+            if(sep == undefined){
+            sep = " "
+            } else sep = String(sep)
+            let words = []
+            for(let word of args){
+            if(word.match(/^[aeiou]/)){
+                words.push(`${word}ay`)
+            }
+            else{
+                let firstVowel = -1
+                for(let i = 0; i < word.length; i++){
+                if(word[i].match(/[aeiou]/)){
+                    firstVowel = i
+                    break
+                }
+                }
+                if(firstVowel == -1){
+                words.push(`${word}ay`)
+                }
+                else{
+                words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
+                }
+            }
+            }
+            return {content: words.join(sep)}
+        },
+        help: {
+            info: "igpay atinlay",
+            arguments: {
+            text: {
+                description: "Text to igpay atinlay-ify"
+            }
+            },
+            options: {
+            sep: {
+                description: "The seperator between words"
+            }
+            }
+        },
+        category: CommandCategory.FUN
     },
     "countof": {
         run: async(msg, opts) => {
@@ -669,47 +689,49 @@ const commands: {[command: string]: Command} = {
                 }
             }
             return {content: "Not a valid option"}
-        }
+        },
+        category: CommandCategory.UTIL
 
     },
     calc: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let sep = opts['sep']
-	    if(!sep){
-		sep = "\n"
-	    } else sep = String(sep)
-	    let ret: any[] = []
-	    for(let line of args.join(" ").split("\n")){
-            try{
-                ret.push(String(safeEval(line, {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let sep = opts['sep']
+            if(!sep){
+            sep = "\n"
+            } else sep = String(sep)
+            let ret: any[] = []
+            for(let line of args.join(" ").split("\n")){
+                try{
+                    ret.push(String(safeEval(line, {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
+                }
+                catch(err){
+                    console.log(err)
+                }
             }
-            catch(err){
-                console.log(err)
+            if(ret.length){
+            if(userVars && userVars[msg.author.id])
+                userVars[msg.author.id]["__calc"] = () => ret.join(sep as string)
+            else
+                userVars[msg.author.id] = {"__calc": () => ret.join(sep as string)}
             }
-	    }
-	    if(ret.length){
-		if(userVars && userVars[msg.author.id])
-		    userVars[msg.author.id]["__calc"] = () => ret.join(sep as string)
-		else
-		    userVars[msg.author.id] = {"__calc": () => ret.join(sep as string)}
-	    }
-	    return {content: ret.join(sep)}
-	},
-	help: {
-	    info: "Run a calculation",
-	    arguments: {
-		"...equations": {
-		    description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
-		}
-	    },
-	    options: {
-		sep: {
-		    description: "If multiple equations are given, this seperates each answer"
-		}
-	    }
-	}
+            return {content: ret.join(sep)}
+        },
+        help: {
+            info: "Run a calculation",
+            arguments: {
+            "...equations": {
+                description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
+            }
+            },
+            options: {
+            sep: {
+                description: "If multiple equations are given, this seperates each answer"
+            }
+            }
+        },
+        category: CommandCategory.UTIL
     },
     d: {
         run: async(msg, args) => {
@@ -717,6 +739,7 @@ const commands: {[command: string]: Command} = {
             await doCmd(msg, false)
             return {noSend: true, delete: true}
         },
+        category: CommandCategory.META
     },
     del: {
         run: async(msg, args) => {
@@ -738,61 +761,66 @@ const commands: {[command: string]: Command} = {
                     description: "Treat text as a command"
                 }
             }
-        }
+        },
+        category: CommandCategory.META
     },
     "if": {
-	run: async(msg, args) => {
-	    let [condition, cmd] = args.join(" ").split(";")
-        cmd = cmd.split(";end")[0]
-	    if(safeEval(condition, {uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})){
-		msg.content = `${prefix}${cmd.trim()}`
-		return await doCmd(msg, true) as CommandReturn
-	    }
-	    let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
-	    if(elseCmd){
-		msg.content = `${prefix}${elseCmd.trim()}`
-		return await doCmd(msg, true) as CommandReturn
-	    }
-	    return {content: "?"}
-	}
+        run: async(msg, args) => {
+            let [condition, cmd] = args.join(" ").split(";")
+            cmd = cmd.split(";end")[0]
+            if(safeEval(condition, {uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})){
+            msg.content = `${prefix}${cmd.trim()}`
+            return await doCmd(msg, true) as CommandReturn
+            }
+            let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
+            if(elseCmd){
+            msg.content = `${prefix}${elseCmd.trim()}`
+            return await doCmd(msg, true) as CommandReturn
+            }
+            return {content: "?"}
+        },
+        category: CommandCategory.META
     },
     getimg: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let img = getImgFromMsgAndOpts(opts, msg)
-	    return {content: String(img)}
-	},
-	help: {
-	    info: "find the link to the image that would be used if you gave the same options to an image command",
-	    options: {
-		img: {
-		    description: "The image link to use"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let img = getImgFromMsgAndOpts(opts, msg)
+            return {content: String(img)}
+        },
+        help: {
+            info: "find the link to the image that would be used if you gave the same options to an image command",
+            options: {
+            img: {
+                description: "The image link to use"
+            }
+            }
+        },
+        category: CommandCategory.META
     },
     "argc": {
-	run: async(msg, args) => {
-	    return {content: String(args.length)}
-	},
-	help: {
-	    info: "Prints the number of arguments given to this command"
-	}
+        run: async(msg, args) => {
+            return {content: String(args.length)}
+        },
+        help: {
+            info: "Prints the number of arguments given to this command"
+        },
+        category: CommandCategory.META
     },
     opts: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args ] = getOpts(args)
-	    let disp = ""
-	    for(let key in opts){
-		disp += `**${key}**: \`${opts[key]}\`\n`
-	    }
-	    return {content: disp || "#!N/A"}
-	},
-	help: {
-	    info: "Print the opts given"
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args ] = getOpts(args)
+            let disp = ""
+            for(let key in opts){
+            disp += `**${key}**: \`${opts[key]}\`\n`
+            }
+            return {content: disp || "#!N/A"}
+        },
+        help: {
+            info: "Print the opts given"
+        },
+        category: CommandCategory.META
     },
     echo:{
         run: async (msg: Message, args: ArgumentList) => {
@@ -848,7 +876,7 @@ const commands: {[command: string]: Command} = {
                 rv["embeds"] = [embed]
             }
             return rv
-	},
+        },
         help: {
             info: "the bot will say the <code>text</code>",
             options: {
@@ -877,7 +905,8 @@ const commands: {[command: string]: Command} = {
                     required: true
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     button: {
         run: async(msg, args) => {
@@ -916,7 +945,8 @@ const commands: {[command: string]: Command} = {
                     description: "The text on the button"
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     "pcount": {
         run: async(msg, args) => {
@@ -936,7 +966,8 @@ const commands: {[command: string]: Command} = {
                     description: "The id of the poll to get the count of"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
     },
     poll: {
         run: async(msg, args) => {
@@ -969,7 +1000,8 @@ const commands: {[command: string]: Command} = {
             options: {
                 title: { description: "Title of the poll, no spaces" }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     pfp: {
         run: async(msg, args) => {
@@ -996,7 +1028,8 @@ const commands: {[command: string]: Command} = {
                     description: "Link to an image to use as the pfp"
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     uptime: {
         run: async(_msg: Message, args:ArgumentList) => {
@@ -1036,7 +1069,8 @@ const commands: {[command: string]: Command} = {
                     "description": "the format to show the uptime in<br>%s: seconds, %m: minutes, %h: hours, %d: days<br>{s}: seconds, {m}: minutes, {h}: hours, {d}: days"
                 }
             }
-        }
+        },
+        category: CommandCategory.META
     },
     rand: {
         run: async (msg: Message, args: ArgumentList) => {
@@ -1062,39 +1096,42 @@ const commands: {[command: string]: Command} = {
                     "description": "the highest number"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
+
     },
     roles: {
-	run: async(msg, args) => {
-	    let users = []
-	    for(let arg of args){
-            users.push(await fetchUser(msg.guild, arg))
-	    }
-	    if(users.length == 0){
-            users.push(await fetchUser(msg.guild, msg.author.id))
-	    }
-	    let embeds = []
-	    for(let user of users){
-		let roles = user._roles
-		if(!roles){
-		    return {
-			contnet: "Could not find roles"
-		    }
-		}
-		let embed = new MessageEmbed()
-		embed.setTitle(`Roles for: ${user.user.username}`)
-		let roleList = []
-		for(let role of roles){
-		    roleList.push(await msg.guild?.roles.fetch(role))
-		}
-		embed.addField("Role count", String(roleList.length))
-		embed.addField("Roles", roleList.join(" "))
-		embeds.push(embed)
-	    }
-	    return {
-		embeds: embeds
-	    }
-	}
+        run: async(msg, args) => {
+            let users = []
+            for(let arg of args){
+                users.push(await fetchUser(msg.guild, arg))
+            }
+            if(users.length == 0){
+                users.push(await fetchUser(msg.guild, msg.author.id))
+            }
+            let embeds = []
+            for(let user of users){
+            let roles = user._roles
+            if(!roles){
+                return {
+                contnet: "Could not find roles"
+                }
+            }
+            let embed = new MessageEmbed()
+            embed.setTitle(`Roles for: ${user.user.username}`)
+            let roleList = []
+            for(let role of roles){
+                roleList.push(await msg.guild?.roles.fetch(role))
+            }
+            embed.addField("Role count", String(roleList.length))
+            embed.addField("Roles", roleList.join(" "))
+            embeds.push(embed)
+            }
+            return {
+            embeds: embeds
+            }
+        },
+        category: CommandCategory.UTIL
     },
     "create-file": {
         run: async(msg, args) => {
@@ -1105,7 +1142,8 @@ const commands: {[command: string]: Command} = {
             fs.writeFileSync(`./command-results/${file}`, "")
             return {content: `${file} created`}
         },
-        permCheck: m => ADMINS.includes(m.author.id)
+        permCheck: m => ADMINS.includes(m.author.id),
+        category: CommandCategory.META
     },
     "rt": {
         run: async(msg, args) => {
@@ -1138,7 +1176,8 @@ const commands: {[command: string]: Command} = {
         },
         help: {
             info: "Gets your truely 100% accurate reaction time"
-        }
+        },
+        category: CommandCategory.FUN
     },
     "rand-line": {
         run: async(msg, args) => {
@@ -1157,7 +1196,9 @@ const commands: {[command: string]: Command} = {
         },
         help: {
             info: "Gets a random line from a file"
-        }
+        },
+        category: CommandCategory.META
+
     },
     todo: {
         run: async(msg, args) => {
@@ -1170,14 +1211,18 @@ const commands: {[command: string]: Command} = {
             }
             let item = args.join(" ")
             return await commands['add'].run(msg, ["todo", item])
-        }
+        },
+        category: CommandCategory.META
+
     },
     "todo-list": {
         run: async(msg, args) => {
             let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
             let strdata = data.slice(0, data.length - 1).join("\n")
             return {content: strdata}
-        }
+        },
+        category: CommandCategory.META
+
     },
     nick: {
 		//@ts-ignore
@@ -1195,503 +1240,511 @@ const commands: {[command: string]: Command} = {
                 //@ts-ignore
                 delete: opts['d'] || opts['delete']
             }
-        }
+        },
+        category: CommandCategory.FUN
+
     },
     uno: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
-	    let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
-	    for(let player of requestPlayers){
-		let p = await fetchUser(msg.guild, player)
-		if(!p){
-		    await msg.channel.send(`${player} not found`)
-		    continue
-		}
-		players.push(p)
-	    }
-	    if(players.length == 1){
-		return {content: "No one to play with :("}
-	    }
-	    let max = parseInt(String(opts["max"])) || 9
-	    if(max > 1000){
-		await msg.channel.send("The maximum is to high, defaulting to 1000")
-		max = 1000
-	    }
-	    let cards = uno.createCards(max, {enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1']})
-	    let deck = new uno.Stack(cards)
-	    let pile = new uno.Stack([])
-	    let playerData: {[k: string]: uno.Hand} = {}
-	    let order = []
-	    for(let player of players){
-		playerData[player.id] = new uno.Hand(7, deck)
-		order.push(player.id)
-	    }
-	    let forcedDraw = 0
-	    let turns = cycle(order, (i: any) => {
-		let playerIds = Object.keys(playerData)
-		fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
-		    if(players.map(v => v.id).indexOf(going) < 0){
-			going = turns.next().value
-			return
-		    }
-		    if(forcedDraw){
-			msg.channel.send(`<@${going}> is forced to draw ${forcedDraw} cards`)
-			for(let i = 0; i < forcedDraw; i++){
-			    let rv = playerData[going].draw(deck)
-			    if(!rv){
-				msg.channel.send("Deck empty, shuffling pile into deck")
-				pile.shuffle()
-				deck = new uno.Stack(pile.cards)
-				pile = new uno.Stack([])
-			    }
-			}
-			forcedDraw = 0
-		    }
-		    if(!(pile.top()?.type == 'skip')){
-			let player = players[players.map(v => v.id).indexOf(going)]
-			let send = displayStack(playerData[player.id])
-			send += "\n-------------------------"
-			player.send({content: send})
-			if(pile.cards.length)
-			    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
-		    }
-		    if(pile.cards.length){
-			msg.channel.send({content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`})
-		    }
-		    else{
-			msg.channel.send({content: `${u}, it's your turn`})
-		    }
-		})
-	    })
-	    let going = turns.next().value
-	    let cardsPlayed = 0
-	    let cardsDrawn = 0
-	    let choosing = false
-	    function displayStack(stack: uno.Stack | uno.Hand, count=-1){
-		let send = "card\n"
-		if(count < 0) count = stack.cards.length
-		for(let i = 0; i < count; i++){
-		    send += `${i + 1}:\n`
-		    send += stack.cards[i]?.display()
-		}
-		return send
-	    }
-	    for(let player of players){
-		await player.user.createDM()
-		let collection = player.user.dmChannel?.createMessageCollector({filter: (m) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false})
-		if(!collection){
-		    return {content: `Couldnt listen in ${player}'s dms`}
-		}
-		collection.on("collect", async(m) => {
-		    console.log(m.content)
-		    if(m.content.toLowerCase() == "stop"){
-			players = players.filter(v => v.id != m.author.id)
-			if(players.length == 0){
-			    await msg.channel.send("game over")
-			}
-			collection?.stop()
-			if(m.author.id == client.user?.id) return
-			await msg.channel.send(`${m.author} quit`)
-			going = turns.next().value
-			return
-		    }
-		    if(playerData[player.id].cards.length <= 0){
-			await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
-			for(let player of players){
-			    await player.send("STOP")
-			}
-			collection?.stop()
-			return
-		    }
-		    if(player.id != going) return
-		    if(m.content.toLowerCase() == "stack"){
-			let text = displayStack(pile)
-			if(text.length > 1900){
-			    text = ""
-			    for(let i = pile.cards.length - 1; i > pile.cards.length - 10; i--){
-				text += `${pile.cards[i].display()}\n`
-			    }
-			}
-			await m.channel.send(text)
-			return
-		    }
-		    if(m.content.toLowerCase() == "cards"){
-			await m.channel.send(displayStack(playerData[player.id]))
-			return
-		    }
-		    if(m.content.toLowerCase() == 'draw'){
-			let rv = playerData[player.id].draw(deck)
-			cardsDrawn++
-			if(!rv){
-			    await msg.channel.send("Deck empty, shuffling pile into deck")
-			    pile.shuffle()
-			    deck = new uno.Stack(pile.cards)
-			    pile = new uno.Stack([])
-			    playerData[player.id].draw(deck)
-			}
-			await msg.channel.send(`${player} drew a card`)
-			let send = displayStack(playerData[player.id])
-			send += "\n-------------------------"
-			await m.channel.send(send)
-			await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
-			if(pile.cards.length)
-			    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
-			return
-		    }
-		    let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
-		    if(!selectedCard){
-			await player.user.send(`${m.content} is not a valid choice`)
-		    }
-		    else if(selectedCard.type == "+2"){
-			if(selectedCard.canBePlayed(pile)){
-			    cardsPlayed++;
-			    forcedDraw = 2
-			    pile.add(selectedCard)
-			    playerData[player.id].remove(Number(m.content) - 1)
-			    going = turns.next().value
-			}
-			else{
-			    await m.channel.send("You cannot play that card")
-			}
-		    }
-		    else if(selectedCard.type == 'shuffle-stack'){
-			if(selectedCard.canBePlayed(pile)){
-			    cardsPlayed++
-			    playerData[player.id].remove(Number(m.content) - 1)
-			    await msg.channel.send("**stack was shuffled**")
-			    pile.add(selectedCard)
-			    pile.shuffle()
-			    going = turns.next().value
-			}
-			else{
-			    await m.channel.send("You cannot play that card")
-			}
-		    }
-		    else if(selectedCard.type == 'give'){
-			if(selectedCard.canBePlayed(pile)){
-			    cardsPlayed++;
-			    playerData[player.id].remove(Number(m.content) - 1)
-			    await player.send({content: displayStack(playerData[m.author.id])})
-			    await player.send("Pick a card from your deck to give to a random opponent")
-			    choosing = true
-			    try{
-				let cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-				while(!cardM){
-				    await m.channel.send("Not a valid card")
-				    cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-				}
-				while(!parseInt(cardM?.content as string)){
-				    console.log(cardM?.content, parseInt(cardM?.content as string))
-				    await m.channel.send("Not a valid card")
-				    cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-				}
-				let n = parseInt(cardM?.content as string)
-				let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
-				let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
-				let randomPlayer = tempPlayerData[Math.floor(Math.random() * tempPlayerData.length)]
-				let hand = playerData[randomPlayer]
-				playerData[m.author.id].remove(selectedRemovealCard)
-				hand.add(selectedRemovealCard)
-			    }
-			    catch(err){
-				console.log(err)
-				choosing = false
-			    }
-			    choosing = false
-			    pile.add(selectedCard)
-			    going = turns.next().value
-			}
-			else{
-			    await m.channel.send("You cannot play that card")
-			}
-		    }
-		    else if(selectedCard.type == '-1'){
-			if(selectedCard.canBePlayed(pile)){
-			    cardsPlayed++;
-			    playerData[player.id].remove(Number(m.content) - 1)
-			    pile.add(selectedCard)
-			    let randomPlayer = players.filter(v => v.id != player.id)[Math.floor(Math.random() * (players.length - 1))].id
-			    await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
-			    let newTopCard = playerData[randomPlayer].cards[0]
-			    playerData[randomPlayer].remove(0)
-			    pile.add(newTopCard)
-			    going = turns.next().value
-			}
-		    }
-		    else if(selectedCard.type == "wild"){
-			cardsPlayed++;
-			await player.send("Pick a color\nred, green, yellow, or blue")
-			try{
-			    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-			    if(!colorM){
-				await msg.channel.send("User picked incorrect color, using red")
-				selectedCard.color = "red"
-			    }
-			    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
-				selectedCard.color = colorM.content
-			    }
-			    else{
-				await msg.channel.send("User picked incorrect color, using red")
-				selectedCard.color = "red"
-			    }
-			}
-			catch(err){
-			    console.log(err)
-			    await msg.channel.send("Something went wrong, defaulting to red")
-			    selectedCard.color = "red"
-			}
-			pile.add(selectedCard)
-			playerData[player.id].remove(Number(m.content) - 1)
-			going = turns.next().value
-		    }
-		    else if(selectedCard.type == "wild+4"){
-			cardsPlayed++;
-			await player.send("Pick a color\nred, green, yellow, or blue")
-			try{
-			    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-			    console.log(colorM?.content)
-			    if(!colorM){
-				await msg.channel.send("User picked incorrect color, using red")
-				selectedCard.color = "red"
-			    }
-			    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
-				selectedCard.color = colorM.content
-			    }
-			    else{
-				await msg.channel.send("User picked incorrect color, using red")
-				selectedCard.color = "red"
-			    }
-			}
-			catch(err){
-			    console.log(err)
-			    await msg.channel.send("Something went wrong, defaulting to red")
-			    selectedCard.color = "red"
-			}
-			pile.add(selectedCard)
-			playerData[player.id].remove(Number(m.content) - 1)
-			forcedDraw = 4
-			going = turns.next().value
-		    }
-		    else if(selectedCard.type == 'skip'){
-			if(selectedCard.canBePlayed(pile)){
-			    cardsPlayed++
-			    let skipped = turns.next().value
-			    await msg.channel.send(`<@${skipped}> was skipped`)
-			    going = turns.next().value
-			    await new Promise(res => {
-				pile.add(selectedCard)
-				playerData[player.id].remove(Number(m.content) - 1)
-				let gP = players.filter(v => v.id == going)[0]
-				let send = displayStack(playerData[going])
-				send += "\n-------------------------"
-				gP.send({content: send})
-				if(pile.cards.length)
-				    gP.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
-				res("")
-			    })
-			}
-			else{
-			    await m.channel.send("You cannot play that card")
-			}
-		    }
-		    else {
-			if(selectedCard.canBePlayed(pile)){
-			    cardsPlayed++
-			    pile.add(selectedCard)
-			    playerData[player.id].remove(Number(m.content) - 1)
-			    going = turns.next().value
-			}
-			else{
-			    await m.channel.send("You cannot play that card")
-			}
-		    }
-		    await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
-		    if(playerData[player.id].cards.length <= 0){
-			await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
-			for(let player of players){
-			    await player.send("STOP")
-			}
-			collection?.stop()
-		    }
-		})
-	    }
-	    return {content:"Starting game"}
-	},
-	help: {
-	    info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
-	    arguments: {
-		players: {
-		    description: "Players to play, seperated by |"
-		}
-	    },
-	    options: {
-		max: {
-		    description: "the amount of numbers, default: 10"
-		},
-		give: {
-		    description: "enable the give card"
-		},
-		shuffle: {
-		    description: "enable the shuffle card"
-		},
-		"1": {
-		    description: "enable the -1 card"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
+            let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
+            for(let player of requestPlayers){
+            let p = await fetchUser(msg.guild, player)
+            if(!p){
+                await msg.channel.send(`${player} not found`)
+                continue
+            }
+            players.push(p)
+            }
+            if(players.length == 1){
+            return {content: "No one to play with :("}
+            }
+            let max = parseInt(String(opts["max"])) || 9
+            if(max > 1000){
+            await msg.channel.send("The maximum is to high, defaulting to 1000")
+            max = 1000
+            }
+            let cards = uno.createCards(max, {enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1']})
+            let deck = new uno.Stack(cards)
+            let pile = new uno.Stack([])
+            let playerData: {[k: string]: uno.Hand} = {}
+            let order = []
+            for(let player of players){
+            playerData[player.id] = new uno.Hand(7, deck)
+            order.push(player.id)
+            }
+            let forcedDraw = 0
+            let turns = cycle(order, (i: any) => {
+            let playerIds = Object.keys(playerData)
+            fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
+                if(players.map(v => v.id).indexOf(going) < 0){
+                going = turns.next().value
+                return
+                }
+                if(forcedDraw){
+                msg.channel.send(`<@${going}> is forced to draw ${forcedDraw} cards`)
+                for(let i = 0; i < forcedDraw; i++){
+                    let rv = playerData[going].draw(deck)
+                    if(!rv){
+                    msg.channel.send("Deck empty, shuffling pile into deck")
+                    pile.shuffle()
+                    deck = new uno.Stack(pile.cards)
+                    pile = new uno.Stack([])
+                    }
+                }
+                forcedDraw = 0
+                }
+                if(!(pile.top()?.type == 'skip')){
+                let player = players[players.map(v => v.id).indexOf(going)]
+                let send = displayStack(playerData[player.id])
+                send += "\n-------------------------"
+                player.send({content: send})
+                if(pile.cards.length)
+                    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+                }
+                if(pile.cards.length){
+                msg.channel.send({content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`})
+                }
+                else{
+                msg.channel.send({content: `${u}, it's your turn`})
+                }
+            })
+            })
+            let going = turns.next().value
+            let cardsPlayed = 0
+            let cardsDrawn = 0
+            let choosing = false
+            function displayStack(stack: uno.Stack | uno.Hand, count=-1){
+            let send = "card\n"
+            if(count < 0) count = stack.cards.length
+            for(let i = 0; i < count; i++){
+                send += `${i + 1}:\n`
+                send += stack.cards[i]?.display()
+            }
+            return send
+            }
+            for(let player of players){
+            await player.user.createDM()
+            let collection = player.user.dmChannel?.createMessageCollector({filter: (m) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false})
+            if(!collection){
+                return {content: `Couldnt listen in ${player}'s dms`}
+            }
+            collection.on("collect", async(m) => {
+                console.log(m.content)
+                if(m.content.toLowerCase() == "stop"){
+                players = players.filter(v => v.id != m.author.id)
+                if(players.length == 0){
+                    await msg.channel.send("game over")
+                }
+                collection?.stop()
+                if(m.author.id == client.user?.id) return
+                await msg.channel.send(`${m.author} quit`)
+                going = turns.next().value
+                return
+                }
+                if(playerData[player.id].cards.length <= 0){
+                await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                for(let player of players){
+                    await player.send("STOP")
+                }
+                collection?.stop()
+                return
+                }
+                if(player.id != going) return
+                if(m.content.toLowerCase() == "stack"){
+                let text = displayStack(pile)
+                if(text.length > 1900){
+                    text = ""
+                    for(let i = pile.cards.length - 1; i > pile.cards.length - 10; i--){
+                    text += `${pile.cards[i].display()}\n`
+                    }
+                }
+                await m.channel.send(text)
+                return
+                }
+                if(m.content.toLowerCase() == "cards"){
+                await m.channel.send(displayStack(playerData[player.id]))
+                return
+                }
+                if(m.content.toLowerCase() == 'draw'){
+                let rv = playerData[player.id].draw(deck)
+                cardsDrawn++
+                if(!rv){
+                    await msg.channel.send("Deck empty, shuffling pile into deck")
+                    pile.shuffle()
+                    deck = new uno.Stack(pile.cards)
+                    pile = new uno.Stack([])
+                    playerData[player.id].draw(deck)
+                }
+                await msg.channel.send(`${player} drew a card`)
+                let send = displayStack(playerData[player.id])
+                send += "\n-------------------------"
+                await m.channel.send(send)
+                await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                if(pile.cards.length)
+                    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+                return
+                }
+                let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
+                if(!selectedCard){
+                await player.user.send(`${m.content} is not a valid choice`)
+                }
+                else if(selectedCard.type == "+2"){
+                if(selectedCard.canBePlayed(pile)){
+                    cardsPlayed++;
+                    forcedDraw = 2
+                    pile.add(selectedCard)
+                    playerData[player.id].remove(Number(m.content) - 1)
+                    going = turns.next().value
+                }
+                else{
+                    await m.channel.send("You cannot play that card")
+                }
+                }
+                else if(selectedCard.type == 'shuffle-stack'){
+                if(selectedCard.canBePlayed(pile)){
+                    cardsPlayed++
+                    playerData[player.id].remove(Number(m.content) - 1)
+                    await msg.channel.send("**stack was shuffled**")
+                    pile.add(selectedCard)
+                    pile.shuffle()
+                    going = turns.next().value
+                }
+                else{
+                    await m.channel.send("You cannot play that card")
+                }
+                }
+                else if(selectedCard.type == 'give'){
+                if(selectedCard.canBePlayed(pile)){
+                    cardsPlayed++;
+                    playerData[player.id].remove(Number(m.content) - 1)
+                    await player.send({content: displayStack(playerData[m.author.id])})
+                    await player.send("Pick a card from your deck to give to a random opponent")
+                    choosing = true
+                    try{
+                    let cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+                    while(!cardM){
+                        await m.channel.send("Not a valid card")
+                        cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+                    }
+                    while(!parseInt(cardM?.content as string)){
+                        console.log(cardM?.content, parseInt(cardM?.content as string))
+                        await m.channel.send("Not a valid card")
+                        cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+                    }
+                    let n = parseInt(cardM?.content as string)
+                    let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
+                    let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
+                    let randomPlayer = tempPlayerData[Math.floor(Math.random() * tempPlayerData.length)]
+                    let hand = playerData[randomPlayer]
+                    playerData[m.author.id].remove(selectedRemovealCard)
+                    hand.add(selectedRemovealCard)
+                    }
+                    catch(err){
+                    console.log(err)
+                    choosing = false
+                    }
+                    choosing = false
+                    pile.add(selectedCard)
+                    going = turns.next().value
+                }
+                else{
+                    await m.channel.send("You cannot play that card")
+                }
+                }
+                else if(selectedCard.type == '-1'){
+                if(selectedCard.canBePlayed(pile)){
+                    cardsPlayed++;
+                    playerData[player.id].remove(Number(m.content) - 1)
+                    pile.add(selectedCard)
+                    let randomPlayer = players.filter(v => v.id != player.id)[Math.floor(Math.random() * (players.length - 1))].id
+                    await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
+                    let newTopCard = playerData[randomPlayer].cards[0]
+                    playerData[randomPlayer].remove(0)
+                    pile.add(newTopCard)
+                    going = turns.next().value
+                }
+                }
+                else if(selectedCard.type == "wild"){
+                cardsPlayed++;
+                await player.send("Pick a color\nred, green, yellow, or blue")
+                try{
+                    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+                    if(!colorM){
+                    await msg.channel.send("User picked incorrect color, using red")
+                    selectedCard.color = "red"
+                    }
+                    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
+                    selectedCard.color = colorM.content
+                    }
+                    else{
+                    await msg.channel.send("User picked incorrect color, using red")
+                    selectedCard.color = "red"
+                    }
+                }
+                catch(err){
+                    console.log(err)
+                    await msg.channel.send("Something went wrong, defaulting to red")
+                    selectedCard.color = "red"
+                }
+                pile.add(selectedCard)
+                playerData[player.id].remove(Number(m.content) - 1)
+                going = turns.next().value
+                }
+                else if(selectedCard.type == "wild+4"){
+                cardsPlayed++;
+                await player.send("Pick a color\nred, green, yellow, or blue")
+                try{
+                    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
+                    console.log(colorM?.content)
+                    if(!colorM){
+                    await msg.channel.send("User picked incorrect color, using red")
+                    selectedCard.color = "red"
+                    }
+                    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
+                    selectedCard.color = colorM.content
+                    }
+                    else{
+                    await msg.channel.send("User picked incorrect color, using red")
+                    selectedCard.color = "red"
+                    }
+                }
+                catch(err){
+                    console.log(err)
+                    await msg.channel.send("Something went wrong, defaulting to red")
+                    selectedCard.color = "red"
+                }
+                pile.add(selectedCard)
+                playerData[player.id].remove(Number(m.content) - 1)
+                forcedDraw = 4
+                going = turns.next().value
+                }
+                else if(selectedCard.type == 'skip'){
+                if(selectedCard.canBePlayed(pile)){
+                    cardsPlayed++
+                    let skipped = turns.next().value
+                    await msg.channel.send(`<@${skipped}> was skipped`)
+                    going = turns.next().value
+                    await new Promise(res => {
+                    pile.add(selectedCard)
+                    playerData[player.id].remove(Number(m.content) - 1)
+                    let gP = players.filter(v => v.id == going)[0]
+                    let send = displayStack(playerData[going])
+                    send += "\n-------------------------"
+                    gP.send({content: send})
+                    if(pile.cards.length)
+                        gP.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
+                    res("")
+                    })
+                }
+                else{
+                    await m.channel.send("You cannot play that card")
+                }
+                }
+                else {
+                if(selectedCard.canBePlayed(pile)){
+                    cardsPlayed++
+                    pile.add(selectedCard)
+                    playerData[player.id].remove(Number(m.content) - 1)
+                    going = turns.next().value
+                }
+                else{
+                    await m.channel.send("You cannot play that card")
+                }
+                }
+                await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                if(playerData[player.id].cards.length <= 0){
+                await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                for(let player of players){
+                    await player.send("STOP")
+                }
+                collection?.stop()
+                }
+            })
+            }
+            return {content:"Starting game"}
+        },
+        help: {
+            info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
+            arguments: {
+            players: {
+                description: "Players to play, seperated by |"
+            }
+            },
+            options: {
+            max: {
+                description: "the amount of numbers, default: 10"
+            },
+            give: {
+                description: "enable the give card"
+            },
+            shuffle: {
+                description: "enable the shuffle card"
+            },
+            "1": {
+                description: "enable the -1 card"
+            }
+            }
+        },
+        category: CommandCategory.GAME
+
     },
     sport: {
-	run: async(msg, args) => {
-	    https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on("end", async() => {
-		    let html = data.read().toString()
-		    let embed = new MessageEmbed()
-		    //winner should be in *****
-		    let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
-		    try{
-			inning = inning.match(/span class=".*?">(.*?)<\//)[1]
-			    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
-				var num = parseInt(numStr, 10);
-				return String.fromCharCode(num);
-			    });
-		    }
-		    catch(err){
-			await msg.channel.send("No results")
-			return
-		    }
-		    homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-		    awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-		    let homeScore, awayScore
-		    try{
-			[homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
-		    }
-		    catch(err){
-			await msg.channel.send("Failed to get data")
-			return
-		    }
-		    homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
-		    awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
-		    embed.setTitle(`${args.join(" ")}`)
-		    if(awayScore >= homeScore){
-			awayTeam = `***${awayTeam}***`
-			awayScore = `***${awayScore}***`
-			embed.setColor("#ff0000")
-		    }
-		    else {
-			homeTeam = `***${homeTeam}***`
-			homeScore = `***${homeScore}***`
-			embed.setColor("#00ff00")
-		    }
-		    embed.addField("Time", inning)
-		    embed.addField(`${homeTeam}`, String(homeScore))
-		    embed.addField(`${awayTeam}`, String(awayScore))
-		    await msg.channel.send({embeds: [embed]})
-		})
-	    }).end()
-	    return {
-		content: "getting data"
-	    }
-	}, help: {
-	    info: "Print information about a sport game",
-	    arguments: {
-		team: {
-		    description: "The team to get info on"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
+                    let data = new Stream.Transform()
+                    resp.on("data", chunk => {
+                        data.push(chunk)
+                    })
+                    resp.on("end", async() => {
+                let html = data.read().toString()
+                let embed = new MessageEmbed()
+                //winner should be in *****
+                let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
+                try{
+                inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+                    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
+                    var num = parseInt(numStr, 10);
+                    return String.fromCharCode(num);
+                    });
+                }
+                catch(err){
+                await msg.channel.send("No results")
+                return
+                }
+                homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+                awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+                let homeScore, awayScore
+                try{
+                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+                }
+                catch(err){
+                await msg.channel.send("Failed to get data")
+                return
+                }
+                homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
+                awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+                embed.setTitle(`${args.join(" ")}`)
+                if(awayScore >= homeScore){
+                awayTeam = `***${awayTeam}***`
+                awayScore = `***${awayScore}***`
+                embed.setColor("#ff0000")
+                }
+                else {
+                homeTeam = `***${homeTeam}***`
+                homeScore = `***${homeScore}***`
+                embed.setColor("#00ff00")
+                }
+                embed.addField("Time", inning)
+                embed.addField(`${homeTeam}`, String(homeScore))
+                embed.addField(`${awayTeam}`, String(awayScore))
+                await msg.channel.send({embeds: [embed]})
+            })
+            }).end()
+            return {
+            content: "getting data"
+            }
+        }, help: {
+            info: "Print information about a sport game",
+            arguments: {
+            team: {
+                description: "The team to get info on"
+            }
+            }
+        },
+        category: CommandCategory.FUN
+
     },
     wordle: {
-	run: async(msg, args) => {
-	    let opts: Opts
-	    [opts, args] = getOpts(args)
-	    let min = parseInt(opts["min"] as string) || 5
-	    let max = parseInt(opts["max"] as string) || 5
-	    if(min > max){
-		max = min
-	    }
-	    let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
-	    if(words.length == 0){
-		return {content: "no words found"}
-	    }
-	    let word = words[Math.floor(Math.random() * words.length)].toLowerCase()
-	    let guesses = []
-	    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP"})
-	    let guessCount = parseInt(opts["lives"] as string) || 6
-	    let display: string[] = []
-	    await msg.channel.send("key: **correct**, *wrong place*, `wrong`")
-	    await msg.channel.send(`The word is ${word.length} characters long`)
-	    for(let i = 0; i < guessCount; i++){
-		display.push(mulStr("⬛ ", word.length))
-	    }
-	    await msg.channel.send(display.join("\n"))
-	    let letterCount: {[k: string]: number} = {}
-	    for(let letter of word){
-		if(letterCount[letter] === undefined){
-		    letterCount[letter] = 1
-		}
-		else{
-		    letterCount[letter] += 1
-		}
-	    }
-	    collector.on("collect", async(m) => {
-		if(m.content == "STOP"){
-		    collector.stop()
-		    await msg.channel.send("stopped")
-		    return
-		}
-		guesses.push(m.content)
-		let nextInDisplay = ""
-		let guessLetterCount: {[key: string]: number} = {}
-		for(let i = 0; i < word.length; i++){
-		    let correct = word[i]
-		    let guessed = m.content[i]
-		    if(guessLetterCount[guessed] === undefined){
-			guessLetterCount[guessed] = 1
-		    } else {
-			guessLetterCount[guessed] += 1
-		    }
-		    if(correct == guessed)
-			nextInDisplay += `**${guessed}** `
-		    else if(word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
-			nextInDisplay += `*${guessed}* `
-		    else nextInDisplay += `\`${guessed}\` `
-		}
-		display[6 - guessCount] = nextInDisplay
-		guessCount--
-		await msg.channel.send(display.join("\n"))
-		if(m.content == word){
-		    await msg.channel.send(`You win`)
-		    collector.stop()
-		    return
-		}
-		if(guessCount == 0){
-		    await msg.channel.send(`You lose, it was ${word}`)
-		    collector.stop()
-		    return
-		}
-	    })
-	    return {content: "starting wordle"}
-	},
-	help: {
-	    info: "wordle",
-	    options: {
-		"min": {
-		    description: "The minimum length of the word, default: 5"
-		},
-		"max": {
-		    description: "The maximum length of the word, default: 5"
-		},
-		"lives": {
-		    description: "Lives, default: 6"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts: Opts
+            [opts, args] = getOpts(args)
+            let min = parseInt(opts["min"] as string) || 5
+            let max = parseInt(opts["max"] as string) || 5
+            if(min > max){
+            max = min
+            }
+            let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
+            if(words.length == 0){
+            return {content: "no words found"}
+            }
+            let word = words[Math.floor(Math.random() * words.length)].toLowerCase()
+            let guesses = []
+            let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP"})
+            let guessCount = parseInt(opts["lives"] as string) || 6
+            let display: string[] = []
+            await msg.channel.send("key: **correct**, *wrong place*, `wrong`")
+            await msg.channel.send(`The word is ${word.length} characters long`)
+            for(let i = 0; i < guessCount; i++){
+            display.push(mulStr("⬛ ", word.length))
+            }
+            await msg.channel.send(display.join("\n"))
+            let letterCount: {[k: string]: number} = {}
+            for(let letter of word){
+            if(letterCount[letter] === undefined){
+                letterCount[letter] = 1
+            }
+            else{
+                letterCount[letter] += 1
+            }
+            }
+            collector.on("collect", async(m) => {
+            if(m.content == "STOP"){
+                collector.stop()
+                await msg.channel.send("stopped")
+                return
+            }
+            guesses.push(m.content)
+            let nextInDisplay = ""
+            let guessLetterCount: {[key: string]: number} = {}
+            for(let i = 0; i < word.length; i++){
+                let correct = word[i]
+                let guessed = m.content[i]
+                if(guessLetterCount[guessed] === undefined){
+                guessLetterCount[guessed] = 1
+                } else {
+                guessLetterCount[guessed] += 1
+                }
+                if(correct == guessed)
+                nextInDisplay += `**${guessed}** `
+                else if(word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
+                nextInDisplay += `*${guessed}* `
+                else nextInDisplay += `\`${guessed}\` `
+            }
+            display[6 - guessCount] = nextInDisplay
+            guessCount--
+            await msg.channel.send(display.join("\n"))
+            if(m.content == word){
+                await msg.channel.send(`You win`)
+                collector.stop()
+                return
+            }
+            if(guessCount == 0){
+                await msg.channel.send(`You lose, it was ${word}`)
+                collector.stop()
+                return
+            }
+            })
+            return {content: "starting wordle"}
+        },
+        help: {
+            info: "wordle",
+            options: {
+            "min": {
+                description: "The minimum length of the word, default: 5"
+            },
+            "max": {
+                description: "The maximum length of the word, default: 5"
+            },
+            "lives": {
+                description: "Lives, default: 6"
+            }
+            }
+        },
+        category: CommandCategory.GAME
+
     },
     hangman: {
         run: async(msg, args) => {
@@ -1860,7 +1913,8 @@ const commands: {[command: string]: Command} = {
                     description: "The amount of lives to have"
                 }
             }
-        }
+        },
+        category: CommandCategory.GAME
     },
     "edit": {
         run: async(msg, args) => {
@@ -1916,54 +1970,56 @@ const commands: {[command: string]: Command} = {
                     description: "Seperate each edit with a |<br><b>Sepcial Operators:</b><ul><li><i>-</i>: remove letters from the last edit</li><li><i>+</i>: add to the previous edit instead of replacing it</li><li><i>*</i>: Multiply the last edit a certain number of times</li><li><i>/</i>: divide the last edit by a number</li><li><i>;</i>start a new message</li><li><i>!&lt;number&gt;!</i>: Wait &lt;number&gt; seconds before going to the next edit</li></ul>"
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     "comp-roles": {
-	run: async(msg, args) => {
-	    let [user1, user2] = args.join(" ").split("|")
-	    user1 = user1.trim()
-	    user2 = user2.trim()
-	    if(!user1){
-		return {content: "No users given"}
-	    }
-	    if(!user2){
-		return {content: "2 users must be given"}
-	    }
-	    let realUser1: GuildMember = await fetchUser(msg.guild, user1)
-	    if(!realUser1){
-		return {content: `${user1} not found`}
-	    }
-	    let realUser2: GuildMember = await fetchUser(msg.guild, user2)
-	    if(!realUser2){
-		return {content: `${user2} not found`}
-	    }
-	    let user1Roles = realUser1.roles.cache.toJSON()
-	    let user2Roles = realUser2.roles.cache.toJSON()
-	    let user1RoleIds = user1Roles.map(v => v.id)
-	    let user2RoleIds = user2Roles.map(v => v.id)
-	    let sameRoles = user1Roles.filter(v => user2RoleIds.includes(v.id))
-	    let user1Unique = user1Roles.filter(v => !user2RoleIds.includes(v.id))
-	    let user2Unique = user2Roles.filter(v => !user1RoleIds.includes(v.id))
-	    let embed = new MessageEmbed()
-	    let same = sameRoles.reduce((prev, cur) => `${prev} ${cur}`, "")
-	    let user1U = user1Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
-	    let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
-	    let u1Net = user1RoleIds.length - user2RoleIds.length
-	    embed.setTitle("roles")
-	    if(u1Net > 0){
-		embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
-	    }
-	    else if(u1Net < 0){
-		embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
-	    }
-	    else {
-		embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
-	    }
-	    embed.addField("Same Roles", same || "No same")
-	    embed.addField(`${realUser1.displayName} unique roles`, user1U || "No unique roles")
-	    embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
-	    return {embeds: [embed]}
-	}
+        run: async(msg, args) => {
+            let [user1, user2] = args.join(" ").split("|")
+            user1 = user1.trim()
+            user2 = user2.trim()
+            if(!user1){
+            return {content: "No users given"}
+            }
+            if(!user2){
+            return {content: "2 users must be given"}
+            }
+            let realUser1: GuildMember = await fetchUser(msg.guild, user1)
+            if(!realUser1){
+            return {content: `${user1} not found`}
+            }
+            let realUser2: GuildMember = await fetchUser(msg.guild, user2)
+            if(!realUser2){
+            return {content: `${user2} not found`}
+            }
+            let user1Roles = realUser1.roles.cache.toJSON()
+            let user2Roles = realUser2.roles.cache.toJSON()
+            let user1RoleIds = user1Roles.map(v => v.id)
+            let user2RoleIds = user2Roles.map(v => v.id)
+            let sameRoles = user1Roles.filter(v => user2RoleIds.includes(v.id))
+            let user1Unique = user1Roles.filter(v => !user2RoleIds.includes(v.id))
+            let user2Unique = user2Roles.filter(v => !user1RoleIds.includes(v.id))
+            let embed = new MessageEmbed()
+            let same = sameRoles.reduce((prev, cur) => `${prev} ${cur}`, "")
+            let user1U = user1Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
+            let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
+            let u1Net = user1RoleIds.length - user2RoleIds.length
+            embed.setTitle("roles")
+            if(u1Net > 0){
+            embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
+            }
+            else if(u1Net < 0){
+            embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
+            }
+            else {
+            embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
+            }
+            embed.addField("Same Roles", same || "No same")
+            embed.addField(`${realUser1.displayName} unique roles`, user1U || "No unique roles")
+            embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
+            return {embeds: [embed]}
+        },
+        category: CommandCategory.UTIL
     },
     "most-roles": {
         run: async(msg, args) => {
@@ -2010,46 +2066,48 @@ const commands: {[command: string]: Command} = {
                     description: "Display the results as a list instead of an embed"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
     },
-        whohas: {
-	run: async(msg, args) => {
-	    let role = args[0]
-	    if(!role){
-		return {content: "No role given"}
-	    }
-	    let roleRef = await msg.guild?.roles.fetch()
-	    if(!roleRef){
-		return {content: "no roles found somehow"}
-	    }
-	    let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase() || v.name.toLowerCase().startsWith(role.toLowerCase()))?.at(0)
-	    if(!realRole){
-		return {
-		    content: "Could not find role"
-		}
-	    }
-	    let memberTexts = [""]
-	    let embed = new MessageEmbed()
-	    let i = 0
-	    let memberCount = 0
-	    for (let member of realRole.members){
-		memberTexts[i] += `<@${member[1].id}> `
-		memberCount += 1
-		if(memberTexts[i].length > 1000){
-		    embed.addField(`members`, memberTexts[i])
-		    i++
-		    memberTexts.push("")
-		}
-	    }
-	    if(!memberTexts[0].length){
-		return {content: "No one"}
-	    }
-	    if(embed.fields.length < 1){
-		embed.addField(`members: ${i}`, memberTexts[i])
-	    }
-	    embed.addField("Member count", String(memberCount))
-	    return {embeds: [embed]}
-	}
+    whohas: {
+        run: async(msg, args) => {
+            let role = args[0]
+            if(!role){
+            return {content: "No role given"}
+            }
+            let roleRef = await msg.guild?.roles.fetch()
+            if(!roleRef){
+            return {content: "no roles found somehow"}
+            }
+            let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase() || v.name.toLowerCase().startsWith(role.toLowerCase()))?.at(0)
+            if(!realRole){
+            return {
+                content: "Could not find role"
+            }
+            }
+            let memberTexts = [""]
+            let embed = new MessageEmbed()
+            let i = 0
+            let memberCount = 0
+            for (let member of realRole.members){
+            memberTexts[i] += `<@${member[1].id}> `
+            memberCount += 1
+            if(memberTexts[i].length > 1000){
+                embed.addField(`members`, memberTexts[i])
+                i++
+                memberTexts.push("")
+            }
+            }
+            if(!memberTexts[0].length){
+            return {content: "No one"}
+            }
+            if(embed.fields.length < 1){
+            embed.addField(`members: ${i}`, memberTexts[i])
+            }
+            embed.addField("Member count", String(memberCount))
+            return {embeds: [embed]}
+        },
+        category: CommandCategory.UTIL
     },
     img: {
         run: async (msg: Message, args: ArgumentList) => {
@@ -2146,7 +2204,8 @@ const commands: {[command: string]: Command} = {
                     description: "Width of the image, overrides -width"
                 }
             }
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     polygon: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2222,7 +2281,8 @@ const commands: {[command: string]: Command} = {
                 content: "generating img"
             }
 	    */
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     rect: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2379,7 +2439,8 @@ const commands: {[command: string]: Command} = {
                     description: "A link to the image to use"
                 }
             }
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     scale: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2436,7 +2497,8 @@ const commands: {[command: string]: Command} = {
                     description: 'The amount to scale the height by'
                 }
             }
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     filter: {
         run: async(msg: Message, args:ArgumentList) => {
@@ -2489,7 +2551,8 @@ const commands: {[command: string]: Command} = {
                     description: "The filters to use, each filter is seperated by |"
                 }
             }
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     text: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2580,7 +2643,8 @@ const commands: {[command: string]: Command} = {
                     description: "y of the text"
                 }
             }
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     choose: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2601,7 +2665,8 @@ const commands: {[command: string]: Command} = {
             return {
                 content: ans.join(sep) || "```invalid message```"
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     weather: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2670,12 +2735,14 @@ const commands: {[command: string]: Command} = {
                     description: "Where do you want the weather for"
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     rotate: {
         run: async(msg: Message, args: ArgumentList) => {
             return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`])
-        }
+        },
+        category: CommandCategory.IMAGES
     },
     color: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2759,49 +2826,56 @@ const commands: {[command: string]: Command} = {
                     description: "height of image"
                 }
             }
-        }
+        },
+        category: CommandCategory.IMAGES
+
     },
     "l-bl": {
         run: async(msg: Message, args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/blacklists", "utf-8")
             }
-        }
+        },
+        category: CommandCategory.META
+
     },
     "l-wl": {
         run: async(msg: Message, args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/whitelists", "utf-8")
             }
-        }
+        },
+        category: CommandCategory.META
     },
     ship: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    if(args.length < 2){
-		return {content: "2 users must be given", delete: opts['d'] as boolean}
-	    }
-	    let [user1Full, user2Full] = args.join(" ").split("|")
-	    if(!user1Full || !user2Full){
-		return {content: "2 users not given"}
-	    }
-	    let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
-	    let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
-	    let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-	    return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%`}) , delete: opts['d'] as boolean}
-	},
-	help: {
-	    info: "Create your favorite fantacies!!!!"
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(args.length < 2){
+            return {content: "2 users must be given", delete: opts['d'] as boolean}
+            }
+            let [user1Full, user2Full] = args.join(" ").split("|")
+            if(!user1Full || !user2Full){
+            return {content: "2 users not given"}
+            }
+            let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
+            let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
+            let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
+            return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%`}) , delete: opts['d'] as boolean}
+        },
+        help: {
+            info: "Create your favorite fantacies!!!!"
+        },
+        category: CommandCategory.FUN
     },
     aship: {
-	run: async(msg, args) => {
-	    return await commands['add'].run(msg, ["ship", args.join(" ")])
-	},
-	help: {
-	    info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
-	}
+        run: async(msg, args) => {
+            return await commands['add'].run(msg, ["ship", args.join(" ")])
+        },
+        help: {
+            info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
+        },
+        category: CommandCategory.FUN
     },
     timeit: {
         run: async(msg, args) => {
@@ -2809,7 +2883,8 @@ const commands: {[command: string]: Command} = {
                 let start = new Date().getTime()
                 await doCmd(msg)
                 return {content: `${new Date().getTime() - start} ms`}
-        }
+        },
+        category: CommandCategory.META
     },
     "do": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2835,7 +2910,8 @@ const commands: {[command: string]: Command} = {
             return {
                 content: "done"
             }
-	}
+        },
+        category: CommandCategory.META
     },
     spam: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2862,9 +2938,10 @@ const commands: {[command: string]: Command} = {
                 content: "done"
             }
         },
-	help: {
-	    info: "This technically runs the echo command with the -D option in the background, so any special syntax such as $() should work (if preceded with a \\)"
-	}
+        help: {
+            info: "This technically runs the echo command with the -D option in the background, so any special syntax such as $() should work (if preceded with a \\)"
+        },
+        category: CommandCategory.META
     },
     stop: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -2889,7 +2966,8 @@ const commands: {[command: string]: Command} = {
             return {
                 content: "stopping all"
             }
-        }
+        },
+        category: CommandCategory.META
     },
     "vars": {
         run: async(msg, args) => {
@@ -2905,6 +2983,7 @@ const commands: {[command: string]: Command} = {
             }
             return {content: rv}
         },
+        category: CommandCategory.META
     },
     "expr": {
         run: async(msg, args) => {
@@ -3002,7 +3081,9 @@ const commands: {[command: string]: Command} = {
                     description: "The other number (can be a variable)"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
+
     },
     "var": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3038,7 +3119,8 @@ const commands: {[command: string]: Command} = {
                     required: true
                 }
             }
-        }
+        },
+        category: CommandCategory.META
     },
     remove: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3107,7 +3189,7 @@ const commands: {[command: string]: Command} = {
                     content: "didnt respond in time"
                 }
             }
-	    return {content: 'Say the number of what you want to remove or type cancel'}
+            return {content: 'Say the number of what you want to remove or type cancel'}
         },
         help: {
             arguments: {
@@ -3116,7 +3198,9 @@ const commands: {[command: string]: Command} = {
                     required: true
                 }
             }
-        }
+        },
+        category: CommandCategory.META
+
     },
     "file": {
         run: async(msg, args) => {
@@ -3131,7 +3215,9 @@ const commands: {[command: string]: Command} = {
                     }
                 ]
             }
-        }
+        },
+        category: CommandCategory.UTIL
+
     },
     "rfile": {
         run: async(msg, args) => {
@@ -3142,7 +3228,8 @@ const commands: {[command: string]: Command} = {
                 return {content: data}
             }
             return {noSend: true}
-        }
+        },
+        category: CommandCategory.UTIL
     },
     "command-file": {
         run : async(msg: Message, args: ArgumentList) => {
@@ -3184,12 +3271,14 @@ ${fs.readdirSync("./command-results").join("\n")}
                     description: "the file to see"
                 }
             }
-        }
+        },
+        category: CommandCategory.META
     },
     "list-files": {
-	run: async(msg, args) => {
-	    return {content: fs.readdirSync('./command-results').join("\n")}
-	}
+        run: async(msg, args) => {
+            return {content: fs.readdirSync('./command-results').join("\n")}
+        },
+        category: CommandCategory.META
     },
     add: {
         run: async(msg: Message, args: ArgumentList) =>{
@@ -3234,6 +3323,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
         },
+        category: CommandCategory.META
     },
     "cmd-chain": {
         run: async(msg, args) => {
@@ -3268,41 +3358,45 @@ ${fs.readdirSync("./command-results").join("\n")}
                     description: "The command to get the chain for"
                 }
             }
-        }
+        },
+        category: CommandCategory.META
+
     },
     rccmd: {
-	run: async(msg, args) => {
-	    let name = args[0]
-	    if(!name){
+        run: async(msg, args) => {
+            let name = args[0]
+            if(!name){
+                return {
+                    content: "No command name given"
+                }
+            }
+            let commands = args.map(v => v.trim())
+            let data = fs.readFileSync("command-results/alias", "utf-8").split(";END")
+            let successfullyRemoved = []
+            for(let i = 0; i < commands.length; i++){
+                let command = commands[i]
+                let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
+                let idx = data.indexOf(line)
+                if(idx >= 0){
+                    let [user, _] = line.trim().split(":")
+                    user = user.trim()
+                    if(user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0){
+                        await msg.channel.send(`Cannot remove ${command}`)
+                    }
+                    else{
+                        successfullyRemoved.push(command)
+                        data.splice(idx, 1)
+                    }
+                }
+            }
+            fs.writeFileSync("command-results/alias", data.join(";END"))
+                aliases = createAliases()
             return {
-                content: "No command name given"
+            content: `Removed: ${successfullyRemoved.join(", ")}`
             }
-	    }
-	    let commands = args.map(v => v.trim())
-	    let data = fs.readFileSync("command-results/alias", "utf-8").split(";END")
-	    let successfullyRemoved = []
-	    for(let i = 0; i < commands.length; i++){
-            let command = commands[i]
-            let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
-            let idx = data.indexOf(line)
-            if(idx >= 0){
-                let [user, _] = line.trim().split(":")
-                user = user.trim()
-                if(user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0){
-                    await msg.channel.send(`Cannot remove ${command}`)
-                }
-                else{
-                    successfullyRemoved.push(command)
-                    data.splice(idx, 1)
-                }
-            }
-	    }
-	    fs.writeFileSync("command-results/alias", data.join(";END"))
-            aliases = createAliases()
-	    return {
-		content: `Removed: ${successfullyRemoved.join(", ")}`
-	    }
-	}
+        },
+        category: CommandCategory.META
+
     },
     "8": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3322,7 +3416,9 @@ ${fs.readdirSync("./command-results").join("\n")}
                     description: "What is on your mind?"
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
+
     },
     distance: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3408,7 +3504,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                     required: true
                 }
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     "list-cmds": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3428,7 +3525,8 @@ ${fs.readdirSync("./command-results").join("\n")}
             return {
                 content: values
             }
-        }
+        },
+        category: CommandCategory.FUN
     },
     help: {
 	//help command
@@ -3486,6 +3584,29 @@ variables:
 \`\`\`
 `}
             }
+            if(opts['l']){
+                let category = String(opts['l']) || "all"
+                let catNum = -1
+                switch(category.toLowerCase()){
+                    case "meta":
+                        catNum = CommandCategory.META
+                        break;
+                    case "util":
+                        catNum = CommandCategory.UTIL
+                        break;
+                    case "game":
+                        catNum = CommandCategory.GAME; break;
+                    case "fun":
+                        catNum = CommandCategory.FUN; break;
+                    case "images": catNum = CommandCategory.IMAGES; break;
+                }
+                let rv = ""
+                for(let cmd in commands){
+                    if(catNum == -1 || commands[cmd].category == catNum)
+                        rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
+                }
+                return {content: rv}
+            }
             let files = []
             let commandsToUse = commands
             if(args[0]){
@@ -3505,11 +3626,9 @@ variables:
                     content: "No help can be given :("
                 }
             }
-            if(!Object.keys(opts).length){
-                opts['p'] = true
-            }
             if(!fs.existsSync("help.html") || opts["n"] || args.length > 0){
                 await msg.channel.send("generating new help file")
+                delete opts['n']
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
 ${styles}
@@ -3518,6 +3637,9 @@ ${styles}
                     html += generateHTMLFromCommandHelp(command, commands[command])
                 }
                 fs.writeFileSync("help.html", html)
+            }
+            if(!Object.keys(opts).length){
+                opts['p'] = true
             }
             if(opts["p"] || opts['t']){
                 opts["plain"] = true
@@ -3578,6 +3700,9 @@ ${styles}
         },
         help: {
             options: {
+                "l": {
+                    description: "List all commands<br>set this equal to a category to list commands in a specific category",
+                },
                 "p": {
                     "description": "give a plain text file intead of html"
                 },
@@ -3594,14 +3719,18 @@ ${styles}
                     "description": "any format that pandoc allows, if you're curious, look up \"pandoc formats\""
                 }
             }
-        }
+        },
+        category: CommandCategory.META
+
     },
     code: {
         run: async(msg: Message, args: ArgumentList) => {
             return {
                 content: "https://github.com/euro20179/bircle"
             }
-        }
+        },
+        category: CommandCategory.META
+
     },
     WHITELIST: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3640,9 +3769,11 @@ ${styles}
         permCheck: msg => {
             return ADMINS.includes(msg.author.id)
         },
-	help: {
-	    info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
-	}
+        help: {
+            info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
+        },
+        category: CommandCategory.META
+
     },
     BLACKLIST: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3681,9 +3812,11 @@ ${styles}
         permCheck: msg => {
             return ADMINS.includes(msg.author.id)
         },
-	help: {
-	    info: "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd"
-	}
+        help: {
+            info: "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd"
+        },
+        category: CommandCategory.META
+
     },
     END: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3696,7 +3829,9 @@ ${styles}
         },
         permCheck: (msg) => {
             return ADMINS.includes(msg.author.id)
-        }
+        },
+        category: CommandCategory.META
+
     },
     "last-run": {
         run: async(msg, args) => {
@@ -3727,7 +3862,9 @@ ${styles}
                 }
             },
             info: "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>"
-        }
+        },
+        category: CommandCategory.GAME
+
     },
     "rand-user": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3777,7 +3914,8 @@ ${styles}
                     description: "Fetch all members in guild, instead of using preloaded members"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
     },
     "channel-info": {
         run: async(msg, args) => {
@@ -3801,6 +3939,7 @@ ${styles}
             }
             return {embeds: [embed]}
         },
+        category: CommandCategory.UTIL
     },
     "user-info": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -3885,7 +4024,9 @@ valid formats:<br>
     <code>{boost}</code> or <code>{b}</code> or <code>%b</code>: when the user started boosting the server
     </li>
 </ul>`,
-        }
+        },
+        category: CommandCategory.UTIL
+
     },
     "rand-emote": {
         run: async(msg, args) => {
@@ -3936,7 +4077,9 @@ valid formats:<br>
                     description: "Custom filter"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
+
     },
     "emote-use":{
         run: async(msg, args) => {
@@ -3977,7 +4120,9 @@ valid formats:<br>
                     description: "Show emote use of all emojis, even ones not from this server"
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
+
     },
     "cmd-use": {
         run: async(_msg: Message, _args: ArgumentList) => {
@@ -3993,29 +4138,32 @@ valid formats:<br>
             return {
                 content: data
             }
-        }
+        },
+        category: CommandCategory.META
+
     },
     head: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    let count = parseInt(String(opts['count'])) || 10
-	    let argText = args.join(" ")
-	    return {content: argText.split("\n").slice(0, count).join("\n")}
-	},
-	help: {
-	    info: "Say the first 10 lines of some text",
-	    arguments: {
-		text: {
-		    description: "Text"
-		}
-	    },
-	    options: {
-		count:{
-		    description: "The amount of lines to show"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let count = parseInt(String(opts['count'])) || 10
+            let argText = args.join(" ")
+            return {content: argText.split("\n").slice(0, count).join("\n")}
+        },
+        help: {
+            info: "Say the first 10 lines of some text",
+            arguments: {
+            text: {
+                description: "Text"
+            }
+            },
+            options: {
+            count:{
+                description: "The amount of lines to show"
+            }
+            }
+        },
+        category: CommandCategory.UTIL
     },
     grep: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -4058,7 +4206,8 @@ valid formats:<br>
                     required: true
                 }
             }
-        }
+        },
+        category: CommandCategory.UTIL
     },
     alias: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -4071,7 +4220,8 @@ valid formats:<br>
             return {
                 content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``
             }
-        }
+        },
+        category: CommandCategory.META
     },
     "!!": {
         run: async(msg: Message, args: ArgumentList) => {
@@ -4084,40 +4234,42 @@ valid formats:<br>
             }
             return await doCmd(lastCommand, true) as CommandReturn
         },
-	help: {
-	    info: "Run the last command that was run",
-	    options: {
-		see: {
-		    description: "Just echo the last command that was run instead of running it"
-		}
-	    }
-	}
+        help: {
+            info: "Run the last command that was run",
+            options: {
+            see: {
+                description: "Just echo the last command that was run instead of running it"
+            }
+            }
+        },
+        category: CommandCategory.META
     },
     "psnipe": {
-	run: async(msg, args) => {
-	    if(!purgeSnipe){
-		return {content: "Nothing has been purged yet"}
-	    }
-	    let content = ""
-	    let files: CommandFile[] = []
-	    let embeds: MessageEmbed[] = []
-	    for(let m of purgeSnipe){
-		if(m.content){
-		    content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
-		}
-		let mAttachments = m.attachments?.toJSON()
-		if(mAttachments){
-		    files = files.concat(mAttachments as CommandFile[])
-		}
-		if(m.embeds){
-		    embeds = embeds.concat(m.embeds)
-		}
-	    }
-	    return {content: content ? content : undefined, files: files, embeds: embeds}
-	},
-	help: {
-	    info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
-	}
+        run: async(msg, args) => {
+            if(!purgeSnipe){
+            return {content: "Nothing has been purged yet"}
+            }
+            let content = ""
+            let files: CommandFile[] = []
+            let embeds: MessageEmbed[] = []
+            for(let m of purgeSnipe){
+            if(m.content){
+                content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
+            }
+            let mAttachments = m.attachments?.toJSON()
+            if(mAttachments){
+                files = files.concat(mAttachments as CommandFile[])
+            }
+            if(m.embeds){
+                embeds = embeds.concat(m.embeds)
+            }
+            }
+            return {content: content ? content : undefined, files: files, embeds: embeds}
+        },
+        help: {
+            info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
+        },
+        category: CommandCategory.FUN
     },
     snipe: {
         run: async(msg: Message, args: ArgumentList) => {
@@ -4145,107 +4297,112 @@ valid formats:<br>
 	    }
             return rv
         },
-	help: {
-	    info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
-	    arguments: {
-		number: {
-		    description: "the message you want to see"
-		}
-	    }
-	}
+        help: {
+            info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
+            arguments: {
+            number: {
+                description: "the message you want to see"
+            }
+            }
+        },
+        category: CommandCategory.FUN
     },
     ping: {
-	run: async(msg, args) => {
-	    return {content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`}
-	}
+        run: async(msg, args) => {
+            return {content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`}
+        },
+        category: CommandCategory.META
     },
     version: {
-	run: async(msg, args) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    if(opts['l']){
-		return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
-	    }
-	    let fmt = args[0] || "%v"
-	    console.log(VERSION)
-	    let {major, minor, bug, part, alpha, beta} = VERSION
-	    let mainDisplay = (() => {
-		let d = `${major}.${minor}.${bug}`
-		if(part)
-		    d += `.${part}`
-		if(alpha)
-		    d = `A.${d}`
-		if(beta)
-		    d = `B.${d}`
-		return d
-	    })()
-	    return {content: format(fmt, {
-		v: mainDisplay,
-		M: String(major),
-		m: String(minor),
-		b: String(bug),
-		p: part,
-		A: String(alpha),
-		B: String(beta)
-	    })}
-	},
-	help: {
-	    info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>",
-	    options: {
-		l: {
-		    description: "List all versions"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(opts['l']){
+            return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
+            }
+            let fmt = args[0] || "%v"
+            console.log(VERSION)
+            let {major, minor, bug, part, alpha, beta} = VERSION
+            let mainDisplay = (() => {
+            let d = `${major}.${minor}.${bug}`
+            if(part)
+                d += `.${part}`
+            if(alpha)
+                d = `A.${d}`
+            if(beta)
+                d = `B.${d}`
+            return d
+            })()
+            return {content: format(fmt, {
+            v: mainDisplay,
+            M: String(major),
+            m: String(minor),
+            b: String(bug),
+            p: part,
+            A: String(alpha),
+            B: String(beta)
+            })}
+        },
+        help: {
+            info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>",
+            options: {
+            l: {
+                description: "List all versions"
+            }
+            }
+        },
+        category: CommandCategory.META
     },
     changelog: {
-	run: async(msg, args) => {
-	    let  opts;
-	    [opts, args] = getOpts(args)
-	    if(opts['l']){
-		return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
-	    }
-	    let version = args[0]
-	    if(!args[0]){
-		version = (() => {
-		    let d = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
-		    if(VERSION.part)
-			d += `.${VERSION.part}`
-		    if(VERSION.alpha)
-			d = `A.${d}`
-		    if(VERSION.beta)
-			d = `B.${d}`
-		    return d
-		})()
-	    }
-	    if(!fs.existsSync(`changelog/${version}.md`)){
-		return {content: `${version} does not exist`}
-	    }
-	    if(opts['f']){
-		return {files: [{attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}`}], deleteFiles: false}
-	    }
-	    return {content: fs.readFileSync(`changelog/${version}.md`, "utf-8")}
-	},
-	help: {
-	    info: "Get changelog for a version",
-	    options: {
-		l: {
-		    description: "List all versions"
-		},
-		f: {
-		    description: "Get changelog file instead of text"
-		}
-	    }
-	}
+        run: async(msg, args) => {
+            let  opts;
+            [opts, args] = getOpts(args)
+            if(opts['l']){
+            return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
+            }
+            let version = args[0]
+            if(!args[0]){
+            version = (() => {
+                let d = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
+                if(VERSION.part)
+                d += `.${VERSION.part}`
+                if(VERSION.alpha)
+                d = `A.${d}`
+                if(VERSION.beta)
+                d = `B.${d}`
+                return d
+            })()
+            }
+            if(!fs.existsSync(`changelog/${version}.md`)){
+            return {content: `${version} does not exist`}
+            }
+            if(opts['f']){
+            return {files: [{attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}`}], deleteFiles: false}
+            }
+            return {content: fs.readFileSync(`changelog/${version}.md`, "utf-8")}
+        },
+        help: {
+            info: "Get changelog for a version",
+            options: {
+            l: {
+                description: "List all versions"
+            },
+            f: {
+                description: "Get changelog file instead of text"
+            }
+            }
+        },
+        category: CommandCategory.META
     },
     spams: {
-	run: async(msg, args) => {
-	    let data = ""
-	    for(let id in SPAMS){
-		data += `${id}\n`
-	    }
-	    return {content: data || "No spams"}
-	}
+        run: async(msg, args) => {
+            let data = ""
+            for(let id in SPAMS){
+            data += `${id}\n`
+            }
+            return {content: data || "No spams"}
+        },
+        category: CommandCategory.META
     }
 }
 
