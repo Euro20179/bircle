@@ -154,7 +154,7 @@ function getOpts(args: Array<string>): [Opts, ArgumentList]{
         if(arg[0] == "-"){
             if(arg[1]){
                 let [opt, ...value] = arg.slice(1).split("=")
-                opts[opt] = value == undefined ? true : value.join("=");
+                opts[opt] = value[0] == undefined ? true : value.join("=");
             }
         }else{
             idxOfFirstRealArg--
@@ -250,62 +250,62 @@ let connection: any;
 
 const commands: {[command: string]: Command} = {
     time: {
-	run: async(msg, args) => {
-	    let fmt = args.join(" ")
-	    console.log(fmt)
+        run: async(msg, args) => {
+            let fmt = args.join(" ")
+            console.log(fmt)
 
-	    const date = new Date()
-	    let hours = date.getHours()
-	    let AMPM = hours < 12 ? "AM" : "PM"
-	    return {content: fmt
-                    .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
-                    .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
-                    .replaceAll("date", `${date.getDate()}`)
-                    .replaceAll("hour", `${hours}`)
-                    .replaceAll("min", `${date.getMinutes()}`)
-                    .replaceAll("sec", `${date.getSeconds()}`)
-                    .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
-                    .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
-                    .replaceAll("milli", `${date.getMilliseconds()}`)
-                    .replaceAll("millis", `${date.getMilliseconds()}`)
-                    .replaceAll("tz", `${date.getTimezoneOffset()}`)
-                    .replaceAll("timezone", `${date.getTimezoneOffset()}`)
-                    .replaceAll("ampm", AMPM)
-                    .replaceAll("month", `${date.getMonth() + 1}`)
-                    .replaceAll("year", `${date.getFullYear()}`)
-                    .replaceAll("day", `${date.getDay()}`)
+            const date = new Date()
+            let hours = date.getHours()
+            let AMPM = hours < 12 ? "AM" : "PM"
+            return {content: fmt
+                        .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                        .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                        .replaceAll("date", `${date.getDate()}`)
+                        .replaceAll("hour", `${hours}`)
+                        .replaceAll("min", `${date.getMinutes()}`)
+                        .replaceAll("sec", `${date.getSeconds()}`)
+                        .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
+                        .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
+                        .replaceAll("milli", `${date.getMilliseconds()}`)
+                        .replaceAll("millis", `${date.getMilliseconds()}`)
+                        .replaceAll("tz", `${date.getTimezoneOffset()}`)
+                        .replaceAll("timezone", `${date.getTimezoneOffset()}`)
+                        .replaceAll("ampm", AMPM)
+                        .replaceAll("month", `${date.getMonth() + 1}`)
+                        .replaceAll("year", `${date.getFullYear()}`)
+                        .replaceAll("day", `${date.getDay()}`)
+                    }
+        },
+        help: {
+            arguments: {
+                format: {
+                    description: "the format to use for the time<br>formats:<br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
                 }
-	},
-	help: {
-	    arguments: {
-		format: {
-		    description: "the format to use for the time<br>formats:<br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
-		}
-	    }
-	}
+            }
+        }
     },
     join:{
-	run: async(msg, args) => {
-	    const memberData = await fetchUser(msg.guild, msg.author.id)
-	    const voiceState = memberData.voice
-	    if(!voiceState){
-		return {content: "NOT IN VC"}
-	    }
-	    connection = joinVoiceChannel({
-		    channelId: voiceState.channel.id,
-		    guildId: msg.guild?.id,
-		    adapterCreator: msg.guild?.voiceAdapterCreator
-	    })
-	    return {noSend: true}
-	}
+        run: async(msg, args) => {
+            const memberData = await fetchUser(msg.guild, msg.author.id)
+            const voiceState = memberData.voice
+            if(!voiceState){
+            return {content: "NOT IN VC"}
+            }
+            connection = joinVoiceChannel({
+                channelId: voiceState.channel.id,
+                guildId: msg.guild?.id,
+                adapterCreator: msg.guild?.voiceAdapterCreator
+            })
+            return {noSend: true}
+        }
 
     },
     leave: {
-	run: async(msg, args) => {
-	    connection.destroy()
-	    connection = null
-	    return {noSend: true}
-	}
+        run: async(msg, args) => {
+            connection.destroy()
+            connection = null
+            return {noSend: true}
+        }
     },
     /*
     play: {
@@ -332,9 +332,9 @@ const commands: {[command: string]: Command} = {
     },
     */
     nothappening: {
-	run: async(msg, args) => {
-	    return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
-	}
+        run: async(msg, args) => {
+            return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
+        }
     },
     "rand-role": {
         run: async(msg, args) => {
@@ -630,7 +630,7 @@ const commands: {[command: string]: Command} = {
 	    let ret: any[] = []
 	    for(let line of args.join(" ").split("\n")){
             try{
-                ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, member: msg.member, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})))
+                ret.push(String(safeEval(line, {yes: true, no: false, user: msg.author, member: msg.member, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
             }
             catch(err){
                 console.log(err)
@@ -2808,46 +2808,89 @@ const commands: {[command: string]: Command} = {
         }
     },
     "vars": {
-	run: async(msg, args) => {
-	    let rv = "Global Vars:\n"
-	    for(let v in vars){
-		rv += `${v.replaceAll("_", "\\_")}\n`
-	    }
-	    rv += "----------------------\nUser Vars:\n"
-	    if(userVars[msg.author.id]){
-		for(let v in userVars[msg.author.id]){
-		    rv += `${v.replaceAll("_", "\\_")}\n`
-		}
-	    }
-	    return {content: rv}
-	}
+        run: async(msg, args) => {
+            let rv = "Global Vars:\n"
+            for(let v in vars){
+            rv += `${v.replaceAll("_", "\\_")}\n`
+            }
+            rv += "----------------------\nUser Vars:\n"
+            if(userVars[msg.author.id]){
+            for(let v in userVars[msg.author.id]){
+                rv += `${v.replaceAll("_", "\\_")}\n`
+            }
+            }
+            return {content: rv}
+        },
+    },
+    "mvar": {
+        run: async(msg, args) => {
+            let vname = args[0]
+            let vardict = vars
+            let vvalue = vars[vname]
+            if(!vvalue){
+                vardict = userVars[msg.author.id]
+                vvalue = userVars[msg.author.id]?.[vars]
+            }
+            if(!vvalue){
+                return {content: `${vname} does not exist`}
+            }
+            let op = args[1]
+            let expr = args[2]
+            console.log(vvalue, vvalue(msg))
+            let ans: any
+            switch(op){
+                case "++":
+
+                    ans = parseFloat(vvalue(msg)) + 1
+                    break
+                case "--":
+                    ans = parseFloat(vvalue(msg)) - 1
+                    break
+                case "+":
+                    ans = parseFloat(vvalue(msg)) + parseFloat(expr)
+                    break
+                case "-":
+                    ans = parseFloat(vvalue(msg)) - parseFloat(expr)
+                    break
+                case "*":
+                    ans = parseFloat(vvalue(msg)) * parseFloat(expr)
+                    break
+                case "/":
+                    ans = parseFloat(vvalue(msg)) / parseFloat(expr)
+                    break
+            }
+            vardict[vname] = () => ans
+            console.log(vardict)
+            return {content: String(ans)}
+
+        }
     },
     "var": {
         run: async(msg: Message, args: ArgumentList) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
+            let opts;
+            [opts, args] = getOpts(args)
             let [name, ...value] = args.join(" ").split("=")
-	    if(!value.length){
-		return {content: "no value given, syntax `[var x=value"}
-	    }
-	    let realVal = value.join(" ")
-	    if (opts['u']){
-		if(userVars[msg.author.id]){
-		    userVars[msg.author.id][name] = () => realVal
-		}
-		else{
-		    userVars[msg.author.id] = {[name]: () => realVal}
-		}
-		return {
-		    content: userVars[msg.author.id][name]()
-		}
-	    }
-	    else{
-		vars[name] = () => realVal
-		return {
-		    content: vars[name]()
-		}
-	    }
+            if(!value.length){
+                return {content: "no value given, syntax `[var x=value"}
+            }
+            let realVal = value.join(" ")
+            if (opts['u']){
+                if(userVars[msg.author.id]){
+                    userVars[msg.author.id][name] = () => realVal
+                }
+                else{
+                    userVars[msg.author.id] = {[name]: () => realVal}
+                }
+                return {
+                    content: userVars[msg.author.id][name]()
+                }
+            }
+            else{
+                vars[name] = () => realVal
+                return {
+                    content: vars[name]()
+                }
+            }
         },
         help: {
             arguments: {
@@ -3055,12 +3098,26 @@ ${fs.readdirSync("./command-results").join("\n")}
     },
     "cmd-chain": {
         run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let showArgs = true
+            console.log(opts)
+            if(opts['n'] || opts['no-args']){
+                showArgs = false
+            }
             let chain = []
             let command = args[0]
+            let a = ""
             chain.push(command)
             //finds the original command
-            while(command = aliases[command]?.[0]){
-                chain.push(command)
+            while(aliases[command]?.[0]){
+                a = aliases[command].slice(1).join(" ") +" " + a + " "
+                console.log(aliases[command][0], showArgs)
+                if(showArgs)
+                    chain.push(`${aliases[command][0]} ${a}`.trim())
+                else
+                    chain.push(aliases[command][0])
+                command = aliases[command][0]
             }
 
             return {content: chain.join(" -> ")}
@@ -3307,18 +3364,18 @@ variables:
                     content: "No help can be given :("
                 }
             }
-	    if(!Object.keys(opts).length){
-		opts['p'] = true
-	    }
+            if(!Object.keys(opts).length){
+                opts['p'] = true
+            }
             if(!fs.existsSync("help.html") || opts["n"] || args.length > 0){
                 await msg.channel.send("generating new help file")
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
 ${styles}
 </style>`
-		for(let command in commandsToUse){
-		    html += generateHTMLFromCommandHelp(command, commands[command])
-		}
+                for(let command in commandsToUse){
+                    html += generateHTMLFromCommandHelp(command, commands[command])
+                }
                 fs.writeFileSync("help.html", html)
             }
             if(opts["p"] || opts['t']){
@@ -4143,7 +4200,6 @@ async function doCmd(msg: Message, returnJson=false){
         //if it's an alias, it counts as use
         addToCmdUse(command)
         let aliasPreArgs = aliases[command].slice(1);
-        let userArgs = msg.content.split(" ").slice(1)
         command = aliases[command][0]
         //finds the original command
         while(aliases[command]?.[0]){
@@ -4154,10 +4210,19 @@ async function doCmd(msg: Message, returnJson=false){
         }
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
         let oldC = msg.content
-        for(let i = 0; i < args.length; i++){
-            let e = new RegExp(`(?<!\\\\)\\\{arg${i+1}\\\}`, "g")
-            msg.content = msg.content.replaceAll(e, args[i])
-        }
+        msg.content = msg.content.replaceAll(/\{args#\}/g, String(args.length))
+        msg.content = msg.content.replaceAll(/(?<!\\)\{args\.\.\.\}/g, args.join(" "))
+        msg.content = msg.content.replaceAll(/(?<!\\)\{arg(\d+)(..\d+)?\}/g, (...repl) => {
+            let argNo = parseInt(repl[1])
+            let argTo = parseInt(repl[2]?.replace(/\./g, ""))
+            console.log(repl, argNo, argTo)
+            if(argTo){
+                return args.slice(argNo - 1, argTo).join(" ")
+            }
+            else{
+                return args[argNo]
+            }
+        })
         if(oldC == msg.content){
             msg.content = msg.content + ` ${args.join(" ")}`
         }
