@@ -3217,27 +3217,28 @@ ${fs.readdirSync("./command-results").join("\n")}
 	run: async(msg, args) => {
 	    let name = args[0]
 	    if(!name){
-		return {
-		    content: "No command name given"
-		}
+            return {
+                content: "No command name given"
+            }
 	    }
 	    let commands = args.map(v => v.trim())
 	    let data = fs.readFileSync("command-results/alias", "utf-8").split(";END")
 	    let successfullyRemoved = []
 	    for(let i = 0; i < commands.length; i++){
-		let command = commands[i]
-		let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
-		let idx = data.indexOf(line)
-		if(idx >= 0){
-		    let [user, _] = line.trim().split(":")
-		    if(user != msg.author.id && ADMINS.indexOf(user) < 0){
-			await msg.channel.send(`Cannot remove ${command}`)
-		    }
-		    else{
-			successfullyRemoved.push(command)
-			data.splice(idx, 1)
-		    }
-		}
+            let command = commands[i]
+            let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
+            let idx = data.indexOf(line)
+            if(idx >= 0){
+                let [user, _] = line.trim().split(":")
+                user = user.trim()
+                if(user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0){
+                    await msg.channel.send(`Cannot remove ${command}`)
+                }
+                else{
+                    successfullyRemoved.push(command)
+                    data.splice(idx, 1)
+                }
+            }
 	    }
 	    fs.writeFileSync("command-results/alias", data.join(";END"))
             aliases = createAliases()
