@@ -2699,7 +2699,12 @@ const commands: {[command: string]: Command} = {
                         colorStrings.push(rgbToHex(R, G, B))
                     }
                 }
-		buffer = await sharp(await createGradient(gradient, width, height)).png().toBuffer()
+                try{
+                    buffer = await sharp(await createGradient(gradient, width, height)).png().toBuffer()
+                }
+                catch(err){
+                    return {content: "error making color"}
+                }
                 content = colorStrings.join(" > ")
             }
             else{
@@ -2708,12 +2713,17 @@ const commands: {[command: string]: Command} = {
                     color = `rgb(${R}, ${G}, ${B})`
                     content = rgbToHex(R, G, B)
                 }
-		buffer = await sharp({create: {
-		    width: width,
-		    height: height,
-		    channels: 4,
-		    background: color
-		}}).png().toBuffer()
+                try{
+                    buffer = await sharp({create: {
+                            width: width,
+                            height: height,
+                            channels: 4,
+                            background: color
+                        }}).png().toBuffer()
+                }
+                catch(err){
+                    return {content: "error making color"}
+                }
             }
             fs.writeFileSync(fn, buffer)
             return {
@@ -3669,6 +3679,7 @@ ${styles}
     },
     END: {
         run: async(msg: Message, args: ArgumentList) => {
+            msg.guild.clien
             await msg.channel.send("STOPPING")
             client.destroy()
             return {
