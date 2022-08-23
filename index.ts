@@ -1008,10 +1008,10 @@ const commands: {[command: string]: Command} = {
 	run: async(msg, args) => {
 	    let users = []
 	    for(let arg of args){
-		users.push(await fetchUser(msg.guild, arg))
+            users.push(await fetchUser(msg.guild, arg))
 	    }
 	    if(users.length == 0){
-		users.push(await fetchUser(msg.guild, msg.author.id))
+            users.push(await fetchUser(msg.guild, msg.author.id))
 	    }
 	    let embeds = []
 	    for(let user of users){
@@ -1037,15 +1037,15 @@ const commands: {[command: string]: Command} = {
 	}
     },
     "create-file": {
-	run: async(msg, args) => {
-	    let file = args[0]
-	    if(!file){
-		return {content: "No file specified"}
-	    }
-	    fs.writeFileSync(`./command-results/${file}`, "")
-	    return {content: `${file} created`}
-	},
-	permCheck: m => ADMINS.includes(m.author.id)
+        run: async(msg, args) => {
+            let file = args[0]
+            if(!file){
+                return {content: "No file specified"}
+            }
+            fs.writeFileSync(`./command-results/${file}`, "")
+            return {content: `${file} created`}
+        },
+        permCheck: m => ADMINS.includes(m.author.id)
     },
     "rt": {
         run: async(msg, args) => {
@@ -3922,7 +3922,7 @@ valid formats:<br>
     },
     snipe: {
         run: async(msg: Message, args: ArgumentList) => {
-	    let snipeC = (parseInt(args[0]) - 1) || 0
+	    let snipeC = 4 - ((parseInt(args[0]) - 1) || 0)
 	    if(snipeC > 5){
 		return {content: "it only goes back 5"}
 	    }
