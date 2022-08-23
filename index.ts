@@ -32,7 +32,7 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 
 let SPAM_ALLOWED = true
 
-let BUTTONS: {[id: string]: string} = {}
+let BUTTONS: {[id: string]: string | (() => string)} = {}
 let POLLS: {[id: string]: {title: string, votes: {[k: string]: string[]}}} = {}
 let SPAMS: {[id: string]: boolean} = {}
 
@@ -646,6 +646,32 @@ const commands: {[command: string]: Command} = {
 	    }
 	}
     },
+    "countof": {
+        run: async(msg, opts) => {
+            let object = opts[0]
+            switch(object){
+                case "channel": {
+                    let channels = await msg.guild?.channels.fetch()
+                    return {content: channels?.size.toString()}
+                }
+                case "roles": {
+                    let roles = await msg.guild?.roles.fetch()
+                    return {content: roles?.size.toString()}
+                }
+                case "members": {
+                    let members = await msg.guild?.members.fetch()
+                    return {content: members?.size.toString()}
+                }
+                case "bots": {
+                    let bots = await msg.guild?.members.fetch()
+                    bots = bots?.filter(u => u.user.bot)
+                    return {content: bots?.size.toString()}
+                }
+            }
+            return {content: "Not a valid option"}
+        }
+
+    },
     calc: {
 	run: async(msg, args) => {
 	    let opts;
@@ -1076,18 +1102,31 @@ const commands: {[command: string]: Command} = {
     },
     "rt": {
         run: async(msg, args) => {
-            msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(m => {
-                try{
-                    let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 3000})
-                    let start = Date.now()
-                    collector.on("collect", async(m) => {
-                        await msg.channel.send(`${Date.now() - start}ms`)
-                        collector.stop()
-                    })
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            if(opts['t']){
+                msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(m => {
+                    try{
+                        let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 3000})
+                        let start = Date.now()
+                        collector.on("collect", async(m) => {
+                            await msg.channel.send(`${Date.now() - start}ms`)
+                            collector.stop()
+                        })
+                    }
+                    catch(err){
+                    }
+                })
+            }
+            else{
+                let button = new MessageButton({customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER"})
+                let row = new MessageActionRow({type: "BUTTON", components: [button]})
+                let start = Date.now()
+                BUTTONS[msg.author.id] = () => {
+                    return `${Date.now() - start}ms`
                 }
-                catch(err){
-                }
-            })
+                await msg.channel.send({components: [row]})
+            }
             return {noSend: true}
         },
         help: {
@@ -4441,7 +4480,14 @@ client.on("interactionCreate", async(interaction: Interaction) => {
     if(interaction.isButton()){
 	if(interaction.customId == `button:${interaction.member?.user.id}`){
 	    //@ts-ignore
-	    interaction.reply(String(BUTTONS[interaction.member?.user.id]))
+        if(typeof BUTTONS[interaction.member?.user.id] === "string"){
+            //@ts-ignore
+            interaction.reply(String(BUTTONS[interaction.member?.user.id]))
+        }
+        else{
+            //@ts-ignore
+            interaction.reply(String(BUTTONS[interaction.member?.user.id]()))
+        }
 	    //@ts-ignore
 	    delete BUTTONS[interaction.member?.user.id]
 	}
