@@ -4151,6 +4151,16 @@ valid formats:<br>
         category: CommandCategory.META
 
     },
+    invite: {
+        run: async(msg, args) => {
+            let invites = await msg.guild?.invites.fetch()
+            if(invites?.at(0)?.url){
+                return {content: invites.at(0)?.url}
+            }
+            return {content: "No invite found"}
+        },
+        category: CommandCategory.UTIL
+    },
     head: {
         run: async(msg, args) => {
             let opts;
