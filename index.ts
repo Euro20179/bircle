@@ -2822,47 +2822,102 @@ const commands: {[command: string]: Command} = {
             return {content: rv}
         },
     },
-    "mvar": {
+    "expr": {
         run: async(msg, args) => {
             let vname = args[0]
+            let varValRet
             let vardict = vars
-            let vvalue = vars[vname]
-            if(!vvalue){
-                vardict = userVars[msg.author.id]
-                vvalue = userVars[msg.author.id]?.[vars]
+            if(!parseFloat(vname)){
+                let vvalue = vars[vname]
+                if(!vvalue){
+                    vardict = userVars[msg.author.id]
+                    vvalue = userVars[msg.author.id]?.[vname]
+                }
+                if(!vvalue){
+                    return {content: `var: **${vname}** does not exist`}
+                }
+                varValRet = vvalue(msg)
             }
-            if(!vvalue){
-                return {content: `${vname} does not exist`}
+            else{
+                varValRet = vname
+                vname = "__expr"
             }
             let op = args[1]
             let expr = args[2]
-            console.log(vvalue, vvalue(msg))
+            if(expr && !parseFloat(expr)){
+                let vvalue = vars[expr]
+                if(!vvalue){
+                    vvalue = userVars[msg.author.id]?.[expr]
+                }
+                if(!vvalue){
+                    return {content: `var: **${expr}** does not exist`}
+                }
+                expr = vvalue(msg)
+            }
             let ans: any
             switch(op){
                 case "++":
 
-                    ans = parseFloat(vvalue(msg)) + 1
+                    ans = parseFloat(varValRet) + 1
                     break
                 case "--":
-                    ans = parseFloat(vvalue(msg)) - 1
+                    ans = parseFloat(varValRet) - 1
                     break
+                case "floor":
+                    ans = Math.floor(parseFloat(varValRet))
+                    break;
+                case "ceil":
+                    ans = Math.ceil(parseFloat(varValRet))
+                    break;
+                case ":":
+                    ans = parseFloat(varValRet)
+                    break;
+                case ",":
+                    ans = ""
+                    for(let i = 0; i < varValRet.length; i++){
+                        if(i % 3 == 0 && i != 0){
+                            ans += ","
+                        }
+                        ans += varValRet[varValRet.length - i - 1]
+                    }
+                    let newAns = ""
+                    for(let i = ans.length - 1; i >= 0; i--){
+                        newAns += ans[i]
+                    }
+                    ans = newAns
+                    break;
                 case "+":
-                    ans = parseFloat(vvalue(msg)) + parseFloat(expr)
+                    ans = parseFloat(varValRet) + parseFloat(expr)
                     break
                 case "-":
-                    ans = parseFloat(vvalue(msg)) - parseFloat(expr)
+                    ans = parseFloat(varValRet) - parseFloat(expr)
                     break
                 case "*":
-                    ans = parseFloat(vvalue(msg)) * parseFloat(expr)
+                    ans = parseFloat(varValRet) * parseFloat(expr)
                     break
                 case "/":
-                    ans = parseFloat(vvalue(msg)) / parseFloat(expr)
+                    ans = parseFloat(varValRet) / parseFloat(expr)
                     break
+                case "^":
+                    ans = parseFloat(varValRet) / parseFloat(expr)
+                    break;
             }
             vardict[vname] = () => ans
-            console.log(vardict)
             return {content: String(ans)}
-
+        },
+        help: {
+            info: "Modify a variable",
+            arguments: {
+                "num1": {
+                    description: "Number 1 (can be a variable)"
+                },
+                "operator": {
+                    description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li>/</li><li>^</li></ul>"
+                },
+                "num2": {
+                    description: "The other number (can be a variable)"
+                }
+            }
         }
     },
     "var": {
