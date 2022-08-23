@@ -4294,7 +4294,15 @@ async function doCmd(msg: Message, returnJson=false){
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
         let oldC = msg.content
         msg.content = msg.content.replaceAll(/(?<!\\)\{args#\}/g, String(args.length))
-        msg.content = msg.content.replaceAll(/(?<!\\)\{args\.\.\.\}/g, args.join(" "))
+        msg.content = msg.content.replaceAll(/(?<!\\)\{args(\d+)?\.\.\.\}/g, (...repl) => {
+            let argStart = parseInt(repl[1])
+            if(argStart){
+                return args.slice(argStart - 1).join(" ")
+            }
+            else{
+                return args.join(" ")
+            }
+        })
         msg.content = msg.content.replaceAll(/(?<!\\)\{arg(\d+)(..\d+)?\}/g, (...repl) => {
             let argNo = parseInt(repl[1])
             let argTo = parseInt(repl[2]?.replace(/\./g, ""))
