@@ -3302,6 +3302,10 @@ const commands: {[command: string]: Command} = {
                         await msg.channel.send(String(ans))
                         break
                     }
+                    case "%rand": {
+                        stack.push(Math.random())
+                        break
+                    }
                     case "%end": {
                         return {end: true}
                     }
@@ -4765,8 +4769,8 @@ valid formats:<br>
     },
     snipe: {
         run: async(msg: Message, args: ArgumentList) => {
-	    let snipeC = 4 - ((parseInt(args[0]) - 1) || 0)
-	    if(snipeC > 5){
+	    let snipeC = ((parseInt(args[0]) - 1) || 0)
+	    if(snipeC >= 5){
 		return {content: "it only goes back 5"}
 	    }
 	    if(snipeC > snipes.length){
