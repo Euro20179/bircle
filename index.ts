@@ -3089,7 +3089,6 @@ const commands: {[command: string]: Command} = {
             let ram: {[key: string]: number | string} = {}
             args = args.join(" ").split(/\s+/)
             async function parseArg(arg: string, argNo: number, argCount: number): Promise<any>{
-                console.log(stack, arg)
                 switch(arg){
                     case "++":{
                         if(typeof stack[stack.length - 1] !== 'number'){
@@ -3114,8 +3113,8 @@ const commands: {[command: string]: Command} = {
                         break;
                     }
                     case "+": {
-                        let arg1 = stack.pop()
                         let arg2 = stack.pop()
+                        let arg1 = stack.pop()
                         switch(typeof arg1){
                             case "number": {
                                 if(typeof arg2 !== 'number'){
@@ -3138,8 +3137,8 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case "-": {
-                        let arg1 = stack.pop()
                         let arg2 = stack.pop()
+                        let arg1 = stack.pop()
                         switch(typeof arg1){
                             case "number": {
                                 if(typeof arg2 !== 'number'){
@@ -3162,8 +3161,8 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case ">": {
-                        let arg1 = stack.pop()
                         let arg2 = stack.pop()
+                        let arg1 = stack.pop()
                         switch(typeof arg1){
                             case "number": {
                                 if(typeof arg2 !== 'number'){
@@ -3186,8 +3185,8 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case "<": {
-                        let arg1 = stack.pop()
                         let arg2 = stack.pop()
+                        let arg1 = stack.pop()
                         switch(typeof arg1){
                             case "number": {
                                 if(typeof arg2 !== 'number'){
@@ -3292,6 +3291,7 @@ const commands: {[command: string]: Command} = {
                     }
                     default: {
                         if(arg.match(/^"([^"]+)"$/)){
+                            //strings
                             stack.push(arg.replace(/^"/, "").replace(/"$/, ""))
                         }
                         else if(!isNaN(parseFloat(arg))){
