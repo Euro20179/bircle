@@ -3917,6 +3917,37 @@ ${styles}
         },
         category: CommandCategory.UTIL
     },
+    "role-info": {
+        run: async(msg, args) => {
+            let search = args.join(" ").toLowerCase()
+            let roles = await msg.guild?.roles.fetch()
+            if(!roles){
+                return {content: "No roles found"}
+            }
+            let foundRoles = roles.filter(r => r.name.toLowerCase() == search ? true : false)
+            if(!foundRoles){
+                foundRoles = roles.filter(r => r.name.toLowerCase().match(search) ? true : false)
+            }
+            if(!foundRoles){
+                foundRoles = roles.filter(r => r.id == search ? true : false)
+            }
+
+            let role = foundRoles.at(0)
+            if(!role){
+                return {content: "Could not find role"}
+            }
+            let embed = new MessageEmbed()
+            embed.setTitle(role.name)
+            embed.setColor(role.color)
+            embed.addField("id", String(role.id), true)
+            embed.addField("name", role.name, true)
+            embed.addField("emoji", role.unicodeEmoji || "None", true)
+            embed.addField("created", role.createdAt.toTimeString(), true)
+            embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
+            return {embeds: [embed] || "none"}
+        },
+        category: CommandCategory.UTIL
+    },
     "channel-info": {
         run: async(msg, args) => {
             let channel
@@ -4158,6 +4189,19 @@ valid formats:<br>
                 return {content: invites.at(0)?.url}
             }
             return {content: "No invite found"}
+        },
+        category: CommandCategory.UTIL
+    },
+    "non-assigned-roles": {
+        run: async(msg, args) => {
+            await msg.guild.members.fetch()
+            let roles = await msg.guild?.roles.fetch()
+            let rolesNonAssigned: any[] = []
+            roles?.forEach(r => {
+                if(r.members.size < 1)
+                    rolesNonAssigned.push(r.name)
+            })
+            return {content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members`}
         },
         category: CommandCategory.UTIL
     },
