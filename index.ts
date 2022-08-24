@@ -3179,9 +3179,38 @@ const commands: {[command: string]: Command} = {
                         }
                         break
                     }
+                    case "%s": {
+                        let arg2 = stack.pop()
+                        let arg1 = stack.pop()
+                        if(typeof arg2 == "string"){
+                            while((arg2 = arg2.replace(/%(s|d|f)/, (_match, type) => {
+                                if(type == "s"){
+                                    return String(arg1)
+                                }
+                                else if(type == "d"){
+                                    return String(parseInt(String(arg1)))
+                                }
+                                else if(type == "f"){
+                                    return String(parseFloat(String(arg1)))
+                                }
+                                return ""
+                            })).match(/%(s|d)/)){
+                                arg1 = stack.pop()
+                                if(typeof arg1 === "undefined"){
+                                    return {content: `ran out of replacements for %s`, err: true}
+                                }
+                            }
+                            stack.push(arg2)
+                        }
+                        else{
+                            return {content: `${arg2} is not a string`, err: true}
+                        }
+                        break
+                    }
                     case "%": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
+                        console.log(arg1, arg2)
                         switch(typeof arg1){
                             case "number": {
                                 if(typeof arg2 !== 'number'){
