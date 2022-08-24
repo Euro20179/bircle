@@ -228,10 +228,6 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 //The user can specify a spot where they want to replace it, if they do, don't add another
                 i++
                 ch = content[i]
-                if(ch == "$"){
-                    curArg += "$"
-                        break;
-                }
                 if(ch === '['){
                     if(curArg.indexOf("%{}") === -1) curArg += "%{}"
                     let inside = ""
@@ -249,7 +245,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     i--
                     curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, curArg: curArg, ...vars}, {timeout: 1000})))
                 }
-                if(ch === "("){
+                else if(ch === "("){
                     if(!curArg.match(/(%\{\d*\}|%\{-1\})/g)) curArg += "%{}"
                     let inside = prefix
                     let parenCount = 1
@@ -265,6 +261,9 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     }
                     i--
                     doFirsts[argNo] = inside
+                }
+                else{
+                    curArg += `$${ch}`
                 }
                 break;
             case "\\":

@@ -3030,13 +3030,12 @@ const commands: {[command: string]: Command} = {
             let stack: (number | string)[] = []
             let ram: {[key: string]: number | string} = {}
             args = args.join(" ").split(/\s+/)
-            for(let arg of args){
-                arg = arg.trim()
+            async function parseArg(arg: string, argNo: number, argCount: number): Promise<any>{
                 console.log(stack, arg)
                 switch(arg){
                     case "++":{
                         if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length - 1]} is not a number`}
+                            return {content: `${stack[stack.length - 1]} is not a number`, err: true}
                         }
                         //@ts-ignore
                         let ans = stack[stack.length - 1] + 1
@@ -3047,7 +3046,7 @@ const commands: {[command: string]: Command} = {
                     }
                     case "--": {
                         if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
                         }
                         //@ts-ignore
                         let ans = stack[stack.length - 1] - 1
@@ -3058,10 +3057,10 @@ const commands: {[command: string]: Command} = {
                     }
                     case "+": {
                         if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
                         }
                         if(typeof stack[stack.length - 2] !== 'number'){
-                            return {content: `${stack[stack.length - 2 ]} is not a number`}
+                            return {content: `${stack[stack.length - 2 ]} is not a number`, err: true}
                         }
                         //@ts-ignore
                         let ans = stack.pop() + stack.pop()
@@ -3070,10 +3069,10 @@ const commands: {[command: string]: Command} = {
                     }
                     case "-": {
                         if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
                         }
                         if(typeof stack[stack.length - 2] !== 'number'){
-                            return {content: `${stack[stack.length - 2 ]} is not a number`}
+                            return {content: `${stack[stack.length - 2 ]} is not a number`, err: true}
                         }
                         //@ts-ignore
                         let ans = stack.pop() - stack.pop()
@@ -3081,14 +3080,62 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case ">": {
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        switch(typeof arg1){
+                            case "number": {
+                                if(typeof arg2 !== 'number'){
+                                    return {content: `${arg2} is not a number`, err: true}
+                                }
+                                stack.push(arg1 > arg2 ? 1 : 0)
+                                break
+                            }
+                            case "string": {
+                                if(typeof arg2 !== 'string'){
+                                    return {content: `${arg2} is not a string`, err: true}
+                                }
+                                stack.push(arg1.length > arg2.length ? 1 : 0)
+                                break
+                            }
+                            default: {
+                                return {err: true, content: `type of ${arg1} is unknown`}
+                            }
+                        }
+                        break
+                    }
+                    case "<": {
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        switch(typeof arg1){
+                            case "number": {
+                                if(typeof arg2 !== 'number'){
+                                    return {content: `${arg2} is not a number`, err: true}
+                                }
+                                stack.push(arg1 < arg2 ? 1 : 0)
+                                break
+                            }
+                            case "string": {
+                                if(typeof arg2 !== 'string'){
+                                    return {content: `${arg2} is not a string`, err: true}
+                                }
+                                stack.push(arg1.length < arg2.length ? 1 : 0)
+                                break
+                            }
+                            default: {
+                                return {err: true, content: `type of ${arg1} is unknown`}
+                            }
+                        }
+                        break
+                    }
+                    case "==": {
                         if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
                         }
                         if(typeof stack[stack.length - 2] !== 'number'){
-                            return {content: `${stack[stack.length - 2 ]} is not a number`}
+                            return {content: `${stack[stack.length - 2 ]} is not a number`, err: true}
                         }
-                        //@ts-ignore
-                    let ans = stack.pop() < stack.pop() ? true : false
+                            //@ts-ignore
+                        let ans = stack.pop() == stack.pop() ? true : false
                         stack.push(ans ? 1 : 0)
                         break
                     }
@@ -3111,13 +3158,68 @@ const commands: {[command: string]: Command} = {
                     case "%send": {
                         let ans = stack.pop()
                         if(ans == undefined || ans == null){
-                            return {content: "Nothing to send"}
+                            return {content: "Nothing to send", err: true}
                         }
                         await msg.channel.send(String(ans))
                         break
                     }
+                    case "%if": {
+                        if(isNaN(parseInt(String(stack[stack.length - 1])))){
+                            return {content: `${stack[stack.length - 1]} is not a bool`, err: true}
+                        }
+                        let bool = parseInt(String(stack.pop())) > 0 ? true : false
+                        if(bool){
+                            for(let i = argNo + 1; i < argCount; i++){
+                                //@ts-ignore
+                                if(args[i] == "%else"){
+                                    for(let j = i + 1; j < argCount; j++){
+                                        console.log(j, args[j])
+                                        if(args[j] == "%end"){
+                                            return {chgI: j - argNo}
+                                        }
+                                    }
+                                    return {chgI: i - argNo}
+                                }
+                                if(args[i] == "%end"){
+                                    return {chgI: i - argNo}
+                                }
+                                let rv = await parseArg(args[i], i, argCount)
+                                if(rv?.end) break
+                                if(rv?.chgI)
+                                    i += parseInt(rv.chgI)
+                                if(rv?.err){
+                                    return {chgI: i - argNo, ...rv}
+                                }
+                            }
+                        }
+                        else{
+                            for(let i = argNo; i < argCount; i++){
+                                if(args[i] == "%else"){
+                                    for(let j = i + 1; j < argCount; j++){
+                                        if(args[j] == "%end"){
+                                            return {chgI: j - argNo}
+                                        }
+                                        let rv = await parseArg(args[j], j, argCount)
+                                        if(rv?.end) break
+                                        if(rv?.chgI)
+                                            j += parseInt(rv.chgI)
+                                        if(rv?.err){
+                                            return {chgI: j - argNo, ...rv}
+                                        }
+                                    }
+                                }
+                                if(args[i] == "%end"){
+                                    return {chgI: i - argNo}
+                                }
+                            }
+                        }
+                        break
+                    }
                     default: {
-                        if(typeof parseFloat(arg) === 'number'){
+                        if(arg.match(/^"([^"]+)"$/)){
+                            stack.push(arg.replace(/^"/, "").replace(/"$/, ""))
+                        }
+                        else if(!isNaN(parseFloat(arg))){
                             stack.push(parseFloat(arg))
                         }
                         else if(stack[stack.length - 1] == "%saveas"){
@@ -3128,8 +3230,8 @@ const commands: {[command: string]: Command} = {
                             stack.pop()
                         }
                         else if(stack[stack.length - 1] == "%sram"){
-                            if(typeof parseFloat(stack[stack.length - 2] as string) !== 'number'){
-                                return {content: `${stack[stack.length - 2]} is not a number`}
+                            if(isNaN(parseFloat(String(stack[stack.length - 2])))){
+                                return {content: `${stack[stack.length - 2]} is not a number`, err: true}
                             }
                             ram[arg] = parseFloat(stack[stack.length - 2] as string)
                             stack.pop()
@@ -3149,11 +3251,23 @@ const commands: {[command: string]: Command} = {
                                 value = userVars[msg.author.id]?.[arg]
                             }
                             if(!value){
-                                return {content: `var: **${arg}** does not exist`}
+                                return {content: `var: **${arg}** does not exist`, err: true}
                             }
                             stack.push(value(msg))
                         }
                     }
+                }
+            }
+            for(let i = 0; i < args.length; i++){
+                let arg = args[i]
+                arg = arg.trim()
+                let rv = await parseArg(arg, i, args.length)
+                console.log(rv)
+                if(rv?.end) break
+                if(rv?.chgI)
+                    i += parseInt(rv.chgI)
+                if(rv?.err){
+                    return rv
                 }
             }
             return {content: stack.join(" ")}
