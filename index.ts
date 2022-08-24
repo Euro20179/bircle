@@ -4905,6 +4905,9 @@ async function doCmd(msg: Message, returnJson=false){
                 return args[argNo - 1]
             }
         })
+        msg.content = msg.content.replaceAll("{sender}", String(msg.author))
+        msg.content = msg.content.replaceAll("{sendername}", String(msg.author.username))
+        msg.content = msg.content.replaceAll("{channel}", String(msg.channel))
         if(oldC == msg.content){
             msg.content = msg.content + ` ${args.join(" ")}`
         }
