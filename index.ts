@@ -2107,11 +2107,18 @@ const commands: {[command: string]: Command} = {
             if(!role){
             return {content: "No role given"}
             }
+            await msg.guild?.members.fetch()
             let roleRef = await msg.guild?.roles.fetch()
             if(!roleRef){
             return {content: "no roles found somehow"}
             }
-            let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase() || v.name.toLowerCase().startsWith(role.toLowerCase()))?.at(0)
+            let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase())?.at(0)
+            if(!realRole){
+                realRole = roleRef.filter(v => v.name.toLowerCase().match(role.toLowerCase()) ? true : false)?.at(0)
+            }
+            if(!realRole){
+                realRole = roleRef.filter(v => v.id == role.toLowerCase() ? true : false)?.at(0)
+            }
             if(!realRole){
             return {
                 content: "Could not find role"
@@ -2119,6 +2126,7 @@ const commands: {[command: string]: Command} = {
             }
             let memberTexts = [""]
             let embed = new MessageEmbed()
+            embed.setTitle(realRole.name)
             let i = 0
             let memberCount = 0
             for (let member of realRole.members){
@@ -3017,12 +3025,146 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.META
     },
+    'stackl': {
+        run: async(msg, args) => {
+            let stack: (number | string)[] = []
+            let ram: {[key: string]: number | string} = {}
+            args = args.join(" ").split(/\s+/)
+            for(let arg of args){
+                arg = arg.trim()
+                console.log(stack, arg)
+                switch(arg){
+                    case "++":{
+                        if(typeof stack[stack.length - 1] !== 'number'){
+                            return {content: `${stack[stack.length - 1]} is not a number`}
+                        }
+                        //@ts-ignore
+                        let ans = stack[stack.length - 1] + 1
+                        stack.pop()
+                        stack.pop()
+                        stack.push(ans)
+                        break;
+                    }
+                    case "--": {
+                        if(typeof stack[stack.length - 1] !== 'number'){
+                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                        }
+                        //@ts-ignore
+                        let ans = stack[stack.length - 1] - 1
+                        stack.pop()
+                        stack.pop()
+                        stack.push(ans)
+                        break;
+                    }
+                    case "+": {
+                        if(typeof stack[stack.length - 1] !== 'number'){
+                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                        }
+                        if(typeof stack[stack.length - 2] !== 'number'){
+                            return {content: `${stack[stack.length - 2 ]} is not a number`}
+                        }
+                        //@ts-ignore
+                        let ans = stack.pop() + stack.pop()
+                        stack.push(ans)
+                        break
+                    }
+                    case "-": {
+                        if(typeof stack[stack.length - 1] !== 'number'){
+                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                        }
+                        if(typeof stack[stack.length - 2] !== 'number'){
+                            return {content: `${stack[stack.length - 2 ]} is not a number`}
+                        }
+                        //@ts-ignore
+                        let ans = stack.pop() - stack.pop()
+                        stack.push(ans)
+                        break
+                    }
+                    case ">": {
+                        if(typeof stack[stack.length - 1] !== 'number'){
+                            return {content: `${stack[stack.length -1 ]} is not a number`}
+                        }
+                        if(typeof stack[stack.length - 2] !== 'number'){
+                            return {content: `${stack[stack.length - 2 ]} is not a number`}
+                        }
+                        //@ts-ignore
+                    let ans = stack.pop() < stack.pop() ? true : false
+                        stack.push(ans ? 1 : 0)
+                        break
+                    }
+                    case "%saveas": {
+                        stack.push("%saveas")
+                        break
+                    }
+                    case "%sram": {
+                        stack.push("%sram")
+                        break
+                    }
+                    case "%lram": {
+                        stack.push('%lram')
+                        break
+                    }
+                    case "%pop": {
+                        stack.pop()
+                        break
+                    }
+                    case "%send": {
+                        let ans = stack.pop()
+                        if(ans == undefined || ans == null){
+                            return {content: "Nothing to send"}
+                        }
+                        await msg.channel.send(String(ans))
+                        break
+                    }
+                    default: {
+                        if(typeof parseFloat(arg) === 'number'){
+                            stack.push(parseFloat(arg))
+                        }
+                        else if(stack[stack.length - 1] == "%saveas"){
+                            let ans = stack[stack.length - 2]
+                            vars[arg] = () => ans
+                            stack.pop()
+                            stack.pop()
+                            stack.pop()
+                        }
+                        else if(stack[stack.length - 1] == "%sram"){
+                            if(typeof parseFloat(stack[stack.length - 2] as string) !== 'number'){
+                                return {content: `${stack[stack.length - 2]} is not a number`}
+                            }
+                            ram[arg] = parseFloat(stack[stack.length - 2] as string)
+                            stack.pop()
+                            stack.pop()
+                            stack.pop()
+                        }
+                        else if(stack[stack.length - 1] == '%lram'){
+                            if(ram[arg] === undefined){
+                                return {content: `${arg} not in ram`}
+                            }
+                            stack.pop()
+                            stack.push(ram[arg])
+                        }
+                        else{
+                            let value = vars[arg]
+                            if(!value){
+                                value = userVars[msg.author.id]?.[arg]
+                            }
+                            if(!value){
+                                return {content: `var: **${arg}** does not exist`}
+                            }
+                            stack.push(value(msg))
+                        }
+                    }
+                }
+            }
+            return {content: stack.join(" ")}
+        }, category: CommandCategory.UTIL
+    },
     "expr": {
         run: async(msg, args) => {
             let vname = args[0]
             let varValRet
             let vardict = vars
-            if(!parseFloat(vname)){
+            if(typeof parseFloat(vname) === 'number'){
                 let vvalue = vars[vname]
                 if(!vvalue){
                     vardict = userVars[msg.author.id]
@@ -3039,7 +3181,7 @@ const commands: {[command: string]: Command} = {
             }
             let op = args[1]
             let expr = args[2]
-            if(expr && !parseFloat(expr)){
+            if(expr && typeof parseFloat(expr) !== 'number'){
                 let vvalue = vars[expr]
                 if(!vvalue){
                     vvalue = userVars[msg.author.id]?.[expr]
