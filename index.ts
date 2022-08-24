@@ -4183,7 +4183,6 @@ ${styles}
     },
     END: {
         run: async(msg: Message, args: ArgumentList) => {
-            msg.guild.clien
             await msg.channel.send("STOPPING")
             client.destroy()
             return {
