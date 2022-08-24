@@ -3332,7 +3332,7 @@ const commands: {[command: string]: Command} = {
             let vname = args[0]
             let varValRet
             let vardict = vars
-            if(typeof parseFloat(vname) === 'number'){
+            if(typeof parseFloat(vname) !== 'number'){
                 let vvalue = vars[vname]
                 if(!vvalue){
                     vardict = userVars[msg.author.id]
