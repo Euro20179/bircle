@@ -1954,7 +1954,13 @@ const commands: {[command: string]: Command} = {
             [opts, args] = getOpts(args)
             if(opts['d'] && msg.deletable) await msg.delete()
             let edits = args.join(" ").split("|")
-            let message = await msg.channel.send(edits[0])
+            let message
+            try{
+                message = await msg.channel.send(edits[0])
+            }
+            catch(err){
+                return {content: "message too big"}
+            }
             edits = edits.slice(1)
             let lastEdit = message.content
             for(let edit of edits){
@@ -1982,7 +1988,12 @@ const commands: {[command: string]: Command} = {
                     edit = lastEdit.slice(0, lastEdit.length / divideBy)
                 }
                 else if(edit[0] == ";"){
-                    message = await msg.channel.send(edit.slice(1))
+                    try{
+                        message = await msg.channel.send(edit.slice(1))
+                    }
+                    catch(err){
+                        return {content: "message too big"}
+                    }
                     continue
                 }
                 try{
