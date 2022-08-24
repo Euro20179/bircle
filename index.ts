@@ -3087,7 +3087,26 @@ const commands: {[command: string]: Command} = {
         run: async(msg, args) => {
             let stack: (number | string)[] = []
             let ram: {[key: string]: number | string} = {}
-            args = args.join(" ").split(/\s+/)
+            let stacklArgs = []
+            let text = args.join(" ")
+            let word = ""
+            let inStr = false
+            for(let i = 0; i < text.length; i++){
+                if(text[i] == '"'){
+                    word += '"'
+                    inStr = !inStr
+                    continue
+                }
+                if(text[i].match(/\s/) && ! inStr){
+                    stacklArgs.push(word)
+                    word = ""
+                    continue
+                }
+                word += text[i]
+            }
+            if(word)
+                stacklArgs.push(word)
+            args = stacklArgs
             async function parseArg(arg: string, argNo: number, argCount: number): Promise<any>{
                 switch(arg){
                     case "++":{
@@ -3156,6 +3175,23 @@ const commands: {[command: string]: Command} = {
                             }
                             default: {
                                 return {err: true, content: `type of ${arg1} is unknown`}
+                            }
+                        }
+                        break
+                    }
+                    case "%": {
+                        let arg2 = stack.pop()
+                        let arg1 = stack.pop()
+                        switch(typeof arg1){
+                            case "number": {
+                                if(typeof arg2 !== 'number'){
+                                    return {content: `${arg2} is not a number`, err: true}
+                                }
+                                stack.push(arg1 - arg2)
+                                break
+                            }
+                            default: {
+                                return {err: true, content: `${arg} is not a number`}
                             }
                         }
                         break
@@ -3247,7 +3283,6 @@ const commands: {[command: string]: Command} = {
                                 //@ts-ignore
                                 if(args[i] == "%else"){
                                     for(let j = i + 1; j < argCount; j++){
-                                        console.log(j, args[j])
                                         if(args[j] == "%end"){
                                             return {chgI: j - argNo}
                                         }
