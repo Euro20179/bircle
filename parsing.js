@@ -168,28 +168,28 @@ function buildEscape(letter, sequence, msg, curArg){
             return (new Date(sequence)).toString()
         case "D":
             return (new Date(parseInt(sequence))).toString()
-	case "v":
+        case "v":
         case "V":
-	    let num = Number(sequence)
-	    //basically checks if it's a n
-	    if(!isNaN(num)){
-		let args = msg.content.split(" ")
-		return String(args[num])
-	    }
-	    try{
-		if(sequence.split(":")[0] == "g"){
-		return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || "\\V"
-		}
-		if(userVars[msg.author.id]){
-		    if(userVars[msg.author.id][sequence]){
-			return userVars[msg.author.id][sequence](msg, curArg)
-		    }
-		}
-		return vars[sequence](msg, curArg) || "\\V"
-	    } catch(err){
-		console.log(err)
-		return "\\V"
-	    }
+            let num = Number(sequence)
+            //basically checks if it's a n
+            if(!isNaN(num)){
+                let args = msg.content.split(" ")
+                return String(args[num])
+            }
+            try{
+                if(sequence.split(":")[0] == "g"){
+                    return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || "\\V"
+                }
+                if(userVars[msg.author.id]){
+                    if(userVars[msg.author.id][sequence]){
+                        return userVars[msg.author.id][sequence](msg, curArg)
+                    }
+                }
+                return vars[sequence](msg, curArg) ?? "\\V"
+            } catch(err){
+                console.log(err)
+                return "\\V"
+            }
         case "\\":
             return "\\"
         default:

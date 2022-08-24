@@ -261,7 +261,6 @@ const commands: {[command: string]: Command} = {
     time: {
         run: async(msg, args) => {
             let fmt = args.join(" ")
-            console.log(fmt)
 
             const date = new Date()
             let hours = date.getHours()
@@ -1362,7 +1361,6 @@ const commands: {[command: string]: Command} = {
                 return {content: `Couldnt listen in ${player}'s dms`}
             }
             collection.on("collect", async(m) => {
-                console.log(m.content)
                 if(m.content.toLowerCase() == "stop"){
                 players = players.filter(v => v.id != m.author.id)
                 if(players.length == 0){
@@ -1460,7 +1458,6 @@ const commands: {[command: string]: Command} = {
                         cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
                     }
                     while(!parseInt(cardM?.content as string)){
-                        console.log(cardM?.content, parseInt(cardM?.content as string))
                         await m.channel.send("Not a valid card")
                         cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
                     }
@@ -3320,7 +3317,36 @@ const commands: {[command: string]: Command} = {
                         if(arg1 === arg2 && arg1 === 1){
                             stack.push(0)
                         }
-
+                        else if((arg1 === 1 && arg2 === 0) || (arg1 === 0 && arg2 === 1)){
+                            stack.push(1)
+                        }
+                        stack.push(0)
+                        break
+                    }
+                    case "%nand": {
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        if(typeof arg1 !== 'number'){
+                            return {err: true, content: `${arg1} is not a boolean`}
+                        }
+                        if(typeof arg2 !== 'number'){
+                            return {err: true, content: `${arg2} is not a boolean`}
+                        }
+                        if(arg1 !== 1 && arg2 !== 1){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
+                    }
+                    case "!": {
+                        let arg1 = stack.pop()
+                        if(typeof arg1 !== 'number'){
+                            return {err: true, content: `${arg1} is not a boolean`}
+                        }
+                        stack.push(arg1 === 1 ? 0 : 1)
+                        break
                     }
                     case "%saveas": {
                         stack.push("%saveas")
@@ -3413,11 +3439,9 @@ const commands: {[command: string]: Command} = {
                             stack.push(parseFloat(arg))
                         }
                         else if(stack[stack.length - 1] == "%saveas"){
-                            let ans = stack[stack.length - 2]
+                            stack.pop()
+                            let ans = stack.pop()
                             vars[arg] = () => ans
-                            stack.pop()
-                            stack.pop()
-                            stack.pop()
                         }
                         else if(stack[stack.length - 1] == "%sram"){
                             if(isNaN(parseFloat(String(stack[stack.length - 2])))){
@@ -3452,7 +3476,6 @@ const commands: {[command: string]: Command} = {
                 let arg = args[i]
                 arg = arg.trim()
                 let rv = await parseArg(arg, i, args.length)
-                console.log(rv)
                 if(rv?.end) break
                 if(rv?.chgI)
                     i += parseInt(rv.chgI)
@@ -3808,7 +3831,6 @@ ${fs.readdirSync("./command-results").join("\n")}
             let opts;
             [opts, args] = getOpts(args)
             let showArgs = true
-            console.log(opts)
             if(opts['n'] || opts['no-args']){
                 showArgs = false
             }
@@ -3819,7 +3841,6 @@ ${fs.readdirSync("./command-results").join("\n")}
             //finds the original command
             while(aliases[command]?.[0]){
                 a = aliases[command].slice(1).join(" ") +" " + a + " "
-                console.log(aliases[command][0], showArgs)
                 if(showArgs)
                     chain.push(`${aliases[command][0]} ${a}`.trim())
                 else
@@ -4316,7 +4337,6 @@ ${styles}
             let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
             if(fs.existsSync("./command-results/last-run")){
                 let data = fs.readFileSync("./command-results/last-run", "utf-8")
-                console.log(data)
                 lastRun = new Date()
                 lastRun.setTime(Number(data))
             }
@@ -4902,16 +4922,16 @@ valid formats:<br>
             }
             let version = args[0]
             if(!args[0]){
-            version = (() => {
-                let d = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
-                if(VERSION.part)
-                d += `.${VERSION.part}`
-                if(VERSION.alpha)
-                d = `A.${d}`
-                if(VERSION.beta)
-                d = `B.${d}`
-                return d
-            })()
+                version = (() => {
+                    let d = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
+                    if(VERSION.part)
+                    d += `.${VERSION.part}`
+                    if(VERSION.alpha)
+                    d = `A.${d}`
+                    if(VERSION.beta)
+                    d = `B.${d}`
+                    return d
+                })()
             }
             if(!fs.existsSync(`changelog/${version}.md`)){
             return {content: `${version} does not exist`}
@@ -5063,7 +5083,6 @@ async function doCmd(msg: Message, returnJson=false){
         msg.content = msg.content.replaceAll(/(?<!\\)\{arg(\d+)(..\d+)?\}/g, (...repl) => {
             let argNo = parseInt(repl[1])
             let argTo = parseInt(repl[2]?.replace(/\./g, ""))
-            console.log(repl, argNo, argTo)
             if(argTo){
                 return args.slice(argNo - 1, argTo).join(" ")
             }
