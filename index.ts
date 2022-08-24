@@ -3032,6 +3032,21 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.META
     },
+    "pollify": {
+        run: async(msg, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            if(msg.deletable && opts['d']) await msg.delete()
+            let message = await msg.channel.send(args.join(" "))
+            await message.react("<:Blue_check:608847324269248512>")
+            await message.react("<:neutral:716078457880051734>")
+            await message.react("❌")
+            return {noSend: true}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Idk it pollifies what do you want"
+        }
+    },
     "vars": {
         run: async(msg, args) => {
             let rv = "Global Vars:\n"
