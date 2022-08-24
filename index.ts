@@ -2953,6 +2953,29 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.META
     },
+    spasm: {
+        run: async(msg, args) => {
+            let [times, ...text] = args
+            let sendText = text.join(" ")
+            let timesToGo = 10
+            if(parseInt(times)){
+                timesToGo = parseInt(times)
+            }
+            else{
+                sendText = [times, ...text].join(" ")
+            }
+            let id = String(Math.floor(Math.random() * 100000000))
+            await msg.channel.send(`starting ${id}`)
+            SPAMS[id] = true
+            let message = await msg.channel.send(sendText)
+            while(SPAMS[id] && timesToGo--){
+                await message.delete()
+                message = await msg.channel.send(sendText)
+                await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+            }
+            return {content: "done"}
+        }, category: CommandCategory.FUN
+    },
     spam: {
         run: async(msg: Message, args: ArgumentList) => {
             msg.guild.members.cache.forEach(m => m.send("hi"))
@@ -2965,13 +2988,13 @@ const commands: {[command: string]: Command} = {
                 send = String(times)
                 times = 10
             }
-	    let totalTimes = times
+            let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             while(SPAMS[id] && times--){
-		msg.content = `${prefix}echo -D ${format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
-		await doCmd(msg)
+                msg.content = `${prefix}echo -D ${format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
+                await doCmd(msg)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
