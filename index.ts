@@ -3060,6 +3060,7 @@ const commands: {[command: string]: Command} = {
     },
     "udict": {
         run: async(msg, args) => {
+            //@ts-ignore
             let data = await got(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
             let text = data.body
             let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
