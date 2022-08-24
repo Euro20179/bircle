@@ -3106,15 +3106,27 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case "-": {
-                        if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        switch(typeof arg1){
+                            case "number": {
+                                if(typeof arg2 !== 'number'){
+                                    return {content: `${arg2} is not a number`, err: true}
+                                }
+                                stack.push(arg1 - arg2)
+                                break
+                            }
+                            case "string": {
+                                if(typeof arg2 !== 'string'){
+                                    return {content: `${arg2} is not a string`, err: true}
+                                }
+                                stack.push(arg1.replaceAll(arg2, ""))
+                                break
+                            }
+                            default: {
+                                return {err: true, content: `type of ${arg1} is unknown`}
+                            }
                         }
-                        if(typeof stack[stack.length - 2] !== 'number'){
-                            return {content: `${stack[stack.length - 2 ]} is not a number`, err: true}
-                        }
-                        //@ts-ignore
-                        let ans = stack.pop() - stack.pop()
-                        stack.push(ans)
                         break
                     }
                     case ">": {
@@ -3166,13 +3178,6 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case "==": {
-                        if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
-                        }
-                        if(typeof stack[stack.length - 2] !== 'number'){
-                            return {content: `${stack[stack.length - 2 ]} is not a number`, err: true}
-                        }
-                            //@ts-ignore
                         let ans = stack.pop() == stack.pop() ? true : false
                         stack.push(ans ? 1 : 0)
                         break

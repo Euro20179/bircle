@@ -12,5 +12,7 @@ command-results
 index.js
 log.txt
 make-changelog
+*.txt
+*.png
 
 !command-perms/holder
