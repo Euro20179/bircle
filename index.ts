@@ -666,26 +666,58 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.FUN
     },
-    "countof": {
+    "get": {
         run: async(msg, opts) => {
-            let object = opts[0]
-            switch(object){
-                case "channel": {
-                    let channels = await msg.guild?.channels.fetch()
-                    return {content: channels?.size.toString()}
+            let operator = opts[0]
+            let object = opts[1]
+            switch(operator){
+                case "#": {
+                    let number = parseInt(opts[2])
+                    let data;
+                    switch(object){
+                        case "channel": {
+                            data = await msg.guild?.channels.fetch()
+                            break
+                        }
+                        case "role": {
+                            data = await msg.guild?.roles.fetch()
+                            break
+                        }
+                        case "member": {
+                            data = await msg.guild?.members.fetch()
+                            break
+                        }
+                        case "bot": {
+                            let bots = await msg.guild?.members.fetch()
+                            data = bots?.filter(u => u.user.bot)
+                            break
+                        }
+                    }
+                    if(!data){
+                        return {content: `${object} is invalid`}
+                    }
+                    if(number){
+                        return {content: String(data.at(number)), allowedMentions: {parse: []}}
+                    }
+                    else{
+                        return {content: String(data.size), allowedMentions: {parse: []}}
+                    }
                 }
-                case "roles": {
-                    let roles = await msg.guild?.roles.fetch()
-                    return {content: roles?.size.toString()}
-                }
-                case "members": {
-                    let members = await msg.guild?.members.fetch()
-                    return {content: members?.size.toString()}
-                }
-                case "bots": {
-                    let bots = await msg.guild?.members.fetch()
-                    bots = bots?.filter(u => u.user.bot)
-                    return {content: bots?.size.toString()}
+                case "rand": {
+                    switch(object){
+                        case "channel": {
+                            let channels = await msg.guild?.channels.fetch()
+                            return {content: channels?.random()?.toString()}
+                        }
+                        case "role": {
+                            let roles = await msg.guild?.roles.fetch()
+                            return {content: String(roles?.random()), allowedMentions: {parse: []}}
+                        }
+                        case "member": {
+                            let members = await msg.guild?.members.fetch()
+                            return {content: String(members?.random()), allowedMentions: {parse: []}}
+                        }
+                    }
                 }
             }
             return {content: "Not a valid option"}
