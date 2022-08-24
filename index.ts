@@ -734,13 +734,11 @@ const commands: {[command: string]: Command} = {
             sep = "\n"
             } else sep = String(sep)
             let ret: any[] = []
-            for(let line of args.join(" ").split("\n")){
-                try{
-                    ret.push(String(safeEval(line, {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
-                }
-                catch(err){
-                    console.log(err)
-                }
+            try{
+                ret.push(String(safeEval(args.join(" "), {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
+            }
+            catch(err){
+                console.log(err)
             }
             if(ret.length){
             if(userVars && userVars[msg.author.id])
@@ -3282,6 +3280,9 @@ const commands: {[command: string]: Command} = {
                         if(typeof arg1 !== 'number'){
                             return {err: true, content: `${arg1} is not a boolean`}
                         }
+                        if(typeof arg2 !== 'number'){
+                            return {err: true, content: `${arg2} is not a boolean`}
+                        }
                         if(arg1 === 1 || arg2 === 1){
                             stack.push(1)
                         }
@@ -3293,6 +3294,12 @@ const commands: {[command: string]: Command} = {
                     case "%and": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
+                        if(typeof arg1 !== 'number'){
+                            return {err: true, content: `${arg1} is not a boolean`}
+                        }
+                        if(typeof arg2 !== 'number'){
+                            return {err: true, content: `${arg2} is not a boolean`}
+                        }
                         if(arg1 === 1 && arg2 === 1){
                             stack.push(1)
                         }
@@ -3304,6 +3311,16 @@ const commands: {[command: string]: Command} = {
                     case "%xor": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
+                        if(typeof arg1 !== 'number'){
+                            return {err: true, content: `${arg1} is not a boolean`}
+                        }
+                        if(typeof arg2 !== 'number'){
+                            return {err: true, content: `${arg2} is not a boolean`}
+                        }
+                        if(arg1 === arg2 && arg1 === 1){
+                            stack.push(0)
+                        }
+
                     }
                     case "%saveas": {
                         stack.push("%saveas")
