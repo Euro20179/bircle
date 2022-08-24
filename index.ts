@@ -4945,7 +4945,7 @@ async function doCmd(msg: Message, returnJson=false){
     if(!Object.keys(rv).length){
         return
     }
-    if(rv.delete){
+    if(rv.delete && msg.deletable){
         msg.delete().catch(err => console.log("Message not deleted"))
     }
     if(rv.noSend){
