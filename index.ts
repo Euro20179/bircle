@@ -1952,7 +1952,7 @@ const commands: {[command: string]: Command} = {
         run: async(msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(opts['d']) await msg.delete()
+            if(opts['d'] && msg.deletable) await msg.delete()
             let edits = args.join(" ").split("|")
             let message = await msg.channel.send(edits[0])
             edits = edits.slice(1)
@@ -2958,7 +2958,7 @@ const commands: {[command: string]: Command} = {
             let [times, ...text] = args
             let sendText = text.join(" ")
             let timesToGo = 10
-            if(parseInt(times)){
+            if(!isNaN(parseInt(times))){
                 timesToGo = parseInt(times)
             }
             else{
@@ -2969,7 +2969,7 @@ const commands: {[command: string]: Command} = {
             SPAMS[id] = true
             let message = await msg.channel.send(sendText)
             while(SPAMS[id] && timesToGo--){
-                await message.delete()
+                if(message.deletable) await message.delete()
                 message = await msg.channel.send(sendText)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
@@ -4837,7 +4837,8 @@ async function doCmd(msg: Message, returnJson=false){
             })
         })
         //@ts-ignore
-        args[idx] = args[idx].replaceAll("%{}", data).replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
+        args[idx] = args[idx].replaceAll("%{}", data)
+        args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
         for(let m of args[idx].matchAll(/%\{(\d+)\}/g)){
             args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
         }
