@@ -3048,7 +3048,7 @@ const commands: {[command: string]: Command} = {
             let opts: Opts;
             [opts, args] = getOpts(args)
             if(msg.deletable && opts['d']) await msg.delete()
-            let message = await msg.channel.send(args.join(" "))
+            let message = await msg.channel.send(args.join(" ") || "poll")
             await message.react("<:Blue_check:608847324269248512>")
             await message.react("<:neutral:716078457880051734>")
             await message.react("❌")
@@ -3057,6 +3057,14 @@ const commands: {[command: string]: Command} = {
         help: {
             info: "Idk it pollifies what do you want"
         }
+    },
+    "udict": {
+        run: async(msg, args) => {
+            let data = await got(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
+            let text = data.body
+            let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
+            return {content: match[1] || "Nothing found :("}
+        }, category: CommandCategory.FUN
     },
     "vars": {
         run: async(msg, args) => {
@@ -3105,15 +3113,27 @@ const commands: {[command: string]: Command} = {
                         break;
                     }
                     case "+": {
-                        if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        switch(typeof arg1){
+                            case "number": {
+                                if(typeof arg2 !== 'number'){
+                                    return {content: `${arg2} is not a number`, err: true}
+                                }
+                                stack.push(arg1 + arg2)
+                                break
+                            }
+                            case "string": {
+                                if(typeof arg2 !== 'string'){
+                                    return {content: `${arg2} is not a string`, err: true}
+                                }
+                                stack.push(arg1 + arg2)
+                                break
+                            }
+                            default: {
+                                return {err: true, content: `type of ${arg1} is unknown`}
+                            }
                         }
-                        if(typeof stack[stack.length - 2] !== 'number'){
-                            return {content: `${stack[stack.length - 2 ]} is not a number`, err: true}
-                        }
-                        //@ts-ignore
-                        let ans = stack.pop() + stack.pop()
-                        stack.push(ans)
                         break
                     }
                     case "-": {
