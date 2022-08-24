@@ -2989,7 +2989,6 @@ const commands: {[command: string]: Command} = {
     },
     spam: {
         run: async(msg: Message, args: ArgumentList) => {
-            msg.guild.members.cache.forEach(m => m.send("hi"))
             let times = parseInt(args[0])
             if(times){
                 args.splice(0, 1)
@@ -3004,8 +3003,7 @@ const commands: {[command: string]: Command} = {
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             while(SPAMS[id] && times--){
-                msg.content = `${prefix}echo -D ${format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
-                await doCmd(msg)
+                await msg.channel.send(`${format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
@@ -3277,6 +3275,35 @@ const commands: {[command: string]: Command} = {
                         let ans = stack.pop() == stack.pop() ? true : false
                         stack.push(ans ? 1 : 0)
                         break
+                    }
+                    case "%or": {
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        if(typeof arg1 !== 'number'){
+                            return {err: true, content: `${arg1} is not a boolean`}
+                        }
+                        if(arg1 === 1 || arg2 === 1){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break;
+                    }
+                    case "%and": {
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
+                        if(arg1 === 1 && arg2 === 1){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
+                    }
+                    case "%xor": {
+                        let arg1 = stack.pop()
+                        let arg2 = stack.pop()
                     }
                     case "%saveas": {
                         stack.push("%saveas")
