@@ -3302,6 +3302,9 @@ const commands: {[command: string]: Command} = {
                         await msg.channel.send(String(ans))
                         break
                     }
+                    case "%end": {
+                        return {end: true}
+                    }
                     case "%if": {
                         if(isNaN(parseInt(String(stack[stack.length - 1])))){
                             return {content: `${stack[stack.length - 1]} is not a bool`, err: true}
@@ -3322,7 +3325,7 @@ const commands: {[command: string]: Command} = {
                                     return {chgI: i - argNo}
                                 }
                                 let rv = await parseArg(args[i], i, argCount)
-                                if(rv?.end) break
+                                if(rv?.end) return {end: true}
                                 if(rv?.chgI)
                                     i += parseInt(rv.chgI)
                                 if(rv?.err){
@@ -3338,7 +3341,7 @@ const commands: {[command: string]: Command} = {
                                             return {chgI: j - argNo}
                                         }
                                         let rv = await parseArg(args[j], j, argCount)
-                                        if(rv?.end) break
+                                        if(rv?.end) return {end: true}
                                         if(rv?.chgI)
                                             j += parseInt(rv.chgI)
                                         if(rv?.err){
