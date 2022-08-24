@@ -3099,7 +3099,7 @@ const commands: {[command: string]: Command} = {
             }
             if(word)
                 stacklArgs.push(word)
-            args = stacklArgs
+            args = stacklArgs.filter(a => a ? true : false)
             async function parseArg(arg: string, argNo: number, argCount: number): Promise<any>{
                 switch(arg){
                     case "++":{
@@ -3372,6 +3372,22 @@ const commands: {[command: string]: Command} = {
                         await msg.channel.send(String(ans))
                         break
                     }
+                    case "%upper": {
+                        let val = stack.pop()
+                        if(typeof val !== "string"){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        stack.push(val.toUpperCase())
+                        break
+                    }
+                    case "%lower": {
+                        let val = stack.pop()
+                        if(typeof val !== "string"){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        stack.push(val.toLowerCase())
+                        break
+                    }
                     case "%rand": {
                         stack.push(Math.random())
                         break
@@ -3444,10 +3460,7 @@ const commands: {[command: string]: Command} = {
                             vars[arg] = () => ans
                         }
                         else if(stack[stack.length - 1] == "%sram"){
-                            if(isNaN(parseFloat(String(stack[stack.length - 2])))){
-                                return {content: `${stack[stack.length - 2]} is not a number`, err: true}
-                            }
-                            ram[arg] = parseFloat(stack[stack.length - 2] as string)
+                            ram[arg] = stack[stack.length - 2]
                             stack.pop()
                             stack.pop()
                             stack.pop()
