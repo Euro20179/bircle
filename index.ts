@@ -1,6 +1,5 @@
 ///<reference path="index.d.ts" />
 import fs = require("fs")
-import vm = require("vm")
 
 import https = require('https')
 import Stream = require('stream')
@@ -9,7 +8,7 @@ const { execSync, exec } = require('child_process')
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed, User, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessagePayload, MessageActionRow, MessageSelectMenu, ButtonInteraction, GuildEmoji } from 'discord.js'
+import {Client, Intents, MessageEmbed,  Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton,  MessageActionRow, MessageSelectMenu,  GuildEmoji } from 'discord.js'
 
 import uno = require("./uno")
 
@@ -17,10 +16,9 @@ import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
 import jimp = require('jimp')
-import { AudioPlayerStatus, createAudioResource, NoSubscriberBehavior } from "@discordjs/voice"
 
 
-const { LOGFILE, prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
+const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
@@ -3078,8 +3076,8 @@ const commands: {[command: string]: Command} = {
     },
     'stackl': {
         run: async(msg, args) => {
-            let stack: (number | string | Message | GuildMember)[] = []
-            let ram: {[key: string]: number | string | Message | GuildMember} = {}
+            let stack: (number | string | Message | GuildMember | Function)[] = []
+            let ram: {[key: string]: number | string | Message | GuildMember | Function} = {"random": (low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low}}
             let stacklArgs = []
             let text = args.join(" ")
             let word = ""
@@ -3100,16 +3098,16 @@ const commands: {[command: string]: Command} = {
             if(word)
                 stacklArgs.push(word)
             args = stacklArgs.filter(a => a ? true : false)
-            async function parseArg(arg: string, argNo: number, argCount: number): Promise<any>{
+
+            async function parseArg(arg: string, argNo: number, argCount: number, args: string[]): Promise<any>{
                 switch(arg){
                     case "++":{
-                        if(typeof stack[stack.length - 1] !== 'number'){
+                        let val = stack.pop()
+                        if(typeof val !== 'number'){
                             return {content: `${stack[stack.length - 1]} is not a number`, err: true}
                         }
                         //@ts-ignore
-                        let ans = stack[stack.length - 1] + 1
-                        stack.pop()
-                        stack.pop()
+                        let ans = val + 1
                         stack.push(ans)
                         break;
                     }
@@ -3172,6 +3170,43 @@ const commands: {[command: string]: Command} = {
                         }
                         break
                     }
+                    case "/": {
+                        let arg2 = stack.pop()
+                        let arg1 = stack.pop()
+                        if(typeof arg1 !== 'number'){
+                            return {err: true, content: `${arg1} is not a number`}
+                        }
+                        if(typeof arg2 !== 'number'){
+                            return {err: true, content: `${arg2} is not a number`}
+                        }
+                        stack.push(arg1 / arg2)
+                        break
+                    }
+                    case "*": {
+                        let arg2 = stack.pop()
+                        let arg1 = stack.pop()
+                        switch(typeof arg1){
+                            case 'number': {
+                                if(typeof arg2 !== 'number'){
+                                    return {err: true, content: `${arg2} is not a number`}
+                                }
+                                stack.push(arg1 * arg2)
+                                break
+                            }
+                            case 'string': {
+                                if(typeof arg2 !== 'number'){
+                                    return {err: true, content: `${arg2} is not a number`}
+                                }
+                                let ans = ""
+                                for(let i = 0; i < arg2; i++){
+                                    ans += arg1
+                                }
+                                stack.push(ans)
+                                break
+                            }
+                        }
+                        break
+                    }
                     case "%s": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
@@ -3203,7 +3238,6 @@ const commands: {[command: string]: Command} = {
                     case "%": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        console.log(arg1, arg2)
                         switch(typeof arg1){
                             case "number": {
                                 if(typeof arg2 !== 'number'){
@@ -3397,6 +3431,30 @@ const commands: {[command: string]: Command} = {
                         stack.push(String(val))
                         break
                     }
+                    case "%int": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        let ans = parseInt(val)
+                        if(isNaN(ans)){
+                            return {err: true, content: `Result was NaN`}
+                        }
+                        stack.push(ans)
+                        break
+                    }
+                    case "%float": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        let ans = parseFloat(val)
+                        if(isNaN(ans)){
+                            return {err: true, content: `Result was NaN`}
+                        }
+                        stack.push(ans)
+                        break
+                    }
                     case "%lower": {
                         let val = stack.pop()
                         if(typeof val !== "string"){
@@ -3445,8 +3503,61 @@ const commands: {[command: string]: Command} = {
                         }
                         break
                     }
+                    case "%call": {
+                        let fnArgC = stack.pop()
+                        if(typeof fnArgC !== 'number'){
+                            return {err: true, content: `${fnArgC} is not a number`}
+                        }
+                        let fnArgs = []
+                        for(let i = 0; i < fnArgC; i++){
+                            let item = stack.pop()
+                            if(item === undefined){
+                                return {err: true, content: `Argument: ${i} is undefined`}
+                            }
+                            fnArgs.push(item)
+                        }
+                        let f = stack.pop()
+                        if(typeof f !== 'function'){
+                            return {err: true, content: `${f} is not a function`}
+                        }
+                        stack.push(f(...fnArgs))
+                        break
+                    }
                     case "%end": {
                         return {end: true}
+                    }
+                    case "%break": {
+                        return {end: true}
+                    }
+                    case "%loop": {
+                        let code = []
+                        let chgI = 0
+                        for(let i = argNo + 1; i < argCount; i++){
+                            chgI++
+                            if(args[i] == "%loopend"){
+                                break
+                            }
+                            code.push(args[i])
+                        }
+                        let loopCount = 0
+                        forever: while(true){
+                            loopCount++
+                            for(let i = 0; i < code.length; i++){
+                                let rv = await parseArg(code[i], i, code.length, code)
+                                if(rv?.end) break forever
+                                if(rv?.chgI){
+                                    i += parseInt(rv.chgI)
+                                }
+                                if(rv?.err){
+                                    return rv
+                                }
+                            }
+                            if(loopCount > 2000){
+                                stack.push(0)
+                                break
+                            }
+                        }
+                        return {chgI:chgI}
                     }
                     case "%if": {
                         if(isNaN(parseInt(String(stack[stack.length - 1])))){
@@ -3467,7 +3578,7 @@ const commands: {[command: string]: Command} = {
                                 if(args[i] == "%end"){
                                     return {chgI: i - argNo}
                                 }
-                                let rv = await parseArg(args[i], i, argCount)
+                                let rv = await parseArg(args[i], i, argCount, args)
                                 if(rv?.end) return {end: true}
                                 if(rv?.chgI)
                                     i += parseInt(rv.chgI)
@@ -3483,7 +3594,7 @@ const commands: {[command: string]: Command} = {
                                         if(args[j] == "%end"){
                                             return {chgI: j - argNo}
                                         }
-                                        let rv = await parseArg(args[j], j, argCount)
+                                        let rv = await parseArg(args[j], j, argCount, args)
                                         if(rv?.end) return {end: true}
                                         if(rv?.chgI)
                                             j += parseInt(rv.chgI)
@@ -3504,6 +3615,22 @@ const commands: {[command: string]: Command} = {
                             //strings
                             stack.push(arg.replace(/^"/, "").replace(/"$/, ""))
                         }
+                        else if(arg.match(/^\.[^ ]+$/)){
+                            let data = stack.pop()
+                            if(typeof data === 'undefined'){
+                                return {err: true, content: `${data} is undefined`}
+                            }
+                            let val = (data as any)[arg.slice(1)]
+                            if(typeof val === 'function'){
+                                stack.push(String(val))
+                            }
+                            else if(val){
+                                stack.push(val)
+                            }
+                            else{
+                                stack.push(0)
+                            }
+                        }
                         else if(!isNaN(parseFloat(arg))){
                             stack.push(parseFloat(arg))
                         }
@@ -3514,7 +3641,6 @@ const commands: {[command: string]: Command} = {
                         }
                         else if(stack[stack.length - 1] == "%sram"){
                             ram[arg] = stack[stack.length - 2]
-                            stack.pop()
                             stack.pop()
                             stack.pop()
                         }
@@ -3541,7 +3667,7 @@ const commands: {[command: string]: Command} = {
             for(let i = 0; i < args.length; i++){
                 let arg = args[i]
                 arg = arg.trim()
-                let rv = await parseArg(arg, i, args.length)
+                let rv = await parseArg(arg, i, args.length, args)
                 if(rv?.end) break
                 if(rv?.chgI)
                     i += parseInt(rv.chgI)
@@ -4841,6 +4967,10 @@ valid formats:<br>
             [cmd, ...args] = args
             let realCmd = args[0]
             args = args.slice(1)
+            console.log(aliases[cmd])
+            if(aliases[cmd]){
+                return {content: `Failed to add "${cmd}", it already exists`}
+            }
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
             aliases = createAliases()
             return {
@@ -4850,7 +4980,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "!!": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async(_msg: Message, args: ArgumentList) => {
 	    let opts;
 	    [opts, args] = getOpts(args)
 	    if(opts['check'] || opts['print'] || opts['see'])
@@ -4871,7 +5001,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "psnipe": {
-        run: async(msg, args) => {
+        run: async(_msg, _args) => {
             if(!purgeSnipe){
             return {content: "Nothing has been purged yet"}
             }
@@ -4898,7 +5028,7 @@ valid formats:<br>
         category: CommandCategory.FUN
     },
     snipe: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async(_msg: Message, args: ArgumentList) => {
 	    let snipeC = ((parseInt(args[0]) - 1) || 0)
 	    if(snipeC >= 5){
 		return {content: "it only goes back 5"}
@@ -4934,13 +5064,13 @@ valid formats:<br>
         category: CommandCategory.FUN
     },
     ping: {
-        run: async(msg, args) => {
+        run: async(msg, _args) => {
             return {content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`}
         },
         category: CommandCategory.META
     },
     version: {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             if(opts['l']){
@@ -4980,7 +5110,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     changelog: {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let  opts;
             [opts, args] = getOpts(args)
             if(opts['l']){
@@ -5021,7 +5151,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     spams: {
-        run: async(msg, args) => {
+        run: async(_msg, _args) => {
             let data = ""
             for(let id in SPAMS){
             data += `${id}\n`
@@ -5182,7 +5312,7 @@ async function doCmd(msg: Message, returnJson=false){
         return
     }
     if(rv.delete && msg.deletable){
-        msg.delete().catch(err => console.log("Message not deleted"))
+        msg.delete().catch(_err => console.log("Message not deleted"))
     }
     if(rv.noSend){
         return
