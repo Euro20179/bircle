@@ -3078,8 +3078,8 @@ const commands: {[command: string]: Command} = {
     },
     'stackl': {
         run: async(msg, args) => {
-            let stack: (number | string)[] = []
-            let ram: {[key: string]: number | string} = {}
+            let stack: (number | string | Message)[] = []
+            let ram: {[key: string]: number | string | Message} = {}
             let stacklArgs = []
             let text = args.join(" ")
             let word = ""
@@ -3369,7 +3369,19 @@ const commands: {[command: string]: Command} = {
                         if(ans == undefined || ans == null){
                             return {content: "Nothing to send", err: true}
                         }
-                        await msg.channel.send(String(ans))
+                        stack.push(await msg.channel.send(String(ans)))
+                        break
+                    }
+                    case "%edit": {
+                        let newText = stack.pop()
+                        let m = stack.pop()
+                        if(!(m instanceof Message)){
+                            return {content: `${m} is not a message`, err: true}
+                        }
+                        if(typeof newText !== 'string'){
+                            return {content: `${newText} is not a string`, err: true}
+                        }
+                        stack.push(await m.edit(newText));
                         break
                     }
                     case "%upper": {
@@ -3378,6 +3390,11 @@ const commands: {[command: string]: Command} = {
                             return {content: `${val} is not a string`, err: true}
                         }
                         stack.push(val.toUpperCase())
+                        break
+                    }
+                    case "%str": {
+                        let val = stack.pop()
+                        stack.push(String(val))
                         break
                     }
                     case "%lower": {
@@ -5074,8 +5091,13 @@ async function doCmd(msg: Message, returnJson=false){
         addToCmdUse(command)
         let aliasPreArgs = aliases[command].slice(1);
         command = aliases[command][0]
+        let expansions = 0
         //finds the original command
         while(aliases[command]?.[0]){
+            expansions++
+            if(expansions > 1000){
+                break
+            }
             //for every expansion, it counts as a use
             addToCmdUse(command)
             aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
