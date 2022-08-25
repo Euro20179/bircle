@@ -296,7 +296,7 @@ const commands: {[command: string]: Command} = {
             const memberData = await fetchUser(msg.guild, msg.author.id)
             const voiceState = memberData.voice
             if(!voiceState){
-            return {content: "NOT IN VC"}
+                return {content: "NOT IN VC"}
             }
             connection = joinVoiceChannel({
                 channelId: voiceState.channel.id,
@@ -3074,9 +3074,11 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.META
     },
+
     'stackl': {
         run: async(msg, args) => {
-            let stack: (number | string | Message | GuildMember | Function)[] = []
+            type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes>
+            let stack: (stackTypes)[] = []
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
                 "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
                 "input": async(prompt?: string, useFilter?: boolean, reqTimeout?: number) => {
@@ -3138,15 +3140,28 @@ const commands: {[command: string]: Command} = {
                         break;
                     }
                     case "--": {
-                        if(typeof stack[stack.length - 1] !== 'number'){
-                            return {content: `${stack[stack.length -1 ]} is not a number`, err: true}
+                        let val = stack.pop()
+                        console.log(val)
+                        switch(typeof val){
+                            case 'number': {
+                                let ans = val - 1
+                                stack.push(ans)
+                                break
+                            }
+                            case 'object': {
+                                if(Array.isArray(val)){
+                                    console.log(val)
+                                    val.pop()
+                                    console.log(val)
+                                    stack.push(val)
+                                    break
+                                }
+                            }
+                            default: {
+                                return {content: `${typeof val} -- is not supported`, err: true}
+                            }
                         }
-                        //@ts-ignore
-                        let ans = stack[stack.length - 1] - 1
-                        stack.pop()
-                        stack.pop()
-                        stack.push(ans)
-                        break;
+                        break
                     }
                     case "+": {
                         let arg2 = stack.pop()
@@ -3533,6 +3548,49 @@ const commands: {[command: string]: Command} = {
                         }
                         break
                     }
+                    case "%index": {
+                        let indexNo = stack.pop()
+                        let indexee = stack.pop()
+                        if(typeof indexNo !== 'number'){
+                            return {err: true, content: `cannot index with non-number: ${indexNo}`}
+                        }
+                        switch(typeof indexee){
+                            case 'string': {
+                                stack.push(indexee[indexNo])
+                                break
+                            }
+                            case 'object': {
+                                if(Array.isArray(indexee)){
+                                    stack.push(indexee[indexNo])
+                                    break
+                                }
+                            }
+                            default: {
+                                return {err: true, content: `Cannot index ${typeof indexee}`}
+                            }
+                        }
+                        break
+                    }
+                    case "%list": {
+                        let list = []
+                        let chgI = 0
+                        let count = args[argNo + 1]
+                        if(!isNaN(Number(count))){
+                            chgI++
+                            for(let i = 0; i < parseInt(count); i++){
+                                let val = stack.pop()
+                                if(typeof val === 'undefined'){
+                                    return {err: true, content: `arg: ${i} in list is undefined`}
+                                }
+                                list.push(val)
+                            }
+                        }
+                        else{
+                            return {err: true, content: `No list length given`}
+                        }
+                        stack.push(list)
+                        return {chgI: chgI}
+                    }
                     case "%call": {
                         let fnArgC = stack.pop()
                         if(typeof fnArgC !== 'number'){
@@ -3546,6 +3604,8 @@ const commands: {[command: string]: Command} = {
                             }
                             fnArgs.push(item)
                         }
+                        //otherwise you'd have to put the args in reverse order
+                        fnArgs = fnArgs.reverse()
                         let f = stack.pop()
                         if(typeof f !== 'function'){
                             return {err: true, content: `${f} is not a function`}
@@ -3586,6 +3646,13 @@ const commands: {[command: string]: Command} = {
                             if(loopCount > 2000){
                                 stack.push(0)
                                 break
+                            }
+                            let topOfStack = stack[stack.length - 1]
+                            if(topOfStack instanceof Message){
+                                if(topOfStack.content == '%loopend'){
+                                    stack.pop()
+                                    break
+                                }
                             }
                         }
                         return {chgI:chgI}
@@ -3729,8 +3796,17 @@ const commands: {[command: string]: Command} = {
                 }
             }
             return {content: stack.join(" ")}
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Welcome to stackl",
+            arguments: {
+                code: {
+                    description: "The code to run"
+                }
+            }
+        }
     },
+
     "expr": {
         run: async(msg, args) => {
             let vname = args[0]
