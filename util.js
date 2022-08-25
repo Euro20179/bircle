@@ -187,7 +187,8 @@ function safeEval (code, context, opts) {
       return sandbox[resultKey]
     }
     catch(err){
-	return undefined
+        console.log(err)
+        return undefined
     }
 }
 

@@ -8,7 +8,7 @@ const { execSync, exec } = require('child_process')
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed,  Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton,  MessageActionRow, MessageSelectMenu,  GuildEmoji } from 'discord.js'
+import {Client, Intents, MessageEmbed,  Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton,  MessageActionRow, MessageSelectMenu,  GuildEmoji, CollectorFilter } from 'discord.js'
 
 import uno = require("./uno")
 
@@ -3077,7 +3077,33 @@ const commands: {[command: string]: Command} = {
     'stackl': {
         run: async(msg, args) => {
             let stack: (number | string | Message | GuildMember | Function)[] = []
-            let ram: {[key: string]: number | string | Message | GuildMember | Function} = {"random": (low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low}}
+            let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
+                "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
+                "input": async(prompt?: string, useFilter?: boolean, reqTimeout?: number) => {
+                    if(prompt && typeof prompt === 'string'){
+                        await msg.channel.send(prompt)
+                    }
+                    let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id
+                    if(useFilter === false){
+                        filter = undefined
+                    }
+                    let timeout = 30000
+                    if(typeof reqTimeout === 'number'){
+                        timeout = reqTimeout * 1000
+                    }
+                    try{
+                        let collected = await msg.channel.awaitMessages({filter: filter, max: 1, time: timeout, errors: ["time"]})
+                        let resp = collected.at(0)
+                        if(typeof resp === 'undefined'){
+                            return 0
+                        }
+                        return resp
+                    }
+                    catch(err){
+                        return 0
+                    }
+                }
+            }
             let stacklArgs = []
             let text = args.join(" ")
             let word = ""
@@ -3386,6 +3412,10 @@ const commands: {[command: string]: Command} = {
                         stack.push("%saveas")
                         break
                     }
+                    case "%lvar": {
+                        stack.push("%lvar")
+                        break
+                    }
                     case "%sram": {
                         stack.push("%sram")
                         break
@@ -3520,7 +3550,8 @@ const commands: {[command: string]: Command} = {
                         if(typeof f !== 'function'){
                             return {err: true, content: `${f} is not a function`}
                         }
-                        stack.push(f(...fnArgs))
+                        let resp = await f(...fnArgs)
+                        stack.push(resp)
                         break
                     }
                     case "%end": {
@@ -3559,11 +3590,21 @@ const commands: {[command: string]: Command} = {
                         }
                         return {chgI:chgI}
                     }
-                    case "%if": {
-                        if(isNaN(parseInt(String(stack[stack.length - 1])))){
-                            return {content: `${stack[stack.length - 1]} is not a bool`, err: true}
+                    case "%isnumeric": {
+                        let val = stack.pop()
+                        if(typeof val === 'number'){
+                            stack.push(1)
                         }
-                        let bool = parseInt(String(stack.pop())) > 0 ? true : false
+                        else if(typeof val === 'string' && val.match(/^-?\d+(\.\d+)?$/)){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
+                    }
+                    case "%if": {
+                        let bool = Boolean(stack.pop()) ? true : false
                         if(bool){
                             for(let i = argNo + 1; i < argCount; i++){
                                 //@ts-ignore
@@ -3639,6 +3680,16 @@ const commands: {[command: string]: Command} = {
                             let ans = stack.pop()
                             vars[arg] = () => ans
                         }
+                        else if(stack[stack.length - 1] == '%lvar'){
+                            let value = vars[arg]?.(msg)
+                            if(typeof value === 'undefined'){
+                                value = userVars[msg.author.id]?.[arg]?.(msg)
+                            }
+                            if(typeof value === 'undefined'){
+                                return {content: `var: **${arg}** does not exist`, err: true}
+                            }
+                            stack.push(value)
+                        }
                         else if(stack[stack.length - 1] == "%sram"){
                             ram[arg] = stack[stack.length - 2]
                             stack.pop()
@@ -3652,14 +3703,16 @@ const commands: {[command: string]: Command} = {
                             stack.push(ram[arg])
                         }
                         else{
-                            let value = vars[arg]
-                            if(!value){
-                                value = userVars[msg.author.id]?.[arg]
+                            let value = ram[arg]
+                            if(typeof value === 'undefined')
+                                value = vars[arg]?.(msg)
+                            if(typeof value === 'undefined'){
+                                value = userVars[msg.author.id]?.[arg]?.(msg)
                             }
-                            if(!value){
+                            if(typeof value === 'undefined'){
                                 return {content: `var: **${arg}** does not exist`, err: true}
                             }
-                            stack.push(value(msg))
+                            stack.push(value)
                         }
                     }
                 }
