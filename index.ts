@@ -3081,13 +3081,16 @@ const commands: {[command: string]: Command} = {
             let stack: (stackTypes)[] = []
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
                 "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
-                "input": async(prompt?: string, useFilter?: boolean, reqTimeout?: number) => {
+                "input": async(prompt?: string, useFilter?: boolean | string, reqTimeout?: number) => {
                     if(prompt && typeof prompt === 'string'){
                         await msg.channel.send(prompt)
                     }
                     let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id
                     if(useFilter === false){
                         filter = undefined
+                    }
+                    else if(typeof useFilter === 'string'){
+                        filter = (m: any) => m.author.id === useFilter
                     }
                     let timeout = 30000
                     if(typeof reqTimeout === 'number'){
