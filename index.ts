@@ -3474,6 +3474,22 @@ const commands: {[command: string]: Command} = {
                         stack.push(val.toUpperCase())
                         break
                     }
+                    case "%floor": {
+                        let val = stack.pop()
+                        if(typeof val !== 'number'){
+                            return {err: true, content: `${val} is not a number`}
+                        }
+                        stack.push(Math.floor(val))
+                        break
+                    }
+                    case "%ceil": {
+                        let val = stack.pop()
+                        if(typeof val !== 'number'){
+                            return {err: true, content: `${val} is not a number`}
+                        }
+                        stack.push(Math.ceil(val))
+                        break
+                    }
                     case "%str": {
                         let val = stack.pop()
                         stack.push(String(val))
@@ -5386,7 +5402,11 @@ async function doCmd(msg: Message, returnJson=false){
     }
     else if(aliases[command]){
         //if it's an alias, it counts as use
-        addToCmdUse(command)
+        if(CMDUSE[command]){
+            CMDUSE[command] += 1
+        } else {
+            CMDUSE[command] = 1
+        }
         let aliasPreArgs = aliases[command].slice(1);
         command = aliases[command][0]
         let expansions = 0
@@ -5397,11 +5417,16 @@ async function doCmd(msg: Message, returnJson=false){
                 await msg.channel.send("Alias expansion limit reached")
                 return {}
             }
+            if(CMDUSE[command]){
+                CMDUSE[command] += 1
+            } else {
+                CMDUSE[command] = 1
+            }
             //for every expansion, it counts as a use
-            addToCmdUse(command)
             aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
             command = aliases[command][0]
         }
+        writeCmdUse()
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
         let oldC = msg.content
         msg.content = msg.content.replaceAll(/(?<!\\)\{args#\}/g, String(args.length))
@@ -5846,6 +5871,10 @@ function addToCmdUse(cmd: string){
     } else {
         CMDUSE[cmd] = 1
     }
+    fs.writeFileSync("cmduse", generateCmdUseFile())
+}
+
+function writeCmdUse(){
     fs.writeFileSync("cmduse", generateCmdUseFile())
 }
 
