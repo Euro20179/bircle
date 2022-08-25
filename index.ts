@@ -3078,8 +3078,8 @@ const commands: {[command: string]: Command} = {
     },
     'stackl': {
         run: async(msg, args) => {
-            let stack: (number | string | Message)[] = []
-            let ram: {[key: string]: number | string | Message} = {}
+            let stack: (number | string | Message | GuildMember)[] = []
+            let ram: {[key: string]: number | string | Message | GuildMember} = {}
             let stacklArgs = []
             let text = args.join(" ")
             let word = ""
@@ -3407,6 +3407,42 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%rand": {
                         stack.push(Math.random())
+                        break
+                    }
+                    case "%getusr": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        try{
+                            let u = await msg.guild?.members.fetch(val)
+                            if(!u){
+                                stack.push(0)
+                            }
+                            else stack.push(u)
+                        }
+                        catch(err){
+                            console.log(err)
+                            stack.push(0)
+                        }
+                        break
+                    }
+                    case "%getmsg": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        try{
+                            let m = await msg.channel.messages.fetch(val)
+                            if(!m){
+                                stack.push(0)
+                            }
+                            else stack.push(m)
+                        }
+                        catch(err){
+                            console.log(err)
+                            stack.push(0)
+                        }
                         break
                     }
                     case "%end": {
