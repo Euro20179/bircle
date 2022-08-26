@@ -256,6 +256,29 @@ const player = createAudioPlayer()
 let connection: any;
 
 const commands: {[command: string]: Command} = {
+    replace: {
+        run: async(msg, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let search = args[0]
+            let repl = args[1]
+            let text = args.slice(2).join(" ")
+            if(!repl && !opts['n']){
+                return {content: "No replacement"}
+            }
+            if(!search){
+                return {content: "no search"}
+            }
+            if(opts['n']){
+                repl = args.slice(1).join(" ")
+                return {content: repl.replace(search, "")}
+            }
+            if(!text){
+                return {content: "no text to search through"}
+            }
+            return {content: text.replace(search, repl || "")}
+        }, category: CommandCategory.UTIL
+    },
     time: {
         run: async(msg, args) => {
             let fmt = args.join(" ")
@@ -3084,12 +3107,12 @@ const commands: {[command: string]: Command} = {
                 Infinity:  Infinity,
                 rec: async() => recursionC,
                 "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
-                "input": async(prompt?: string, useFilter?: boolean | string, reqTimeout?: number) => {
+                "input": async(prompt?: string, useFilter?: boolean | string | number, reqTimeout?: number) => {
                     if(prompt && typeof prompt === 'string'){
                         await msg.channel.send(prompt)
                     }
                     let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id
-                    if(useFilter === false){
+                    if(useFilter === false || useFilter === 0){
                         filter = undefined
                     }
                     else if(typeof useFilter === 'string'){
@@ -3675,9 +3698,11 @@ const commands: {[command: string]: Command} = {
                         }
                         recursionC++
                         if(recursionC > 1000){
+                            recursionC = 0
                             return {err: true, content: "Recursion limit reeached"}
                         }
                         let resp = await f(...fnArgs)
+                        recursionC--
                         if(resp?.err){
                             return resp
                         }
@@ -3703,6 +3728,14 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%break": {
                         return {end: true}
+                    }
+                    case "%trim": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        stack.push(val.trim())
+                        break
                     }
                     case "%split": {
                         let val = stack.pop()
@@ -3735,6 +3768,9 @@ const commands: {[command: string]: Command} = {
                             chgI++
                             if(args[i] == "%loopend"){
                                 break
+                            }
+                            if(args[i] == "%loop"){
+                                return {err: true, content: `Nested loops are not allowed`}
                             }
                             code.push(args[i])
                         }
@@ -3783,15 +3819,28 @@ const commands: {[command: string]: Command} = {
                         if(bool){
                             for(let i = argNo + 1; i < argCount; i++){
                                 //@ts-ignore
+                                let ifCount = 0
                                 if(args[i] == "%else"){
+                                    let ifCount = 0
                                     for(let j = i + 1; j < argCount; j++){
+                                        if(args[j] == '%if'){
+                                           ifCount++
+                                        }
                                         if(args[j] == "%ifend"){
-                                            return {chgI: j - argNo}
+                                            ifCount--
+                                            if(ifCount < 0)
+                                                return {chgI: j - argNo}
                                         }
                                     }
                                     return {chgI: i - argNo}
                                 }
-                                if(args[i] == "%ifend"){
+                                else if(args[i] == "%if"){
+                                    ifCount++
+                                }
+                                else if(args[i] == "%ifend"){
+                                    ifCount--
+                                }
+                                if(args[i] == "%ifend" && ifCount < 0){
                                     return {chgI: i - argNo}
                                 }
                                 let rv = await parseArg(args[i], i, argCount, args, stack)
