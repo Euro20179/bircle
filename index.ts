@@ -3082,6 +3082,7 @@ const commands: {[command: string]: Command} = {
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
                 NaN:  NaN,
                 Infinity:  Infinity,
+                rec: async() => recursionC,
                 "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
                 "input": async(prompt?: string, useFilter?: boolean | string, reqTimeout?: number) => {
                     if(prompt && typeof prompt === 'string'){
@@ -3132,6 +3133,7 @@ const commands: {[command: string]: Command} = {
             if(word)
                 stacklArgs.push(word)
             args = stacklArgs.filter(a => a ? true : false)
+            let recursionC = 0
 
             async function parseArg(arg: string, argNo: number, argCount: number, args: string[], stack: stackTypes[]): Promise<any>{
                 switch(arg){
@@ -3147,7 +3149,6 @@ const commands: {[command: string]: Command} = {
                     }
                     case "--": {
                         let val = stack.pop()
-                        console.log(val)
                         switch(typeof val){
                             case 'number': {
                                 let ans = val - 1
@@ -3156,9 +3157,7 @@ const commands: {[command: string]: Command} = {
                             }
                             case 'object': {
                                 if(Array.isArray(val)){
-                                    console.log(val)
                                     val.pop()
-                                    console.log(val)
                                     stack.push(val)
                                     break
                                 }
@@ -3455,7 +3454,7 @@ const commands: {[command: string]: Command} = {
                                 }
 
                             }
-                            return stack
+                            return {stack: stack}
                         }
                         return {chgI: chgI}
                     }
@@ -3674,9 +3673,30 @@ const commands: {[command: string]: Command} = {
                         if(typeof f !== 'function'){
                             return {err: true, content: `${f} is not a function`}
                         }
+                        recursionC++
+                        if(recursionC > 1000){
+                            return {err: true, content: "Recursion limit reeached"}
+                        }
                         let resp = await f(...fnArgs)
-                        stack.push(resp)
+                        if(resp?.err){
+                            return resp
+                        }
+                        else if(resp?.ret){
+                            for(let item of resp?.stack){
+                                stack.push(item)
+                            }
+                            return {ret: true, stack: stack}
+                        }
+                        else if(resp?.stack){
+                            for(let arg of resp.stack){
+                                stack.push(arg)
+                            }
+                        }
+                        else stack.push(resp)
                         break
+                    }
+                    case "%return": {
+                        return {ret: true, stack: stack}
                     }
                     case "%end": {
                         return {end: true}
