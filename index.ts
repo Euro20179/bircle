@@ -247,7 +247,7 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
 	img = msg.embeds?.at(0)?.image?.url
     }
     else if(!img) {
-        img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.first()?.size ? true : false)?.last()?.attachments?.first()?.attachment
+        img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }
     return img as string
 }
