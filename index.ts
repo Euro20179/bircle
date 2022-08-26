@@ -3549,6 +3549,18 @@ const commands: {[command: string]: Command} = {
                         }
                         break
                     }
+                    case "%reply": {
+                        let text = stack.pop()
+                        let msgToRTo = stack.pop()
+                        if(typeof text !== 'string'){
+                            return {err: true, content: `${text} is not a string`}
+                        }
+                        if(!(msgToRTo instanceof Message)){
+                            return {err: true, content: `Cannot reply to non-message: ${msgToRTo}`}
+                        }
+                        stack.push(await msgToRTo.reply(text))
+                        break
+                    }
                     case "%getmsg": {
                         let val = stack.pop()
                         if(typeof val !== 'string'){
@@ -3764,7 +3776,11 @@ const commands: {[command: string]: Command} = {
                         else if(stack[stack.length - 1] == "%saveas"){
                             stack.pop()
                             let ans = stack.pop()
+                            if(typeof ans === 'undefined'){
+                                return {err: true, content: `Cannot save undefined as variable`}
+                            }
                             vars[arg] = () => ans
+                            stack.push(ans)
                         }
                         else if(stack[stack.length - 1] == '%lvar'){
                             let value = vars[arg]?.(msg)
@@ -3814,7 +3830,7 @@ const commands: {[command: string]: Command} = {
                     return rv
                 }
             }
-            return {content: stack.join(" ")}
+            return {content: stack.join(" "), noSend: stack.length > 0 ? false : true}
         }, category: CommandCategory.UTIL,
         help: {
             info: "Welcome to stackl",
