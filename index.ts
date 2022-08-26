@@ -3651,6 +3651,30 @@ const commands: {[command: string]: Command} = {
                     case "%break": {
                         return {end: true}
                     }
+                    case "%split": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        let str = stack.pop()
+                        if(typeof str !== 'string'){
+                            return {err: true, content: `${str} is not a string`}
+                        }
+                        stack.push(str.split(val))
+                        break
+                    }
+                    case "%join": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        let arr = stack.pop()
+                        if(!Array.isArray(arr)){
+                            return {err: true, content: `${arr} is not a list`}
+                        }
+                        stack.push(arr.join(val))
+                        break
+                    }
                     case "%loop": {
                         let code = []
                         let chgI = 0
