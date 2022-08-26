@@ -3708,13 +3708,13 @@ const commands: {[command: string]: Command} = {
                                 //@ts-ignore
                                 if(args[i] == "%else"){
                                     for(let j = i + 1; j < argCount; j++){
-                                        if(args[j] == "%end"){
+                                        if(args[j] == "%ifend"){
                                             return {chgI: j - argNo}
                                         }
                                     }
                                     return {chgI: i - argNo}
                                 }
-                                if(args[i] == "%end"){
+                                if(args[i] == "%ifend"){
                                     return {chgI: i - argNo}
                                 }
                                 let rv = await parseArg(args[i], i, argCount, args)
@@ -3730,7 +3730,7 @@ const commands: {[command: string]: Command} = {
                             for(let i = argNo; i < argCount; i++){
                                 if(args[i] == "%else"){
                                     for(let j = i + 1; j < argCount; j++){
-                                        if(args[j] == "%end"){
+                                        if(args[j] == "%ifend"){
                                             return {chgI: j - argNo}
                                         }
                                         let rv = await parseArg(args[j], j, argCount, args)
@@ -3742,7 +3742,7 @@ const commands: {[command: string]: Command} = {
                                         }
                                     }
                                 }
-                                if(args[i] == "%end"){
+                                if(args[i] == "%ifend"){
                                     return {chgI: i - argNo}
                                 }
                             }
