@@ -3080,6 +3080,8 @@ const commands: {[command: string]: Command} = {
             type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes>
             let stack: (stackTypes)[] = []
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
+                NaN:  NaN,
+                Infinity:  Infinity,
                 "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
                 "input": async(prompt?: string, useFilter?: boolean | string, reqTimeout?: number) => {
                     if(prompt && typeof prompt === 'string'){
@@ -3774,7 +3776,7 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     default: {
-                        if(arg.match(/^"([^"]+)"$/)){
+                        if(arg.match(/^"([^"]*)"$/)){
                             //strings
                             stack.push(arg.replace(/^"/, "").replace(/"$/, ""))
                         }
@@ -5620,43 +5622,46 @@ client.on("messageCreate", async(m:  Message) => {
 
 client.on("interactionCreate", async(interaction: Interaction) => {
     if(interaction.isButton()){
-	if(interaction.customId == `button:${interaction.member?.user.id}`){
-	    //@ts-ignore
-        if(typeof BUTTONS[interaction.member?.user.id] === "string"){
+        if(interaction.customId == `button:${interaction.member?.user.id}`){
             //@ts-ignore
-            interaction.reply(String(BUTTONS[interaction.member?.user.id]))
+            if(BUTTONS[interaction.member?.user.id] !== undefined){
+                //@ts-ignore
+                if(typeof BUTTONS[interaction.member?.user.id] === "string"){
+                    //@ts-ignore
+                    interaction.reply(String(BUTTONS[interaction.member?.user.id]))
+                }
+                else{
+                    //@ts-ignore
+                    interaction.reply(String(BUTTONS[interaction.member?.user.id]()))
+                }
+                //@ts-ignore
+                delete BUTTONS[interaction.member?.user.id]
+            }
         }
-        else{
-            //@ts-ignore
-            interaction.reply(String(BUTTONS[interaction.member?.user.id]()))
+        if(interaction.customId.match(/button\.(rock|paper|scissors)/)){
+            let intendedUser = interaction.customId.split(":")[1]
+            let table: {[k: string]: string} = {"rock": "paper", "paper": "scissors", "scissors": "rock"}
+            if(interaction.user.id != intendedUser){
+            interaction.reply({ephemeral: true, content: "You idiot, you already picked"})
+            return
+            }
+            let oppChoice = interaction.customId.split(":")[0].split(".")[1]
+            let [userChoice, ogUser] = BUTTONS[interaction.customId].split(":")
+            if(userChoice == oppChoice){
+            interaction.reply({content: "TIE"})
+            }
+            else if(table[userChoice] == oppChoice){
+            interaction.reply({content: `<@${ogUser}> user wins!`})
+            }
+            else{
+            interaction.reply({content: `<@${interaction.member?.user.id}> user wins!`})
+            }
+            for(let b in BUTTONS){
+            if(b.match(/button\.(rock|paper|scissors)/)){
+                delete BUTTONS[b]
+            }
+            }
         }
-	    //@ts-ignore
-	    delete BUTTONS[interaction.member?.user.id]
-	}
-	if(interaction.customId.match(/button\.(rock|paper|scissors)/)){
-	    let intendedUser = interaction.customId.split(":")[1]
-	    let table: {[k: string]: string} = {"rock": "paper", "paper": "scissors", "scissors": "rock"}
-	    if(interaction.user.id != intendedUser){
-		interaction.reply({ephemeral: true, content: "You idiot, you already picked"})
-		return
-	    }
-	    let oppChoice = interaction.customId.split(":")[0].split(".")[1]
-	    let [userChoice, ogUser] = BUTTONS[interaction.customId].split(":")
-	    if(userChoice == oppChoice){
-		interaction.reply({content: "TIE"})
-	    }
-	    else if(table[userChoice] == oppChoice){
-		interaction.reply({content: `<@${ogUser}> user wins!`})
-	    }
-	    else{
-		interaction.reply({content: `<@${interaction.member?.user.id}> user wins!`})
-	    }
-	    for(let b in BUTTONS){
-		if(b.match(/button\.(rock|paper|scissors)/)){
-		    delete BUTTONS[b]
-		}
-	    }
-	}
     }
     else if(interaction.isSelectMenu()){
 	if(interaction.customId.includes("poll")){
