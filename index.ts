@@ -263,20 +263,23 @@ const commands: {[command: string]: Command} = {
             let search = args[0]
             let repl = args[1]
             let text = args.slice(2).join(" ")
-            if(!repl && !opts['n']){
+            if(opts['n']){
+                text = args.slice(1).join(" ")
+                if(!search){
+                    return {content: "no search"}
+                }
+                return {content: text.replaceAll(search, "")}
+            }
+            else if(!repl){
                 return {content: "No replacement"}
             }
             if(!search){
                 return {content: "no search"}
             }
-            if(opts['n']){
-                repl = args.slice(1).join(" ")
-                return {content: repl.replace(search, "")}
-            }
             if(!text){
                 return {content: "no text to search through"}
             }
-            return {content: text.replace(search, repl || "")}
+            return {content: text.replaceAll(search, repl || "")}
         }, category: CommandCategory.UTIL
     },
     time: {
