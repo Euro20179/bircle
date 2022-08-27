@@ -4062,12 +4062,16 @@ const commands: {[command: string]: Command} = {
             }
             let op = args[1]
             let expr = args[2]
-            if(expr && typeof parseFloat(expr) !== 'number'){
+            if(expr && isNaN(parseFloat(expr))){
                 let vvalue = vars[expr]
-                if(!vvalue){
+                if(vvalue === undefined){
                     vvalue = userVars[msg.author.id]?.[expr]
                 }
-                if(!vvalue){
+                if(vvalue === undefined){
+                    vars[expr] = () => '0'
+                    vvalue = vars[expr]
+                }
+                if(vvalue === undefined){
                     return {content: `var: **${expr}** does not exist`}
                 }
                 expr = vvalue(msg)
