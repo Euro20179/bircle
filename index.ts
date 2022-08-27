@@ -3106,6 +3106,8 @@ const commands: {[command: string]: Command} = {
             type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes>
             let stack: (stackTypes)[] = []
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
+                true: 1,
+                false: 0,
                 NaN:  NaN,
                 Infinity:  Infinity,
                 rec: async() => recursionC,
@@ -3426,7 +3428,9 @@ const commands: {[command: string]: Command} = {
                         else if((arg1 === 1 && arg2 === 0) || (arg1 === 0 && arg2 === 1)){
                             stack.push(1)
                         }
-                        stack.push(0)
+                        else{
+                            stack.push(0)
+                        }
                         break
                     }
                     case "%nand": {
@@ -3483,6 +3487,10 @@ const commands: {[command: string]: Command} = {
                             return {stack: stack}
                         }
                         return {chgI: chgI}
+                    }
+                    case "%time": {
+                        stack.push(Date.now())
+                        break
                     }
                     case "%saveas": {
                         stack.push("%saveas")
