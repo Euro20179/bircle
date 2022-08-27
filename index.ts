@@ -3116,12 +3116,12 @@ const commands: {[command: string]: Command} = {
                     if(prompt && typeof prompt === 'string'){
                         await msg.channel.send(prompt)
                     }
-                    let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id
+                    let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id && ! m.author.bot
                     if(useFilter === false || useFilter === 0){
-                        filter = undefined
+                        filter = m => !m.author.bot
                     }
                     else if(typeof useFilter === 'string'){
-                        filter = (m: any) => m.author.id === useFilter
+                        filter = (m: any) => m.author.id === useFilter && ! m.author.bot
                     }
                     let timeout = 30000
                     if(typeof reqTimeout === 'number'){
@@ -3685,7 +3685,7 @@ const commands: {[command: string]: Command} = {
                         else{
                             return {err: true, content: `No list length given`}
                         }
-                        stack.push(list)
+                        stack.push(list.reverse())
                         return {chgI: chgI}
                     }
                     case "%call": {
@@ -3770,6 +3770,33 @@ const commands: {[command: string]: Command} = {
                             return {err: true, content: `${arr} is not a list`}
                         }
                         stack.push(arr.join(val))
+                        break
+                    }
+                    case "%find": {
+                        let matcher = stack.pop()
+                        if(matcher === undefined){
+                            return {err: true, content: `Matcher cant be undefined`}
+                        }
+                        let matchee = stack.pop()
+                        if(Array.isArray(matchee)){
+                            let index = matchee.indexOf(matcher)
+                            stack.push(index)
+                        }
+                        else if(typeof matchee === 'string'){
+                            if(typeof matcher !== 'string'){
+                                return {err: true, content: `The matcher for a string must be a string`}
+                            }
+                            let match = matchee.match(matcher)
+                            if(match?.index){
+                                stack.push(match.index)
+                            }
+                            else{
+                                stack.push(-1)
+                            }
+                        }
+                        else{
+                            return {err: true, content: `Matchee cannot be of type: ${typeof matchee}`}
+                        }
                         break
                     }
                     case "%loop": {
@@ -3984,14 +4011,16 @@ const commands: {[command: string]: Command} = {
             let vname = args[0]
             let varValRet
             let vardict = vars
-            if(typeof parseFloat(vname) !== 'number'){
+            if(isNaN(parseFloat(vname))){
                 let vvalue = vars[vname]
-                if(!vvalue){
+                if(vvalue === undefined){
                     vardict = userVars[msg.author.id]
                     vvalue = userVars[msg.author.id]?.[vname]
                 }
-                if(!vvalue){
-                    return {content: `var: **${vname}** does not exist`}
+                if(vvalue === undefined){
+                    vardict = vars
+                    vars[vname] = () => '0'
+                    vvalue = vars[vname]
                 }
                 varValRet = vvalue(msg)
             }
