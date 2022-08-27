@@ -758,7 +758,7 @@ const commands: {[command: string]: Command} = {
             } else sep = String(sep)
             let ret: any[] = []
             try{
-                ret.push(String(safeEval(args.join(" "), {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
+                ret.push(String(safeEval(args.join(" "), {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
             }
             catch(err){
                 console.log(err)
