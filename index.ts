@@ -4006,6 +4006,38 @@ const commands: {[command: string]: Command} = {
         }
     },
 
+    "reddit": {
+        run: async(msg, args) => {
+            let subreddit = args[0]
+            //@ts-ignore
+            let data = await got(`https://libreddit.spike.codes/r/${subreddit}`)
+            if(!data.body){
+                return {content: "nothing found"}
+            }
+            const $ = cheerio.load(data.body)
+            type data = {text?: string, link?: string}
+            let foundData: data[] = []
+            for(let item of $("h2.post_title a[href]")){
+                let dataToAdd: data = {}
+                //@ts-ignore
+                if(item.children[0].data){
+                    //@ts-ignore
+                    dataToAdd['text'] = item.children[0].data
+                }
+                else{ continue }
+                if(item.attribs.href){
+                    dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs.href}`
+                }
+                foundData.push(dataToAdd)
+            }
+            let post = foundData[Math.floor(Math.random() * foundData.length)]
+            let embed = new MessageEmbed()
+            embed.setTitle(post.text || "None")
+            embed.setFooter({text: post.link || "None"})
+            return {embeds: [embed]}
+        }, category: CommandCategory.FUN
+    },
+
     "expr": {
         run: async(msg, args) => {
             let vname = args[0]
