@@ -3145,7 +3145,6 @@ const commands: {[command: string]: Command} = {
                     }
                 }
             }
-            let labels: {[key: string]: number} = {}
             let stacklArgs = []
             let text = args.join(" ")
             let word = ""
@@ -3163,6 +3162,7 @@ const commands: {[command: string]: Command} = {
                 }
                 word += text[i]
             }
+            let stacks  = {}
             if(word)
                 stacklArgs.push(word)
             args = stacklArgs.filter(a => a ? true : false)
@@ -3170,6 +3170,17 @@ const commands: {[command: string]: Command} = {
 
             async function parseArg(arg: string, argNo: number, argCount: number, args: string[], stack: stackTypes[]): Promise<any>{
                 switch(arg){
+                    case "$stacksize": {
+                        stack.push(stack.length)
+                        break
+                    }
+                    case "$bottom": {
+                        if(stack[0] === undefined){
+                            return {err: true, content: "Cannot access the bottom of empty stack"}
+                        }
+                        stack.push(stack[0])
+                        break
+                    }
                     case "++":{
                         let val = stack.pop()
                         if(typeof val !== 'number'){
@@ -3463,6 +3474,36 @@ const commands: {[command: string]: Command} = {
                         stack.push(arg1 === 1 ? 0 : 1)
                         break
                     }
+                    case "%cpy": {
+                        let itemToCopy = stack.pop()
+                        if(typeof itemToCopy === 'undefined'){
+                            return {err: true, content: `Cannot copy undefined`}
+                        }
+                        stack.push(itemToCopy)
+                        stack.push(itemToCopy)
+                        break
+                    }
+                    case "%cpystack": {
+                        stack.push(...stack)
+                        break
+                    }
+                    case "%swp": {
+                        let last = stack.pop()
+                        let secondLast = stack.pop()
+                        if(last === undefined){
+                            return {err: true, content: `The top of the stack is undefined`}
+                        }
+                        if(secondLast === undefined){
+                            return {err: true, content: "The 2nd top itemf of the stack is undefined"}
+                        }
+                        stack.push(last)
+                        stack.push(secondLast)
+                        break
+                    }
+                    case "%rstack": {
+                        stack = stack.reverse()
+                        break
+                    }
                     case "%function": {
                         let name = args[argNo + 1]
                         if(name === undefined || name === null){
@@ -3648,6 +3689,17 @@ const commands: {[command: string]: Command} = {
                             console.log(err)
                             stack.push(0)
                         }
+                        break
+                    }
+                    case "%istack": {
+                        let index = stack.pop()
+                        if(typeof index !== "number"){
+                            return {err: true, content: `Cannot index stack with non-number: ${index}`}
+                        }
+                        if(index >= stack.length){
+                            return {err: true, content: `Index greater than stack size`}
+                        }
+                        stack.push(stack[index])
                         break
                     }
                     case "%index": {
@@ -5400,7 +5452,7 @@ valid formats:<br>
     },
     snipe: {
         run: async(_msg: Message, args: ArgumentList) => {
-	    let snipeC = ((parseInt(args[0]) - 1) || 0)
+	    let snipeC = ((1 - (parseInt(args[0]) - 1)) || 0)
 	    if(snipeC >= 5){
 		return {content: "it only goes back 5"}
 	    }
