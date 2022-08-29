@@ -879,7 +879,7 @@ const commands: {[command: string]: Command} = {
         run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
-            let wait = parseInt(String(opts['wait'])) || 0
+            let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)
             let embedText = opts['e'] || opts['embed']
             let embed
@@ -927,6 +927,9 @@ const commands: {[command: string]: Command} = {
             }
             if(embed){
                 rv["embeds"] = [embed]
+            }
+            if(wait){
+                await new Promise(res => setTimeout(res, wait * 1000))
             }
             return rv
         },
@@ -2138,7 +2141,7 @@ const commands: {[command: string]: Command} = {
     },
     whohas: {
         run: async(msg, args) => {
-            let role = args[0]
+            let role = args.join(" ")
             if(!role){
             return {content: "No role given"}
             }
@@ -5809,6 +5812,9 @@ async function doCmd(msg: Message, returnJson=false){
     if(!Object.keys(rv).length){
         return
     }
+    if(rv.deleteFiles === undefined){
+        rv.deleteFiles = true
+    }
     if(rv.delete && msg.deletable){
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
@@ -5826,15 +5832,17 @@ async function doCmd(msg: Message, returnJson=false){
             }]
         }
     }
-    if(!rv.content)
+    if(!rv.content){
         delete rv['content']
-    else
-	if(userVars[msg.author.id]){
-	    userVars[msg.author.id][`_!`] = () => rv.content
-	}
-	else
-	    userVars[msg.author.id] = {"_!": () => rv.content}
-	vars[`_!`] = () => rv.content
+    }
+    else{
+        if(userVars[msg.author.id]){
+            userVars[msg.author.id][`_!`] = () => rv.content
+        }
+        else
+            userVars[msg.author.id] = {"_!": () => rv.content}
+        vars[`_!`] = () => rv.content
+    }
     let location: any = msg.channel
     if(rv['dm']){
         location = msg.author
