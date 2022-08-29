@@ -3113,8 +3113,27 @@ const commands: {[command: string]: Command} = {
 
     'stackl': {
         run: async(msg, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let useStart = true
+            if(opts['no-start'] === true){
+                useStart = false
+            }
             type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes>
             let stack: (stackTypes)[] = []
+            if(useStart){
+                let curArg;
+                console.log(args)
+                while((curArg=args.shift()) !== "%start"){
+                    console.log(curArg)
+                    if(curArg !== undefined)
+                        stack.push(curArg)
+                    else break
+                }
+            }
+            let argc = stack.length
+            let initialArgs = [...stack]
+            console.log(args)
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
                 true: 1,
                 false: 0,
@@ -3174,6 +3193,7 @@ const commands: {[command: string]: Command} = {
 
             async function parseArg(arg: string, argNo: number, argCount: number, args: string[], stack: stackTypes[]): Promise<any>{
                 switch(arg){
+                    //vars
                     case "$stacksize": {
                         stack.push(stack.length)
                         break
@@ -3185,6 +3205,25 @@ const commands: {[command: string]: Command} = {
                         stack.push(stack[0])
                         break
                     }
+                    case "$argc": {
+                        stack.push(argc)
+                        break
+                    }
+
+                    case "%argv": {
+                        let index = stack.pop()
+                        if(typeof index !== 'number'){
+                            return {err: true, content: `argv index must be a number`}
+                        }
+                        if(index >= initialArgs.length){
+                            return {err: true, content: `Argv index out: ${index} of bounds`}
+                        }
+                        stack.push(initialArgs[index])
+                        break
+                    }
+
+
+                    //operators
                     case "++":{
                         let val = stack.pop()
                         if(typeof val !== 'number'){
@@ -3399,6 +3438,8 @@ const commands: {[command: string]: Command} = {
                         stack.push(ans ? 1 : 0)
                         break
                     }
+
+                    //logic
                     case "%or": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
@@ -3478,6 +3519,19 @@ const commands: {[command: string]: Command} = {
                         stack.push(arg1 === 1 ? 0 : 1)
                         break
                     }
+
+                    //stack manipulation
+                    case "%istack": {
+                        let index = stack.pop()
+                        if(typeof index !== "number"){
+                            return {err: true, content: `Cannot index stack with non-number: ${index}`}
+                        }
+                        if(index >= stack.length){
+                            return {err: true, content: `Index greater than stack size`}
+                        }
+                        stack.push(stack[index])
+                        break
+                    }
                     case "%cpy": {
                         let itemToCopy = stack.pop()
                         if(typeof itemToCopy === 'undefined'){
@@ -3508,247 +3562,12 @@ const commands: {[command: string]: Command} = {
                         stack = stack.reverse()
                         break
                     }
-                    case "%function": {
-                        let name = args[argNo + 1]
-                        if(name === undefined || name === null){
-                            return {err: true, content: `${name} is not a valid function name`}
-                        }
-                        let code: any = []
-                        let chgI = 1
-                        for(let i = argNo + 2; i < argCount; i++){
-                            chgI++
-                            if(args[i] == '%functionend'){
-                                break
-                            }
-                            code.push(args[i])
-                        }
-                        ram[name] = async(...args: any[]) => {
-                            let stack = args
-                            for(let i = 0; i < code.length; i ++){
-                                let rv = await parseArg(code[i], i, code.length, code, stack)
-                                if(rv?.end) return {end: true}
-                                if(rv?.chgI)
-                                    i += parseInt(rv.chgI)
-                                if(rv?.err){
-                                    return {chgI: i - argNo, ...rv}
-                                }
-
-                            }
-                            return {stack: stack}
-                        }
-                        return {chgI: chgI}
-                    }
-                    case "%time": {
-                        stack.push(Date.now())
-                        break
-                    }
-                    case "%saveas": {
-                        stack.push("%saveas")
-                        break
-                    }
-                    case "%lvar": {
-                        stack.push("%lvar")
-                        break
-                    }
-                    case "%sram": {
-                        stack.push("%sram")
-                        break
-                    }
-                    case "%lram": {
-                        stack.push('%lram')
-                        break
-                    }
                     case "%pop": {
                         stack.pop()
                         break
                     }
-                    case "%send": {
-                        let ans = stack.pop()
-                        if(ans == undefined || ans == null){
-                            return {content: "Nothing to send", err: true}
-                        }
-                        stack.push(await msg.channel.send(String(ans)))
-                        break
-                    }
-                    case "%edit": {
-                        let newText = stack.pop()
-                        let m = stack.pop()
-                        if(!(m instanceof Message)){
-                            return {content: `${m} is not a message`, err: true}
-                        }
-                        if(typeof newText !== 'string'){
-                            return {content: `${newText} is not a string`, err: true}
-                        }
-                        stack.push(await m.edit(newText));
-                        break
-                    }
-                    case "%upper": {
-                        let val = stack.pop()
-                        if(typeof val !== "string"){
-                            return {content: `${val} is not a string`, err: true}
-                        }
-                        stack.push(val.toUpperCase())
-                        break
-                    }
-                    case "%floor": {
-                        let val = stack.pop()
-                        if(typeof val !== 'number'){
-                            return {err: true, content: `${val} is not a number`}
-                        }
-                        stack.push(Math.floor(val))
-                        break
-                    }
-                    case "%ceil": {
-                        let val = stack.pop()
-                        if(typeof val !== 'number'){
-                            return {err: true, content: `${val} is not a number`}
-                        }
-                        stack.push(Math.ceil(val))
-                        break
-                    }
-                    case "%str": {
-                        let val = stack.pop()
-                        stack.push(String(val))
-                        break
-                    }
-                    case "%int": {
-                        let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
-                        }
-                        let ans = parseInt(val)
-                        if(isNaN(ans)){
-                            return {err: true, content: `Result was NaN`}
-                        }
-                        stack.push(ans)
-                        break
-                    }
-                    case "%float": {
-                        let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
-                        }
-                        let ans = parseFloat(val)
-                        if(isNaN(ans)){
-                            return {err: true, content: `Result was NaN`}
-                        }
-                        stack.push(ans)
-                        break
-                    }
-                    case "%lower": {
-                        let val = stack.pop()
-                        if(typeof val !== "string"){
-                            return {content: `${val} is not a string`, err: true}
-                        }
-                        stack.push(val.toLowerCase())
-                        break
-                    }
-                    case "%rand": {
-                        stack.push(Math.random())
-                        break
-                    }
-                    case "%getusr": {
-                        let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {content: `${val} is not a string`, err: true}
-                        }
-                        try{
-                            let u = await msg.guild?.members.fetch(val)
-                            if(!u){
-                                stack.push(0)
-                            }
-                            else stack.push(u)
-                        }
-                        catch(err){
-                            console.log(err)
-                            stack.push(0)
-                        }
-                        break
-                    }
-                    case "%reply": {
-                        let text = stack.pop()
-                        let msgToRTo = stack.pop()
-                        if(typeof text !== 'string'){
-                            return {err: true, content: `${text} is not a string`}
-                        }
-                        if(!(msgToRTo instanceof Message)){
-                            return {err: true, content: `Cannot reply to non-message: ${msgToRTo}`}
-                        }
-                        stack.push(await msgToRTo.reply(text))
-                        break
-                    }
-                    case "%getmsg": {
-                        let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {content: `${val} is not a string`, err: true}
-                        }
-                        try{
-                            let m = await msg.channel.messages.fetch(val)
-                            if(!m){
-                                stack.push(0)
-                            }
-                            else stack.push(m)
-                        }
-                        catch(err){
-                            console.log(err)
-                            stack.push(0)
-                        }
-                        break
-                    }
-                    case "%istack": {
-                        let index = stack.pop()
-                        if(typeof index !== "number"){
-                            return {err: true, content: `Cannot index stack with non-number: ${index}`}
-                        }
-                        if(index >= stack.length){
-                            return {err: true, content: `Index greater than stack size`}
-                        }
-                        stack.push(stack[index])
-                        break
-                    }
-                    case "%index": {
-                        let indexNo = stack.pop()
-                        let indexee = stack.pop()
-                        if(typeof indexNo !== 'number'){
-                            return {err: true, content: `cannot index with non-number: ${indexNo}`}
-                        }
-                        switch(typeof indexee){
-                            case 'string': {
-                                stack.push(indexee[indexNo])
-                                break
-                            }
-                            case 'object': {
-                                if(Array.isArray(indexee)){
-                                    stack.push(indexee[indexNo])
-                                    break
-                                }
-                            }
-                            default: {
-                                return {err: true, content: `Cannot index ${typeof indexee}`}
-                            }
-                        }
-                        break
-                    }
-                    case "%list": {
-                        let list = []
-                        let chgI = 0
-                        let count = args[argNo + 1]
-                        if(!isNaN(Number(count))){
-                            chgI++
-                            for(let i = 0; i < parseInt(count); i++){
-                                let val = stack.pop()
-                                if(typeof val === 'undefined'){
-                                    return {err: true, content: `arg: ${i} in list is undefined`}
-                                }
-                                list.push(val)
-                            }
-                        }
-                        else{
-                            return {err: true, content: `No list length given`}
-                        }
-                        stack.push(list.reverse())
-                        return {chgI: chgI}
-                    }
+
+                    //functions
                     case "%call": {
                         let fnArgC = stack.pop()
                         if(typeof fnArgC !== 'number'){
@@ -3795,12 +3614,127 @@ const commands: {[command: string]: Command} = {
                     case "%return": {
                         return {ret: true, stack: stack}
                     }
-                    case "%end": {
-                        return {end: true}
+                    case "%function": {
+                        let name = args[argNo + 1]
+                        if(name === undefined || name === null){
+                            return {err: true, content: `${name} is not a valid function name`}
+                        }
+                        let code: any = []
+                        let chgI = 1
+                        for(let i = argNo + 2; i < argCount; i++){
+                            chgI++
+                            if(args[i] == '%functionend'){
+                                break
+                            }
+                            code.push(args[i])
+                        }
+                        ram[name] = async(...args: any[]) => {
+                            let stack = args
+                            for(let i = 0; i < code.length; i ++){
+                                let rv = await parseArg(code[i], i, code.length, code, stack)
+                                if(rv?.end) return {end: true}
+                                if(rv?.chgI)
+                                    i += parseInt(rv.chgI)
+                                if(rv?.err){
+                                    return {chgI: i - argNo, ...rv}
+                                }
+
+                            }
+                            return {stack: stack}
+                        }
+                        return {chgI: chgI}
                     }
-                    case "%break": {
-                        return {end: true}
+
+                    //misc
+                    case "%isnumeric": {
+                        let val = stack.pop()
+                        if(typeof val === 'number'){
+                            stack.push(1)
+                        }
+                        else if(typeof val === 'string' && val.match(/^-?\d+(\.\d+)?$/)){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
                     }
+                    case "%time": {
+                        stack.push(Date.now())
+                        break
+                    }
+
+                    //vars
+                    case "%saveas": {
+                        stack.push("%saveas")
+                        break
+                    }
+                    case "%lvar": {
+                        stack.push("%lvar")
+                        break
+                    }
+                    case "%sram": {
+                        stack.push("%sram")
+                        break
+                    }
+                    case "%lram": {
+                        stack.push('%lram')
+                        break
+                    }
+
+                    //message manipulation
+                    case "%send": {
+                        let ans = stack.pop()
+                        if(ans == undefined || ans == null){
+                            return {content: "Nothing to send", err: true}
+                        }
+                        stack.push(await msg.channel.send(String(ans)))
+                        break
+                    }
+                    case "%edit": {
+                        let newText = stack.pop()
+                        let m = stack.pop()
+                        if(!(m instanceof Message)){
+                            return {content: `${m} is not a message`, err: true}
+                        }
+                        if(typeof newText !== 'string'){
+                            return {content: `${newText} is not a string`, err: true}
+                        }
+                        stack.push(await m.edit(newText));
+                        break
+                    }
+                    case "%reply": {
+                        let text = stack.pop()
+                        let msgToRTo = stack.pop()
+                        if(typeof text !== 'string'){
+                            return {err: true, content: `${text} is not a string`}
+                        }
+                        if(!(msgToRTo instanceof Message)){
+                            return {err: true, content: `Cannot reply to non-message: ${msgToRTo}`}
+                        }
+                        stack.push(await msgToRTo.reply(text))
+                        break
+                    }
+                    case "%getmsg": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        try{
+                            let m = await msg.channel.messages.fetch(val)
+                            if(!m){
+                                stack.push(0)
+                            }
+                            else stack.push(m)
+                        }
+                        catch(err){
+                            console.log(err)
+                            stack.push(0)
+                        }
+                        break
+                    }
+
+                    //string manipulation
                     case "%trim": {
                         let val = stack.pop()
                         if(typeof val !== 'string'){
@@ -3821,6 +3755,95 @@ const commands: {[command: string]: Command} = {
                         stack.push(str.split(val))
                         break
                     }
+                    case "%upper": {
+                        let val = stack.pop()
+                        if(typeof val !== "string"){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        stack.push(val.toUpperCase())
+                        break
+                    }
+                    case "%str": {
+                        let val = stack.pop()
+                        stack.push(String(val))
+                        break
+                    }
+                    case "%int": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        let ans = parseInt(val)
+                        if(isNaN(ans)){
+                            return {err: true, content: `Result was NaN`}
+                        }
+                        stack.push(ans)
+                        break
+                    }
+                    case "%float": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {err: true, content: `${val} is not a string`}
+                        }
+                        let ans = parseFloat(val)
+                        if(isNaN(ans)){
+                            return {err: true, content: `Result was NaN`}
+                        }
+                        stack.push(ans)
+                        break
+                    }
+
+                    //number manipulation
+                    case "%lower": {
+                        let val = stack.pop()
+                        if(typeof val !== "string"){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        stack.push(val.toLowerCase())
+                        break
+                    }
+                    case "%floor": {
+                        let val = stack.pop()
+                        if(typeof val !== 'number'){
+                            return {err: true, content: `${val} is not a number`}
+                        }
+                        stack.push(Math.floor(val))
+                        break
+                    }
+                    case "%ceil": {
+                        let val = stack.pop()
+                        if(typeof val !== 'number'){
+                            return {err: true, content: `${val} is not a number`}
+                        }
+                        stack.push(Math.ceil(val))
+                        break
+                    }
+                    case "%rand": {
+                        stack.push(Math.random())
+                        break
+                    }
+
+                    //users
+                    case "%getusr": {
+                        let val = stack.pop()
+                        if(typeof val !== 'string'){
+                            return {content: `${val} is not a string`, err: true}
+                        }
+                        try{
+                            let u = await msg.guild?.members.fetch(val)
+                            if(!u){
+                                stack.push(0)
+                            }
+                            else stack.push(u)
+                        }
+                        catch(err){
+                            console.log(err)
+                            stack.push(0)
+                        }
+                        break
+                    }
+
+                    //list manipulation
                     case "%join": {
                         let val = stack.pop()
                         if(typeof val !== 'string'){
@@ -3832,6 +3855,55 @@ const commands: {[command: string]: Command} = {
                         }
                         stack.push(arr.join(val))
                         break
+                    }
+                    case "%index": {
+                        let indexNo = stack.pop()
+                        let indexee = stack.pop()
+                        if(typeof indexNo !== 'number'){
+                            return {err: true, content: `cannot index with non-number: ${indexNo}`}
+                        }
+                        switch(typeof indexee){
+                            case 'string': {
+                                stack.push(indexee[indexNo])
+                                break
+                            }
+                            case 'object': {
+                                if(Array.isArray(indexee)){
+                                    stack.push(indexee[indexNo])
+                                    break
+                                }
+                            }
+                            default: {
+                                return {err: true, content: `Cannot index ${typeof indexee}`}
+                            }
+                        }
+                        break
+                    }
+                    case "%list": {
+                        let list = []
+                        let chgI = 0
+                        let count = args[argNo + 1]
+                        if(!isNaN(Number(count))){
+                            chgI++
+                            for(let i = 0; i < parseInt(count); i++){
+                                let val = stack.pop()
+                                if(typeof val === 'undefined'){
+                                    return {err: true, content: `arg: ${i} in list is undefined`}
+                                }
+                                list.push(val)
+                            }
+                        }
+                        else{
+                            return {err: true, content: `No list length given`}
+                        }
+                        stack.push(list.reverse())
+                        return {chgI: chgI}
+                    }
+                    case "%end": {
+                        return {end: true}
+                    }
+                    case "%break": {
+                        return {end: true}
                     }
                     case "%find": {
                         let matcher = stack.pop()
@@ -3860,6 +3932,8 @@ const commands: {[command: string]: Command} = {
                         }
                         break
                     }
+
+                    //control flow
                     case "%loop": {
                         let code = []
                         let chgI = 0
@@ -3899,19 +3973,6 @@ const commands: {[command: string]: Command} = {
                             }
                         }
                         return {chgI:chgI}
-                    }
-                    case "%isnumeric": {
-                        let val = stack.pop()
-                        if(typeof val === 'number'){
-                            stack.push(1)
-                        }
-                        else if(typeof val === 'string' && val.match(/^-?\d+(\.\d+)?$/)){
-                            stack.push(1)
-                        }
-                        else{
-                            stack.push(0)
-                        }
-                        break
                     }
                     case "%if": {
                         let bool = Boolean(stack.pop()) ? true : false
