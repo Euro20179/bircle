@@ -14,5 +14,6 @@ log.txt
 make-changelog
 *.txt
 *.png
+out
 
 !command-perms/holder

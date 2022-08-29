@@ -1807,15 +1807,15 @@ const commands: {[command: string]: Command} = {
             let everyone = false
             let users: any[] = []
             for(let arg of args){
-            if(['all', 'everyone'].includes(arg)){
-                users.push("Everyone")
-                everyone = true
-                break
-            }
-            opponent = await fetchUser(msg.guild, arg)
-            if(opponent){
-                users.push(opponent)
-            }
+                if(['all', 'everyone'].includes(arg)){
+                    users.push("Everyone")
+                    everyone = true
+                    break
+                }
+                opponent = await fetchUser(msg.guild, arg)
+                if(opponent){
+                    users.push(opponent)
+                }
             }
             if(users.length == 0){
             users.push(msg.author)
@@ -1843,7 +1843,12 @@ const commands: {[command: string]: Command} = {
                     disp += "\\_ "
                     }
                 }
-                await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
+                try{
+                    await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
+                }
+                catch(err){
+                    return {content: "2K char limit reached"}
+                }
                 let collection = msg.channel.createMessageCollector({filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
                 collection.on("collect", async(m) => {
                     if(m.content == '\\n' || m.content == "<enter>")
@@ -3162,7 +3167,6 @@ const commands: {[command: string]: Command} = {
                 }
                 word += text[i]
             }
-            let stacks  = {}
             if(word)
                 stacklArgs.push(word)
             args = stacklArgs.filter(a => a ? true : false)
