@@ -4256,6 +4256,9 @@ const commands: {[command: string]: Command} = {
                 case "^":
                     ans = parseFloat(varValRet) ^ parseFloat(expr)
                     break;
+                case "%":
+                    ans = parseFloat(varValRet) % parseFloat(expr)
+                    break;
             }
             vardict[vname] = () => ans
             return {content: String(ans)}
