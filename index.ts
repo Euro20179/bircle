@@ -953,6 +953,9 @@ const commands: {[command: string]: Command} = {
                 },
                 "img": {
                     description: "Image of the embed<br>If not provided, an image will be chosen from chat (if exists)<br>set -img= to stop this"
+                },
+                "wait": {
+                    description: "The seconds to wait before deleting and sending the message"
                 }
             },
             arguments: {
@@ -3212,6 +3215,10 @@ const commands: {[command: string]: Command} = {
                         stack.push(argc)
                         break
                     }
+                    case "$carson": {
+                        stack.push("The all legendary Carson Williams")
+                        break
+                    }
 
                     case "%argv": {
                         let index = stack.pop()
@@ -4108,6 +4115,7 @@ const commands: {[command: string]: Command} = {
                     }
                 }
             }
+
             for(let i = 0; i < args.length; i++){
                 let arg = args[i]
                 arg = arg.trim()
@@ -4246,7 +4254,7 @@ const commands: {[command: string]: Command} = {
                     ans = parseFloat(varValRet) / parseFloat(expr)
                     break
                 case "^":
-                    ans = parseFloat(varValRet) / parseFloat(expr)
+                    ans = parseFloat(varValRet) ^ parseFloat(expr)
                     break;
             }
             vardict[vname] = () => ans
