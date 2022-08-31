@@ -3697,6 +3697,19 @@ const commands: {[command: string]: Command} = {
                         stack.push("%lvar")
                         break
                     }
+                    case "%gvar": {
+                        let name = stack.pop()
+                        if(typeof name !== 'string'){
+                            return {err: true, content: `${name} is not a valid variable name`}
+                        }
+                        if(vars[name]){
+                            stack.push(vars[name](msg))
+                        }
+                        else{
+                            return {err: true, content: `${name} is not defined`}
+                        }
+                        break
+                    }
                     case "%sram": {
                         stack.push("%sram")
                         break
@@ -3766,13 +3779,39 @@ const commands: {[command: string]: Command} = {
                     case "%etitle": {
                         let title = stack.pop()
                         if(typeof title !== 'string'){
-                            return {err: true, content: `Title for %embedtitle must be string`}
+                            return {err: true, content: `Title for %etitle must be string`}
                         }
                         let e = stack.pop()
                         if(!(e instanceof MessageEmbed)){
                             return {err: true, content: `${e} is not an embed, cannot set title`}
                         }
                         e.setTitle(title)
+                        stack.push(e)
+                        break
+                    }
+                    case "%eimg": {
+                        let imgUrl = stack.pop()
+                        if(typeof imgUrl !== 'string'){
+                            return {err: true, content: `imgUrl for %eimg must be a string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed, cannot set thumbnail`}
+                        }
+                        e.setImage(imgUrl)
+                        stack.push(e)
+                        break
+                    }
+                    case "%ethumb": {
+                        let thumbUrl = stack.pop()
+                        if(typeof thumbUrl !== 'string'){
+                            return {err: true, content: `thumburl for %ethumb must be a string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed, cannot set thumbnail`}
+                        }
+                        e.setThumbnail(thumbUrl)
                         stack.push(e)
                         break
                     }
@@ -3901,6 +3940,54 @@ const commands: {[command: string]: Command} = {
                     }
 
                     //string manipulation
+                    case "%repl": {
+                        let repl = stack.pop()
+                        if(typeof repl !== 'string'){
+                            return {err: true, content: 'Replacement must be a string'}
+                        }
+                        let find = stack.pop()
+                        if(typeof find !== 'string'){
+                            return {err: true, content: 'Search must be a string'}
+                        }
+                        let str = stack.pop()
+                        if(typeof str !== 'string'){
+                            return {err: true, content: "String to operate on must be string"}
+                        }
+                        stack.push(str.replaceAll(find, repl))
+                        break
+                    }
+                    case "%rtrunc": {
+                        let bytes = stack.pop()
+                        if(typeof bytes !== 'number'){
+                            return {err: true, content: "The amount of bytes must be a number"}
+                        }
+                        let str = stack.pop()
+                        if(typeof str !== 'string'){
+                            return {err: true, content: "Cannot truncate non string"}
+                        }
+                        let ans = str.slice(0, str.length - bytes)
+                        if (ans.length == 0){
+                            return {err: true, content: "Truncatation size is larger than string size"}
+                        }
+                        stack.push(ans)
+                        break
+                    }
+                    case "%ltrunc": {
+                        let bytes = stack.pop()
+                        if(typeof bytes !== 'number'){
+                            return {err: true, content: "The amount of bytes must be a number"}
+                        }
+                        let str = stack.pop()
+                        if(typeof str !== 'string'){
+                            return {err: true, content: "Cannot truncate non string"}
+                        }
+                        let ans = str.slice(bytes, str.length)
+                        if (ans.length == 0){
+                            return {err: true, content: "Truncatation size is larger than string size"}
+                        }
+                        stack.push(ans)
+                        break
+                    }
                     case "%trim": {
                         let val = stack.pop()
                         if(typeof val !== 'string'){
@@ -4445,6 +4532,40 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.UTIL
 
+    },
+    run: {
+        run: async(msg: Message, args) => {
+            let file = msg.attachments.at(0)
+            console.log(file)
+            if(!file){
+                let data = args.join(" ").replaceAll("```", "").split(";EOL")
+                for(let line of data){
+                    line = line.trim()
+                    msg.content = `${prefix}${line}`
+                    await doCmd(msg, false)
+                }
+            }
+            else{
+                //@ts-ignore
+                let k = msg.attachments.keyAt(0) as string
+                msg.attachments.delete(k)
+                let data = got(file.url)
+                console.log(file.contentType)
+                let text = await data.text()
+                let bluecHeader = "%bluecircle37%\n"
+                if(text.slice(0, bluecHeader.length)){
+                    for(let line of text.slice(bluecHeader.length).split(";EOL")){
+                        line = line.trim()
+                        msg.content = `${prefix}${line}`
+                        await doCmd(msg, false)
+                    }
+                }
+            }
+            return {noSend: true}
+        }, category: CommandCategory.META,
+        help: {
+            info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
+        }
     },
     "var": {
         run: async(msg: Message, args: ArgumentList) => {
