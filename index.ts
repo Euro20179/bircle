@@ -5522,7 +5522,7 @@ valid formats:<br>
 
     },
     "cmd-use": {
-        run: async(_msg: Message, _args: ArgumentList) => {
+        run: async(_msg: Message, args: ArgumentList) => {
             let data = generateCmdUseFile()
                         .split("\n")
                         .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
@@ -5600,14 +5600,14 @@ valid formats:<br>
                 }
                 else return {content: "no data given to search through"}
             }
-            let match = data.matchAll(new RegExp(regex, "g"))
+            let match = data.matchAll(new RegExp(regex, "gm"))
             let finds = ""
             for(let find of match){
                 if(find[1]){
-                    finds += `Found ${find.slice(1).join(", ")} at character ${(find?.index ?? 0) + 1}\n`
+                    finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
                 }
                 else {
-                    finds += `Found ${find[0]} at character ${(find?.index ?? 0) + 1}\n`
+                    finds += `Found \`${find[0]}\` at character ${(find?.index ?? 0) + 1}\n`
                 }
             }
             return {
