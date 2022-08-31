@@ -159,6 +159,9 @@ function getOpts(args: Array<string>): [Opts, ArgumentList]{
     for(let arg of args){
         idxOfFirstRealArg++
         if(arg[0] == "-"){
+            if(arg[1] && arg[1] === '-'){
+                break
+            }
             if(arg[1]){
                 let [opt, ...value] = arg.slice(1).split("=")
                 opts[opt] = value[0] == undefined ? true : value.join("=");
@@ -252,7 +255,6 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
     return img as string
 }
 
-const player = createAudioPlayer()
 let connection: any;
 
 const commands: {[command: string]: Command} = {
@@ -3125,7 +3127,7 @@ const commands: {[command: string]: Command} = {
             if(opts['no-start'] === true){
                 useStart = false
             }
-            type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes>
+            type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
             let stack: (stackTypes)[] = []
             if(useStart){
                 let curArg;
@@ -3354,15 +3356,21 @@ const commands: {[command: string]: Command} = {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
                         if(typeof arg2 == "string"){
-                            while((arg2 = arg2.replace(/%(s|d|f)/, (_match, type) => {
-                                if(type == "s"){
+                            while((arg2 = arg2.replace(/%(s|d|.l|f)/, (_match, type) => {
+                                if(type === "s"){
                                     return String(arg1)
                                 }
-                                else if(type == "d"){
+                                else if(type === "d"){
                                     return String(parseInt(String(arg1)))
                                 }
-                                else if(type == "f"){
+                                else if(type === "f"){
                                     return String(parseFloat(String(arg1)))
+                                }
+                                else if(type[1] === 'l'){
+                                    if(Array.isArray(arg1)){
+                                        return arg1.join(type[0])
+                                    }
+                                    return `%${type}`
                                 }
                                 return ""
                             })).match(/%(s|d)/)){
@@ -3594,6 +3602,7 @@ const commands: {[command: string]: Command} = {
                         //otherwise you'd have to put the args in reverse order
                         fnArgs = fnArgs.reverse()
                         let f = stack.pop()
+                        console.log( typeof f)
                         if(typeof f !== 'function'){
                             return {err: true, content: `${f} is not a function`}
                         }
@@ -3656,6 +3665,11 @@ const commands: {[command: string]: Command} = {
                     }
 
                     //misc
+                    case "%json": {
+                        let value = stack.pop()
+                        stack.push(JSON.stringify(value))
+                        break
+                    }
                     case "%isnumeric": {
                         let val = stack.pop()
                         if(typeof val === 'number'){
@@ -3741,6 +3755,148 @@ const commands: {[command: string]: Command} = {
                             console.log(err)
                             stack.push(0)
                         }
+                        break
+                    }
+
+                    //embeds
+                    case "%embed": {
+                        stack.push(new MessageEmbed())
+                        break
+                    }
+                    case "%etitle": {
+                        let title = stack.pop()
+                        if(typeof title !== 'string'){
+                            return {err: true, content: `Title for %embedtitle must be string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed, cannot set title`}
+                        }
+                        e.setTitle(title)
+                        stack.push(e)
+                        break
+                    }
+                    case "%efld": {
+                        let inline = stack.pop()
+                        if(typeof inline !== 'number'){
+                            return {err: true, content: `Inline must be a boolean`}
+                        }
+                        let value = stack.pop()
+                        if(typeof value !== 'string'){
+                            return {err: true, content: `value must be a string`}
+                        }
+                        let title = stack.pop()
+                        if(typeof title !== 'string'){
+                            return {err: true, content: `name must be a string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed`}
+                        }
+                        e.addField(title, value, Boolean(inline))
+                        stack.push(e)
+                        break
+                    }
+                    case "%eftr": {
+                        let image = stack.pop()
+                        if(typeof image !== 'string' && image !== 0){
+                            return {err: true, content: `Footer image must be a string or 0`}
+                        }
+                        let footer = stack.pop()
+                        if(typeof footer !== 'string'){
+                            return {err: true, content: `footer must be a string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed`}
+                        }
+                        if(image){
+                            e.setFooter({text: footer, iconURL: image})
+                        }
+                        else{
+                            e.setFooter({text: footer})
+                        }
+                        stack.push(e)
+                        break
+                    }
+                    case "%edesc": {
+                        let description = stack.pop()
+                        if(typeof description !== 'string'){
+                            return {err: true, content: `description must be a string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed`}
+                        }
+                        e.setDescription(description)
+                        stack.push(e)
+                        break
+                    }
+                    case "%etstmp": {
+                        let time = stack.pop()
+                        if(typeof time !== 'number'){
+                            return {err: true, content: `Timestamp must be a number`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed`}
+                        }
+                        e.setTimestamp(new Date(time || Date.now()))
+                        stack.push(e)
+                        break
+                    }
+                    case "%eauth": {
+                        let image = stack.pop()
+                        if(typeof image !== 'string' && image !== 0){
+                            return {err: true, content: `Footer image must be a string or 0`}
+                        }
+                        let author = stack.pop()
+                        if(typeof author !== 'string'){
+                            return {err: true, content: `author must be a string`}
+                        }
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed`}
+                        }
+                        if(image){
+                            e.setAuthor({name: author, iconURL: image})
+                        }
+                        else{
+                            e.setAuthor({name: author})
+                        }
+                        stack.push(e)
+                        break
+                    }
+                    case "%eclr": {
+                        let color = stack.pop()
+                        let e = stack.pop()
+                        if(!(e instanceof MessageEmbed)){
+                            return {err: true, content: `${e} is not an embed`}
+                        }
+                        try{
+                            let colorsToStrings = {
+                                "red": [255, 0, 0],
+                                "green": [0, 255, 0],
+                                "blue": [0, 0, 255],
+                                "yellow": [255, 255, 0],
+                                "purple": [255, 0, 255],
+                                "cyan": [0, 255, 255],
+                                "white": [255, 255, 255],
+                                "black": [1, 1, 1],
+                                "blackblack": [0, 0, 0],
+                                "random": [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)]
+                            }
+                            if(typeof color === 'string'){
+                                //@ts-ignore
+                                color = colorsToStrings[color.toLowerCase()]
+                            }
+                            e.setColor(color as ColorResolvable)
+                        }
+                        catch(err){
+                            console.log(err)
+                            return {err: true, content: `${color} is not a valid color`}
+                        }
+                        stack.push(e)
                         break
                     }
 
@@ -4127,7 +4283,17 @@ const commands: {[command: string]: Command} = {
                     return rv
                 }
             }
-            return {content: stack.join(" "), noSend: stack.length > 0 ? false : true}
+            let embeds = []
+            let texts = []
+            for(let item of stack){
+                if(item instanceof MessageEmbed){
+                    embeds.push(item)
+                }
+                else{
+                    texts.push(item)
+                }
+            }
+            return {content: texts.join(" "), embeds: embeds, noSend: stack.length > 0 ? false : true}
         }, category: CommandCategory.UTIL,
         help: {
             info: "Welcome to stackl",
@@ -4270,7 +4436,7 @@ const commands: {[command: string]: Command} = {
                     description: "Number 1 (can be a variable)"
                 },
                 "operator": {
-                    description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li>/</li><li>^</li></ul>"
+                    description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li>/</li><li>^</li><li>%</li></ul>"
                 },
                 "num2": {
                     description: "The other number (can be a variable)"
