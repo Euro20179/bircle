@@ -3687,6 +3687,14 @@ const commands: {[command: string]: Command} = {
                         stack.push(Date.now())
                         break
                     }
+                    case "%sleep": {
+                        let amount = stack.pop()
+                        if(typeof amount !== 'number'){
+                            return {err: true, content: "Time to sleep is NaN"}
+                        }
+                        await new Promise(res => setTimeout(res, amount as number))
+                        break
+                    }
 
                     //vars
                     case "%saveas": {
@@ -4536,26 +4544,30 @@ const commands: {[command: string]: Command} = {
     run: {
         run: async(msg: Message, args) => {
             let file = msg.attachments.at(0)
-            console.log(file)
             if(!file){
                 let data = args.join(" ").replaceAll("```", "").split(";EOL")
                 for(let line of data){
                     line = line.trim()
+                    if(line.startsWith(prefix)){
+                        line = line.slice(prefix.length)
+                    }
                     msg.content = `${prefix}${line}`
                     await doCmd(msg, false)
                 }
             }
             else{
-                //@ts-ignore
                 let k = msg.attachments.keyAt(0) as string
                 msg.attachments.delete(k)
+                //@ts-ignore
                 let data = got(file.url)
-                console.log(file.contentType)
                 let text = await data.text()
                 let bluecHeader = "%bluecircle37%\n"
                 if(text.slice(0, bluecHeader.length)){
                     for(let line of text.slice(bluecHeader.length).split(";EOL")){
                         line = line.trim()
+                        if(line.startsWith(prefix)){
+                            line = line.slice(prefix.length)
+                        }
                         msg.content = `${prefix}${line}`
                         await doCmd(msg, false)
                     }
