@@ -22,7 +22,6 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-
 enum CommandCategory{
     UTIL,
     GAME,
@@ -59,17 +58,7 @@ function createChatCommand(name: string, description: string, options: any){
 
 const STRING = 3
 const INTEGER = 4
-const BOOL = 5
 const USER = 6
-const CHANNEL = 7
-const ROLE = 8
-const MENTIONABLE = 9
-const NUMBER = 10
-const ATTACH = 11
-
-const CMD_CHAT_INPUT = 1
-const CMD_USER = 2
-const CMD_MESSAGE = 3
 
 
 function createChatCommandOption(type: number, name: string, description: string, {min, max, required}: {min?: number, max?: number | null, required?: boolean}){
@@ -259,7 +248,7 @@ let connection: any;
 
 const commands: {[command: string]: Command} = {
     replace: {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let search = args[0]
@@ -3131,7 +3120,6 @@ const commands: {[command: string]: Command} = {
             let stack: (stackTypes)[] = []
             if(useStart){
                 let curArg;
-                console.log(args)
                 while((curArg=args.shift()) !== "%start"){
                     console.log(curArg)
                     if(curArg !== undefined)
@@ -3141,7 +3129,6 @@ const commands: {[command: string]: Command} = {
             }
             let argc = stack.length
             let initialArgs = [...stack]
-            console.log(args)
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
                 true: 1,
                 false: 0,
@@ -3701,6 +3688,32 @@ const commands: {[command: string]: Command} = {
                         stack.push("%saveas")
                         break
                     }
+                    case "%vexists": {
+                        let varName = stack.pop()
+                        if(typeof varName !== 'string'){
+                            return {err: true, content: `${varName} is not a valid variable name`}
+                        }
+                        if(vars[varName]){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
+                    }
+                    case "%uvexists": {
+                        let varName = stack.pop()
+                        if(typeof varName !== 'string'){
+                            return {err: true, content: `${varName} is not a valid variable name`}
+                        }
+                        if(userVars[msg.author.id]?.[varName]){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
+                    }
                     case "%lvar": {
                         stack.push("%lvar")
                         break
@@ -3720,6 +3733,33 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%sram": {
                         stack.push("%sram")
+                        break
+                    }
+                    case "%gexists": {
+                        let name = stack.pop()
+                        if(typeof name !== 'string'){
+                            return {err: true, content: `${name} is not a valid variable name`}
+                        }
+                        if(ram[name] !== undefined){
+                            stack.push(1)
+                        }
+                        else{
+                            stack.push(0)
+                        }
+                        break
+
+                    }
+                    case "%gram": {
+                        let name = stack.pop()
+                        if(typeof name !== 'string'){
+                            return {err: true, content: `${name} is not a valid variable name`}
+                        }
+                        if(ram[name]){
+                            stack.push(ram[name])
+                        }
+                        else{
+                            return {err: true, content: `${name} is not defined`}
+                        }
                         break
                     }
                     case "%lram": {
