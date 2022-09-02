@@ -197,7 +197,7 @@ function generateHTMLFromCommandHelp(name: string, command: any){
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for(let option in options){
                 let desc = options[option].description || ""
-                let alternates = options[option].alternates || []
+                let alternates = options[option].alternates || 0
                 let requiresValue = options[option].requiresValue || false
                 html += `<li class="command-option">
     <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary> ${desc}</details>`
