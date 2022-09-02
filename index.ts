@@ -1876,7 +1876,7 @@ const commands: {[command: string]: Command} = {
                     if(word.indexOf(m.content) < 0)
                     lives--
                     if(lives < 1){
-                    await msg.channel.send(`You lost, the word was:\n${wordstr}`)
+                    await msg.channel.send({content: `You lost, the word was:\n${wordstr}`, allowedMentions: {parse: []}})
                     collection.stop()
                     return
                     }
@@ -1907,7 +1907,7 @@ const commands: {[command: string]: Command} = {
                     }
                     }
                     if(disp.replaceAll("   ", " ") == wordstr){
-                    await msg.channel.send(`YOU WIN, it was\n${wordstr}`)
+                    await msg.channel.send({content: `YOU WIN, it was\n${wordstr}`, allowedMentions: {parse: []}})
                     collection.stop()
                     return
                     }
