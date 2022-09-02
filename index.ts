@@ -3207,6 +3207,10 @@ const commands: {[command: string]: Command} = {
                         stack.push("The all legendary Carson Williams")
                         break
                     }
+                    case "$argv": {
+                        stack.push(initialArgs)
+                        break
+                    }
 
                     case "%argv": {
                         let index = stack.pop()
