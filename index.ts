@@ -3118,17 +3118,16 @@ const commands: {[command: string]: Command} = {
             }
             type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
             let stack: (stackTypes)[] = []
+            let initialArgs: string[] = []
             if(useStart){
                 let curArg;
                 while((curArg=args.shift()) !== "%start"){
-                    console.log(curArg)
                     if(curArg !== undefined)
-                        stack.push(curArg)
+                        initialArgs.push(curArg)
                     else break
                 }
             }
             let argc = stack.length
-            let initialArgs = [...stack]
             let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
                 true: 1,
                 false: 0,
@@ -3732,6 +3731,7 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case "%sram": {
+                        console.log("hi")
                         stack.push("%sram")
                         break
                     }
@@ -4183,10 +4183,10 @@ const commands: {[command: string]: Command} = {
                     case "%list": {
                         let list = []
                         let chgI = 0
-                        let count = args[argNo + 1]
+                        let count = stack.pop()
                         if(!isNaN(Number(count))){
                             chgI++
-                            for(let i = 0; i < parseInt(count); i++){
+                            for(let i = 0; i < parseInt(String(count)); i++){
                                 let val = stack.pop()
                                 if(typeof val === 'undefined'){
                                     return {err: true, content: `arg: ${i} in list is undefined`}
@@ -4380,9 +4380,9 @@ const commands: {[command: string]: Command} = {
                             stack.push(value)
                         }
                         else if(stack[stack.length - 1] == "%sram"){
-                            ram[arg] = stack[stack.length - 2]
-                            stack.pop()
-                            stack.pop()
+                            let sram = stack.pop()
+                            let item = stack.pop()
+                            ram[arg as string] = item
                         }
                         else if(stack[stack.length - 1] == '%lram'){
                             if(ram[arg] === undefined){
