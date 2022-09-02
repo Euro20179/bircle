@@ -3117,7 +3117,9 @@ const commands: {[command: string]: Command} = {
                 useStart = false
             }
             type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
-            let stack: (stackTypes)[] = []
+            let stacks: {[key: string]: stackTypes[]} = {__main__: []}
+            let currScopes = ["__main__"]
+            let stack = stacks["__main__"]
             let initialArgs: string[] = []
             if(useStart){
                 let curArg;
@@ -3697,7 +3699,35 @@ const commands: {[command: string]: Command} = {
                         break
                     }
 
+
                     //vars
+                    case "%stack": {
+                        let scopeName = args[argNo + 1]
+                        if(typeof scopeName !== 'string'){
+                            return {err: true, content: "Scope name must be a string"}
+                        }
+                        if(stacks[scopeName] !== undefined){
+                            return {err: true, content: `Scope name: ${scopeName} already exists`}
+                        }
+                        stacks[scopeName] = []
+                        currScopes.push(scopeName)
+                        return {chgI: 1}
+                    }
+                    case "%stackend": {
+                        let scopeName = args[argNo + 1]
+                        if(typeof scopeName !== 'string'){
+                            return {err: true, content: "Scope name must be a string"}
+                        }
+                        if(scopeName === '__main__'){
+                            return {end: true}
+                        }
+                        if(currScopes[currScopes.length - 1] !== scopeName){
+                            return {err: true, content: `Scope name: ${scopeName} is not the newest scope`}
+                        }
+                        stacks[scopeName] = []
+                        currScopes.pop()
+                        return {chgI: 1}
+                    }
                     case "%saveas": {
                         stack.push("%saveas")
                         break
@@ -4267,7 +4297,7 @@ const commands: {[command: string]: Command} = {
                         forever: while(true){
                             loopCount++
                             for(let i = 0; i < code.length; i++){
-                                let rv = await parseArg(code[i], i, code.length, code, stack)
+                                let rv = await parseArg(code[i], i, code.length, code, stacks[currScopes[currScopes.length - 1]])
                                 if(rv?.end) break forever
                                 if(rv?.chgI){
                                     i += parseInt(rv.chgI)
@@ -4319,7 +4349,7 @@ const commands: {[command: string]: Command} = {
                                 if(args[i] == "%ifend" && ifCount < 0){
                                     return {chgI: i - argNo}
                                 }
-                                let rv = await parseArg(args[i], i, argCount, args, stack)
+                                let rv = await parseArg(args[i], i, argCount, args, stacks[currScopes[currScopes.length - 1]])
                                 if(rv?.end) return {end: true}
                                 if(rv?.chgI)
                                     i += parseInt(rv.chgI)
@@ -4335,7 +4365,7 @@ const commands: {[command: string]: Command} = {
                                         if(args[j] == "%ifend"){
                                             return {chgI: j - argNo}
                                         }
-                                        let rv = await parseArg(args[j], j, argCount, args, stack)
+                                        let rv = await parseArg(args[j], j, argCount, args, stacks[currScopes[currScopes.length - 1]])
                                         if(rv?.end) return {end: true}
                                         if(rv?.chgI)
                                             j += parseInt(rv.chgI)
@@ -4425,7 +4455,7 @@ const commands: {[command: string]: Command} = {
             for(let i = 0; i < args.length; i++){
                 let arg = args[i]
                 arg = arg.trim()
-                let rv = await parseArg(arg, i, args.length, args, stack)
+                let rv = await parseArg(arg, i, args.length, args, stacks[currScopes[currScopes.length - 1]])
                 if(rv?.end) break
                 if(rv?.chgI)
                     i += parseInt(rv.chgI)
