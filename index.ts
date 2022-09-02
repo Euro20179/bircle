@@ -5157,6 +5157,9 @@ variables:
                     }
                 }
             }
+            if(opts['json']){
+                return {content: JSON.stringify(commandsToUse)}
+            }
             if(Object.keys(commandsToUse).length < 1){
                 return {
                     content: "No help can be given :("
@@ -5236,6 +5239,9 @@ ${styles}
         },
         help: {
             options: {
+                "json": {
+                    description: "return the json of help"
+                },
                 "l": {
                     description: "List all commands<br>set this equal to a category to list commands in a specific category",
                 },
