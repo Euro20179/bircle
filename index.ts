@@ -3660,6 +3660,17 @@ const commands: {[command: string]: Command} = {
                         stack.push(JSON.stringify(value))
                         break
                     }
+                    case "%obj": {
+                        let value = stack.pop()
+                        if(value === undefined){
+                            return {err: true, content: "Cannot convert undefined to an object"}
+                        }
+                        if(typeof value !== 'string'){
+                            value = JSON.stringify(value)
+                        }
+                        stack.push(JSON.parse(value))
+                        break
+                    }
                     case "%isnumeric": {
                         let val = stack.pop()
                         if(typeof val === 'number'){
