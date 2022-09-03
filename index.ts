@@ -2021,6 +2021,9 @@ const commands: {[command: string]: Command} = {
                     await message.edit({content:edit})
                 }
                 catch(err){
+                    if(!message.deletable){
+                        return {noSend: true}
+                    }
                     await msg.channel.send(`Could not edit message with: ${edit}`)
                 }
                 await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
