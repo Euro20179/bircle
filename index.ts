@@ -4638,14 +4638,22 @@ const commands: {[command: string]: Command} = {
                 msg.attachments.delete(k)
                 //@ts-ignore
                 let data = got(file.url)
-                let text = await data.text()
+                text = await data.text()
                 let bluecHeader = "%bluecircle37%\n"
-                text = text.slice(0, bluecHeader.length).split(";EOL")
+                if(text.slice(0, bluecHeader.length) !== bluecHeader){
+                    return {content: "Does not appear to be a bluec script"}
+                }
+                text = text.slice(bluecHeader.length).split(";EOL")
             }
             if(!text){
                 return {content: "No script"}
             }
+            let id = Math.floor(Math.random() * 10000000)
+            SPAMS[id] = true
+            await msg.channel.send(`Starting id: ${id}`)
             for(let line of text){
+                if(!SPAMS[id])
+                    break
                 line = line.trim()
                 if(line.startsWith(prefix)){
                     line = line.slice(prefix.length)
