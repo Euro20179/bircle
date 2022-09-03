@@ -3097,11 +3097,11 @@ const commands: {[command: string]: Command} = {
             for(let v in vars){
             rv += `${v.replaceAll("_", "\\_")}\n`
             }
-            rv += "----------------------\nUser Vars:\n"
-            if(userVars[msg.author.id]){
-            for(let v in userVars[msg.author.id]){
-                rv += `${v.replaceAll("_", "\\_")}\n`
-            }
+            for(let prefix in userVars){
+                rv += `----------------------\n${prefix}:\n`
+                for(let v in userVars[prefix]){
+                    rv += `${v.replaceAll("_", "\\_")}\n`
+                }
             }
             return {content: rv}
         },
@@ -4626,19 +4626,12 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.UTIL
 
     },
-    run: {
+    "run": {
         run: async(msg: Message, args) => {
             let file = msg.attachments.at(0)
+            let text;
             if(!file){
-                let data = args.join(" ").replaceAll("```", "").split(";EOL")
-                for(let line of data){
-                    line = line.trim()
-                    if(line.startsWith(prefix)){
-                        line = line.slice(prefix.length)
-                    }
-                    msg.content = `${prefix}${line}`
-                    await doCmd(msg, false)
-                }
+                text = args.join(" ").replaceAll("```", "").split(";EOL")
             }
             else{
                 let k = msg.attachments.keyAt(0) as string
@@ -4647,16 +4640,18 @@ const commands: {[command: string]: Command} = {
                 let data = got(file.url)
                 let text = await data.text()
                 let bluecHeader = "%bluecircle37%\n"
-                if(text.slice(0, bluecHeader.length)){
-                    for(let line of text.slice(bluecHeader.length).split(";EOL")){
-                        line = line.trim()
-                        if(line.startsWith(prefix)){
-                            line = line.slice(prefix.length)
-                        }
-                        msg.content = `${prefix}${line}`
-                        await doCmd(msg, false)
-                    }
+                text = text.slice(0, bluecHeader.length).split(";EOL")
+            }
+            if(!text){
+                return {content: "No script"}
+            }
+            for(let line of text){
+                line = line.trim()
+                if(line.startsWith(prefix)){
+                    line = line.slice(prefix.length)
                 }
+                msg.content = `${prefix}${line}`
+                await doCmd(msg, false)
             }
             return {noSend: true}
         }, category: CommandCategory.META,
@@ -4673,7 +4668,20 @@ const commands: {[command: string]: Command} = {
                 return {content: "no value given, syntax `[var x=value"}
             }
             let realVal = value.join(" ")
-            if (opts['u']){
+            if(opts['prefix']){
+                let prefix = String(opts['prefix'])
+                if(prefix.match(/^\d{19}/)){
+                    return {content: "No ids allowed"}
+                }
+                if(userVars[prefix]){
+                    userVars[prefix][name] = () => realVal
+                }
+                else{
+                    userVars[prefix] = {[name]: () => realVal}
+                }
+                return {content: userVars[prefix][name]()}
+            }
+            else if (opts['u']){
                 if(userVars[msg.author.id]){
                     userVars[msg.author.id][name] = () => realVal
                 }
@@ -5136,7 +5144,8 @@ escapes:
     \\S{text}: strikethrough
     \\d{date}: date
     \\D{unix timestamp}: date from timestamp
-    \\V{variable name}: value of a variable
+    \\v{(g:)variable name}: value of a variable (put g: to garantee global scope)
+    \\V{scope:variable name}: get a variable from a specific scope (. for global and % for user)
     \\\\: backslash
 formats:
     {ruser[|fmt]}: generate a user

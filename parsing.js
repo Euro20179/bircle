@@ -168,8 +168,25 @@ function buildEscape(letter, sequence, msg, curArg){
             return (new Date(sequence)).toString()
         case "D":
             return (new Date(parseInt(sequence))).toString()
+        case "V": {
+            let [scope, ...name] = sequence.split(":")
+            name = name.join(":")
+            if(scope == "%"){
+                scope = msg.author.id
+            }
+            else if(scope == "."){
+                if(vars[name]){
+                    return vars[name](msg, curArg)
+                }
+                return `\\v${sequence}`
+            }
+            if(userVars[scope]?.[name]){
+                return userVars[scope][name](msg, curArg)
+            }
+            return `\\v${sequence}`
+            break
+        }
         case "v":
-        case "V":
             let num = Number(sequence)
             //basically checks if it's a n
             if(!isNaN(num)){
@@ -177,8 +194,8 @@ function buildEscape(letter, sequence, msg, curArg){
                 return String(args[num])
             }
             try{
-                if(sequence.split(":")[0] == "g"){
-                    return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || "\\V"
+                if(sequence.split(":")[0] == "."){
+                    return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || `\\V${sequence}`
                 }
                 if(userVars[msg.author.id]){
                     if(userVars[msg.author.id][sequence]){
