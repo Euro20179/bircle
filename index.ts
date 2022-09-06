@@ -5172,6 +5172,10 @@ do first:
     %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
 calc:
     $[calculation]
+special commands:
+    [count]:<range>[cmd/...]
+    [t:cmd
+    [s:cmd
 escapes:
     \\n: new line
     \\t: tab
