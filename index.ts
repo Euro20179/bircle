@@ -5643,6 +5643,7 @@ ${styles}
             embed.addField("id", e.id, true)
             embed.addField("created Date", e?.createdAt.toDateString(), true)
             embed.addField("Creation time", e?.createdAt.toTimeString(), true)
+            embed.addField("URL", e?.url, true)
             return {embeds: [embed]}
         }, category: CommandCategory.UTIL
     },
@@ -5882,6 +5883,11 @@ valid formats:<br>
     },
     head: {
         run: async (msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let count = parseInt(String(opts['count'])) || 10
+            let argText = args.join(" ")
+            return { content: argText.split("\n").slice(0, count).join("\n") }
         },
         help: {
             info: "Say the first 10 lines of some text",
@@ -6215,7 +6221,7 @@ async function handleSending(msg: Message, rv: CommandReturn) {
             }]
         }
     }
-    if (!rv.content) {
+    if (!rv?.content) {
         delete rv['content']
     }
     else {
@@ -6503,7 +6509,7 @@ client.on("messageCreate", async (m: Message) => {
                 m.content = `${prefix}${cmd} ${result}`
                 let rv = await doCmd(m, true)
                 //@ts-ignore
-                if (rv.content) result = rv.content
+                if (rv?.content) result = rv.content
             }
             m.channel.send = oldSend
             finalMessages = [result]
