@@ -6244,11 +6244,14 @@ async function doCmd(msg: Message, returnJson = false) {
     let exists = true
     let rv: CommandReturn;
     let oldSend = msg.channel.send
-    let silent = false
+    let typing = false
     if(command.match(/^s:/)){
-        msg.channel.send = async(data) => msg
-        silent = true
+        msg.channel.send = async(_data) => msg
         command = command.slice(2)
+    }
+    else if(command.match(/^t:/)){
+        command = command.slice(2)
+        typing = true
     }
     if (!commands[command]) {
         rv = { content: `${command} does not exist` }
@@ -6325,6 +6328,9 @@ async function doCmd(msg: Message, returnJson = false) {
         msg.content = msg.content.replaceAll("{channel}", String(msg.channel))
         if (oldC == msg.content) {
             msg.content = msg.content + ` ${args.join(" ")}`
+        }
+        if(typing){
+            await msg.channel.sendTyping()
         }
         rv = await doCmd(msg, true) as CommandReturn
     }
