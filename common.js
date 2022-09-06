@@ -8,6 +8,8 @@ const LOGFILE = "log.txt"
 
 const VERSION = {major: 1, minor: 8, bug: 0, part: "", beta: false, alpha: false}
 
+let USER_SETTINGS = {}
+
 let WHITELIST = {}
 function reloadWhiteList(){
     let wlF = readFileSync("command-perms/whitelists", "utf-8")
@@ -82,5 +84,6 @@ module.exports = {
     removeFromPermList: removeFromPermList,
     LOGFILE: LOGFILE,
     VERSION: VERSION,
-    userVars: userVars
+    userVars: userVars,
+    USER_SETTINGS: USER_SETTINGS
 }

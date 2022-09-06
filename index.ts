@@ -17,7 +17,7 @@ import cheerio = require('cheerio')
 import jimp = require('jimp')
 
 
-const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION } = require('./common.js')
+const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
@@ -3208,8 +3208,7 @@ const commands: { [command: string]: Command } = {
                         stack.push(stack[0])
                         break
                     }
-                    case "$argc": {
-                        stack.push(argc)
+                    case "$argc": { stack.push(argc)
                         break
                     }
                     case "$carson": {
@@ -4211,18 +4210,37 @@ const commands: { [command: string]: Command } = {
                     }
                     case "%index": {
                         let indexNo = stack.pop()
+                        let startIndex = null
                         let indexee = stack.pop()
+                        if(typeof indexNo === 'string'){
+                            [startIndex, indexNo] = indexNo.split(":")
+                            startIndex = Number(startIndex)
+                            indexNo = Number(indexNo)
+                            if (isNaN(startIndex) || isNaN(indexNo)){
+                                return {err: true, content: `Cannot index with non-range: ${indexNo}`}
+                            }
+                        }
                         if (typeof indexNo !== 'number') {
                             return { err: true, content: `cannot index with non-number: ${indexNo}` }
                         }
                         switch (typeof indexee) {
                             case 'string': {
-                                stack.push(indexee[indexNo])
+                                if(startIndex !== null){
+                                    stack.push(indexee.slice(startIndex, indexNo))
+                                }
+                                else{
+                                    stack.push(indexee[indexNo])
+                                }
                                 break
                             }
                             case 'object': {
                                 if (Array.isArray(indexee)) {
-                                    stack.push(indexee[indexNo])
+                                    if(startIndex !== null){
+                                        stack.push(indexee.slice(startIndex, indexNo))
+                                    }
+                                    else{
+                                        stack.push(indexee[indexNo])
+                                    }
                                     break
                                 }
                             }
@@ -4237,7 +4255,6 @@ const commands: { [command: string]: Command } = {
                         let chgI = 0
                         let count = stack.pop()
                         if (!isNaN(Number(count))) {
-                            chgI++
                             for (let i = 0; i < parseInt(String(count)); i++) {
                                 let val = stack.pop()
                                 if (typeof val === 'undefined') {
@@ -4698,7 +4715,8 @@ const commands: { [command: string]: Command } = {
                 else {
                     userVars[prefix] = { [name]: () => realVal }
                 }
-                return { content: userVars[prefix][name]() }
+                if(!opts['silent'])
+                    return { content: userVars[prefix][name]() }
             }
             else if (opts['u']) {
                 if (userVars[msg.author.id]) {
@@ -4707,15 +4725,17 @@ const commands: { [command: string]: Command } = {
                 else {
                     userVars[msg.author.id] = { [name]: () => realVal }
                 }
-                return {
-                    content: userVars[msg.author.id][name]()
-                }
+                if(!opts['silent'])
+                    return {
+                        content: userVars[msg.author.id][name]()
+                    }
             }
             else {
                 vars[name] = () => realVal
-                return {
-                    content: vars[name]()
-                }
+                if(!opts['silent'])
+                    return {
+                        content: vars[name]()
+                    }
             }
         },
         help: {
@@ -6347,6 +6367,9 @@ client.on("messageDeleteBulk", async (m) => {
 })
 
 client.on("messageCreate", async (m: Message) => {
+    if(!USER_SETTINGS[m.author.id]){
+        USER_SETTINGS[m.author.id] = {}
+    }
     let content = m.content
     if (!m.author.bot) {
         for (let match of content.matchAll(/<a?:([^:]+):([\d]+)>/g)) {
