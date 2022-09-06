@@ -6118,6 +6118,60 @@ const rest = new REST({ version: "9" }).setToken(token);
     }
 })();
 
+async function handleSending(msg: Message, rv: CommandReturn) {
+    if (!Object.keys(rv).length) {
+        return
+    }
+    if (rv.deleteFiles === undefined) {
+        rv.deleteFiles = true
+    }
+    if (rv.delete && msg.deletable) {
+        msg.delete().catch(_err => console.log("Message not deleted"))
+    }
+    if (rv.noSend) {
+        return
+    }
+    if ((rv.content?.length || 0) >= 2000) {
+        fs.writeFileSync("out", rv.content as string)
+        delete rv["content"]
+        if (rv.files) {
+            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
+        } else {
+            rv.files = [{
+                attachment: "out", name: "cmd.txt", description: "command output too long"
+            }]
+        }
+    }
+    if (!rv.content) {
+        delete rv['content']
+    }
+    else {
+        if (userVars[msg.author.id]) {
+            userVars[msg.author.id][`_!`] = () => rv.content
+        }
+        else
+            userVars[msg.author.id] = { "_!": () => rv.content }
+        vars[`_!`] = () => rv.content
+    }
+    let location: any = msg.channel
+    if (rv['dm']) {
+        location = msg.author
+    }
+    try {
+        await location.send(rv)
+    }
+    catch (err) {
+        console.log(err)
+        await location.send("broken")
+    }
+    if (rv.files) {
+        for (let file of rv.files) {
+            if (file.delete !== false && rv.deleteFiles)
+                fs.rmSync(file.attachment)
+        }
+    }
+}
+
 async function doCmd(msg: Message, returnJson = false) {
     let command: string
     let args: Array<string>
@@ -6238,57 +6292,7 @@ async function doCmd(msg: Message, returnJson = false) {
     if (returnJson) {
         return rv;
     }
-    if (!Object.keys(rv).length) {
-        return
-    }
-    if (rv.deleteFiles === undefined) {
-        rv.deleteFiles = true
-    }
-    if (rv.delete && msg.deletable) {
-        msg.delete().catch(_err => console.log("Message not deleted"))
-    }
-    if (rv.noSend) {
-        return
-    }
-    if ((rv.content?.length || 0) >= 2000) {
-        fs.writeFileSync("out", rv.content as string)
-        delete rv["content"]
-        if (rv.files) {
-            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
-        } else {
-            rv.files = [{
-                attachment: "out", name: "cmd.txt", description: "command output too long"
-            }]
-        }
-    }
-    if (!rv.content) {
-        delete rv['content']
-    }
-    else {
-        if (userVars[msg.author.id]) {
-            userVars[msg.author.id][`_!`] = () => rv.content
-        }
-        else
-            userVars[msg.author.id] = { "_!": () => rv.content }
-        vars[`_!`] = () => rv.content
-    }
-    let location: any = msg.channel
-    if (rv['dm']) {
-        location = msg.author
-    }
-    try {
-        await location.send(rv)
-    }
-    catch (err) {
-        console.log(err)
-        await location.send("broken")
-    }
-    if (rv.files) {
-        for (let file of rv.files) {
-            if (file.delete !== false && rv.deleteFiles)
-                fs.rmSync(file.attachment)
-        }
-    }
+    handleSending(msg, rv)
 }
 
 client.on("guildMemberAdd", async (m) => {
@@ -6348,6 +6352,52 @@ client.on("messageCreate", async (m: Message) => {
     if (content == 'u!stop') {
         m.content = '[stop'
         content = m.content
+    }
+    let search;
+    if ((search = content.match(/:(\/[^\/]+\/)?(\d+,[\d\$]*)?(.*)/)) && !m.author.bot) {
+        let regexSearch = search[1]
+        let rangeSearch = search[2]
+        let after = search[3]
+        let messages = await m.channel.messages.fetch({ limit: 100 })
+        let index = -1
+        let finalMessages: string[] = []
+        if(regexSearch){
+            let regexpSearch: RegExp
+            try{
+                regexpSearch = new RegExp(regexSearch.slice(0).slice(0, regexSearch.length - 1))
+            }
+            catch(err){
+                await m.channel.send("Bad regex")
+                return
+            }
+            messages.forEach(async (msg) => {
+                index++
+                if (index == 0) return
+                if (msg.content.match(regexpSearch)) {
+                    finalMessages.push(msg.content)
+                }
+            })
+        }
+        else if(rangeSearch){
+            let [num1, num2] = rangeSearch.split(",")
+            messages.forEach(async(msg) => {
+                index++
+                if(!isNaN(Number(num2)) && index == Number(num1)){
+                    finalMessages.push(msg.content)
+                    return
+                }
+                if(index >= Number(num1) && index < Number(num2)){
+                    finalMessages.push(msg.content)
+                }
+            })
+        }
+        if(after){
+            m.content = `${prefix}${after} ${finalMessages.join("\n")}`
+            await doCmd(m)
+        }
+        else {
+            handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
+        }
     }
     if (content.slice(0, prefix.length) !== prefix) {
         return

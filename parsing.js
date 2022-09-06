@@ -195,14 +195,17 @@ function buildEscape(letter, sequence, msg, curArg){
             }
             try{
                 if(sequence.split(":")[0] == "."){
-                    return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || `\\V${sequence}`
+                    return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || `\\V{${sequence}}`
                 }
                 if(userVars[msg.author.id]){
                     if(userVars[msg.author.id][sequence]){
                         return userVars[msg.author.id][sequence](msg, curArg)
                     }
                 }
-                return vars[sequence](msg, curArg) ?? "\\V"
+                if(vars[sequence])
+                    return vars[sequence](msg, curArg) ?? `\\V{${sequence}}`
+                else
+                    return `\\V{${sequence}}`
             } catch(err){
                 console.log(err)
                 return "\\V"
