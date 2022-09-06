@@ -6354,7 +6354,25 @@ client.on("messageCreate", async (m: Message) => {
         content = m.content
     }
     let search;
-    if ((search = content.match(/:(\/[^\/]+\/)?(\d+,[\d\$]*)?(.*)/)) && !m.author.bot) {
+    if((search = content.match(/^:s(.)([^\1]+)\1(.*)\1(.*)/)) && !m.author.bot){
+        let find = search[2]
+        let repl = search[3]
+        let cmd = search[4]
+        let messages = await m.channel.messages.fetch({ limit: 100 })
+        let index = -1
+        let finalMessages: string[] = []
+        messages.forEach(async (msg) => {
+            index++
+            if (index == 0) return
+            m.content = msg.content.replaceAll(String(find), String(repl))
+            if(m.content !== msg.content){
+                finalMessages.push(msg.content.replaceAll(String(find), String(repl)))
+            }
+        })
+        m.content = `${prefix}${cmd} ${finalMessages.join("\n")}`
+        await doCmd(m)
+    }
+    else if ((search = content.match(/^:(\/[^\/]+\/)?(\d+,[\d\$]*)?(.*)/)) && !m.author.bot) {
         let regexSearch = search[1]
         let rangeSearch = search[2]
         let after = search[3]
@@ -6364,7 +6382,7 @@ client.on("messageCreate", async (m: Message) => {
         if(regexSearch){
             let regexpSearch: RegExp
             try{
-                regexpSearch = new RegExp(regexSearch.slice(0).slice(0, regexSearch.length - 1))
+                regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 1))
             }
             catch(err){
                 await m.channel.send("Bad regex")
