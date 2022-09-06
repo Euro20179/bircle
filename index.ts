@@ -464,12 +464,15 @@ const commands: { [command: string]: Command } = {
                     const rank2 = JSONData.players.indexOf(user2Data)
                     const embed = new MessageEmbed()
                     embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
-                    if (user1Data.level < user2Data.level)
-                        embed.setColor("#00ff00")
-                    else if (user1Data.level == user2Data.level)
-                        embed.setColor("#0000ff")
-                    else
-                        embed.setColor("#00ff00")
+                    let redness = Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255))
+                    let greenness = Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255))
+                    if(redness > 255)
+                        redness = 255
+                    if (greenness > 255)
+                        greenness = 255
+                    let hex = rgbToHex(redness, greenness, 0)
+                    embed.setFooter({text: `color: rgb(${redness}, ${greenness}, 0)`})
+                    embed.setColor(hex)
                     embed.addField("Level", String(user1Data.level - user2Data.level), true)
                     embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
                     embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
@@ -1871,18 +1874,18 @@ const commands: { [command: string]: Command } = {
                         return
                     }
                     else if (m.content == wordstr) {
-                        await handleSending(msg,{content: `YOU WIN, it was\n${wordstr}`})
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
                         collection.stop()
                         return
                     }
                     else guessed += m.content
-                    if (word.indexOf(m.content) < 0){
+                    if (word.indexOf(m.content) < 0) {
                         losingStreak++
                         winningStreak = 0
                         points -= losingStreak ** 2
                         lives--
                     }
-                    else{
+                    else {
                         winningStreak++
                         losingStreak = 0
                         points += winningStreak ** 2
@@ -3217,7 +3220,8 @@ const commands: { [command: string]: Command } = {
                         stack.push(stack[0])
                         break
                     }
-                    case "$argc": { stack.push(argc)
+                    case "$argc": {
+                        stack.push(argc)
                         break
                     }
                     case "$carson": {
@@ -4218,12 +4222,12 @@ const commands: { [command: string]: Command } = {
                         let indexNo = stack.pop()
                         let startIndex = null
                         let indexee = stack.pop()
-                        if(typeof indexNo === 'string'){
+                        if (typeof indexNo === 'string') {
                             [startIndex, indexNo] = indexNo.split(":")
                             startIndex = Number(startIndex)
                             indexNo = Number(indexNo)
-                            if (isNaN(startIndex) || isNaN(indexNo)){
-                                return {err: true, content: `Cannot index with non-range: ${indexNo}`}
+                            if (isNaN(startIndex) || isNaN(indexNo)) {
+                                return { err: true, content: `Cannot index with non-range: ${indexNo}` }
                             }
                         }
                         if (typeof indexNo !== 'number') {
@@ -4231,20 +4235,20 @@ const commands: { [command: string]: Command } = {
                         }
                         switch (typeof indexee) {
                             case 'string': {
-                                if(startIndex !== null){
+                                if (startIndex !== null) {
                                     stack.push(indexee.slice(startIndex, indexNo))
                                 }
-                                else{
+                                else {
                                     stack.push(indexee[indexNo])
                                 }
                                 break
                             }
                             case 'object': {
                                 if (Array.isArray(indexee)) {
-                                    if(startIndex !== null){
+                                    if (startIndex !== null) {
                                         stack.push(indexee.slice(startIndex, indexNo))
                                     }
-                                    else{
+                                    else {
                                         stack.push(indexee[indexNo])
                                     }
                                     break
@@ -4327,7 +4331,7 @@ const commands: { [command: string]: Command } = {
                         let id = Math.floor(Math.random() * 100000000)
                         SPAMS[id] = true
                         forever: while (true) {
-                            if(!SPAMS[id])
+                            if (!SPAMS[id])
                                 break
                             loopCount++
                             for (let i = 0; i < code.length; i++) {
@@ -4721,7 +4725,7 @@ const commands: { [command: string]: Command } = {
                 else {
                     userVars[prefix] = { [name]: () => realVal }
                 }
-                if(!opts['silent'])
+                if (!opts['silent'])
                     return { content: userVars[prefix][name]() }
             }
             else if (opts['u']) {
@@ -4731,14 +4735,14 @@ const commands: { [command: string]: Command } = {
                 else {
                     userVars[msg.author.id] = { [name]: () => realVal }
                 }
-                if(!opts['silent'])
+                if (!opts['silent'])
                     return {
                         content: userVars[msg.author.id][name]()
                     }
             }
             else {
                 vars[name] = () => realVal
-                if(!opts['silent'])
+                if (!opts['silent'])
                     return {
                         content: vars[name]()
                     }
@@ -5621,6 +5625,27 @@ ${styles}
         },
         category: CommandCategory.UTIL
     },
+    "emote-info": {
+        run: async(msg, args) => {
+            let emote = args[0].split(":")[2].slice(0, -1)
+            let e
+            try{
+                e = await msg.guild?.emojis.fetch(emote)
+            }
+            catch(err){
+                return {content: "No emoji found"}
+            }
+            if(!e){
+                return {content: "No emoji foudn"}
+            }
+            let embed = new MessageEmbed()
+            embed.setTitle(String(e.name))
+            embed.addField("id", e.id, true)
+            embed.addField("created Date", e?.createdAt.toDateString(), true)
+            embed.addField("Creation time", e?.createdAt.toTimeString(), true)
+            return {embeds: [embed]}
+        }, category: CommandCategory.UTIL
+    },
     "user-info": {
         run: async (msg: Message, args: ArgumentList) => {
             if (!args[0]) {
@@ -5847,7 +5872,7 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     tail: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
@@ -5874,13 +5899,13 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     nl: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let text = args.join(" ").split('\n')
             let rv = ""
-            for(let i = 1; i < text.length + 1; i++){
+            for (let i = 1; i < text.length + 1; i++) {
                 rv += `${i}: ${text[i - 1]}\n`
             }
-            return {content: rv}
+            return { content: rv }
         }, category: CommandCategory.UTIL
     },
     grep: {
@@ -6255,13 +6280,17 @@ async function doCmd(msg: Message, returnJson = false) {
     let rv: CommandReturn;
     let oldSend = msg.channel.send
     let typing = false
-    if(command.match(/^s:/)){
-        msg.channel.send = async(_data) => msg
+    if (command.match(/^s:/)) {
+        msg.channel.send = async (_data) => msg
         command = command.slice(2)
     }
-    else if(command.match(/^t:/)){
+    else if (command.match(/^t:/)) {
         command = command.slice(2)
         typing = true
+    }
+    else if (command.match(/^d:/)) {
+        command = command.slice(2)
+        if (msg.deletable) await msg.delete()
     }
     if (!commands[command]) {
         rv = { content: `${command} does not exist` }
@@ -6339,7 +6368,7 @@ async function doCmd(msg: Message, returnJson = false) {
         if (oldC == msg.content) {
             msg.content = msg.content + ` ${args.join(" ")}`
         }
-        if(typing){
+        if (typing) {
             await msg.channel.sendTyping()
         }
         rv = await doCmd(msg, true) as CommandReturn
@@ -6392,7 +6421,7 @@ client.on('ready', async () => {
 
 client.on("messageDelete", async (m) => {
     if (m.author?.id != client.user?.id) {
-        for(let i = 3; i >= 0; i--){
+        for (let i = 3; i >= 0; i--) {
             snipes[i + 1] = snipes[i]
         }
         snipes[0] = m
@@ -6406,7 +6435,7 @@ client.on("messageDeleteBulk", async (m) => {
 })
 
 client.on("messageCreate", async (m: Message) => {
-    if(!USER_SETTINGS[m.author.id]){
+    if (!USER_SETTINGS[m.author.id]) {
         USER_SETTINGS[m.author.id] = {}
     }
     let content = m.content
@@ -6424,16 +6453,18 @@ client.on("messageCreate", async (m: Message) => {
         let count = Number(search[1]) || Infinity
         let regexSearch = search[2]
         let rangeSearch = search[3]
+        if(!regexSearch && !rangeSearch)
+            return
         let after = search[4]
         let messages = await m.channel.messages.fetch({ limit: 100 })
         let index = -1
         let finalMessages: string[] = []
-        if(regexSearch){
+        if (regexSearch) {
             let regexpSearch: RegExp
-            try{
+            try {
                 regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 2))
             }
-            catch(err){
+            catch (err) {
                 await m.channel.send("Bad regex")
                 return
             }
@@ -6448,31 +6479,31 @@ client.on("messageCreate", async (m: Message) => {
                 }
             })
         }
-        else if(rangeSearch){
+        else if (rangeSearch) {
             let [num1, num2] = rangeSearch.split(",")
-            messages.forEach(async(msg) => {
+            messages.forEach(async (msg) => {
                 index++
-                if(!isNaN(Number(num2)) && index == Number(num1)){
+                if (!isNaN(Number(num2)) && index == Number(num1)) {
                     finalMessages.push(msg.content)
                     return
                 }
-                if(index >= Number(num1) && index < Number(num2)){
+                if (index >= Number(num1) && index < Number(num2)) {
                     finalMessages.push(msg.content)
                 }
             })
         }
-        if(after){
+        if (after) {
             let cmds = after.split("/")
             let result = finalMessages.join("\n")
             let oldSend = m.channel.send
-            m.channel.send = async(data) => {
+            m.channel.send = async (data) => {
                 return m
             }
-            for(let cmd of cmds){
+            for (let cmd of cmds) {
                 m.content = `${prefix}${cmd} ${result}`
                 let rv = await doCmd(m, true)
                 //@ts-ignore
-                if(rv.content) result = rv.content
+                if (rv.content) result = rv.content
             }
             m.channel.send = oldSend
             finalMessages = [result]
