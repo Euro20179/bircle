@@ -1,6 +1,5 @@
 ///<reference path="index.d.ts" />
 import fs = require("fs")
-
 import https = require('https')
 import Stream = require('stream')
 const { execSync, exec } = require('child_process')
@@ -8,7 +7,7 @@ const { execSync, exec } = require('child_process')
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import {Client, Intents, MessageEmbed,  Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton,  MessageActionRow, MessageSelectMenu,  GuildEmoji, CollectorFilter } from 'discord.js'
+import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter } from 'discord.js'
 
 import uno = require("./uno")
 
@@ -22,7 +21,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-enum CommandCategory{
+enum CommandCategory {
     UTIL,
     GAME,
     FUN,
@@ -30,7 +29,7 @@ enum CommandCategory{
     IMAGES
 }
 
-const client = new Client({intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES]})
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES] })
 
 const token = fs.readFileSync("./TOKEN", "utf-8").trim()
 const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8").trim()
@@ -38,17 +37,17 @@ const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
 
 let SPAM_ALLOWED = true
 
-let BUTTONS: {[id: string]: string | (() => string)} = {}
-let POLLS: {[id: string]: {title: string, votes: {[k: string]: string[]}}} = {}
-let SPAMS: {[id: string]: boolean} = {}
+let BUTTONS: { [id: string]: string | (() => string) } = {}
+let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
+let SPAMS: { [id: string]: boolean } = {}
 
-let lastCommand:  Message;
-let snipes:  (Message | PartialMessage)[] = [];
+let lastCommand: Message;
+let snipes: (Message | PartialMessage)[] = [];
 let purgeSnipe: (Message | PartialMessage)[];
 
 const illegalLastCmds = ["!!", "spam"]
 
-function createChatCommand(name: string, description: string, options: any){
+function createChatCommand(name: string, description: string, options: any) {
     return {
         name: name,
         description: description,
@@ -61,60 +60,60 @@ const INTEGER = 4
 const USER = 6
 
 
-function createChatCommandOption(type: number, name: string, description: string, {min, max, required}: {min?: number, max?: number | null, required?: boolean}){
-    let obj: {[key: string]: any} = {
+function createChatCommandOption(type: number, name: string, description: string, { min, max, required }: { min?: number, max?: number | null, required?: boolean }) {
+    let obj: { [key: string]: any } = {
         type: type,
         name: name,
         description: description,
         required: required || false
     }
-    if(min){
+    if (min) {
         obj["min"] = min
     }
-    if(max){
+    if (max) {
         obj["max"] = max
     }
     return obj
 }
 
 const slashCommands = [
-    createChatCommand("attack", "attacks chris, and no one else", [createChatCommandOption(USER, "user", "who to attack", {required: true})]),
+    createChatCommand("attack", "attacks chris, and no one else", [createChatCommandOption(USER, "user", "who to attack", { required: true })]),
     createChatCommand("ping", "Pings a user for some time", [
-        createChatCommandOption(USER, "user", "who to ping twice", {required: true}),
+        createChatCommandOption(USER, "user", "who to ping twice", { required: true }),
         createChatCommandOption(INTEGER, "evilness", "on a scale of 1 to 10 how evil are you", {})
     ]),
     createChatCommand("img", "create an image", [
-        createChatCommandOption(INTEGER, "width", "width of image", {required: true, min: 0, max: 5000}),
-        createChatCommandOption(INTEGER, "height", "height of image", {required: true, min: 0, max: 5000}),
+        createChatCommandOption(INTEGER, "width", "width of image", { required: true, min: 0, max: 5000 }),
+        createChatCommandOption(INTEGER, "height", "height of image", { required: true, min: 0, max: 5000 }),
         createChatCommandOption(STRING, "color", "color of image", {})
     ]),
     createChatCommand("ccmd", "create a custom command, WOWZERS", [
-        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", {required: true}),
-        createChatCommandOption(STRING, "text", "what to say", {required: true})
+        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", { required: true }),
+        createChatCommandOption(STRING, "text", "what to say", { required: true })
     ]),
     createChatCommand("alias", "A more powerful ccmd", [
-        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", {required: true}),
-        createChatCommandOption(STRING, "command", "command to run", {required: true}),
+        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", { required: true }),
+        createChatCommandOption(STRING, "command", "command to run", { required: true }),
         createChatCommandOption(STRING, "text", "Text to give to command", {})
     ]),
     createChatCommand("rps", "Rock paper scissors", [
-	createChatCommandOption(USER, "opponent", "opponent", {required: true}),
-	createChatCommandOption(STRING, "choice", "choice", {required: true})
+        createChatCommandOption(USER, "opponent", "opponent", { required: true }),
+        createChatCommandOption(STRING, "choice", "choice", { required: true })
     ]),
     createChatCommand("rccmd", "remove a custom command, WOWZERS", [
-        createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", {required: true}),
+        createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", { required: true }),
     ]),
     createChatCommand("say", "says something", [
-	createChatCommandOption(STRING, "something", "the something to say", {required: true})
+        createChatCommandOption(STRING, "something", "the something to say", { required: true })
     ]),
     createChatCommand("poll", "create a poll", [
-	createChatCommandOption(STRING, "options", "Options are seperated by |", {required: true}),
-	createChatCommandOption(STRING, "title", "The title of the poll", {required: false}),
+        createChatCommandOption(STRING, "options", "Options are seperated by |", { required: true }),
+        createChatCommandOption(STRING, "title", "The title of the poll", { required: false }),
     ]),
     createChatCommand("help", "get help", []),
-    createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", {required: true})]),
-    createChatCommand("add-8", "add a response to 8ball", [createChatCommandOption(STRING, "response", "the response", {required: true})]),
-    createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", {required: true})]),
+    createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", { required: true })]),
+    createChatCommand("add-8", "add a response to 8ball", [createChatCommandOption(STRING, "response", "the response", { required: true })]),
+    createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", { required: true })]),
     {
         name: "ping",
         type: 2
@@ -124,69 +123,69 @@ const slashCommands = [
         type: 2
     },
     {
-	name: "fileify",
-	type: 3
+        name: "fileify",
+        type: 3
     }
 ]
 
-function getContentFromResult(result: CommandReturn){
+function getContentFromResult(result: CommandReturn) {
     let res = ""
-    if(result.content)
-	res += result.content + "\n"
-    if(result.files){
-	for(let file of result.files){
-	    res += fs.readFileSync(file.attachment, "base64") + "\n"
-	}
+    if (result.content)
+        res += result.content + "\n"
+    if (result.files) {
+        for (let file of result.files) {
+            res += fs.readFileSync(file.attachment, "base64") + "\n"
+        }
     }
     return res
 
 }
 
 
-function getOpts(args: Array<string>): [Opts, ArgumentList]{
+function getOpts(args: Array<string>): [Opts, ArgumentList] {
     let opts: Opts = {}
     let newArgs = []
     let idxOfFirstRealArg = 0
-    for(let arg of args){
+    for (let arg of args) {
         idxOfFirstRealArg++
-        if(arg[0] == "-"){
-            if(arg[1] && arg[1] === '-'){
+        if (arg[0] == "-") {
+            if (arg[1] && arg[1] === '-') {
                 break
             }
-            if(arg[1]){
+            if (arg[1]) {
                 let [opt, ...value] = arg.slice(1).split("=")
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             }
-        }else{
+        } else {
             idxOfFirstRealArg--
             break
         }
     }
-    for(let i = idxOfFirstRealArg; i < args.length; i++){
+    for (let i = idxOfFirstRealArg; i < args.length; i++) {
         newArgs.push(args[i])
     }
     return [opts, newArgs]
 }
 
-function generateHTMLFromCommandHelp(name: string, command: any){
+function generateHTMLFromCommandHelp(name: string, command: any) {
     let html = `<div class="command-section"><h1 class="command-title">${name}</h1>`
     let help = command["help"]
-    if(help){
+    if (help) {
         let info = help["info"] || ""
         let aliases = help["aliases"] || []
         let options = help["options"] || {}
         let args = help["arguments"] || {}
-        if(info !== ""){
+        if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
         }
-        if(args !== {}){
+        if (args !== {}) {
             html += `<h2 class="command-arguments">Arguments</h2><ul class="command-argument-list">`
-            for(let argName in args){
+            for (let argName in args) {
                 let argument = args[argName].description
                 let required = args[argName].required || false
                 let requires = args[argName].requires || ""
                 let extraText = ""
-                if(requires){
+                if (requires) {
                     extraText = `<span class="requires">requires: ${requires}</span>`
                 }
                 html += `<li class="command-argument" data-required="${required}">
@@ -195,18 +194,18 @@ function generateHTMLFromCommandHelp(name: string, command: any){
             }
             html += "</ul>"
         }
-        if(options !== {}){
+        if (options !== {}) {
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
-            for(let option in options){
+            for (let option in options) {
                 let desc = options[option].description || ""
                 let alternates = options[option].alternates || 0
                 let requiresValue = options[option].requiresValue || false
                 html += `<li class="command-option">
     <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary> ${desc}</details>`
-                if(alternates){
+                if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
-                    for(let alternate of alternates){
+                    for (let alternate of alternates) {
                         html += `<li class="option-alternate">-${alternate}</li>`
                     }
                     html += "</ul>"
@@ -216,9 +215,9 @@ function generateHTMLFromCommandHelp(name: string, command: any){
             html += "</ul>"
 
         }
-        if(aliases !== []){
+        if (aliases !== []) {
             html += `<h2 class="command-aliases">Aliases</h2><ul class="command-alias-list">`
-            for(let alias of aliases){
+            for (let alias of aliases) {
                 html += `<li class="command-alias">${alias}</li>`
             }
             html += "</ul>"
@@ -227,20 +226,20 @@ function generateHTMLFromCommandHelp(name: string, command: any){
     return `${html}</div><hr>`
 }
 
-function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
+function getImgFromMsgAndOpts(opts: Opts, msg: Message): string {
     let img: undefined | string | boolean | Stream | Buffer = opts['img']
-    if(msg.attachments?.at(0)){
+    if (msg.attachments?.at(0)) {
         img = msg.attachments.at(0)?.attachment
     }
     //@ts-ignore
-    else if(msg.reply?.attachments?.at(0)){
-	//@ts-ignore
+    else if (msg.reply?.attachments?.at(0)) {
+        //@ts-ignore
         img = msg.reply.attachments.at(0)?.attachment
     }
-    else if(msg.embeds?.at(0)?.image?.url){
-	img = msg.embeds?.at(0)?.image?.url
+    else if (msg.embeds?.at(0)?.image?.url) {
+        img = msg.embeds?.at(0)?.image?.url
     }
-    else if(!img) {
+    else if (!img) {
         img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }
     return img as string
@@ -248,58 +247,59 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string{
 
 let connection: any;
 
-const commands: {[command: string]: Command} = {
+const commands: { [command: string]: Command } = {
     replace: {
-        run: async(_msg, args) => {
+        run: async (_msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let search = args[0]
             let repl = args[1]
             let text = args.slice(2).join(" ")
-            if(opts['n']){
+            if (opts['n']) {
                 text = args.slice(1).join(" ")
-                if(!search){
-                    return {content: "no search"}
+                if (!search) {
+                    return { content: "no search" }
                 }
-                return {content: text.replaceAll(search, "")}
+                return { content: text.replaceAll(search, "") }
             }
-            else if(!repl){
-                return {content: "No replacement"}
+            else if (!repl) {
+                return { content: "No replacement" }
             }
-            if(!search){
-                return {content: "no search"}
+            if (!search) {
+                return { content: "no search" }
             }
-            if(!text){
-                return {content: "no text to search through"}
+            if (!text) {
+                return { content: "no text to search through" }
             }
-            return {content: text.replaceAll(search, repl || "")}
+            return { content: text.replaceAll(search, repl || "") }
         }, category: CommandCategory.UTIL
     },
     time: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let fmt = args.join(" ")
 
             const date = new Date()
             let hours = date.getHours()
             let AMPM = hours < 12 ? "AM" : "PM"
-            return {content: fmt
-                        .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
-                        .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
-                        .replaceAll("date", `${date.getDate()}`)
-                        .replaceAll("hour", `${hours}`)
-                        .replaceAll("min", `${date.getMinutes()}`)
-                        .replaceAll("sec", `${date.getSeconds()}`)
-                        .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
-                        .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
-                        .replaceAll("milli", `${date.getMilliseconds()}`)
-                        .replaceAll("millis", `${date.getMilliseconds()}`)
-                        .replaceAll("tz", `${date.getTimezoneOffset()}`)
-                        .replaceAll("timezone", `${date.getTimezoneOffset()}`)
-                        .replaceAll("ampm", AMPM)
-                        .replaceAll("month", `${date.getMonth() + 1}`)
-                        .replaceAll("year", `${date.getFullYear()}`)
-                        .replaceAll("day", `${date.getDay()}`)
-                    }
+            return {
+                content: fmt
+                    .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                    .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                    .replaceAll("date", `${date.getDate()}`)
+                    .replaceAll("hour", `${hours}`)
+                    .replaceAll("min", `${date.getMinutes()}`)
+                    .replaceAll("sec", `${date.getSeconds()}`)
+                    .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
+                    .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
+                    .replaceAll("milli", `${date.getMilliseconds()}`)
+                    .replaceAll("millis", `${date.getMilliseconds()}`)
+                    .replaceAll("tz", `${date.getTimezoneOffset()}`)
+                    .replaceAll("timezone", `${date.getTimezoneOffset()}`)
+                    .replaceAll("ampm", AMPM)
+                    .replaceAll("month", `${date.getMonth() + 1}`)
+                    .replaceAll("year", `${date.getFullYear()}`)
+                    .replaceAll("day", `${date.getDay()}`)
+            }
         },
         help: {
             arguments: {
@@ -310,95 +310,95 @@ const commands: {[command: string]: Command} = {
         },
         category: CommandCategory.UTIL
     },
-    join:{
-        run: async(msg, args) => {
+    join: {
+        run: async (msg, args) => {
             const memberData = await fetchUser(msg.guild, msg.author.id)
             const voiceState = memberData.voice
-            if(!voiceState){
-                return {content: "NOT IN VC"}
+            if (!voiceState) {
+                return { content: "NOT IN VC" }
             }
             connection = joinVoiceChannel({
                 channelId: voiceState.channel.id,
                 guildId: msg.guild?.id,
                 adapterCreator: msg.guild?.voiceAdapterCreator
             })
-            return {noSend: true}
+            return { noSend: true }
         },
         category: CommandCategory.UTIL
 
     },
     leave: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             connection.destroy()
             connection = null
-            return {noSend: true}
+            return { noSend: true }
         },
         category: CommandCategory.UTIL
     },
     /*
     play: {
-	run: async(msg, args) => {
-	    if(!args[0]){
-		return {content: "no link"}
-	    }
-	    const fn = generateFileName("play", msg.author.id).replace(".txt", "")
-	    exec(`yt-dlp -x --audio-format=mp3 -o ${fn}.mp3 ${args[0]}`, () => {
-		const resource = createAudioResource(__dirname + "/" + fn + ".mp3")
-		//console.log(__dirname + "/" + fn + ".mp3", fs.existsSync(__dirname + "/" + fn + ".mp3")
-		if(!connection){
-		    return {content: "Not in vc"}
-		}
-		connection.subscribe(player)
-		player.on(AudioPlayerStatus.Playing, async() => {
-		    //fs.rmSync(__dirname + "/" + fn + ".mp3")
-		    await msg.channel.send("You are about to listen to some wonderful ***t u n e s***")
-		})
-		player.play(resource)
-	    })
-	    return {noSend: true}
-	}
+    run: async(msg, args) => {
+        if(!args[0]){
+        return {content: "no link"}
+        }
+        const fn = generateFileName("play", msg.author.id).replace(".txt", "")
+        exec(`yt-dlp -x --audio-format=mp3 -o ${fn}.mp3 ${args[0]}`, () => {
+        const resource = createAudioResource(__dirname + "/" + fn + ".mp3")
+        //console.log(__dirname + "/" + fn + ".mp3", fs.existsSync(__dirname + "/" + fn + ".mp3")
+        if(!connection){
+            return {content: "Not in vc"}
+        }
+        connection.subscribe(player)
+        player.on(AudioPlayerStatus.Playing, async() => {
+            //fs.rmSync(__dirname + "/" + fn + ".mp3")
+            await msg.channel.send("You are about to listen to some wonderful ***t u n e s***")
+        })
+        player.play(resource)
+        })
+        return {noSend: true}
+    }
     },
     */
     nothappening: {
-        run: async(msg, args) => {
-            return {content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n")}
+        run: async (msg, args) => {
+            return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n") }
         },
         category: CommandCategory.META
     },
     "rand-role": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let roles = await msg.guild?.roles.fetch()
             let role = roles?.random()
-            if(!role){
-                return {content: "Couldn't get random role"}
+            if (!role) {
+                return { content: "Couldn't get random role" }
             }
             let fmt = args.join(" ") || "%n"
-            return {allowedMentions: {parse: []}, content: format(fmt, {n: role.name, i: role.id, c: role.color, C: role.createdAt, hc: role.hexColor, u: role.unicodeEmoji, p: role.position, I: role.icon})}
+            return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: role.color, C: role.createdAt, hc: role.hexColor, u: role.unicodeEmoji, p: role.position, I: role.icon }) }
         },
         category: CommandCategory.UTIL
     },
     "cmd-search": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let search = args.join(" ")
             let results = []
-            for(let cmd in commands){
-                if(cmd.match(search)){
-                    if(commands[cmd].help?.info){
+            for (let cmd in commands) {
+                if (cmd.match(search)) {
+                    if (commands[cmd].help?.info) {
                         results.push(`${cmd}: ${commands[cmd].help?.info}`)
                     }
                     else results.push(cmd)
                 }
-                else if(commands[cmd].help){
+                else if (commands[cmd].help) {
                     let help = commands[cmd].help
-                    if(help?.info?.match(search)){
+                    if (help?.info?.match(search)) {
                         results.push(`${cmd}: ${commands[cmd].help?.info}`)
                     }
                 }
             }
-            if(results.length == 0){
-                return {content: "No results"}
+            if (results.length == 0) {
+                return { content: "No results" }
             }
-            return {content: results.join("\n")}
+            return { content: results.join("\n") }
         },
         help: {
             info: "Search for commands with a search query"
@@ -406,68 +406,68 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     "6": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let getRankMode = opts['rank'] || false
             let content = args.join(" ")
             let requestedUsers = content.split("|")
-            if(!requestedUsers[0]){
+            if (!requestedUsers[0]) {
                 requestedUsers[0] = msg.author.id
             }
             let embeds = []
             const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${GUILD_ID}`
             let data
-            try{
-            //@ts-ignore
+            try {
+                //@ts-ignore
                 data = await got(url)
             }
-            catch(err){
-                return {content: "Could not fetch data"}
+            catch (err) {
+                return { content: "Could not fetch data" }
             }
-            if(!data?.body){
-                return {content: "No data found"}
+            if (!data?.body) {
+                return { content: "No data found" }
             }
             const JSONData = JSON.parse(data.body)
-            for(let requestedUser of requestedUsers){
-                if(!requestedUser) continue
+            for (let requestedUser of requestedUsers) {
+                if (!requestedUser) continue
                 let [ruser1, ruser2] = requestedUser.split("-")
-                if(ruser1.trim() && ruser2?.trim()){
+                if (ruser1.trim() && ruser2?.trim()) {
                     //@ts-ignore
                     let member1, member2;
-                    if(getRankMode){
+                    if (getRankMode) {
                         member1 = JSONData.players[Number(ruser1) - 1]
                         member1 = await fetchUser(msg.guild, member1.id)
                         member2 = JSONData.players[Number(ruser2) - 1]
                         member2 = await fetchUser(msg.guild, member2.id)
                     }
-                    else{
+                    else {
                         member1 = await fetchUser(msg.guild, ruser1.trim())
                         member2 = await fetchUser(msg.guild, ruser2.trim())
                     }
-                    if(!member1){
-                        return {content: `Could not find ${ruser1}`}
+                    if (!member1) {
+                        return { content: `Could not find ${ruser1}` }
                     }
-                    if(!member2){
-                        return {content: `Could not find ${ruser1}`}
+                    if (!member2) {
+                        return { content: `Could not find ${ruser1}` }
                     }
                     //@ts-ignore
                     const user1Data = JSONData.players.filter(v => v.id == member1.id)?.[0]
                     //@ts-ignore
                     const user2Data = JSONData.players.filter(v => v.id == member2.id)?.[0]
-                    if(!user1Data){
-                        return {content: `No data for ${member1.user.username} found`}
+                    if (!user1Data) {
+                        return { content: `No data for ${member1.user.username} found` }
                     }
-                    if(!user2Data){
-                        return {content: `No data for ${member2.user.username} found`}
+                    if (!user2Data) {
+                        return { content: `No data for ${member2.user.username} found` }
                     }
                     const rank1 = JSONData.players.indexOf(user1Data)
                     const rank2 = JSONData.players.indexOf(user2Data)
                     const embed = new MessageEmbed()
                     embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
-                    if(user1Data.level < user2Data.level)
+                    if (user1Data.level < user2Data.level)
                         embed.setColor("#00ff00")
-                    else if(user1Data.level == user2Data.level)
+                    else if (user1Data.level == user2Data.level)
                         embed.setColor("#0000ff")
                     else
                         embed.setColor("#00ff00")
@@ -478,20 +478,20 @@ const commands: {[command: string]: Command} = {
                     continue
                 }
                 let member: any;
-                if(getRankMode){
+                if (getRankMode) {
                     member = JSONData.players[Number(requestedUser.trim()) - 1]
                     member = await fetchUser(msg.guild, member.id)
                 }
                 else
                     member = await fetchUser(msg.guild, requestedUser.trim())
-                if(!member){
+                if (!member) {
                     member = msg.author
                 }
                 console.log(member)
                 //@ts-ignore
                 const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
-                if(!userData){
-                    return {content: `No data for ${member.user.username} found`}
+                if (!userData) {
+                    return { content: `No data for ${member.user.username} found` }
                 }
                 const rank = JSONData.players.indexOf(userData)
                 const embed = new MessageEmbed()
@@ -502,40 +502,40 @@ const commands: {[command: string]: Command} = {
                 embed.addField("Message Count", String(userData.message_count), true)
                 embeds.push(embed)
             }
-            return {embeds: embeds}
+            return { embeds: embeds }
         },
         help: {
             info: "Get the mee6 rank of a user",
             arguments: {
-            users: {
-                description: "A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users"
-            }
+                users: {
+                    description: "A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users"
+                }
             },
             options: {
-            rank: {
-                description: "Instead of searching by user, search by rank"
-            }
+                rank: {
+                    description: "Instead of searching by user, search by rank"
+                }
             }
         },
         category: CommandCategory.FUN
     },
     yt: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             const fn = generateFileName("yt", msg.author.id)
-            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
-            if(excep){
-                console.log(excep)
-            }
-            else{
-                const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-                let embed = new MessageEmbed()
-                for(let item of JSONData){
-                embed.addField(`title: ${item.title}`, `url: ${item.url}`)
+            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, stderr: any) => {
+                if (excep) {
+                    console.log(excep)
                 }
-                await msg.channel.send({embeds: [embed]})
-            }
+                else {
+                    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+                    let embed = new MessageEmbed()
+                    for (let item of JSONData) {
+                        embed.addField(`title: ${item.title}`, `url: ${item.url}`)
+                    }
+                    await msg.channel.send({ embeds: [embed] })
+                }
             })
-            return {noSend: true}
+            return { noSend: true }
         },
         help: {
             info: "https://github.com/pystardust/ytfzf/wiki"
@@ -543,22 +543,22 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     ani: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             const fn = generateFileName("ani", msg.author.id)
-            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async(excep: any, stdout: any, stderr: any) => {
-            if(excep){
-                console.log(excep)
-            }
-            else{
-                const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-                let embed = new MessageEmbed()
-                for(let item of JSONData){
-                embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
+            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, stderr: any) => {
+                if (excep) {
+                    console.log(excep)
                 }
-                await msg.channel.send({embeds: [embed]})
-            }
+                else {
+                    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
+                    let embed = new MessageEmbed()
+                    for (let item of JSONData) {
+                        embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
+                    }
+                    await msg.channel.send({ embeds: [embed] })
+                }
             })
-            return {noSend: true}
+            return { noSend: true }
         },
         help: {
             info: "get anime :)))))))))"
@@ -566,131 +566,131 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     wiki: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let baseurl = "en.wikipedia.org"
             let path = "/wiki/Special:Random"
-            if(args[0]){
-            path = `/wiki/${args.join("_")}`
+            if (args[0]) {
+                path = `/wiki/${args.join("_")}`
             }
-            if(opts['full']){
-            path = String(opts['full'])
+            if (opts['full']) {
+                path = String(opts['full'])
             }
             let sentences = parseInt(String(opts['s'])) || 1
-            let options = {hostname: baseurl, path: path}
-            if(path == "/wiki/Special:Random"){
-            https.get(options, req => {
-                let data = new Stream.Transform()
-                req.on("error", err => {
-                console.log(err)
-                })
-                req.on("data", chunk => {
-                data.push(chunk)
-                })
-                req.on("end", async() => {
-                //@ts-ignore
-                let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
-                await msg.channel.send(rv)
-                })
-            }).end()
-            return {content: "Generating random article"}
+            let options = { hostname: baseurl, path: path }
+            if (path == "/wiki/Special:Random") {
+                https.get(options, req => {
+                    let data = new Stream.Transform()
+                    req.on("error", err => {
+                        console.log(err)
+                    })
+                    req.on("data", chunk => {
+                        data.push(chunk)
+                    })
+                    req.on("end", async () => {
+                        //@ts-ignore
+                        let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
+                        await msg.channel.send(rv)
+                    })
+                }).end()
+                return { content: "Generating random article" }
             }
-            else{
-            let resp
-            try{
-                //@ts-ignore
-                resp = await got(`https://${baseurl}${path}`)
-            }
-            catch(err){
-                return {content: "not found"}
-            }
-            if(resp.headers?.location){
-                await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.location.split("/wiki/")[1]}`])
-            }
-            else{
-                let $ = cheerio.load(resp.body)
-                let text = $("p").text().trim().split("\n")
-                if(!text.length){
-                return {content: "nothing"}
+            else {
+                let resp
+                try {
+                    //@ts-ignore
+                    resp = await got(`https://${baseurl}${path}`)
                 }
-                let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
-                return {content: rv}
+                catch (err) {
+                    return { content: "not found" }
+                }
+                if (resp.headers?.location) {
+                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.location.split("/wiki/")[1]}`])
+                }
+                else {
+                    let $ = cheerio.load(resp.body)
+                    let text = $("p").text().trim().split("\n")
+                    if (!text.length) {
+                        return { content: "nothing" }
+                    }
+                    let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
+                    return { content: rv }
+                }
             }
-            }
-            return {content: "how did we get here"}
+            return { content: "how did we get here" }
         },
         help: {
             info: "Get information about something, defaults to random",
             arguments: {
-            page: {
-                description: "The page to look at",
-                required: false
-            }
+                page: {
+                    description: "The page to look at",
+                    required: false
+                }
             },
             options: {
-            s: {
-                description: "The amount of sentences to see"
-            }
+                s: {
+                    description: "The amount of sentences to see"
+                }
             }
         },
         category: CommandCategory.FUN
     },
     piglatin: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let sep = opts['sep']
-            if(sep == undefined){
-            sep = " "
+            if (sep == undefined) {
+                sep = " "
             } else sep = String(sep)
             let words = []
-            for(let word of args){
-            if(word.match(/^[aeiou]/)){
-                words.push(`${word}ay`)
+            for (let word of args) {
+                if (word.match(/^[aeiou]/)) {
+                    words.push(`${word}ay`)
+                }
+                else {
+                    let firstVowel = -1
+                    for (let i = 0; i < word.length; i++) {
+                        if (word[i].match(/[aeiou]/)) {
+                            firstVowel = i
+                            break
+                        }
+                    }
+                    if (firstVowel == -1) {
+                        words.push(`${word}ay`)
+                    }
+                    else {
+                        words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
+                    }
+                }
             }
-            else{
-                let firstVowel = -1
-                for(let i = 0; i < word.length; i++){
-                if(word[i].match(/[aeiou]/)){
-                    firstVowel = i
-                    break
-                }
-                }
-                if(firstVowel == -1){
-                words.push(`${word}ay`)
-                }
-                else{
-                words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
-                }
-            }
-            }
-            return {content: words.join(sep)}
+            return { content: words.join(sep) }
         },
         help: {
             info: "igpay atinlay",
             arguments: {
-            text: {
-                description: "Text to igpay atinlay-ify"
-            }
+                text: {
+                    description: "Text to igpay atinlay-ify"
+                }
             },
             options: {
-            sep: {
-                description: "The seperator between words"
-            }
+                sep: {
+                    description: "The seperator between words"
+                }
             }
         },
         category: CommandCategory.FUN
     },
     "get": {
-        run: async(msg, opts) => {
+        run: async (msg, opts) => {
             let operator = opts[0]
             let object = opts[1]
-            switch(operator){
+            switch (operator) {
                 case "#": {
                     let number = parseInt(opts[2])
                     let data;
-                    switch(object){
+                    switch (object) {
                         case "channel": {
                             data = await msg.guild?.channels.fetch()
                             break
@@ -709,92 +709,92 @@ const commands: {[command: string]: Command} = {
                             break
                         }
                     }
-                    if(!data){
-                        return {content: `${object} is invalid`}
+                    if (!data) {
+                        return { content: `${object} is invalid` }
                     }
-                    if(number){
-                        return {content: String(data.at(number)), allowedMentions: {parse: []}}
+                    if (number) {
+                        return { content: String(data.at(number)), allowedMentions: { parse: [] } }
                     }
-                    else{
-                        return {content: String(data.size), allowedMentions: {parse: []}}
+                    else {
+                        return { content: String(data.size), allowedMentions: { parse: [] } }
                     }
                 }
                 case "rand": {
-                    switch(object){
+                    switch (object) {
                         case "channel": {
                             let channels = await msg.guild?.channels.fetch()
-                            return {content: channels?.random()?.toString()}
+                            return { content: channels?.random()?.toString() }
                         }
                         case "role": {
                             let roles = await msg.guild?.roles.fetch()
-                            return {content: String(roles?.random()), allowedMentions: {parse: []}}
+                            return { content: String(roles?.random()), allowedMentions: { parse: [] } }
                         }
                         case "member": {
                             let members = await msg.guild?.members.fetch()
-                            return {content: String(members?.random()), allowedMentions: {parse: []}}
+                            return { content: String(members?.random()), allowedMentions: { parse: [] } }
                         }
                     }
                 }
             }
-            return {content: "Not a valid option"}
+            return { content: "Not a valid option" }
         },
         category: CommandCategory.UTIL
 
     },
     calc: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let sep = opts['sep']
-            if(!sep){
-            sep = "\n"
+            if (!sep) {
+                sep = "\n"
             } else sep = String(sep)
             let ret: any[] = []
-            try{
-                ret.push(String(safeEval(args.join(" "), {yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand?.content, ...vars}, {timeout: 3000})))
+            try {
+                ret.push(String(safeEval(args.join(" "), { yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand?.content, ...vars }, { timeout: 3000 })))
             }
-            catch(err){
+            catch (err) {
                 console.log(err)
             }
-            if(ret.length){
-            if(userVars && userVars[msg.author.id])
-                userVars[msg.author.id]["__calc"] = () => ret.join(sep as string)
-            else
-                userVars[msg.author.id] = {"__calc": () => ret.join(sep as string)}
+            if (ret.length) {
+                if (userVars && userVars[msg.author.id])
+                    userVars[msg.author.id]["__calc"] = () => ret.join(sep as string)
+                else
+                    userVars[msg.author.id] = { "__calc": () => ret.join(sep as string) }
             }
-            return {content: ret.join(sep)}
+            return { content: ret.join(sep) }
         },
         help: {
             info: "Run a calculation",
             arguments: {
-            "...equations": {
-                description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
-            }
+                "...equations": {
+                    description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
+                }
             },
             options: {
-            sep: {
-                description: "If multiple equations are given, this seperates each answer"
-            }
+                sep: {
+                    description: "If multiple equations are given, this seperates each answer"
+                }
             }
         },
         category: CommandCategory.UTIL
     },
     d: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             msg.content = `${prefix}${args.join(" ")}`
             await doCmd(msg, false)
-            return {noSend: true, delete: true}
+            return { noSend: true, delete: true }
         },
         category: CommandCategory.META
     },
     del: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(!opts['N']) return {noSend: true, delete: true}
+            if (!opts['N']) return { noSend: true, delete: true }
             msg.content = `${prefix}${args.join(" ")}`
             await doCmd(msg, false)
-            return {noSend: true, delete: true}
+            return { noSend: true, delete: true }
         },
         help: {
             arguments: {
@@ -811,42 +811,42 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     "if": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let [condition, cmd] = args.join(" ").split(";")
             cmd = cmd.split(";end")[0]
-            if(safeEval(condition, {uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content}, {timeout: 3000})){
-            msg.content = `${prefix}${cmd.trim()}`
-            return await doCmd(msg, true) as CommandReturn
+            if (safeEval(condition, { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content }, { timeout: 3000 })) {
+                msg.content = `${prefix}${cmd.trim()}`
+                return await doCmd(msg, true) as CommandReturn
             }
             let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
-            if(elseCmd){
-            msg.content = `${prefix}${elseCmd.trim()}`
-            return await doCmd(msg, true) as CommandReturn
+            if (elseCmd) {
+                msg.content = `${prefix}${elseCmd.trim()}`
+                return await doCmd(msg, true) as CommandReturn
             }
-            return {content: "?"}
+            return { content: "?" }
         },
         category: CommandCategory.META
     },
     getimg: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
-            return {content: String(img)}
+            return { content: String(img) }
         },
         help: {
             info: "find the link to the image that would be used if you gave the same options to an image command",
             options: {
-            img: {
-                description: "The image link to use"
-            }
+                img: {
+                    description: "The image link to use"
+                }
             }
         },
         category: CommandCategory.META
     },
     "argc": {
-        run: async(msg, args) => {
-            return {content: String(args.length)}
+        run: async (msg, args) => {
+            return { content: String(args.length) }
         },
         help: {
             info: "Prints the number of arguments given to this command"
@@ -854,21 +854,21 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     opts: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
-            [opts, args ] = getOpts(args)
+            [opts, args] = getOpts(args)
             let disp = ""
-            for(let key in opts){
-            disp += `**${key}**: \`${opts[key]}\`\n`
+            for (let key in opts) {
+                disp += `**${key}**: \`${opts[key]}\`\n`
             }
-            return {content: disp || "#!N/A"}
+            return { content: disp || "#!N/A" }
         },
         help: {
             info: "Print the opts given"
         },
         category: CommandCategory.META
     },
-    echo:{
+    echo: {
         run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
@@ -876,52 +876,52 @@ const commands: {[command: string]: Command} = {
             let dm = Boolean(opts['dm'] || false)
             let embedText = opts['e'] || opts['embed']
             let embed
-            if(embedText){
+            if (embedText) {
                 embed = new MessageEmbed()
-                if(embedText !== true)
+                if (embedText !== true)
                     embed.setTitle(embedText)
                 let img;
                 //esentially if the user put `-img=` or `-img`
-                if(opts['img'] == "" || opts['img'] === true){
+                if (opts['img'] == "" || opts['img'] === true) {
                     img = null
                 }
                 else img = getImgFromMsgAndOpts(opts, msg)
-                if(img){
+                if (img) {
                     embed.setImage(img)
                 }
                 let color
-                if(color = opts['color'] || opts['e-color'] || opts['embed-color']){
-                    try{
+                if (color = opts['color'] || opts['e-color'] || opts['embed-color']) {
+                    try {
                         embed.setColor(color as ColorResolvable)
                     }
-                    catch(err){
+                    catch (err) {
                     }
                 }
             }
             let stringArgs = args.join(" ")
             let files = msg.attachments?.toJSON()
-            if(!stringArgs && !embed && !files.length){
+            if (!stringArgs && !embed && !files.length) {
                 return {
                     content: "cannot send nothing"
                 }
             }
-            if(wait){
+            if (wait) {
                 await new Promise((res) => setTimeout(res, wait * 1000))
             }
-            let rv: CommandReturn = {delete: !(opts["D"] || opts['no-del']), deleteFiles: false}
-            if(dm){
+            let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false }
+            if (dm) {
                 rv['dm'] = true
             }
-            if(stringArgs){
+            if (stringArgs) {
                 rv["content"] = stringArgs
             }
-            if(files.length){
+            if (files.length) {
                 rv["files"] = files as CommandFile[]
             }
-            if(embed){
+            if (embed) {
                 rv["embeds"] = [embed]
             }
-            if(wait){
+            if (wait) {
                 await new Promise(res => setTimeout(res, wait * 1000))
             }
             return rv
@@ -961,27 +961,27 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     button: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts
             [opts, args] = getOpts(args)
             let content = opts['content']
             let delAfter = NaN
-            if(opts['timealive'])
+            if (opts['timealive'])
                 delAfter = parseInt(String(opts['timealive']))
-            if(typeof content === 'boolean'){
+            if (typeof content === 'boolean') {
                 content = `button:${msg.author.id}`
             }
             let text = args.join(" ") || "hi"
-            let button = new MessageButton({customId: `button:${msg.author.id}`, label:text, style: "PRIMARY"})
-            let row = new MessageActionRow({type: "BUTTON", components: [button]})
-            let m = await msg.channel.send({components: [row], content: content})
-            if(opts['say'])
+            let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
+            let row = new MessageActionRow({ type: "BUTTON", components: [button] })
+            let m = await msg.channel.send({ components: [row], content: content })
+            if (opts['say'])
                 BUTTONS[msg.author.id] = String(opts['say'])
             else BUTTONS[msg.author.id] = text
-            if(! isNaN(delAfter)){
-                setTimeout(async() => await m.delete(), delAfter * 1000)
+            if (!isNaN(delAfter)) {
+                setTimeout(async () => await m.delete(), delAfter * 1000)
             }
-            return {noSend: true}
+            return { noSend: true }
         },
         help: {
             arguments: {
@@ -1001,16 +1001,16 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     "pcount": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let id = args[0]
-            if(!id){
-                return {content: "no id given"}
+            if (!id) {
+                return { content: "no id given" }
             }
             let str = ""
-            for(let key in POLLS[`poll:${id}`]){
+            for (let key in POLLS[`poll:${id}`]) {
                 str += `${key}: ${POLLS[`poll:${id}`]["votes"][key].length}\n`
             }
-            return {content: str}
+            return { content: str }
         },
         help: {
             arguments: {
@@ -1022,29 +1022,29 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.UTIL
     },
     poll: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let actionRow = new MessageActionRow()
             let opts: Opts;
             [opts, args] = getOpts(args)
             let id = String(Math.floor(Math.random() * 100000000))
             args = args.join(" ").split("|")
             let choices = []
-            for(let arg of args){
-            if(!arg.trim()){
-                continue
+            for (let arg of args) {
+                if (!arg.trim()) {
+                    continue
+                }
+                choices.push({ label: arg, value: arg })
             }
-            choices.push({label: arg, value: arg})
+            if (choices.length < 1) {
+                return { content: "no options given" }
             }
-            if(choices.length < 1){
-                return {content: "no options given"}
-            }
-            let selection = new MessageSelectMenu({customId: `poll:${id}`, placeholder: "Select one", options: choices})
+            let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
-            POLLS[`poll:${id}`] = {title: String(opts['title'] || "") || "Select one", votes: {} }
-            await msg.channel.send({components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`})
-            return {noSend: true}
+            POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
+            await msg.channel.send({ components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}` })
+            return { noSend: true }
         },
-        help:{
+        help: {
             info: "create a poll",
             arguments: {
                 options: { description: "Options separated by |" }
@@ -1056,23 +1056,23 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     pfp: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts
             [opts, args] = getOpts(args)
             let link = args[0]
-            if(!link){
+            if (!link) {
                 link = getImgFromMsgAndOpts(opts, msg)
             }
-            if(!link)
-                return {content: "no link given"}
-            try{
+            if (!link)
+                return { content: "no link given" }
+            try {
                 await client.user?.setAvatar(link)
             }
-            catch(err){
+            catch (err) {
                 console.log(err)
-                return {content: "could not set pfp"}
+                return { content: "could not set pfp" }
             }
-            return {content: 'set pfp', delete: Boolean(opts['d'] || opts['delete'])}
+            return { content: 'set pfp', delete: Boolean(opts['d'] || opts['delete']) }
         },
         help: {
             arguments: {
@@ -1084,9 +1084,9 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     uptime: {
-        run: async(_msg: Message, args:ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             let uptime = client.uptime
-            if(!uptime){
+            if (!uptime) {
                 return {
                     content: "No uptime found"
                 }
@@ -1098,20 +1098,20 @@ const commands: {[command: string]: Command} = {
             days = 0
             hours = 0
             minutes = 0
-            while(seconds >= 60){
+            while (seconds >= 60) {
                 seconds -= 60
                 minutes += 1
             }
-            while(minutes >= 60){
+            while (minutes >= 60) {
                 minutes -= 60
                 hours += 1
             }
-            while(hours >= 24){
+            while (hours >= 24) {
                 hours -= 24
                 days += 1
             }
             return {
-                content: format(fmt, {"d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}`})
+                content: format(fmt, { "d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}` })
             }
         },
         help: {
@@ -1126,15 +1126,15 @@ const commands: {[command: string]: Command} = {
     },
     rand: {
         run: async (msg: Message, args: ArgumentList) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
+            let opts;
+            [opts, args] = getOpts(args)
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 1
-	    if(opts["round"]){
-		return {
-		    content: String(Math.floor(Math.random() * (high - low) + low))
-		}
-	    }
+            if (opts["round"]) {
+                return {
+                    content: String(Math.floor(Math.random() * (high - low) + low))
+                }
+            }
             return {
                 content: String(Math.random() * (high - low) + low)
             }
@@ -1153,78 +1153,78 @@ const commands: {[command: string]: Command} = {
 
     },
     roles: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let users = []
-            for(let arg of args){
+            for (let arg of args) {
                 users.push(await fetchUser(msg.guild, arg))
             }
-            if(users.length == 0){
+            if (users.length == 0) {
                 users.push(await fetchUser(msg.guild, msg.author.id))
             }
             let embeds = []
-            for(let user of users){
-            let roles = user._roles
-            if(!roles){
-                return {
-                contnet: "Could not find roles"
+            for (let user of users) {
+                let roles = user._roles
+                if (!roles) {
+                    return {
+                        contnet: "Could not find roles"
+                    }
                 }
-            }
-            let embed = new MessageEmbed()
-            embed.setTitle(`Roles for: ${user.user.username}`)
-            let roleList = []
-            for(let role of roles){
-                roleList.push(await msg.guild?.roles.fetch(role))
-            }
-            embed.addField("Role count", String(roleList.length))
-            embed.addField("Roles", roleList.join(" "))
-            embeds.push(embed)
+                let embed = new MessageEmbed()
+                embed.setTitle(`Roles for: ${user.user.username}`)
+                let roleList = []
+                for (let role of roles) {
+                    roleList.push(await msg.guild?.roles.fetch(role))
+                }
+                embed.addField("Role count", String(roleList.length))
+                embed.addField("Roles", roleList.join(" "))
+                embeds.push(embed)
             }
             return {
-            embeds: embeds
+                embeds: embeds
             }
         },
         category: CommandCategory.UTIL
     },
     "create-file": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let file = args[0]
-            if(!file){
-                return {content: "No file specified"}
+            if (!file) {
+                return { content: "No file specified" }
             }
             fs.writeFileSync(`./command-results/${file}`, "")
-            return {content: `${file} created`}
+            return { content: `${file} created` }
         },
         permCheck: m => ADMINS.includes(m.author.id),
         category: CommandCategory.META
     },
     "rt": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
-            if(opts['t']){
+            if (opts['t']) {
                 msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(m => {
-                    try{
-                        let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 3000})
+                    try {
+                        let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                         let start = Date.now()
-                        collector.on("collect", async(m) => {
+                        collector.on("collect", async (m) => {
                             await msg.channel.send(`${Date.now() - start}ms`)
                             collector.stop()
                         })
                     }
-                    catch(err){
+                    catch (err) {
                     }
                 })
             }
-            else{
-                let button = new MessageButton({customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER"})
-                let row = new MessageActionRow({type: "BUTTON", components: [button]})
+            else {
+                let button = new MessageButton({ customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
+                let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let start = Date.now()
                 BUTTONS[msg.author.id] = () => {
                     return `${Date.now() - start}ms`
                 }
-                await msg.channel.send({components: [row]})
+                await msg.channel.send({ components: [row] })
             }
-            return {noSend: true}
+            return { noSend: true }
         },
         help: {
             info: "Gets your truely 100% accurate reaction time"
@@ -1232,19 +1232,19 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     "rand-line": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let file = args[0]
-            if(!file){
-                return {content: "No file specified"}
+            if (!file) {
+                return { content: "No file specified" }
             }
-            if(!fs.existsSync(`./command-results/${file}`)){
+            if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
                     content: "file does not exist"
                 }
             }
             const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
             const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
-            return {content: lines[Math.floor(Math.random() * lines.length)]}
+            return { content: lines[Math.floor(Math.random() * lines.length)] }
         },
         help: {
             info: "Gets a random line from a file"
@@ -1253,13 +1253,13 @@ const commands: {[command: string]: Command} = {
 
     },
     todo: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(opts['list']){
+            if (opts['list']) {
                 let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
                 let strdata = data.slice(0, data.length - 1).join("\n")
-                return {content: strdata}
+                return { content: strdata }
             }
             let item = args.join(" ")
             return await commands['add'].run(msg, ["todo", item])
@@ -1268,24 +1268,24 @@ const commands: {[command: string]: Command} = {
 
     },
     "todo-list": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
             let strdata = data.slice(0, data.length - 1).join("\n")
-            return {content: strdata}
+            return { content: strdata }
         },
         category: CommandCategory.META
 
     },
     nick: {
-		//@ts-ignore
-        run: async(msg, args) => {
+        //@ts-ignore
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
-            try{
+            try {
                 (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
             }
-            catch(err){
-                return {content: "Could not set name"}
+            catch (err) {
+                return { content: "Could not set name" }
             }
             return {
                 content: `Changed name to \`${args.join(" ")}\``,
@@ -1297,507 +1297,507 @@ const commands: {[command: string]: Command} = {
 
     },
     uno: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
             let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
-            for(let player of requestPlayers){
-            let p = await fetchUser(msg.guild, player)
-            if(!p){
-                await msg.channel.send(`${player} not found`)
-                continue
+            for (let player of requestPlayers) {
+                let p = await fetchUser(msg.guild, player)
+                if (!p) {
+                    await msg.channel.send(`${player} not found`)
+                    continue
+                }
+                players.push(p)
             }
-            players.push(p)
-            }
-            if(players.length == 1){
-            return {content: "No one to play with :("}
+            if (players.length == 1) {
+                return { content: "No one to play with :(" }
             }
             let max = parseInt(String(opts["max"])) || 9
-            if(max > 1000){
-            await msg.channel.send("The maximum is to high, defaulting to 1000")
-            max = 1000
+            if (max > 1000) {
+                await msg.channel.send("The maximum is to high, defaulting to 1000")
+                max = 1000
             }
-            let cards = uno.createCards(max, {enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1']})
+            let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
             let deck = new uno.Stack(cards)
             let pile = new uno.Stack([])
-            let playerData: {[k: string]: uno.Hand} = {}
+            let playerData: { [k: string]: uno.Hand } = {}
             let order = []
-            for(let player of players){
-            playerData[player.id] = new uno.Hand(7, deck)
-            order.push(player.id)
+            for (let player of players) {
+                playerData[player.id] = new uno.Hand(7, deck)
+                order.push(player.id)
             }
             let forcedDraw = 0
             let turns = cycle(order, (i: any) => {
-            let playerIds = Object.keys(playerData)
-            fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
-                if(players.map(v => v.id).indexOf(going) < 0){
-                going = turns.next().value
-                return
-                }
-                if(forcedDraw){
-                msg.channel.send(`<@${going}> is forced to draw ${forcedDraw} cards`)
-                for(let i = 0; i < forcedDraw; i++){
-                    let rv = playerData[going].draw(deck)
-                    if(!rv){
-                    msg.channel.send("Deck empty, shuffling pile into deck")
-                    pile.shuffle()
-                    deck = new uno.Stack(pile.cards)
-                    pile = new uno.Stack([])
+                let playerIds = Object.keys(playerData)
+                fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
+                    if (players.map(v => v.id).indexOf(going) < 0) {
+                        going = turns.next().value
+                        return
                     }
-                }
-                forcedDraw = 0
-                }
-                if(!(pile.top()?.type == 'skip')){
-                let player = players[players.map(v => v.id).indexOf(going)]
-                let send = displayStack(playerData[player.id])
-                send += "\n-------------------------"
-                player.send({content: send})
-                if(pile.cards.length)
-                    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
-                }
-                if(pile.cards.length){
-                msg.channel.send({content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`})
-                }
-                else{
-                msg.channel.send({content: `${u}, it's your turn`})
-                }
-            })
+                    if (forcedDraw) {
+                        msg.channel.send(`<@${going}> is forced to draw ${forcedDraw} cards`)
+                        for (let i = 0; i < forcedDraw; i++) {
+                            let rv = playerData[going].draw(deck)
+                            if (!rv) {
+                                msg.channel.send("Deck empty, shuffling pile into deck")
+                                pile.shuffle()
+                                deck = new uno.Stack(pile.cards)
+                                pile = new uno.Stack([])
+                            }
+                        }
+                        forcedDraw = 0
+                    }
+                    if (!(pile.top()?.type == 'skip')) {
+                        let player = players[players.map(v => v.id).indexOf(going)]
+                        let send = displayStack(playerData[player.id])
+                        send += "\n-------------------------"
+                        player.send({ content: send })
+                        if (pile.cards.length)
+                            player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                    }
+                    if (pile.cards.length) {
+                        msg.channel.send({ content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                    }
+                    else {
+                        msg.channel.send({ content: `${u}, it's your turn` })
+                    }
+                })
             })
             let going = turns.next().value
             let cardsPlayed = 0
             let cardsDrawn = 0
             let choosing = false
-            function displayStack(stack: uno.Stack | uno.Hand, count=-1){
-            let send = "card\n"
-            if(count < 0) count = stack.cards.length
-            for(let i = 0; i < count; i++){
-                send += `${i + 1}:\n`
-                send += stack.cards[i]?.display()
+            function displayStack(stack: uno.Stack | uno.Hand, count = -1) {
+                let send = "card\n"
+                if (count < 0) count = stack.cards.length
+                for (let i = 0; i < count; i++) {
+                    send += `${i + 1}:\n`
+                    send += stack.cards[i]?.display()
+                }
+                return send
             }
-            return send
+            for (let player of players) {
+                await player.user.createDM()
+                let collection = player.user.dmChannel?.createMessageCollector({ filter: (m) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false })
+                if (!collection) {
+                    return { content: `Couldnt listen in ${player}'s dms` }
+                }
+                collection.on("collect", async (m) => {
+                    if (m.content.toLowerCase() == "stop") {
+                        players = players.filter(v => v.id != m.author.id)
+                        if (players.length == 0) {
+                            await msg.channel.send("game over")
+                        }
+                        collection?.stop()
+                        if (m.author.id == client.user?.id) return
+                        await msg.channel.send(`${m.author} quit`)
+                        going = turns.next().value
+                        return
+                    }
+                    if (playerData[player.id].cards.length <= 0) {
+                        await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                        for (let player of players) {
+                            await player.send("STOP")
+                        }
+                        collection?.stop()
+                        return
+                    }
+                    if (player.id != going) return
+                    if (m.content.toLowerCase() == "stack") {
+                        let text = displayStack(pile)
+                        if (text.length > 1900) {
+                            text = ""
+                            for (let i = pile.cards.length - 1; i > pile.cards.length - 10; i--) {
+                                text += `${pile.cards[i].display()}\n`
+                            }
+                        }
+                        await m.channel.send(text)
+                        return
+                    }
+                    if (m.content.toLowerCase() == "cards") {
+                        await m.channel.send(displayStack(playerData[player.id]))
+                        return
+                    }
+                    if (m.content.toLowerCase() == 'draw') {
+                        let rv = playerData[player.id].draw(deck)
+                        cardsDrawn++
+                        if (!rv) {
+                            await msg.channel.send("Deck empty, shuffling pile into deck")
+                            pile.shuffle()
+                            deck = new uno.Stack(pile.cards)
+                            pile = new uno.Stack([])
+                            playerData[player.id].draw(deck)
+                        }
+                        await msg.channel.send(`${player} drew a card`)
+                        let send = displayStack(playerData[player.id])
+                        send += "\n-------------------------"
+                        await m.channel.send(send)
+                        await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                        if (pile.cards.length)
+                            player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                        return
+                    }
+                    let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
+                    if (!selectedCard) {
+                        await player.user.send(`${m.content} is not a valid choice`)
+                    }
+                    else if (selectedCard.type == "+2") {
+                        if (selectedCard.canBePlayed(pile)) {
+                            cardsPlayed++;
+                            forcedDraw = 2
+                            pile.add(selectedCard)
+                            playerData[player.id].remove(Number(m.content) - 1)
+                            going = turns.next().value
+                        }
+                        else {
+                            await m.channel.send("You cannot play that card")
+                        }
+                    }
+                    else if (selectedCard.type == 'shuffle-stack') {
+                        if (selectedCard.canBePlayed(pile)) {
+                            cardsPlayed++
+                            playerData[player.id].remove(Number(m.content) - 1)
+                            await msg.channel.send("**stack was shuffled**")
+                            pile.add(selectedCard)
+                            pile.shuffle()
+                            going = turns.next().value
+                        }
+                        else {
+                            await m.channel.send("You cannot play that card")
+                        }
+                    }
+                    else if (selectedCard.type == 'give') {
+                        if (selectedCard.canBePlayed(pile)) {
+                            cardsPlayed++;
+                            playerData[player.id].remove(Number(m.content) - 1)
+                            await player.send({ content: displayStack(playerData[m.author.id]) })
+                            await player.send("Pick a card from your deck to give to a random opponent")
+                            choosing = true
+                            try {
+                                let cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                while (!cardM) {
+                                    await m.channel.send("Not a valid card")
+                                    cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                }
+                                while (!parseInt(cardM?.content as string)) {
+                                    await m.channel.send("Not a valid card")
+                                    cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                }
+                                let n = parseInt(cardM?.content as string)
+                                let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
+                                let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
+                                let randomPlayer = tempPlayerData[Math.floor(Math.random() * tempPlayerData.length)]
+                                let hand = playerData[randomPlayer]
+                                playerData[m.author.id].remove(selectedRemovealCard)
+                                hand.add(selectedRemovealCard)
+                            }
+                            catch (err) {
+                                console.log(err)
+                                choosing = false
+                            }
+                            choosing = false
+                            pile.add(selectedCard)
+                            going = turns.next().value
+                        }
+                        else {
+                            await m.channel.send("You cannot play that card")
+                        }
+                    }
+                    else if (selectedCard.type == '-1') {
+                        if (selectedCard.canBePlayed(pile)) {
+                            cardsPlayed++;
+                            playerData[player.id].remove(Number(m.content) - 1)
+                            pile.add(selectedCard)
+                            let randomPlayer = players.filter(v => v.id != player.id)[Math.floor(Math.random() * (players.length - 1))].id
+                            await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
+                            let newTopCard = playerData[randomPlayer].cards[0]
+                            playerData[randomPlayer].remove(0)
+                            pile.add(newTopCard)
+                            going = turns.next().value
+                        }
+                    }
+                    else if (selectedCard.type == "wild") {
+                        cardsPlayed++;
+                        await player.send("Pick a color\nred, green, yellow, or blue")
+                        try {
+                            let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                            if (!colorM) {
+                                await msg.channel.send("User picked incorrect color, using red")
+                                selectedCard.color = "red"
+                            }
+                            else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
+                                selectedCard.color = colorM.content
+                            }
+                            else {
+                                await msg.channel.send("User picked incorrect color, using red")
+                                selectedCard.color = "red"
+                            }
+                        }
+                        catch (err) {
+                            console.log(err)
+                            await msg.channel.send("Something went wrong, defaulting to red")
+                            selectedCard.color = "red"
+                        }
+                        pile.add(selectedCard)
+                        playerData[player.id].remove(Number(m.content) - 1)
+                        going = turns.next().value
+                    }
+                    else if (selectedCard.type == "wild+4") {
+                        cardsPlayed++;
+                        await player.send("Pick a color\nred, green, yellow, or blue")
+                        try {
+                            let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                            console.log(colorM?.content)
+                            if (!colorM) {
+                                await msg.channel.send("User picked incorrect color, using red")
+                                selectedCard.color = "red"
+                            }
+                            else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
+                                selectedCard.color = colorM.content
+                            }
+                            else {
+                                await msg.channel.send("User picked incorrect color, using red")
+                                selectedCard.color = "red"
+                            }
+                        }
+                        catch (err) {
+                            console.log(err)
+                            await msg.channel.send("Something went wrong, defaulting to red")
+                            selectedCard.color = "red"
+                        }
+                        pile.add(selectedCard)
+                        playerData[player.id].remove(Number(m.content) - 1)
+                        forcedDraw = 4
+                        going = turns.next().value
+                    }
+                    else if (selectedCard.type == 'skip') {
+                        if (selectedCard.canBePlayed(pile)) {
+                            cardsPlayed++
+                            let skipped = turns.next().value
+                            await msg.channel.send(`<@${skipped}> was skipped`)
+                            going = turns.next().value
+                            await new Promise(res => {
+                                pile.add(selectedCard)
+                                playerData[player.id].remove(Number(m.content) - 1)
+                                let gP = players.filter(v => v.id == going)[0]
+                                let send = displayStack(playerData[going])
+                                send += "\n-------------------------"
+                                gP.send({ content: send })
+                                if (pile.cards.length)
+                                    gP.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                                res("")
+                            })
+                        }
+                        else {
+                            await m.channel.send("You cannot play that card")
+                        }
+                    }
+                    else {
+                        if (selectedCard.canBePlayed(pile)) {
+                            cardsPlayed++
+                            pile.add(selectedCard)
+                            playerData[player.id].remove(Number(m.content) - 1)
+                            going = turns.next().value
+                        }
+                        else {
+                            await m.channel.send("You cannot play that card")
+                        }
+                    }
+                    await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                    if (playerData[player.id].cards.length <= 0) {
+                        await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                        for (let player of players) {
+                            await player.send("STOP")
+                        }
+                        collection?.stop()
+                    }
+                })
             }
-            for(let player of players){
-            await player.user.createDM()
-            let collection = player.user.dmChannel?.createMessageCollector({filter: (m) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false})
-            if(!collection){
-                return {content: `Couldnt listen in ${player}'s dms`}
-            }
-            collection.on("collect", async(m) => {
-                if(m.content.toLowerCase() == "stop"){
-                players = players.filter(v => v.id != m.author.id)
-                if(players.length == 0){
-                    await msg.channel.send("game over")
-                }
-                collection?.stop()
-                if(m.author.id == client.user?.id) return
-                await msg.channel.send(`${m.author} quit`)
-                going = turns.next().value
-                return
-                }
-                if(playerData[player.id].cards.length <= 0){
-                await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
-                for(let player of players){
-                    await player.send("STOP")
-                }
-                collection?.stop()
-                return
-                }
-                if(player.id != going) return
-                if(m.content.toLowerCase() == "stack"){
-                let text = displayStack(pile)
-                if(text.length > 1900){
-                    text = ""
-                    for(let i = pile.cards.length - 1; i > pile.cards.length - 10; i--){
-                    text += `${pile.cards[i].display()}\n`
-                    }
-                }
-                await m.channel.send(text)
-                return
-                }
-                if(m.content.toLowerCase() == "cards"){
-                await m.channel.send(displayStack(playerData[player.id]))
-                return
-                }
-                if(m.content.toLowerCase() == 'draw'){
-                let rv = playerData[player.id].draw(deck)
-                cardsDrawn++
-                if(!rv){
-                    await msg.channel.send("Deck empty, shuffling pile into deck")
-                    pile.shuffle()
-                    deck = new uno.Stack(pile.cards)
-                    pile = new uno.Stack([])
-                    playerData[player.id].draw(deck)
-                }
-                await msg.channel.send(`${player} drew a card`)
-                let send = displayStack(playerData[player.id])
-                send += "\n-------------------------"
-                await m.channel.send(send)
-                await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
-                if(pile.cards.length)
-                    player.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
-                return
-                }
-                let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
-                if(!selectedCard){
-                await player.user.send(`${m.content} is not a valid choice`)
-                }
-                else if(selectedCard.type == "+2"){
-                if(selectedCard.canBePlayed(pile)){
-                    cardsPlayed++;
-                    forcedDraw = 2
-                    pile.add(selectedCard)
-                    playerData[player.id].remove(Number(m.content) - 1)
-                    going = turns.next().value
-                }
-                else{
-                    await m.channel.send("You cannot play that card")
-                }
-                }
-                else if(selectedCard.type == 'shuffle-stack'){
-                if(selectedCard.canBePlayed(pile)){
-                    cardsPlayed++
-                    playerData[player.id].remove(Number(m.content) - 1)
-                    await msg.channel.send("**stack was shuffled**")
-                    pile.add(selectedCard)
-                    pile.shuffle()
-                    going = turns.next().value
-                }
-                else{
-                    await m.channel.send("You cannot play that card")
-                }
-                }
-                else if(selectedCard.type == 'give'){
-                if(selectedCard.canBePlayed(pile)){
-                    cardsPlayed++;
-                    playerData[player.id].remove(Number(m.content) - 1)
-                    await player.send({content: displayStack(playerData[m.author.id])})
-                    await player.send("Pick a card from your deck to give to a random opponent")
-                    choosing = true
-                    try{
-                    let cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-                    while(!cardM){
-                        await m.channel.send("Not a valid card")
-                        cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-                    }
-                    while(!parseInt(cardM?.content as string)){
-                        await m.channel.send("Not a valid card")
-                        cardM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-                    }
-                    let n = parseInt(cardM?.content as string)
-                    let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
-                    let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
-                    let randomPlayer = tempPlayerData[Math.floor(Math.random() * tempPlayerData.length)]
-                    let hand = playerData[randomPlayer]
-                    playerData[m.author.id].remove(selectedRemovealCard)
-                    hand.add(selectedRemovealCard)
-                    }
-                    catch(err){
-                    console.log(err)
-                    choosing = false
-                    }
-                    choosing = false
-                    pile.add(selectedCard)
-                    going = turns.next().value
-                }
-                else{
-                    await m.channel.send("You cannot play that card")
-                }
-                }
-                else if(selectedCard.type == '-1'){
-                if(selectedCard.canBePlayed(pile)){
-                    cardsPlayed++;
-                    playerData[player.id].remove(Number(m.content) - 1)
-                    pile.add(selectedCard)
-                    let randomPlayer = players.filter(v => v.id != player.id)[Math.floor(Math.random() * (players.length - 1))].id
-                    await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
-                    let newTopCard = playerData[randomPlayer].cards[0]
-                    playerData[randomPlayer].remove(0)
-                    pile.add(newTopCard)
-                    going = turns.next().value
-                }
-                }
-                else if(selectedCard.type == "wild"){
-                cardsPlayed++;
-                await player.send("Pick a color\nred, green, yellow, or blue")
-                try{
-                    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-                    if(!colorM){
-                    await msg.channel.send("User picked incorrect color, using red")
-                    selectedCard.color = "red"
-                    }
-                    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
-                    selectedCard.color = colorM.content
-                    }
-                    else{
-                    await msg.channel.send("User picked incorrect color, using red")
-                    selectedCard.color = "red"
-                    }
-                }
-                catch(err){
-                    console.log(err)
-                    await msg.channel.send("Something went wrong, defaulting to red")
-                    selectedCard.color = "red"
-                }
-                pile.add(selectedCard)
-                playerData[player.id].remove(Number(m.content) - 1)
-                going = turns.next().value
-                }
-                else if(selectedCard.type == "wild+4"){
-                cardsPlayed++;
-                await player.send("Pick a color\nred, green, yellow, or blue")
-                try{
-                    let colorM = (await m.channel.awaitMessages({max: 1, time: 20000})).at(0)
-                    console.log(colorM?.content)
-                    if(!colorM){
-                    await msg.channel.send("User picked incorrect color, using red")
-                    selectedCard.color = "red"
-                    }
-                    else if(["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())){
-                    selectedCard.color = colorM.content
-                    }
-                    else{
-                    await msg.channel.send("User picked incorrect color, using red")
-                    selectedCard.color = "red"
-                    }
-                }
-                catch(err){
-                    console.log(err)
-                    await msg.channel.send("Something went wrong, defaulting to red")
-                    selectedCard.color = "red"
-                }
-                pile.add(selectedCard)
-                playerData[player.id].remove(Number(m.content) - 1)
-                forcedDraw = 4
-                going = turns.next().value
-                }
-                else if(selectedCard.type == 'skip'){
-                if(selectedCard.canBePlayed(pile)){
-                    cardsPlayed++
-                    let skipped = turns.next().value
-                    await msg.channel.send(`<@${skipped}> was skipped`)
-                    going = turns.next().value
-                    await new Promise(res => {
-                    pile.add(selectedCard)
-                    playerData[player.id].remove(Number(m.content) - 1)
-                    let gP = players.filter(v => v.id == going)[0]
-                    let send = displayStack(playerData[going])
-                    send += "\n-------------------------"
-                    gP.send({content: send})
-                    if(pile.cards.length)
-                        gP.send({content: `stack:\n${pile.cards[pile.cards.length - 1].display()}`})
-                    res("")
-                    })
-                }
-                else{
-                    await m.channel.send("You cannot play that card")
-                }
-                }
-                else {
-                if(selectedCard.canBePlayed(pile)){
-                    cardsPlayed++
-                    pile.add(selectedCard)
-                    playerData[player.id].remove(Number(m.content) - 1)
-                    going = turns.next().value
-                }
-                else{
-                    await m.channel.send("You cannot play that card")
-                }
-                }
-                await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
-                if(playerData[player.id].cards.length <= 0){
-                await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
-                for(let player of players){
-                    await player.send("STOP")
-                }
-                collection?.stop()
-                }
-            })
-            }
-            return {content:"Starting game"}
+            return { content: "Starting game" }
         },
         help: {
             info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
             arguments: {
-            players: {
-                description: "Players to play, seperated by |"
-            }
+                players: {
+                    description: "Players to play, seperated by |"
+                }
             },
             options: {
-            max: {
-                description: "the amount of numbers, default: 10"
-            },
-            give: {
-                description: "enable the give card"
-            },
-            shuffle: {
-                description: "enable the shuffle card"
-            },
-            "1": {
-                description: "enable the -1 card"
-            }
+                max: {
+                    description: "the amount of numbers, default: 10"
+                },
+                give: {
+                    description: "enable the give card"
+                },
+                shuffle: {
+                    description: "enable the shuffle card"
+                },
+                "1": {
+                    description: "enable the -1 card"
+                }
             }
         },
         category: CommandCategory.GAME
 
     },
     sport: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
-                    let data = new Stream.Transform()
-                    resp.on("data", chunk => {
-                        data.push(chunk)
-                    })
-                    resp.on("end", async() => {
-                let html = data.read().toString()
-                let embed = new MessageEmbed()
-                //winner should be in *****
-                let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
-                try{
-                inning = inning.match(/span class=".*?">(.*?)<\//)[1]
-                    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
-                    var num = parseInt(numStr, 10);
-                    return String.fromCharCode(num);
-                    });
-                }
-                catch(err){
-                await msg.channel.send("No results")
-                return
-                }
-                homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                let homeScore, awayScore
-                try{
-                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
-                }
-                catch(err){
-                await msg.channel.send("Failed to get data")
-                return
-                }
-                homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
-                awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
-                embed.setTitle(`${args.join(" ")}`)
-                if(awayScore >= homeScore){
-                awayTeam = `***${awayTeam}***`
-                awayScore = `***${awayScore}***`
-                embed.setColor("#ff0000")
-                }
-                else {
-                homeTeam = `***${homeTeam}***`
-                homeScore = `***${homeScore}***`
-                embed.setColor("#00ff00")
-                }
-                embed.addField("Time", inning)
-                embed.addField(`${homeTeam}`, String(homeScore))
-                embed.addField(`${awayTeam}`, String(awayScore))
-                await msg.channel.send({embeds: [embed]})
-            })
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async () => {
+                    let html = data.read().toString()
+                    let embed = new MessageEmbed()
+                    //winner should be in *****
+                    let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
+                    try {
+                        inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+                            .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
+                                var num = parseInt(numStr, 10);
+                                return String.fromCharCode(num);
+                            });
+                    }
+                    catch (err) {
+                        await msg.channel.send("No results")
+                        return
+                    }
+                    homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+                    awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+                    let homeScore, awayScore
+                    try {
+                        [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+                    }
+                    catch (err) {
+                        await msg.channel.send("Failed to get data")
+                        return
+                    }
+                    homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
+                    awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+                    embed.setTitle(`${args.join(" ")}`)
+                    if (awayScore >= homeScore) {
+                        awayTeam = `***${awayTeam}***`
+                        awayScore = `***${awayScore}***`
+                        embed.setColor("#ff0000")
+                    }
+                    else {
+                        homeTeam = `***${homeTeam}***`
+                        homeScore = `***${homeScore}***`
+                        embed.setColor("#00ff00")
+                    }
+                    embed.addField("Time", inning)
+                    embed.addField(`${homeTeam}`, String(homeScore))
+                    embed.addField(`${awayTeam}`, String(awayScore))
+                    await msg.channel.send({ embeds: [embed] })
+                })
             }).end()
             return {
-            content: "getting data"
+                content: "getting data"
             }
         }, help: {
             info: "Print information about a sport game",
             arguments: {
-            team: {
-                description: "The team to get info on"
-            }
+                team: {
+                    description: "The team to get info on"
+                }
             }
         },
         category: CommandCategory.FUN
 
     },
     wordle: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts
             [opts, args] = getOpts(args)
             let min = parseInt(opts["min"] as string) || 5
             let max = parseInt(opts["max"] as string) || 5
-            if(min > max){
-            max = min
+            if (min > max) {
+                max = min
             }
             let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
-            if(words.length == 0){
-            return {content: "no words found"}
+            if (words.length == 0) {
+                return { content: "no words found" }
             }
             let word = words[Math.floor(Math.random() * words.length)].toLowerCase()
             let guesses = []
-            let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP"})
+            let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
             let guessCount = parseInt(opts["lives"] as string) || 6
             let display: string[] = []
             await msg.channel.send("key: **correct**, *wrong place*, `wrong`")
             await msg.channel.send(`The word is ${word.length} characters long`)
-            for(let i = 0; i < guessCount; i++){
-            display.push(mulStr("⬛ ", word.length))
+            for (let i = 0; i < guessCount; i++) {
+                display.push(mulStr("⬛ ", word.length))
             }
             await msg.channel.send(display.join("\n"))
-            let letterCount: {[k: string]: number} = {}
-            for(let letter of word){
-            if(letterCount[letter] === undefined){
-                letterCount[letter] = 1
-            }
-            else{
-                letterCount[letter] += 1
-            }
-            }
-            collector.on("collect", async(m) => {
-            if(m.content == "STOP"){
-                collector.stop()
-                await msg.channel.send("stopped")
-                return
-            }
-            guesses.push(m.content)
-            let nextInDisplay = ""
-            let guessLetterCount: {[key: string]: number} = {}
-            for(let i = 0; i < word.length; i++){
-                let correct = word[i]
-                let guessed = m.content[i]
-                if(guessLetterCount[guessed] === undefined){
-                guessLetterCount[guessed] = 1
-                } else {
-                guessLetterCount[guessed] += 1
+            let letterCount: { [k: string]: number } = {}
+            for (let letter of word) {
+                if (letterCount[letter] === undefined) {
+                    letterCount[letter] = 1
                 }
-                if(correct == guessed)
-                nextInDisplay += `**${guessed}** `
-                else if(word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
-                nextInDisplay += `*${guessed}* `
-                else nextInDisplay += `\`${guessed}\` `
+                else {
+                    letterCount[letter] += 1
+                }
             }
-            display[6 - guessCount] = nextInDisplay
-            guessCount--
-            await msg.channel.send(display.join("\n"))
-            if(m.content == word){
-                await msg.channel.send(`You win`)
-                collector.stop()
-                return
-            }
-            if(guessCount == 0){
-                await msg.channel.send(`You lose, it was ${word}`)
-                collector.stop()
-                return
-            }
+            collector.on("collect", async (m) => {
+                if (m.content == "STOP") {
+                    collector.stop()
+                    await msg.channel.send("stopped")
+                    return
+                }
+                guesses.push(m.content)
+                let nextInDisplay = ""
+                let guessLetterCount: { [key: string]: number } = {}
+                for (let i = 0; i < word.length; i++) {
+                    let correct = word[i]
+                    let guessed = m.content[i]
+                    if (guessLetterCount[guessed] === undefined) {
+                        guessLetterCount[guessed] = 1
+                    } else {
+                        guessLetterCount[guessed] += 1
+                    }
+                    if (correct == guessed)
+                        nextInDisplay += `**${guessed}** `
+                    else if (word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
+                        nextInDisplay += `*${guessed}* `
+                    else nextInDisplay += `\`${guessed}\` `
+                }
+                display[6 - guessCount] = nextInDisplay
+                guessCount--
+                await msg.channel.send(display.join("\n"))
+                if (m.content == word) {
+                    await msg.channel.send(`You win`)
+                    collector.stop()
+                    return
+                }
+                if (guessCount == 0) {
+                    await msg.channel.send(`You lose, it was ${word}`)
+                    collector.stop()
+                    return
+                }
             })
-            return {content: "starting wordle"}
+            return { content: "starting wordle" }
         },
         help: {
             info: "wordle",
             options: {
-            "min": {
-                description: "The minimum length of the word, default: 5"
-            },
-            "max": {
-                description: "The maximum length of the word, default: 5"
-            },
-            "lives": {
-                description: "Lives, default: 6"
-            }
+                "min": {
+                    description: "The minimum length of the word, default: 5"
+                },
+                "max": {
+                    description: "The maximum length of the word, default: 5"
+                },
+                "lives": {
+                    description: "Lives, default: 6"
+                }
             }
         },
         category: CommandCategory.GAME
 
     },
     hangman: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opponent = msg.author
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -1805,91 +1805,91 @@ const commands: {[command: string]: Command} = {
             let wordstr: string;
             let everyone = false
             let users: any[] = []
-            for(let arg of args){
-                if(['all', 'everyone'].includes(arg)){
+            for (let arg of args) {
+                if (['all', 'everyone'].includes(arg)) {
                     users.push("Everyone")
                     everyone = true
                     break
                 }
                 opponent = await fetchUser(msg.guild, arg)
-                if(opponent){
+                if (opponent) {
                     users.push(opponent)
                 }
             }
-            if(users.length == 0){
-            users.push(msg.author)
+            if (users.length == 0) {
+                users.push(msg.author)
             }
-            try{
-            await msg.author.createDM()
+            try {
+                await msg.author.createDM()
             }
-            catch(err){
-            return {content: "Could not dm you"}
+            catch (err) {
+                return { content: "Could not dm you" }
             }
-            async function game(wordstr: string){
+            async function game(wordstr: string) {
                 let wordLength = strlen(wordstr)
-                if(!caseSensitive){
+                if (!caseSensitive) {
                     wordstr = wordstr.toLowerCase()
                 }
                 let guessed = ""
                 let disp = ""
                 let lives = parseInt(opts["lives"] as string) || 10
                 let word = [...wordstr]
-                for(let i = 0; i < wordLength; i++){
-                    if(word[i] == " "){
-                    disp += '   '
+                for (let i = 0; i < wordLength; i++) {
+                    if (word[i] == " ") {
+                        disp += '   '
                     }
                     else {
-                    disp += "\\_ "
+                        disp += "\\_ "
                     }
                 }
-                try{
-                    await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess`})
+                try {
+                    await msg.channel.send({ content: `${disp}\n${users.join(", ")}, guess` })
                 }
-                catch(err){
-                    return {content: "2K char limit reached"}
+                catch (err) {
+                    return { content: "2K char limit reached" }
                 }
-                let collection = msg.channel.createMessageCollector({filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000})
-                collection.on("collect", async(m) => {
-                    if(m.content == '\\n' || m.content == "<enter>")
-                    m.content = '\n'
-                    if(m.content == "STOP"){
+                let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
+                collection.on("collect", async (m) => {
+                    if (m.content == '\\n' || m.content == "<enter>")
+                        m.content = '\n'
+                    if (m.content == "STOP") {
                         await msg.channel.send("STOPPED")
                         collection.stop()
                         return
                     }
                     let match
-                    if(match = m.content.match(/e\s*(.)/u)){
-                    m.content = match[1]
-                    console.log(m.content)
+                    if (match = m.content.match(/e\s*(.)/u)) {
+                        m.content = match[1]
+                        console.log(m.content)
                     }
-                    if(!caseSensitive){
-                    m.content = m.content.toLowerCase()
+                    if (!caseSensitive) {
+                        m.content = m.content.toLowerCase()
                     }
-                    if([...guessed].indexOf(m.content) > -1){
-                    await msg.channel.send(`You've already guessed ${m.content}`)
-                    return
+                    if ([...guessed].indexOf(m.content) > -1) {
+                        await msg.channel.send(`You've already guessed ${m.content}`)
+                        return
                     }
-                    else if(m.content == wordstr){
-                    await msg.channel.send(`YOU WIN, it was\n${wordstr}`)
-                    collection.stop()
-                    return
+                    else if (m.content == wordstr) {
+                        await msg.channel.send(`YOU WIN, it was\n${wordstr}`)
+                        collection.stop()
+                        return
                     }
                     else guessed += m.content
-                    if(word.indexOf(m.content) < 0)
-                    lives--
-                    if(lives < 1){
-                    await msg.channel.send({content: `You lost, the word was:\n${wordstr}`, allowedMentions: {parse: []}})
-                    collection.stop()
-                    return
+                    if (word.indexOf(m.content) < 0)
+                        lives--
+                    if (lives < 1) {
+                        await msg.channel.send({ content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
+                        collection.stop()
+                        return
                     }
-                    let correctIndecies: {[k: number]: string} = {}
-                    for(let i = 0; i < strlen(guessed); i++){
+                    let correctIndecies: { [k: number]: string } = {}
+                    for (let i = 0; i < strlen(guessed); i++) {
                         let letter = [...guessed][i]
                         //@ts-ignore
                         let tempWord = [...word]
                         let totalIdx = 0
                         let idx;
-                        while((idx = [...tempWord].indexOf(letter)) >= 0){
+                        while ((idx = [...tempWord].indexOf(letter)) >= 0) {
                             correctIndecies[idx + totalIdx] = letter
                             totalIdx += idx + 1
                             tempWord = tempWord.slice(idx + 1)
@@ -1897,58 +1897,58 @@ const commands: {[command: string]: Command} = {
                     }
                     let disp = ""
                     console.log(wordLength, correctIndecies)
-                    for(let i = 0; i < wordLength; i++){
-                    if(correctIndecies[i]){
-                        disp += correctIndecies[i]
+                    for (let i = 0; i < wordLength; i++) {
+                        if (correctIndecies[i]) {
+                            disp += correctIndecies[i]
+                        }
+                        else if (word[i] == " ") {
+                            disp += '   '
+                        }
+                        else {
+                            disp += "\\_ "
+                        }
                     }
-                    else if(word[i] == " "){
-                        disp += '   '
+                    if (disp.replaceAll("   ", " ") == wordstr) {
+                        await msg.channel.send({ content: `YOU WIN, it was\n${wordstr}`, allowedMentions: { parse: [] } })
+                        collection.stop()
+                        return
                     }
-                    else {
-                        disp += "\\_ "
-                    }
-                    }
-                    if(disp.replaceAll("   ", " ") == wordstr){
-                    await msg.channel.send({content: `YOU WIN, it was\n${wordstr}`, allowedMentions: {parse: []}})
-                    collection.stop()
-                    return
-                    }
-                    await msg.channel.send({content: `${disp}\n${users.join(", ")}, guess (${lives} lives left)`})
+                    await msg.channel.send({ content: `${disp}\n${users.join(", ")}, guess (${lives} lives left)` })
                 })
             }
-            if(opts["random"]){
+            if (opts["random"]) {
                 let channels = (await msg.guild?.channels.fetch())?.toJSON()
-                if(!channels){
-                    return {content: "no channels found"}
+                if (!channels) {
+                    return { content: "no channels found" }
                 }
                 let channel = channels[Math.floor(Math.random() * channels.length)]
-                while(!channel.isText())
+                while (!channel.isText())
                     channel = channels[Math.floor(Math.random() * channels.length)]
                 let messages
-                try{
-                    messages = await channel.messages.fetch({limit: 100})
+                try {
+                    messages = await channel.messages.fetch({ limit: 100 })
                 }
-                catch(err){
-                    messages = await msg.channel.messages.fetch({limit: 100})
+                catch (err) {
+                    messages = await msg.channel.messages.fetch({ limit: 100 })
                 }
                 let times = 0;
                 //@ts-ignore
-                while(!(wordstr = messages.random()?.content)){
+                while (!(wordstr = messages.random()?.content)) {
                     times++
-                    if(times > 20) break
+                    if (times > 20) break
                 }
                 await game(wordstr)
             }
-            else{
-            await msg.author.send("Type a word")
-            let collector = msg.author.dmChannel?.createMessageCollector({time: 30000, max: 1})
-            collector?.on("collect", async(m) => {
-                wordstr = m.content
-                await game(wordstr)
-            })
+            else {
+                await msg.author.send("Type a word")
+                let collector = msg.author.dmChannel?.createMessageCollector({ time: 30000, max: 1 })
+                collector?.on("collect", async (m) => {
+                    wordstr = m.content
+                    await game(wordstr)
+                })
             }
             return {
-            content: "STARTING HANGMAN, WOOOOOO"
+                content: "STARTING HANGMAN, WOOOOOO"
             }
         },
         help: {
@@ -1972,66 +1972,66 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.GAME
     },
     "edit": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(opts['d'] && msg.deletable) await msg.delete()
+            if (opts['d'] && msg.deletable) await msg.delete()
             let edits = args.join(" ").split("|")
             let message
-            try{
+            try {
                 message = await msg.channel.send(edits[0])
             }
-            catch(err){
-                return {content: "message too big"}
+            catch (err) {
+                return { content: "message too big" }
             }
             edits = edits.slice(1)
             let lastEdit = message.content
-            for(let edit of edits){
+            for (let edit of edits) {
                 let match
-                if(match = edit.match(/^!(\d+)!$/)){
+                if (match = edit.match(/^!(\d+)!$/)) {
                     let time = parseFloat(match[1])
                     await new Promise(res => setTimeout(res, time * 1000))
                     continue
                 }
-                if(edit[0] == "-"){
+                if (edit[0] == "-") {
                     edit = lastEdit.replaceAll(edit.slice(1), "")
                 }
-                else if(edit[0] == "+"){
+                else if (edit[0] == "+") {
                     edit = lastEdit + edit.slice(1)
                 }
-                else if(edit[0] == "*"){
+                else if (edit[0] == "*") {
                     let times = parseInt(edit.slice(1))
                     edit = lastEdit
-                    for(let i = 1; i < times; i++){
+                    for (let i = 1; i < times; i++) {
                         edit += lastEdit
                     }
                 }
-                else if(edit[0] == "/"){
+                else if (edit[0] == "/") {
                     let divideBy = parseInt(edit.slice(1))
                     edit = lastEdit.slice(0, lastEdit.length / divideBy)
                 }
-                else if(edit[0] == ";"){
-                    try{
+                else if (edit[0] == ";") {
+                    try {
                         message = await msg.channel.send(edit.slice(1))
                     }
-                    catch(err){
-                        return {content: "message too big"}
+                    catch (err) {
+                        return { content: "message too big" }
                     }
                     continue
                 }
-                try{
-                    await message.edit({content:edit})
+                try {
+                    await message.edit({ content: edit })
                 }
-                catch(err){
-                    if(!message.deletable){
-                        return {noSend: true}
+                catch (err) {
+                    if (!message.deletable) {
+                        return { noSend: true }
                     }
                     await msg.channel.send(`Could not edit message with: ${edit}`)
                 }
                 await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
                 lastEdit = message.content
             }
-            return {noSend: true}
+            return { noSend: true }
         },
         help: {
             arguments: {
@@ -2043,23 +2043,23 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     "comp-roles": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let [user1, user2] = args.join(" ").split("|")
             user1 = user1.trim()
             user2 = user2.trim()
-            if(!user1){
-            return {content: "No users given"}
+            if (!user1) {
+                return { content: "No users given" }
             }
-            if(!user2){
-            return {content: "2 users must be given"}
+            if (!user2) {
+                return { content: "2 users must be given" }
             }
             let realUser1: GuildMember = await fetchUser(msg.guild, user1)
-            if(!realUser1){
-            return {content: `${user1} not found`}
+            if (!realUser1) {
+                return { content: `${user1} not found` }
             }
             let realUser2: GuildMember = await fetchUser(msg.guild, user2)
-            if(!realUser2){
-            return {content: `${user2} not found`}
+            if (!realUser2) {
+                return { content: `${user2} not found` }
             }
             let user1Roles = realUser1.roles.cache.toJSON()
             let user2Roles = realUser2.roles.cache.toJSON()
@@ -2074,24 +2074,24 @@ const commands: {[command: string]: Command} = {
             let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
             let u1Net = user1RoleIds.length - user2RoleIds.length
             embed.setTitle("roles")
-            if(u1Net > 0){
-            embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
+            if (u1Net > 0) {
+                embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
             }
-            else if(u1Net < 0){
-            embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
+            else if (u1Net < 0) {
+                embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
             }
             else {
-            embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
+                embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
             }
             embed.addField("Same Roles", same || "No same")
             embed.addField(`${realUser1.displayName} unique roles`, user1U || "No unique roles")
             embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
-            return {embeds: [embed]}
+            return { embeds: [embed] }
         },
         category: CommandCategory.UTIL
     },
     "most-roles": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let times = parseInt(args[0]) || 10
@@ -2099,20 +2099,20 @@ const commands: {[command: string]: Command} = {
             let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
             let embed = new MessageEmbed()
             embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
-            if(sortedMembers?.at(0)?.displayColor){
-            embed.setColor(sortedMembers?.at(0)?.displayColor || "RED")
+            if (sortedMembers?.at(0)?.displayColor) {
+                embed.setColor(sortedMembers?.at(0)?.displayColor || "RED")
             }
             let ret = ""
-            for(let i = 0; i < times; i++){
-            let member = sortedMembers?.at(i)
-            ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
-            embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
+            for (let i = 0; i < times; i++) {
+                let member = sortedMembers?.at(i)
+                ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
+                embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
             }
-            let rv: CommandReturn = {allowedMentions: {parse: []}}
-            if(!opts['E'] && !opts['c!'])
-            rv.embeds = [embed]
-            if(opts['c'] || opts['c!']){
-            rv.content = ret
+            let rv: CommandReturn = { allowedMentions: { parse: [] } }
+            if (!opts['E'] && !opts['c!'])
+                rv.embeds = [embed]
+            if (opts['c'] || opts['c!']) {
+                rv.content = ret
             }
             return rv
         },
@@ -2139,50 +2139,50 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.UTIL
     },
     whohas: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let role = args.join(" ")
-            if(!role){
-            return {content: "No role given"}
+            if (!role) {
+                return { content: "No role given" }
             }
             await msg.guild?.members.fetch()
             let roleRef = await msg.guild?.roles.fetch()
-            if(!roleRef){
-            return {content: "no roles found somehow"}
+            if (!roleRef) {
+                return { content: "no roles found somehow" }
             }
             let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase())?.at(0)
-            if(!realRole){
+            if (!realRole) {
                 realRole = roleRef.filter(v => v.name.toLowerCase().match(role.toLowerCase()) ? true : false)?.at(0)
             }
-            if(!realRole){
+            if (!realRole) {
                 realRole = roleRef.filter(v => v.id == role.toLowerCase() ? true : false)?.at(0)
             }
-            if(!realRole){
-            return {
-                content: "Could not find role"
-            }
+            if (!realRole) {
+                return {
+                    content: "Could not find role"
+                }
             }
             let memberTexts = [""]
             let embed = new MessageEmbed()
             embed.setTitle(realRole.name)
             let i = 0
             let memberCount = 0
-            for (let member of realRole.members){
-            memberTexts[i] += `<@${member[1].id}> `
-            memberCount += 1
-            if(memberTexts[i].length > 1000){
-                embed.addField(`members`, memberTexts[i])
-                i++
-                memberTexts.push("")
+            for (let member of realRole.members) {
+                memberTexts[i] += `<@${member[1].id}> `
+                memberCount += 1
+                if (memberTexts[i].length > 1000) {
+                    embed.addField(`members`, memberTexts[i])
+                    i++
+                    memberTexts.push("")
+                }
             }
+            if (!memberTexts[0].length) {
+                return { content: "No one" }
             }
-            if(!memberTexts[0].length){
-            return {content: "No one"}
-            }
-            if(embed.fields.length < 1){
-            embed.addField(`members: ${i}`, memberTexts[i])
+            if (embed.fields.length < 1) {
+                embed.addField(`members: ${i}`, memberTexts[i])
             }
             embed.addField("Member count", String(memberCount))
-            return {embeds: [embed]}
+            return { embeds: [embed] }
         },
         category: CommandCategory.UTIL
     },
@@ -2191,46 +2191,46 @@ const commands: {[command: string]: Command} = {
             let opts
             [opts, args] = getOpts(args)
             let gradOpt = opts['gradient']
-	    let gradient;
-	    if(typeof gradOpt == 'boolean'){
-		gradOpt = false
-	    } else if(gradOpt) {
-		gradient = gradOpt.split(">")
-	    }
+            let gradient;
+            if (typeof gradOpt == 'boolean') {
+                gradOpt = false
+            } else if (gradOpt) {
+                gradient = gradOpt.split(">")
+            }
             const width = Math.min(parseFloat(args[0]) || parseFloat(opts['w'] as string) || parseFloat(opts['width'] as string) || parseFloat(opts['size'] as string) || 100, 2000)
             const height = Math.min(parseFloat(args[1]) || parseFloat(opts['h'] as string) || parseFloat(opts['height'] as string) || parseFloat(opts['size'] as string) || width || 100, 2000)
-            if(width < 0){
+            if (width < 0) {
                 return {
                     content: "Width must be > 0"
                 }
             }
-            if(height < 0){
+            if (height < 0) {
                 return {
                     content: "Height must be > 0"
                 }
             }
-	    let img;
-            if(gradient){
-		img = await sharp(await createGradient(gradient, width, height)).toBuffer()
+            let img;
+            if (gradient) {
+                img = await sharp(await createGradient(gradient, width, height)).toBuffer()
             }
-	    else{
-		let colorHint = args[2] || opts['color'] || "black"
-		let color = "black"
-		if(typeof colorHint !== 'boolean'){
-		    color = colorHint
-		}
-		img = await sharp({
-		    create: {
-			width: width,
-			height: height,
-			channels: 4,
-			background: color
-		    }
-		}).png().toBuffer()
-	    }
+            else {
+                let colorHint = args[2] || opts['color'] || "black"
+                let color = "black"
+                if (typeof colorHint !== 'boolean') {
+                    color = colorHint
+                }
+                img = await sharp({
+                    create: {
+                        width: width,
+                        height: height,
+                        channels: 4,
+                        background: color
+                    }
+                }).png().toBuffer()
+            }
             fs.writeFileSync(`./out.png`, img)
             return {
-                files:[
+                files: [
                     {
                         attachment: `out.png`,
                         name: `file.png`,
@@ -2271,7 +2271,7 @@ const commands: {[command: string]: Command} = {
                 "height": {
                     description: "Height of the image"
                 },
-                "h":{
+                "h": {
                     description: "Height of the image, overrides -height"
                 },
                 "width": {
@@ -2285,110 +2285,110 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.IMAGES
     },
     polygon: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
-	    return {
-		content: "Broken"
-	    }
-	    /*
-            [opts, args] = getOpts(args)
-            let gradient = opts['gradient']?.split(">")
-            let color = opts['color'] || "white"
-            let img = getImgFromMsgAndOpts(opts, msg)
-            if(!img){
-                return {
-                    content: "no img found"
-                }
-            }
-            args = args.join(" ")
-            let positions = []
-            for(let pos of args.split('|')){
-                let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
-                positions.push([x, y])
-            }
-            https.request(img, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on("end", async() => {
-                    let fn = `${generateFileName("polygon", msg.author.id)}.png`
-                    fs.writeFileSync(fn, data.read())
-                    let img = await canvas.loadImage(fn)
-                    fs.rmSync(fn)
-                    let canv = new canvas.Canvas(img.width, img.height)
-                    let ctx = canv.getContext("2d")
-                    ctx.drawImage(img, 0, 0, img.width, img.height)
-                    ctx.beginPath()
-
-                    let startX = parsePosition(positions[0][0], img.width)
-                    let startY = parsePosition(positions[0][1], img.height)
-                    ctx.moveTo(startX, startY)
-                    let minX = startX, minY = startY
-                    let maxX = startX, maxY = startY
-                    for(let pos of positions.slice(1)){
-                        let x = parsePosition(pos[0], img.width)
-                        let y = parsePosition(pos[1], img.width)
-                        if(x < minX) minX = x;
-                        if(x > maxX) maxX = x;
-                        if(y < minY) minY = y;
-                        if(y > maxY) maxY = y
-                        ctx.lineTo(x, y)
-                    }
-                    let width = maxX - minX
-                    let height = maxY - minY
-                    if(gradient){
-                        let [lastGrad, grad_angle] = gradient.slice(-1)[0].split(":")
-                        grad_angle = parseFloat(grad_angle) * Math.PI / 180
-                        if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
-                        else gradient[gradient.length - 1] = lastGrad
-                        ctx.fillStyle = await createGradient(gradient, grad_angle, startX, startY, width, height, msg, ctx)
-                    }
-                    else ctx.fillStyle = color
-                    ctx.fill()
-                    const buffer = canv.toBuffer("image/png")
-                    fs.writeFileSync(fn, buffer)
-                    msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
-                        fs.rmSync(fn)
-                    }).catch(err => {
-                    })
-                })
-            }).end()
             return {
-                content: "generating img"
+                content: "Broken"
             }
-	    */
+            /*
+                [opts, args] = getOpts(args)
+                let gradient = opts['gradient']?.split(">")
+                let color = opts['color'] || "white"
+                let img = getImgFromMsgAndOpts(opts, msg)
+                if(!img){
+                    return {
+                        content: "no img found"
+                    }
+                }
+                args = args.join(" ")
+                let positions = []
+                for(let pos of args.split('|')){
+                    let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
+                    positions.push([x, y])
+                }
+                https.request(img, resp => {
+                    let data = new Stream.Transform()
+                    resp.on("data", chunk => {
+                        data.push(chunk)
+                    })
+                    resp.on("end", async() => {
+                        let fn = `${generateFileName("polygon", msg.author.id)}.png`
+                        fs.writeFileSync(fn, data.read())
+                        let img = await canvas.loadImage(fn)
+                        fs.rmSync(fn)
+                        let canv = new canvas.Canvas(img.width, img.height)
+                        let ctx = canv.getContext("2d")
+                        ctx.drawImage(img, 0, 0, img.width, img.height)
+                        ctx.beginPath()
+
+                        let startX = parsePosition(positions[0][0], img.width)
+                        let startY = parsePosition(positions[0][1], img.height)
+                        ctx.moveTo(startX, startY)
+                        let minX = startX, minY = startY
+                        let maxX = startX, maxY = startY
+                        for(let pos of positions.slice(1)){
+                            let x = parsePosition(pos[0], img.width)
+                            let y = parsePosition(pos[1], img.width)
+                            if(x < minX) minX = x;
+                            if(x > maxX) maxX = x;
+                            if(y < minY) minY = y;
+                            if(y > maxY) maxY = y
+                            ctx.lineTo(x, y)
+                        }
+                        let width = maxX - minX
+                        let height = maxY - minY
+                        if(gradient){
+                            let [lastGrad, grad_angle] = gradient.slice(-1)[0].split(":")
+                            grad_angle = parseFloat(grad_angle) * Math.PI / 180
+                            if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
+                            else gradient[gradient.length - 1] = lastGrad
+                            ctx.fillStyle = await createGradient(gradient, grad_angle, startX, startY, width, height, msg, ctx)
+                        }
+                        else ctx.fillStyle = color
+                        ctx.fill()
+                        const buffer = canv.toBuffer("image/png")
+                        fs.writeFileSync(fn, buffer)
+                        msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
+                            fs.rmSync(fn)
+                        }).catch(err => {
+                        })
+                    })
+                }).end()
+                return {
+                    content: "generating img"
+                }
+            */
         },
         category: CommandCategory.IMAGES
     },
     rect: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let color: string = <string>opts['color'] || "white"
             let outline = opts['outline']
             let img = getImgFromMsgAndOpts(opts, msg)
-            if(!img){
+            if (!img) {
                 return {
                     content: "no img found"
                 }
             }
-	    let gradient: Array<string> | undefined
-	    if(typeof opts["gradient"] == 'string')
-		gradient = opts['gradient'].split(">")
-            let [x, y, width, height] = args.slice(0,4)
-            if(!x){
+            let gradient: Array<string> | undefined
+            if (typeof opts["gradient"] == 'string')
+                gradient = opts['gradient'].split(">")
+            let [x, y, width, height] = args.slice(0, 4)
+            if (!x) {
                 x = typeof opts['x'] === 'string' ? opts['x'] : "0"
             }
-            if(!y){
+            if (!y) {
                 y = typeof opts['y'] === 'string' ? opts['y'] : "0"
             }
-            if(!width){
-		//@ts-ignore
+            if (!width) {
+                //@ts-ignore
                 width = opts['w'] || opts['width'] || opts['size'] || "50"
             }
-            if(!height){
-		//@ts-ignore
+            if (!height) {
+                //@ts-ignore
                 height = opts['h'] || opts['height'] || opts['size'] || width || "50"
             }
             let intWidth = parseInt(width as string) || 50
@@ -2398,51 +2398,51 @@ const commands: {[command: string]: Command} = {
                 resp.on("data", chunk => {
                     data.push(chunk)
                 })
-                resp.on("end", async() => {
+                resp.on("end", async () => {
                     let fn = `${generateFileName("rect", msg.author.id)}.png`
                     fs.writeFileSync(fn, data.read())
-		    let oldImg = sharp(fn).png()
-		    let oldMeta = await oldImg.metadata()
-		    let [oldWidth, oldHeight] = [oldMeta.width, oldMeta.height]
+                    let oldImg = sharp(fn).png()
+                    let oldMeta = await oldImg.metadata()
+                    let [oldWidth, oldHeight] = [oldMeta.width, oldMeta.height]
 
-		    let newImg
-                    if(gradient){
-			newImg = sharp(await createGradient(gradient, intWidth, intHeight))
+                    let newImg
+                    if (gradient) {
+                        newImg = sharp(await createGradient(gradient, intWidth, intHeight))
                     }
                     else {
-			let trueColor
-			if(typeof color === 'boolean'){
-			    trueColor = 'black'
-			} else {
-			    trueColor = color;
-			}
-			newImg = sharp({
-			    create: {
-				width: intWidth,
-				height: intHeight,
-				channels: 4,
-				background: trueColor
-			    }
-			})
-		    }
-		    let composedImg = await oldImg.composite([{input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight, intHeight), left: parsePosition(x, oldWidth, intWidth)}]).png().toBuffer()
-		    /*
-                    if(outline){
-                        let [color, lineWidth] = outline.split(":")
-                        ctx.lineWidth = parseInt(lineWidth || opts['o-width'] || "1")
-                        let outline_gradient = color.split(">")
-                        if((outline_gradient?.length || 0) <= 1)
-                            outline_gradient = opts['o-gradient']?.split(">")
-                        if(outline_gradient){
-                            let grad_angle = (opts['o-grad-angle'] || 0.0) * Math.PI / 180
-                            ctx.strokeStyle = await createGradient(outline_gradient, grad_angle, x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth, msg, ctx)
+                        let trueColor
+                        if (typeof color === 'boolean') {
+                            trueColor = 'black'
+                        } else {
+                            trueColor = color;
                         }
-                        else ctx.strokeStyle = color || opts['o-color'] || 'white'
-                        ctx.strokeRect(x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth)
+                        newImg = sharp({
+                            create: {
+                                width: intWidth,
+                                height: intHeight,
+                                channels: 4,
+                                background: trueColor
+                            }
+                        })
                     }
-		    */
+                    let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight, intHeight), left: parsePosition(x, oldWidth, intWidth) }]).png().toBuffer()
+                    /*
+                            if(outline){
+                                let [color, lineWidth] = outline.split(":")
+                                ctx.lineWidth = parseInt(lineWidth || opts['o-width'] || "1")
+                                let outline_gradient = color.split(">")
+                                if((outline_gradient?.length || 0) <= 1)
+                                    outline_gradient = opts['o-gradient']?.split(">")
+                                if(outline_gradient){
+                                    let grad_angle = (opts['o-grad-angle'] || 0.0) * Math.PI / 180
+                                    ctx.strokeStyle = await createGradient(outline_gradient, grad_angle, x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth, msg, ctx)
+                                }
+                                else ctx.strokeStyle = color || opts['o-color'] || 'white'
+                                ctx.strokeRect(x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth)
+                            }
+                    */
                     fs.writeFileSync(fn, composedImg)
-                    msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
+                    msg.channel.send({ files: [{ attachment: fn, name: fn }] }).then(res => {
                         fs.rmSync(fn)
                     }).catch(err => {
                     })
@@ -2520,47 +2520,47 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.IMAGES
     },
     scale: {
-        run: async(msg: Message, args: ArgumentList) => {
-	    /*
-            let opts;
-            [opts, args] = getOpts(args)
-            let xScale = args[0] || "2.0"
-            let yScale = args[1] || "2.0"
-            let img = getImgFromMsgAndOpts(opts, msg)
-            if(!img){
-                return {content: "no img found"}
-            }
-            https.request(img, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                let fn = `${generateFileName("scale", msg.author.id)}.png`
-                resp.on("end", async() => {
-                    fs.writeFileSync(fn, data.read())
-                    let img = await canvas.loadImage(fn)
-                    fs.rmSync(fn)
-                    xScale = Math.min(parsePosition(xScale, img.width, img.width, parseFloat), 2000)
-                    yScale = Math.min(parsePosition(yScale, img.height, img.height, parseFloat), 2000)
-                    let canv = new canvas.Canvas(img.width * xScale, img.height * yScale)
-                    let ctx = canv.getContext("2d")
-                    ctx.drawImage(img, 0, 0, img.width * xScale, img.height * yScale)
-                    let buffer
-                    try{
-                        buffer = canv.toBuffer("image/png")
-                    }
-                    catch(err){
-                        await msg.channel.send("Could not generate image")
-                        return
-                    }
-                    fs.writeFileSync(fn, buffer)
-                    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
-                        fs.rmSync(fn)
-                    }).catch(err => {
+        run: async (msg: Message, args: ArgumentList) => {
+            /*
+                let opts;
+                [opts, args] = getOpts(args)
+                let xScale = args[0] || "2.0"
+                let yScale = args[1] || "2.0"
+                let img = getImgFromMsgAndOpts(opts, msg)
+                if(!img){
+                    return {content: "no img found"}
+                }
+                https.request(img, resp => {
+                    let data = new Stream.Transform()
+                    resp.on("data", chunk => {
+                        data.push(chunk)
                     })
-                })
-            }).end()
-	    */
+                    let fn = `${generateFileName("scale", msg.author.id)}.png`
+                    resp.on("end", async() => {
+                        fs.writeFileSync(fn, data.read())
+                        let img = await canvas.loadImage(fn)
+                        fs.rmSync(fn)
+                        xScale = Math.min(parsePosition(xScale, img.width, img.width, parseFloat), 2000)
+                        yScale = Math.min(parsePosition(yScale, img.height, img.height, parseFloat), 2000)
+                        let canv = new canvas.Canvas(img.width * xScale, img.height * yScale)
+                        let ctx = canv.getContext("2d")
+                        ctx.drawImage(img, 0, 0, img.width * xScale, img.height * yScale)
+                        let buffer
+                        try{
+                            buffer = canv.toBuffer("image/png")
+                        }
+                        catch(err){
+                            await msg.channel.send("Could not generate image")
+                            return
+                        }
+                        fs.writeFileSync(fn, buffer)
+                        msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                            fs.rmSync(fn)
+                        }).catch(err => {
+                        })
+                    })
+                }).end()
+            */
             return {
                 content: "generating img"
             }
@@ -2578,45 +2578,45 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.IMAGES
     },
     filter: {
-        run: async(msg: Message, args:ArgumentList) => {
-	    /*
-            let opts;
-            [opts, args] = getOpts(args)
-            let stringArgs = args.join(" ")
-            let filters = stringArgs.split("|")
-            let img = getImgFromMsgAndOpts(opts, msg)
-            if(!img){
-                return {content: "no img found"}
-            }
-            https.request(img, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                let fn = `${generateFileName("scale", msg.author.id)}.png`
-                resp.on("end", async() => {
-                    fs.writeFileSync(fn, data.read())
-                    let img = await canvas.loadImage(fn)
-                    fs.rmSync(fn)
-                    let canv = new canvas.Canvas(img.width, img.height)
-                    let ctx = canv.getContext("2d")
-                    ctx.drawImage(img, 0, 0, img.width, img.height)
-                    let buffer = canv.toBuffer("image/png")
-                    let jimpImg = await jimp.read(buffer)
-                    for(let filter of filters){
-                        let args;
-                        [filter, args] = filter.split(":")
-                        jimpImg = await applyJimpFilter(jimpImg, filter, args)
-                    }
-                    buffer = await jimpImg.getBufferAsync("image/png")
-                    fs.writeFileSync(fn, buffer)
-                    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
-                        fs.rmSync(fn)
-                    }).catch(err => {
+        run: async (msg: Message, args: ArgumentList) => {
+            /*
+                let opts;
+                [opts, args] = getOpts(args)
+                let stringArgs = args.join(" ")
+                let filters = stringArgs.split("|")
+                let img = getImgFromMsgAndOpts(opts, msg)
+                if(!img){
+                    return {content: "no img found"}
+                }
+                https.request(img, resp => {
+                    let data = new Stream.Transform()
+                    resp.on("data", chunk => {
+                        data.push(chunk)
                     })
-                })
-            }).end()
-	    */
+                    let fn = `${generateFileName("scale", msg.author.id)}.png`
+                    resp.on("end", async() => {
+                        fs.writeFileSync(fn, data.read())
+                        let img = await canvas.loadImage(fn)
+                        fs.rmSync(fn)
+                        let canv = new canvas.Canvas(img.width, img.height)
+                        let ctx = canv.getContext("2d")
+                        ctx.drawImage(img, 0, 0, img.width, img.height)
+                        let buffer = canv.toBuffer("image/png")
+                        let jimpImg = await jimp.read(buffer)
+                        for(let filter of filters){
+                            let args;
+                            [filter, args] = filter.split(":")
+                            jimpImg = await applyJimpFilter(jimpImg, filter, args)
+                        }
+                        buffer = await jimpImg.getBufferAsync("image/png")
+                        fs.writeFileSync(fn, buffer)
+                        msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                            fs.rmSync(fn)
+                        }).catch(err => {
+                        })
+                    })
+                }).end()
+            */
             return {
                 content: "generating img"
             }
@@ -2632,59 +2632,59 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.IMAGES
     },
     text: {
-        run: async(msg: Message, args: ArgumentList) => {
-    /*
-            let opts
-            [opts, args] = getOpts(args)
-            let img = getImgFromMsgAndOpts(opts, msg)
-            if(!img){
-                return {content: "no img found"}
-            }
-            let size = opts["size"] || "20"
-            let font = opts["font"] || "Arial"
-            let color = opts["color"] || "red"
-            let rotation = opts['rotate'] || opts['angle'] || "0.0"
-            rotation = parseFloat(rotation)
-            let x = opts["x"] || "0"
-            let y = opts["y"] || "0"
+        run: async (msg: Message, args: ArgumentList) => {
+            /*
+                    let opts
+                    [opts, args] = getOpts(args)
+                    let img = getImgFromMsgAndOpts(opts, msg)
+                    if(!img){
+                        return {content: "no img found"}
+                    }
+                    let size = opts["size"] || "20"
+                    let font = opts["font"] || "Arial"
+                    let color = opts["color"] || "red"
+                    let rotation = opts['rotate'] || opts['angle'] || "0.0"
+                    rotation = parseFloat(rotation)
+                    let x = opts["x"] || "0"
+                    let y = opts["y"] || "0"
 
-            let fn = `${generateFileName("text", msg.author.id)}.png`
+                    let fn = `${generateFileName("text", msg.author.id)}.png`
 
-            https.request(img, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on("end", async() => {
-		    let d = data.read()
-		    let img = sharp(d)
-		    let imgMeta = await img.metadata()
-		    let [width, height] = [imgMeta.width, imgMeta.height]
-		    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"> <text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
-		    svg2img(svg, (err, buf) => {
-			console.log(err, buf)
-			fs.writeFileSync('foo.png', buf)
-			img.composite([{input: 'foo.png'}]).png().toBuffer().then(buf => {
-			    fs.writeFileSync(fn, buf)
-			    msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
-				fs.rmSync(fn)
-			    }).catch(err => {
-			    })
-			})
-		    })
-		    /*
-		    let textMeta = await newText.metadata()
-		    let [textW, textH] = [textMeta.width, textMeta.height]
-                    ctx.drawImage(img, 0, 0, img.width, img.height)
-                    ctx.font = `${size} ${font}`
-                    ctx.fillStyle = color
-                    let textInfo = ctx.measureText(args.join(" ").trim() || "?")
-                    let [textW, textH] = [textInfo.width, textInfo.emHeightAscent]
-                    x = parsePosition(x, width, textW)
-                    y = parsePosition(y, height, textH)
-                })
-            }).end()
-	    */
+                    https.request(img, resp => {
+                        let data = new Stream.Transform()
+                        resp.on("data", chunk => {
+                            data.push(chunk)
+                        })
+                        resp.on("end", async() => {
+                    let d = data.read()
+                    let img = sharp(d)
+                    let imgMeta = await img.metadata()
+                    let [width, height] = [imgMeta.width, imgMeta.height]
+                    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"> <text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
+                    svg2img(svg, (err, buf) => {
+                    console.log(err, buf)
+                    fs.writeFileSync('foo.png', buf)
+                    img.composite([{input: 'foo.png'}]).png().toBuffer().then(buf => {
+                        fs.writeFileSync(fn, buf)
+                        msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        fs.rmSync(fn)
+                        }).catch(err => {
+                        })
+                    })
+                    })
+                    /*
+                    let textMeta = await newText.metadata()
+                    let [textW, textH] = [textMeta.width, textMeta.height]
+                            ctx.drawImage(img, 0, 0, img.width, img.height)
+                            ctx.font = `${size} ${font}`
+                            ctx.fillStyle = color
+                            let textInfo = ctx.measureText(args.join(" ").trim() || "?")
+                            let [textW, textH] = [textInfo.width, textInfo.emHeightAscent]
+                            x = parsePosition(x, width, textW)
+                            y = parsePosition(y, height, textH)
+                        })
+                    }).end()
+                */
             return {
                 content: "generating img"
             }
@@ -2724,19 +2724,19 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.IMAGES
     },
     choose: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let times = 1
             let sep = String(opts["sep"] || opts["s"] || "\n")
-            if(opts["t"]){
-		if(typeof opts['t'] == 'string')
-		    times = parseInt(opts["t"])
-		else times = 3
+            if (opts["t"]) {
+                if (typeof opts['t'] == 'string')
+                    times = parseInt(opts["t"])
+                else times = 3
             }
             let ans = []
             args = args.join(" ").split("|")
-            for(let i = 0; i < times; i++){
+            for (let i = 0; i < times; i++) {
                 ans.push(args[Math.floor(Math.random() * args.length)].trim())
             }
             return {
@@ -2746,7 +2746,7 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     weather: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let url = "https://www.wttr.in"
             let town = args.join(" ") || "tokyo"
 
@@ -2755,50 +2755,50 @@ const commands: {[command: string]: Command} = {
                 resp.on("data", chunk => {
                     data.push(chunk)
                 })
-                resp.on('end', async() => {
-		    //@ts-ignore
+                resp.on('end', async () => {
+                    //@ts-ignore
                     data = data.read().toString() as string
-		    //@ts-ignore
+                    //@ts-ignore
                     let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
                     let condition, temp, unit
-                    try{
-                        [condition, temp, unit] = tempData.slice(1,4)
+                    try {
+                        [condition, temp, unit] = tempData.slice(1, 4)
                     }
-                    catch(err){
-                        await msg.channel.send({content: "Could not find weather :("})
+                    catch (err) {
+                        await msg.channel.send({ content: "Could not find weather :(" })
                         return
                     }
                     temp = Number(temp)
                     let tempC, tempF
-                    if(unit == "C"){
-                        tempF = temp * 9/5 + 32
+                    if (unit == "C") {
+                        tempF = temp * 9 / 5 + 32
                         tempC = temp
-                    } else if(unit == "F"){
-                        tempC = (temp - 32) * 5/9
+                    } else if (unit == "F") {
+                        tempC = (temp - 32) * 5 / 9
                         tempF = temp
                     }
-		    else{
-			tempC = 843902438
-			tempF = tempC * 9/5 + 32
-		    }
+                    else {
+                        tempC = 843902438
+                        tempF = tempC * 9 / 5 + 32
+                    }
                     let color = "DARK_BUT_NOT_BLACK"
-                    if(tempF >= 110) color = "#aa0000"
-                    if(tempF < 110) color = "#ff0000"
-                    if(tempF < 100) color = "#ff412e"
-                    if(tempF < 90) color = "ORANGE"
-                    if(tempF < 75) color = "YELLOW"
-                    if(tempF < 60) color = "GREEN"
-                    if(tempF < 45) color = "BLUE"
-                    if(tempF < 32) color = "#5be6ff"
-                    if(tempF < 0) color = "PURPLE"
+                    if (tempF >= 110) color = "#aa0000"
+                    if (tempF < 110) color = "#ff0000"
+                    if (tempF < 100) color = "#ff412e"
+                    if (tempF < 90) color = "ORANGE"
+                    if (tempF < 75) color = "YELLOW"
+                    if (tempF < 60) color = "GREEN"
+                    if (tempF < 45) color = "BLUE"
+                    if (tempF < 32) color = "#5be6ff"
+                    if (tempF < 0) color = "PURPLE"
                     let embed = new MessageEmbed()
                     embed.setTitle(town)
                     embed.setColor(color as ColorResolvable)
                     embed.addField("condition", condition, false)
                     embed.addField("Temp F", `${tempF}F`, true)
                     embed.addField("Temp C", `${tempC}C`, true)
-                    embed.setFooter({text: `For more info, visit ${url}/${encodeURI(town)}`})
-                    await msg.channel.send({embeds: [embed]})
+                    embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
+                    await msg.channel.send({ embeds: [embed] })
                 })
             }).end()
             return {
@@ -2816,13 +2816,13 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     rotate: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`])
         },
         category: CommandCategory.IMAGES
     },
     color: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let stringArgs = args.join(" ")
@@ -2834,51 +2834,53 @@ const commands: {[command: string]: Command} = {
 
             let content = color
             let fn = `${generateFileName("color", msg.author.id)}.png`
-	    let buffer
-            if(colors.length > 1){
+            let buffer
+            if (colors.length > 1) {
                 let gradient = []
                 let colorStrings = []
-                for(let i = 0; i < Math.min(colors.length, 1e9); i++){
+                for (let i = 0; i < Math.min(colors.length, 1e9); i++) {
                     let R, G, B
-                    if(colors[i]){
+                    if (colors[i]) {
                         colorStrings.push(colors[i])
                         gradient.push(colors[i])
                     }
-                    else{
+                    else {
                         [R, G, B] = randomColor()
                         gradient.push(`rgb(${R}, ${G}, ${B})`)
                         colorStrings.push(rgbToHex(R, G, B))
                     }
                 }
-                try{
+                try {
                     buffer = await sharp(await createGradient(gradient, width, height)).png().toBuffer()
                 }
-                catch(err){
-                    return {content: "error making color"}
+                catch (err) {
+                    return { content: "error making color" }
                 }
                 content = colorStrings.join(" > ")
             }
-            else{
-                if(color == "RANDOM"){
+            else {
+                if (color == "RANDOM") {
                     let [R, G, B] = randomColor()
                     color = `rgb(${R}, ${G}, ${B})`
                     content = rgbToHex(R, G, B)
                 }
-                try{
-                    buffer = await sharp({create: {
+                try {
+                    buffer = await sharp({
+                        create: {
                             width: width,
                             height: height,
                             channels: 4,
                             background: color
-                        }}).png().toBuffer()
+                        }
+                    }).png().toBuffer()
                 }
-                catch(err){
-                    return {content: "error making color"}
+                catch (err) {
+                    return { content: "error making color" }
                 }
             }
             fs.writeFileSync(fn, buffer)
             return {
-                files:[
+                files: [
                     {
                         attachment: fn,
                         name: `file.png`,
@@ -2908,7 +2910,7 @@ const commands: {[command: string]: Command} = {
 
     },
     "l-bl": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/blacklists", "utf-8")
             }
@@ -2917,7 +2919,7 @@ const commands: {[command: string]: Command} = {
 
     },
     "l-wl": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/whitelists", "utf-8")
             }
@@ -2925,20 +2927,20 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     ship: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(args.length < 2){
-            return {content: "2 users must be given", delete: opts['d'] as boolean}
+            if (args.length < 2) {
+                return { content: "2 users must be given", delete: opts['d'] as boolean }
             }
             let [user1Full, user2Full] = args.join(" ").split("|")
-            if(!user1Full || !user2Full){
-            return {content: "2 users not given"}
+            if (!user1Full || !user2Full) {
+                return { content: "2 users not given" }
             }
             let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
             let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
             let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-            return {content: format(options[Math.floor(Math.random() * options.length)], {"u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%`}) , delete: opts['d'] as boolean}
+            return { content: format(options[Math.floor(Math.random() * options.length)], { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean }
         },
         help: {
             info: "Create your favorite fantacies!!!!"
@@ -2946,7 +2948,7 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     aship: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             return await commands['add'].run(msg, ["ship", args.join(" ")])
         },
         help: {
@@ -2955,32 +2957,32 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.FUN
     },
     timeit: {
-        run: async(msg, args) => {
-                msg.content = `${prefix}${args.join(" ").trim()}`
-                let start = new Date().getTime()
-                await doCmd(msg)
-                return {content: `${new Date().getTime() - start} ms`}
+        run: async (msg, args) => {
+            msg.content = `${prefix}${args.join(" ").trim()}`
+            let start = new Date().getTime()
+            await doCmd(msg)
+            return { content: `${new Date().getTime() - start} ms` }
         },
         category: CommandCategory.META
     },
     "do": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let times = parseInt(args[0])
-            if(times){
+            if (times) {
                 args.splice(0, 1)
             } else {
                 times = 10
             }
             let cmdArgs = args.join(" ").trim()
-            if(cmdArgs == ""){
+            if (cmdArgs == "") {
                 cmdArgs = String(times)
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
-            while(SPAMS[id] && times--){
-                msg.content = `${prefix}${format(cmdArgs, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`
+            while (SPAMS[id] && times--) {
+                msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
                 await doCmd(msg)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
@@ -2991,36 +2993,36 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     spasm: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let [times, ...text] = args
             let sendText = text.join(" ")
             let timesToGo = 10
-            if(!isNaN(parseInt(times))){
+            if (!isNaN(parseInt(times))) {
                 timesToGo = parseInt(times)
             }
-            else{
+            else {
                 sendText = [times, ...text].join(" ")
             }
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             let message = await msg.channel.send(sendText)
-            while(SPAMS[id] && timesToGo--){
-                if(message.deletable) await message.delete()
+            while (SPAMS[id] && timesToGo--) {
+                if (message.deletable) await message.delete()
                 message = await msg.channel.send(sendText)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
-            return {content: "done"}
+            return { content: "done" }
         }, category: CommandCategory.FUN
     },
     spam: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let times = parseInt(args[0])
-            if(times){
+            if (times) {
                 args.splice(0, 1)
             } else times = 10
             let send = args.join(" ").trim()
-            if(send == ""){
+            if (send == "") {
                 send = String(times)
                 times = 10
             }
@@ -3028,8 +3030,8 @@ const commands: {[command: string]: Command} = {
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
-            while(SPAMS[id] && times--){
-                await msg.channel.send(`${format(send, {"number": String(totalTimes - times), "rnumber": String(times + 1)})}`)
+            while (SPAMS[id] && times--) {
+                await msg.channel.send(`${format(send, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
@@ -3042,12 +3044,12 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     stop: {
-        run: async(msg: Message, args: ArgumentList) => {
-            if(!Object.keys(SPAMS).length){
-                return { content: "no spams to stop"}
+        run: async (msg: Message, args: ArgumentList) => {
+            if (!Object.keys(SPAMS).length) {
+                return { content: "no spams to stop" }
             }
-            if(args[0]){
-                if(SPAMS[args[0]]){
+            if (args[0]) {
+                if (SPAMS[args[0]]) {
                     delete SPAMS[args[0]]
                     return {
                         content: `stopping ${args[0]}`
@@ -3058,7 +3060,7 @@ const commands: {[command: string]: Command} = {
                 }
             }
             SPAM_ALLOWED = false;
-            for(let spam in SPAMS){
+            for (let spam in SPAMS) {
                 delete SPAMS[spam]
             }
             return {
@@ -3068,104 +3070,104 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     "pollify": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
-            if(msg.deletable && opts['d']) await msg.delete()
+            if (msg.deletable && opts['d']) await msg.delete()
             let message = await msg.channel.send(args.join(" ") || "poll")
             await message.react("<:Blue_check:608847324269248512>")
             await message.react("<:neutral:716078457880051734>")
             await message.react("❌")
-            return {noSend: true}
+            return { noSend: true }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Idk it pollifies what do you want"
         }
     },
     "udict": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             //@ts-ignore
-            try{
+            try {
                 let data = await got(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
                 let text = data.body
                 let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                return {content: match[1] || "Nothing found :("}
+                return { content: match[1] || "Nothing found :(" }
             }
-            catch(err){
-                return {content: "An error occured"}
+            catch (err) {
+                return { content: "An error occured" }
             }
         }, category: CommandCategory.FUN
     },
     "vars": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let rv = "Global Vars:\n"
-            for(let v in vars){
-            rv += `${v.replaceAll("_", "\\_")}\n`
+            for (let v in vars) {
+                rv += `${v.replaceAll("_", "\\_")}\n`
             }
-            for(let prefix in userVars){
+            for (let prefix in userVars) {
                 rv += `----------------------\n${prefix}:\n`
-                for(let v in userVars[prefix]){
+                for (let v in userVars[prefix]) {
                     rv += `${v.replaceAll("_", "\\_")}\n`
                 }
             }
-            return {content: rv}
+            return { content: rv }
         },
         category: CommandCategory.META
     },
 
     'stackl': {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let useStart = true
-            if(opts['no-start'] === true){
+            if (opts['no-start'] === true) {
                 useStart = false
             }
             type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
-            let stacks: {[key: string]: stackTypes[]} = {__main__: []}
+            let stacks: { [key: string]: stackTypes[] } = { __main__: [] }
             let currScopes = ["__main__"]
             let stack = stacks["__main__"]
             let initialArgs: string[] = []
-            if(useStart){
+            if (useStart) {
                 let curArg;
-                while((curArg=args.shift()) !== "%start"){
-                    if(curArg !== undefined)
+                while ((curArg = args.shift()) !== "%start") {
+                    if (curArg !== undefined)
                         initialArgs.push(curArg)
                     else break
                 }
             }
             let argc = stack.length
-            let ram: {[key: string]: number | string | Message | GuildMember | Function} = {
+            let ram: { [key: string]: number | string | Message | GuildMember | Function } = {
                 true: 1,
                 false: 0,
-                NaN:  NaN,
-                Infinity:  Infinity,
-                rec: async() => recursionC,
-                "random": async(low: number, high: number) => {low ??= 1; high ??= 10; return Math.random() * (high - low) + low},
-                "input": async(prompt?: string, useFilter?: boolean | string | number, reqTimeout?: number) => {
-                    if(prompt && typeof prompt === 'string'){
+                NaN: NaN,
+                Infinity: Infinity,
+                rec: async () => recursionC,
+                "random": async (low: number, high: number) => { low ??= 1; high ??= 10; return Math.random() * (high - low) + low },
+                "input": async (prompt?: string, useFilter?: boolean | string | number, reqTimeout?: number) => {
+                    if (prompt && typeof prompt === 'string') {
                         await msg.channel.send(prompt)
                     }
-                    let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id && ! m.author.bot
-                    if(useFilter === false || useFilter === 0){
+                    let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id && !m.author.bot
+                    if (useFilter === false || useFilter === 0) {
                         filter = m => !m.author.bot
                     }
-                    else if(typeof useFilter === 'string'){
-                        filter = (m: any) => m.author.id === useFilter && ! m.author.bot
+                    else if (typeof useFilter === 'string') {
+                        filter = (m: any) => m.author.id === useFilter && !m.author.bot
                     }
                     let timeout = 30000
-                    if(typeof reqTimeout === 'number'){
+                    if (typeof reqTimeout === 'number') {
                         timeout = reqTimeout * 1000
                     }
-                    try{
-                        let collected = await msg.channel.awaitMessages({filter: filter, max: 1, time: timeout, errors: ["time"]})
+                    try {
+                        let collected = await msg.channel.awaitMessages({ filter: filter, max: 1, time: timeout, errors: ["time"] })
                         let resp = collected.at(0)
-                        if(typeof resp === 'undefined'){
+                        if (typeof resp === 'undefined') {
                             return 0
                         }
                         return resp
                     }
-                    catch(err){
+                    catch (err) {
                         return 0
                     }
                 }
@@ -3174,34 +3176,34 @@ const commands: {[command: string]: Command} = {
             let text = args.join(" ")
             let word = ""
             let inStr = false
-            for(let i = 0; i < text.length; i++){
-                if(text[i] == '"'){
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] == '"') {
                     word += '"'
                     inStr = !inStr
                     continue
                 }
-                if(text[i].match(/\s/) && ! inStr){
+                if (text[i].match(/\s/) && !inStr) {
                     stacklArgs.push(word)
                     word = ""
                     continue
                 }
                 word += text[i]
             }
-            if(word)
+            if (word)
                 stacklArgs.push(word)
             args = stacklArgs.filter(a => a ? true : false)
             let recursionC = 0
 
-            async function parseArg(arg: string, argNo: number, argCount: number, args: string[], stack: stackTypes[]): Promise<any>{
-                switch(arg){
+            async function parseArg(arg: string, argNo: number, argCount: number, args: string[], stack: stackTypes[]): Promise<any> {
+                switch (arg) {
                     //vars
                     case "$stacksize": {
                         stack.push(stack.length)
                         break
                     }
                     case "$bottom": {
-                        if(stack[0] === undefined){
-                            return {err: true, content: "Cannot access the bottom of empty stack"}
+                        if (stack[0] === undefined) {
+                            return { err: true, content: "Cannot access the bottom of empty stack" }
                         }
                         stack.push(stack[0])
                         break
@@ -3221,11 +3223,11 @@ const commands: {[command: string]: Command} = {
 
                     case "%argv": {
                         let index = stack.pop()
-                        if(typeof index !== 'number'){
-                            return {err: true, content: `argv index must be a number`}
+                        if (typeof index !== 'number') {
+                            return { err: true, content: `argv index must be a number` }
                         }
-                        if(index >= initialArgs.length){
-                            return {err: true, content: `Argv index out: ${index} of bounds`}
+                        if (index >= initialArgs.length) {
+                            return { err: true, content: `Argv index out: ${index} of bounds` }
                         }
                         stack.push(initialArgs[index])
                         break
@@ -3233,10 +3235,10 @@ const commands: {[command: string]: Command} = {
 
 
                     //operators
-                    case "++":{
+                    case "++": {
                         let val = stack.pop()
-                        if(typeof val !== 'number'){
-                            return {content: `${stack[stack.length - 1]} is not a number`, err: true}
+                        if (typeof val !== 'number') {
+                            return { content: `${stack[stack.length - 1]} is not a number`, err: true }
                         }
                         //@ts-ignore
                         let ans = val + 1
@@ -3245,21 +3247,21 @@ const commands: {[command: string]: Command} = {
                     }
                     case "--": {
                         let val = stack.pop()
-                        switch(typeof val){
+                        switch (typeof val) {
                             case 'number': {
                                 let ans = val - 1
                                 stack.push(ans)
                                 break
                             }
                             case 'object': {
-                                if(Array.isArray(val)){
+                                if (Array.isArray(val)) {
                                     val.pop()
                                     stack.push(val)
                                     break
                                 }
                             }
                             default: {
-                                return {content: `${typeof val} -- is not supported`, err: true}
+                                return { content: `${typeof val} -- is not supported`, err: true }
                             }
                         }
                         break
@@ -3267,23 +3269,23 @@ const commands: {[command: string]: Command} = {
                     case "+": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        switch(typeof arg1){
+                        switch (typeof arg1) {
                             case "number": {
-                                if(typeof arg2 !== 'number'){
-                                    return {content: `${arg2} is not a number`, err: true}
+                                if (typeof arg2 !== 'number') {
+                                    return { content: `${arg2} is not a number`, err: true }
                                 }
                                 stack.push(arg1 + arg2)
                                 break
                             }
                             case "string": {
-                                if(typeof arg2 !== 'string'){
-                                    return {content: `${arg2} is not a string`, err: true}
+                                if (typeof arg2 !== 'string') {
+                                    return { content: `${arg2} is not a string`, err: true }
                                 }
                                 stack.push(arg1 + arg2)
                                 break
                             }
                             default: {
-                                return {err: true, content: `type of ${arg1} is unknown`}
+                                return { err: true, content: `type of ${arg1} is unknown` }
                             }
                         }
                         break
@@ -3291,23 +3293,23 @@ const commands: {[command: string]: Command} = {
                     case "-": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        switch(typeof arg1){
+                        switch (typeof arg1) {
                             case "number": {
-                                if(typeof arg2 !== 'number'){
-                                    return {content: `${arg2} is not a number`, err: true}
+                                if (typeof arg2 !== 'number') {
+                                    return { content: `${arg2} is not a number`, err: true }
                                 }
                                 stack.push(arg1 - arg2)
                                 break
                             }
                             case "string": {
-                                if(typeof arg2 !== 'string'){
-                                    return {content: `${arg2} is not a string`, err: true}
+                                if (typeof arg2 !== 'string') {
+                                    return { content: `${arg2} is not a string`, err: true }
                                 }
                                 stack.push(arg1.replaceAll(arg2, ""))
                                 break
                             }
                             default: {
-                                return {err: true, content: `type of ${arg1} is unknown`}
+                                return { err: true, content: `type of ${arg1} is unknown` }
                             }
                         }
                         break
@@ -3315,11 +3317,11 @@ const commands: {[command: string]: Command} = {
                     case "/": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        if(typeof arg1 !== 'number'){
-                            return {err: true, content: `${arg1} is not a number`}
+                        if (typeof arg1 !== 'number') {
+                            return { err: true, content: `${arg1} is not a number` }
                         }
-                        if(typeof arg2 !== 'number'){
-                            return {err: true, content: `${arg2} is not a number`}
+                        if (typeof arg2 !== 'number') {
+                            return { err: true, content: `${arg2} is not a number` }
                         }
                         stack.push(arg1 / arg2)
                         break
@@ -3327,20 +3329,20 @@ const commands: {[command: string]: Command} = {
                     case "*": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        switch(typeof arg1){
+                        switch (typeof arg1) {
                             case 'number': {
-                                if(typeof arg2 !== 'number'){
-                                    return {err: true, content: `${arg2} is not a number`}
+                                if (typeof arg2 !== 'number') {
+                                    return { err: true, content: `${arg2} is not a number` }
                                 }
                                 stack.push(arg1 * arg2)
                                 break
                             }
                             case 'string': {
-                                if(typeof arg2 !== 'number'){
-                                    return {err: true, content: `${arg2} is not a number`}
+                                if (typeof arg2 !== 'number') {
+                                    return { err: true, content: `${arg2} is not a number` }
                                 }
                                 let ans = ""
-                                for(let i = 0; i < arg2; i++){
+                                for (let i = 0; i < arg2; i++) {
                                     ans += arg1
                                 }
                                 stack.push(ans)
@@ -3352,50 +3354,50 @@ const commands: {[command: string]: Command} = {
                     case "%s": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        if(typeof arg2 == "string"){
-                            while((arg2 = arg2.replace(/%(s|d|.l|f)/, (_match, type) => {
-                                if(type === "s"){
+                        if (typeof arg2 == "string") {
+                            while ((arg2 = arg2.replace(/%(s|d|.l|f)/, (_match, type) => {
+                                if (type === "s") {
                                     return String(arg1)
                                 }
-                                else if(type === "d"){
+                                else if (type === "d") {
                                     return String(parseInt(String(arg1)))
                                 }
-                                else if(type === "f"){
+                                else if (type === "f") {
                                     return String(parseFloat(String(arg1)))
                                 }
-                                else if(type[1] === 'l'){
-                                    if(Array.isArray(arg1)){
+                                else if (type[1] === 'l') {
+                                    if (Array.isArray(arg1)) {
                                         return arg1.join(type[0])
                                     }
                                     return `%${type}`
                                 }
                                 return ""
-                            })).match(/%(s|d)/)){
+                            })).match(/%(s|d)/)) {
                                 arg1 = stack.pop()
-                                if(typeof arg1 === "undefined"){
-                                    return {content: `ran out of replacements for %s`, err: true}
+                                if (typeof arg1 === "undefined") {
+                                    return { content: `ran out of replacements for %s`, err: true }
                                 }
                             }
                             stack.push(arg2)
                         }
-                        else{
-                            return {content: `${arg2} is not a string`, err: true}
+                        else {
+                            return { content: `${arg2} is not a string`, err: true }
                         }
                         break
                     }
                     case "%": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        switch(typeof arg1){
+                        switch (typeof arg1) {
                             case "number": {
-                                if(typeof arg2 !== 'number'){
-                                    return {content: `${arg2} is not a number`, err: true}
+                                if (typeof arg2 !== 'number') {
+                                    return { content: `${arg2} is not a number`, err: true }
                                 }
                                 stack.push(arg1 - arg2)
                                 break
                             }
                             default: {
-                                return {err: true, content: `${arg} is not a number`}
+                                return { err: true, content: `${arg} is not a number` }
                             }
                         }
                         break
@@ -3403,23 +3405,23 @@ const commands: {[command: string]: Command} = {
                     case ">": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        switch(typeof arg1){
+                        switch (typeof arg1) {
                             case "number": {
-                                if(typeof arg2 !== 'number'){
-                                    return {content: `${arg2} is not a number`, err: true}
+                                if (typeof arg2 !== 'number') {
+                                    return { content: `${arg2} is not a number`, err: true }
                                 }
                                 stack.push(arg1 > arg2 ? 1 : 0)
                                 break
                             }
                             case "string": {
-                                if(typeof arg2 !== 'string'){
-                                    return {content: `${arg2} is not a string`, err: true}
+                                if (typeof arg2 !== 'string') {
+                                    return { content: `${arg2} is not a string`, err: true }
                                 }
                                 stack.push(arg1.length > arg2.length ? 1 : 0)
                                 break
                             }
                             default: {
-                                return {err: true, content: `type of ${arg1} is unknown`}
+                                return { err: true, content: `type of ${arg1} is unknown` }
                             }
                         }
                         break
@@ -3427,23 +3429,23 @@ const commands: {[command: string]: Command} = {
                     case "<": {
                         let arg2 = stack.pop()
                         let arg1 = stack.pop()
-                        switch(typeof arg1){
+                        switch (typeof arg1) {
                             case "number": {
-                                if(typeof arg2 !== 'number'){
-                                    return {content: `${arg2} is not a number`, err: true}
+                                if (typeof arg2 !== 'number') {
+                                    return { content: `${arg2} is not a number`, err: true }
                                 }
                                 stack.push(arg1 < arg2 ? 1 : 0)
                                 break
                             }
                             case "string": {
-                                if(typeof arg2 !== 'string'){
-                                    return {content: `${arg2} is not a string`, err: true}
+                                if (typeof arg2 !== 'string') {
+                                    return { content: `${arg2} is not a string`, err: true }
                                 }
                                 stack.push(arg1.length < arg2.length ? 1 : 0)
                                 break
                             }
                             default: {
-                                return {err: true, content: `type of ${arg1} is unknown`}
+                                return { err: true, content: `type of ${arg1} is unknown` }
                             }
                         }
                         break
@@ -3458,16 +3460,16 @@ const commands: {[command: string]: Command} = {
                     case "%or": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
-                        if(typeof arg1 !== 'number'){
-                            return {err: true, content: `${arg1} is not a boolean`}
+                        if (typeof arg1 !== 'number') {
+                            return { err: true, content: `${arg1} is not a boolean` }
                         }
-                        if(typeof arg2 !== 'number'){
-                            return {err: true, content: `${arg2} is not a boolean`}
+                        if (typeof arg2 !== 'number') {
+                            return { err: true, content: `${arg2} is not a boolean` }
                         }
-                        if(arg1 === 1 || arg2 === 1){
+                        if (arg1 === 1 || arg2 === 1) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break;
@@ -3475,16 +3477,16 @@ const commands: {[command: string]: Command} = {
                     case "%and": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
-                        if(typeof arg1 !== 'number'){
-                            return {err: true, content: `${arg1} is not a boolean`}
+                        if (typeof arg1 !== 'number') {
+                            return { err: true, content: `${arg1} is not a boolean` }
                         }
-                        if(typeof arg2 !== 'number'){
-                            return {err: true, content: `${arg2} is not a boolean`}
+                        if (typeof arg2 !== 'number') {
+                            return { err: true, content: `${arg2} is not a boolean` }
                         }
-                        if(arg1 === 1 && arg2 === 1){
+                        if (arg1 === 1 && arg2 === 1) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
@@ -3492,19 +3494,19 @@ const commands: {[command: string]: Command} = {
                     case "%xor": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
-                        if(typeof arg1 !== 'number'){
-                            return {err: true, content: `${arg1} is not a boolean`}
+                        if (typeof arg1 !== 'number') {
+                            return { err: true, content: `${arg1} is not a boolean` }
                         }
-                        if(typeof arg2 !== 'number'){
-                            return {err: true, content: `${arg2} is not a boolean`}
+                        if (typeof arg2 !== 'number') {
+                            return { err: true, content: `${arg2} is not a boolean` }
                         }
-                        if(arg1 === arg2 && arg1 === 1){
+                        if (arg1 === arg2 && arg1 === 1) {
                             stack.push(0)
                         }
-                        else if((arg1 === 1 && arg2 === 0) || (arg1 === 0 && arg2 === 1)){
+                        else if ((arg1 === 1 && arg2 === 0) || (arg1 === 0 && arg2 === 1)) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
@@ -3512,24 +3514,24 @@ const commands: {[command: string]: Command} = {
                     case "%nand": {
                         let arg1 = stack.pop()
                         let arg2 = stack.pop()
-                        if(typeof arg1 !== 'number'){
-                            return {err: true, content: `${arg1} is not a boolean`}
+                        if (typeof arg1 !== 'number') {
+                            return { err: true, content: `${arg1} is not a boolean` }
                         }
-                        if(typeof arg2 !== 'number'){
-                            return {err: true, content: `${arg2} is not a boolean`}
+                        if (typeof arg2 !== 'number') {
+                            return { err: true, content: `${arg2} is not a boolean` }
                         }
-                        if(arg1 !== 1 && arg2 !== 1){
+                        if (arg1 !== 1 && arg2 !== 1) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
                     }
                     case "!": {
                         let arg1 = stack.pop()
-                        if(typeof arg1 !== 'number'){
-                            return {err: true, content: `${arg1} is not a boolean`}
+                        if (typeof arg1 !== 'number') {
+                            return { err: true, content: `${arg1} is not a boolean` }
                         }
                         stack.push(arg1 === 1 ? 0 : 1)
                         break
@@ -3538,19 +3540,19 @@ const commands: {[command: string]: Command} = {
                     //stack manipulation
                     case "%istack": {
                         let index = stack.pop()
-                        if(typeof index !== "number"){
-                            return {err: true, content: `Cannot index stack with non-number: ${index}`}
+                        if (typeof index !== "number") {
+                            return { err: true, content: `Cannot index stack with non-number: ${index}` }
                         }
-                        if(index >= stack.length){
-                            return {err: true, content: `Index greater than stack size`}
+                        if (index >= stack.length) {
+                            return { err: true, content: `Index greater than stack size` }
                         }
                         stack.push(stack[index])
                         break
                     }
                     case "%cpy": {
                         let itemToCopy = stack.pop()
-                        if(typeof itemToCopy === 'undefined'){
-                            return {err: true, content: `Cannot copy undefined`}
+                        if (typeof itemToCopy === 'undefined') {
+                            return { err: true, content: `Cannot copy undefined` }
                         }
                         stack.push(itemToCopy)
                         stack.push(itemToCopy)
@@ -3563,11 +3565,11 @@ const commands: {[command: string]: Command} = {
                     case "%swp": {
                         let last = stack.pop()
                         let secondLast = stack.pop()
-                        if(last === undefined){
-                            return {err: true, content: `The top of the stack is undefined`}
+                        if (last === undefined) {
+                            return { err: true, content: `The top of the stack is undefined` }
                         }
-                        if(secondLast === undefined){
-                            return {err: true, content: "The 2nd top itemf of the stack is undefined"}
+                        if (secondLast === undefined) {
+                            return { err: true, content: "The 2nd top itemf of the stack is undefined" }
                         }
                         stack.push(last)
                         stack.push(secondLast)
@@ -3585,42 +3587,42 @@ const commands: {[command: string]: Command} = {
                     //functions
                     case "%call": {
                         let fnArgC = stack.pop()
-                        if(typeof fnArgC !== 'number'){
-                            return {err: true, content: `${fnArgC} is not a number`}
+                        if (typeof fnArgC !== 'number') {
+                            return { err: true, content: `${fnArgC} is not a number` }
                         }
                         let fnArgs = []
-                        for(let i = 0; i < fnArgC; i++){
+                        for (let i = 0; i < fnArgC; i++) {
                             let item = stack.pop()
-                            if(item === undefined){
-                                return {err: true, content: `Argument: ${i} is undefined`}
+                            if (item === undefined) {
+                                return { err: true, content: `Argument: ${i} is undefined` }
                             }
                             fnArgs.push(item)
                         }
                         //otherwise you'd have to put the args in reverse order
                         fnArgs = fnArgs.reverse()
                         let f = stack.pop()
-                        console.log( typeof f)
-                        if(typeof f !== 'function'){
-                            return {err: true, content: `${f} is not a function`}
+                        console.log(typeof f)
+                        if (typeof f !== 'function') {
+                            return { err: true, content: `${f} is not a function` }
                         }
                         recursionC++
-                        if(recursionC > 1000){
+                        if (recursionC > 1000) {
                             recursionC = 0
-                            return {err: true, content: "Recursion limit reeached"}
+                            return { err: true, content: "Recursion limit reeached" }
                         }
                         let resp = await f(...fnArgs)
                         recursionC--
-                        if(resp?.err){
+                        if (resp?.err) {
                             return resp
                         }
-                        else if(resp?.ret){
-                            for(let item of resp?.stack){
+                        else if (resp?.ret) {
+                            for (let item of resp?.stack) {
                                 stack.push(item)
                             }
-                            return {ret: true, stack: stack}
+                            return { ret: true, stack: stack }
                         }
-                        else if(resp?.stack){
-                            for(let arg of resp.stack){
+                        else if (resp?.stack) {
+                            for (let arg of resp.stack) {
                                 stack.push(arg)
                             }
                         }
@@ -3628,37 +3630,37 @@ const commands: {[command: string]: Command} = {
                         break
                     }
                     case "%return": {
-                        return {ret: true, stack: stack}
+                        return { ret: true, stack: stack }
                     }
                     case "%function": {
                         let name = args[argNo + 1]
-                        if(name === undefined || name === null){
-                            return {err: true, content: `${name} is not a valid function name`}
+                        if (name === undefined || name === null) {
+                            return { err: true, content: `${name} is not a valid function name` }
                         }
                         let code: any = []
                         let chgI = 1
-                        for(let i = argNo + 2; i < argCount; i++){
+                        for (let i = argNo + 2; i < argCount; i++) {
                             chgI++
-                            if(args[i] == '%functionend'){
+                            if (args[i] == '%functionend') {
                                 break
                             }
                             code.push(args[i])
                         }
-                        ram[name] = async(...args: any[]) => {
+                        ram[name] = async (...args: any[]) => {
                             let stack = args
-                            for(let i = 0; i < code.length; i ++){
+                            for (let i = 0; i < code.length; i++) {
                                 let rv = await parseArg(code[i], i, code.length, code, stack)
-                                if(rv?.end) return {end: true}
-                                if(rv?.chgI)
+                                if (rv?.end) return { end: true }
+                                if (rv?.chgI)
                                     i += parseInt(rv.chgI)
-                                if(rv?.err){
-                                    return {chgI: i - argNo, ...rv}
+                                if (rv?.err) {
+                                    return { chgI: i - argNo, ...rv }
                                 }
 
                             }
-                            return {stack: stack}
+                            return { stack: stack }
                         }
-                        return {chgI: chgI}
+                        return { chgI: chgI }
                     }
 
                     //misc
@@ -3669,10 +3671,10 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%obj": {
                         let value = stack.pop()
-                        if(value === undefined){
-                            return {err: true, content: "Cannot convert undefined to an object"}
+                        if (value === undefined) {
+                            return { err: true, content: "Cannot convert undefined to an object" }
                         }
-                        if(typeof value !== 'string'){
+                        if (typeof value !== 'string') {
                             value = JSON.stringify(value)
                         }
                         stack.push(JSON.parse(value))
@@ -3680,13 +3682,13 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%isnumeric": {
                         let val = stack.pop()
-                        if(typeof val === 'number'){
+                        if (typeof val === 'number') {
                             stack.push(1)
                         }
-                        else if(typeof val === 'string' && val.match(/^-?\d+(\.\d+)?$/)){
+                        else if (typeof val === 'string' && val.match(/^-?\d+(\.\d+)?$/)) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
@@ -3697,8 +3699,8 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%sleep": {
                         let amount = stack.pop()
-                        if(typeof amount !== 'number'){
-                            return {err: true, content: "Time to sleep is NaN"}
+                        if (typeof amount !== 'number') {
+                            return { err: true, content: "Time to sleep is NaN" }
                         }
                         await new Promise(res => setTimeout(res, amount as number))
                         break
@@ -3708,30 +3710,30 @@ const commands: {[command: string]: Command} = {
                     //vars
                     case "%stack": {
                         let scopeName = args[argNo + 1]
-                        if(typeof scopeName !== 'string'){
-                            return {err: true, content: "Scope name must be a string"}
+                        if (typeof scopeName !== 'string') {
+                            return { err: true, content: "Scope name must be a string" }
                         }
-                        if(stacks[scopeName] !== undefined){
-                            return {err: true, content: `Scope name: ${scopeName} already exists`}
+                        if (stacks[scopeName] !== undefined) {
+                            return { err: true, content: `Scope name: ${scopeName} already exists` }
                         }
                         stacks[scopeName] = []
                         currScopes.push(scopeName)
-                        return {chgI: 1}
+                        return { chgI: 1 }
                     }
                     case "%stackend": {
                         let scopeName = args[argNo + 1]
-                        if(typeof scopeName !== 'string'){
-                            return {err: true, content: "Scope name must be a string"}
+                        if (typeof scopeName !== 'string') {
+                            return { err: true, content: "Scope name must be a string" }
                         }
-                        if(scopeName === '__main__'){
-                            return {end: true}
+                        if (scopeName === '__main__') {
+                            return { end: true }
                         }
-                        if(currScopes[currScopes.length - 1] !== scopeName){
-                            return {err: true, content: `Scope name: ${scopeName} is not the newest scope`}
+                        if (currScopes[currScopes.length - 1] !== scopeName) {
+                            return { err: true, content: `Scope name: ${scopeName} is not the newest scope` }
                         }
                         stacks[scopeName] = []
                         currScopes.pop()
-                        return {chgI: 1}
+                        return { chgI: 1 }
                     }
                     case "%saveas": {
                         stack.push("%saveas")
@@ -3739,26 +3741,26 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%vexists": {
                         let varName = stack.pop()
-                        if(typeof varName !== 'string'){
-                            return {err: true, content: `${varName} is not a valid variable name`}
+                        if (typeof varName !== 'string') {
+                            return { err: true, content: `${varName} is not a valid variable name` }
                         }
-                        if(vars[varName]){
+                        if (vars[varName]) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
                     }
                     case "%uvexists": {
                         let varName = stack.pop()
-                        if(typeof varName !== 'string'){
-                            return {err: true, content: `${varName} is not a valid variable name`}
+                        if (typeof varName !== 'string') {
+                            return { err: true, content: `${varName} is not a valid variable name` }
                         }
-                        if(userVars[msg.author.id]?.[varName]){
+                        if (userVars[msg.author.id]?.[varName]) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
@@ -3769,14 +3771,14 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%gvar": {
                         let name = stack.pop()
-                        if(typeof name !== 'string'){
-                            return {err: true, content: `${name} is not a valid variable name`}
+                        if (typeof name !== 'string') {
+                            return { err: true, content: `${name} is not a valid variable name` }
                         }
-                        if(vars[name]){
+                        if (vars[name]) {
                             stack.push(vars[name](msg))
                         }
-                        else{
-                            return {err: true, content: `${name} is not defined`}
+                        else {
+                            return { err: true, content: `${name} is not defined` }
                         }
                         break
                     }
@@ -3787,13 +3789,13 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%gexists": {
                         let name = stack.pop()
-                        if(typeof name !== 'string'){
-                            return {err: true, content: `${name} is not a valid variable name`}
+                        if (typeof name !== 'string') {
+                            return { err: true, content: `${name} is not a valid variable name` }
                         }
-                        if(ram[name] !== undefined){
+                        if (ram[name] !== undefined) {
                             stack.push(1)
                         }
-                        else{
+                        else {
                             stack.push(0)
                         }
                         break
@@ -3801,14 +3803,14 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%gram": {
                         let name = stack.pop()
-                        if(typeof name !== 'string'){
-                            return {err: true, content: `${name} is not a valid variable name`}
+                        if (typeof name !== 'string') {
+                            return { err: true, content: `${name} is not a valid variable name` }
                         }
-                        if(ram[name]){
+                        if (ram[name]) {
                             stack.push(ram[name])
                         }
-                        else{
-                            return {err: true, content: `${name} is not defined`}
+                        else {
+                            return { err: true, content: `${name} is not defined` }
                         }
                         break
                     }
@@ -3820,8 +3822,8 @@ const commands: {[command: string]: Command} = {
                     //message manipulation
                     case "%send": {
                         let ans = stack.pop()
-                        if(ans == undefined || ans == null){
-                            return {content: "Nothing to send", err: true}
+                        if (ans == undefined || ans == null) {
+                            return { content: "Nothing to send", err: true }
                         }
                         stack.push(await msg.channel.send(String(ans)))
                         break
@@ -3829,11 +3831,11 @@ const commands: {[command: string]: Command} = {
                     case "%edit": {
                         let newText = stack.pop()
                         let m = stack.pop()
-                        if(!(m instanceof Message)){
-                            return {content: `${m} is not a message`, err: true}
+                        if (!(m instanceof Message)) {
+                            return { content: `${m} is not a message`, err: true }
                         }
-                        if(typeof newText !== 'string'){
-                            return {content: `${newText} is not a string`, err: true}
+                        if (typeof newText !== 'string') {
+                            return { content: `${newText} is not a string`, err: true }
                         }
                         stack.push(await m.edit(newText));
                         break
@@ -3841,28 +3843,28 @@ const commands: {[command: string]: Command} = {
                     case "%reply": {
                         let text = stack.pop()
                         let msgToRTo = stack.pop()
-                        if(typeof text !== 'string'){
-                            return {err: true, content: `${text} is not a string`}
+                        if (typeof text !== 'string') {
+                            return { err: true, content: `${text} is not a string` }
                         }
-                        if(!(msgToRTo instanceof Message)){
-                            return {err: true, content: `Cannot reply to non-message: ${msgToRTo}`}
+                        if (!(msgToRTo instanceof Message)) {
+                            return { err: true, content: `Cannot reply to non-message: ${msgToRTo}` }
                         }
                         stack.push(await msgToRTo.reply(text))
                         break
                     }
                     case "%getmsg": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {content: `${val} is not a string`, err: true}
+                        if (typeof val !== 'string') {
+                            return { content: `${val} is not a string`, err: true }
                         }
-                        try{
+                        try {
                             let m = await msg.channel.messages.fetch(val)
-                            if(!m){
+                            if (!m) {
                                 stack.push(0)
                             }
                             else stack.push(m)
                         }
-                        catch(err){
+                        catch (err) {
                             console.log(err)
                             stack.push(0)
                         }
@@ -3876,12 +3878,12 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%etitle": {
                         let title = stack.pop()
-                        if(typeof title !== 'string'){
-                            return {err: true, content: `Title for %etitle must be string`}
+                        if (typeof title !== 'string') {
+                            return { err: true, content: `Title for %etitle must be string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed, cannot set title`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed, cannot set title` }
                         }
                         e.setTitle(title)
                         stack.push(e)
@@ -3889,12 +3891,12 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%eimg": {
                         let imgUrl = stack.pop()
-                        if(typeof imgUrl !== 'string'){
-                            return {err: true, content: `imgUrl for %eimg must be a string`}
+                        if (typeof imgUrl !== 'string') {
+                            return { err: true, content: `imgUrl for %eimg must be a string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed, cannot set thumbnail`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed, cannot set thumbnail` }
                         }
                         e.setImage(imgUrl)
                         stack.push(e)
@@ -3902,12 +3904,12 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%ethumb": {
                         let thumbUrl = stack.pop()
-                        if(typeof thumbUrl !== 'string'){
-                            return {err: true, content: `thumburl for %ethumb must be a string`}
+                        if (typeof thumbUrl !== 'string') {
+                            return { err: true, content: `thumburl for %ethumb must be a string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed, cannot set thumbnail`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed, cannot set thumbnail` }
                         }
                         e.setThumbnail(thumbUrl)
                         stack.push(e)
@@ -3915,20 +3917,20 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%efld": {
                         let inline = stack.pop()
-                        if(typeof inline !== 'number'){
-                            return {err: true, content: `Inline must be a boolean`}
+                        if (typeof inline !== 'number') {
+                            return { err: true, content: `Inline must be a boolean` }
                         }
                         let value = stack.pop()
-                        if(typeof value !== 'string'){
-                            return {err: true, content: `value must be a string`}
+                        if (typeof value !== 'string') {
+                            return { err: true, content: `value must be a string` }
                         }
                         let title = stack.pop()
-                        if(typeof title !== 'string'){
-                            return {err: true, content: `name must be a string`}
+                        if (typeof title !== 'string') {
+                            return { err: true, content: `name must be a string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed` }
                         }
                         e.addField(title, value, Boolean(inline))
                         stack.push(e)
@@ -3936,34 +3938,34 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%eftr": {
                         let image = stack.pop()
-                        if(typeof image !== 'string' && image !== 0){
-                            return {err: true, content: `Footer image must be a string or 0`}
+                        if (typeof image !== 'string' && image !== 0) {
+                            return { err: true, content: `Footer image must be a string or 0` }
                         }
                         let footer = stack.pop()
-                        if(typeof footer !== 'string'){
-                            return {err: true, content: `footer must be a string`}
+                        if (typeof footer !== 'string') {
+                            return { err: true, content: `footer must be a string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed` }
                         }
-                        if(image){
-                            e.setFooter({text: footer, iconURL: image})
+                        if (image) {
+                            e.setFooter({ text: footer, iconURL: image })
                         }
-                        else{
-                            e.setFooter({text: footer})
+                        else {
+                            e.setFooter({ text: footer })
                         }
                         stack.push(e)
                         break
                     }
                     case "%edesc": {
                         let description = stack.pop()
-                        if(typeof description !== 'string'){
-                            return {err: true, content: `description must be a string`}
+                        if (typeof description !== 'string') {
+                            return { err: true, content: `description must be a string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed` }
                         }
                         e.setDescription(description)
                         stack.push(e)
@@ -3971,12 +3973,12 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%etstmp": {
                         let time = stack.pop()
-                        if(typeof time !== 'number'){
-                            return {err: true, content: `Timestamp must be a number`}
+                        if (typeof time !== 'number') {
+                            return { err: true, content: `Timestamp must be a number` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed` }
                         }
                         e.setTimestamp(new Date(time || Date.now()))
                         stack.push(e)
@@ -3984,22 +3986,22 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%eauth": {
                         let image = stack.pop()
-                        if(typeof image !== 'string' && image !== 0){
-                            return {err: true, content: `Footer image must be a string or 0`}
+                        if (typeof image !== 'string' && image !== 0) {
+                            return { err: true, content: `Footer image must be a string or 0` }
                         }
                         let author = stack.pop()
-                        if(typeof author !== 'string'){
-                            return {err: true, content: `author must be a string`}
+                        if (typeof author !== 'string') {
+                            return { err: true, content: `author must be a string` }
                         }
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed` }
                         }
-                        if(image){
-                            e.setAuthor({name: author, iconURL: image})
+                        if (image) {
+                            e.setAuthor({ name: author, iconURL: image })
                         }
-                        else{
-                            e.setAuthor({name: author})
+                        else {
+                            e.setAuthor({ name: author })
                         }
                         stack.push(e)
                         break
@@ -4007,10 +4009,10 @@ const commands: {[command: string]: Command} = {
                     case "%eclr": {
                         let color = stack.pop()
                         let e = stack.pop()
-                        if(!(e instanceof MessageEmbed)){
-                            return {err: true, content: `${e} is not an embed`}
+                        if (!(e instanceof MessageEmbed)) {
+                            return { err: true, content: `${e} is not an embed` }
                         }
-                        try{
+                        try {
                             let colorsToStrings = {
                                 "red": [255, 0, 0],
                                 "green": [0, 255, 0],
@@ -4023,15 +4025,15 @@ const commands: {[command: string]: Command} = {
                                 "blackblack": [0, 0, 0],
                                 "random": [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)]
                             }
-                            if(typeof color === 'string'){
+                            if (typeof color === 'string') {
                                 //@ts-ignore
                                 color = colorsToStrings[color.toLowerCase()]
                             }
                             e.setColor(color as ColorResolvable)
                         }
-                        catch(err){
+                        catch (err) {
                             console.log(err)
-                            return {err: true, content: `${color} is not a valid color`}
+                            return { err: true, content: `${color} is not a valid color` }
                         }
                         stack.push(e)
                         break
@@ -4040,76 +4042,76 @@ const commands: {[command: string]: Command} = {
                     //string manipulation
                     case "%repl": {
                         let repl = stack.pop()
-                        if(typeof repl !== 'string'){
-                            return {err: true, content: 'Replacement must be a string'}
+                        if (typeof repl !== 'string') {
+                            return { err: true, content: 'Replacement must be a string' }
                         }
                         let find = stack.pop()
-                        if(typeof find !== 'string'){
-                            return {err: true, content: 'Search must be a string'}
+                        if (typeof find !== 'string') {
+                            return { err: true, content: 'Search must be a string' }
                         }
                         let str = stack.pop()
-                        if(typeof str !== 'string'){
-                            return {err: true, content: "String to operate on must be string"}
+                        if (typeof str !== 'string') {
+                            return { err: true, content: "String to operate on must be string" }
                         }
                         stack.push(str.replaceAll(find, repl))
                         break
                     }
                     case "%rtrunc": {
                         let bytes = stack.pop()
-                        if(typeof bytes !== 'number'){
-                            return {err: true, content: "The amount of bytes must be a number"}
+                        if (typeof bytes !== 'number') {
+                            return { err: true, content: "The amount of bytes must be a number" }
                         }
                         let str = stack.pop()
-                        if(typeof str !== 'string'){
-                            return {err: true, content: "Cannot truncate non string"}
+                        if (typeof str !== 'string') {
+                            return { err: true, content: "Cannot truncate non string" }
                         }
                         let ans = str.slice(0, str.length - bytes)
-                        if (ans.length == 0){
-                            return {err: true, content: "Truncatation size is larger than string size"}
+                        if (ans.length == 0) {
+                            return { err: true, content: "Truncatation size is larger than string size" }
                         }
                         stack.push(ans)
                         break
                     }
                     case "%ltrunc": {
                         let bytes = stack.pop()
-                        if(typeof bytes !== 'number'){
-                            return {err: true, content: "The amount of bytes must be a number"}
+                        if (typeof bytes !== 'number') {
+                            return { err: true, content: "The amount of bytes must be a number" }
                         }
                         let str = stack.pop()
-                        if(typeof str !== 'string'){
-                            return {err: true, content: "Cannot truncate non string"}
+                        if (typeof str !== 'string') {
+                            return { err: true, content: "Cannot truncate non string" }
                         }
                         let ans = str.slice(bytes, str.length)
-                        if (ans.length == 0){
-                            return {err: true, content: "Truncatation size is larger than string size"}
+                        if (ans.length == 0) {
+                            return { err: true, content: "Truncatation size is larger than string size" }
                         }
                         stack.push(ans)
                         break
                     }
                     case "%trim": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
+                        if (typeof val !== 'string') {
+                            return { err: true, content: `${val} is not a string` }
                         }
                         stack.push(val.trim())
                         break
                     }
                     case "%split": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
+                        if (typeof val !== 'string') {
+                            return { err: true, content: `${val} is not a string` }
                         }
                         let str = stack.pop()
-                        if(typeof str !== 'string'){
-                            return {err: true, content: `${str} is not a string`}
+                        if (typeof str !== 'string') {
+                            return { err: true, content: `${str} is not a string` }
                         }
                         stack.push(str.split(val))
                         break
                     }
                     case "%upper": {
                         let val = stack.pop()
-                        if(typeof val !== "string"){
-                            return {content: `${val} is not a string`, err: true}
+                        if (typeof val !== "string") {
+                            return { content: `${val} is not a string`, err: true }
                         }
                         stack.push(val.toUpperCase())
                         break
@@ -4121,24 +4123,24 @@ const commands: {[command: string]: Command} = {
                     }
                     case "%int": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
+                        if (typeof val !== 'string') {
+                            return { err: true, content: `${val} is not a string` }
                         }
                         let ans = parseInt(val)
-                        if(isNaN(ans)){
-                            return {err: true, content: `Result was NaN`}
+                        if (isNaN(ans)) {
+                            return { err: true, content: `Result was NaN` }
                         }
                         stack.push(ans)
                         break
                     }
                     case "%float": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
+                        if (typeof val !== 'string') {
+                            return { err: true, content: `${val} is not a string` }
                         }
                         let ans = parseFloat(val)
-                        if(isNaN(ans)){
-                            return {err: true, content: `Result was NaN`}
+                        if (isNaN(ans)) {
+                            return { err: true, content: `Result was NaN` }
                         }
                         stack.push(ans)
                         break
@@ -4147,24 +4149,24 @@ const commands: {[command: string]: Command} = {
                     //number manipulation
                     case "%lower": {
                         let val = stack.pop()
-                        if(typeof val !== "string"){
-                            return {content: `${val} is not a string`, err: true}
+                        if (typeof val !== "string") {
+                            return { content: `${val} is not a string`, err: true }
                         }
                         stack.push(val.toLowerCase())
                         break
                     }
                     case "%floor": {
                         let val = stack.pop()
-                        if(typeof val !== 'number'){
-                            return {err: true, content: `${val} is not a number`}
+                        if (typeof val !== 'number') {
+                            return { err: true, content: `${val} is not a number` }
                         }
                         stack.push(Math.floor(val))
                         break
                     }
                     case "%ceil": {
                         let val = stack.pop()
-                        if(typeof val !== 'number'){
-                            return {err: true, content: `${val} is not a number`}
+                        if (typeof val !== 'number') {
+                            return { err: true, content: `${val} is not a number` }
                         }
                         stack.push(Math.ceil(val))
                         break
@@ -4177,17 +4179,17 @@ const commands: {[command: string]: Command} = {
                     //users
                     case "%getusr": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {content: `${val} is not a string`, err: true}
+                        if (typeof val !== 'string') {
+                            return { content: `${val} is not a string`, err: true }
                         }
-                        try{
+                        try {
                             let u = await msg.guild?.members.fetch(val)
-                            if(!u){
+                            if (!u) {
                                 stack.push(0)
                             }
                             else stack.push(u)
                         }
-                        catch(err){
+                        catch (err) {
                             console.log(err)
                             stack.push(0)
                         }
@@ -4197,12 +4199,12 @@ const commands: {[command: string]: Command} = {
                     //list manipulation
                     case "%join": {
                         let val = stack.pop()
-                        if(typeof val !== 'string'){
-                            return {err: true, content: `${val} is not a string`}
+                        if (typeof val !== 'string') {
+                            return { err: true, content: `${val} is not a string` }
                         }
                         let arr = stack.pop()
-                        if(!Array.isArray(arr)){
-                            return {err: true, content: `${arr} is not a list`}
+                        if (!Array.isArray(arr)) {
+                            return { err: true, content: `${arr} is not a list` }
                         }
                         stack.push(arr.join(val))
                         break
@@ -4210,22 +4212,22 @@ const commands: {[command: string]: Command} = {
                     case "%index": {
                         let indexNo = stack.pop()
                         let indexee = stack.pop()
-                        if(typeof indexNo !== 'number'){
-                            return {err: true, content: `cannot index with non-number: ${indexNo}`}
+                        if (typeof indexNo !== 'number') {
+                            return { err: true, content: `cannot index with non-number: ${indexNo}` }
                         }
-                        switch(typeof indexee){
+                        switch (typeof indexee) {
                             case 'string': {
                                 stack.push(indexee[indexNo])
                                 break
                             }
                             case 'object': {
-                                if(Array.isArray(indexee)){
+                                if (Array.isArray(indexee)) {
                                     stack.push(indexee[indexNo])
                                     break
                                 }
                             }
                             default: {
-                                return {err: true, content: `Cannot index ${typeof indexee}`}
+                                return { err: true, content: `Cannot index ${typeof indexee}` }
                             }
                         }
                         break
@@ -4234,52 +4236,52 @@ const commands: {[command: string]: Command} = {
                         let list = []
                         let chgI = 0
                         let count = stack.pop()
-                        if(!isNaN(Number(count))){
+                        if (!isNaN(Number(count))) {
                             chgI++
-                            for(let i = 0; i < parseInt(String(count)); i++){
+                            for (let i = 0; i < parseInt(String(count)); i++) {
                                 let val = stack.pop()
-                                if(typeof val === 'undefined'){
-                                    return {err: true, content: `arg: ${i} in list is undefined`}
+                                if (typeof val === 'undefined') {
+                                    return { err: true, content: `arg: ${i} in list is undefined` }
                                 }
                                 list.push(val)
                             }
                         }
-                        else{
-                            return {err: true, content: `No list length given`}
+                        else {
+                            return { err: true, content: `No list length given` }
                         }
                         stack.push(list.reverse())
-                        return {chgI: chgI}
+                        return { chgI: chgI }
                     }
                     case "%end": {
-                        return {end: true}
+                        return { end: true }
                     }
                     case "%break": {
-                        return {end: true}
+                        return { end: true }
                     }
                     case "%find": {
                         let matcher = stack.pop()
-                        if(matcher === undefined){
-                            return {err: true, content: `Matcher cant be undefined`}
+                        if (matcher === undefined) {
+                            return { err: true, content: `Matcher cant be undefined` }
                         }
                         let matchee = stack.pop()
-                        if(Array.isArray(matchee)){
+                        if (Array.isArray(matchee)) {
                             let index = matchee.indexOf(matcher)
                             stack.push(index)
                         }
-                        else if(typeof matchee === 'string'){
-                            if(typeof matcher !== 'string'){
-                                return {err: true, content: `The matcher for a string must be a string`}
+                        else if (typeof matchee === 'string') {
+                            if (typeof matcher !== 'string') {
+                                return { err: true, content: `The matcher for a string must be a string` }
                             }
                             let match = matchee.match(matcher)
-                            if(match?.index){
+                            if (match?.index) {
                                 stack.push(match.index)
                             }
-                            else{
+                            else {
                                 stack.push(-1)
                             }
                         }
-                        else{
-                            return {err: true, content: `Matchee cannot be of type: ${typeof matchee}`}
+                        else {
+                            return { err: true, content: `Matchee cannot be of type: ${typeof matchee}` }
                         }
                         break
                     }
@@ -4288,168 +4290,168 @@ const commands: {[command: string]: Command} = {
                     case "%loop": {
                         let code = []
                         let chgI = 0
-                        for(let i = argNo + 1; i < argCount; i++){
+                        for (let i = argNo + 1; i < argCount; i++) {
                             chgI++
-                            if(args[i] == "%loopend"){
+                            if (args[i] == "%loopend") {
                                 break
                             }
-                            if(args[i] == "%loop"){
-                                return {err: true, content: `Nested loops are not allowed`}
+                            if (args[i] == "%loop") {
+                                return { err: true, content: `Nested loops are not allowed` }
                             }
                             code.push(args[i])
                         }
                         let loopCount = 0
-                        forever: while(true){
+                        forever: while (true) {
                             loopCount++
-                            for(let i = 0; i < code.length; i++){
+                            for (let i = 0; i < code.length; i++) {
                                 let rv = await parseArg(code[i], i, code.length, code, stacks[currScopes[currScopes.length - 1]])
-                                if(rv?.end) break forever
-                                if(rv?.chgI){
+                                if (rv?.end) break forever
+                                if (rv?.chgI) {
                                     i += parseInt(rv.chgI)
                                 }
-                                if(rv?.err){
+                                if (rv?.err) {
                                     return rv
                                 }
                             }
-                            if(loopCount > 2000){
+                            if (loopCount > 2000) {
                                 stack.push(0)
                                 break
                             }
                             let topOfStack = stack[stack.length - 1]
-                            if(topOfStack instanceof Message){
-                                if(topOfStack.content == '%loopend'){
+                            if (topOfStack instanceof Message) {
+                                if (topOfStack.content == '%loopend') {
                                     stack.pop()
                                     break
                                 }
                             }
                         }
-                        return {chgI:chgI}
+                        return { chgI: chgI }
                     }
                     case "%if": {
                         let bool = Boolean(stack.pop()) ? true : false
-                        if(bool){
-                            for(let i = argNo + 1; i < argCount; i++){
+                        if (bool) {
+                            for (let i = argNo + 1; i < argCount; i++) {
                                 //@ts-ignore
                                 let ifCount = 0
-                                if(args[i] == "%else"){
+                                if (args[i] == "%else") {
                                     let ifCount = 0
-                                    for(let j = i + 1; j < argCount; j++){
-                                        if(args[j] == '%if'){
-                                           ifCount++
+                                    for (let j = i + 1; j < argCount; j++) {
+                                        if (args[j] == '%if') {
+                                            ifCount++
                                         }
-                                        if(args[j] == "%ifend"){
+                                        if (args[j] == "%ifend") {
                                             ifCount--
-                                            if(ifCount < 0)
-                                                return {chgI: j - argNo}
+                                            if (ifCount < 0)
+                                                return { chgI: j - argNo }
                                         }
                                     }
-                                    return {chgI: i - argNo}
+                                    return { chgI: i - argNo }
                                 }
-                                else if(args[i] == "%if"){
+                                else if (args[i] == "%if") {
                                     ifCount++
                                 }
-                                else if(args[i] == "%ifend"){
+                                else if (args[i] == "%ifend") {
                                     ifCount--
                                 }
-                                if(args[i] == "%ifend" && ifCount < 0){
-                                    return {chgI: i - argNo}
+                                if (args[i] == "%ifend" && ifCount < 0) {
+                                    return { chgI: i - argNo }
                                 }
                                 let rv = await parseArg(args[i], i, argCount, args, stacks[currScopes[currScopes.length - 1]])
-                                if(rv?.end) return {end: true}
-                                if(rv?.chgI)
+                                if (rv?.end) return { end: true }
+                                if (rv?.chgI)
                                     i += parseInt(rv.chgI)
-                                if(rv?.err){
-                                    return {chgI: i - argNo, ...rv}
+                                if (rv?.err) {
+                                    return { chgI: i - argNo, ...rv }
                                 }
                             }
                         }
-                        else{
-                            for(let i = argNo; i < argCount; i++){
-                                if(args[i] == "%else"){
-                                    for(let j = i + 1; j < argCount; j++){
-                                        if(args[j] == "%ifend"){
-                                            return {chgI: j - argNo}
+                        else {
+                            for (let i = argNo; i < argCount; i++) {
+                                if (args[i] == "%else") {
+                                    for (let j = i + 1; j < argCount; j++) {
+                                        if (args[j] == "%ifend") {
+                                            return { chgI: j - argNo }
                                         }
                                         let rv = await parseArg(args[j], j, argCount, args, stacks[currScopes[currScopes.length - 1]])
-                                        if(rv?.end) return {end: true}
-                                        if(rv?.chgI)
+                                        if (rv?.end) return { end: true }
+                                        if (rv?.chgI)
                                             j += parseInt(rv.chgI)
-                                        if(rv?.err){
-                                            return {chgI: j - argNo, ...rv}
+                                        if (rv?.err) {
+                                            return { chgI: j - argNo, ...rv }
                                         }
                                     }
                                 }
-                                if(args[i] == "%ifend"){
-                                    return {chgI: i - argNo}
+                                if (args[i] == "%ifend") {
+                                    return { chgI: i - argNo }
                                 }
                             }
                         }
                         break
                     }
                     default: {
-                        if(arg.match(/^"([^"]*)"$/)){
+                        if (arg.match(/^"([^"]*)"$/)) {
                             //strings
                             stack.push(arg.replace(/^"/, "").replace(/"$/, ""))
                         }
-                        else if(arg.match(/^\.[^ ]+$/)){
+                        else if (arg.match(/^\.[^ ]+$/)) {
                             let data = stack.pop()
-                            if(typeof data === 'undefined'){
-                                return {err: true, content: `${data} is undefined`}
+                            if (typeof data === 'undefined') {
+                                return { err: true, content: `${data} is undefined` }
                             }
                             let val = (data as any)[arg.slice(1)]
-                            if(typeof val === 'function'){
+                            if (typeof val === 'function') {
                                 stack.push(String(val))
                             }
-                            else if(val){
+                            else if (val) {
                                 stack.push(val)
                             }
-                            else{
+                            else {
                                 stack.push(0)
                             }
                         }
-                        else if(!isNaN(parseFloat(arg))){
+                        else if (!isNaN(parseFloat(arg))) {
                             stack.push(parseFloat(arg))
                         }
-                        else if(stack[stack.length - 1] == "%saveas"){
+                        else if (stack[stack.length - 1] == "%saveas") {
                             stack.pop()
                             let ans = stack.pop()
-                            if(typeof ans === 'undefined'){
-                                return {err: true, content: `Cannot save undefined as variable`}
+                            if (typeof ans === 'undefined') {
+                                return { err: true, content: `Cannot save undefined as variable` }
                             }
                             vars[arg] = () => ans
                             stack.push(ans)
                         }
-                        else if(stack[stack.length - 1] == '%lvar'){
+                        else if (stack[stack.length - 1] == '%lvar') {
                             let value = vars[arg]?.(msg)
-                            if(typeof value === 'undefined'){
+                            if (typeof value === 'undefined') {
                                 value = userVars[msg.author.id]?.[arg]?.(msg)
                             }
-                            if(typeof value === 'undefined'){
-                                return {content: `var: **${arg}** does not exist`, err: true}
+                            if (typeof value === 'undefined') {
+                                return { content: `var: **${arg}** does not exist`, err: true }
                             }
                             stack.push(value)
                         }
-                        else if(stack[stack.length - 1] == "%sram"){
+                        else if (stack[stack.length - 1] == "%sram") {
                             let sram = stack.pop()
                             let item = stack.pop()
                             ram[arg as string] = item
                         }
-                        else if(stack[stack.length - 1] == '%lram'){
-                            if(ram[arg] === undefined){
-                                return {content: `${arg} not in ram`}
+                        else if (stack[stack.length - 1] == '%lram') {
+                            if (ram[arg] === undefined) {
+                                return { content: `${arg} not in ram` }
                             }
                             stack.pop()
                             stack.push(ram[arg])
                         }
-                        else{
+                        else {
                             let value = ram[arg]
-                            if(typeof value === 'undefined')
+                            if (typeof value === 'undefined')
                                 value = vars[arg]?.(msg)
-                            if(typeof value === 'undefined'){
+                            if (typeof value === 'undefined') {
                                 value = userVars[msg.author.id]?.[arg]?.(msg)
                             }
-                            if(typeof value === 'undefined'){
-                                return {content: `var: **${arg}** does not exist`, err: true}
+                            if (typeof value === 'undefined') {
+                                return { content: `var: **${arg}** does not exist`, err: true }
                             }
                             stack.push(value)
                         }
@@ -4457,28 +4459,28 @@ const commands: {[command: string]: Command} = {
                 }
             }
 
-            for(let i = 0; i < args.length; i++){
+            for (let i = 0; i < args.length; i++) {
                 let arg = args[i]
                 arg = arg.trim()
                 let rv = await parseArg(arg, i, args.length, args, stacks[currScopes[currScopes.length - 1]])
-                if(rv?.end) break
-                if(rv?.chgI)
+                if (rv?.end) break
+                if (rv?.chgI)
                     i += parseInt(rv.chgI)
-                if(rv?.err){
+                if (rv?.err) {
                     return rv
                 }
             }
             let embeds = []
             let texts = []
-            for(let item of stack){
-                if(item instanceof MessageEmbed){
+            for (let item of stack) {
+                if (item instanceof MessageEmbed) {
                     embeds.push(item)
                 }
-                else{
+                else {
                     texts.push(item)
                 }
             }
-            return {content: texts.join(" "), embeds: embeds, noSend: stack.length > 0 ? false : true}
+            return { content: texts.join(" "), embeds: embeds, noSend: stack.length > 0 ? false : true }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Welcome to stackl",
@@ -4491,25 +4493,25 @@ const commands: {[command: string]: Command} = {
     },
 
     "reddit": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let subreddit = args[0]
             //@ts-ignore
             let data = await got(`https://libreddit.spike.codes/r/${subreddit}`)
-            if(!data.body){
-                return {content: "nothing found"}
+            if (!data.body) {
+                return { content: "nothing found" }
             }
             const $ = cheerio.load(data.body)
-            type data = {text?: string, link?: string}
+            type data = { text?: string, link?: string }
             let foundData: data[] = []
-            for(let item of $("h2.post_title a[href]")){
+            for (let item of $("h2.post_title a[href]")) {
                 let dataToAdd: data = {}
                 //@ts-ignore
-                if(item.children[0].data){
+                if (item.children[0].data) {
                     //@ts-ignore
                     dataToAdd['text'] = item.children[0].data
                 }
-                else{ continue }
-                if(item.attribs.href){
+                else { continue }
+                if (item.attribs.href) {
                     dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs.href}`
                 }
                 foundData.push(dataToAdd)
@@ -4517,51 +4519,51 @@ const commands: {[command: string]: Command} = {
             let post = foundData[Math.floor(Math.random() * foundData.length)]
             let embed = new MessageEmbed()
             embed.setTitle(post.text || "None")
-            embed.setFooter({text: post.link || "None"})
-            return {embeds: [embed]}
+            embed.setFooter({ text: post.link || "None" })
+            return { embeds: [embed] }
         }, category: CommandCategory.FUN
     },
 
     "expr": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let vname = args[0]
             let varValRet
             let vardict = vars
-            if(isNaN(parseFloat(vname))){
+            if (isNaN(parseFloat(vname))) {
                 let vvalue = vars[vname]
-                if(vvalue === undefined){
+                if (vvalue === undefined) {
                     vardict = userVars[msg.author.id]
                     vvalue = userVars[msg.author.id]?.[vname]
                 }
-                if(vvalue === undefined){
+                if (vvalue === undefined) {
                     vardict = vars
                     vars[vname] = () => '0'
                     vvalue = vars[vname]
                 }
                 varValRet = vvalue(msg)
             }
-            else{
+            else {
                 varValRet = vname
                 vname = "__expr"
             }
             let op = args[1]
             let expr = args[2]
-            if(expr && isNaN(parseFloat(expr))){
+            if (expr && isNaN(parseFloat(expr))) {
                 let vvalue = vars[expr]
-                if(vvalue === undefined){
+                if (vvalue === undefined) {
                     vvalue = userVars[msg.author.id]?.[expr]
                 }
-                if(vvalue === undefined){
+                if (vvalue === undefined) {
                     vars[expr] = () => '0'
                     vvalue = vars[expr]
                 }
-                if(vvalue === undefined){
-                    return {content: `var: **${expr}** does not exist`}
+                if (vvalue === undefined) {
+                    return { content: `var: **${expr}** does not exist` }
                 }
                 expr = vvalue(msg)
             }
             let ans: any
-            switch(op){
+            switch (op) {
                 case "++":
 
                     ans = parseFloat(varValRet) + 1
@@ -4580,14 +4582,14 @@ const commands: {[command: string]: Command} = {
                     break;
                 case ",":
                     ans = ""
-                    for(let i = 0; i < varValRet.length; i++){
-                        if(i % 3 == 0 && i != 0){
+                    for (let i = 0; i < varValRet.length; i++) {
+                        if (i % 3 == 0 && i != 0) {
                             ans += ","
                         }
                         ans += varValRet[varValRet.length - i - 1]
                     }
                     let newAns = ""
-                    for(let i = ans.length - 1; i >= 0; i--){
+                    for (let i = ans.length - 1; i >= 0; i--) {
                         newAns += ans[i]
                     }
                     ans = newAns
@@ -4612,7 +4614,7 @@ const commands: {[command: string]: Command} = {
                     break;
             }
             vardict[vname] = () => ans
-            return {content: String(ans)}
+            return { content: String(ans) }
         },
         help: {
             info: "Modify a variable",
@@ -4632,80 +4634,80 @@ const commands: {[command: string]: Command} = {
 
     },
     "run": {
-        run: async(msg: Message, args) => {
+        run: async (msg: Message, args) => {
             let file = msg.attachments.at(0)
             let text;
-            if(!file){
+            if (!file) {
                 text = args.join(" ").replaceAll("```", "").split(";EOL")
             }
-            else{
+            else {
                 let k = msg.attachments.keyAt(0) as string
                 msg.attachments.delete(k)
                 //@ts-ignore
                 let data = got(file.url)
                 text = await data.text()
                 let bluecHeader = "%bluecircle37%\n"
-                if(text.slice(0, bluecHeader.length) !== bluecHeader){
-                    return {content: "Does not appear to be a bluec script"}
+                if (text.slice(0, bluecHeader.length) !== bluecHeader) {
+                    return { content: "Does not appear to be a bluec script" }
                 }
                 text = text.slice(bluecHeader.length).split(";EOL")
             }
-            if(!text){
-                return {content: "No script"}
+            if (!text) {
+                return { content: "No script" }
             }
             let id = Math.floor(Math.random() * 10000000)
             SPAMS[id] = true
             await msg.channel.send(`Starting id: ${id}`)
-            for(let line of text){
-                if(!SPAMS[id])
+            for (let line of text) {
+                if (!SPAMS[id])
                     break
                 line = line.trim()
-                if(line.startsWith(prefix)){
+                if (line.startsWith(prefix)) {
                     line = line.slice(prefix.length)
                 }
                 msg.content = `${prefix}${line}`
                 await doCmd(msg, false)
             }
-            return {noSend: true}
+            return { noSend: true }
         }, category: CommandCategory.META,
         help: {
             info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
         }
     },
     "var": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let [name, ...value] = args.join(" ").split("=")
-            if(!value.length){
-                return {content: "no value given, syntax `[var x=value"}
+            if (!value.length) {
+                return { content: "no value given, syntax `[var x=value" }
             }
             let realVal = value.join(" ")
-            if(opts['prefix']){
+            if (opts['prefix']) {
                 let prefix = String(opts['prefix'])
-                if(prefix.match(/^\d{19}/)){
-                    return {content: "No ids allowed"}
+                if (prefix.match(/^\d{19}/)) {
+                    return { content: "No ids allowed" }
                 }
-                if(userVars[prefix]){
+                if (userVars[prefix]) {
                     userVars[prefix][name] = () => realVal
                 }
-                else{
-                    userVars[prefix] = {[name]: () => realVal}
+                else {
+                    userVars[prefix] = { [name]: () => realVal }
                 }
-                return {content: userVars[prefix][name]()}
+                return { content: userVars[prefix][name]() }
             }
-            else if (opts['u']){
-                if(userVars[msg.author.id]){
+            else if (opts['u']) {
+                if (userVars[msg.author.id]) {
                     userVars[msg.author.id][name] = () => realVal
                 }
-                else{
-                    userVars[msg.author.id] = {[name]: () => realVal}
+                else {
+                    userVars[msg.author.id] = { [name]: () => realVal }
                 }
                 return {
                     content: userVars[msg.author.id][name]()
                 }
             }
-            else{
+            else {
                 vars[name] = () => realVal
                 return {
                     content: vars[name]()
@@ -4723,19 +4725,19 @@ const commands: {[command: string]: Command} = {
         category: CommandCategory.META
     },
     remove: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             const file = FILE_SHORTCUTS[args[0]] || args[0]
-            if(!file){
+            if (!file) {
                 return {
                     content: "Nothing given to add to"
                 }
             }
-            if(file.match(/[\.]/)){
+            if (file.match(/[\.]/)) {
                 return {
                     content: "invalid command"
                 }
             }
-            if(!fs.existsSync(`./command-results/${file}`)){
+            if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
                     content: "file does not exist"
                 }
@@ -4751,30 +4753,30 @@ const commands: {[command: string]: Command} = {
                 }]
             })
             fs.rmSync(fn)
-            try{
-                let collector = msg.channel.createMessageCollector({filter: m => m.author.id == msg.author.id, time: 30000})
-                collector.on("collect", async(m) => {
-                    if(['cancel', 'c'].includes(m.content || "c")){
+            try {
+                let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 30000 })
+                collector.on("collect", async (m) => {
+                    if (['cancel', 'c'].includes(m.content || "c")) {
                         collector.stop()
                         return
                     }
                     let removedList = []
-                    for(let numStr of m.content.split(" ")){
-                    let num = parseInt(numStr || "0")
-                    if(!num){
-                        await msg.channel.send(`${num} is not a valid number`)
-                        return
-                    }
-                    let removal = data[num -1]
-                    let userCreated = removal.split(":")[0].trim()
-                    if(userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                        await msg.channel.send({
-                        content: "You did not create that message, and are not a bot admin"
-                        })
-                        continue
-                    }
-                    removedList.push(data[num -1])
-                    delete data[num - 1]
+                    for (let numStr of m.content.split(" ")) {
+                        let num = parseInt(numStr || "0")
+                        if (!num) {
+                            await msg.channel.send(`${num} is not a valid number`)
+                            return
+                        }
+                        let removal = data[num - 1]
+                        let userCreated = removal.split(":")[0].trim()
+                        if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
+                            await msg.channel.send({
+                                content: "You did not create that message, and are not a bot admin"
+                            })
+                            continue
+                        }
+                        removedList.push(data[num - 1])
+                        delete data[num - 1]
                     }
                     data = data.filter(v => typeof v != 'undefined')
                     fs.writeFileSync(`command-results/${file}`, data.join(";END"))
@@ -4784,12 +4786,12 @@ const commands: {[command: string]: Command} = {
                     collector.stop()
                 })
             }
-            catch(err){
+            catch (err) {
                 return {
                     content: "didnt respond in time"
                 }
             }
-            return {content: 'Say the number of what you want to remove or type cancel'}
+            return { content: 'Say the number of what you want to remove or type cancel' }
         },
         help: {
             arguments: {
@@ -4803,7 +4805,7 @@ const commands: {[command: string]: Command} = {
 
     },
     "file": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let fn = generateFileName("file", msg.author.id)
             fs.writeFileSync(fn, args.join(" "))
             return {
@@ -4820,22 +4822,22 @@ const commands: {[command: string]: Command} = {
 
     },
     "rfile": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let att = msg.attachments.at(0)
-            if(att){
+            if (att) {
                 //@ts-ignore
                 let data: string = await got(att.attachment).text()
-                return {content: data}
+                return { content: data }
             }
-            return {noSend: true}
+            return { noSend: true }
         },
         category: CommandCategory.UTIL
     },
     "command-file": {
-        run : async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
-            if(opts["l"]){
+            if (opts["l"]) {
                 return {
                     content: `\`\`\`
 ${fs.readdirSync("./command-results").join("\n")}
@@ -4844,12 +4846,12 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
             const file = FILE_SHORTCUTS[args[0]] || args[0]
-            if(!file){
+            if (!file) {
                 return {
                     content: "Nothing given to add to"
                 }
             }
-            if(!fs.existsSync(`./command-results/${file}`)){
+            if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
                     content: "file does not exist"
                 }
@@ -4875,32 +4877,32 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.META
     },
     "list-files": {
-        run: async(msg, args) => {
-            return {content: fs.readdirSync('./command-results').join("\n")}
+        run: async (msg, args) => {
+            return { content: fs.readdirSync('./command-results').join("\n") }
         },
         category: CommandCategory.META
     },
     add: {
-        run: async(msg: Message, args: ArgumentList) =>{
+        run: async (msg: Message, args: ArgumentList) => {
             const file = FILE_SHORTCUTS[args[0]] || args[0]
-            if(!file){
+            if (!file) {
                 return {
                     content: "Nothing given to add to"
                 }
             }
-            if(file.match(/[\.]/)){
+            if (file.match(/[\.]/)) {
                 return {
                     content: "invalid command"
                 }
             }
-            if(!fs.existsSync(`./command-results/${file}`)){
-		if(file === "wordle")
-		    fs.writeFileSync(`./command-results/${file}`, "")
-		else return {content: `${file} does not exist`}
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                if (file === "wordle")
+                    fs.writeFileSync(`./command-results/${file}`, "")
+                else return { content: `${file} does not exist` }
             }
             args = args.slice(1)
             const data = args?.join(" ")
-            if(!data){
+            if (!data) {
                 return {
                     content: "No data given"
                 }
@@ -4926,11 +4928,11 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.META
     },
     "cmd-chain": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let showArgs = true
-            if(opts['n'] || opts['no-args']){
+            if (opts['n'] || opts['no-args']) {
                 showArgs = false
             }
             let chain = []
@@ -4938,18 +4940,18 @@ ${fs.readdirSync("./command-results").join("\n")}
             let a = ""
             chain.push(command)
             //finds the original command
-            while(aliases[command]?.[0]){
-                a = aliases[command].slice(1).join(" ") +" " + a + " "
-                if(showArgs)
+            while (aliases[command]?.[0]) {
+                a = aliases[command].slice(1).join(" ") + " " + a + " "
+                if (showArgs)
                     chain.push(`${aliases[command][0]} ${a}`.trim())
                 else
                     chain.push(aliases[command][0])
                 command = aliases[command][0]
             }
 
-            return {content: chain.join(" -> ")}
+            return { content: chain.join(" -> ") }
         },
-        help:{
+        help: {
             info: "Shows which command the alias turns into when run",
             arguments: {
                 cmd: {
@@ -4961,9 +4963,9 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     },
     rccmd: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let name = args[0]
-            if(!name){
+            if (!name) {
                 return {
                     content: "No command name given"
                 }
@@ -4971,40 +4973,40 @@ ${fs.readdirSync("./command-results").join("\n")}
             let commands = args.map(v => v.trim())
             let data = fs.readFileSync("command-results/alias", "utf-8").split(";END")
             let successfullyRemoved = []
-            for(let i = 0; i < commands.length; i++){
+            for (let i = 0; i < commands.length; i++) {
                 let command = commands[i]
                 let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
                 let idx = data.indexOf(line)
-                if(idx >= 0){
+                if (idx >= 0) {
                     let [user, _] = line.trim().split(":")
                     user = user.trim()
-                    if(user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0){
+                    if (user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
                         await msg.channel.send(`Cannot remove ${command}`)
                     }
-                    else{
+                    else {
                         successfullyRemoved.push(command)
                         data.splice(idx, 1)
                     }
                 }
             }
             fs.writeFileSync("command-results/alias", data.join(";END"))
-                aliases = createAliases()
+            aliases = createAliases()
             return {
-            content: `Removed: ${successfullyRemoved.join(", ")}`
+                content: `Removed: ${successfullyRemoved.join(", ")}`
             }
         },
         category: CommandCategory.META
 
     },
     "8": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let content = args.join(" ")
             let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
             return {
                 content: options[Math.floor(Math.random() * options.length)]
-                            .slice(20)
-                            .replaceAll("{content}", content)
-                            .replaceAll("{u}", `${msg.author}`)
+                    .slice(20)
+                    .replaceAll("{content}", content)
+                    .replaceAll("{u}", `${msg.author}`)
             }
         },
         help: {
@@ -5019,18 +5021,18 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     },
     distance: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let speed = parseInt(opts['speed'] as string) || 1
-	    let joinedArgs = args.join(" ")
+            let joinedArgs = args.join(" ")
             let [from, to] = joinedArgs.split("|")
-            if(!to){
-                return {content: "No second place given, fmt: `place 1 | place 2`"}
+            if (!to) {
+                return { content: "No second place given, fmt: `place 1 | place 2`" }
             }
             let fromUser = await fetchUser(msg.guild, from)
             let toUser = await fetchUser(msg.guild, to)
-            if(fromUser && toUser){
+            if (fromUser && toUser) {
                 let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
                     content: options[Math.floor(Math.random() * options.length)]
@@ -5045,7 +5047,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             from = encodeURI(from.trim())
             to = encodeURI(to.trim())
             const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
-		//@ts-ignore
+            //@ts-ignore
             const resp = await got(url, {
                 headers: {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
@@ -5055,27 +5057,27 @@ ${fs.readdirSync("./command-results").join("\n")}
             let text = $("p.home2").text()
             let drivingDistText = text.match(/The total driving distance from [^\.]* is ([\d,]*) miles/)
             let drivingDist = 0;
-            if(drivingDistText){
+            if (drivingDistText) {
                 drivingDist = parseInt(drivingDistText[1]?.replaceAll(",", ""))
             }
             let straightLineText = text.match(/The total straight line flight distance from [^\.]* is ([\d,]*) miles/)
             let straightLineDist = 0
-            if(straightLineText){
+            if (straightLineText) {
                 straightLineDist = parseInt(straightLineText[1]?.replaceAll(",", ""))
             }
             const embed = new MessageEmbed()
             embed.setTitle("Distances")
-            if(drivingDist){
+            if (drivingDist) {
                 embed.addField("Driving distance", `${drivingDist} miles`)
-                if(speed)
+                if (speed)
                     embed.addField("Driving distance time", `${drivingDist / speed} hours`)
             }
-            if(straightLineDist){
+            if (straightLineDist) {
                 embed.addField("Straight line distance", `${straightLineDist} miles`)
-                if(speed)
+                if (speed)
                     embed.addField("Straight line distance time", `${straightLineDist / speed} hours`)
             }
-            if(!drivingDist && !straightLineDist){
+            if (!drivingDist && !straightLineDist) {
                 let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
                     content: options[Math.floor(Math.random() * options.length)]
@@ -5106,20 +5108,20 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.FUN
     },
     "list-cmds": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let values = ''
-	    let typeConv = {1: "chat", 2: "user", 3: "message"}
-            for(let cmd in commands){
+            let typeConv = { 1: "chat", 2: "user", 3: "message" }
+            for (let cmd in commands) {
                 values += `${cmd}\n`
             }
-	    for(let cmd of slashCommands){
-		//@ts-ignore
-		if(cmd.type){
-		    //@ts-ignore
-		    values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
-		}
-		else values += `/${cmd["name"]}\n`
-	    }
+            for (let cmd of slashCommands) {
+                //@ts-ignore
+                if (cmd.type) {
+                    //@ts-ignore
+                    values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
+                }
+                else values += `/${cmd["name"]}\n`
+            }
             return {
                 content: values
             }
@@ -5127,12 +5129,13 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.FUN
     },
     help: {
-	//help command
+        //help command
         run: async (msg, args) => {
             let opts
             [opts, args] = getOpts(args)
-            if(opts["g"]){
-                return {content: `\`\`\`
+            if (opts["g"]) {
+                return {
+                    content: `\`\`\`
 Anything may be prefixed with a \\ to prevent it from happening immediately
 
 [command [args...]
@@ -5183,10 +5186,10 @@ variables:
 \`\`\`
 `}
             }
-            if(opts['l']){
+            if (opts['l']) {
                 let category = String(opts['l']) || "all"
                 let catNum = -1
-                switch(category.toLowerCase()){
+                switch (category.toLowerCase()) {
                     case "meta":
                         catNum = CommandCategory.META
                         break;
@@ -5200,65 +5203,65 @@ variables:
                     case "images": catNum = CommandCategory.IMAGES; break;
                 }
                 let rv = ""
-                for(let cmd in commands){
-                    if(catNum == -1 || commands[cmd].category == catNum)
+                for (let cmd in commands) {
+                    if (catNum == -1 || commands[cmd].category == catNum)
                         rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
                 }
-                return {content: rv}
+                return { content: rv }
             }
             let files = []
             let commandsToUse = commands
-            if(args[0]){
+            if (args[0]) {
                 commandsToUse = {}
-                if(args[0] == "?"){
+                if (args[0] == "?") {
                     commandsToUse = commands
                 }
-                else{
-                    for(let cmd of args){
-                        if(!commands[cmd]) continue
+                else {
+                    for (let cmd of args) {
+                        if (!commands[cmd]) continue
                         commandsToUse[cmd] = commands[cmd]
                     }
                 }
             }
-            if(opts['json']){
-                return {content: JSON.stringify(commandsToUse)}
+            if (opts['json']) {
+                return { content: JSON.stringify(commandsToUse) }
             }
-            if(Object.keys(commandsToUse).length < 1){
+            if (Object.keys(commandsToUse).length < 1) {
                 return {
                     content: "No help can be given :("
                 }
             }
-            if(!fs.existsSync("help.html") || opts["n"] || args.length > 0){
+            if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
                 await msg.channel.send("generating new help file")
                 delete opts['n']
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
 ${styles}
 </style>`
-                for(let command in commandsToUse){
+                for (let command in commandsToUse) {
                     html += generateHTMLFromCommandHelp(command, commands[command])
                 }
                 fs.writeFileSync("help.html", html)
             }
-            if(!Object.keys(opts).length){
+            if (!Object.keys(opts).length) {
                 opts['p'] = true
             }
-            if(opts["p"] || opts['t']){
+            if (opts["p"] || opts['t']) {
                 opts["plain"] = true
             }
-            if(opts["m"]){
+            if (opts["m"]) {
                 opts["markdown"] = true
             }
-            if(opts["h"] || opts["html"] || Object.keys(opts).length === 0){
+            if (opts["h"] || opts["html"] || Object.keys(opts).length === 0) {
                 files.push({
                     attachment: "help.html",
                     name: "help.html",
                     description: "help",
                     delete: false
                 })
-                if(opts["h"])
+                if (opts["h"])
                     delete opts["h"]
-                if(opts["html"])
+                if (opts["html"])
                     delete opts["html"]
             }
             const exts = {
@@ -5267,15 +5270,15 @@ ${styles}
                 "man": "1",
                 "commonmark": "md"
             }
-            for(let fmt in opts){
-                if(fmt.length == 1) continue
-                if(!fmt.match(/^\w+$/)) continue
-		//@ts-ignore
+            for (let fmt in opts) {
+                if (fmt.length == 1) continue
+                if (!fmt.match(/^\w+$/)) continue
+                //@ts-ignore
                 const ext = exts[fmt] || fmt
-                try{
+                try {
                     execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
                 }
-                catch(err){
+                catch (err) {
                     continue
                 }
                 files.push({
@@ -5284,14 +5287,14 @@ ${styles}
                     description: "help"
                 })
             }
-            if(fs.existsSync("output.txt")){
+            if (fs.existsSync("output.txt")) {
                 let content = fs.readFileSync("output.txt", "utf-8")
                 fs.rmSync('output.txt')
                 return {
                     content: `\`\`\`\n${content}\n\`\`\``
                 }
             }
-            if(files.length > 0){
+            if (files.length > 0) {
                 return {
                     files: files
                 }
@@ -5329,7 +5332,7 @@ ${styles}
 
     },
     code: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             return {
                 content: "https://github.com/euro20179/bircle"
             }
@@ -5338,27 +5341,27 @@ ${styles}
 
     },
     WHITELIST: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let user = args[0]
-            if(!user){
+            if (!user) {
                 return {
                     content: "no user given"
                 }
             }
             let addOrRemove = args[1]
-            if(!["a", "r"].includes(addOrRemove)){
+            if (!["a", "r"].includes(addOrRemove)) {
                 return {
                     content: "did not specify, (a)dd or (r)emove"
                 }
             }
             let cmds = args.slice(2)
-            if(!cmds.length){
+            if (!cmds.length) {
                 return {
                     content: "no cmd given"
                 }
             }
             user = await fetchUser(msg.guild, user)
-            if(addOrRemove == "a"){
+            if (addOrRemove == "a") {
                 addToPermList(WHITELIST, "whitelists", user, cmds)
 
                 return {
@@ -5381,27 +5384,27 @@ ${styles}
 
     },
     BLACKLIST: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let user = args[0]
-            if(!user){
+            if (!user) {
                 return {
                     content: "no user given"
                 }
             }
             let addOrRemove = args[1]
-            if(!["a", "r"].includes(addOrRemove)){
+            if (!["a", "r"].includes(addOrRemove)) {
                 return {
                     content: "did not specify, (a)dd or (r)emove"
                 }
             }
             let cmds = args.slice(2)
-            if(!cmds.length){
+            if (!cmds.length) {
                 return {
                     content: "no cmd given"
                 }
             }
             user = await fetchUser(msg.guild, user)
-            if(addOrRemove == "a"){
+            if (addOrRemove == "a") {
                 addToPermList(BLACKLIST, "blacklists", user, cmds)
 
                 return {
@@ -5424,7 +5427,7 @@ ${styles}
 
     },
     END: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             await msg.channel.send("STOPPING")
             client.destroy()
             return {
@@ -5438,25 +5441,25 @@ ${styles}
 
     },
     "last-run": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let lastRun;
             let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
-            if(fs.existsSync("./command-results/last-run")){
+            if (fs.existsSync("./command-results/last-run")) {
                 let data = fs.readFileSync("./command-results/last-run", "utf-8")
                 lastRun = new Date()
                 lastRun.setTime(Number(data))
             }
-            else{
+            else {
                 lastRun = new Date(Date.now())
             }
             let diff = Date.now() - lastRun.getTime()
             let milliseconds = Math.floor(diff % 1000)
-            let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/,"0$1")
-            let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/,"0$1")
-            let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/,"0$1")
-            let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/,"0$1")
+            let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/, "0$1")
+            let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
+            let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
+            let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
             fs.writeFileSync("./command-results/last-run", String(Date.now()))
-            return {content: format(fmt, {T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / ( 1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString()})}
+            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / (1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString() }) }
         },
         help: {
             arguments: {
@@ -5470,39 +5473,39 @@ ${styles}
 
     },
     "rand-user": {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let member
-            if(!opts['f'])
+            if (!opts['f'])
                 member = (msg.channel as TextChannel).guild.members.cache.random()
-            if(!member)
+            if (!member)
                 member = (await (msg.channel as TextChannel).guild.members.fetch()).random()
             let fmt = args.join(" ") || "%u (%n)"
-	    if(!member) return {content: "No member found"}
+            if (!member) return { content: "No member found" }
             let user = member?.user
-	    if(!user) return {content: "No user found"}
+            if (!user) return { content: "No user found" }
             return {
-                    content: format(fmt,
-                                    {
-					id:  user.id || "#!N/A",
-					username: user.username || "#!N/A",
-					nickname: member.nickname || "#!N/A",
-					"0xcolor": member.displayHexColor.toString() || "#!N/A",
-					color: member.displayColor.toString() || "#!N/A",
-					created: user.createdAt.toString() || "#!N/A",
-					joined: member.joinedAt?.toString() || "#!N/A",
-					boost: member.premiumSince?.toString() || "#!N/A",
-                                        i: user.id || "#!N/A",
-                                        u: user.username || "#!N/A",
-                                        n: member.nickname || "#!N/A",
-                                        X: member.displayHexColor.toString() || "#!N/A",
-                                        x: member.displayColor.toString() || "#!N/A",
-                                        c: user.createdAt.toString() || "#!N/A",
-                                        j: member.joinedAt?.toString() || "#!N/A",
-                                        b: member.premiumSince?.toString() || "#!N/A"
-                                    }
-                    )
+                content: format(fmt,
+                    {
+                        id: user.id || "#!N/A",
+                        username: user.username || "#!N/A",
+                        nickname: member.nickname || "#!N/A",
+                        "0xcolor": member.displayHexColor.toString() || "#!N/A",
+                        color: member.displayColor.toString() || "#!N/A",
+                        created: user.createdAt.toString() || "#!N/A",
+                        joined: member.joinedAt?.toString() || "#!N/A",
+                        boost: member.premiumSince?.toString() || "#!N/A",
+                        i: user.id || "#!N/A",
+                        u: user.username || "#!N/A",
+                        n: member.nickname || "#!N/A",
+                        X: member.displayHexColor.toString() || "#!N/A",
+                        x: member.displayColor.toString() || "#!N/A",
+                        c: user.createdAt.toString() || "#!N/A",
+                        j: member.joinedAt?.toString() || "#!N/A",
+                        b: member.premiumSince?.toString() || "#!N/A"
+                    }
+                )
             }
         },
         help: {
@@ -5521,23 +5524,23 @@ ${styles}
         category: CommandCategory.UTIL
     },
     "role-info": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let search = args.join(" ").toLowerCase()
             let roles = await msg.guild?.roles.fetch()
-            if(!roles){
-                return {content: "No roles found"}
+            if (!roles) {
+                return { content: "No roles found" }
             }
             let foundRoles = roles.filter(r => r.name.toLowerCase() == search ? true : false)
-            if(!foundRoles){
+            if (!foundRoles) {
                 foundRoles = roles.filter(r => r.name.toLowerCase().match(search) ? true : false)
             }
-            if(!foundRoles){
+            if (!foundRoles) {
                 foundRoles = roles.filter(r => r.id == search ? true : false)
             }
 
             let role = foundRoles.at(0)
-            if(!role){
-                return {content: "Could not find role"}
+            if (!role) {
+                return { content: "Could not find role" }
             }
             let embed = new MessageEmbed()
             embed.setTitle(role.name)
@@ -5547,21 +5550,21 @@ ${styles}
             embed.addField("emoji", role.unicodeEmoji || "None", true)
             embed.addField("created", role.createdAt.toTimeString(), true)
             embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
-            return {embeds: [embed] || "none"}
+            return { embeds: [embed] || "none" }
         },
         category: CommandCategory.UTIL
     },
     "channel-info": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let channel
-            if(!args.join(" ").trim().length)
-            channel = msg.channel
+            if (!args.join(" ").trim().length)
+                channel = msg.channel
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
             let pinned = await channel?.messages?.fetchPinned()
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
             embed.setTitle(channel.name)
-            if(pinned){
+            if (pinned) {
                 let pinCount = pinned.size
                 let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
                 embed.addField("Pin Count", String(pinCount), true)
@@ -5571,56 +5574,56 @@ ${styles}
             embed.addField("Days since Creation", String(daysSinceCreation), true)
             embed.addField("Id", channel.id.toString(), true)
             embed.addField("Type", channel.type, true)
-            if(channel.topic){
+            if (channel.topic) {
                 embed.addField("Topic", channel.topic, true)
             }
-            if(channel.nsfw){
+            if (channel.nsfw) {
                 embed.addField("NSFW?", channel.nsfw, true)
             }
-            if(channel.position){
+            if (channel.position) {
                 embed.addField("Position", channel.position.toString(), true)
             }
-            return {embeds: [embed]}
+            return { embeds: [embed] }
         },
         category: CommandCategory.UTIL
     },
     "user-info": {
-        run: async(msg: Message, args: ArgumentList) => {
-            if(!args[0]){
+        run: async (msg: Message, args: ArgumentList) => {
+            if (!args[0]) {
                 return {
                     content: "no member given!"
                 }
             }
             const member = await fetchUser(msg.guild, args[0])
-            if(!member){
+            if (!member) {
                 return {
                     content: "member not found"
                 }
             }
             const user = member.user
-            if(args[1]){
+            if (args[1]) {
                 const fmt = args.slice(1).join(" ")
                 return {
                     content: format(fmt
-                                    .replaceAll("{id}", user.id || "#!N/A")
-                                    .replaceAll("{username}", user.username || "#!N/A")
-                                    .replaceAll("{nickname}", member.nickname || "#!N/A")
-                                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                                    .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
-                                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
-                                    {
-                                        i: user.id || "#!N/A",
-                                        u: user.username || "#!N/A",
-                                        n: member.nickname || "#!N/A",
-                                        X: member.displayHexColor.toString() || "#!N/A",
-                                        x: member.displayColor.toString() || "#!N/A",
-                                        c: user.createdAt.toString() || "#!N/A",
-                                        j: member.joinedAt.toString() || "#!N/A",
-                                        b: member.premiumSince?.toString() || "#!N/A",
-                                        a: user.avatarURL() || "#!N/A"
-                                    }
+                        .replaceAll("{id}", user.id || "#!N/A")
+                        .replaceAll("{username}", user.username || "#!N/A")
+                        .replaceAll("{nickname}", member.nickname || "#!N/A")
+                        .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                        .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                        .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                        .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                        .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                        {
+                            i: user.id || "#!N/A",
+                            u: user.username || "#!N/A",
+                            n: member.nickname || "#!N/A",
+                            X: member.displayHexColor.toString() || "#!N/A",
+                            x: member.displayColor.toString() || "#!N/A",
+                            c: user.createdAt.toString() || "#!N/A",
+                            j: member.joinedAt.toString() || "#!N/A",
+                            b: member.premiumSince?.toString() || "#!N/A",
+                            a: user.avatarURL() || "#!N/A"
+                        }
                     )
                 }
             }
@@ -5673,7 +5676,7 @@ valid formats:<br>
 
     },
     "rand-emote": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let amount = parseInt(String(opts['count'] || opts['c'])) || 1
@@ -5681,24 +5684,24 @@ valid formats:<br>
             sep = String(sep)
             let send = ""
             let emojis = await msg.guild?.emojis.fetch()
-            if(!emojis){
-                return {content: "Could not find emojis"}
+            if (!emojis) {
+                return { content: "Could not find emojis" }
             }
-            if(Boolean(opts['a'])){
+            if (Boolean(opts['a'])) {
                 emojis = emojis.filter(e => e.animated ? true : false)
 
             }
-            else if(Boolean(opts['A'])){
+            else if (Boolean(opts['A'])) {
                 emojis = emojis.filter(e => e.animated ? false : true)
             }
-            else if(opts['f']){
-                emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), {id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier}, {timeout: 1000})))
+            else if (opts['f']) {
+                emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), { id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier }, { timeout: 1000 })))
             }
-            for(let i = 0; i < amount; i++){
+            for (let i = 0; i < amount; i++) {
                 send += String(emojis.random())
                 send += sep
             }
-            return {content: send}
+            return { content: send }
         },
         help: {
             info: "Gives a random server emoji",
@@ -5725,38 +5728,38 @@ valid formats:<br>
         category: CommandCategory.UTIL
 
     },
-    "emote-use":{
-        run: async(msg, args) => {
+    "emote-use": {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let serverOnly = opts['S'] ? false : true
             let data = generateEmoteUseFile()
-                        .split("\n")
-                        .map(v => v.split(":"))
-                        .filter(v => v[0])
+                .split("\n")
+                .map(v => v.split(":"))
+                .filter(v => v[0])
             let newData: [string | GuildEmoji, string][] = []
             let cachedEmojis = await msg.guild?.emojis.fetch()
-            for(let i = 0; i < data.length; i++){
+            for (let i = 0; i < data.length; i++) {
                 let emoji: string | GuildEmoji | undefined | null = data[i][0];
-                try{
-                    emoji =  cachedEmojis?.find((v) => v.id == data[i][0])
+                try {
+                    emoji = cachedEmojis?.find((v) => v.id == data[i][0])
                 }
-                catch(err){
-                    if(serverOnly) continue
+                catch (err) {
+                    if (serverOnly) continue
                     emoji = data[i][0]
                 }
-                if(!emoji){
-                    if(serverOnly) continue
+                if (!emoji) {
+                    if (serverOnly) continue
                     emoji = data[i][0]
                 }
                 newData.push([emoji, data[i][1]])
             }
             let finalData = newData
-                            .sort((a, b) => Number(a[1]) - Number(b[1]))
-                            .reverse()
-                            .map(v => `${v[0]}: ${v[1]}`)
-                            .join("\n")
-            return {content: finalData}
+                .sort((a, b) => Number(a[1]) - Number(b[1]))
+                .reverse()
+                .map(v => `${v[0]}: ${v[1]}`)
+                .join("\n")
+            return { content: finalData }
         },
         help: {
             options: {
@@ -5769,16 +5772,16 @@ valid formats:<br>
 
     },
     "cmd-use": {
-        run: async(_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             let data = generateCmdUseFile()
-                        .split("\n")
-                        .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
-                        .filter(v => v[0] && ! isNaN(Number(v[1]))) // remove empty strings
-			//@ts-ignore
-                        .sort((a, b) => a[1] - b[1]) // sort from least to greatest
-                        .reverse() //sort from greatest to least
-                        .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
-                        .join("\n")
+                .split("\n")
+                .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
+                .filter(v => v[0] && !isNaN(Number(v[1]))) // remove empty strings
+                //@ts-ignore
+                .sort((a, b) => a[1] - b[1]) // sort from least to greatest
+                .reverse() //sort from greatest to least
+                .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
+                .join("\n")
             return {
                 content: data
             }
@@ -5787,70 +5790,70 @@ valid formats:<br>
 
     },
     invite: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let invites = await msg.guild?.invites.fetch()
-            if(invites?.at(0)?.url){
-                return {content: invites.at(0)?.url}
+            if (invites?.at(0)?.url) {
+                return { content: invites.at(0)?.url }
             }
-            return {content: "No invite found"}
+            return { content: "No invite found" }
         },
         category: CommandCategory.UTIL
     },
     "non-assigned-roles": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             await msg.guild.members.fetch()
             let roles = await msg.guild?.roles.fetch()
             let rolesNonAssigned: any[] = []
             roles?.forEach(r => {
-                if(r.members.size < 1)
+                if (r.members.size < 1)
                     rolesNonAssigned.push(r.name)
             })
-            return {content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members`}
+            return { content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members` }
         },
         category: CommandCategory.UTIL
     },
     head: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
             let argText = args.join(" ")
-            return {content: argText.split("\n").slice(0, count).join("\n")}
+            return { content: argText.split("\n").slice(0, count).join("\n") }
         },
         help: {
             info: "Say the first 10 lines of some text",
             arguments: {
-            text: {
-                description: "Text"
-            }
+                text: {
+                    description: "Text"
+                }
             },
             options: {
-            count:{
-                description: "The amount of lines to show"
-            }
+                count: {
+                    description: "The amount of lines to show"
+                }
             }
         },
         category: CommandCategory.UTIL
     },
     grep: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let regex = args[0]
-            if(!regex){
+            if (!regex) {
                 return {
                     content: "no search given"
                 }
             }
             let data = args.slice(1).join(" ").trim()
-            if(!data){
-                if(msg.attachments?.at(0)){
+            if (!data) {
+                if (msg.attachments?.at(0)) {
                     data = downloadSync(msg.attachments?.at(0)?.attachment).toString()
                 }
-                else return {content: "no data given to search through"}
+                else return { content: "no data given to search through" }
             }
             let match = data.matchAll(new RegExp(regex, "gm"))
             let finds = ""
-            for(let find of match){
-                if(find[1]){
+            for (let find of match) {
+                if (find[1]) {
                     finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
                 }
                 else {
@@ -5877,14 +5880,14 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     alias: {
-        run: async(msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let cmd
             [cmd, ...args] = args
             let realCmd = args[0]
             args = args.slice(1)
             console.log(aliases[cmd])
-            if(aliases[cmd]){
-                return {content: `Failed to add "${cmd}", it already exists`}
+            if (aliases[cmd]) {
+                return { content: `Failed to add "${cmd}", it already exists` }
             }
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
             aliases = createAliases()
@@ -5895,47 +5898,47 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "!!": {
-        run: async(_msg: Message, args: ArgumentList) => {
-	    let opts;
-	    [opts, args] = getOpts(args)
-	    if(opts['check'] || opts['print'] || opts['see'])
-		return {content: `\`${lastCommand.content}\``}
-            if(!lastCommand){
-                return {content: "You ignorance species, there have not been any commands run."}
+        run: async (_msg: Message, args: ArgumentList) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if (opts['check'] || opts['print'] || opts['see'])
+                return { content: `\`${lastCommand.content}\`` }
+            if (!lastCommand) {
+                return { content: "You ignorance species, there have not been any commands run." }
             }
             return await doCmd(lastCommand, true) as CommandReturn
         },
         help: {
             info: "Run the last command that was run",
             options: {
-            see: {
-                description: "Just echo the last command that was run instead of running it"
-            }
+                see: {
+                    description: "Just echo the last command that was run instead of running it"
+                }
             }
         },
         category: CommandCategory.META
     },
     "psnipe": {
-        run: async(_msg, _args) => {
-            if(!purgeSnipe){
-            return {content: "Nothing has been purged yet"}
+        run: async (_msg, _args) => {
+            if (!purgeSnipe) {
+                return { content: "Nothing has been purged yet" }
             }
             let content = ""
             let files: CommandFile[] = []
             let embeds: MessageEmbed[] = []
-            for(let m of purgeSnipe){
-            if(m.content){
-                content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
+            for (let m of purgeSnipe) {
+                if (m.content) {
+                    content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
+                }
+                let mAttachments = m.attachments?.toJSON()
+                if (mAttachments) {
+                    files = files.concat(mAttachments as CommandFile[])
+                }
+                if (m.embeds) {
+                    embeds = embeds.concat(m.embeds)
+                }
             }
-            let mAttachments = m.attachments?.toJSON()
-            if(mAttachments){
-                files = files.concat(mAttachments as CommandFile[])
-            }
-            if(m.embeds){
-                embeds = embeds.concat(m.embeds)
-            }
-            }
-            return {content: content ? content : undefined, files: files, embeds: embeds}
+            return { content: content ? content : undefined, files: files, embeds: embeds }
         },
         help: {
             info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
@@ -5943,151 +5946,153 @@ valid formats:<br>
         category: CommandCategory.FUN
     },
     snipe: {
-        run: async(_msg: Message, args: ArgumentList) => {
-	    let snipeC = ((1 - (parseInt(args[0]) - 1)) || 0)
-	    if(snipeC >= 5){
-		return {content: "it only goes back 5"}
-	    }
-	    if(snipeC > snipes.length){
-		return {content: "Not that many messages have been deleted yet"}
-	    }
-	    if(!snipes.length){
-		return {content: "Nothing has been deleted"}
-	    }
-	    let snipe = snipes[snipeC]
-	    if(!snipe){
-		return {content: "no snipe"}
-	    }
-	    let rv: CommandReturn = {deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``}
-	    let files = snipe.attachments?.toJSON()
-	    if(files){
-		rv["files"] = files as CommandFile[]
-	    }
-	    if(snipe.embeds){
-		rv["embeds"] = snipe.embeds
-	    }
+        run: async (_msg: Message, args: ArgumentList) => {
+            let snipeC = ((1 - (parseInt(args[0]) - 1)) || 0)
+            if (snipeC >= 5) {
+                return { content: "it only goes back 5" }
+            }
+            if (snipeC > snipes.length) {
+                return { content: "Not that many messages have been deleted yet" }
+            }
+            if (!snipes.length) {
+                return { content: "Nothing has been deleted" }
+            }
+            let snipe = snipes[snipeC]
+            if (!snipe) {
+                return { content: "no snipe" }
+            }
+            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\`` }
+            let files = snipe.attachments?.toJSON()
+            if (files) {
+                rv["files"] = files as CommandFile[]
+            }
+            if (snipe.embeds) {
+                rv["embeds"] = snipe.embeds
+            }
             return rv
         },
         help: {
             info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
             arguments: {
-            number: {
-                description: "the message you want to see"
-            }
+                number: {
+                    description: "the message you want to see"
+                }
             }
         },
         category: CommandCategory.FUN
     },
     ping: {
-        run: async(msg, _args) => {
-            return {content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`}
+        run: async (msg, _args) => {
+            return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms` }
         },
         category: CommandCategory.META
     },
     version: {
-        run: async(_msg, args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(opts['l']){
-            return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
+            if (opts['l']) {
+                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n") }
             }
             let fmt = args[0] || "%v"
             console.log(VERSION)
-            let {major, minor, bug, part, alpha, beta} = VERSION
+            let { major, minor, bug, part, alpha, beta } = VERSION
             let mainDisplay = (() => {
-            let d = `${major}.${minor}.${bug}`
-            if(part)
-                d += `.${part}`
-            if(alpha)
-                d = `A.${d}`
-            if(beta)
-                d = `B.${d}`
-            return d
+                let d = `${major}.${minor}.${bug}`
+                if (part)
+                    d += `.${part}`
+                if (alpha)
+                    d = `A.${d}`
+                if (beta)
+                    d = `B.${d}`
+                return d
             })()
-            return {content: format(fmt, {
-            v: mainDisplay,
-            M: String(major),
-            m: String(minor),
-            b: String(bug),
-            p: part,
-            A: String(alpha),
-            B: String(beta)
-            })}
+            return {
+                content: format(fmt, {
+                    v: mainDisplay,
+                    M: String(major),
+                    m: String(minor),
+                    b: String(bug),
+                    p: part,
+                    A: String(alpha),
+                    B: String(beta)
+                })
+            }
         },
         help: {
             info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>",
             options: {
-            l: {
-                description: "List all versions"
-            }
+                l: {
+                    description: "List all versions"
+                }
             }
         },
         category: CommandCategory.META
     },
     changelog: {
-        run: async(_msg, args) => {
-            let  opts;
+        run: async (_msg, args) => {
+            let opts;
             [opts, args] = getOpts(args)
-            if(opts['l']){
-            return {content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n")}
+            if (opts['l']) {
+                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n") }
             }
             let version = args[0]
-            if(!args[0]){
+            if (!args[0]) {
                 version = (() => {
                     let d = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
-                    if(VERSION.part)
-                    d += `.${VERSION.part}`
-                    if(VERSION.alpha)
-                    d = `A.${d}`
-                    if(VERSION.beta)
-                    d = `B.${d}`
+                    if (VERSION.part)
+                        d += `.${VERSION.part}`
+                    if (VERSION.alpha)
+                        d = `A.${d}`
+                    if (VERSION.beta)
+                        d = `B.${d}`
                     return d
                 })()
             }
-            if(!fs.existsSync(`changelog/${version}.md`)){
-            return {content: `${version} does not exist`}
+            if (!fs.existsSync(`changelog/${version}.md`)) {
+                return { content: `${version} does not exist` }
             }
-            if(opts['f']){
-            return {files: [{attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}`}], deleteFiles: false}
+            if (opts['f']) {
+                return { files: [{ attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}` }], deleteFiles: false }
             }
-            return {content: fs.readFileSync(`changelog/${version}.md`, "utf-8")}
+            return { content: fs.readFileSync(`changelog/${version}.md`, "utf-8") }
         },
         help: {
             info: "Get changelog for a version",
             options: {
-            l: {
-                description: "List all versions"
-            },
-            f: {
-                description: "Get changelog file instead of text"
-            }
+                l: {
+                    description: "List all versions"
+                },
+                f: {
+                    description: "Get changelog file instead of text"
+                }
             }
         },
         category: CommandCategory.META
     },
     spams: {
-        run: async(_msg, _args) => {
+        run: async (_msg, _args) => {
             let data = ""
-            for(let id in SPAMS){
-            data += `${id}\n`
+            for (let id in SPAMS) {
+                data += `${id}\n`
             }
-            return {content: data || "No spams"}
+            return { content: data || "No spams" }
         },
         category: CommandCategory.META
     }
 }
 
-function createAliases(){
-    let a: {[key: string]: Array<string>} = {}
+function createAliases() {
+    let a: { [key: string]: Array<string> } = {}
     let data = fs.readFileSync("command-results/alias", "utf-8")
-    for (let cmd of data.split(';END')){
-        if(!cmd.trim()) continue
+    for (let cmd of data.split(';END')) {
+        if (!cmd.trim()) continue
         let [_, ...args] = cmd.split(":")
-	//@ts-ignore
-	args = args.join(":")
-	//@ts-ignore
+        //@ts-ignore
+        args = args.join(":")
+        //@ts-ignore
         args = args.trim()
-	//@ts-ignore
+        //@ts-ignore
         let [actualCmd, ...rest] = args.split(" ")
         actualCmd = actualCmd.trim()
         a[actualCmd] = rest
@@ -6096,30 +6101,30 @@ function createAliases(){
 }
 let aliases = createAliases()
 
-const rest = new REST({version: "9"}).setToken(token);
+const rest = new REST({ version: "9" }).setToken(token);
 
 (async () => {
     try {
-      console.log('Started refreshing application (/) commands.');
+        console.log('Started refreshing application (/) commands.');
 
-      await rest.put(
-        Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
-        { body: slashCommands },
-      );
+        await rest.put(
+            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+            { body: slashCommands },
+        );
 
-      console.log('Successfully reloaded application (/) commands.');
+        console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
-      console.error(error);
+        console.error(error);
     }
 })();
 
-async function doCmd(msg: Message, returnJson=false){
+async function doCmd(msg: Message, returnJson = false) {
     let command: string
     let args: Array<string>
-    let doFirsts: {[item: number]: string}
-    [command, args, doFirsts] = await parseCmd({msg: msg})
+    let doFirsts: { [item: number]: string }
+    [command, args, doFirsts] = await parseCmd({ msg: msg })
     let idxNo = 0;
-    for(let idx in doFirsts){
+    for (let idx in doFirsts) {
         let oldContent = msg.content
         let cmd = doFirsts[idx]
         msg.content = cmd
@@ -6136,7 +6141,7 @@ async function doCmd(msg: Message, returnJson=false){
         //@ts-ignore
         args[idx] = args[idx].replaceAll("%{}", data)
         args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
-        for(let m of args[idx].matchAll(/%\{(\d+)\}/g)){
+        for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
             args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
         }
         msg.content = oldContent
@@ -6146,30 +6151,30 @@ async function doCmd(msg: Message, returnJson=false){
     let canRun = true
     let exists = true
     let rv: CommandReturn;
-    if(!commands[command]){
-        rv = {content: `${command} does not exist`}
+    if (!commands[command]) {
+        rv = { content: `${command} does not exist` }
         exists = false
     }
-    if(exists){
-        if(commands[command].permCheck){
+    if (exists) {
+        if (commands[command].permCheck) {
             canRun = commands[command].permCheck?.(msg) ?? true
         }
-        if(WHITELIST[msg.author.id]?.includes(command)){
+        if (WHITELIST[msg.author.id]?.includes(command)) {
             canRun = true
         }
-        if(BLACKLIST[msg.author.id]?.includes(command)){
+        if (BLACKLIST[msg.author.id]?.includes(command)) {
             canRun = false
         }
-        if(canRun){
+        if (canRun) {
             rv = await commands[command].run(msg, args)
             //if normal command, it counts as use
             addToCmdUse(command)
         }
-        else rv = {content: "You do not have permissions to run this command"}
+        else rv = { content: "You do not have permissions to run this command" }
     }
-    else if(aliases[command]){
+    else if (aliases[command]) {
         //if it's an alias, it counts as use
-        if(CMDUSE[command]){
+        if (CMDUSE[command]) {
             CMDUSE[command] += 1
         } else {
             CMDUSE[command] = 1
@@ -6178,13 +6183,13 @@ async function doCmd(msg: Message, returnJson=false){
         command = aliases[command][0]
         let expansions = 0
         //finds the original command
-        while(aliases[command]?.[0]){
+        while (aliases[command]?.[0]) {
             expansions++
-            if(expansions > 1000){
+            if (expansions > 1000) {
                 await msg.channel.send("Alias expansion limit reached")
                 return {}
             }
-            if(CMDUSE[command]){
+            if (CMDUSE[command]) {
                 CMDUSE[command] += 1
             } else {
                 CMDUSE[command] = 1
@@ -6199,105 +6204,105 @@ async function doCmd(msg: Message, returnJson=false){
         msg.content = msg.content.replaceAll(/(?<!\\)\{args#\}/g, String(args.length))
         msg.content = msg.content.replaceAll(/(?<!\\)\{args(\d+)?\.\.\.\}/g, (...repl) => {
             let argStart = parseInt(repl[1])
-            if(argStart){
+            if (argStart) {
                 return args.slice(argStart - 1).join(" ")
             }
-            else{
+            else {
                 return args.join(" ")
             }
         })
         msg.content = msg.content.replaceAll(/(?<!\\)\{arg(\d+)(..\d+)?\}/g, (...repl) => {
             let argNo = parseInt(repl[1])
             let argTo = parseInt(repl[2]?.replace(/\./g, ""))
-            if(argTo){
+            if (argTo) {
                 return args.slice(argNo - 1, argTo).join(" ")
             }
-            else{
+            else {
                 return args[argNo - 1]
             }
         })
         msg.content = msg.content.replaceAll("{sender}", String(msg.author))
         msg.content = msg.content.replaceAll("{sendername}", String(msg.author.username))
         msg.content = msg.content.replaceAll("{channel}", String(msg.channel))
-        if(oldC == msg.content){
+        if (oldC == msg.content) {
             msg.content = msg.content + ` ${args.join(" ")}`
         }
         rv = await doCmd(msg, true) as CommandReturn
     }
     else {
-        rv = {content: `${command} does not exist`}
+        rv = { content: `${command} does not exist` }
     }
-    if(!illegalLastCmds.includes(command)){
+    if (!illegalLastCmds.includes(command)) {
         lastCommand = msg
     }
-    if(returnJson){
+    if (returnJson) {
         return rv;
     }
-    if(!Object.keys(rv).length){
+    if (!Object.keys(rv).length) {
         return
     }
-    if(rv.deleteFiles === undefined){
+    if (rv.deleteFiles === undefined) {
         rv.deleteFiles = true
     }
-    if(rv.delete && msg.deletable){
+    if (rv.delete && msg.deletable) {
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
-    if(rv.noSend){
+    if (rv.noSend) {
         return
     }
-    if((rv.content?.length || 0) >= 2000){
+    if ((rv.content?.length || 0) >= 2000) {
         fs.writeFileSync("out", rv.content as string)
         delete rv["content"]
-        if(rv.files){
-            rv.files.push({attachment: "out", name: "cmd.txt", description: "command output too long"})
-        } else{
+        if (rv.files) {
+            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
+        } else {
             rv.files = [{
                 attachment: "out", name: "cmd.txt", description: "command output too long"
             }]
         }
     }
-    if(!rv.content){
+    if (!rv.content) {
         delete rv['content']
     }
-    else{
-        if(userVars[msg.author.id]){
+    else {
+        if (userVars[msg.author.id]) {
             userVars[msg.author.id][`_!`] = () => rv.content
         }
         else
-            userVars[msg.author.id] = {"_!": () => rv.content}
+            userVars[msg.author.id] = { "_!": () => rv.content }
         vars[`_!`] = () => rv.content
     }
     let location: any = msg.channel
-    if(rv['dm']){
+    if (rv['dm']) {
         location = msg.author
     }
-    try{
+    try {
         await location.send(rv)
     }
-    catch(err){
+    catch (err) {
         console.log(err)
         await location.send("broken")
     }
-    if(rv.files){
-        for(let file of rv.files){
-            if(file.delete !== false && rv.deleteFiles)
+    if (rv.files) {
+        for (let file of rv.files) {
+            if (file.delete !== false && rv.deleteFiles)
                 fs.rmSync(file.attachment)
         }
     }
 }
 
-client.on("guildMemberAdd", async(m) => {
-    try{
+client.on("guildMemberAdd", async (m) => {
+    try {
         let role = await m.guild.roles.fetch("427570287232417793")
-        if(role)
+        if (role)
             m.roles.add(role)
     }
-    catch(err){
+    catch (err) {
         console.log(err)
     }
 })
 
-client.on('ready', async() => {
+client.on('ready', async () => {
 
     client.guilds.fetch("427567510611820544").then(guild => {
         guild.members.fetch("334538784043696130").then(user => {
@@ -6305,8 +6310,8 @@ client.on('ready', async() => {
                 dmChannel.send("ONLINE").then(console.log).catch(console.log)
             }).catch(console.log)
         }).catch(console.log)
-        if(prefix != 'd['){
-            for(let member of ["334538784043696130"]){
+        if (prefix != 'd[') {
+            for (let member of ["334538784043696130"]) {
                 guild.members.fetch(member).then(user => {
                     user.createDM().then(dmChannel => {
                         dmChannel.send(`USERBOT ONLINE\nVERSION: ${VERSION.major}.${VERSION.minor}.${VERSION.bug}${VERSION.part ? "." + VERSION.part : ""}`).then(() => console.log(`sent to: ${member}`)).catch(console.log)
@@ -6318,49 +6323,49 @@ client.on('ready', async() => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async(m) => {
-    if(m.author?.id != client.user?.id){
-	snipes.push(m)
-	if(snipes.length > 5){
-	    snipes = snipes.filter((_, i) => i != 0)
-	}
+client.on("messageDelete", async (m) => {
+    if (m.author?.id != client.user?.id) {
+        snipes.push(m)
+        if (snipes.length > 5) {
+            snipes = snipes.filter((_, i) => i != 0)
+        }
     }
 })
 
-client.on("messageDeleteBulk", async(m) => {
+client.on("messageDeleteBulk", async (m) => {
     purgeSnipe = m.toJSON()
-    if(purgeSnipe.length > 5)
-	purgeSnipe.length = 5
+    if (purgeSnipe.length > 5)
+        purgeSnipe.length = 5
 })
 
-client.on("messageCreate", async(m:  Message) => {
+client.on("messageCreate", async (m: Message) => {
     let content = m.content
-    if(!m.author.bot){
-        for(let match of content.matchAll(/<a?:([^:]+):([\d]+)>/g)){
+    if (!m.author.bot) {
+        for (let match of content.matchAll(/<a?:([^:]+):([\d]+)>/g)) {
             addToEmoteUse(match[2])
         }
     }
-    if(content == 'u!stop'){
+    if (content == 'u!stop') {
         m.content = '[stop'
         content = m.content
     }
-    if(content.slice(0, prefix.length) !== prefix){
+    if (content.slice(0, prefix.length) !== prefix) {
         return
     }
     await doCmd(m)
 })
 
-client.on("interactionCreate", async(interaction: Interaction) => {
-    if(interaction.isButton()){
-        if(interaction.customId == `button:${interaction.member?.user.id}`){
+client.on("interactionCreate", async (interaction: Interaction) => {
+    if (interaction.isButton()) {
+        if (interaction.customId == `button:${interaction.member?.user.id}`) {
             //@ts-ignore
-            if(BUTTONS[interaction.member?.user.id] !== undefined){
+            if (BUTTONS[interaction.member?.user.id] !== undefined) {
                 //@ts-ignore
-                if(typeof BUTTONS[interaction.member?.user.id] === "string"){
+                if (typeof BUTTONS[interaction.member?.user.id] === "string") {
                     //@ts-ignore
                     interaction.reply(String(BUTTONS[interaction.member?.user.id]))
                 }
-                else{
+                else {
                     //@ts-ignore
                     interaction.reply(String(BUTTONS[interaction.member?.user.id]()))
                 }
@@ -6368,103 +6373,103 @@ client.on("interactionCreate", async(interaction: Interaction) => {
                 delete BUTTONS[interaction.member?.user.id]
             }
         }
-        if(interaction.customId.match(/button\.(rock|paper|scissors)/)){
+        if (interaction.customId.match(/button\.(rock|paper|scissors)/)) {
             let intendedUser = interaction.customId.split(":")[1]
-            let table: {[k: string]: string} = {"rock": "paper", "paper": "scissors", "scissors": "rock"}
-            if(interaction.user.id != intendedUser){
-            interaction.reply({ephemeral: true, content: "You idiot, you already picked"})
-            return
+            let table: { [k: string]: string } = { "rock": "paper", "paper": "scissors", "scissors": "rock" }
+            if (interaction.user.id != intendedUser) {
+                interaction.reply({ ephemeral: true, content: "You idiot, you already picked" })
+                return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
             let [userChoice, ogUser] = BUTTONS[interaction.customId].split(":")
-            if(userChoice == oppChoice){
-            interaction.reply({content: "TIE"})
+            if (userChoice == oppChoice) {
+                interaction.reply({ content: "TIE" })
             }
-            else if(table[userChoice] == oppChoice){
-            interaction.reply({content: `<@${ogUser}> user wins!`})
+            else if (table[userChoice] == oppChoice) {
+                interaction.reply({ content: `<@${ogUser}> user wins!` })
             }
-            else{
-            interaction.reply({content: `<@${interaction.member?.user.id}> user wins!`})
+            else {
+                interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
             }
-            for(let b in BUTTONS){
-            if(b.match(/button\.(rock|paper|scissors)/)){
-                delete BUTTONS[b]
-            }
+            for (let b in BUTTONS) {
+                if (b.match(/button\.(rock|paper|scissors)/)) {
+                    delete BUTTONS[b]
+                }
             }
         }
     }
-    else if(interaction.isSelectMenu()){
-	if(interaction.customId.includes("poll")){
-	    let id = interaction.customId
-	    let key = interaction.values[0]
-	    if(POLLS[id]["votes"]){
-		//checks if the user voted
-		for(let key in POLLS[id]["votes"]){
-		    if (POLLS[id]["votes"][key]?.length){
-			if(POLLS[id]["votes"][key].includes(String(interaction.member?.user.id))){
-			    return
-			}
-		    }
-		}
+    else if (interaction.isSelectMenu()) {
+        if (interaction.customId.includes("poll")) {
+            let id = interaction.customId
+            let key = interaction.values[0]
+            if (POLLS[id]["votes"]) {
+                //checks if the user voted
+                for (let key in POLLS[id]["votes"]) {
+                    if (POLLS[id]["votes"][key]?.length) {
+                        if (POLLS[id]["votes"][key].includes(String(interaction.member?.user.id))) {
+                            return
+                        }
+                    }
+                }
 
-		if(POLLS[id]["votes"][key])
-		    POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
-		else
-		    POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
-	    }
-	    else POLLS[id]["votes"] = {[id]: [String(interaction.member?.user.id)]}
-	    let str = ""
-	    for(let key in POLLS[id]["votes"]){
-		str += `${key}: ${POLLS[id]["votes"][key].length}\n`
-	    }
-	    let dispId = id.slice(id.indexOf(":"))
-	    if(interaction.message instanceof Message){
-		if(str.length  > 1990 - POLLS[id]["title"].length){
-		    let fn = generateFileName("poll-reply", interaction.member?.user.id)
-		    fs.writeFileSync(fn, str)
-		    await interaction.message.edit({files: [{attachment: fn}], content: dispId})
-		    fs.rmSync(fn)
-		}
-		else {
-		    interaction.message.edit({content: `**${POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}`})
-		    interaction.reply({content: `${interaction.values.toString()} is your vote`, ephemeral: true})
-		}
-	    }
-	    else interaction.reply({content: interaction.values.toString(), ephemeral: true})
-	}
+                if (POLLS[id]["votes"][key])
+                    POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
+                else
+                    POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
+            }
+            else POLLS[id]["votes"] = { [id]: [String(interaction.member?.user.id)] }
+            let str = ""
+            for (let key in POLLS[id]["votes"]) {
+                str += `${key}: ${POLLS[id]["votes"][key].length}\n`
+            }
+            let dispId = id.slice(id.indexOf(":"))
+            if (interaction.message instanceof Message) {
+                if (str.length > 1990 - POLLS[id]["title"].length) {
+                    let fn = generateFileName("poll-reply", interaction.member?.user.id)
+                    fs.writeFileSync(fn, str)
+                    await interaction.message.edit({ files: [{ attachment: fn }], content: dispId })
+                    fs.rmSync(fn)
+                }
+                else {
+                    interaction.message.edit({ content: `**${POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}` })
+                    interaction.reply({ content: `${interaction.values.toString()} is your vote`, ephemeral: true })
+                }
+            }
+            else interaction.reply({ content: interaction.values.toString(), ephemeral: true })
+        }
     }
-    else if(interaction.isCommand()){
+    else if (interaction.isCommand()) {
         addToCmdUse(`/${interaction.commandName}`)
-        if(interaction.commandName == 'attack'){
+        if (interaction.commandName == 'attack') {
             let user = interaction.options.get("user")?.['value']
-	    if(!user){
-		await interaction.reply("NO USER GIVEN???")
-	    }
+            if (!user) {
+                await interaction.reply("NO USER GIVEN???")
+            }
             await interaction.reply(`Attacking ${user}...`)
             await interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`)
         }
-        else if(interaction.commandName == 'ping'){
+        else if (interaction.commandName == 'ping') {
             let user = interaction.options.get("user")?.value || `<@${interaction.user.id}>`
             let times = interaction.options.get("evilness")?.value || 1
             interaction.reply("Pinging...")
             SPAM_ALLOWED = true
-            for(let i = 0; i < times; i++){
-                if(!SPAM_ALLOWED) break
+            for (let i = 0; i < times; i++) {
+                if (!SPAM_ALLOWED) break
                 await interaction.channel?.send(`<@${user}> has been pinged`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
         }
-        else if(interaction.commandName == 'img'){
-	    //@ts-ignore
+        else if (interaction.commandName == 'img') {
+            //@ts-ignore
             let rv = await commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value])
             await interaction.reply(rv)
-            if(rv.files){
-                for(let file of rv.files){
+            if (rv.files) {
+                for (let file of rv.files) {
                     fs.rmSync(file.attachment)
                 }
             }
         }
-        else if(interaction.commandName == 'help'){
+        else if (interaction.commandName == 'help') {
             await interaction.reply({
                 content: "use `[help -n -plain`, slash commands r boring, so i will not support them that much\nbegrudgingly, here is the current help file",
                 files: [{
@@ -6474,124 +6479,124 @@ client.on("interactionCreate", async(interaction: Interaction) => {
                 }]
             })
         }
-        else if(interaction.commandName == "alias"){
-	    //@ts-ignore
+        else if (interaction.commandName == "alias") {
+            //@ts-ignore
             interaction.author = interaction.member?.user
             let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value].filter(v => String(v)) as string[]
             let args = interaction.options.get("text")?.value as string
-            if(args){
+            if (args) {
                 arglist = arglist.concat(args.split(" "))
             }
-	    //@ts-ignore
+            //@ts-ignore
             let rv = await commands['alias'].run(interaction, arglist)
             await interaction.reply(rv)
         }
-	else if(interaction.commandName == 'poll'){
-	    //@ts-ignore
-	    interaction.author = interaction?.member.user
-	    let argList = []
-	    let title = interaction.options.get("title")?.value
-	    let options = interaction.options.get("options")?.value as string
-	    if(title){
-		argList.push(`-title=${title}`)
-	    }
-	    argList.push(options)
-	    //@ts-ignore
-	    await commands['poll'].run(interaction, argList)
-	}
-	else if(interaction.commandName == 'ccmd'){
-	    //@ts-ignore
+        else if (interaction.commandName == 'poll') {
+            //@ts-ignore
+            interaction.author = interaction?.member.user
+            let argList = []
+            let title = interaction.options.get("title")?.value
+            let options = interaction.options.get("options")?.value as string
+            if (title) {
+                argList.push(`-title=${title}`)
+            }
+            argList.push(options)
+            //@ts-ignore
+            await commands['poll'].run(interaction, argList)
+        }
+        else if (interaction.commandName == 'ccmd') {
+            //@ts-ignore
             interaction.author = interaction.member?.user
             let arglist = [String(interaction.options.get("name")?.value), "say"] as string[]
             let args = interaction.options.get("text")?.value as string
-            if(args){
+            if (args) {
                 arglist = arglist.concat(args.split(" "))
             }
-	    //@ts-ignore
+            //@ts-ignore
             let rv = await commands['alias'].run(interaction, arglist)
             await interaction.reply(rv)
-	}
-	else if(interaction.commandName == 'rccmd'){
-	    //@ts-ignore
-	    interaction.author = interaction.member?.user
-	    //@ts-ignore
-	    let rv = await commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])
-	    await interaction.reply(rv)
-	}
-	else if(interaction.commandName == 'say'){
-	    await interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here")
-	}
-	else if(interaction.commandName == "dad"){
-	    //@ts-ignore
-	    interaction.author = interaction.member?.user
-	    //@ts-ignore
-	    let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
-	    await interaction.reply(rv)
-	}
-	else if(interaction.commandName == "add-8"){
-	    //@ts-ignore
-	    interaction.author = interaction.member?.user
-	    let resp = interaction.options.get("response")?.value as string
-	    //@ts-ignore
-	    let rv = await commands['add'].run(interaction, ["8", resp])
-	    await interaction.reply(rv)
-	}
-	else if(interaction.commandName == "add-wordle"){
-	    //@ts-ignore
-	    interaction.author = interaction.member?.user
-	    let resp = interaction.options.get("word")?.value as string
-	    if(resp.includes(" ")){
-		await interaction.reply("no spaces")
-		return
-	    }
-	    //@ts-ignore
-	    let rv = await commands['add'].run(interaction, ["wordle", resp])
-	    await interaction.reply(rv)
-	}
-	else if(interaction.commandName == 'rps'){
-	    let opponent = interaction.options.get("opponent")?.value
-	    let choice = interaction.options.get("choice")?.value as string
-	    let rock = new MessageButton({customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY"})
-	    let paper = new MessageButton({customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY"})
-	    let scissors = new MessageButton({customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY"})
-	    BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}`
-	    BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}`
-	    BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}`
-	    let row = new MessageActionRow({type: "BUTTON", components: [rock, paper, scissors]})
-	    interaction.reply({components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)`})
-	}
-	else if(interaction.commandName == "hangman"){
-	    let caseSensitive = interaction.options.get("case")?.value
-	    let lives = interaction.options.get("lives")?.value
-	    let user = interaction.options.get("user")?.value
-	    let cmdsArgs = []
-	    if(caseSensitive){
-		cmdsArgs.push("-case")
-	    }
-	    if(lives !== undefined){
-		cmdsArgs.push(`-lives=${lives}`)
-	    }
-	    cmdsArgs.push(user)
-	    //@ts-ignore
-	    interaction.author = interaction.member.user
-	    //@ts-ignore
-	    let rv = await commands['hangman'].run(interaction, cmdsArgs)
-	    await interaction.reply(rv)
-	}
+        }
+        else if (interaction.commandName == 'rccmd') {
+            //@ts-ignore
+            interaction.author = interaction.member?.user
+            //@ts-ignore
+            let rv = await commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])
+            await interaction.reply(rv)
+        }
+        else if (interaction.commandName == 'say') {
+            await interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here")
+        }
+        else if (interaction.commandName == "dad") {
+            //@ts-ignore
+            interaction.author = interaction.member?.user
+            //@ts-ignore
+            let rv = await commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
+            await interaction.reply(rv)
+        }
+        else if (interaction.commandName == "add-8") {
+            //@ts-ignore
+            interaction.author = interaction.member?.user
+            let resp = interaction.options.get("response")?.value as string
+            //@ts-ignore
+            let rv = await commands['add'].run(interaction, ["8", resp])
+            await interaction.reply(rv)
+        }
+        else if (interaction.commandName == "add-wordle") {
+            //@ts-ignore
+            interaction.author = interaction.member?.user
+            let resp = interaction.options.get("word")?.value as string
+            if (resp.includes(" ")) {
+                await interaction.reply("no spaces")
+                return
+            }
+            //@ts-ignore
+            let rv = await commands['add'].run(interaction, ["wordle", resp])
+            await interaction.reply(rv)
+        }
+        else if (interaction.commandName == 'rps') {
+            let opponent = interaction.options.get("opponent")?.value
+            let choice = interaction.options.get("choice")?.value as string
+            let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
+            let paper = new MessageButton({ customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY" })
+            let scissors = new MessageButton({ customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY" })
+            BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+            BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+            BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+            let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
+            interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` })
+        }
+        else if (interaction.commandName == "hangman") {
+            let caseSensitive = interaction.options.get("case")?.value
+            let lives = interaction.options.get("lives")?.value
+            let user = interaction.options.get("user")?.value
+            let cmdsArgs = []
+            if (caseSensitive) {
+                cmdsArgs.push("-case")
+            }
+            if (lives !== undefined) {
+                cmdsArgs.push(`-lives=${lives}`)
+            }
+            cmdsArgs.push(user)
+            //@ts-ignore
+            interaction.author = interaction.member.user
+            //@ts-ignore
+            let rv = await commands['hangman'].run(interaction, cmdsArgs)
+            await interaction.reply(rv)
+        }
     }
-    else if(interaction.isUserContextMenu()){
+    else if (interaction.isUserContextMenu()) {
         addToCmdUse(`${interaction.commandName}:user`)
-        if(interaction.commandName == 'ping'){
+        if (interaction.commandName == 'ping') {
             interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`)
         }
-        else if(interaction.commandName == 'info'){
+        else if (interaction.commandName == 'info') {
             const user = interaction.targetUser
             const member: GuildMember = interaction.targetMember as GuildMember
             let embed = new MessageEmbed()
             embed.setColor(member.displayColor)
-	    if(user.avatarURL())
-		//@ts-ignore
-		embed.setThumbnail(user.avatarURL())
+            if (user.avatarURL())
+                //@ts-ignore
+                embed.setThumbnail(user.avatarURL())
             embed.addField("Id", user.id || "#!N/A", true)
             embed.addField("Username", user.username || "#!N/A", true)
             embed.addField("Nickname", member?.nickname || "#!N/A", true)
@@ -6600,48 +6605,48 @@ client.on("interactionCreate", async(interaction: Interaction) => {
             embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
             embed.addField("Joined at", member?.joinedAt?.toString() || "#!N/A", true)
             embed.addField("Boosting since", member?.premiumSince?.toString() || "#!N/A", true)
-            interaction.reply({embeds: [embed]})
+            interaction.reply({ embeds: [embed] })
         }
     }
-    else if(interaction.isMessageContextMenu()){
+    else if (interaction.isMessageContextMenu()) {
         addToCmdUse(`${interaction.commandName}:message`)
-	if(interaction.commandName == 'fileify'){
-	    let fn = generateFileName("fileify", interaction.member?.user.id)
-	    fs.writeFileSync(fn, interaction.targetMessage.content)
-	    interaction.reply({files: [{attachment: fn, description: "Your file, sir"}]})
-	    fs.rmSync(fn)
-	}
+        if (interaction.commandName == 'fileify') {
+            let fn = generateFileName("fileify", interaction.member?.user.id)
+            fs.writeFileSync(fn, interaction.targetMessage.content)
+            interaction.reply({ files: [{ attachment: fn, description: "Your file, sir" }] })
+            fs.rmSync(fn)
+        }
     }
 })
 
-function generateCmdUseFile(){
+function generateCmdUseFile() {
     let data = ""
-    for(let cmd in CMDUSE){
+    for (let cmd in CMDUSE) {
         data += `${cmd}:${CMDUSE[cmd]}\n`
     }
     return data
 }
 
-function generateEmoteUseFile(){
+function generateEmoteUseFile() {
     let data = ""
-    for(let emote in EMOTEUSE){
+    for (let emote in EMOTEUSE) {
         data += `${emote}:${EMOTEUSE[emote]}\n`
     }
     return data
 }
 
-function addToEmoteUse(emote: string){
-    if(EMOTEUSE[emote]){
+function addToEmoteUse(emote: string) {
+    if (EMOTEUSE[emote]) {
         EMOTEUSE[emote] += 1
     }
-    else{
+    else {
         EMOTEUSE[emote] = 1
     }
     fs.writeFileSync("emoteuse", generateEmoteUseFile())
 }
 
-function addToCmdUse(cmd: string){
-    if(CMDUSE[cmd]){
+function addToCmdUse(cmd: string) {
+    if (CMDUSE[cmd]) {
         CMDUSE[cmd] += 1
     } else {
         CMDUSE[cmd] = 1
@@ -6649,32 +6654,32 @@ function addToCmdUse(cmd: string){
     fs.writeFileSync("cmduse", generateCmdUseFile())
 }
 
-function writeCmdUse(){
+function writeCmdUse() {
     fs.writeFileSync("cmduse", generateCmdUseFile())
 }
 
-function loadCmdUse(){
-    let cmduse: {[key: string]: number} = {}
-    if(!fs.existsSync("cmduse")){
+function loadCmdUse() {
+    let cmduse: { [key: string]: number } = {}
+    if (!fs.existsSync("cmduse")) {
         return {}
     }
     let data = fs.readFileSync("cmduse", "utf-8")
-   for(let line of data.split("\n")){
-        if(!line) continue
+    for (let line of data.split("\n")) {
+        if (!line) continue
         let [cmd, times] = line.split(":")
         cmduse[cmd] = parseInt(times)
     }
     return cmduse
 }
 
-function loadEmoteUse(){
-    let emoteuse: {[key: string]: number} = {}
-    if(!fs.existsSync("emoteuse")){
+function loadEmoteUse() {
+    let emoteuse: { [key: string]: number } = {}
+    if (!fs.existsSync("emoteuse")) {
         return {}
     }
     let data = fs.readFileSync("emoteuse", "utf-8")
-    for(let line of data.split("\n")){
-        if(!line) continue
+    for (let line of data.split("\n")) {
+        if (!line) continue
         let [emote, times] = line.split(":")
         emoteuse[emote] = parseInt(times)
     }
