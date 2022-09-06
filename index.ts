@@ -4301,7 +4301,11 @@ const commands: { [command: string]: Command } = {
                             code.push(args[i])
                         }
                         let loopCount = 0
+                        let id = Math.floor(Math.random() * 100000000)
+                        SPAMS[id] = true
                         forever: while (true) {
+                            if(!SPAMS[id])
+                                break
                             loopCount++
                             for (let i = 0; i < code.length; i++) {
                                 let rv = await parseArg(code[i], i, code.length, code, stacks[currScopes[currScopes.length - 1]])
