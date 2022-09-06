@@ -5836,13 +5836,17 @@ valid formats:<br>
         },
         category: CommandCategory.UTIL
     },
-    head: {
-        run: async (msg, args) => {
+    tail: {
+        run: async(msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
             let argText = args.join(" ")
-            return { content: argText.split("\n").slice(0, count).join("\n") }
+            return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n") }
+        }, category: CommandCategory.UTIL
+    },
+    head: {
+        run: async (msg, args) => {
         },
         help: {
             info: "Say the first 10 lines of some text",
@@ -5858,6 +5862,16 @@ valid formats:<br>
             }
         },
         category: CommandCategory.UTIL
+    },
+    nl: {
+        run: async(msg, args) => {
+            let text = args.join(" ").split('\n')
+            let rv = ""
+            for(let i = 1; i < text.length + 1; i++){
+                rv += `${i}: ${text[i - 1]}\n`
+            }
+            return {content: rv}
+        }, category: CommandCategory.UTIL
     },
     grep: {
         run: async (msg: Message, args: ArgumentList) => {
@@ -6229,6 +6243,13 @@ async function doCmd(msg: Message, returnJson = false) {
     let canRun = true
     let exists = true
     let rv: CommandReturn;
+    let oldSend = msg.channel.send
+    let silent = false
+    if(command.match(/^s:/)){
+        msg.channel.send = async(data) => msg
+        silent = true
+        command = command.slice(2)
+    }
     if (!commands[command]) {
         rv = { content: `${command} does not exist` }
         exists = false
@@ -6317,6 +6338,7 @@ async function doCmd(msg: Message, returnJson = false) {
         return rv;
     }
     handleSending(msg, rv)
+    msg.channel.send = oldSend
 }
 
 client.on("guildMemberAdd", async (m) => {
