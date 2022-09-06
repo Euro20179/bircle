@@ -1824,6 +1824,9 @@ const commands: { [command: string]: Command } = {
             catch (err) {
                 return { content: "Could not dm you" }
             }
+            let points = 0
+            let losingStreak = 0
+            let winningStreak = 0
             async function game(wordstr: string) {
                 let wordLength = strlen(wordstr)
                 if (!caseSensitive) {
@@ -1842,7 +1845,7 @@ const commands: { [command: string]: Command } = {
                     }
                 }
                 try {
-                    await msg.channel.send({ content: `${disp}\n${users.join(", ")}, guess` })
+                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess` })
                 }
                 catch (err) {
                     return { content: "2K char limit reached" }
@@ -1859,7 +1862,6 @@ const commands: { [command: string]: Command } = {
                     let match
                     if (match = m.content.match(/e\s*(.)/u)) {
                         m.content = match[1]
-                        console.log(m.content)
                     }
                     if (!caseSensitive) {
                         m.content = m.content.toLowerCase()
@@ -1869,15 +1871,24 @@ const commands: { [command: string]: Command } = {
                         return
                     }
                     else if (m.content == wordstr) {
-                        await msg.channel.send(`YOU WIN, it was\n${wordstr}`)
+                        await handleSending(msg,{content: `YOU WIN, it was\n${wordstr}`})
                         collection.stop()
                         return
                     }
                     else guessed += m.content
-                    if (word.indexOf(m.content) < 0)
+                    if (word.indexOf(m.content) < 0){
+                        losingStreak++
+                        winningStreak = 0
+                        points -= losingStreak ** 2
                         lives--
+                    }
+                    else{
+                        winningStreak++
+                        losingStreak = 0
+                        points += winningStreak ** 2
+                    }
                     if (lives < 1) {
-                        await msg.channel.send({ content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
+                        await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         return
                     }
@@ -1895,7 +1906,6 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     let disp = ""
-                    console.log(wordLength, correctIndecies)
                     for (let i = 0; i < wordLength; i++) {
                         if (correctIndecies[i]) {
                             disp += correctIndecies[i]
@@ -1908,11 +1918,11 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     if (disp.replaceAll("   ", " ") == wordstr) {
-                        await msg.channel.send({ content: `YOU WIN, it was\n${wordstr}`, allowedMentions: { parse: [] } })
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         return
                     }
-                    await msg.channel.send({ content: `${disp}\n${users.join(", ")}, guess (${lives} lives left)` })
+                    await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)` })
                 })
             }
             if (opts["random"]) {
@@ -3231,7 +3241,6 @@ const commands: { [command: string]: Command } = {
                         break
                     }
 
-
                     //operators
                     case "++": {
                         let val = stack.pop()
@@ -3599,7 +3608,6 @@ const commands: { [command: string]: Command } = {
                         //otherwise you'd have to put the args in reverse order
                         fnArgs = fnArgs.reverse()
                         let f = stack.pop()
-                        console.log(typeof f)
                         if (typeof f !== 'function') {
                             return { err: true, content: `${f} is not a function` }
                         }
@@ -3781,7 +3789,6 @@ const commands: { [command: string]: Command } = {
                         break
                     }
                     case "%sram": {
-                        console.log("hi")
                         stack.push("%sram")
                         break
                     }
