@@ -14,7 +14,6 @@ import uno = require("./uno")
 import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
-import jimp = require('jimp')
 
 
 const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
@@ -6345,6 +6344,7 @@ async function doCmd(msg: Message, returnJson = false) {
         lastCommand = msg
     }
     if (returnJson) {
+        msg.channel.send = oldSend
         return rv;
     }
     handleSending(msg, rv)
