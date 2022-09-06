@@ -5951,7 +5951,7 @@ valid formats:<br>
     },
     snipe: {
         run: async (_msg: Message, args: ArgumentList) => {
-            let snipeC = ((1 - (parseInt(args[0]) - 1)) || 0)
+            let snipeC = ((parseInt(args[0]) - 1) || 0)
             if (snipeC >= 5) {
                 return { content: "it only goes back 5" }
             }
@@ -6333,10 +6333,10 @@ client.on('ready', async () => {
 
 client.on("messageDelete", async (m) => {
     if (m.author?.id != client.user?.id) {
-        snipes.push(m)
-        if (snipes.length > 5) {
-            snipes = snipes.filter((_, i) => i != 0)
+        for(let i = 3; i >= 0; i--){
+            snipes[i + 1] = snipes[i]
         }
+        snipes[0] = m
     }
 })
 
