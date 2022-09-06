@@ -6354,45 +6354,31 @@ client.on("messageCreate", async (m: Message) => {
         content = m.content
     }
     let search;
-    if((search = content.match(/^:s(.)([^\1]+)\1(.*)\1(.*)/)) && !m.author.bot){
-        let find = search[2]
-        let repl = search[3]
-        let cmd = search[4]
-        let messages = await m.channel.messages.fetch({ limit: 100 })
-        let index = -1
-        let finalMessages: string[] = []
-        messages.forEach(async (msg) => {
-            index++
-            if (index == 0) return
-            m.content = msg.content.replaceAll(String(find), String(repl))
-            if(m.content !== msg.content){
-                finalMessages.push(msg.content.replaceAll(String(find), String(repl)))
-            }
-        })
-        m.content = `${prefix}${cmd} ${finalMessages.join("\n")}`
-        await doCmd(m)
-    }
-    else if ((search = content.match(/^:(\/[^\/]+\/)?(\d+,[\d\$]*)?(.*)/)) && !m.author.bot) {
-        let regexSearch = search[1]
-        let rangeSearch = search[2]
-        let after = search[3]
+    if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
+        let count = Number(search[1]) || Infinity
+        let regexSearch = search[2]
+        let rangeSearch = search[3]
+        let after = search[4]
         let messages = await m.channel.messages.fetch({ limit: 100 })
         let index = -1
         let finalMessages: string[] = []
         if(regexSearch){
             let regexpSearch: RegExp
             try{
-                regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 1))
+                regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 2))
             }
             catch(err){
                 await m.channel.send("Bad regex")
                 return
             }
+            let success = 0
             messages.forEach(async (msg) => {
                 index++
-                if (index == 0) return
+                if (index == 0 || success >= count) return
                 if (msg.content.match(regexpSearch)) {
+                    success++
                     finalMessages.push(msg.content)
+
                 }
             })
         }
@@ -6410,12 +6396,22 @@ client.on("messageCreate", async (m: Message) => {
             })
         }
         if(after){
-            m.content = `${prefix}${after} ${finalMessages.join("\n")}`
-            await doCmd(m)
+            let cmds = after.split("/")
+            let result = finalMessages.join("\n")
+            let oldSend = m.channel.send
+            m.channel.send = async(data) => {
+                return m
+            }
+            for(let cmd of cmds){
+                m.content = `${prefix}${cmd} ${result}`
+                let rv = await doCmd(m, true)
+                //@ts-ignore
+                if(rv.content) result = rv.content
+            }
+            m.channel.send = oldSend
+            finalMessages = [result]
         }
-        else {
-            handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
-        }
+        handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
     }
     if (content.slice(0, prefix.length) !== prefix) {
         return

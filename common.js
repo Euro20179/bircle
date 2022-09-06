@@ -66,7 +66,7 @@ let vars = {
     prefix: () => prefix,
     vcount: () => Object.keys(vars).length,
     sender: (msg) => `<@${msg.author.id}>`,
-    carson: () => "The all legendary Carson Williams"
+    carson: () => "The all legendary Carson Williams",
 }
 let userVars = {}
 module.exports = {
