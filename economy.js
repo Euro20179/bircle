@@ -85,6 +85,10 @@ function canBetAmount(id, amount) {
     return false;
 }
 function calculateAmountFromString(id, amount) {
+    amount = amount.toLowerCase();
+    if (amount == "all") {
+        return ECONOMY[id].money;
+    }
     if (Number(amount)) {
         return Number(amount);
     }

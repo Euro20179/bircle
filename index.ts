@@ -392,7 +392,7 @@ const commands: { [command: string]: Command } = {
     },
     blackjack: {
         run: async (msg, args) => {
-            let bet = Number(args[0])
+            let bet = calculateAmountFromString(msg.author.id, args[0])
             if (!bet) {
                 return { content: "no bet given" }
             }
@@ -495,7 +495,7 @@ const commands: { [command: string]: Command } = {
                     }
                     response = collectedMessages.at(0)
                 }
-                let choice = response.content
+                let choice = response.content.toLowerCase()
                 if (choice === 'double bet') {
                     if(!canBetAmount(msg.author.id, bet * 2)){
                         await msg.channel.send({content: "That bet is too high for you"})
@@ -585,7 +585,7 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let guess = args[0]
-            let bet = Number(opts['bet']) || 0
+            let bet = calculateAmountFromString(msg.author.id, String(opts['bet'])) || 0
             if (bet && !guess) {
                 return { content: "You cannot bet, but not have a guess" }
             }
