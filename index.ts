@@ -466,12 +466,12 @@ const commands: { [command: string]: Command } = {
                     embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
                     let redness = Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255))
                     let greenness = Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255))
-                    if(redness > 255)
+                    if (redness > 255)
                         redness = 255
                     if (greenness > 255)
                         greenness = 255
                     let hex = rgbToHex(redness, greenness, 0)
-                    embed.setFooter({text: `color: rgb(${redness}, ${greenness}, 0)`})
+                    embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
                     embed.setColor(hex)
                     embed.addField("Level", String(user1Data.level - user2Data.level), true)
                     embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
@@ -1232,6 +1232,42 @@ const commands: { [command: string]: Command } = {
             info: "Gets your truely 100% accurate reaction time"
         },
         category: CommandCategory.FUN
+    },
+    "search-cmd-file": {
+        run: async (msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let file = args[0]
+            let search = args.slice(1).join(" ")
+            if (!file) {
+                return { content: "No file specified" }
+            }
+            if (file.match(/\./)) {
+                return { content: "<:Watching1:697677860336304178>" }
+            }
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                return {
+                    content: "file does not exist"
+                }
+            }
+            const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
+            let lines = text.split("\n")
+            if (opts['arg']) {
+                let argNo = Number(opts['args'])
+                if (isNaN(argNo)) {
+                    argNo = 1
+                }
+                lines = lines.map(v => v.split(" ")[argNo])
+            }
+            let final = []
+            for(let i = 0; i < lines.length; i++){
+                let line = lines[i]
+                if(line.match(search)){
+                    final.push(`${i}: ${line}`)
+                }
+            }
+            return {content: final.join("\n")}
+        }, category: CommandCategory.UTIL
     },
     "rand-line": {
         run: async (msg, args) => {
@@ -4747,7 +4783,7 @@ const commands: { [command: string]: Command } = {
                         content: vars[name]()
                     }
             }
-            return {noSend: true}
+            return { noSend: true }
         },
         help: {
             arguments: {
@@ -4857,15 +4893,15 @@ const commands: { [command: string]: Command } = {
 
     },
     "b64": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let text = args.join(" ")
-            return {content: Buffer.from(text).toString("base64")}
+            return { content: Buffer.from(text).toString("base64") }
         }, category: CommandCategory.UTIL
     },
     "b64d": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let text = args.join(" ")
-            return {content: Buffer.from(text, "base64").toString("utf8")}
+            return { content: Buffer.from(text, "base64").toString("utf8") }
         }, category: CommandCategory.UTIL
     },
     "rfile": {
@@ -4898,8 +4934,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                     content: "Nothing given to add to"
                 }
             }
-            if(file.match(/\./)){
-                return {content: "<:Watching1:697677860336304178>"}
+            if (file.match(/\./)) {
+                return { content: "<:Watching1:697677860336304178>" }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
@@ -5642,17 +5678,17 @@ ${styles}
         category: CommandCategory.UTIL
     },
     "emote-info": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let emote = args[0].split(":")[2].slice(0, -1)
             let e
-            try{
+            try {
                 e = await msg.guild?.emojis.fetch(emote)
             }
-            catch(err){
-                return {content: "No emoji found"}
+            catch (err) {
+                return { content: "No emoji found" }
             }
-            if(!e){
-                return {content: "No emoji foudn"}
+            if (!e) {
+                return { content: "No emoji foudn" }
             }
             let embed = new MessageEmbed()
             embed.setTitle(String(e.name))
@@ -5660,10 +5696,10 @@ ${styles}
             embed.addField("created Date", e?.createdAt.toDateString(), true)
             embed.addField("Creation time", e?.createdAt.toTimeString(), true)
             embed.addField("THE CREATOR", String(e?.author), true)
-            if(e.url)
+            if (e.url)
                 embed.setThumbnail(e.url)
             embed.addField("URL", e?.url, true)
-            return {embeds: [embed]}
+            return { embeds: [embed] }
         }, category: CommandCategory.UTIL
     },
     "user-info": {
@@ -6312,18 +6348,18 @@ async function doCmd(msg: Message, returnJson = false) {
         msg.channel.send = async (_data) => msg
         command = command.slice(2)
     }
-    else if(m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)){
+    else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) {
         let all = m[1]
         let skip = 9
-        if(all){
+        if (all) {
             skip++
             redirAll = true
-            msg.channel.send = async(_data) =>  {
+            msg.channel.send = async (_data) => {
                 //@ts-ignore
-                if(_data.content){
-                    if(typeof redir === 'object'){
+                if (_data.content) {
+                    if (typeof redir === 'object') {
                         let [place, name] = redir
-                    //@ts-ignore
+                        //@ts-ignore
                         place[name] = () => _data.content
                     }
                 }
@@ -6332,12 +6368,12 @@ async function doCmd(msg: Message, returnJson = false) {
         }
         let prefix = m[2]
         let name = m[3]
-        if(!prefix){
+        if (!prefix) {
             redir = [vars, name]
         }
-        else if(prefix){
+        else if (prefix) {
             skip += prefix.length
-            if(!userVars[prefix])
+            if (!userVars[prefix])
                 userVars[prefix] = {}
             redir = [userVars[prefix], name]
         }
@@ -6443,7 +6479,7 @@ async function doCmd(msg: Message, returnJson = false) {
         msg.channel.send = oldSend
         return rv;
     }
-    if(redir){
+    if (redir) {
         let [place, name] = redir
         //@ts-ignore
         place[name] = () => rv?.content
@@ -6520,7 +6556,7 @@ client.on("messageCreate", async (m: Message) => {
         let count = Number(search[1]) || Infinity
         let regexSearch = search[2]
         let rangeSearch = search[3]
-        if(!regexSearch && !rangeSearch)
+        if (!regexSearch && !rangeSearch)
             return
         let after = search[4]
         let messages = await m.channel.messages.fetch({ limit: 100 })
