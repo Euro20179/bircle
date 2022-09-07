@@ -282,6 +282,13 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     i--
                     doFirsts[argNo] = inside
                 }
+                else if(ch == ' '){
+                    curArg += "$"
+                    if(curArg !== ""){
+                        args.push(curArg)
+                        curArg = ""
+                    }
+                }
                 else{
                     curArg += `$${ch}`
                 }

@@ -83,6 +83,9 @@ function calculateAmountFromString(id, amount) {
     if (amount == undefined || amount == null) {
         return NaN;
     }
+    if (ECONOMY[id] === undefined) {
+        return NaN;
+    }
     amount = amount.toLowerCase();
     if (amount == "all") {
         return ECONOMY[id].money;

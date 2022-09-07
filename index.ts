@@ -313,10 +313,16 @@ const commands: { [command: string]: Command } = {
         run: async(msg, args) => {
             let [amount, ...user] = args
             let userSearch = user.join(" ")
+            if(!userSearch){
+                return {content: "No user to search for"}
+            }
             let member = await fetchUser(msg.guild, userSearch)
             if(!member)
                 return {content: `${userSearch} not found`}
             let realAmount = calculateAmountFromString(msg.author.id, amount)
+            if (!realAmount){
+                return {content: "Nothing to give"}
+            }
             if(realAmount < 0){
                 return {content: "What are you trying to pull <:Watching1:697677860336304178>"}
             }
@@ -403,6 +409,127 @@ const commands: { [command: string]: Command } = {
         //
         //     }, category: CommandCategory.GAME
     },
+    "egyption-war": {
+        run: async(msg, args) => {
+
+            function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
+                let no = Math.floor(Math.random() * cardsToChooseFrom.length)
+                let c = cardsToChooseFrom[no]
+                cards = cardsToChooseFrom.filter((_v, i) => i != no)
+                deck.push(c)
+            }
+            let cards = []
+            let stack: string[] = []
+            for (let suit of ["♦", "S", "♥️", "C"]) {
+                for (let num of ["A",  "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                    cards.push(`${num} of ${suit}`)
+                }
+            }
+            let totalCards = cards.length
+            let players: {[key: string]: string[]} = {[msg.author.id]: []}
+            for(let arg of args){
+                let user = await fetchUser(msg.guild, arg)
+                players[user.id] = []
+            }
+            let cardsPerPlayer = Math.floor(cards.length / Object.keys(players).length)
+            for(let player in players){
+                for(let i = 0; i < cardsPerPlayer; i++){
+                    giveRandomCard(cards, players[player])
+                }
+            }
+            if(cards.length){
+                stack = JSON.parse(JSON.stringify(cards))
+            }
+            let collector = msg.channel.createMessageCollector({filter: m => ['slap', 's'].includes(m.content) && !m.author.bot})
+            collector.on("collect", m => {
+                let lastCard = stack[stack.length - 1]?.split(" of")[0]
+                let secondLastCard = stack[stack.length - 2]?.split(" of")[0]
+                let thirdLastCard = stack[stack.length - 3]?.split(" of")[0]
+                if((lastCard === secondLastCard || thirdLastCard === lastCard) && lastCard != undefined){
+                    if(players[m.author.id]){
+                        players[m.author.id] = [...players[m.author.id], ...stack]
+                    }
+                    else{
+                        players[m.author.id] = [...stack]
+                    }
+                    playerKeys.push(m.author.id)
+                    stack = []
+                    msg.channel.send(`${m.author} got the stack`)
+                }
+                else{
+                    msg.channel.send("No slap")
+                }
+            })
+            let attemptsDict = {
+                "A": 4,
+                "K": 3,
+                "Q": 2,
+                "J": 1
+            }
+            let playerKeys = Object.keys(players)
+            let attempts = 0
+            let lastPlayer;
+            for(let i = 0; true; i = ++i >= playerKeys.length ? 0 : i){
+                let turn = playerKeys[i]
+                if(attempts && lastPlayer){
+                    let gotFaceCard = false
+                    for(; attempts > 0; attempts--){
+                        await msg.channel.send(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
+                        try{
+                            let m = await msg.channel.awaitMessages({filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time']})
+                            giveRandomCard(players[turn], stack)
+                            let recentCard = stack[stack.length - 1]
+                            let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
+                            await msg.channel.send(`${recentCard} (${stack.length})`)
+                            if(isFaceCard){
+                                attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
+                                gotFaceCard = true
+                                break
+                            }
+                        }
+                        catch(err){
+                            await handleSending(msg, {content: `<@${turn}> didnt go in time they are out`})
+                            delete players[turn]
+                            playerKeys = playerKeys.filter(v => v != turn)
+                        }
+                    }
+                    if(!gotFaceCard){
+                        players[lastPlayer] = [...players[lastPlayer], ...stack]
+                        await msg.channel.send(`<@${lastPlayer}> got the stack (${stack.length} cards)`)
+                        stack = []
+                    }
+                }
+                else{
+                    await msg.channel.send(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
+                    try{
+                        let m = await msg.channel.awaitMessages({filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time']})
+                        giveRandomCard(players[turn], stack)
+                        let recentCard = stack[stack.length - 1]
+                        let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
+                        if(isFaceCard){
+                            attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
+                        }
+                        await msg.channel.send(`${recentCard} (${stack.length})`)
+                    }
+                    catch(err){
+                        await handleSending(msg, {content: `<@${turn}> didnt go in time they are out`})
+                        delete players[turn]
+                        playerKeys = playerKeys.filter(v => v != turn)
+                    }
+                }
+                if(playerKeys.length <= 1){
+                    return {content: "Everyone left"}
+                }
+                for(let player in players){
+                    if(players[player].length == totalCards){
+                        return {content: `<@${player}> WINS`}
+                    }
+                }
+                lastPlayer = turn
+            }
+            return {content: "Starting"}
+        }, category: CommandCategory.GAME
+    },
     blackjack: {
         run: async (msg, args) => {
             let bet = calculateAmountFromString(msg.author.id, args[0])
@@ -474,7 +601,7 @@ const commands: { [command: string]: Command } = {
                 let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
 
                 let chance = countOfAwayInDeck / cards.length
-                if (Math.random() < chance) {
+                if (Math.random() < chance || total < 17) {
                     giveRandomCard(cards, dealerCards)
                 }
                 else {
@@ -484,6 +611,9 @@ const commands: { [command: string]: Command } = {
             while (true) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Blackjack")
+                if(msg.member?.user.avatarURL){
+                    embed.setThumbnail(msg.member.user.avatarURL.toString())
+                }
                 let playerTotal = calculateTotal(playersCards)
                 if(playerTotal.soft){
                     embed.addField("Your cards", `value: **${playerTotal.total}** (soft)`, true)
@@ -2248,6 +2378,7 @@ const commands: { [command: string]: Command } = {
             let points = 0
             let losingStreak = 0
             let winningStreak = 0
+            let participants: {[key: string]: number} = {}
             async function game(wordstr: string) {
                 let wordLength = strlen(wordstr)
                 if (!caseSensitive) {
@@ -2280,18 +2411,33 @@ const commands: { [command: string]: Command } = {
                         collection.stop()
                         return
                     }
-                    let match
-                    if (match = m.content.match(/e\s*(.)/u)) {
-                        m.content = match[1]
-                    }
                     if (!caseSensitive) {
                         m.content = m.content.toLowerCase()
+                    }
+                    if(participants[m.author.id] === undefined){
+                        participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
                         await msg.channel.send(`You've already guessed ${m.content}`)
                         return
                     }
                     else if (m.content == wordstr) {
+                        let correctGuesses = 0
+                        for(let letter of [...guessed]){
+                            if(wordstr.includes(letter)){
+                                correctGuesses++
+                            }
+                        }
+                        participants[m.author.id] *= ((wordstr.length - correctGuesses) || 1)
+                        let money = ""
+                        if(participants[msg.author.id]){
+                            delete participants[msg.author.id]
+                        }
+                        for(let participant in participants){
+                            addMoney(participant, participants[participant])
+                            money += `Earnings\n<@${participant}>: ${participants[participant]}\n`
+                        }
+                        await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
                         collection.stop()
                         return
@@ -2301,9 +2447,11 @@ const commands: { [command: string]: Command } = {
                         losingStreak++
                         winningStreak = 0
                         points -= losingStreak ** 2
+                        participants[m.author.id] /= 2
                         lives--
                     }
                     else {
+                        participants[m.author.id] *= 2
                         winningStreak++
                         losingStreak = 0
                         points += winningStreak ** 2
@@ -2339,6 +2487,15 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     if (disp.replaceAll("   ", " ") == wordstr) {
+                        let money = ""
+                        if(participants[msg.author.id]){
+                            delete participants[msg.author.id]
+                        }
+                        for(let participant in participants){
+                            addMoney(participant, participants[participant])
+                            money += `Earnings\n<@${participant}>: ${participants[participant]}\n`
+                        }
+                        await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         return
