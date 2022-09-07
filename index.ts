@@ -4856,6 +4856,18 @@ const commands: { [command: string]: Command } = {
         category: CommandCategory.UTIL
 
     },
+    "b64": {
+        run: async(msg, args) => {
+            let text = args.join(" ")
+            return {content: Buffer.from(text).toString("base64")}
+        }, category: CommandCategory.UTIL
+    },
+    "b64d": {
+        run: async(msg, args) => {
+            let text = args.join(" ")
+            return {content: Buffer.from(text, "base64").toString("utf8")}
+        }, category: CommandCategory.UTIL
+    },
     "rfile": {
         run: async (msg, args) => {
             let att = msg.attachments.at(0)

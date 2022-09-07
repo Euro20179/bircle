@@ -165,6 +165,7 @@ function safeEval (code, context, opts) {
 
   let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
   sandbox[resultKey] = {}
+  sandbox["Buffer"] = Buffer
   let clearContext = `
     (function() {
       Function = undefined;
