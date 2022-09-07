@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -545,7 +545,7 @@ const commands: { [command: string]: Command } = {
             }
             let cards = []
             for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
-                for (let num of ["A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
                     cards.push(`${num}`)
                 }
             }
@@ -569,13 +569,20 @@ const commands: { [command: string]: Command } = {
             function calculateTotal(cards: string[]) {
                 let total = 0
                 let soft = false
-                for (let card of cards) {
+                for (let card of cards.filter(v => v.split(" of")[0] !== 'A')) {
                     let val = calculateCardValue(card, total)
                     if (!isNaN(val.amount)) {
                         total += val.amount
                     }
-                    if(val.soft)
+                }
+                for(let card of cards.filter(v => v.split(" of")[0] === 'A')){
+                    let val = calculateCardValue(card, total)
+                    if(!isNaN(val.amount)){
+                        total += val.amount
+                    }
+                    if(val.soft){
                         soft = true
+                    }
                 }
                 return {total: total, soft: soft}
             }
@@ -611,8 +618,9 @@ const commands: { [command: string]: Command } = {
             while (true) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Blackjack")
-                if(msg.member?.user.avatarURL){
-                    embed.setThumbnail(msg.member.user.avatarURL.toString())
+                if(msg.member?.user.avatarURL()){
+                    //@ts-ignore
+                    embed.setThumbnail(msg.member.user.avatarURL().toString())
                 }
                 let playerTotal = calculateTotal(playersCards)
                 if(playerTotal.soft){
@@ -688,7 +696,7 @@ const commands: { [command: string]: Command } = {
         run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            let place = 10
+            let place = Number(args[0]) || 10
             if (opts['top']) {
                 place = parseInt(String(opts['top']))
                 if (isNaN(place)) {
@@ -702,23 +710,38 @@ const commands: { [command: string]: Command } = {
             let text = ""
             //@ts-ignore
             let sortedEconomy = Object.entries(ECONOMY).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
+            //@ts-ignore
+            let allValues = Object.values(ECONOMY)
+            let totalEconomy = 0
+            for(let value of allValues){
+                //@ts-ignore
+                totalEconomy += value.money
+            }
+            console.log(totalEconomy)
             place = 0
             for (let user of sortedEconomy) {
                 let id = user[0]
                 let money = ECONOMY[id].money
+                let percent = money / totalEconomy * 100
                 if (!opts['no-round']) {
                     money = Math.round(money * 100) / 100
+                    percent = Math.round(percent * 100) / 100
                 }
                 if (opts['text']) {
-                    text += `**${place + 1}**: <@${id}>: ${money}\n`
+                    text += `**${place + 1}**: <@${id}>: ${money} (${percent}%)\n`
                 }
                 else {
-                    embed.addField(`${place + 1}`, `<@${id}>: ${money}`)
+                    embed.addField(`${place + 1}`, `<@${id}>: ${money} (${percent}%)`, true)
                 }
                 place++
             }
             if (opts['text'])
                 return { content: text, allowedMentions: { parse: [] } }
+            embed.setTitle(`Leaderboard`)
+            if(opts['no-round'])
+                embed.setDescription(`Total wealth: ${totalEconomy}`)
+            else
+                embed.setDescription(`Total wealth: ${Math.round(totalEconomy * 100) / 100}`)
             return { embeds: [embed] }
 
         }, category: CommandCategory.ECONOMY
@@ -6011,6 +6034,21 @@ ${styles}
         },
         category: CommandCategory.META
 
+    },
+    SETMONEY: {
+        run: async(msg, args) => {
+            let user = await fetchUser(msg.guild, args[0])
+            if(!user){
+                return {content: "user not found"}
+            }
+            let amount = calculateAmountFromString(msg.author.id, args[1])
+            if(amount){
+                setMoney(user.id, amount)
+                return {content: `${user.id} now has ${amount}`}
+            }
+            return {content: "nothign happened"}
+        }, category: CommandCategory.META,
+        permCheck: (m) => ADMINS.includes(m.author.id)
     },
     BLACKLIST: {
         run: async (msg: Message, args: ArgumentList) => {

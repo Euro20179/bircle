@@ -91,6 +91,16 @@ function canBetAmount(id: string, amount: number){
     return false
 }
 
+function setMoney(id: string, amount: number){
+    if(ECONOMY[id]){
+        ECONOMY[id].money = amount
+    }
+    else{
+        createPlayer(id)
+        ECONOMY[id].money = amount
+    }
+}
+
 function calculateAmountFromString(id: string, amount: string){
     if(amount == undefined || amount == null){
         return NaN
@@ -135,5 +145,6 @@ module.exports = {
     taxPlayer: taxPlayer,
     loseMoneyToBank: loseMoneyToBank,
     calculateAmountFromString: calculateAmountFromString,
-    loseMoneyToPlayer: loseMoneyToPlayer
+    loseMoneyToPlayer: loseMoneyToPlayer,
+    setMoney: setMoney
 }
