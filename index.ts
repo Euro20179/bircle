@@ -4747,6 +4747,7 @@ const commands: { [command: string]: Command } = {
                         content: vars[name]()
                     }
             }
+            return {noSend: true}
         },
         help: {
             arguments: {
@@ -6289,15 +6290,50 @@ async function doCmd(msg: Message, returnJson = false) {
     let rv: CommandReturn;
     let oldSend = msg.channel.send
     let typing = false
-    if (command.match(/^s:/)) {
+    let redir: boolean | [Object, string] = false
+    let redirAll = false
+    let m;
+    if (m = command.match(/^s:/)) {
         msg.channel.send = async (_data) => msg
         command = command.slice(2)
     }
-    else if (command.match(/^t:/)) {
+    else if(m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)){
+        let all = m[1]
+        let skip = 9
+        if(all){
+            skip++
+            redirAll = true
+            msg.channel.send = async(_data) =>  {
+                //@ts-ignore
+                if(_data.content){
+                    if(typeof redir === 'object'){
+                        let [place, name] = redir
+                    //@ts-ignore
+                        place[name] = () => _data.content
+                    }
+                }
+                return msg
+            }
+        }
+        let prefix = m[2]
+        let name = m[3]
+        if(!prefix){
+            redir = [vars, name]
+        }
+        else if(prefix){
+            skip += prefix.length
+            if(!userVars[prefix])
+                userVars[prefix] = {}
+            redir = [userVars[prefix], name]
+        }
+        skip += name.length
+        command = command.slice(skip)
+    }
+    else if (m = command.match(/^t:/)) {
         command = command.slice(2)
         typing = true
     }
-    else if (command.match(/^d:/)) {
+    else if (m = command.match(/^d:/)) {
         command = command.slice(2)
         if (msg.deletable) await msg.delete()
     }
@@ -6391,6 +6427,13 @@ async function doCmd(msg: Message, returnJson = false) {
     if (returnJson) {
         msg.channel.send = oldSend
         return rv;
+    }
+    if(redir){
+        let [place, name] = redir
+        //@ts-ignore
+        place[name] = () => rv?.content
+        msg.channel.send = oldSend
+        return
     }
     handleSending(msg, rv)
     msg.channel.send = oldSend
