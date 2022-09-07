@@ -425,10 +425,10 @@ const commands: { [command: string]: Command } = {
             function calculateCardValue(card: string, total: number) {
                 if (card == "A") {
                     if (total + 11 >= 22) {
-                        return {amount: 1, soft: true}
+                        return {amount: 1, soft: false}
                     }
                     else {
-                        return {amount: 11, soft: false}
+                        return {amount: 11, soft: true}
                     }
                 }
                 else if (["10", "J", "Q", "K"].includes(card)) {
@@ -576,15 +576,14 @@ const commands: { [command: string]: Command } = {
             for (let user of sortedEconomy) {
                 let id = user[0]
                 let money = ECONOMY[id].money
-                let member = await msg.guild.members.fetch(id)
                 if (!opts['no-round']) {
                     money = Math.round(money * 100) / 100
                 }
                 if (opts['text']) {
-                    text += `**${place + 1}**: ${member}: ${money}\n`
+                    text += `**${place + 1}**: <@${id}>: ${money}\n`
                 }
                 else {
-                    embed.addField(`${place + 1}`, `${member}: ${money}`)
+                    embed.addField(`${place + 1}`, `<@${id}>: ${money}`)
                 }
                 place++
             }

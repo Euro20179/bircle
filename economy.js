@@ -68,7 +68,7 @@ function canTax(id) {
     //@ts-ignore
     let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000;
     //5 minutes
-    if (secondsDiff > 300) {
+    if (secondsDiff > 900) {
         return true;
     }
     return false;
