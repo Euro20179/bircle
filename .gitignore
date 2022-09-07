@@ -15,5 +15,6 @@ make-changelog
 *.txt
 *.png
 out
+economy.json
 
 !command-perms/holder

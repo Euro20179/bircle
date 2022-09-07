@@ -20,12 +20,15 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
+const {ECONOMY, canEarn, earnMoney, createPlayer, addMoney, canBetAmount, saveEconomy} = require("./economy.js")
+
 enum CommandCategory {
     UTIL,
     GAME,
     FUN,
     META,
-    IMAGES
+    IMAGES,
+    ECONOMY
 }
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: {parse: ["users"]} })
@@ -247,6 +250,96 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string {
 let connection: any;
 
 const commands: { [command: string]: Command } = {
+    money: {
+        run: async(msg, args) => {
+            let user = msg.member
+            if(args.join(" "))
+                user = await fetchUser(msg.guild, args.join(" "))
+            if(!user)
+                user = msg.member
+            if(!user){
+                return {content: "How are you not a member?"}
+            }
+            if(ECONOMY[user.id]){
+                return {content: `${user.user.username}\n$${Math.round(ECONOMY[user.id].money * 100) / 100}`}
+            }
+            return {content: "none"}
+        }, category: CommandCategory.ECONOMY
+    },
+    leaderboard: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let place = 10
+            if(opts['top']){
+                place = parseInt(String(opts['top']))
+                if(isNaN(place)){
+                    place = 10
+                }
+            }
+            if(!msg.guild){
+                return {content: "No guild"}
+            }
+            let embed = new MessageEmbed()
+            let text = ""
+            //@ts-ignore
+            let sortedEconomy = Object.entries(ECONOMY).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
+            console.log(sortedEconomy)
+            place = 0
+            for(let user of sortedEconomy){
+                let id = user[0]
+                let member = await msg.guild.members.fetch(id)
+                let money = ECONOMY[id].money
+                if(!opts['no-round']){
+                    money = Math.round(money * 100) / 100
+                }
+                if(opts['text']){
+                    text += `**${place + 1}**: ${member}: ${money}\n`
+                }
+                else{
+                    embed.addField(`${place + 1}`, `${member}: ${money}`)
+                }
+                place++
+            }
+            if(opts['text'])
+                return {content: text, allowedMentions: {parse: []}}
+            return {embeds: [embed]}
+
+        }, category: CommandCategory.ECONOMY
+    },
+    savee: {
+        run: async(msg, args) => {
+            saveEconomy()
+            return {content: "Economy saved"}
+        }, category: CommandCategory.ECONOMY
+    },
+    coin: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let guess = args[0]
+            let bet = Number(opts['bet']) || 0
+            if(bet && !guess){
+                return {content: "You cannot bet, but not have a guess"}
+            }
+            let side = Math.random() > .5 ? "heads" : "tails"
+            if(!bet){
+                return {content: side}
+            }
+            if(!canBetAmount(msg.author.id, bet)){
+                return {content: "You dont have enough money for this bet"}
+            }
+            guess = guess.toLowerCase()
+            if(side == guess){
+                addMoney(msg.author.id, bet)
+                return {content: `The side was: ${side}\nYou won: ${bet}`}
+            }
+            else{
+                addMoney(msg.author.id, -bet)
+                return {content: `The side was: ${side}\nYou lost: ${bet}`}
+            }
+        }, category: CommandCategory.GAME
+    },
     replace: {
         run: async (_msg, args) => {
             let opts: Opts;
@@ -5522,6 +5615,7 @@ ${styles}
     END: {
         run: async (msg: Message, args: ArgumentList) => {
             await msg.channel.send("STOPPING")
+            saveEconomy()
             client.destroy()
             return {
                 content: "STOPPING"
@@ -5551,8 +5645,12 @@ ${styles}
             let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
             let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
             let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
+            if(canEarn(msg.author.id)){
+                addMoney(msg.author.id, diff / (1000 * 60 * 60))
+                fmt += `\n{earnings}`
+            }
             fs.writeFileSync("./command-results/last-run", String(Date.now()))
-            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / (1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString() }) }
+            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / (1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }) }
         },
         help: {
             arguments: {
@@ -6541,8 +6639,11 @@ client.on("messageDeleteBulk", async (m) => {
 })
 
 client.on("messageCreate", async (m: Message) => {
-    if (!USER_SETTINGS[m.author.id]) {
-        USER_SETTINGS[m.author.id] = {}
+    if(!ECONOMY[m.author.id] && !m.author.bot){
+        createPlayer(m.author.id)
+    }
+    if(Math.random() > .30){
+        saveEconomy()
     }
     let content = m.content
     if (!m.author.bot) {
@@ -6559,8 +6660,12 @@ client.on("messageCreate", async (m: Message) => {
         let count = Number(search[1]) || Infinity
         let regexSearch = search[2]
         let rangeSearch = search[3]
-        if (!regexSearch && !rangeSearch)
+        if (!regexSearch && !rangeSearch){
+            if(canEarn(m.author.id)){
+                earnMoney(m.author.id)
+            }
             return
+        }
         let after = search[4]
         let messages = await m.channel.messages.fetch({ limit: 100 })
         let index = -1
@@ -6617,9 +6722,15 @@ client.on("messageCreate", async (m: Message) => {
         handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
     }
     if (content.slice(0, prefix.length) !== prefix) {
+        if(canEarn(m.author.id)){
+            earnMoney(m.author.id)
+        }
         return
     }
     await doCmd(m)
+    if(canEarn(m.author.id)){
+        earnMoney(m.author.id)
+    }
 })
 
 client.on("interactionCreate", async (interaction: Interaction) => {
