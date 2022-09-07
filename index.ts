@@ -4898,6 +4898,9 @@ ${fs.readdirSync("./command-results").join("\n")}
                     content: "Nothing given to add to"
                 }
             }
+            if(file.match(/\./)){
+                return {content: "<:Watching1:697677860336304178>"}
+            }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
                     content: "file does not exist"
