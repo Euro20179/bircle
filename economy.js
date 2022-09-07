@@ -80,6 +80,9 @@ function canBetAmount(id, amount) {
     return false;
 }
 function calculateAmountFromString(id, amount) {
+    if (amount == undefined || amount == null) {
+        return NaN;
+    }
     amount = amount.toLowerCase();
     if (amount == "all") {
         return ECONOMY[id].money;

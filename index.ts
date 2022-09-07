@@ -264,15 +264,19 @@ const commands: { [command: string]: Command } = {
             if (!user) {
                 return { content: "How are you not a member?" }
             }
+            let text = ""
             if (ECONOMY[user.id]) {
                 if (opts['m']) {
-                    return { content: String(ECONOMY[user.id].money) }
+                    text += `${ECONOMY[user.id].money}\n`
                 }
                 if (opts['l']) {
-                    return { content: String(ECONOMY[user.id].lastTalk) }
+                    text += `${ECONOMY[user.id].lastTalk}\n`
                 }
                 if (opts['t']) {
-                    return { content: String(ECONOMY[user.id].lastTaxed) }
+                    text += `${ECONOMY[user.id].lastTaxed}\n`
+                }
+                if(text){
+                    return {content: text}
                 }
                 if(opts['no-round']){
                     return { content: `${user.user.username}\n$${ECONOMY[user.id].money}` }
@@ -327,6 +331,9 @@ const commands: { [command: string]: Command } = {
     },
     tax: {
         run: async (msg, args) => {
+            if(msg.author.bot){
+                return {content: "Bots cannot steal"}
+            }
             let opts;
             [opts, args] = getOpts(args)
             if (!args.length) {
@@ -418,29 +425,32 @@ const commands: { [command: string]: Command } = {
             function calculateCardValue(card: string, total: number) {
                 if (card == "A") {
                     if (total + 11 >= 22) {
-                        return 1
+                        return {amount: 1, soft: true}
                     }
                     else {
-                        return 11
+                        return {amount: 11, soft: false}
                     }
                 }
                 else if (["10", "J", "Q", "K"].includes(card)) {
-                    return 10
+                    return {amount: 10, soft: false}
                 }
                 else if (Number(card)) {
-                    return Number(card)
+                    return {amount: Number(card), soft: false}
                 }
-                return NaN
+                return {amount: NaN, soft: false}
             }
             function calculateTotal(cards: string[]) {
                 let total = 0
+                let soft = false
                 for (let card of cards) {
                     let val = calculateCardValue(card, total)
-                    if (!isNaN(val)) {
-                        total += val
+                    if (!isNaN(val.amount)) {
+                        total += val.amount
                     }
+                    if(val.soft)
+                        soft = true
                 }
-                return total
+                return {total: total, soft: soft}
             }
             function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
                 let no = Math.floor(Math.random() * cardsToChooseFrom.length)
@@ -454,14 +464,14 @@ const commands: { [command: string]: Command } = {
                 giveRandomCard(cards, playersCards)
                 giveRandomCard(cards, dealerCards)
             }
-            if (calculateTotal(playersCards) === 21) {
+            if (calculateTotal(playersCards).total === 21) {
                 addMoney(msg.author.id, bet * 3)
                 return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
             }
             let total = 0
-            while ((total = calculateTotal(dealerCards)) < 22) {
+            while ((total = calculateTotal(dealerCards).total) < 22) {
                 let awayFrom21 = 21 - total
-                let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total) <= awayFrom21).length
+                let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
 
                 let chance = countOfAwayInDeck / cards.length
                 if (Math.random() < chance) {
@@ -474,9 +484,13 @@ const commands: { [command: string]: Command } = {
             while (true) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Blackjack")
-                embed.addField("Your cards", `value: **${calculateTotal(playersCards)}**`, true)
+                let playerTotal = calculateTotal(playersCards)
+                if(playerTotal.soft){
+                    embed.addField("Your cards", `value: **${playerTotal.total}** (soft)`, true)
+                }
+                else embed.addField("Your cards", `value: **${playerTotal.total}**`, true)
                 //FIXME: edge case where dealerCards[0] is "A", this could be wrong
-                embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0)}**`, true)
+                embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
                 embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
                 embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 let message = await msg.channel.send({ embeds: [embed] })
@@ -513,12 +527,12 @@ const commands: { [command: string]: Command } = {
                 if (choice === 'hit') {
                     giveRandomCard(cards, playersCards)
                 }
-                if (choice === 'stand' || calculateTotal(playersCards) > 21) {
+                if (choice === 'stand' || calculateTotal(playersCards).total > 21) {
                     break
                 }
             }
-            let playerTotal = calculateTotal(playersCards)
-            let dealerTotal = calculateTotal(dealerCards)
+            let playerTotal = calculateTotal(playersCards).total
+            let dealerTotal = calculateTotal(dealerCards).total
             let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
             let status = "You won"
             if (playerTotal > 21) {

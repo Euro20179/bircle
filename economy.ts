@@ -78,7 +78,7 @@ function canTax(id: string){
     //@ts-ignore
     let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000
     //5 minutes
-    if(secondsDiff > 300){
+    if(secondsDiff > 900){
         return true
     }
     return false
@@ -92,6 +92,9 @@ function canBetAmount(id: string, amount: number){
 }
 
 function calculateAmountFromString(id: string, amount: string){
+    if(amount == undefined || amount == null){
+        return NaN
+    }
     amount = amount.toLowerCase()
     if(amount == "all"){
         return ECONOMY[id].money
