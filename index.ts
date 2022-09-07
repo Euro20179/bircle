@@ -5643,6 +5643,9 @@ ${styles}
             embed.addField("id", e.id, true)
             embed.addField("created Date", e?.createdAt.toDateString(), true)
             embed.addField("Creation time", e?.createdAt.toTimeString(), true)
+            embed.addField("THE CREATOR", String(e?.author), true)
+            if(e.url)
+                embed.setThumbnail(e.url)
             embed.addField("URL", e?.url, true)
             return {embeds: [embed]}
         }, category: CommandCategory.UTIL
