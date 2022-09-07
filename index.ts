@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -298,6 +298,26 @@ const commands: { [command: string]: Command } = {
                 }
             }
         }
+    },
+    give: {
+        run: async(msg, args) => {
+            let [amount, ...user] = args
+            let userSearch = user.join(" ")
+            let member = await fetchUser(msg.guild, userSearch)
+            if(!member)
+                return {content: `${userSearch} not found`}
+            let realAmount = calculateAmountFromString(msg.author.id, amount)
+            if(realAmount < 0){
+                return {content: "What are you trying to pull <:Watching1:697677860336304178>"}
+            }
+            if(canBetAmount(msg.author.id, realAmount)){
+                loseMoneyToPlayer(msg.author.id, realAmount, member.id)
+                return {content: `You gave ${realAmount} to ${member.user.username}`}
+            }
+            else{
+                return {content: `You cannot give away ${realAmount}`}
+            }
+        }, category: CommandCategory.ECONOMY
     },
     tax: {
         run: async (msg, args) => {

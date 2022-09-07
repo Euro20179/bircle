@@ -26,6 +26,15 @@ function loseMoneyToBank(id, amount) {
         ECONOMY[id].money -= amount;
     }
 }
+function loseMoneyToPlayer(id, amount, otherId) {
+    if (ECONOMY[id]) {
+        ECONOMY[id].money -= amount;
+    }
+    if (ECONOMY[otherId] === undefined) {
+        createPlayer(otherId);
+    }
+    ECONOMY[otherId].money += amount;
+}
 function earnMoney(id) {
     ECONOMY[id].lastTalk = Date.now();
     if (ECONOMY[id].money == 0) {
@@ -75,6 +84,23 @@ function canBetAmount(id, amount) {
     }
     return false;
 }
+function calculateAmountFromString(id, amount) {
+    if (Number(amount)) {
+        return Number(amount);
+    }
+    else if (amount[0] === "$" && Number(amount.slice(1))) {
+        return Number(amount.slice(1));
+    }
+    else if (amount[amount.length - 1] === "%") {
+        let percent = Number(amount.slice(0, -1));
+        if (!percent) {
+            return 0;
+        }
+        let money = ECONOMY[id].money;
+        return money * percent / 100;
+    }
+    return 0;
+}
 loadEconomy();
 module.exports = {
     ECONOMY: ECONOMY,
@@ -88,4 +114,6 @@ module.exports = {
     canTax: canTax,
     taxPlayer: taxPlayer,
     loseMoneyToBank: loseMoneyToBank,
+    calculateAmountFromString: calculateAmountFromString,
+    loseMoneyToPlayer: loseMoneyToPlayer
 };
