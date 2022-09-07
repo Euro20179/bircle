@@ -6929,7 +6929,7 @@ client.on("messageCreate", async (m: Message) => {
     if (ECONOMY[m.author.id] === undefined && !m.author.bot) {
         createPlayer(m.author.id)
     }
-    if (Math.random() > .30) {
+    if (Math.random() > .60) {
         saveEconomy()
     }
     let content = m.content
