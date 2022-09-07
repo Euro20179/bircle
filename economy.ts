@@ -17,7 +17,7 @@ function saveEconomy(){
 }
 
 function createPlayer(id: string){
-    ECONOMY[id] = {money: 0, lastTalk: 0, lastTaxed: 0}
+    ECONOMY[id] = {money: 100, lastTalk: 0, lastTaxed: 0}
 }
 
 function addMoney(id: string, amount: number){
@@ -44,12 +44,7 @@ function loseMoneyToPlayer(id: string, amount: number, otherId: string){
 
 function earnMoney(id: string){
     ECONOMY[id].lastTalk = Date.now()
-    if(ECONOMY[id].money == 0){
-        ECONOMY[id].money = 100
-    }
-    else{
-        ECONOMY[id].money *= 1.001
-    }
+    ECONOMY[id].money *= 1.001
 }
 
 function taxPlayer(id: string){

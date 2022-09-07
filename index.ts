@@ -274,6 +274,9 @@ const commands: { [command: string]: Command } = {
                 if (opts['t']) {
                     return { content: String(ECONOMY[user.id].lastTaxed) }
                 }
+                if(opts['no-round']){
+                    return { content: `${user.user.username}\n$${ECONOMY[user.id].money}` }
+                }
                 return { content: `${user.user.username}\n$${Math.round(ECONOMY[user.id].money * 100) / 100}` }
             }
             return { content: "none" }
@@ -295,6 +298,9 @@ const commands: { [command: string]: Command } = {
                 },
                 "t": {
                     description: "Show the  last time they got taxed"
+                },
+                "no-round": {
+                    description: "No rounding"
                 }
             }
         }

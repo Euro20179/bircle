@@ -14,7 +14,7 @@ function saveEconomy() {
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY));
 }
 function createPlayer(id) {
-    ECONOMY[id] = { money: 0, lastTalk: 0, lastTaxed: 0 };
+    ECONOMY[id] = { money: 100, lastTalk: 0, lastTaxed: 0 };
 }
 function addMoney(id, amount) {
     if (ECONOMY[id]) {
@@ -37,12 +37,7 @@ function loseMoneyToPlayer(id, amount, otherId) {
 }
 function earnMoney(id) {
     ECONOMY[id].lastTalk = Date.now();
-    if (ECONOMY[id].money == 0) {
-        ECONOMY[id].money = 100;
-    }
-    else {
-        ECONOMY[id].money *= 1.001;
-    }
+    ECONOMY[id].money *= 1.001;
 }
 function taxPlayer(id) {
     ECONOMY[id].lastTaxed = Date.now();
