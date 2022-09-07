@@ -20,7 +20,8 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const {ECONOMY, canEarn, earnMoney, createPlayer, addMoney, canBetAmount, saveEconomy} = require("./economy.js")
+const {ECONOMY, canEarn, earnMoney, createPlayer, addMoney, canBetAmount, saveEconomy, canTax, taxPlayer, loseMoneyToBank} = require("./economy.js")
+
 
 enum CommandCategory {
     UTIL,
@@ -60,8 +61,6 @@ function createChatCommand(name: string, description: string, options: any) {
 const STRING = 3
 const INTEGER = 4
 const USER = 6
-
-
 function createChatCommandOption(type: number, name: string, description: string, { min, max, required }: { min?: number, max?: number | null, required?: boolean }) {
     let obj: { [key: string]: any } = {
         type: type,
@@ -249,9 +248,14 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message): string {
 
 let connection: any;
 
+let HEIST_PLAYERS: string[] = []
+let HEIST_TIMEOUT: NodeJS.Timeout | null = null
+
 const commands: { [command: string]: Command } = {
     money: {
         run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
             let user = msg.member
             if(args.join(" "))
                 user = await fetchUser(msg.guild, args.join(" "))
@@ -261,10 +265,245 @@ const commands: { [command: string]: Command } = {
                 return {content: "How are you not a member?"}
             }
             if(ECONOMY[user.id]){
+                if(opts['m']){
+                    return {content: String(ECONOMY[user.id].money)}
+                }
+                if(opts['l']){
+                    return {content: String(ECONOMY[user.id].lastTalk)}
+                }
+                if(opts['t']){
+                    return {content: String(ECONOMY[user.id].lastTaxed)}
+                }
                 return {content: `${user.user.username}\n$${Math.round(ECONOMY[user.id].money * 100) / 100}`}
             }
             return {content: "none"}
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Get the money of a user",
+            arguments: {
+                "user": {
+                    required: false,
+                    description: "The user to get the money of"
+                }
+            },
+            options: {
+                "m": {
+                    description: "Show money only"
+                },
+                "l": {
+                    description: "Show the last time they got money from talking",
+                },
+                "t": {
+                    description: "Show the  last time they got taxed"
+                }
+            }
+        }
+    },
+    tax: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(!args.length){
+                await msg.channel.send({content: "No user specified, erasing balance"})
+                await new Promise(res => setTimeout(res, 1000))
+                return {content: "Balance erased"}
+            }
+            let user = await fetchUser(msg.guild, args.join(" "))
+            if(!user)
+                return {content: `${args.join(" ")} not found`}
+            if(canTax(user.id)){
+                let embed = new MessageEmbed()
+                embed.setTitle("Taxation Time")
+                let taxAmount = taxPlayer(user.id)
+                addMoney(msg.author.id, taxAmount.amount)
+                if(opts['no-round'])
+                    embed.setDescription(`${user} has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
+                else
+                    embed.setDescription(`${user} has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
+
+                return {embeds: [embed]}
+            }
+            return {content: `${user.user.username} cannot be taxed`}
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Tax someone evily",
+            options: {
+                "no-round": {
+                    description: "Dont round numbers"
+                }
+            }
+        }
+    },
+    heist: {
+        run: async(_msg, _args) => {
+            return {noSend: true}
+        }, category: CommandCategory.GAME
+    //     run: async(msg, args) => {
+    //         HEIST_PLAYERS.push(msg.author.id)
+    //         let timeRemaining = 3000
+    //         if(HEIST_TIMEOUT === null){
+    //             let int = setInterval(async() => {
+    //                 timeRemaining -= 1000
+    //                 await msg.channel.send({content: `${timeRemaining / 1000} seconds until the heist commences!`})
+    //             }, 1000)
+    //             HEIST_TIMEOUT = setTimeout(async() => {
+    //                 clearInterval(int)
+    //                 await msg.channel.send({content: `Commencing heist with ${HEIST_PLAYERS.length} players`})
+    //                 let stages = ["getting in", "robbing", "escape"]
+    //                 for(let stage of stages){
+    //                     let member = await msg.guild?.members.fetch(HEIST_PLAYERS[Math.floor(Math.random() * HEIST_PLAYERS.length)])
+    //                     if(!member)
+    //                         member = msg.member || undefined
+    //                     if(!member)
+    //                         continue
+    //                     let data = {player: member, money: 0}
+    //                     switch(stage){
+    //                         case "getting in":
+    //
+    //
+    //                     }
+    //                 }
+    //                 HEIST_PLAYERS = []
+    //             }, timeRemaining)
+    //         }
+    //         return {content: `${msg.author} joined the heist`}
+    //
+    //     }, category: CommandCategory.GAME
+    },
+    blackjack: {
+        run: async(msg,  args) => {
+            let bet = Number(args[0])
+            if(!bet){
+                return {content: "no bet given"}
+            }
+            else if(bet < 0){
+                loseMoneyToBank(msg.author.id, -bet)
+                return {content: `Man you sure do want to lose money, ${bet} has been subtracted from your balance`}
+            }
+            let cards = []
+            for(let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]){
+                for(let num of ["A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]){
+                    cards.push(`${num}`)
+                }
+            }
+            function calculateCardValue(card: string, total: number){
+                if(card == "A"){
+                    if(total + 11 >= 22){
+                        return  1
+                    }
+                    else{
+                        return 11
+                    }
+                }
+                else if(["10", "J", "Q", "K"].includes(card)){
+                    return 10
+                }
+                else if(Number(card)){
+                    return Number(card)
+                }
+                return NaN
+            }
+            function calculateTotal(cards: string[]){
+                let total = 0
+                for(let card of cards){
+                    let val = calculateCardValue(card, total)
+                    if(!isNaN(val)){
+                        total += val
+                    }
+                }
+                return total
+            }
+            function giveRandomCard(cardsToChooseFrom: string[], deck: string[]){
+                let no = Math.floor(Math.random() * cardsToChooseFrom.length)
+                let c = cardsToChooseFrom[no]
+                cards = cardsToChooseFrom.filter((_v, i) => i != no)
+                deck.push(c)
+            }
+            let playersCards: string[] = []
+            let dealerCards: string[] = []
+            for(let i = 0; i < 2; i++){
+                giveRandomCard(cards, playersCards)
+                giveRandomCard(cards, dealerCards)
+            }
+            if(calculateTotal(playersCards) === 21){
+                addMoney(msg.author.id, bet * 3)
+                return {content: `BLACKJACK!\nYou got: ${bet * 3}`}
+            }
+            let total = 0
+            while((total = calculateTotal(dealerCards)) < 22){
+                let awayFrom21 = 21 - total
+                let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total) <= awayFrom21).length
+
+                let chance = countOfAwayInDeck / cards.length
+                console.log(countOfAwayInDeck, total, chance)
+                if(Math.random() < chance){
+                    console.log("yes")
+                    giveRandomCard(cards, dealerCards)
+                }
+                else{
+                    break
+                }
+            }
+            while(true){
+                let embed = new MessageEmbed()
+                embed.setTitle("Blackjack")
+                embed.addField("Your cards", `value: **${calculateTotal(playersCards)}**`, true)
+                //FIXME: edge case where dealerCards[0] is "A", this could be wrong
+                embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0)}**`, true)
+                embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+                let message = await msg.channel.send({embeds: [embed]})
+                let response
+                while(!response){
+                    let collectedMessages
+                    try{
+                        collectedMessages = await msg.channel.awaitMessages({filter: m => {
+                            if(m.author.id === msg.author.id){
+                                if(['hit', 'stand', 'double bet'].includes(m.content.toLowerCase())){
+                                    return true
+                                }
+                            }
+                            return false
+                        } , max: 1, time: 30000, errors: ["time"]})
+                    }
+                    catch(err){
+                        loseMoneyToBank(msg.author.id, bet)
+                        return {content:  `Did not respond  in time, lost ${bet}`}
+                    }
+                    response = collectedMessages.at(0)
+                }
+                let choice = response.content
+                if(choice === 'double bet'){
+                    bet *= 2
+                    choice = "hit"
+                }
+                if(choice === 'hit'){
+                    giveRandomCard(cards, playersCards)
+                }
+                if(choice === 'stand' || calculateTotal(playersCards) > 21){
+                    break
+                }
+            }
+            let playerTotal = calculateTotal(playersCards)
+            let dealerTotal = calculateTotal(dealerCards)
+            let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
+            let status = "You won"
+            if(playerTotal > 21){
+                status = `You lost: $${bet} (over 21)`
+                loseMoneyToBank(msg.author.id, bet)
+            }
+            else if(playerTotal === dealerTotal){
+                status = "TIE"
+            }
+            else if(playerTotal < dealerTotal && dealerTotal < 22){
+                status = `You lost: $${bet} (dealer won)`
+            }
+            else{
+                status = `You won: $${bet}`
+                addMoney(msg.author.id, bet)
+            }
+
+            return {content: `**${status}**\n${stats}`}
+        }, category: CommandCategory.GAME
     },
     leaderboard: {
         run: async(msg, args) => {
@@ -284,12 +523,11 @@ const commands: { [command: string]: Command } = {
             let text = ""
             //@ts-ignore
             let sortedEconomy = Object.entries(ECONOMY).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
-            console.log(sortedEconomy)
             place = 0
             for(let user of sortedEconomy){
                 let id = user[0]
-                let member = await msg.guild.members.fetch(id)
                 let money = ECONOMY[id].money
+                let member = await msg.guild.members.fetch(id)
                 if(!opts['no-round']){
                     money = Math.round(money * 100) / 100
                 }
@@ -335,7 +573,7 @@ const commands: { [command: string]: Command } = {
                 return {content: `The side was: ${side}\nYou won: ${bet}`}
             }
             else{
-                addMoney(msg.author.id, -bet)
+                loseMoneyToBank(msg.author.id, bet)
                 return {content: `The side was: ${side}\nYou lost: ${bet}`}
             }
         }, category: CommandCategory.GAME
