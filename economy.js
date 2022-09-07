@@ -87,5 +87,5 @@ module.exports = {
     canBetAmount: canBetAmount,
     canTax: canTax,
     taxPlayer: taxPlayer,
-    loseMoneyToBank: loseMoneyToBank
+    loseMoneyToBank: loseMoneyToBank,
 };

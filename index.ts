@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, canBetAmount, saveEconomy, canTax, taxPlayer, loseMoneyToBank } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -380,6 +380,9 @@ const commands: { [command: string]: Command } = {
                 loseMoneyToBank(msg.author.id, -bet)
                 return { content: `Man you sure do want to lose money, ${bet} has been subtracted from your balance` }
             }
+            if(!canBetAmount(msg.author.id, bet)){
+                return {content: "That bet is too high for you"}
+            }
             let cards = []
             for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                 for (let num of ["A", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
@@ -435,9 +438,7 @@ const commands: { [command: string]: Command } = {
                 let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total) <= awayFrom21).length
 
                 let chance = countOfAwayInDeck / cards.length
-                console.log(countOfAwayInDeck, total, chance)
                 if (Math.random() < chance) {
-                    console.log("yes")
                     giveRandomCard(cards, dealerCards)
                 }
                 else {
@@ -476,6 +477,10 @@ const commands: { [command: string]: Command } = {
                 }
                 let choice = response.content
                 if (choice === 'double bet') {
+                    if(!canBetAmount(msg.author.id, bet * 2)){
+                        await msg.channel.send({content: "That bet is too high for you"})
+                        continue
+                    }
                     bet *= 2
                     choice = "hit"
                 }
@@ -499,6 +504,7 @@ const commands: { [command: string]: Command } = {
             }
             else if (playerTotal < dealerTotal && dealerTotal < 22) {
                 status = `You lost: $${bet} (dealer won)`
+                loseMoneyToBank(msg.author.id, bet)
             }
             else {
                 status = `You won: $${bet}`
@@ -6880,7 +6886,7 @@ client.on("messageDeleteBulk", async (m) => {
 })
 
 client.on("messageCreate", async (m: Message) => {
-    if (!ECONOMY[m.author.id] && !m.author.bot) {
+    if (ECONOMY[m.author.id] === undefined && !m.author.bot) {
         createPlayer(m.author.id)
     }
     if (Math.random() > .30) {
