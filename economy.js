@@ -13,8 +13,8 @@ function loadEconomy() {
 function saveEconomy() {
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY));
 }
-function createPlayer(id) {
-    ECONOMY[id] = { money: 100, lastTalk: 0, lastTaxed: 0, stocks: {} };
+function createPlayer(id, startingCash = 100) {
+    ECONOMY[id] = { money: startingCash, lastTalk: 0, lastTaxed: 0, stocks: {} };
 }
 function addMoney(id, amount) {
     if (ECONOMY[id]) {
@@ -31,7 +31,7 @@ function loseMoneyToPlayer(id, amount, otherId) {
         ECONOMY[id].money -= amount;
     }
     if (ECONOMY[otherId] === undefined) {
-        createPlayer(otherId);
+        createPlayer(otherId, amount);
     }
     ECONOMY[otherId].money += amount;
 }
@@ -151,6 +151,8 @@ function reset() {
 }
 function sellStock(id, stock, shares) {
     if (ECONOMY[id].stocks?.[stock]) {
+        //@ts-ignore
+        ECONOMY[id].money += ECONOMY[id].stocks[stock].buyPrice * (shares / ECONOMY[id].stocks[stock].shares);
         //@ts-ignore
         ECONOMY[id].stocks[stock].shares -= shares;
         //@ts-ignore

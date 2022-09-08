@@ -379,7 +379,7 @@ const commands: { [command: string]: Command } = {
             let text = ''
             for(let stock in ECONOMY()[msg.author.id].stocks){
                 let stockInfo = ECONOMY()[msg.author.id].stocks[stock]
-                text += `${stock}\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
+                text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
             return {content: text}
         }, category: CommandCategory.ECONOMY
@@ -517,7 +517,7 @@ const commands: { [command: string]: Command } = {
                     return {content: "YOu do not own that many shares"}
                 }
                 let profit = (price - stockInfo.buyPrice) * sellAmount
-                sellStock(msg.author.id, stockName, sellAmount)
+                sellStock(msg.author.id, stockName, sellAmount, price)
                 addMoney(msg.author.id, profit)
                 return {content: `You sold: ${stockName} and made $${profit} in total`}
             }

@@ -165,8 +165,10 @@ function reset(){
     loadEconomy()
 }
 
-function sellStock(id: string, stock: string, shares: number){
+function sellStock(id: string, stock: string, shares: number, sellPrice: number){
     if(ECONOMY[id].stocks?.[stock]){
+        //@ts-ignore
+        ECONOMY[id].money += sellPrice * shares
         //@ts-ignore
         ECONOMY[id].stocks[stock].shares -= shares
         //@ts-ignore
