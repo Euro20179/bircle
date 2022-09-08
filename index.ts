@@ -379,7 +379,7 @@ const commands: { [command: string]: Command } = {
             let text = ''
             for(let stock in ECONOMY()[msg.author.id].stocks){
                 let stockInfo = ECONOMY()[msg.author.id].stocks[stock]
-                text += `${stock}\nbuy price: ${stockInfo.buyPrice}\nvalue: ${stockInfo.buyPrice * stockInfo.shares}\nshares: (${stockInfo.shares})\n-------------------------`
+                text += `${stock}\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------`
             }
             return {content: text}
         }, category: CommandCategory.ECONOMY
@@ -2681,6 +2681,7 @@ const commands: { [command: string]: Command } = {
                 let guessed = ""
                 let disp = ""
                 let lives = parseInt(opts["lives"] as string) || 10
+                let startingLives = lives
                 let word = [...wordstr]
                 for (let i = 0; i < wordLength; i++) {
                     if (word[i] == " ") {
@@ -2711,7 +2712,7 @@ const commands: { [command: string]: Command } = {
                     if (!caseSensitive) {
                         m.content = m.content.toLowerCase()
                     }
-                    if(participants[m.author.id] === undefined){
+                    if(participants[m.author.id] === undefined && !m.author.bot){
                         participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
@@ -2720,35 +2721,33 @@ const commands: { [command: string]: Command } = {
                     }
                     else if (m.content == wordstr) {
                         let money = "Earnings\n"
-                        let amount = 0
-                        if(wordLength < 5){
-                            amount = 0.005
-                        }
-                        if(wordLength < 10){
-                            amount = 0.01
-                        }
-                        if(wordLength < 20){
-                            amount = 0.015
-                        }
-                        if(wordLength >= 20){
-                            amount = 0.02
-                        }
                         if(participants[msg.author.id]){
                             delete participants[msg.author.id]
                         }
                         if(Object.keys(participants).length >= 1){
-                            if(ECONOMY()[msg.author.id] !== undefined){
-                                money += `<@${msg.author.id}>: ${ECONOMY()[msg.author.id].money * amount}\n`
-                                addMoney(msg.author.id, ECONOMY()[msg.author.id].money * amount)
-                            }
-                            for(let participant in participants){
-                                if(participant === msg.author.id) continue
-                                if(ECONOMY()[participant] !== undefined){
-                                    addMoney(participant, ECONOMY()[participant].money * amount)
-                                    money += `<@${participant}>: ${ECONOMY()[participant].money * amount}\n`
+                            let uniqueCharacters = ""
+                            for(let letter of [...wordstr]){
+                                if(!uniqueCharacters.includes(letter)){
+                                    uniqueCharacters += letter
                                 }
                             }
-                            await handleSending(msg, {content: money})
+                            if(startingLives <= uniqueCharacters.length * 10){
+                                if(ECONOMY()[msg.author.id] !== undefined){
+                                    money += `<@${msg.author.id}>: ${lives / uniqueCharacters.length}\n`
+                                    addMoney(msg.author.id, lives / uniqueCharacters.length)
+                                }
+                                for(let participant in participants){
+                                    if(participant === msg.author.id) continue
+                                    if(ECONOMY()[participant] !== undefined){
+                                        money += `<@${participant}>: ${lives / uniqueCharacters.length}\n`
+                                        addMoney(participant, lives / uniqueCharacters.length)
+                                    }
+                                }
+                                await handleSending(msg, {content: money})
+                            }
+                            else{
+                                await handleSending(msg, {content: "There were too many lives to earn money"})
+                            }
                         }
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
                         collection.stop()
@@ -2772,7 +2771,7 @@ const commands: { [command: string]: Command } = {
                     if (lives < 1) {
                         let money = "Earnigns\n"
                         if(ECONOMY()[msg.author.id] !== undefined){
-                            let amount = -(ECONOMY()[msg.author.id].money * Math.random() * (.02 - .01) + .01)
+                            let amount = -(ECONOMY()[msg.author.id].money * .01)
                             money += `<@${msg.author.id}>: ${amount}\n`
                             addMoney(msg.author.id, amount)
                         }
@@ -2781,7 +2780,7 @@ const commands: { [command: string]: Command } = {
                         }
                         for(let participant in participants){
                             if(ECONOMY()[participant] !== undefined){
-                                let amount = -(ECONOMY()[participant].money * Math.random() * (.02 - .01) + .01)
+                                let amount = -(ECONOMY()[participant].money * .01)
                                 money += `<@${participant}>: ${amount}\n`
                                 addMoney(participant, amount)
                             }
@@ -2836,18 +2835,29 @@ const commands: { [command: string]: Command } = {
                             delete participants[msg.author.id]
                         }
                         if(Object.keys(participants).length >= 1){
-                            if(ECONOMY()[msg.author.id] !== undefined){
-                                money += `<@${msg.author.id}>: ${ECONOMY()[msg.author.id].money * amount}\n`
-                                addMoney(msg.author.id, ECONOMY()[msg.author.id].money * amount)
-                            }
-                            for(let participant in participants){
-                                if(participant === msg.author.id) continue
-                                if(ECONOMY()[participant] !== undefined){
-                                    addMoney(participant, ECONOMY()[participant].money * amount)
-                                    money += `<@${participant}>: ${ECONOMY()[participant].money * amount}\n`
+                            let uniqueCharacters = ""
+                            for(let letter of [...wordstr]){
+                                if(!uniqueCharacters.includes(letter)){
+                                    uniqueCharacters += letter
                                 }
                             }
-                            await handleSending(msg, {content: money})
+                            if(startingLives <= uniqueCharacters.length * 10){
+                                if(ECONOMY()[msg.author.id] !== undefined){
+                                    money += `<@${msg.author.id}>: ${lives / uniqueCharacters.length}\n`
+                                    addMoney(msg.author.id, lives / uniqueCharacters.length)
+                                }
+                                for(let participant in participants){
+                                    if(participant === msg.author.id) continue
+                                    if(ECONOMY()[participant] !== undefined){
+                                        money += `<@${participant}>: ${lives / uniqueCharacters.length}\n`
+                                        addMoney(participant, lives / uniqueCharacters.length)
+                                    }
+                                }
+                                await handleSending(msg, {content: money})
+                            }
+                            else{
+                                await handleSending(msg, {content: "There were too many lives to earn money"})
+                            }
                         }
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
                         collection.stop()
