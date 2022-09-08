@@ -1,6 +1,6 @@
 const fs = require("fs")
 
-type EconomyData = {money: number, lastTalk: number, lastTaxed?: number}
+type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buy: number, shares: number}}
 let ECONOMY: {[key: string]: EconomyData} = {}
 
 function loadEconomy(){
@@ -17,7 +17,7 @@ function saveEconomy(){
 }
 
 function createPlayer(id: string){
-    ECONOMY[id] = {money: 100, lastTalk: 0, lastTaxed: 0}
+    ECONOMY[id] = {money: 100, lastTalk: 0, lastTaxed: 0, stocks: {}}
 }
 
 function addMoney(id: string, amount: number){

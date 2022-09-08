@@ -7,7 +7,7 @@ const { execSync, exec } = require('child_process')
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
-import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter } from 'discord.js'
+import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter, CommandInteraction } from 'discord.js'
 
 import uno = require("./uno")
 
@@ -252,6 +252,59 @@ let HEIST_PLAYERS: string[] = []
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 
 const commands: { [command: string]: Command } = {
+    stock: {
+        run: async(msg, args) => {
+            https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async () => {
+                    let html = data.read().toString()
+                    fs.writeFileSync("test.html", html)
+                    let embed = new MessageEmbed()
+                    let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+                    if(!stockData){
+                        await msg.channel.send("No data found")
+                        return
+                    }
+                    stockData = stockData[0]
+                    let price = stockData.match(/>(\d+\.\d+)/)
+                    if(!price){
+                        await msg.channel.send("No price found")
+                        return
+                    }
+                    price = price[1]
+                    let change = stockData.match(/(\+|-)(\d+\.\d+)/)
+                    if(!change){
+                        await msg.channel.send("No change found")
+                        return
+                    }
+                    change = `${change[1]}${change[2]}`
+                    let numberchange = Number(change)
+                    let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+                    if(!stockName){
+                        await msg.channel.send("Could not get stock name")
+                    }
+                    stockName = stockName[1]
+                    if(numberchange > 0){
+                        embed.setColor("GREEN")
+                    }
+                    else{
+                        embed.setColor("RED")
+                    }
+                    embed.setTitle(stockName)
+                    embed.addField("Price", price)
+                    embed.addField("Price change", change)
+                    await msg.channel.send({ embeds: [embed] })
+                })
+            }).end()
+            return {
+                content: "getting data"
+            }
+        },
+        category: CommandCategory.FUN
+    },
     money: {
         run: async (msg, args) => {
             let opts;
