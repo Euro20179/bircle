@@ -379,7 +379,7 @@ const commands: { [command: string]: Command } = {
             let text = ''
             for(let stock in ECONOMY()[msg.author.id].stocks){
                 let stockInfo = ECONOMY()[msg.author.id].stocks[stock]
-                text += `${stock}\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------`
+                text += `${stock}\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
             return {content: text}
         }, category: CommandCategory.ECONOMY
