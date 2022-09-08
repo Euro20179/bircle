@@ -16,8 +16,8 @@ function saveEconomy(){
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY))
 }
 
-function createPlayer(id: string){
-    ECONOMY[id] = {money: 100, lastTalk: 0, lastTaxed: 0, stocks: {}}
+function createPlayer(id: string, startingCash = 100){
+    ECONOMY[id] = {money: startingCash, lastTalk: 0, lastTaxed: 0, stocks: {}}
 }
 
 function addMoney(id: string, amount: number){
@@ -37,7 +37,7 @@ function loseMoneyToPlayer(id: string, amount: number, otherId: string){
         ECONOMY[id].money -= amount
     }
     if(ECONOMY[otherId] === undefined){
-        createPlayer(otherId)
+        createPlayer(otherId, amount)
     }
     ECONOMY[otherId].money += amount
 }
