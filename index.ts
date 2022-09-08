@@ -261,7 +261,6 @@ const commands: { [command: string]: Command } = {
                 })
                 resp.on("end", async () => {
                     let html = data.read().toString()
-                    fs.writeFileSync("test.html", html)
                     let embed = new MessageEmbed()
                     let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
                     if(!stockData){
