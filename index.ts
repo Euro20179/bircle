@@ -6198,8 +6198,8 @@ ${styles}
             if (canEarn(msg.author.id)) {
                 addMoney(msg.author.id, diff / (1000 * 60 * 60))
                 fmt += `\n{earnings}`
+                fs.writeFileSync("./command-results/last-run", String(Date.now()))
             }
-            fs.writeFileSync("./command-results/last-run", String(Date.now()))
             return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / (1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }) }
         },
         help: {
