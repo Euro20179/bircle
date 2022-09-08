@@ -384,6 +384,76 @@ const commands: { [command: string]: Command } = {
             return {content: text}
         }, category: CommandCategory.ECONOMY
     },
+    profits: {
+        run: async(msg, args) => {
+            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+                return {content: "You own no stocks"}
+            }
+            let totalProfit = 0
+            let totalDailiyProfit = 0
+            let text = ""
+            for(let stock in ECONOMY()[msg.author.id].stocks){
+                let data
+                try {
+                    //@ts-ignore
+                    data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+                }
+                catch (err) {
+                    continue
+                }
+                if (!data?.body) {
+                    continue
+                }
+                let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+                if(!stockData){
+                    continue
+                }
+                stockData = stockData[0]
+                let price = stockData.match(/>(\d+\.\d+)/)
+                if(!price){
+                    continue
+                }
+                price = Number(price[1])
+                if(!price){
+                    continue
+                }
+                let change = stockData.match(/(\+|-)(\d+\.\d+)/)
+                if(!change){
+                    continue
+                }
+                change = `${change[1]}${change[2]}`
+                let numberchange = Number(change)
+                if(!change){
+                    continue
+                }
+                if(!numberchange){
+                    continue
+                }
+                let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+                if(!stockName){
+                    continue
+                }
+                stockName = stockName[1]
+                if(!ECONOMY()[msg.author.id].stocks[stockName]){
+                    continue
+                }
+                else{
+                    text += `**${stockName}**\n`
+                    let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+                    let profit = (price - stockInfo.buyPrice) * stockInfo.shares
+                    totalProfit += profit
+                    let todaysProfit = (numberchange * stockInfo.shares)
+                    totalDailiyProfit += todaysProfit
+                    text += `Price: ${price}\n`
+                    text += `Change: ${change}\n`
+                    text += `Profit: ${profit}\n`
+                    text += `Todays profit: ${todaysProfit}\n`
+                    text += "---------------------------\n"
+                }
+            }
+            return {content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}`}
+        }, category: CommandCategory.ECONOMY
+    },
     "profit": {
         run: async(msg, args) => {
             if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
@@ -440,7 +510,7 @@ const commands: { [command: string]: Command } = {
                 embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
                 let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
                 let profit = (price - stockInfo.buyPrice) * stockInfo.shares
-                let todaysProfit = (change * stockInfo.shares)
+                let todaysProfit = (numberchange * stockInfo.shares)
                 if(profit > 0){
                     embed.setColor("GREEN")
                 }
@@ -448,10 +518,11 @@ const commands: { [command: string]: Command } = {
                     embed.setColor("RED")
                 }
                 embed.addField("Price", String(price), true)
-                embed.addField("Change", String(change), true)
-                embed.addField("Change %", String(change / (price + change)), true)
+                embed.addField("Change", String(numberchange), true)
+                embed.addField("Change %", String(numberchange / (price + numberchange)), true)
                 embed.addField("Profit", String(profit), true)
                 embed.addField("Today's Profit", String(todaysProfit), true)
+                embed.addField("Value", String(price * stockInfo.shares))
                 return {embeds: [embed]}
             }
         }, category: CommandCategory.ECONOMY
