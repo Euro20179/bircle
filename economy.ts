@@ -1,6 +1,6 @@
 const fs = require("fs")
 
-type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buy: number, shares: number}}
+type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}}
 let ECONOMY: {[key: string]: EconomyData} = {}
 
 function loadEconomy(){
@@ -101,6 +101,33 @@ function setMoney(id: string, amount: number){
     }
 }
 
+function calculateStockAmountFromString(id: string, shareCount: number, amount: string){
+    if(amount == undefined || amount == null){
+        return NaN
+    }
+    if(ECONOMY[id] === undefined){
+        return NaN
+    }
+    amount = amount.toLowerCase()
+    if(amount == "all"){
+        return shareCount
+    }
+    if(Number(amount)){
+        return Number(amount)
+    }
+    else if(amount[0] === "$" && Number(amount.slice(1))){
+        return Number(amount.slice(1))
+    }
+    else if(amount[amount.length - 1] === "%"){
+        let percent = Number(amount.slice(0, -1))
+        if(!percent){
+            return 0
+        }
+        return shareCount * percent / 100
+    }
+    return 0
+}
+
 function calculateAmountFromString(id: string, amount: string){
     if(amount == undefined || amount == null){
         return NaN
@@ -138,6 +165,44 @@ function reset(){
     loadEconomy()
 }
 
+function sellStock(id: string, stock: string, shares: number){
+    if(ECONOMY[id].stocks?.[stock]){
+        //@ts-ignore
+        ECONOMY[id].stocks[stock].shares -= shares
+        //@ts-ignore
+        if(ECONOMY[id].stocks[stock].shares <= 0){
+            //@ts-ignore
+            delete ECONOMY[id].stocks[stock]
+        }
+    }
+}
+
+function buyStock(id: string, stock: string, shares: number, cost: number){
+    if(!ECONOMY[id]){
+        return
+    }
+    if(!ECONOMY[id].stocks){
+        ECONOMY[id].stocks = {}
+    }
+    //@ts-ignore
+    if(!ECONOMY[id].stocks[stock]){
+        //@ts-ignore
+        ECONOMY[id].stocks[stock] = {buyPrice: cost, shares: shares}
+    }
+    else{
+        //@ts-ignore
+        let oldShareCount = ECONOMY[id].stocks[stock].shares
+        //@ts-ignore
+        let oldBuyPriceWeight = ECONOMY[id].stocks[stock].buyPrice * (oldShareCount / (oldShareCount + shares))
+        let newBuyPriceWeight = cost * (shares / (oldShareCount + shares))
+        //@ts-ignore
+        ECONOMY[id].stocks[stock].shares += shares
+        //@ts-ignore
+        ECONOMY[id].stocks[stock].buyPrice = oldBuyPriceWeight + newBuyPriceWeight
+    }
+    loseMoneyToBank(id, cost * shares)
+}
+
 loadEconomy()
 
 
@@ -156,5 +221,8 @@ module.exports = {
     calculateAmountFromString: calculateAmountFromString,
     loseMoneyToPlayer: loseMoneyToPlayer,
     setMoney: setMoney,
-    resetEconomy: reset
+    resetEconomy: reset,
+    buyStock: buyStock,
+    calculateStockAmountFromString: calculateStockAmountFromString,
+    sellStock: sellStock
 }

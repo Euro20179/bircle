@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -285,6 +285,7 @@ const commands: { [command: string]: Command } = {
                     let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
                     if(!stockName){
                         await msg.channel.send("Could not get stock name")
+                        return
                     }
                     stockName = stockName[1]
                     if(numberchange > 0){
@@ -295,7 +296,7 @@ const commands: { [command: string]: Command } = {
                     }
                     embed.setTitle(stockName)
                     embed.addField("Price", price)
-                    embed.addField("Price change", change)
+                    embed.addField("Price change", change, true)
                     await msg.channel.send({ embeds: [embed] })
                 })
             }).end()
@@ -304,6 +305,222 @@ const commands: { [command: string]: Command } = {
             }
         },
         category: CommandCategory.FUN
+    },
+    buy: {
+        run: async(msg, args) => {
+            let stock = args[0]
+            if(!stock){
+                return {content: "No stock given"}
+            }
+            let amount = Number(args[1])
+            if(!amount){
+                return {content: "No share count given"}
+            }
+            if(amount < .1){
+                return {content: "You must buy at least 1/10 of a share"}
+            }
+            https.get(`https://www.google.com/search?q=${encodeURI(stock)}+stock`, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async () => {
+                    let html = data.read().toString()
+                    let embed = new MessageEmbed()
+                    let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+                    if(!stockData){
+                        await msg.channel.send("No data found")
+                        return
+                    }
+                    stockData = stockData[0]
+                    let price = stockData.match(/>(\d+\.\d+)/)
+                    if(!price){
+                        await msg.channel.send("No price found")
+                        return
+                    }
+                    price = Number(price[1])
+                    if(!price){
+                        await msg.channel.send("bad price")
+                        return
+                    }
+                    let change = stockData.match(/(\+|-)(\d+\.\d+)/)
+                    if(!change){
+                        await msg.channel.send("No change found")
+                        return
+                    }
+                    change = `${change[1]}${change[2]}`
+                    let numberchange = Number(change)
+                    if(!numberchange){
+                        await msg.channel.send("This stock cost does not exist")
+                        return
+                    }
+                    if(!canBetAmount(msg.author.id, price * amount)){
+                        await msg.channel.send("You cannot afford this")
+                        return
+                    }
+                    let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+                    if(!stockName){
+                        await msg.channel.send("Could not get stock name")
+                        return
+                    }
+                    stockName = stockName[1]
+                    buyStock(msg.author.id, stockName, amount, price)
+                    await msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stockName} for $${price * amount}`})
+                })
+            }).end()
+            return {noSend: true}
+        }, category: CommandCategory.ECONOMY
+    },
+    "stocks": {
+        run: async(msg, args) => {
+            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+                return {content: "You own no stocks"}
+            }
+            let text = ''
+            for(let stock in ECONOMY()[msg.author.id].stocks){
+                text += `${stock}: ${ECONOMY()[msg.author.id].stocks[stock].buyPrice} (${ECONOMY()[msg.author.id].stocks[stock].shares})\n`
+            }
+            return {content: text}
+        }, category: CommandCategory.ECONOMY
+    },
+    "profit": {
+        run: async(msg, args) => {
+            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+                return {content: "You own no stocks"}
+            }
+            let stock = args[0]
+            let data
+            try {
+                //@ts-ignore
+                data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+            }
+            catch (err) {
+                return { content: "Could not fetch data" }
+            }
+            if (!data?.body) {
+                return { content: "No data found" }
+            }
+            let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+            if(!stockData){
+                return {content: "No data found"}
+            }
+            stockData = stockData[0]
+            let price = stockData.match(/>(\d+\.\d+)/)
+            if(!price){
+                return {content: "No price found"}
+            }
+            price = Number(price[1])
+            if(!price){
+                return {content: "bad price"}
+            }
+            let change = stockData.match(/(\+|-)(\d+\.\d+)/)
+            if(!change){
+                return {content: "No change found"}
+            }
+            change = `${change[1]}${change[2]}`
+            let numberchange = Number(change)
+            if(!change){
+                return {content: "Change is nonnumber"}
+            }
+            if(!numberchange){
+                return {content: "This stock cost does not exist"}
+            }
+            let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+            if(!stockName){
+                return {content: "Could not get stock name"}
+            }
+            stockName = stockName[1]
+            if(!ECONOMY()[msg.author.id].stocks[stockName]){
+                return {content: "You do not own this stock"}
+            }
+            else{
+                let embed = new MessageEmbed()
+                embed.setTitle(stockName)
+                embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
+                let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+                let profit = (price - stockInfo.buyPrice) * stockInfo.shares
+                let todaysProfit = (change * stockInfo.shares)
+                if(profit > 0){
+                    embed.setColor("GREEN")
+                }
+                else{
+                    embed.setColor("RED")
+                }
+                embed.addField("Price", String(price), true)
+                embed.addField("Change", String(change), true)
+                embed.addField("Change %", String(change / (price + change)), true)
+                embed.addField("Profit", String(profit), true)
+                embed.addField("Today's Profit", String(todaysProfit), true)
+                return {embeds: [embed]}
+            }
+        }, category: CommandCategory.ECONOMY
+    },
+    sell: {
+        run: async(msg, args) => {
+            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+                return {content: "You own no stocks"}
+            }
+            let stock = args[0]
+            let amount = args[1]
+            let data
+            try {
+                //@ts-ignore
+                data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+            }
+            catch (err) {
+                return { content: "Could not fetch data" }
+            }
+            if (!data?.body) {
+                return { content: "No data found" }
+            }
+            let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+            if(!stockData){
+                return {content: "No data found"}
+            }
+            stockData = stockData[0]
+            let price = stockData.match(/>(\d+\.\d+)/)
+            if(!price){
+                return {content: "No price found"}
+            }
+            price = Number(price[1])
+            if(!price){
+                return {content: "bad price"}
+            }
+            let change = stockData.match(/(\+|-)(\d+\.\d+)/)
+            if(!change){
+                return {content: "No change found"}
+            }
+            change = `${change[1]}${change[2]}`
+            let numberchange = Number(change)
+            if(!change){
+                return {content: "Change is nonnumber"}
+            }
+            if(!numberchange){
+                return {content: "This stock cost does not exist"}
+            }
+            let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+            if(!stockName){
+                return {content: "Could not get stock name"}
+            }
+            stockName = stockName[1]
+            if(!ECONOMY()[msg.author.id].stocks[stockName]){
+                return {content: "You do not own this stock"}
+            }
+            else{
+                let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+                let sellAmount = calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
+                if(!sellAmount){
+                    return {content: "You must sell a number of shares of your stock"}
+                }
+                if(sellAmount > stockInfo.shares){
+                    return {content: "YOu do not own that many shares"}
+                }
+                let profit = (price - stockInfo.buyPrice) * sellAmount
+                sellStock(msg.author.id, stockName, sellAmount)
+                addMoney(msg.author.id, profit)
+                return {content: `You sold: ${stockName} and made $${profit} in total`}
+            }
+        }, category: CommandCategory.ECONOMY
     },
     money: {
         run: async (msg, args) => {
