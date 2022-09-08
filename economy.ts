@@ -110,6 +110,9 @@ function calculateAmountFromString(id: string, amount: string){
     }
     amount = amount.toLowerCase()
     if(amount == "all"){
+        return ECONOMY[id].money * .99
+    }
+    if(amount == "all!"){
         return ECONOMY[id].money
     }
     if(Number(amount)){
