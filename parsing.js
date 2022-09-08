@@ -152,6 +152,9 @@ function buildEscape(letter, sequence, msg, curArg){
             return "\t"
         case "U":
         case "u":
+            if(!sequence){
+                return "\\u"
+            }
             return String.fromCodePoint(parseInt(`0x${sequence}`))
         case "s":
             if(sequence){

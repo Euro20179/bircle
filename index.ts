@@ -2502,7 +2502,7 @@ const commands: { [command: string]: Command } = {
                         let money = "Earnigns\n"
                         if(ECONOMY()[msg.author.id] !== undefined){
                             let amount = -(ECONOMY()[msg.author.id].money * Math.random() * (.02 - .01) + .01)
-                            money += `<@${msg.author.id}>: ${amount}`
+                            money += `<@${msg.author.id}>: ${amount}\n`
                             addMoney(msg.author.id, amount)
                         }
                         if(participants[msg.author.id]){
@@ -2511,7 +2511,7 @@ const commands: { [command: string]: Command } = {
                         for(let participant in participants){
                             if(ECONOMY()[participant] !== undefined){
                                 let amount = -(ECONOMY()[participant].money * Math.random() * (.02 - .01) + .01)
-                                money += `<@${participant}>: ${amount}`
+                                money += `<@${participant}>: ${amount}\n`
                                 addMoney(participant, amount)
                             }
                         }
