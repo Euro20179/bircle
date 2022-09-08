@@ -627,7 +627,7 @@ const commands: { [command: string]: Command } = {
             let answer = LOTTERY()
             if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
                 addMoney(msg.author.id, answer.pool)
-                let winningAmount = answer.pool
+                let winningAmount = answer.pool * 1.25
                 newLottery()
                 return {content: `<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`}
             }
@@ -636,7 +636,7 @@ const commands: { [command: string]: Command } = {
     },
     lottery: {
         run: async(msg, args) => {
-            return {content: `The lottery pool is: ${LOTTERY().pool}`}
+            return {content: `The lottery pool is: ${LOTTERY().pool * 1.25}`}
         }, category: CommandCategory.FUN
     },
     money: {
