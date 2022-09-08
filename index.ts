@@ -2426,12 +2426,15 @@ const commands: { [command: string]: Command } = {
                     return { content: "2K char limit reached" }
                 }
                 let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
+                let gameIsGoing = true
                 collection.on("collect", async (m) => {
+                    if(!gameIsGoing) return
                     if (m.content == '\\n' || m.content == "<enter>")
                         m.content = '\n'
                     if (m.content == "STOP") {
                         await msg.channel.send("STOPPED")
                         collection.stop()
+                        gameIsGoing = false
                         return
                     }
                     if (!caseSensitive) {
@@ -2478,6 +2481,7 @@ const commands: { [command: string]: Command } = {
                         }
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
                         collection.stop()
+                        gameIsGoing = false
                         return
                     }
                     else guessed += m.content
@@ -2514,6 +2518,7 @@ const commands: { [command: string]: Command } = {
                         await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
                         collection.stop()
+                        gameIsGoing = false
                         return
                     }
                     let correctIndecies: { [k: number]: string } = {}
@@ -2575,6 +2580,7 @@ const commands: { [command: string]: Command } = {
                         }
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
                         collection.stop()
+                        gameIsGoing = false
                         return
                     }
                     await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)` })
@@ -6664,9 +6670,11 @@ valid formats:<br>
             [cmd, ...args] = args
             let realCmd = args[0]
             args = args.slice(1)
-            console.log(aliases[cmd])
             if (aliases[cmd]) {
                 return { content: `Failed to add "${cmd}", it already exists` }
+            }
+            if(commands[cmd]){
+                return {content: `Failed to add "${cmd}", it is a builtin`}
             }
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
             aliases = createAliases()
