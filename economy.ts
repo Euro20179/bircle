@@ -201,6 +201,22 @@ function sellStock(id: string, stock: string, shares: number, sellPrice: number)
     }
 }
 
+function removeStock(id: string, stock: string){
+    if(ECONOMY[id].stocks?.[stock]){
+        delete ECONOMY[id].stocks[stock]
+    }
+}
+
+function giveStock(id: string, stock: string, buyPrice: number, shares: number){
+    if(ECONOMY[id].stocks){
+        ECONOMY[id].stocks[stock] = {buyPrice: buyPrice, shares: shares}
+    }
+    else{
+        ECONOMY[id].stocks = {}
+        ECONOMY[id].stocks[stock] = {buyPrice: buyPrice, shares: shares}
+    }
+}
+
 function buyStock(id: string, stock: string, shares: number, cost: number){
     if(!ECONOMY[id]){
         return
@@ -251,5 +267,7 @@ module.exports = {
     calculateStockAmountFromString: calculateStockAmountFromString,
     sellStock: sellStock,
     buyLotteryTicket: buyLotteryTicket,
-    newLottery: newLottery
+    newLottery: newLottery,
+    removeStock: removeStock,
+    giveStock: giveStock
 }

@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -373,15 +373,26 @@ const commands: { [command: string]: Command } = {
     },
     "stocks": {
         run: async(msg, args) => {
-            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+            let user = args[0]
+            let member = msg.member
+            if(user){
+                member = await fetchUser(msg.guild, user)
+                if(!member){
+                    return {content: `${args[0]} not found`}
+                }
+            }
+            if(!member){
+                return {content: ":weary:"}
+            }
+            if(!ECONOMY()[member.id] || !ECONOMY()[member.id].stocks){
                 return {content: "You own no stocks"}
             }
-            let text = ''
-            for(let stock in ECONOMY()[msg.author.id].stocks){
-                let stockInfo = ECONOMY()[msg.author.id].stocks[stock]
+            let text = `<@${member.id}>\n`
+            for(let stock in ECONOMY()[member.id].stocks){
+                let stockInfo = ECONOMY()[member.id].stocks[stock]
                 text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
-            return {content: text}
+            return {content: text || "No stocks", allowedMentions: {parse: []}}
         }, category: CommandCategory.ECONOMY
     },
     profits: {
@@ -710,6 +721,69 @@ const commands: { [command: string]: Command } = {
             else{
                 return {content: `You cannot give away ${realAmount}`}
             }
+        }, category: CommandCategory.ECONOMY
+    },
+    "give-stock": {
+        run: async(msg, args) => {
+            let stock = args[0]
+            let a = args[1]
+            let data
+            try {
+                //@ts-ignore
+                data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+            }
+            catch (err) {
+                return {content: "No data found"}
+            }
+            if (!data?.body) {
+                return {content: "No data found"}
+            }
+            let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+            if(!stockData){
+                return {content: "No data found"}
+            }
+            let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+            if(!stockName){
+                return {content: "Stock not found"}
+            }
+            stockName = stockName[1]
+            if(!ECONOMY()[msg.author.id].stocks?.[stockName]){
+                return {content: "You do not own that stock"}
+            }
+            let amount = calculateStockAmountFromString(msg.author.id, ECONOMY()[msg.author.id].stocks[stockName].shares, a) as number
+            if(!amount){
+                return {content: `Invalid share count`}
+            }
+            let userStockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+            if(amount > userStockInfo.shares){
+                return {content: "You dont have that many shares"}
+            }
+            let player = args.slice(2).join(" ")
+            let member = await fetchUser(msg.guild, player)
+            if(!member){
+                return {content: `Member: ${player} not found`}
+            }
+            if(!ECONOMY()[member.id]){
+                return {content: "Cannot give stocks to this player"}
+            }
+            let oldUserShares = userStockInfo.shares
+            userStockInfo.shares -= amount
+            let otherStockInfo = ECONOMY()[member.id]?.stocks?.[stockName] || {}
+            if(!otherStockInfo.buyPrice){
+                otherStockInfo.buyPrice = userStockInfo.buyPrice
+                otherStockInfo.shares = amount
+            }
+            else{
+                let oldShareCount = otherStockInfo.shares
+                let newShareCount = otherStockInfo.shares + amount
+                otherStockInfo.buyPrice = (otherStockInfo.buyPrice * (oldShareCount / newShareCount)) + (userStockInfo.buyPrice * (oldUserShares / newShareCount))
+                otherStockInfo.shares += amount
+            }
+            giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
+            if(userStockInfo.shares == 0){
+                removeStock(msg.author.id, stockName)
+            }
+            return {content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${stockName}`}
         }, category: CommandCategory.ECONOMY
     },
     tax: {
@@ -1094,7 +1168,6 @@ const commands: { [command: string]: Command } = {
                 //@ts-ignore
                 totalEconomy += value.money
             }
-            console.log(totalEconomy)
             place = 0
             for (let user of sortedEconomy) {
                 let id = user[0]
@@ -1398,7 +1471,6 @@ const commands: { [command: string]: Command } = {
                 if (!member) {
                     member = msg.author
                 }
-                console.log(member)
                 //@ts-ignore
                 const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
                 if (!userData) {

@@ -180,6 +180,20 @@ function sellStock(id, stock, shares, sellPrice) {
         }
     }
 }
+function removeStock(id, stock) {
+    if (ECONOMY[id].stocks?.[stock]) {
+        delete ECONOMY[id].stocks[stock];
+    }
+}
+function giveStock(id, stock, buyPrice, shares) {
+    if (ECONOMY[id].stocks) {
+        ECONOMY[id].stocks[stock] = { buyPrice: buyPrice, shares: shares };
+    }
+    else {
+        ECONOMY[id].stocks = {};
+        ECONOMY[id].stocks[stock] = { buyPrice: buyPrice, shares: shares };
+    }
+}
 function buyStock(id, stock, shares, cost) {
     if (!ECONOMY[id]) {
         return;
@@ -227,5 +241,7 @@ module.exports = {
     calculateStockAmountFromString: calculateStockAmountFromString,
     sellStock: sellStock,
     buyLotteryTicket: buyLotteryTicket,
-    newLottery: newLottery
+    newLottery: newLottery,
+    removeStock: removeStock,
+    giveStock: giveStock
 };
