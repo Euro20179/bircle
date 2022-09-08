@@ -16,5 +16,6 @@ make-changelog
 *.png
 out
 economy.json
+lottery.json
 
 !command-perms/holder

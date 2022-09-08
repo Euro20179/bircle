@@ -3,6 +3,9 @@ const fs = require("fs")
 type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}}
 let ECONOMY: {[key: string]: EconomyData} = {}
 
+let lottery: {pool: number, numbers: [number, number, number]} = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
+
+
 function loadEconomy(){
     if(fs.existsSync("./economy.json")){
         let data = fs.readFileSync("./economy.json")
@@ -11,9 +14,28 @@ function loadEconomy(){
             delete ECONOMY['bank']
         }
     }
+    if(fs.existsSync("./lottery.json")){
+        let data = fs.readFileSync("./lottery.json")
+        lottery = JSON.parse(data)
+    }
 }
 function saveEconomy(){
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY))
+    fs.writeFileSync("./lottery.json", JSON.stringify(lottery))
+}
+
+function buyLotteryTicket(id: string, cost: number){
+    if(ECONOMY[id]){
+        ECONOMY[id].money -= cost
+        lottery.pool += cost
+        let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]
+        return ticket
+    }
+    return false
+}
+
+function newLottery(){
+    lottery = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
 }
 
 function createPlayer(id: string, startingCash = 100){
@@ -210,6 +232,7 @@ loadEconomy()
 
 module.exports = {
     ECONOMY: () => ECONOMY,
+    LOTTERY: () => lottery,
     loadEconomy: loadEconomy,
     saveEconomy: saveEconomy,
     createPlayer: createPlayer,
@@ -226,5 +249,7 @@ module.exports = {
     resetEconomy: reset,
     buyStock: buyStock,
     calculateStockAmountFromString: calculateStockAmountFromString,
-    sellStock: sellStock
+    sellStock: sellStock,
+    buyLotteryTicket: buyLotteryTicket,
+    newLottery: newLottery
 }

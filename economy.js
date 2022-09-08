@@ -1,6 +1,7 @@
 "use strict";
 const fs = require("fs");
 let ECONOMY = {};
+let lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] };
 function loadEconomy() {
     if (fs.existsSync("./economy.json")) {
         let data = fs.readFileSync("./economy.json");
@@ -9,9 +10,26 @@ function loadEconomy() {
             delete ECONOMY['bank'];
         }
     }
+    if (fs.existsSync("./lottery.json")) {
+        let data = fs.readFileSync("./lottery.json");
+        lottery = JSON.parse(data);
+    }
 }
 function saveEconomy() {
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY));
+    fs.writeFileSync("./lottery.json", JSON.stringify(lottery));
+}
+function buyLotteryTicket(id, cost) {
+    if (ECONOMY[id]) {
+        ECONOMY[id].money -= cost;
+        lottery.pool += cost;
+        let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)];
+        return ticket;
+    }
+    return false;
+}
+function newLottery() {
+    lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] };
 }
 function createPlayer(id, startingCash = 100) {
     ECONOMY[id] = { money: startingCash, lastTalk: 0, lastTaxed: 0, stocks: {} };
@@ -149,10 +167,10 @@ function reset() {
     saveEconomy();
     loadEconomy();
 }
-function sellStock(id, stock, shares) {
+function sellStock(id, stock, shares, sellPrice) {
     if (ECONOMY[id].stocks?.[stock]) {
         //@ts-ignore
-        ECONOMY[id].money += ECONOMY[id].stocks[stock].buyPrice * (shares / ECONOMY[id].stocks[stock].shares);
+        ECONOMY[id].money += sellPrice * shares;
         //@ts-ignore
         ECONOMY[id].stocks[stock].shares -= shares;
         //@ts-ignore
@@ -190,6 +208,7 @@ function buyStock(id, stock, shares, cost) {
 loadEconomy();
 module.exports = {
     ECONOMY: () => ECONOMY,
+    LOTTERY: () => lottery,
     loadEconomy: loadEconomy,
     saveEconomy: saveEconomy,
     createPlayer: createPlayer,
@@ -206,5 +225,7 @@ module.exports = {
     resetEconomy: reset,
     buyStock: buyStock,
     calculateStockAmountFromString: calculateStockAmountFromString,
-    sellStock: sellStock
+    sellStock: sellStock,
+    buyLotteryTicket: buyLotteryTicket,
+    newLottery: newLottery
 };

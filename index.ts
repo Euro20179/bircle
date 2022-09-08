@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -522,6 +522,41 @@ const commands: { [command: string]: Command } = {
                 return {content: `You sold: ${stockName} and made $${profit} in total`}
             }
         }, category: CommandCategory.ECONOMY
+    },
+    ticket: {
+        run: async(msg, args) => {
+            let amount = calculateAmountFromString(msg.author.id, args[0])
+            let numbers = args.slice(1, 4)
+            if(!amount){
+                return {content: "No amount given"}
+            }
+            if(!canBetAmount(msg.author.id, amount)){
+                return {content: "You do not have enough money for this"}
+            }
+            let ticket = buyLotteryTicket(msg.author.id, amount)
+            if(!ticket){
+                return {content: "Could not buy ticket"}
+            }
+            if(numbers && numbers.length == 3){
+                ticket = numbers
+                for(let i = 0; i < ticket.length; i++){
+                    ticket[i] = Number(ticket[i])
+                }
+            }
+            let answer = LOTTERY()
+            if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
+                addMoney(msg.author.id, answer.pool)
+                let winningAmount = answer.pool
+                newLottery()
+                return {content: `<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`}
+            }
+            return {content: `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")} and didnt win`}
+        }, category: CommandCategory.GAME
+    },
+    lottery: {
+        run: async(msg, args) => {
+            return {content: `The lottery pool is: ${LOTTERY().pool}`}
+        }, category: CommandCategory.FUN
     },
     money: {
         run: async (msg, args) => {
