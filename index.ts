@@ -20,7 +20,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy } = require("./economy.js")
 
 
 enum CommandCategory {
@@ -265,23 +265,23 @@ const commands: { [command: string]: Command } = {
                 return { content: "How are you not a member?" }
             }
             let text = ""
-            if (ECONOMY[user.id]) {
+            if (ECONOMY()[user.id]) {
                 if (opts['m']) {
-                    text += `${ECONOMY[user.id].money}\n`
+                    text += `${ECONOMY()[user.id].money}\n`
                 }
                 if (opts['l']) {
-                    text += `${ECONOMY[user.id].lastTalk}\n`
+                    text += `${ECONOMY()[user.id].lastTalk}\n`
                 }
                 if (opts['t']) {
-                    text += `${ECONOMY[user.id].lastTaxed}\n`
+                    text += `${ECONOMY()[user.id].lastTaxed}\n`
                 }
                 if(text){
                     return {content: text}
                 }
                 if(opts['no-round']){
-                    return { content: `${user.user.username}\n$${ECONOMY[user.id].money}` }
+                    return { content: `${user.user.username}\n$${ECONOMY()[user.id].money}` }
                 }
-                return { content: `${user.user.username}\n$${Math.round(ECONOMY[user.id].money * 100) / 100}` }
+                return { content: `${user.user.username}\n$${Math.round(ECONOMY()[user.id].money * 100) / 100}` }
             }
             return { content: "none" }
         }, category: CommandCategory.ECONOMY,
@@ -709,9 +709,9 @@ const commands: { [command: string]: Command } = {
             let embed = new MessageEmbed()
             let text = ""
             //@ts-ignore
-            let sortedEconomy = Object.entries(ECONOMY).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
+            let sortedEconomy = Object.entries(ECONOMY()).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
             //@ts-ignore
-            let allValues = Object.values(ECONOMY)
+            let allValues = Object.values(ECONOMY())
             let totalEconomy = 0
             for(let value of allValues){
                 //@ts-ignore
@@ -721,7 +721,7 @@ const commands: { [command: string]: Command } = {
             place = 0
             for (let user of sortedEconomy) {
                 let id = user[0]
-                let money = ECONOMY[id].money
+                let money = ECONOMY()[id].money
                 let percent = money / totalEconomy * 100
                 if (!opts['no-round']) {
                     money = Math.round(money * 100) / 100
@@ -2463,15 +2463,15 @@ const commands: { [command: string]: Command } = {
                             delete participants[msg.author.id]
                         }
                         if(Object.keys(participants).length >= 1){
-                            if(ECONOMY[msg.author.id] !== undefined){
-                                money += `<@${msg.author.id}>: ${ECONOMY[msg.author.id].money * amount}\n`
-                                addMoney(msg.author.id, ECONOMY[msg.author.id].money * amount)
+                            if(ECONOMY()[msg.author.id] !== undefined){
+                                money += `<@${msg.author.id}>: ${ECONOMY()[msg.author.id].money * amount}\n`
+                                addMoney(msg.author.id, ECONOMY()[msg.author.id].money * amount)
                             }
                             for(let participant in participants){
                                 if(participant === msg.author.id) continue
-                                if(ECONOMY[participant] !== undefined){
-                                    addMoney(participant, ECONOMY[participant].money * amount)
-                                    money += `<@${participant}>: ${ECONOMY[participant].money * amount}\n`
+                                if(ECONOMY()[participant] !== undefined){
+                                    addMoney(participant, ECONOMY()[participant].money * amount)
+                                    money += `<@${participant}>: ${ECONOMY()[participant].money * amount}\n`
                                 }
                             }
                             await handleSending(msg, {content: money})
@@ -2496,8 +2496,8 @@ const commands: { [command: string]: Command } = {
                     }
                     if (lives < 1) {
                         let money = "Earnigns\n"
-                        if(ECONOMY[msg.author.id] !== undefined){
-                            let amount = -(ECONOMY[msg.author.id].money * Math.random() * (.02 - .01) + .01)
+                        if(ECONOMY()[msg.author.id] !== undefined){
+                            let amount = -(ECONOMY()[msg.author.id].money * Math.random() * (.02 - .01) + .01)
                             money += `<@${msg.author.id}>: ${amount}`
                             addMoney(msg.author.id, amount)
                         }
@@ -2505,8 +2505,8 @@ const commands: { [command: string]: Command } = {
                             delete participants[msg.author.id]
                         }
                         for(let participant in participants){
-                            if(ECONOMY[participant] !== undefined){
-                                let amount = -(ECONOMY[participant].money * Math.random() * (.02 - .01) + .01)
+                            if(ECONOMY()[participant] !== undefined){
+                                let amount = -(ECONOMY()[participant].money * Math.random() * (.02 - .01) + .01)
                                 money += `<@${participant}>: ${amount}`
                                 addMoney(participant, amount)
                             }
@@ -2560,15 +2560,15 @@ const commands: { [command: string]: Command } = {
                             delete participants[msg.author.id]
                         }
                         if(Object.keys(participants).length >= 1){
-                            if(ECONOMY[msg.author.id] !== undefined){
-                                money += `<@${msg.author.id}>: ${ECONOMY[msg.author.id].money * amount}\n`
-                                addMoney(msg.author.id, ECONOMY[msg.author.id].money * amount)
+                            if(ECONOMY()[msg.author.id] !== undefined){
+                                money += `<@${msg.author.id}>: ${ECONOMY()[msg.author.id].money * amount}\n`
+                                addMoney(msg.author.id, ECONOMY()[msg.author.id].money * amount)
                             }
                             for(let participant in participants){
                                 if(participant === msg.author.id) continue
-                                if(ECONOMY[participant] !== undefined){
-                                    addMoney(participant, ECONOMY[participant].money * amount)
-                                    money += `<@${participant}>: ${ECONOMY[participant].money * amount}\n`
+                                if(ECONOMY()[participant] !== undefined){
+                                    addMoney(participant, ECONOMY()[participant].money * amount)
+                                    money += `<@${participant}>: ${ECONOMY()[participant].money * amount}\n`
                                 }
                             }
                             await handleSending(msg, {content: money})
@@ -6089,6 +6089,15 @@ ${styles}
         category: CommandCategory.META
 
     },
+    RESET_ECONOMY: {
+        run: async(msg, args) => {
+            resetEconomy()
+
+            return {content: "Economy reset"}
+
+        }, category: CommandCategory.META,
+        permCheck: (m) => ADMINS.includes(m.author.id)
+    },
     SETMONEY: {
         run: async(msg, args) => {
             let user = await fetchUser(msg.guild, args[0])
@@ -7174,7 +7183,7 @@ client.on("messageDeleteBulk", async (m) => {
 })
 
 client.on("messageCreate", async (m: Message) => {
-    if (ECONOMY[m.author.id] === undefined && !m.author.bot) {
+    if (ECONOMY()[m.author.id] === undefined && !m.author.bot) {
         createPlayer(m.author.id)
     }
     if (Math.random() > .60) {

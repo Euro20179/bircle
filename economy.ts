@@ -129,11 +129,17 @@ function calculateAmountFromString(id: string, amount: string){
     return 0
 }
 
+function reset(){
+    ECONOMY = {}
+    saveEconomy()
+    loadEconomy()
+}
+
 loadEconomy()
 
 
 module.exports = {
-    ECONOMY: ECONOMY,
+    ECONOMY: () => ECONOMY,
     loadEconomy: loadEconomy,
     saveEconomy: saveEconomy,
     createPlayer: createPlayer,
@@ -146,5 +152,6 @@ module.exports = {
     loseMoneyToBank: loseMoneyToBank,
     calculateAmountFromString: calculateAmountFromString,
     loseMoneyToPlayer: loseMoneyToPlayer,
-    setMoney: setMoney
+    setMoney: setMoney,
+    resetEconomy: reset
 }
