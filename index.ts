@@ -2445,22 +2445,37 @@ const commands: { [command: string]: Command } = {
                         return
                     }
                     else if (m.content == wordstr) {
-                        let correctGuesses = 0
-                        for(let letter of [...guessed]){
-                            if(wordstr.includes(letter)){
-                                correctGuesses++
-                            }
+                        let money = "Earnings\n"
+                        let amount = 0
+                        if(wordLength < 5){
+                            amount = 0.005
                         }
-                        participants[m.author.id] *= ((wordstr.length - correctGuesses) || 1)
-                        let money = ""
+                        if(wordLength < 10){
+                            amount = 0.01
+                        }
+                        if(wordLength < 20){
+                            amount = 0.015
+                        }
+                        if(wordLength >= 20){
+                            amount = 0.02
+                        }
                         if(participants[msg.author.id]){
                             delete participants[msg.author.id]
                         }
-                        for(let participant in participants){
-                            addMoney(participant, participants[participant])
-                            money += `Earnings\n<@${participant}>: ${participants[participant]}\n`
+                        if(Object.keys(participants).length >= 1){
+                            if(ECONOMY[msg.author.id] !== undefined){
+                                money += `<@${msg.author.id}>: ${ECONOMY[msg.author.id].money * amount}\n`
+                                addMoney(msg.author.id, ECONOMY[msg.author.id].money * amount)
+                            }
+                            for(let participant in participants){
+                                if(participant === msg.author.id) continue
+                                if(ECONOMY[participant] !== undefined){
+                                    addMoney(participant, ECONOMY[participant].money * amount)
+                                    money += `<@${participant}>: ${ECONOMY[participant].money * amount}\n`
+                                }
+                            }
+                            await handleSending(msg, {content: money})
                         }
-                        await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
                         collection.stop()
                         return
@@ -2470,16 +2485,33 @@ const commands: { [command: string]: Command } = {
                         losingStreak++
                         winningStreak = 0
                         points -= losingStreak ** 2
-                        participants[m.author.id] /= 2
+                        participants[m.author.id] /= 1.2
                         lives--
                     }
                     else {
-                        participants[m.author.id] *= 2
+                        participants[m.author.id] *= 1.2
                         winningStreak++
                         losingStreak = 0
                         points += winningStreak ** 2
                     }
                     if (lives < 1) {
+                        let money = "Earnigns\n"
+                        if(ECONOMY[msg.author.id] !== undefined){
+                            let amount = -(ECONOMY[msg.author.id].money * Math.random() * (.02 - .01) + .01)
+                            money += `<@${msg.author.id}>: ${amount}`
+                            addMoney(msg.author.id, amount)
+                        }
+                        if(participants[msg.author.id]){
+                            delete participants[msg.author.id]
+                        }
+                        for(let participant in participants){
+                            if(ECONOMY[participant] !== undefined){
+                                let amount = -(ECONOMY[participant].money * Math.random() * (.02 - .01) + .01)
+                                money += `<@${participant}>: ${amount}`
+                                addMoney(participant, amount)
+                            }
+                        }
+                        await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         return
@@ -2510,15 +2542,37 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     if (disp.replaceAll("   ", " ") == wordstr) {
-                        let money = ""
+                        let money = "Earnings\n"
+                        let amount = 0
+                        if(wordLength < 5){
+                            amount = 0.005
+                        }
+                        if(wordLength < 10){
+                            amount = 0.01
+                        }
+                        if(wordLength < 20){
+                            amount = 0.015
+                        }
+                        if(wordLength >= 20){
+                            amount = 0.02
+                        }
                         if(participants[msg.author.id]){
                             delete participants[msg.author.id]
                         }
-                        for(let participant in participants){
-                            addMoney(participant, participants[participant])
-                            money += `Earnings\n<@${participant}>: ${participants[participant]}\n`
+                        if(Object.keys(participants).length >= 1){
+                            if(ECONOMY[msg.author.id] !== undefined){
+                                money += `<@${msg.author.id}>: ${ECONOMY[msg.author.id].money * amount}\n`
+                                addMoney(msg.author.id, ECONOMY[msg.author.id].money * amount)
+                            }
+                            for(let participant in participants){
+                                if(participant === msg.author.id) continue
+                                if(ECONOMY[participant] !== undefined){
+                                    addMoney(participant, ECONOMY[participant].money * amount)
+                                    money += `<@${participant}>: ${ECONOMY[participant].money * amount}\n`
+                                }
+                            }
+                            await handleSending(msg, {content: money})
                         }
-                        await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         return
