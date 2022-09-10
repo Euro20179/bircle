@@ -28,7 +28,7 @@ function randomColor(){
     return colors
 }
 
-function mulString(str, amount){
+function mulStr(str, amount){
     let ans = ""
     for(let i = 0; i < amount; i++){
 	ans += str
@@ -216,22 +216,42 @@ function cmdCatToStr(cat){
     }
 }
 
+function getImgFromMsgAndOpts(opts, msg) {
+    let img = opts['img']
+    if (msg.attachments?.at(0)) {
+        img = msg.attachments.at(0)?.attachment
+    }
+    //@ts-ignore
+    else if (msg.reply?.attachments?.at(0)) {
+        //@ts-ignore
+        img = msg.reply.attachments.at(0)?.attachment
+    }
+    else if (msg.embeds?.at(0)?.image?.url) {
+        img = msg.embeds?.at(0)?.image?.url
+    }
+    else if (!img) {
+        img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
+    }
+    return img
+}
+
 module.exports = {
-    fetchUser: fetchUser,
-    fetchChannel: fetchChannel,
-    generateFileName: generateFileName,
-    downloadSync: downloadSync,
-    format: format,
-    createGradient: createGradient,
-    applyJimpFilter: applyJimpFilter,
-    randomColor: randomColor,
-    rgbToHex: rgbToHex,
-    safeEval: safeEval,
-    mulStr: mulString,
-    cycle: cycle,
-    escapeShell: escapeShell,
-    strlen: strlen,
-    UTF8String: UTF8String,
-    cmdCatToStr: cmdCatToStr
+    fetchUser,
+    fetchChannel,
+    generateFileName,
+    downloadSync,
+    format,
+    createGradient,
+    applyJimpFilter,
+    randomColor,
+    rgbToHex,
+    safeEval,
+    mulStr,
+    cycle,
+    escapeShell,
+    strlen,
+    UTF8String,
+    cmdCatToStr,
+    getImgFromMsgAndOpts
 }
 
