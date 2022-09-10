@@ -19,7 +19,7 @@ import { intToRGBA } from "jimp/*"
 
 const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
 const { parseCmd, parsePosition } = require('./parsing.js')
-const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr } = require('./util.js')
+const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
 const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock } = require("./economy.js")
 
@@ -228,25 +228,6 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
         }
     }
     return `${html}</div><hr>`
-}
-
-function getImgFromMsgAndOpts(opts: Opts, msg: Message): string {
-    let img: undefined | string | boolean | Stream | Buffer = opts['img']
-    if (msg.attachments?.at(0)) {
-        img = msg.attachments.at(0)?.attachment
-    }
-    //@ts-ignore
-    else if (msg.reply?.attachments?.at(0)) {
-        //@ts-ignore
-        img = msg.reply.attachments.at(0)?.attachment
-    }
-    else if (msg.embeds?.at(0)?.image?.url) {
-        img = msg.embeds?.at(0)?.image?.url
-    }
-    else if (!img) {
-        img = msg.channel.messages.cache.filter((m: Message) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
-    }
-    return img as string
 }
 
 let connection: any;
@@ -8004,6 +7985,7 @@ client.on("messageCreate", async (m: Message) => {
             }
             return
         }
+
         let after = search[4]
         let messages = await m.channel.messages.fetch({ limit: 100 })
         let index = -1

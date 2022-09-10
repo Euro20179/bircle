@@ -181,7 +181,7 @@ function calculateAmountFromString(id: string, amount: string){
     return 0
 }
 
-function reset(){
+function resetEconomy(){
     ECONOMY = {}
     saveEconomy()
     loadEconomy()
@@ -249,25 +249,25 @@ loadEconomy()
 module.exports = {
     ECONOMY: () => ECONOMY,
     LOTTERY: () => lottery,
-    loadEconomy: loadEconomy,
-    saveEconomy: saveEconomy,
-    createPlayer: createPlayer,
-    earnMoney: earnMoney,
-    canEarn: canEarn,
-    addMoney: addMoney,
-    canBetAmount: canBetAmount,
-    canTax: canTax,
-    taxPlayer: taxPlayer,
-    loseMoneyToBank: loseMoneyToBank,
-    calculateAmountFromString: calculateAmountFromString,
-    loseMoneyToPlayer: loseMoneyToPlayer,
-    setMoney: setMoney,
-    resetEconomy: reset,
-    buyStock: buyStock,
-    calculateStockAmountFromString: calculateStockAmountFromString,
-    sellStock: sellStock,
-    buyLotteryTicket: buyLotteryTicket,
-    newLottery: newLottery,
-    removeStock: removeStock,
-    giveStock: giveStock
+    loadEconomy,
+    saveEconomy,
+    createPlayer,
+    earnMoney,
+    canEarn,
+    addMoney,
+    canBetAmount,
+    canTax,
+    taxPlayer,
+    loseMoneyToBank,
+    calculateAmountFromString,
+    loseMoneyToPlayer,
+    setMoney,
+    resetEconomy,
+    buyStock,
+    calculateStockAmountFromString,
+    sellStock,
+    buyLotteryTicket,
+    newLottery,
+    removeStock,
+    giveStock,
 }
