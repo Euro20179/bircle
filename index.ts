@@ -14,6 +14,7 @@ import uno = require("./uno")
 import sharp = require('sharp')
 import got = require('got')
 import cheerio = require('cheerio')
+import { intToRGBA } from "jimp/*"
 
 
 const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
@@ -43,6 +44,8 @@ let SPAM_ALLOWED = true
 let BUTTONS: { [id: string]: string | (() => string) } = {}
 let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 let SPAMS: { [id: string]: boolean } = {}
+
+let BATTLEGAME: boolean = false;
 
 let lastCommand: Message;
 let snipes: (Message | PartialMessage)[] = [];
@@ -603,6 +606,356 @@ const commands: { [command: string]: Command } = {
                 return {content: `You sold: ${stockName} and made $${profit} in total`}
             }
         }, category: CommandCategory.ECONOMY
+    },
+    battle: {
+        run: async(msg, args) => {
+            if(BATTLEGAME)
+                return {content: "A game is already happening"}
+            let bet = args[0]
+            let nBet = calculateAmountFromString(msg.author.id, bet)
+
+            if(!nBet || !canBetAmount(msg.author.id, nBet) || nBet < 0){
+                return {content: "Not a valid bet"}
+            }
+            let players: {[key: string]: number} = {[msg.author.id]: 100}
+            let bets: {[key: string]: number} = {[msg.author.id]: nBet}
+            let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
+            let betTotal = nBet
+            await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
+            let collector = msg.channel.createMessageCollector({time: 15000, filter: m => !m.author.bot && m.content.toLowerCase().includes('join')})
+            BATTLEGAME = true
+            collector.on("collect", async(m) => {
+                if(players[m.author.id]) return
+                let bet = m.content.split(" ")[1]
+                let nBet = calculateAmountFromString(m.author.id, bet)
+                if(!nBet || !canBetAmount(m.author.id, nBet) || nBet < 0){
+                    await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
+                    return
+                }
+                betTotal += nBet
+                if(!Object.keys(players).includes(m.author.id)){
+                    bets[m.author.id] = nBet
+                    cooldowns[m.author.id] = 0
+                    players[m.author.id] = 100
+                }
+                await msg.channel.send(`${m.author} has joined the battle with a $${nBet} bet`)
+            })
+            collector.on("end", async(collection, reason) => {
+                let start = Date.now() / 1000
+                let items: {[key: string]: {percent?: number, amount?: number}} = {
+                    "heal": {percent: 0.005, amount: 0.1},
+                    "anger toolbox": {amount: 3},
+                    "anger euro": {amount: 3},
+                    "blowtorch": {percent: 0.01, amount: 3},
+                    "double bet": {percent: 0.01}
+                }
+
+                let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
+                let rarityTable = {"huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1}
+                itemUseCollector.on("collect", async(m) => {
+                    if(!ECONOMY()[m.author.id]){
+                        return
+                    }
+                    console.log(Date.now() / 1000, cooldowns[m.author.id], Date.now() / 1000 - cooldowns[m.author.id])
+                    if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
+                        return
+                    }
+                    cooldowns[m.author.id] = Date.now() / 1000
+                    let i = m.content.toLowerCase()
+                    let cost = items[i]
+                    let a = cost.amount ?? 0
+                    if(cost.percent){
+                        a += calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
+                    }
+                    if(ECONOMY()[m.author.id].money - bets[m.author.id] < a){
+                        await m.channel.send("You cannot afford this")
+                        return
+                    }
+                    let e = new MessageEmbed()
+                    e.setFooter({text: `Cost: ${a}`})
+                    loseMoneyToBank(m.author.id, a)
+                    switch(i){
+                        case "heal": {
+                            let amount =  Math.floor(Math.random() * 9 + 1)
+                            e.setTitle("HEAL")
+                            e.setColor("GREEN")
+                            e.setDescription(`<@${m.author.id}> healed for ${amount}`)
+                            players[m.author.id] += amount
+                            await msg.channel.send({embeds: [e]})
+                            break
+                        }
+                        case "anger toolbox": {
+                            e.setTitle("TOOLBOX IS ANGRY")
+                            e.setColor("RED")
+                            e.setDescription(`<@${m.author.id}> has angered toolbox`)
+                            await msg.channel.send({embeds: [e]})
+                            for(let player in players){
+                                players[player] *= .99432382
+                            }
+                            break
+                        }
+                        case "anger euro": {
+                            await msg.channel.send("STOPPING")
+                            break
+                        }
+                        case "double bet": {
+                            if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
+                                betTotal += bets[m.author.id]
+                                bets[m.author.id] *= 2
+                                e.setTitle("DOUBLE BET")
+                                e.setDescription(`${m.author} has doubled their bet to ${bets[m.author.id]}`)
+                                e.setColor("GREEN")
+                                await msg.channel.send({embeds: [e]})
+                            }
+                            break
+                        }
+                        case "blowtorch": {
+                            let amount = Math.floor(Math.random() * 19 + 1)
+                            e.setTitle("BLOWTORCH")
+                            e.setColor("RED")
+                            e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
+                            await msg.channel.send({embeds: [e]})
+                            for(let player in players){
+                                if(player === m.author.id) continue
+                                players[player] -= amount
+                            }
+                        }
+                    }
+                })
+                let playerCount = Object.keys(players).length
+                if(playerCount < 2){
+                    await msg.channel.send("Only 1 person joined, game ending")
+                    itemUseCollector.stop()
+                    BATTLEGAME = false
+                    itemUseCollector.stop()
+                    return
+                }
+                let responses = [
+                    "{user1} accidentally slipped while fighting - {amount} DAMAGE=1,2 AMOUNT=big",
+                    "{user1} punched {user2} VERY HARD - {amount} DAMAGE=2 AMOUNT=medium",
+                    "{user1} and {user2} run into each other -{amount} DAMAGE=1,2 AMOUNT=small",
+                    "{user1} found a bandaid and restored {amount} HEAL=1 AMOUNT=small",
+                    "{user1} hit {user2} who hit {user3} who then hit {user1} DAMAGE=1,2,3 AMOUNT=small",
+                    "{user7} died DAMAGE=7 AMOUNT=big"
+                ]
+                if(fs.existsSync("./command-results/battle")){
+                    let d = fs.readFileSync("./command-results/battle", "utf-8")
+                    responses = d.split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                }
+                let lastMessages = []
+                while(Object.values(players).length > 0){
+                    let embed = new MessageEmbed()
+                    responses = responses.filter(v => {
+                        let valid = true
+                        let matches = v.matchAll(/\{user(\d+)\}/g)
+                        let count = 0
+                        for(let match of matches){
+                            count++
+                            if(!Object.keys(players)[Number(match[1]) - 1]){
+                                valid = false
+                                break
+                            }
+                        }
+                        if(count == 0)
+                            return false
+                        return valid
+                    })
+                    if(responses.length < 1){
+                        await msg.channel.send("No responses do anything, add better responses or you will die for real 100% factual statement")
+                        BATTLEGAME = false
+                        itemUseCollector.stop()
+                        return
+                    }
+                    let responseChoice;
+                    let amount;
+                    while(true){
+                        responseChoice = responses[Math.floor(Math.random() * responses.length)]
+                        amount = responseChoice.match(/AMOUNT=(huge|big|medium|small|tiny)/)
+                        if(!amount)
+                            continue
+                        if(Math.random() < rarityTable[amount[1] as 'huge' | 'big' | 'medium' | 'small' | 'tiny']){
+                            break
+                        }
+                    }
+                    let shuffledPlayers = Object.keys(players).sort(() => Math.random() - .5)
+                    let playersToDoStuffTo: string[] = []
+                    responseChoice =  responseChoice.replaceAll(/\{user(\d+)\}/g, (v, pn) => {
+                        let playerNo = Number(pn) - 1
+                        //@ts-ignore
+                        playersToDoStuffTo.push(shuffledPlayers.at(playerNo))
+                        return `<@${shuffledPlayers.at(playerNo)}>`
+                    })
+                    let responseTypeAndTwoWho = responseChoice.matchAll(/\b(DAMAGE|HEAL)=((?:\d+,?)+)/g)
+                    responseChoice = responseChoice.replace(amount[0], "")
+                    let nAmount = 0;
+                    let eliminations = []
+                    switch(amount[1]){
+                        case "huge": {
+                            nAmount = Math.floor(Math.random() * (75 - 50) + 50)
+                            break
+                        }
+                        case "big": {
+                            nAmount = Math.floor(Math.random() * (50 - 35) + 35)
+                            break
+                        }
+                        case "medium": {
+                            nAmount = Math.floor(Math.random() * (35 - 20) + 20)
+                        }
+                        case "small": {
+                            nAmount = Math.floor(Math.random() * (20 - 10) + 10)
+                            break
+                        }
+                        case "tiny": {
+                            nAmount = Math.floor(Math.random() * 10)
+                            break
+                        }
+                        default: {
+                            continue
+                        }
+                    }
+
+                    let tawCount = 0
+                    for(let typeAndWho of responseTypeAndTwoWho){
+                        tawCount++
+                        responseChoice = responseChoice.replace(typeAndWho[0], "")
+                        let type = typeAndWho[1]
+                        let toWho = typeAndWho[2].split(",")
+                        switch(type){
+                            case "HEAL": {
+                                embed.setColor("GREEN")
+                                for(let match of toWho){
+                                    let p = Number(match[1])
+                                    players[shuffledPlayers.at(p - 1) as string] += nAmount
+                                }
+                                break
+                            }
+                            case "DAMAGE": {
+                                embed.setColor("RED")
+                                nAmount *= -1
+                                for(let player of toWho){
+                                    let p = Number(player)
+                                    players[shuffledPlayers.at(p - 1) as string] += nAmount
+                                    if(players[shuffledPlayers.at(p - 1) as string] <= 0){
+                                        eliminations.push(shuffledPlayers.at(p - 1) as string)
+                                    }
+                                }
+                                break
+                            }
+                        }
+                    }
+                    if(!tawCount) continue
+
+                    //let healthRemainingTable = "Health Remaining:\n"
+                    for(let player in players){
+                        //@ts-ignore
+                        let mem = msg.guild.members.cache.find((v) => v.id == player)
+                        //@ts-ignore
+                        embed.addField(`${mem.user.username}`, `${players[player]}`, true)
+                        //healthRemainingTable += `<@${player}>: ${players[player]}\n`
+                    }
+                    responseChoice = responseChoice.replaceAll("{amount}", String(nAmount))
+                    //embed.setDescription(responseChoice)
+                    //let ms = await msg.channel.send(`${responseChoice}\n-------------------------\n${healthRemainingTable}`)
+                    let ms = await msg.channel.send({content: responseChoice, embeds: [embed]})
+                    lastMessages.push(ms)
+                    if(lastMessages.length >= 4){
+                        let m = lastMessages.shift()
+                        if(m?.deletable){
+                            await m.delete()
+                        }
+                    }
+                    let text = ""
+                    for(let elim of eliminations){
+                        loseMoneyToBank(elim, bets[elim])
+                        text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${bets[elim]} \n`
+                        delete players[elim]
+                    }
+                    if(text){
+                        await msg.channel.send(text)
+                    }
+                    if(Object.keys(players).length == 1){
+                        break
+                    }
+                    await new Promise(res => setTimeout(res, 4000))
+                }
+                let winner = Object.entries(players).filter(v => v[1] > 0)[0]
+                addMoney(winner[0], betTotal)
+                let e = new MessageEmbed()
+                e.setTitle("GAME OVER!")
+                e.setColor("GREEN")
+                e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal}`)
+                e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
+                await msg.channel.send({embeds: [e]})
+                BATTLEGAME = false
+                itemUseCollector.stop()
+            })
+            let e = new MessageEmbed()
+            e.setTitle("TYPE `join <BET AMOUNT>` TO JOIN THE BATTLE")
+            return {embeds: [e]}
+        }, category: CommandCategory.GAME
+    },
+    abattle: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let text = args.join(" ")
+            let damageUsers = opts['damage'] || opts['d']
+            let healUsers = opts['heal'] || opts['h']
+            let amounts = ['huge', 'big', 'medium', 'small', 'tiny']
+            let givenAmount = opts['amount']  || opts['a']
+            if(typeof givenAmount !== 'string'){
+                return {content: `You must provide an amount (${amounts.join(", ")})`}
+            }
+            if(typeof damageUsers !== 'string' && typeof healUsers !== 'string'){
+                return {content: `You must provide a user to damage/heal`}
+            }
+            if(damageUsers !== undefined && typeof damageUsers !== 'string'){
+                return {content: "-damage must be a user number"}
+            }
+            if(healUsers !== undefined && typeof healUsers !== 'string'){
+                return {content: "-heal must be a user number"}
+            }
+            if(!amounts.includes(givenAmount)){
+                return {content: `You did not provide a valid amount (${amounts.join(", ")})`}
+            }
+            let damageHealText = ""
+            if(damageUsers){
+                if(!damageUsers.match(/(?:\d+,?)+/)){
+                    return {content: "Users must be numbers seperated by ,"}
+                }
+                damageHealText += ` DAMAGE=${damageUsers}`
+            }
+            if(healUsers){
+                if(!healUsers.match(/(?:\d+,?)+/)){
+                    return {content: "Users must be numbers seperated by ,"}
+                }
+                damageHealText += ` HEAL=${healUsers}`
+            }
+            fs.appendFileSync("./command-results/battle", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText};END\n`)
+            return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}`}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Add a battle command with a nice ui ™️",
+            arguments: {
+                "text": {
+                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc..."
+                }
+            },
+            options: {
+                "heal": {
+                    alternates: ['u'],
+                    description: "The user(s) to heal"
+                },
+                "damage": {
+                    alternates: ['d'],
+                    description: "The user(s) to damage"
+                },
+                "amount": {
+                    alternates: ["a"],
+                    description: "The amount to damage/heal, (huge, big, medium, small, tiny)"
+                }
+            }
+        }
     },
     ticket: {
         run: async(msg, args) => {
@@ -1287,31 +1640,6 @@ const commands: { [command: string]: Command } = {
                     description: "the format to use for the time<br>formats:<br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
                 }
             }
-        },
-        category: CommandCategory.UTIL
-    },
-    join: {
-        run: async (msg, args) => {
-            const memberData = await fetchUser(msg.guild, msg.author.id)
-            const voiceState = memberData.voice
-            if (!voiceState) {
-                return { content: "NOT IN VC" }
-            }
-            connection = joinVoiceChannel({
-                channelId: voiceState.channel.id,
-                guildId: msg.guild?.id,
-                adapterCreator: msg.guild?.voiceAdapterCreator
-            })
-            return { noSend: true }
-        },
-        category: CommandCategory.UTIL
-
-    },
-    leave: {
-        run: async (msg, args) => {
-            connection.destroy()
-            connection = null
-            return { noSend: true }
         },
         category: CommandCategory.UTIL
     },
@@ -7744,7 +8072,7 @@ client.on("messageCreate", async (m: Message) => {
 })
 
 client.on("interactionCreate", async (interaction: Interaction) => {
-    if (interaction.isButton()) {
+    if (interaction.isButton() && !interaction.replied) {
         if (interaction.customId == `button:${interaction.member?.user.id}`) {
             //@ts-ignore
             if (BUTTONS[interaction.member?.user.id] !== undefined) {
@@ -7786,7 +8114,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
         }
     }
-    else if (interaction.isSelectMenu()) {
+    else if (interaction.isSelectMenu() && !interaction.replied) {
         if (interaction.customId.includes("poll")) {
             let id = interaction.customId
             let key = interaction.values[0]
@@ -7826,7 +8154,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             else interaction.reply({ content: interaction.values.toString(), ephemeral: true })
         }
     }
-    else if (interaction.isCommand()) {
+    else if (interaction.isCommand() && !interaction.replied) {
         addToCmdUse(`/${interaction.commandName}`)
         if (interaction.commandName == 'attack') {
             let user = interaction.options.get("user")?.['value']
@@ -7972,7 +8300,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             await interaction.reply(rv)
         }
     }
-    else if (interaction.isUserContextMenu()) {
+    else if (interaction.isUserContextMenu() && !interaction.replied) {
         addToCmdUse(`${interaction.commandName}:user`)
         if (interaction.commandName == 'ping') {
             interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`)
@@ -7996,7 +8324,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.reply({ embeds: [embed] })
         }
     }
-    else if (interaction.isMessageContextMenu()) {
+    else if (interaction.isMessageContextMenu() && !interaction.replied) {
         addToCmdUse(`${interaction.commandName}:message`)
         if (interaction.commandName == 'fileify') {
             let fn = generateFileName("fileify", interaction.member?.user.id)
