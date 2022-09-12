@@ -2,6 +2,7 @@
 import fs = require("fs")
 import https = require('https')
 import Stream = require('stream')
+
 const { execSync, exec } = require('child_process')
 
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
@@ -22,6 +23,8 @@ const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
 const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock } = require("./economy.js")
+
+const {saveItems, INVENTORY} = require("./shop.js")
 
 
 enum CommandCategory {
@@ -378,6 +381,36 @@ const commands: { [command: string]: Command } = {
                 text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
             return {content: text || "No stocks", allowedMentions: {parse: []}}
+        }, category: CommandCategory.ECONOMY
+    },
+    shop: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let items = fs.readFileSync("./shop.json", "utf-8")
+            let itemJ = JSON.parse(items)
+            let pages = []
+            let i = -1
+            let e = new MessageEmbed()
+            let au = msg.author.avatarURL()
+            if(au)
+                e.setThumbnail(au)
+            let round = !opts['no-round']
+            for(let item in itemJ){
+                i++;
+                let totalCost = 0
+                for(let cost of itemJ[item].cost){
+                    totalCost += calculateAmountFromString(msg.author.id, cost)
+                }
+                if(round){
+                    totalCost = Math.floor(totalCost * 100) / 100
+                }
+                e.addField(item.toUpperCase(), `**$${totalCost}**\n${itemJ[item].description}`, true)
+            }
+            if(e.fields.length > 0){
+                pages.push(e)
+            }
+            return {embeds: pages}
         }, category: CommandCategory.ECONOMY
     },
     profits: {
@@ -1669,6 +1702,7 @@ const commands: { [command: string]: Command } = {
     savee: {
         run: async (msg, args) => {
             saveEconomy()
+            saveItems()
             return { content: "Economy saved" }
         }, category: CommandCategory.ECONOMY
     },
@@ -6552,7 +6586,11 @@ ${fs.readdirSync("./command-results").join("\n")}
             let a = ""
             chain.push(command)
             //finds the original command
+            let expansions = 0
             while (aliases[command]?.[0]) {
+                expansions++;
+                if(expansions >= 1000)
+                    return {content: "Alias expansion limit reached"}
                 a = aliases[command].slice(1).join(" ") + " " + a + " "
                 if (showArgs)
                     chain.push(`${aliases[command][0]} ${a}`.trim())
@@ -7070,6 +7108,7 @@ ${styles}
         run: async (msg: Message, args: ArgumentList) => {
             await msg.channel.send("STOPPING")
             saveEconomy()
+            saveItems()
             client.destroy()
             return {
                 content: "STOPPING"
@@ -7978,7 +8017,7 @@ async function doCmd(msg: Message, returnJson = false) {
         let expansions = 0
         //finds the original command
         while (aliases[command]?.[0]) {
-            expansions++
+            expansions++;
             if (expansions > 1000) {
                 await msg.channel.send("Alias expansion limit reached")
                 return {}
