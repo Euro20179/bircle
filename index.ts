@@ -988,7 +988,17 @@ const commands: { [command: string]: Command } = {
                 return {content: `<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`}
             }
             return {content: `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`}
-        }, category: CommandCategory.GAME
+        }, category: CommandCategory.GAME,
+        help: {
+            info: "Buy a lottery ticket",
+            arguments: {
+                "amount": {
+                    description: "The amount to pay for the ticket (minimum of 0.5% of your money)",
+                },
+                "numbers": {
+                    description: "The numbers to buy seperated by spaces"
+                }
+            }
     },
     lottery: {
         run: async(msg, args) => {
