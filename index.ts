@@ -1016,7 +1016,7 @@ const commands: { [command: string]: Command } = {
             e.setFooter({text: `Cost: ${amount}`})
             if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
                 addMoney(msg.author.id, answer.pool)
-                let winningAmount = answer.pool * 1.25
+                let winningAmount = answer.pool * 1.5
                 newLottery()
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
@@ -1043,7 +1043,7 @@ const commands: { [command: string]: Command } = {
     },
     lottery: {
         run: async(msg, args) => {
-            return {content: `The lottery pool is: ${LOTTERY().pool * 1.25}`}
+            return {content: `The lottery pool is: ${LOTTERY().pool * 1.5}`}
         }, category: CommandCategory.FUN
     },
     calcm: {
