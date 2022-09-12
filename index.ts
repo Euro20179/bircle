@@ -24,7 +24,7 @@ const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, 
 
 const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock } = require("./economy.js")
 
-const {saveItems, INVENTORY} = require("./shop.js")
+const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem} = require("./shop.js")
 
 
 enum CommandCategory {
@@ -342,16 +342,28 @@ const commands: { [command: string]: Command } = {
                         await msg.channel.send("This stock cost does not exist")
                         return
                     }
-                    if(!canBetAmount(msg.author.id, price * amount)){
-                        await msg.channel.send("You cannot afford this")
-                        return
-                    }
                     let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
                     if(!stockName){
                         await msg.channel.send("Could not get stock name")
                         return
                     }
                     stockName = stockName[1]
+                    if(hasItem(msg.author.id, "discount") && amount >= 1){
+                        if(!canBetAmount(msg.author.id, price * (.5 ** INVENTORY()[msg.author.id]['discount']))){
+                            await msg.channel.send("You cannot afford this")
+                            return
+                        }
+                        buyStock(msg.author.id, stockName, 1, price * (.5 ** INVENTORY()[msg.author.id]['discount']))
+                        await msg.channel.send({content: `${msg.author} has bought 1 share of ${stockName} for $${price * (.5 ** INVENTORY()[msg.author.id]["discount"])}`})
+                        useItem(msg.author.id, "discount", INVENTORY()[msg.author.id]["discount"])
+                        amount--;
+                    }
+                    if(!amount)
+                        return
+                    if(!canBetAmount(msg.author.id, price * amount)){
+                        await msg.channel.send("You cannot afford this")
+                        return
+                    }
                     buyStock(msg.author.id, stockName, amount, price)
                     await msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stockName} for $${price * amount}`})
                 })
@@ -383,6 +395,58 @@ const commands: { [command: string]: Command } = {
             return {content: text || "No stocks", allowedMentions: {parse: []}}
         }, category: CommandCategory.ECONOMY
     },
+    bitem: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let count = Number(opts['count'] || opts['c'])
+            if(!count)
+                count = 1
+            let item = args.join(" ")
+            if(!item){
+                return {content: "no item"}
+            }
+            if(msg.author.bot){
+                return {content: "Bots cannot buy items"}
+            }
+            if(!ITEMS()[item]){
+                return {content: `${item} does not exist`}
+            }
+            let itemData = ITEMS()[item]
+            let totalSpent = 0
+            for(let i = 0; i < count; i++){
+                let totalCost = 0
+                for(let cost of ITEMS()[item].cost){
+                    totalCost += calculateAmountFromString(msg.author.id, cost)
+                }
+                if(canBetAmount(msg.author.id, totalCost)){
+                    buyItem(msg.author.id, item)
+                    loseMoneyToBank(msg.author.id, totalCost)
+                    totalSpent += totalCost
+                }
+                else{
+                    if(i > 0){
+                        return {content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`}
+                    }
+                    return {content: `This item is too expensive for u`}
+                }
+            }
+            return {content: `You bought: ${item} for $${totalSpent}`}
+        }, category: CommandCategory.ECONOMY
+    },
+    inventory: {
+        run: async(msg, args) => {
+            let e = new MessageEmbed()
+            e.setTitle("ITEMS")
+            let au = msg.author.avatarURL()
+            if(au)
+                e.setThumbnail(au)
+            for(let item in INVENTORY()[msg.author.id]){
+                e.addField(item, `${INVENTORY()[msg.author.id][item]}`)
+            }
+            return {embeds: [e]}
+        }, category: CommandCategory.ECONOMY
+    },
     shop: {
         run: async(msg, args) => {
             let opts;
@@ -390,7 +454,7 @@ const commands: { [command: string]: Command } = {
             let items = fs.readFileSync("./shop.json", "utf-8")
             let itemJ = JSON.parse(items)
             let pages = []
-            let i = -1
+            let i = 0
             let e = new MessageEmbed()
             let au = msg.author.avatarURL()
             if(au)
@@ -406,6 +470,13 @@ const commands: { [command: string]: Command } = {
                     totalCost = Math.floor(totalCost * 100) / 100
                 }
                 e.addField(item.toUpperCase(), `**$${totalCost}**\n${itemJ[item].description}`, true)
+                if(i % 25 == 0){
+                    pages.push(e)
+                    e = new MessageEmbed()
+                    if(au)
+                        e.setThumbnail(au)
+                    i = 0
+                }
             }
             if(e.fields.length > 0){
                 pages.push(e)
@@ -1300,7 +1371,11 @@ const commands: { [command: string]: Command } = {
             let user = await fetchUser(msg.guild, args.join(" "))
             if (!user)
                 return { content: `${args.join(" ")} not found` }
-            if (canTax(user.id)) {
+            let ct = canTax(user.id)
+            if(hasItem(user.id, "tax evasion")){
+                ct = canTax(user.id, INVENTORY()[user.id]['tax evasion'])
+            }
+            if (ct) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Taxation Time")
                 let taxAmount = taxPlayer(user.id)
@@ -1583,7 +1658,12 @@ const commands: { [command: string]: Command } = {
                 //FIXME: edge case where dealerCards[0] is "A", this could be wrong
                 embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
                 embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
-                embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+                if(hasItem(msg.author.id, "reset")){
+                    embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+                }
+                else{
+                    embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+                }
                 let message = await msg.channel.send({ embeds: [embed] })
                 let response
                 while (!response) {
@@ -1592,7 +1672,10 @@ const commands: { [command: string]: Command } = {
                         collectedMessages = await msg.channel.awaitMessages({
                             filter: m => {
                                 if (m.author.id === msg.author.id) {
-                                    if (['hit', 'stand', 'double bet'].includes(m.content.toLowerCase())) {
+                                    if(hasItem(msg.author.id, "reset") && (['hit', 'stand', 'double bet', 'reset'].includes(m.content.toLowerCase()))) {
+                                        return true
+                                    }
+                                    else if(['hit', 'stand', 'double bet' ].includes(m.content.toLowerCase())) {
                                         return true
                                     }
                                 }
@@ -1618,6 +1701,38 @@ const commands: { [command: string]: Command } = {
                 }
                 if (choice === 'hit') {
                     giveRandomCard(cards, playersCards)
+                }
+                if(choice === 'reset' && hasItem(msg.author.id, "reset")){
+                    cards = []
+                    for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
+                        for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                            cards.push(`${num}`)
+                        }
+                    }
+                    playersCards = []
+                    dealerCards = []
+                    for (let i = 0; i < 2; i++) {
+                        giveRandomCard(cards, playersCards)
+                        giveRandomCard(cards, dealerCards)
+                    }
+                    if (calculateTotal(playersCards).total === 21) {
+                        addMoney(msg.author.id, bet * 3)
+                        return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
+                    }
+                    let total = 0
+                    while ((total = calculateTotal(dealerCards).total) < 22) {
+                        let awayFrom21 = 21 - total
+                        let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
+
+                        let chance = countOfAwayInDeck / cards.length
+                        if (Math.random() < chance || total < 17) {
+                            giveRandomCard(cards, dealerCards)
+                        }
+                        else {
+                            break
+                        }
+                    }
+                    useItem(msg.author.id, "reset")
                 }
                 if (choice === 'stand' || calculateTotal(playersCards).total > 21) {
                     break
@@ -8139,6 +8254,7 @@ client.on("messageCreate", async (m: Message) => {
     }
     if (Math.random() > .60) {
         saveEconomy()
+        saveItems()
     }
     let content = m.content
     if (!m.author.bot) {

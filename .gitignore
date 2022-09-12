@@ -17,5 +17,6 @@ make-changelog
 out
 economy.json
 lottery.json
+inventory.json
 
 !command-perms/holder

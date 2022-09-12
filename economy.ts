@@ -87,7 +87,7 @@ function canEarn(id: string){
     return false
 }
 
-function canTax(id: string){
+function canTax(id: string, bonusTime?: number){
     if(!ECONOMY[id])
         return false
     if(!ECONOMY[id].lastTaxed){
@@ -100,7 +100,10 @@ function canTax(id: string){
     //@ts-ignore
     let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000
     //5 minutes
-    if(secondsDiff > 900){
+    if(bonusTime && secondsDiff > 900 + bonusTime){
+        return true
+    }
+    else if(secondsDiff > 900){
         return true
     }
     return false
