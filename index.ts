@@ -388,6 +388,7 @@ const commands: { [command: string]: Command } = {
             let totalProfit = 0
             let totalDailiyProfit = 0
             let text = ""
+            let totalValue = 0
             for(let stock in ECONOMY()[msg.author.id].stocks){
                 let data
                 try {
@@ -440,6 +441,7 @@ const commands: { [command: string]: Command } = {
                     totalProfit += profit
                     let todaysProfit = (numberchange * stockInfo.shares)
                     totalDailiyProfit += todaysProfit
+                    totalValue += price * stockInfo.shares
                     text += `Price: ${price}\n`
                     text += `Change: ${change}\n`
                     text += `Profit: ${profit}\n`
@@ -447,7 +449,7 @@ const commands: { [command: string]: Command } = {
                     text += "---------------------------\n"
                 }
             }
-            return {content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}`}
+            return {content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`}
         }, category: CommandCategory.ECONOMY
     },
     "profit": {
