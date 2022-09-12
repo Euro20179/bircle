@@ -132,7 +132,7 @@ function calculateStockAmountFromString(id, shareCount, amount) {
     }
     return 0;
 }
-function calculateAmountFromString(id, amount) {
+function calculateAmountFromString(id, amount, extras) {
     if (amount == undefined || amount == null) {
         return NaN;
     }
@@ -145,6 +145,11 @@ function calculateAmountFromString(id, amount) {
     }
     if (amount == "all!") {
         return ECONOMY[id].money;
+    }
+    for (let e in extras) {
+        if (amount.match(e)) {
+            return extras[e](ECONOMY[id].money, amount);
+        }
     }
     if (Number(amount)) {
         return Number(amount);

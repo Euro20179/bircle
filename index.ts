@@ -959,13 +959,16 @@ const commands: { [command: string]: Command } = {
     },
     ticket: {
         run: async(msg, args) => {
-            let amount = calculateAmountFromString(msg.author.id, args[0])
+            let amount = calculateAmountFromString(msg.author.id, args[0], {min: (t: number, a: string) => t * 0.005})
             let numbers = args.slice(1, 4)
             if(!amount){
                 return {content: "No amount given"}
             }
             if(!canBetAmount(msg.author.id, amount)){
                 return {content: "You do not have enough money for this"}
+            }
+            if(amount / ECONOMY()[msg.author.id].money < 0.005){
+                return {content: "You must bet at least 0.5%"}
             }
             let ticket = buyLotteryTicket(msg.author.id, amount)
             if(!ticket){
@@ -984,13 +987,19 @@ const commands: { [command: string]: Command } = {
                 newLottery()
                 return {content: `<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`}
             }
-            return {content: `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")} and didnt win`}
+            return {content: `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`}
         }, category: CommandCategory.GAME
     },
     lottery: {
         run: async(msg, args) => {
             return {content: `The lottery pool is: ${LOTTERY().pool * 1.25}`}
         }, category: CommandCategory.FUN
+    },
+    calcm: {
+        run: async(msg, args) => {
+            let amount = calculateAmountFromString(msg.author.id, args.join(" "))
+            return {content: `$${amount}`}
+        }, category: CommandCategory.UTIL
     },
     money: {
         run: async (msg, args) => {

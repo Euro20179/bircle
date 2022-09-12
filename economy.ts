@@ -134,6 +134,7 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     if(amount == "all"){
         return shareCount
     }
+
     if(Number(amount)){
         return Number(amount)
     }
@@ -150,7 +151,7 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     return 0
 }
 
-function calculateAmountFromString(id: string, amount: string){
+function calculateAmountFromString(id: string, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
     if(amount == undefined || amount == null){
         return NaN
     }
@@ -163,6 +164,11 @@ function calculateAmountFromString(id: string, amount: string){
     }
     if(amount == "all!"){
         return ECONOMY[id].money
+    }
+    for(let e in extras){
+        if (amount.match(e)){
+            return extras[e](ECONOMY[id].money, amount)
+        }
     }
     if(Number(amount)){
         return Number(amount)
