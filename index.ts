@@ -1124,7 +1124,7 @@ const commands: { [command: string]: Command } = {
             if(realAmount < 0){
                 return {content: "What are you trying to pull <:Watching1:697677860336304178>"}
             }
-            if(canBetAmount(msg.author.id, realAmount)){
+            if(canBetAmount(msg.author.id, realAmount) && !member.user.bot){
                 loseMoneyToPlayer(msg.author.id, realAmount, member.id)
                 return {content: `You gave ${realAmount} to ${member.user.username}`}
             }
