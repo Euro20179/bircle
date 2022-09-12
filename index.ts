@@ -959,6 +959,9 @@ const commands: { [command: string]: Command } = {
     },
     ticket: {
         run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let round = !opts['no-round']
             let amount = calculateAmountFromString(msg.author.id, args[0], {min: (t: number, a: string) => t * 0.005})
             let numbers = args.slice(1, 4)
             if(!amount){
@@ -974,20 +977,38 @@ const commands: { [command: string]: Command } = {
             if(!ticket){
                 return {content: "Could not buy ticket"}
             }
-            if(numbers && numbers.length == 3){
+            if(numbers && numbers.length == 1){
+                ticket = numbers[0].split("")
+                for(let i = 0; i < ticket.length; i++){
+                    ticket[i] = Number(ticket[i])
+                }
+            }
+            else if(numbers && numbers.length == 3){
                 ticket = numbers
                 for(let i = 0; i < ticket.length; i++){
                     ticket[i] = Number(ticket[i])
                 }
             }
             let answer = LOTTERY()
+            let e = new MessageEmbed()
+            if(round){
+                amount = Math.floor(amount * 100) / 100
+            }
+            e.setFooter({text: `Cost: ${amount}`})
             if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
                 addMoney(msg.author.id, answer.pool)
                 let winningAmount = answer.pool * 1.25
                 newLottery()
-                return {content: `<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`}
+                e.setTitle("WINNER!!!")
+                e.setColor("GREEN")
+                e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
             }
-            return {content: `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`}
+            else{
+                e.setColor("RED")
+                e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
+                e.setDescription( `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
+            }
+            return {embeds: [e]}
         }, category: CommandCategory.GAME,
         help: {
             info: "Buy a lottery ticket",
@@ -999,6 +1020,7 @@ const commands: { [command: string]: Command } = {
                     description: "The numbers to buy seperated by spaces"
                 }
             }
+        }
     },
     lottery: {
         run: async(msg, args) => {
