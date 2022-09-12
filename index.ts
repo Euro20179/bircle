@@ -1380,10 +1380,6 @@ const commands: { [command: string]: Command } = {
             if (!bet) {
                 return { content: "no bet given" }
             }
-            else if (bet < 0) {
-                loseMoneyToBank(msg.author.id, -bet)
-                return { content: `Man you sure do want to lose money, ${bet} has been subtracted from your balance` }
-            }
             if(!canBetAmount(msg.author.id, bet)){
                 return {content: "That bet is too high for you"}
             }
