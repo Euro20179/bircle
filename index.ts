@@ -595,6 +595,13 @@ const commands: { [command: string]: Command } = {
             if(BATTLEGAME)
                 return {content: "A game is already happening"}
             let bet = args[0]
+            let winningType = args[1]
+            if(!winningType){
+                winningType = "wta"
+            }
+            if(!["wta", "distribute", "dist"].includes(winningType)){
+                return {content: "Betting type must be wta (winner takes all) or distribute"}
+            }
             let nBet = calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
             if(!nBet || !canBetAmount(msg.author.id, nBet) || nBet < 0){
@@ -603,11 +610,16 @@ const commands: { [command: string]: Command } = {
             if(nBet / ECONOMY()[msg.author.id].money < 0.002){
                 return {content: "You must bet at least 0.2%"}
             }
+
             let players: {[key: string]: number} = {[msg.author.id]: 100}
             let bets: {[key: string]: number} = {[msg.author.id]: nBet}
             let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
             let usedSwap: string[] = []
             let betTotal = nBet
+            let bonus = 1.1
+
+            let earningType = "wta"
+
             await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
             let collector = msg.channel.createMessageCollector({time: 15000, filter: m => !m.author.bot && m.content.toLowerCase().includes('join')})
             BATTLEGAME = true
@@ -875,7 +887,7 @@ const commands: { [command: string]: Command } = {
                     responseChoice = responseChoice.replaceAll("{amount}", String(nAmount))
                     //embed.setDescription(responseChoice)
                     //let ms = await msg.channel.send(`${responseChoice}\n-------------------------\n${healthRemainingTable}`)
-                    let ms = await msg.channel.send({content: responseChoice, embeds: [embed]})
+                    let ms = await msg.channel.send({content: `**${responseChoice}**`, embeds: [embed]})
                     lastMessages.push(ms)
                     if(lastMessages.length >= 4){
                         let m = lastMessages.shift()
@@ -884,9 +896,22 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     let text = ""
+                    let remaining = Object.keys(players).length - eliminations.length
                     for(let elim of eliminations){
                         loseMoneyToBank(elim, bets[elim])
                         text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${bets[elim]} \n`
+                        if(winningType === 'distribute'){
+                            let e = new MessageEmbed()
+                            e.setTitle("NEW LOSER")
+                            e.setDescription(`<@${elim}> HAS DIED and distributed ${bets[elim] / remaining * bonus} to each player`)
+                            e.setColor("BLUE")
+                            for(let player in players){
+                                if(!eliminations.includes(player)){
+                                    addMoney(player, bets[elim] / remaining * bonus)
+                                }
+                            }
+                            await msg.channel.send({embeds: [e]})
+                        }
                         delete players[elim]
                     }
                     if(text){
@@ -898,11 +923,16 @@ const commands: { [command: string]: Command } = {
                     await new Promise(res => setTimeout(res, 4000))
                 }
                 let winner = Object.entries(players).filter(v => v[1] > 0)[0]
-                addMoney(winner[0], betTotal * 1.1)
+                addMoney(winner[0], betTotal * bonus)
                 let e = new MessageEmbed()
                 e.setTitle("GAME OVER!")
                 e.setColor("GREEN")
-                e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.1}`)
+                if(winningType === 'wta'){
+                    e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.1}`)
+                }
+                else{
+                    e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON THE REMAINING: $${bets[winner[0]] * 1.1}`)
+                }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 await msg.channel.send({embeds: [e]})
                 BATTLEGAME = false
