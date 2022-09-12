@@ -1397,6 +1397,9 @@ const commands: { [command: string]: Command } = {
             if (!bet) {
                 return { content: "no bet given" }
             }
+            if(bet <= 0){
+                return {content: "No reverse blackjack here"}
+            }
             if(!canBetAmount(msg.author.id, bet)){
                 return {content: "That bet is too high for you"}
             }
