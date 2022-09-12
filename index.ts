@@ -618,7 +618,7 @@ const commands: { [command: string]: Command } = {
             let betTotal = nBet
             let bonus = 1.1
 
-            let earningType = "wta"
+            let responseMultiplier = 1
 
             await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
             let collector = msg.channel.createMessageCollector({time: 15000, filter: m => !m.author.bot && m.content.toLowerCase().includes('join')})
@@ -651,7 +651,9 @@ const commands: { [command: string]: Command } = {
                     "anger euro": {amount: 3},
                     "blowtorch": {percent: 0.01, amount: 1},
                     "double bet": {percent: 0.01},
-                    "swap": {percent: 0.3 / Object.keys(players).length}
+                    "swap": {percent: 0.3 / Object.keys(players).length},
+                    "double": {percent: 0.05, amount: 2},
+                    "triple": {percent: 0.10, amount: 3}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -751,6 +753,22 @@ const commands: { [command: string]: Command } = {
                             usedSwap.push(m.author.id)
                             break
                         }
+                        case "double": {
+                            responseMultiplier *= 2
+                            e.setTitle("DOUBLE")
+                            e.setColor("GREEN")
+                            e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                            await msg.channel.send({embeds: [e]})
+                            break
+                        }
+                        case "triple": {
+                            responseMultiplier *= 2
+                            e.setTitle("TRIPLE")
+                            e.setColor("GREEN")
+                            e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                            await msg.channel.send({embeds: [e]})
+                            break
+                        }
                     }
                 })
                 let playerCount = Object.keys(players).length
@@ -843,6 +861,10 @@ const commands: { [command: string]: Command } = {
                         default: {
                             continue
                         }
+                    }
+                    if(responseMultiplier > 0){
+                        responseMultiplier = 1
+                        nAmount *= responseMultiplier
                     }
 
                     let tawCount = 0
