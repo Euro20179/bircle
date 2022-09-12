@@ -45,6 +45,8 @@ let BUTTONS: { [id: string]: string | (() => string) } = {}
 let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 let SPAMS: { [id: string]: boolean } = {}
 
+let BLACKJACK_GAMES: {[id: string]: boolean} = {}
+
 let BATTLEGAME: boolean = false;
 
 let lastCommand: Message;
@@ -1403,6 +1405,10 @@ const commands: { [command: string]: Command } = {
             if(!canBetAmount(msg.author.id, bet)){
                 return {content: "That bet is too high for you"}
             }
+            if(BLACKJACK_GAMES[msg.author.id]){
+                return {content: "You idiot u already playing the game"}
+            }
+            BLACKJACK_GAMES[msg.author.id] = true
             let cards = []
             for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                 for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
@@ -1509,6 +1515,7 @@ const commands: { [command: string]: Command } = {
                     }
                     catch (err) {
                         loseMoneyToBank(msg.author.id, bet)
+                        delete BLACKJACK_GAMES[msg.author.id]
                         return { content: `Did not respond  in time, lost ${bet}` }
                     }
                     response = collectedMessages.at(0)
@@ -1548,7 +1555,7 @@ const commands: { [command: string]: Command } = {
                 status = `You won: $${bet}`
                 addMoney(msg.author.id, bet)
             }
-
+            delete BLACKJACK_GAMES[msg.author.id]
             return { content: `**${status}**\n${stats}` }
         }, category: CommandCategory.GAME
     },
