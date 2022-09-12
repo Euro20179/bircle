@@ -593,14 +593,18 @@ const commands: { [command: string]: Command } = {
             if(BATTLEGAME)
                 return {content: "A game is already happening"}
             let bet = args[0]
-            let nBet = calculateAmountFromString(msg.author.id, bet)
+            let nBet = calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
             if(!nBet || !canBetAmount(msg.author.id, nBet) || nBet < 0){
                 return {content: "Not a valid bet"}
             }
+            if(nBet / ECONOMY()[msg.author.id].money < 0.002){
+                return {content: "You must bet at least 0.2%"}
+            }
             let players: {[key: string]: number} = {[msg.author.id]: 100}
             let bets: {[key: string]: number} = {[msg.author.id]: nBet}
             let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
+            let usedSwap: string[] = []
             let betTotal = nBet
             await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
             let collector = msg.channel.createMessageCollector({time: 15000, filter: m => !m.author.bot && m.content.toLowerCase().includes('join')})
@@ -608,9 +612,13 @@ const commands: { [command: string]: Command } = {
             collector.on("collect", async(m) => {
                 if(players[m.author.id]) return
                 let bet = m.content.split(" ")[1]
-                let nBet = calculateAmountFromString(m.author.id, bet)
+                let nBet = calculateAmountFromString(m.author.id, bet, {min: (t, a) => t * 0.002})
                 if(!nBet || !canBetAmount(m.author.id, nBet) || nBet < 0){
                     await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
+                    return
+                }
+                if(nBet / ECONOMY()[m.author.id].money < 0.002){
+                    await m.channel.send("You must bet at least 0.2%")
                     return
                 }
                 betTotal += nBet
@@ -659,9 +667,9 @@ const commands: { [command: string]: Command } = {
                     betTotal += a
                     bets[m.author.id] += a
                     //reset cooldown AFTER purchase
-                    cooldowns[m.author.id] = Date.now() / 1000
                     switch(i){
                         case "heal": {
+                            cooldowns[m.author.id] = Date.now() / 1000
                             let amount =  Math.floor(Math.random() * 19 + 1)
                             e.setTitle("HEAL")
                             e.setColor("GREEN")
@@ -671,6 +679,7 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "anger toolbox": {
+                            cooldowns[m.author.id] = Date.now() / 1000
                             e.setTitle("TOOLBOX IS ANGRY")
                             e.setColor("RED")
                             e.setDescription(`<@${m.author.id}> has angered toolbox`)
@@ -681,11 +690,13 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "anger euro": {
+                            cooldowns[m.author.id] = Date.now() / 1000
                             await msg.channel.send("STOPPING")
                             break
                         }
                         case "double bet": {
                             if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
+                                cooldowns[m.author.id] = Date.now() / 1000
                                 betTotal += bets[m.author.id]
                                 bets[m.author.id] *= 2
                                 e.setTitle("DOUBLE BET")
@@ -696,6 +707,7 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "blowtorch": {
+                            cooldowns[m.author.id] = Date.now() / 1000
                             let amount = Math.floor(Math.random() * 19 + 1)
                             e.setTitle("BLOWTORCH")
                             e.setColor("RED")
@@ -708,6 +720,10 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "swap": {
+                            if(usedSwap.includes(m.author.id)){
+                                return
+                            }
+                            cooldowns[m.author.id] = Date.now() / 1000
                             let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
                             let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
                             let thisPlayerHealth = players[m.author.id]
@@ -718,6 +734,7 @@ const commands: { [command: string]: Command } = {
                             players[m.author.id] = otherPlayerHealth
                             players[p] = thisPlayerHealth
                             await msg.channel.send({embeds: [e]})
+                            usedSwap.push(m.author.id)
                             break
                         }
                     }
@@ -879,11 +896,11 @@ const commands: { [command: string]: Command } = {
                     await new Promise(res => setTimeout(res, 4000))
                 }
                 let winner = Object.entries(players).filter(v => v[1] > 0)[0]
-                addMoney(winner[0], betTotal * 1.2)
+                addMoney(winner[0], betTotal * 1.1)
                 let e = new MessageEmbed()
                 e.setTitle("GAME OVER!")
                 e.setColor("GREEN")
-                e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.2}`)
+                e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.1}`)
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 await msg.channel.send({embeds: [e]})
                 BATTLEGAME = false
