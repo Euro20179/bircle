@@ -624,11 +624,12 @@ const commands: { [command: string]: Command } = {
             collector.on("end", async(collection, reason) => {
                 let start = Date.now() / 1000
                 let items: {[key: string]: {percent?: number, amount?: number}} = {
-                    "heal": {percent: 0.005, amount: 0.1},
+                    "heal": {percent: 0.01, amount: 0.1},
                     "anger toolbox": {amount: 3},
                     "anger euro": {amount: 3},
-                    "blowtorch": {percent: 0.01, amount: 3},
-                    "double bet": {percent: 0.01}
+                    "blowtorch": {percent: 0.01, amount: 1},
+                    "double bet": {percent: 0.01},
+                    "swap": {percent: 0.3 / Object.keys(players).length}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -641,7 +642,6 @@ const commands: { [command: string]: Command } = {
                     if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
                         return
                     }
-                    cooldowns[m.author.id] = Date.now() / 1000
                     let i = m.content.toLowerCase()
                     let cost = items[i]
                     let a = cost.amount ?? 0
@@ -655,9 +655,14 @@ const commands: { [command: string]: Command } = {
                     let e = new MessageEmbed()
                     e.setFooter({text: `Cost: ${a}`})
                     loseMoneyToBank(m.author.id, a)
+                    //buying an item increases the bet
+                    betTotal += a
+                    bets[m.author.id] += a
+                    //reset cooldown AFTER purchase
+                    cooldowns[m.author.id] = Date.now() / 1000
                     switch(i){
                         case "heal": {
-                            let amount =  Math.floor(Math.random() * 9 + 1)
+                            let amount =  Math.floor(Math.random() * 19 + 1)
                             e.setTitle("HEAL")
                             e.setColor("GREEN")
                             e.setDescription(`<@${m.author.id}> healed for ${amount}`)
@@ -700,6 +705,20 @@ const commands: { [command: string]: Command } = {
                                 if(player === m.author.id) continue
                                 players[player] -= amount
                             }
+                            break
+                        }
+                        case "swap": {
+                            let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
+                            let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
+                            let thisPlayerHealth = players[m.author.id]
+                            let otherPlayerHealth = players[p]
+                            e.setTitle(`SWAP HEALTH`)
+                            e.setDescription(`<@${m.author.id}> <-> <@${p}>`)
+                            e.setColor("#ffff00")
+                            players[m.author.id] = otherPlayerHealth
+                            players[p] = thisPlayerHealth
+                            await msg.channel.send({embeds: [e]})
+                            break
                         }
                     }
                 })
@@ -860,11 +879,11 @@ const commands: { [command: string]: Command } = {
                     await new Promise(res => setTimeout(res, 4000))
                 }
                 let winner = Object.entries(players).filter(v => v[1] > 0)[0]
-                addMoney(winner[0], betTotal)
+                addMoney(winner[0], betTotal * 1.2)
                 let e = new MessageEmbed()
                 e.setTitle("GAME OVER!")
                 e.setColor("GREEN")
-                e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal}`)
+                e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.2}`)
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 await msg.channel.send({embeds: [e]})
                 BATTLEGAME = false
