@@ -910,7 +910,6 @@ const commands: { [command: string]: Command } = {
                                 if(usedShell.includes(m.author.id)){
                                     return
                                 }
-                                cooldowns[m.author.id] = Date.now() / 1000
                                 e.setTitle("BLUE SHELL")
                                 e.setColor("BLUE")
                                 let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
@@ -919,6 +918,7 @@ const commands: { [command: string]: Command } = {
                                     await msg.channel.send("No one has more than 50 health")
                                     return
                                 }
+                                cooldowns[m.author.id] = Date.now() / 1000
                                 e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
                                 players[firstPlace[0]] -= 50
                                 await msg.channel.send({embeds: [e]})
