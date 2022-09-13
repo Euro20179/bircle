@@ -776,6 +776,27 @@ const commands: { [command: string]: Command } = {
                     }
                     console.log(Date.now() / 1000, cooldowns[m.author.id], Date.now() / 1000 - cooldowns[m.author.id])
                     if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
+                        await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
+                        players[m.author.id] -= 5
+                        loseMoneyToBank(m.author.id, ogBets[m.author.id])
+                        if(players[m.author.id] <= 0){
+                            let remaining = Object.keys(players).length - 1
+                            delete players[m.author.id]
+                            let e = new MessageEmbed()
+                            e.setTitle("NEW LOSER")
+                            if(winningType === 'distribute'){
+                                e.setDescription(`<@${m.author.id}> HAS DIED and distributed ${bets[m.author.id] / remaining * bonus} to each player`)
+                                e.setColor("BLUE")
+                                for(let player in players){
+                                    addMoney(player, bets[m.author.id] / remaining * bonus)
+                                }
+                            }
+                            else{
+                                e.setDescription(`<@${m.author.id}> HAS DIED AND LOST $${ogBets[m.author.id]}`)
+                                e.setColor("RED")
+                            }
+                            await msg.channel.send({embeds: [e]})
+                        }
                         return
                     }
                     let i = m.content.toLowerCase()
@@ -1052,7 +1073,7 @@ const commands: { [command: string]: Command } = {
                     let remaining = Object.keys(players).length - eliminations.length
                     for(let elim of eliminations){
                         loseMoneyToBank(elim, ogBets[elim])
-                        text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${bets[elim]} \n`
+                        text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${ogBets[elim]} \n`
                         if(winningType === 'distribute'){
                             let e = new MessageEmbed()
                             e.setTitle("NEW LOSER")
