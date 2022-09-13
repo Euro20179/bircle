@@ -1047,7 +1047,7 @@ const commands: { [command: string]: Command } = {
                             case "HEAL": {
                                 embed.setColor("GREEN")
                                 for(let match of toWho){
-                                    let p = Number(match[1])
+                                    let p = Number(match)
                                     players[shuffledPlayers.at(p - 1) as string] += nAmount
                                 }
                                 break
