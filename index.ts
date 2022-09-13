@@ -721,6 +721,7 @@ const commands: { [command: string]: Command } = {
             let bets: {[key: string]: number} = {[msg.author.id]: nBet}
             let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
             let usedSwap: string[] = []
+            let usedShell: string[] = []
             let betTotal = nBet
             let bonus = 1.1
 
@@ -759,7 +760,8 @@ const commands: { [command: string]: Command } = {
                     "double bet": {percent: 0.01},
                     "swap": {percent: 0.3 / Object.keys(players).length},
                     "double": {percent: 0.05, amount: 2},
-                    "triple": {percent: 0.10, amount: 3}
+                    "triple": {percent: 0.10, amount: 3},
+                    "blue shell": {amount: 0.5, percent: 0.02}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -868,11 +870,30 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "triple": {
-                            responseMultiplier *= 2
+                            responseMultiplier *= 3
                             e.setTitle("TRIPLE")
                             e.setColor("GREEN")
                             e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
                             await msg.channel.send({embeds: [e]})
+                            break
+                        }
+                        case "blue shell": {
+                            if(usedShell.includes(m.author.id)){
+                                return
+                            }
+                            e.setTitle("BLUE SHELL")
+                            e.setColor("BLUE")
+                            let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
+                            console.log(sort)
+                            let firstPlace = sort[0]
+                            if(firstPlace[1] < 50){
+                                await msg.channel.send("No one has more than 50 health")
+                                return
+                            }
+                            e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
+                            players[firstPlace[0]] -= 50
+                            await msg.channel.send({embeds: [e]})
+                            usedShell.push(m.author.id)
                             break
                         }
                     }
@@ -1051,15 +1072,24 @@ const commands: { [command: string]: Command } = {
                     await new Promise(res => setTimeout(res, 4000))
                 }
                 let winner = Object.entries(players).filter(v => v[1] > 0)[0]
-                addMoney(winner[0], betTotal * bonus)
                 let e = new MessageEmbed()
-                e.setTitle("GAME OVER!")
-                e.setColor("GREEN")
-                if(winningType === 'wta'){
-                    e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.1}`)
+                if(winner.length <= 0){
+                    let last = Object.keys(players)[0]
+                    loseMoneyToBank(last, bets[last])
+                    e.setDescription(`THE GAME IS A TIE, AND <@${last}> LOST THE REMAINING $${bets[last]}`)
+                    e.setTitle("TIE")
+                    e.setColor("YELLOW")
                 }
                 else{
-                    e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON THE REMAINING: $${bets[winner[0]] * 1.1}`)
+                    addMoney(winner[0], betTotal * bonus)
+                    e.setTitle("GAME OVER!")
+                    e.setColor("GREEN")
+                    if(winningType === 'wta'){
+                        e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.1}`)
+                    }
+                    else{
+                        e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON THE REMAINING: $${bets[winner[0]] * 1.1}`)
+                    }
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 await msg.channel.send({embeds: [e]})
