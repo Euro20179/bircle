@@ -767,7 +767,7 @@ const commands: { [command: string]: Command } = {
                     "double": {percent: 0.05, amount: 2},
                     "triple": {percent: 0.10, amount: 3},
                     "blue shell": {amount: 0.5, percent: 0.02},
-                    "shield": {amount: 0.5, percent: 0.003}
+                    "shield": {amount: 0.5, percent: 0.003},
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -1714,6 +1714,11 @@ const commands: { [command: string]: Command } = {
                 delete BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
             }
+            if(calculateTotal(dealerCards).total === 21){
+                loseMoneyToBank(msg.author.id, bet)
+                delete BLACKJACK_GAMES[msg.author.id]
+                return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
+            }
             let total = 0
             while ((total = calculateTotal(dealerCards).total) < 22) {
                 let awayFrom21 = 21 - total
@@ -1726,11 +1731,6 @@ const commands: { [command: string]: Command } = {
                 else {
                     break
                 }
-            }
-            if(calculateTotal(dealerCards).total === 21){
-                loseMoneyToBank(msg.author.id, bet)
-                delete BLACKJACK_GAMES[msg.author.id]
-                return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
             }
             while (true) {
                 let embed = new MessageEmbed()
