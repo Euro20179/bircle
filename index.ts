@@ -1373,7 +1373,7 @@ const commands: { [command: string]: Command } = {
                 return { content: `${args.join(" ")} not found` }
             let ct = canTax(user.id)
             if(hasItem(user.id, "tax evasion")){
-                ct = canTax(user.id, INVENTORY()[user.id]['tax evasion'])
+                ct = canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 30)
             }
             if (ct) {
                 let embed = new MessageEmbed()
@@ -1938,7 +1938,7 @@ const commands: { [command: string]: Command } = {
     */
     nothappening: {
         run: async (msg, args) => {
-            return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests"].join("\n") }
+            return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n") }
         },
         category: CommandCategory.META
     },
