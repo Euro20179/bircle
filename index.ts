@@ -1644,6 +1644,11 @@ const commands: { [command: string]: Command } = {
                     break
                 }
             }
+            if(calculateTotal(dealerCards).total === 21){
+                loseMoneyToBank(msg.author.id, bet)
+                delete BLACKJACK_GAMES[msg.author.id]
+                return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
+            }
             while (true) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Blackjack")
@@ -1733,6 +1738,11 @@ const commands: { [command: string]: Command } = {
                         else {
                             break
                         }
+                    }
+                    if(calculateTotal(dealerCards).total === 21){
+                        loseMoneyToBank(msg.author.id, bet)
+                        delete BLACKJACK_GAMES[msg.author.id]
+                        return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
                     }
                     useItem(msg.author.id, "reset")
                 }
