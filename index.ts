@@ -718,7 +718,10 @@ const commands: { [command: string]: Command } = {
             }
 
             let players: {[key: string]: number} = {[msg.author.id]: 100}
+            //total bet
             let bets: {[key: string]: number} = {[msg.author.id]: nBet}
+            //initial bet
+            let ogBets: {[key: string]: number} = {[msg.author.id]: nBet}
             let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
             let usedSwap: string[] = []
             let usedShell: string[] = []
@@ -745,6 +748,7 @@ const commands: { [command: string]: Command } = {
                 betTotal += nBet
                 if(!Object.keys(players).includes(m.author.id)){
                     bets[m.author.id] = nBet
+                    ogBets[m.author.id] = nBet
                     cooldowns[m.author.id] = 0
                     players[m.author.id] = 100
                 }
@@ -1047,7 +1051,7 @@ const commands: { [command: string]: Command } = {
                     let text = ""
                     let remaining = Object.keys(players).length - eliminations.length
                     for(let elim of eliminations){
-                        loseMoneyToBank(elim, bets[elim])
+                        loseMoneyToBank(elim, ogBets[elim])
                         text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${bets[elim]} \n`
                         if(winningType === 'distribute'){
                             let e = new MessageEmbed()
@@ -1066,17 +1070,17 @@ const commands: { [command: string]: Command } = {
                     if(text){
                         await msg.channel.send(text)
                     }
-                    if(Object.keys(players).length == 1){
+                    if(Object.keys(players).length <= 1){
                         break
                     }
                     await new Promise(res => setTimeout(res, 4000))
                 }
-                let winner = Object.entries(players).filter(v => v[1] > 0)[0]
+                let winner = Object.entries(players).filter(v => v[1] > 0)?.[0]
                 let e = new MessageEmbed()
-                if(winner.length <= 0){
+                if(!winner){
                     let last = Object.keys(players)[0]
-                    loseMoneyToBank(last, bets[last])
-                    e.setDescription(`THE GAME IS A TIE, AND <@${last}> LOST THE REMAINING $${bets[last]}`)
+                    loseMoneyToBank(last, ogBets[last])
+                    e.setDescription(`THE GAME IS A TIE, AND <@${last}> LOST THE REMAINING $${ogBets[last]}`)
                     e.setTitle("TIE")
                     e.setColor("YELLOW")
                 }
