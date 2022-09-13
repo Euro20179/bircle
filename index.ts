@@ -725,6 +725,7 @@ const commands: { [command: string]: Command } = {
             let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
             let usedSwap: string[] = []
             let usedShell: string[] = []
+            let shields: {[key: string]: boolean} = {}
             let betTotal = nBet
             let bonus = 1.1
 
@@ -765,7 +766,8 @@ const commands: { [command: string]: Command } = {
                     "swap": {percent: 0.3 / Object.keys(players).length},
                     "double": {percent: 0.05, amount: 2},
                     "triple": {percent: 0.10, amount: 3},
-                    "blue shell": {amount: 0.5, percent: 0.02}
+                    "blue shell": {amount: 0.5, percent: 0.02},
+                    "shield": {amount: 0.5, percent: 0.003}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -811,10 +813,6 @@ const commands: { [command: string]: Command } = {
                     }
                     let e = new MessageEmbed()
                     e.setFooter({text: `Cost: ${a}`})
-                    loseMoneyToBank(m.author.id, a)
-                    //buying an item increases the bet
-                    betTotal += a
-                    bets[m.author.id] += a
                     //reset cooldown AFTER purchase
                     switch(i){
                         case "heal": {
@@ -887,6 +885,7 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "double": {
+                            cooldowns[m.author.id] = Date.now() / 1000
                             responseMultiplier *= 2
                             e.setTitle("DOUBLE")
                             e.setColor("GREEN")
@@ -895,6 +894,7 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                         case "triple": {
+                            cooldowns[m.author.id] = Date.now() / 1000
                             responseMultiplier *= 3
                             e.setTitle("TRIPLE")
                             e.setColor("GREEN")
@@ -906,10 +906,10 @@ const commands: { [command: string]: Command } = {
                             if(usedShell.includes(m.author.id)){
                                 return
                             }
+                            cooldowns[m.author.id] = Date.now() / 1000
                             e.setTitle("BLUE SHELL")
                             e.setColor("BLUE")
                             let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
-                            console.log(sort)
                             let firstPlace = sort[0]
                             if(firstPlace[1] < 50){
                                 await msg.channel.send("No one has more than 50 health")
@@ -921,7 +921,25 @@ const commands: { [command: string]: Command } = {
                             usedShell.push(m.author.id)
                             break
                         }
+                        case "shield": {
+                            if(!Object.keys(shields).includes(m.author.id)){
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                shields[m.author.id] = true
+                                e.setTitle("SHIELD")
+                                e.setColor("WHITE")
+                                e.setDescription(`<@${m.author.id}> bout a shield`)
+                                await msg.channel.send({embeds: [e]})
+                                break
+                            }
+                            else{
+                                return
+                            }
+                        }
                     }
+                    loseMoneyToBank(m.author.id, a)
+                    //buying an item increases the bet
+                    betTotal += a
+                    bets[m.author.id] += a
                 })
                 let playerCount = Object.keys(players).length
                 if(playerCount < 2){
@@ -1039,9 +1057,19 @@ const commands: { [command: string]: Command } = {
                                 nAmount *= -1
                                 for(let player of toWho){
                                     let p = Number(player)
-                                    players[shuffledPlayers.at(p - 1) as string] += nAmount
-                                    if(players[shuffledPlayers.at(p - 1) as string] <= 0){
-                                        eliminations.push(shuffledPlayers.at(p - 1) as string)
+                                    if(shields[shuffledPlayers.at(p - 1) as string]){
+                                        shields[shuffledPlayers.at(p - 1) as string] = false
+                                        let e = new MessageEmbed()
+                                        e.setTitle("BLOCKED")
+                                        e.setDescription(`<@${shuffledPlayers.at(p - 1) as string}> BLOCKED THE ATTACK`)
+                                        e.setColor("NAVY")
+                                        await msg.channel.send({embeds: [e]})
+                                    }
+                                    else{
+                                        players[shuffledPlayers.at(p - 1) as string] += nAmount
+                                        if(players[shuffledPlayers.at(p - 1) as string] <= 0){
+                                            eliminations.push(shuffledPlayers.at(p - 1) as string)
+                                        }
                                     }
                                 }
                                 break
