@@ -700,6 +700,9 @@ const commands: { [command: string]: Command } = {
         run: async(msg, args) => {
             if(BATTLEGAME)
                 return {content: "A game is already happening"}
+            let opts;
+            [opts, args] = getOpts(args)
+            let useItems = !opts['no-items']
             let bet = args[0]
             let winningType = args[1]
             if(!winningType){
@@ -772,175 +775,177 @@ const commands: { [command: string]: Command } = {
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
                 let rarityTable = {"huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1}
-                itemUseCollector.on("collect", async(m) => {
-                    if(!ECONOMY()[m.author.id]){
-                        return
-                    }
-                    console.log(Date.now() / 1000, cooldowns[m.author.id], Date.now() / 1000 - cooldowns[m.author.id])
-                    if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
-                        await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
-                        players[m.author.id] -= 5
-                        loseMoneyToBank(m.author.id, ogBets[m.author.id])
-                        if(players[m.author.id] <= 0){
-                            let remaining = Object.keys(players).length - 1
-                            delete players[m.author.id]
-                            let e = new MessageEmbed()
-                            e.setTitle("NEW LOSER")
-                            if(winningType === 'distribute'){
-                                e.setDescription(`<@${m.author.id}> HAS DIED and distributed ${bets[m.author.id] / remaining * bonus} to each player`)
-                                e.setColor("BLUE")
-                                for(let player in players){
-                                    addMoney(player, bets[m.author.id] / remaining * bonus)
+                if(useItems){
+                    itemUseCollector.on("collect", async(m) => {
+                        if(!ECONOMY()[m.author.id]){
+                            return
+                        }
+                        console.log(Date.now() / 1000, cooldowns[m.author.id], Date.now() / 1000 - cooldowns[m.author.id])
+                        if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
+                            await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
+                            players[m.author.id] -= 5
+                            loseMoneyToBank(m.author.id, ogBets[m.author.id])
+                            if(players[m.author.id] <= 0){
+                                let remaining = Object.keys(players).length - 1
+                                delete players[m.author.id]
+                                let e = new MessageEmbed()
+                                e.setTitle("NEW LOSER")
+                                if(winningType === 'distribute'){
+                                    e.setDescription(`<@${m.author.id}> HAS DIED and distributed ${bets[m.author.id] / remaining * bonus} to each player`)
+                                    e.setColor("BLUE")
+                                    for(let player in players){
+                                        addMoney(player, bets[m.author.id] / remaining * bonus)
+                                    }
                                 }
-                            }
-                            else{
-                                e.setDescription(`<@${m.author.id}> HAS DIED AND LOST $${ogBets[m.author.id]}`)
-                                e.setColor("RED")
-                            }
-                            await msg.channel.send({embeds: [e]})
-                        }
-                        return
-                    }
-                    let i = m.content.toLowerCase()
-                    let cost = items[i]
-                    let a = cost.amount ?? 0
-                    if(cost.percent){
-                        a += calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
-                    }
-                    if(ECONOMY()[m.author.id].money - bets[m.author.id] < a){
-                        await m.channel.send("You cannot afford this")
-                        return
-                    }
-                    let e = new MessageEmbed()
-                    e.setFooter({text: `Cost: ${a}`})
-                    //reset cooldown AFTER purchase
-                    switch(i){
-                        case "heal": {
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            let amount =  Math.floor(Math.random() * 19 + 1)
-                            e.setTitle("HEAL")
-                            e.setColor("GREEN")
-                            e.setDescription(`<@${m.author.id}> healed for ${amount}`)
-                            players[m.author.id] += amount
-                            await msg.channel.send({embeds: [e]})
-                            break
-                        }
-                        case "anger toolbox": {
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            e.setTitle("TOOLBOX IS ANGRY")
-                            e.setColor("RED")
-                            e.setDescription(`<@${m.author.id}> has angered toolbox`)
-                            await msg.channel.send({embeds: [e]})
-                            for(let player in players){
-                                players[player] *= .99432382
-                            }
-                            break
-                        }
-                        case "anger euro": {
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            await msg.channel.send("STOPPING")
-                            break
-                        }
-                        case "double bet": {
-                            if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
-                                cooldowns[m.author.id] = Date.now() / 1000
-                                betTotal += bets[m.author.id]
-                                bets[m.author.id] *= 2
-                                e.setTitle("DOUBLE BET")
-                                e.setDescription(`${m.author} has doubled their bet to ${bets[m.author.id]}`)
-                                e.setColor("GREEN")
+                                else{
+                                    e.setDescription(`<@${m.author.id}> HAS DIED AND LOST $${ogBets[m.author.id]}`)
+                                    e.setColor("RED")
+                                }
                                 await msg.channel.send({embeds: [e]})
                             }
-                            break
+                            return
                         }
-                        case "blowtorch": {
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            let amount = Math.floor(Math.random() * 19 + 1)
-                            e.setTitle("BLOWTORCH")
-                            e.setColor("RED")
-                            e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
-                            await msg.channel.send({embeds: [e]})
-                            for(let player in players){
-                                if(player === m.author.id) continue
-                                players[player] -= amount
-                            }
-                            break
+                        let i = m.content.toLowerCase()
+                        let cost = items[i]
+                        let a = cost.amount ?? 0
+                        if(cost.percent){
+                            a += calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
                         }
-                        case "swap": {
-                            if(usedSwap.includes(m.author.id)){
-                                return
-                            }
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
-                            let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
-                            let thisPlayerHealth = players[m.author.id]
-                            let otherPlayerHealth = players[p]
-                            e.setTitle(`SWAP HEALTH`)
-                            e.setDescription(`<@${m.author.id}> <-> <@${p}>`)
-                            e.setColor("#ffff00")
-                            players[m.author.id] = otherPlayerHealth
-                            players[p] = thisPlayerHealth
-                            await msg.channel.send({embeds: [e]})
-                            usedSwap.push(m.author.id)
-                            break
+                        if(ECONOMY()[m.author.id].money - bets[m.author.id] < a){
+                            await m.channel.send("You cannot afford this")
+                            return
                         }
-                        case "double": {
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            responseMultiplier *= 2
-                            e.setTitle("DOUBLE")
-                            e.setColor("GREEN")
-                            e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
-                            await msg.channel.send({embeds: [e]})
-                            break
-                        }
-                        case "triple": {
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            responseMultiplier *= 3
-                            e.setTitle("TRIPLE")
-                            e.setColor("GREEN")
-                            e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
-                            await msg.channel.send({embeds: [e]})
-                            break
-                        }
-                        case "blue shell": {
-                            if(usedShell.includes(m.author.id)){
-                                return
-                            }
-                            cooldowns[m.author.id] = Date.now() / 1000
-                            e.setTitle("BLUE SHELL")
-                            e.setColor("BLUE")
-                            let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
-                            let firstPlace = sort[0]
-                            if(firstPlace[1] < 50){
-                                await msg.channel.send("No one has more than 50 health")
-                                return
-                            }
-                            e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
-                            players[firstPlace[0]] -= 50
-                            await msg.channel.send({embeds: [e]})
-                            usedShell.push(m.author.id)
-                            break
-                        }
-                        case "shield": {
-                            if(!Object.keys(shields).includes(m.author.id)){
+                        let e = new MessageEmbed()
+                        e.setFooter({text: `Cost: ${a}`})
+                        //reset cooldown AFTER purchase
+                        switch(i){
+                            case "heal": {
                                 cooldowns[m.author.id] = Date.now() / 1000
-                                shields[m.author.id] = true
-                                e.setTitle("SHIELD")
-                                e.setColor("WHITE")
-                                e.setDescription(`<@${m.author.id}> bout a shield`)
+                                let amount =  Math.floor(Math.random() * 19 + 1)
+                                e.setTitle("HEAL")
+                                e.setColor("GREEN")
+                                e.setDescription(`<@${m.author.id}> healed for ${amount}`)
+                                players[m.author.id] += amount
                                 await msg.channel.send({embeds: [e]})
                                 break
                             }
-                            else{
-                                return
+                            case "anger toolbox": {
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                e.setTitle("TOOLBOX IS ANGRY")
+                                e.setColor("RED")
+                                e.setDescription(`<@${m.author.id}> has angered toolbox`)
+                                await msg.channel.send({embeds: [e]})
+                                for(let player in players){
+                                    players[player] *= .99432382
+                                }
+                                break
+                            }
+                            case "anger euro": {
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                await msg.channel.send("STOPPING")
+                                break
+                            }
+                            case "double bet": {
+                                if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
+                                    cooldowns[m.author.id] = Date.now() / 1000
+                                    betTotal += bets[m.author.id]
+                                    bets[m.author.id] *= 2
+                                    e.setTitle("DOUBLE BET")
+                                    e.setDescription(`${m.author} has doubled their bet to ${bets[m.author.id]}`)
+                                    e.setColor("GREEN")
+                                    await msg.channel.send({embeds: [e]})
+                                }
+                                break
+                            }
+                            case "blowtorch": {
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                let amount = Math.floor(Math.random() * 19 + 1)
+                                e.setTitle("BLOWTORCH")
+                                e.setColor("RED")
+                                e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
+                                await msg.channel.send({embeds: [e]})
+                                for(let player in players){
+                                    if(player === m.author.id) continue
+                                    players[player] -= amount
+                                }
+                                break
+                            }
+                            case "swap": {
+                                if(usedSwap.includes(m.author.id)){
+                                    return
+                                }
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                let playerKeys = Object.keys(players).filter(v => v !== m.author.id)
+                                let p = playerKeys[Math.floor(Math.random() * playerKeys.length)]
+                                let thisPlayerHealth = players[m.author.id]
+                                let otherPlayerHealth = players[p]
+                                e.setTitle(`SWAP HEALTH`)
+                                e.setDescription(`<@${m.author.id}> <-> <@${p}>`)
+                                e.setColor("#ffff00")
+                                players[m.author.id] = otherPlayerHealth
+                                players[p] = thisPlayerHealth
+                                await msg.channel.send({embeds: [e]})
+                                usedSwap.push(m.author.id)
+                                break
+                            }
+                            case "double": {
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                responseMultiplier *= 2
+                                e.setTitle("DOUBLE")
+                                e.setColor("GREEN")
+                                e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                                await msg.channel.send({embeds: [e]})
+                                break
+                            }
+                            case "triple": {
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                responseMultiplier *= 3
+                                e.setTitle("TRIPLE")
+                                e.setColor("GREEN")
+                                e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
+                                await msg.channel.send({embeds: [e]})
+                                break
+                            }
+                            case "blue shell": {
+                                if(usedShell.includes(m.author.id)){
+                                    return
+                                }
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                e.setTitle("BLUE SHELL")
+                                e.setColor("BLUE")
+                                let sort = Object.entries(players).sort((a, b) => b[1] - a[1])
+                                let firstPlace = sort[0]
+                                if(firstPlace[1] < 50){
+                                    await msg.channel.send("No one has more than 50 health")
+                                    return
+                                }
+                                e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
+                                players[firstPlace[0]] -= 50
+                                await msg.channel.send({embeds: [e]})
+                                usedShell.push(m.author.id)
+                                break
+                            }
+                            case "shield": {
+                                if(!Object.keys(shields).includes(m.author.id)){
+                                    cooldowns[m.author.id] = Date.now() / 1000
+                                    shields[m.author.id] = true
+                                    e.setTitle("SHIELD")
+                                    e.setColor("WHITE")
+                                    e.setDescription(`<@${m.author.id}> bout a shield`)
+                                    await msg.channel.send({embeds: [e]})
+                                    break
+                                }
+                                else{
+                                    return
+                                }
                             }
                         }
-                    }
-                    loseMoneyToBank(m.author.id, a)
-                    //buying an item increases the bet
-                    betTotal += a
-                    bets[m.author.id] += a
-                })
+                        loseMoneyToBank(m.author.id, a)
+                        //buying an item increases the bet
+                        betTotal += a
+                        bets[m.author.id] += a
+                    })
+                }
                 let playerCount = Object.keys(players).length
                 if(playerCount < 2){
                     await msg.channel.send("Only 1 person joined, game ending")
