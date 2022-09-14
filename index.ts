@@ -1926,7 +1926,7 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let guess = args[0]
-            let bet = calculateAmountFromString(msg.author.id, String(opts['bet'])) || 0
+            let bet = calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
             if (bet && !guess) {
                 return { content: "You cannot bet, but not have a guess" }
             }
