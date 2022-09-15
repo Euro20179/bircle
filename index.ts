@@ -1122,7 +1122,7 @@ const commands: { [command: string]: Command } = {
                         delete players[elim]
                     }
                     if(text){
-                        await msg.channel.send(text)
+                        await handleSending(msg, {content: text})
                     }
                     if(Object.keys(players).length <= 1){
                         break
