@@ -760,6 +760,18 @@ const commands: { [command: string]: Command } = {
                 await msg.channel.send(`${m.author} has joined the battle with a $${nBet} bet`)
             })
             collector.on("end", async(collection, reason) => {
+                let midGameCollector = msg.channel.createMessageCollector({filter: m => !m.author.bot && m.content.toLowerCase() == 'join' && hasItem(m.author.id, "intrude")})
+                midGameCollector.on("collect", async(m) => {
+                    if(players[m.author.id]) return
+                    if(!Object.keys(players).includes(m.author.id) && !ogBets[m.author.id]){
+                        bets[m.author.id] = 0
+                        ogBets[m.author.id] = 0
+                        cooldowns[m.author.id] = 0
+                        players[m.author.id] = Object.values(players).reduce((p, c) => p + c, 0) / Object.values(players).length
+                        await msg.channel.send(`${m.author} has intruded the battle with a bet of ${ogBets[m.author.id]}`)
+                    }
+                })
+
                 let start = Date.now() / 1000
                 let items: {[key: string]: {percent?: number, amount?: number}} = {
                     "heal": {percent: 0.01, amount: 0.1},
@@ -827,7 +839,8 @@ const commands: { [command: string]: Command } = {
                                 e.setTitle("HEAL")
                                 e.setColor("GREEN")
                                 e.setDescription(`<@${m.author.id}> healed for ${amount}`)
-                                players[m.author.id] += amount
+                                if(players[m.author.id])
+                                    players[m.author.id] += amount
                                 await msg.channel.send({embeds: [e]})
                                 break
                             }
@@ -961,6 +974,7 @@ const commands: { [command: string]: Command } = {
                 }
                 let playerCount = Object.keys(players).length
                 if(playerCount < 2){
+                    midGameCollector.stop()
                     await msg.channel.send("Only 1 person joined, game ending")
                     itemUseCollector.stop()
                     BATTLEGAME = false
@@ -998,6 +1012,7 @@ const commands: { [command: string]: Command } = {
                         return valid
                     })
                     if(responses.length < 1){
+                        midGameCollector.stop()
                         await msg.channel.send("No responses do anything, add better responses or you will die for real 100% factual statement")
                         BATTLEGAME = false
                         itemUseCollector.stop()
@@ -1147,6 +1162,22 @@ const commands: { [command: string]: Command } = {
                         }
                         delete players[elim]
                     }
+                    for(let player in players){
+                        if(isNaN(players[player])){
+                            if(player === 'mumbo'){
+                                //@ts-ignore
+                                await msg.channel.send( `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${ECONOMY()[mumboUser]?.money * 0.005} \n`)
+                                //@ts-ignore
+                                loseMoneyToBank(mumboUser, ECONOMY()[mumboUser]?.money * 0.005)
+                                mumboUser = null
+                            }
+                            else{
+                                loseMoneyToBank(player, ogBets[player])
+                                await msg.channel.send(`<@${player}> HAS NaN HEALTH AND DIED`)
+                            }
+                            delete players[player]
+                        }
+                    }
                     if(text){
                         await handleSending(msg, {content: text})
                     }
@@ -1182,6 +1213,7 @@ const commands: { [command: string]: Command } = {
                     }
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
+                midGameCollector.stop()
                 await msg.channel.send({embeds: [e]})
                 BATTLEGAME = false
                 itemUseCollector.stop()
