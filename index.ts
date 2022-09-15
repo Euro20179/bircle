@@ -8539,7 +8539,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             if (userChoice == oppChoice) {
                 interaction.reply({ content: "TIE" })
             }
-            else if (table[userChoice] == oppChoice) {
+            else if (table[oppChoice] == userChoice) {
                 interaction.reply({ content: `<@${ogUser}> user wins!` })
             }
             else {
