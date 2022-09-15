@@ -107,7 +107,8 @@ const slashCommands = [
     ]),
     createChatCommand("rps", "Rock paper scissors", [
         createChatCommandOption(USER, "opponent", "opponent", { required: true }),
-        createChatCommandOption(STRING, "choice", "choice", { required: true })
+        createChatCommandOption(STRING, "choice", "choice", { required: true }),
+        createChatCommandOption(STRING, "bet", "bet", {required: false})
     ]),
     createChatCommand("rccmd", "remove a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", { required: true }),
@@ -8535,15 +8536,24 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
-            let [userChoice, ogUser] = BUTTONS[interaction.customId].split(":")
+            let [userChoice, ogUser, bet] = BUTTONS[interaction.customId].split(":")
+            let ogBet = Number(bet)
             if (userChoice == oppChoice) {
                 interaction.reply({ content: "TIE" })
             }
             else if (table[oppChoice] == userChoice) {
-                interaction.reply({ content: `<@${ogUser}> user wins!` })
+                if(ogBet){
+                    addMoney(ogUser, ogBet)
+                    interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` })
+                }
+                else interaction.reply({ content: `<@${ogUser}> user wins!` })
             }
             else {
-                interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
+                if(ogBet){
+                    loseMoneyToBank(interaction.member?.user.id, ogBet)
+                    interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
+                }
+                else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
             }
             for (let b in BUTTONS) {
                 if (b.match(/button\.(rock|paper|scissors)/)) {
@@ -8710,12 +8720,21 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         else if (interaction.commandName == 'rps') {
             let opponent = interaction.options.get("opponent")?.value
             let choice = interaction.options.get("choice")?.value as string
+            let bet = interaction.options.get("bet")?.value as string
+            let nBet = 0
+            if(bet){
+                nBet = calculateAmountFromString(interaction.member?.user.id, bet)
+                if(!canBetAmount(interaction.member?.user.id, nBet)){
+                    interaction.reply({content: "You cant bet this much"})
+                    return
+                }
+            }
             let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
             let paper = new MessageButton({ customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY" })
             let scissors = new MessageButton({ customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY" })
-            BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}`
-            BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}`
-            BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}`
+            BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
             interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` })
         }
