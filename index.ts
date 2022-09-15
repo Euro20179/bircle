@@ -731,6 +731,7 @@ const commands: { [command: string]: Command } = {
             let shields: {[key: string]: boolean} = {}
             let betTotal = nBet
             let bonus = 1.1
+            let mumboUser: string | null = null
 
             let responseMultiplier = 1
 
@@ -771,6 +772,7 @@ const commands: { [command: string]: Command } = {
                     "triple": {percent: 0.10, amount: 3},
                     "blue shell": {amount: 0.5, percent: 0.02},
                     "shield": {amount: 0.5, percent: 0.003},
+                    "mumbo": {amount: 1}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -939,6 +941,17 @@ const commands: { [command: string]: Command } = {
                                     return
                                 }
                             }
+                            case "mumbo": {
+                                if(mumboUser)
+                                    return
+                                else
+                                    mumboUser = m.author.id
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                players['mumbo'] = 100
+                                e.setTitle("MUMBO JOINS THE BATTLE")
+                                await msg.channel.send({embeds: [e]})
+                                break
+                            }
                         }
                         loseMoneyToBank(m.author.id, a)
                         //buying an item increases the bet
@@ -1087,8 +1100,12 @@ const commands: { [command: string]: Command } = {
                     for(let player in players){
                         //@ts-ignore
                         let mem = msg.guild.members.cache.find((v) => v.id == player)
-                        //@ts-ignore
-                        embed.addField(`${mem.user.username}`, `${players[player]}`, true)
+                        if(!mem){
+                            embed.addField(`${player}`, `${players[player]}`, true)
+                        }
+                        else{
+                            embed.addField(`${mem.user.username}`, `${players[player]}`, true)
+                        }
                         //healthRemainingTable += `<@${player}>: ${players[player]}\n`
                     }
                     responseChoice = responseChoice.replaceAll("{amount}", String(nAmount))
@@ -1105,19 +1122,28 @@ const commands: { [command: string]: Command } = {
                     let text = ""
                     let remaining = Object.keys(players).length - eliminations.length
                     for(let elim of eliminations){
-                        loseMoneyToBank(elim, ogBets[elim])
-                        text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${ogBets[elim]} \n`
-                        if(winningType === 'distribute'){
-                            let e = new MessageEmbed()
-                            e.setTitle("NEW LOSER")
-                            e.setDescription(`<@${elim}> HAS DIED and distributed ${bets[elim] / remaining * bonus} to each player`)
-                            e.setColor("BLUE")
-                            for(let player in players){
-                                if(!eliminations.includes(player)){
-                                    addMoney(player, bets[elim] / remaining * bonus)
+                        if(elim === 'mumbo'){
+                            //@ts-ignore
+                            text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${ECONOMY()[mumboUser]?.money * 0.005} \n`
+                            //@ts-ignore
+                            loseMoneyToBank(mumboUser, ECONOMY()[mumboUser]?.money * 0.005)
+                            mumboUser = null
+                        }
+                        else{
+                            loseMoneyToBank(elim, ogBets[elim])
+                            text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${ogBets[elim]} \n`
+                            if(winningType === 'distribute'){
+                                let e = new MessageEmbed()
+                                e.setTitle("NEW LOSER")
+                                e.setDescription(`<@${elim}> HAS DIED and distributed ${bets[elim] / remaining * bonus} to each player`)
+                                e.setColor("BLUE")
+                                for(let player in players){
+                                    if(!eliminations.includes(player)){
+                                        addMoney(player, bets[elim] / remaining * bonus)
+                                    }
                                 }
+                                await msg.channel.send({embeds: [e]})
                             }
-                            await msg.channel.send({embeds: [e]})
                         }
                         delete players[elim]
                     }
@@ -1134,9 +1160,15 @@ const commands: { [command: string]: Command } = {
                 if(!winner){
                     let last = Object.keys(players)[0]
                     loseMoneyToBank(last, ogBets[last])
-                    e.setDescription(`THE GAME IS A TIE, AND <@${last}> LOST THE REMAINING $${ogBets[last]}`)
+                    e.setDescription(`THE GAME IS A TIE`)
                     e.setTitle("TIE")
                     e.setColor("YELLOW")
+                }
+                else if(winner[0] == 'mumbo'){
+                    addMoney(mumboUser, betTotal / 2)
+                    e.setTitle("GAME OVER")
+                    e.setColor("DARK_GREEN")
+                    e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GGETS HALF THE WINNINGS! ($${betTotal / 2})`)
                 }
                 else{
                     addMoney(winner[0], betTotal * bonus)
