@@ -764,7 +764,7 @@ const commands: { [command: string]: Command } = {
                 let midGameCollector = msg.channel.createMessageCollector({filter: m => !m.author.bot && m.content.toLowerCase() == 'join' && hasItem(m.author.id, "intrude")})
                 midGameCollector.on("collect", async(m) => {
                     if(players[m.author.id]) return
-                    if(!Object.keys(players).includes(m.author.id) && !ogBets[m.author.id]){
+                    if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined){
                         bets[m.author.id] = 0
                         ogBets[m.author.id] = 0
                         cooldowns[m.author.id] = 0
