@@ -767,7 +767,7 @@ const commands: { [command: string]: Command } = {
                         bets[m.author.id] = 0
                         ogBets[m.author.id] = 0
                         cooldowns[m.author.id] = 0
-                        players[m.author.id] = Object.values(players).reduce((p, c) => p + c, 0) / Object.values(players).length
+                        players[m.author.id] = Math.floor(Object.values(players).reduce((p, c) => p + c, 0) / Object.values(players).length)
                         await msg.channel.send(`${m.author} has intruded the battle with a bet of ${ogBets[m.author.id]}`)
                     }
                 })
