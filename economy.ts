@@ -85,7 +85,7 @@ function playerEconomyLooseTotal(id: string){
 function taxPlayer(id: string){
     ECONOMY[id].lastTaxed = Date.now()
     let total = playerEconomyLooseTotal(id)
-    let taxPercent = (Math.random() * (.99 - .97) + .97)
+    let taxPercent = (Math.random() * (1 - .985) + .985)
     let amountTaxed = total - (total * taxPercent)
     ECONOMY[id].money -= amountTaxed
     return {amount: amountTaxed, percent: 1 - taxPercent}
