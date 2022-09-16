@@ -782,7 +782,7 @@ const commands: { [command: string]: Command } = {
                     "anger euro": {amount: 3},
                     "blowtorch": {percent: 0.01, amount: 1},
                     "double bet": {percent: 0.01},
-                    "swap": {percent: 0.3 / Object.keys(players).length},
+                    "swap": {percent: (3 * Object.keys(players).length) / 100},
                     "double": {percent: 0.05, amount: 2},
                     "triple": {percent: 0.10, amount: 3},
                     "blue shell": {amount: 0.5, percent: 0.02},
