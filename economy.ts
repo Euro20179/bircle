@@ -117,7 +117,7 @@ function canTax(id: string, bonusTime?: number){
     if(bonusTime && secondsDiff > 900 + bonusTime){
         return true
     }
-    else if(secondsDiff > 900){
+    else if(!bonusTime && secondsDiff > 900){
         return true
     }
     return false
