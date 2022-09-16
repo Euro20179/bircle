@@ -57,11 +57,24 @@ function earnMoney(id) {
     ECONOMY[id].lastTalk = Date.now();
     ECONOMY[id].money *= 1.001;
 }
+function playerEconomyLooseTotal(id) {
+    if (ECONOMY[id] === undefined)
+        return 0;
+    let money = ECONOMY[id]?.money;
+    let stocks = ECONOMY[id].stocks;
+    if (stocks) {
+        for (let stock in ECONOMY[id].stocks) {
+            money += stocks[stock].buyPrice * stocks[stock].shares;
+        }
+    }
+    return money;
+}
 function taxPlayer(id) {
     ECONOMY[id].lastTaxed = Date.now();
+    let total = playerEconomyLooseTotal(id);
     let taxPercent = (Math.random() * (.99 - .97) + .97);
-    let amountTaxed = ECONOMY[id].money - (ECONOMY[id].money * taxPercent);
-    ECONOMY[id].money *= taxPercent;
+    let amountTaxed = total - (total * taxPercent);
+    ECONOMY[id].money -= amountTaxed;
     return { amount: amountTaxed, percent: 1 - taxPercent };
 }
 function canEarn(id) {
