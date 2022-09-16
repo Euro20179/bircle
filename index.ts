@@ -22,7 +22,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks } = require("./economy.js")
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem} = require("./shop.js")
 
@@ -418,7 +418,7 @@ const commands: { [command: string]: Command } = {
             for(let i = 0; i < count; i++){
                 let totalCost = 0
                 for(let cost of ITEMS()[item].cost){
-                    totalCost += calculateAmountFromString(msg.author.id, cost)
+                    totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
                 if(canBetAmount(msg.author.id, totalCost)){
                     buyItem(msg.author.id, item)
@@ -465,7 +465,7 @@ const commands: { [command: string]: Command } = {
                 i++;
                 let totalCost = 0
                 for(let cost of itemJ[item].cost){
-                    totalCost += calculateAmountFromString(msg.author.id, cost)
+                    totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
                 if(round){
                     totalCost = Math.floor(totalCost * 100) / 100

@@ -126,7 +126,50 @@ function setMoney(id: string, amount: number){
     }
 }
 
-function calculateStockAmountFromString(id: string, shareCount: number, amount: string){
+function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
+    if(amount == undefined || amount == null){
+        return NaN
+    }
+    if(ECONOMY[id] === undefined){
+        return NaN
+    }
+    amount = amount.toLowerCase()
+    if(amount == "all"){
+        return ECONOMY[id].money * .99
+    }
+    if(amount == "all!"){
+        return ECONOMY[id].money
+    }
+    for(let e in extras){
+        if (amount.match(e)){
+            return extras[e](ECONOMY[id].money, amount)
+        }
+    }
+    if(Number(amount)){
+        return Number(amount)
+    }
+    else if(amount[0] === "$" && Number(amount.slice(1))){
+        return Number(amount.slice(1))
+    }
+    else if(amount[amount.length - 1] === "%"){
+        let total = 0
+        let stocks = ECONOMY[id].stocks
+        if(stocks){
+            for(let stock in ECONOMY[id].stocks){
+                total += stocks[stock].buyPrice * stocks[stock].shares
+            }
+        }
+        let percent = Number(amount.slice(0, -1))
+        let money = ECONOMY[id].money
+        if(!percent){
+            return 0
+        }
+        return (total + money)  * percent / 100
+    }
+    return 0
+}
+
+function calculateStockAmountFromString(id: string, shareCount: number, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
     if(amount == undefined || amount == null){
         return NaN
     }
@@ -274,6 +317,7 @@ module.exports = {
     resetEconomy,
     buyStock,
     calculateStockAmountFromString,
+    calculateAmountFromStringIncludingStocks,
     sellStock,
     buyLotteryTicket,
     newLottery,
