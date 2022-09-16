@@ -712,6 +712,8 @@ const commands: { [command: string]: Command } = {
             if(!["wta", "distribute", "dist"].includes(winningType)){
                 return {content: "Betting type must be wta (winner takes all) or distribute"}
             }
+            if (winningType == 'dist')
+                winningType = 'distribute'
             let nBet = calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
             if(!nBet || !canBetAmount(msg.author.id, nBet) || nBet < 0){
@@ -795,7 +797,6 @@ const commands: { [command: string]: Command } = {
                         if(!ECONOMY()[m.author.id]){
                             return
                         }
-                        console.log(Date.now() / 1000, cooldowns[m.author.id], Date.now() / 1000 - cooldowns[m.author.id])
                         if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
                             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
                             players[m.author.id] -= 5
@@ -806,6 +807,7 @@ const commands: { [command: string]: Command } = {
                                 let e = new MessageEmbed()
                                 e.setTitle("NEW LOSER")
                                 if(winningType === 'distribute'){
+                                    betTotal -= bets[m.author.id]
                                     e.setDescription(`<@${m.author.id}> HAS DIED and distributed ${bets[m.author.id] / remaining * bonus} to each player`)
                                     e.setColor("BLUE")
                                     for(let player in players){
@@ -1153,6 +1155,7 @@ const commands: { [command: string]: Command } = {
                                 e.setTitle("NEW LOSER")
                                 e.setDescription(`<@${elim}> HAS DIED and distributed ${bets[elim] / remaining * bonus} to each player`)
                                 e.setColor("BLUE")
+                                betTotal -= bets[elim]
                                 for(let player in players){
                                     if(!eliminations.includes(player)){
                                         addMoney(player, bets[elim] / remaining * bonus)
@@ -1207,10 +1210,10 @@ const commands: { [command: string]: Command } = {
                     e.setTitle("GAME OVER!")
                     e.setColor("GREEN")
                     if(winningType === 'wta'){
-                        e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * 1.1}`)
+                        e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON: $${betTotal * bonus}`)
                     }
                     else{
-                        e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON THE REMAINING: $${bets[winner[0]] * 1.1}`)
+                        e.setDescription(`<@${winner[0]}> IS THE WINNER WITH ${winner[1]} HEALTH REMAINING\nAND WON THE REMAINING: $${betTotal * bonus}`)
                     }
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
