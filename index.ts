@@ -1880,6 +1880,7 @@ const commands: { [command: string]: Command } = {
                     if (calculateTotal(playersCards).total === 21) {
                         addMoney(msg.author.id, bet * 3)
                         delete BLACKJACK_GAMES[msg.author.id]
+                        useItem(msg.author.id, "reset")
                         return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
                     }
                     let total = 0
