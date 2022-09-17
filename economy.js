@@ -72,7 +72,7 @@ function playerEconomyLooseTotal(id) {
 function taxPlayer(id) {
     ECONOMY[id].lastTaxed = Date.now();
     let total = playerEconomyLooseTotal(id);
-    let taxPercent = (Math.random() * (.995 - .98) + .98);
+    let taxPercent = (Math.random() * (1 - .985) + .985);
     let amountTaxed = total - (total * taxPercent);
     ECONOMY[id].money -= amountTaxed;
     return { amount: amountTaxed, percent: 1 - taxPercent };
@@ -102,7 +102,7 @@ function canTax(id, bonusTime) {
     if (bonusTime && secondsDiff > 900 + bonusTime) {
         return true;
     }
-    else if (secondsDiff > 900) {
+    else if (!bonusTime && secondsDiff > 900) {
         return true;
     }
     return false;

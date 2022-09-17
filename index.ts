@@ -787,7 +787,8 @@ const commands: { [command: string]: Command } = {
                     "triple": {percent: 0.10, amount: 3},
                     "blue shell": {amount: 0.5, percent: 0.02},
                     "shield": {amount: 0.5, percent: 0.003},
-                    "mumbo": {amount: 1}
+                    "mumbo": {amount: 1},
+                    "suicide": {amount: 1, percent: 0.001}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -966,6 +967,16 @@ const commands: { [command: string]: Command } = {
                                 players['mumbo'] = 100
                                 e.setTitle("MUMBO JOINS THE BATTLE")
                                 await msg.channel.send({embeds: [e]})
+                                break
+                            }
+                            case "suicide": {
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                e.setTitle("SUICIDE")
+                                e.setColor("DARK_RED")
+                                let damage =  Math.floor(Math.random() * 8 + 2)
+                                e.setDescription(`<@${m.author.id}> took ${damage} damage`)
+                                await msg.channel.send({embeds: [e]})
+                                players[m.author.id] -= damage
                                 break
                             }
                         }
