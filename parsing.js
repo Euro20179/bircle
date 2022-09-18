@@ -35,29 +35,29 @@ async function buildFormat(sequence, msg, curArg, customFormats){
         return format(fmt, { i: channel.id, n: channel.name })
     }
     case "user":{
-    let fmt = args.join(" ") || "<@%i>"
-        let member = await msg.channel.guild.members.fetch(msg.author.id)
+        let fmt = args.join(" ") || "<@%i>"
+        let member = msg.member
         let user = member.user
         return format(fmt,
-                {
-                    id: user.id || "#!N/A",
-                    username: user.username || "#!N/A",
-                    nickname: member.nickName || "#!N/A",
-                    "0xcolor": member.displayHexColor.toString() || "#!N/A",
-                    color: member.displayColor.toString() || "#!N/A",
-                    created: user.createdAt.toString() || "#!N/A",
-                    joined: member.joinedAt.toString() || "#!N/A",
-                    boost: member.premiumSince?.toString() || "#!N/A",
-                    i: user.id || "#!N/A",
-                    u: user.username || "#!N/A",
-                    n: member.nickName || "#!N/A",
-                    X: member.displayHexColor.toString() || "#!N/A",
-                    x: member.displayColor.toString() || "#!N/A",
-                    c: user.createdAt.toString() || "#!N/A",
-                    j: member.joinedAt.toString() || "#!N/A",
-                    b: member.premiumSince?.toString() || "#!N/A"
-                }
-            )
+            {
+                id: user.id || "#!N/A",
+                username: user.username || "#!N/A",
+                nickname: member.nickName || "#!N/A",
+                "0xcolor": member.displayHexColor.toString() || "#!N/A",
+                color: member.displayColor.toString() || "#!N/A",
+                created: user.createdAt.toString() || "#!N/A",
+                joined: member.joinedAt.toString() || "#!N/A",
+                boost: member.premiumSince?.toString() || "#!N/A",
+                i: user.id || "#!N/A",
+                u: user.username || "#!N/A",
+                n: member.nickName || "#!N/A",
+                X: member.displayHexColor.toString() || "#!N/A",
+                x: member.displayColor.toString() || "#!N/A",
+                c: user.createdAt.toString() || "#!N/A",
+                j: member.joinedAt.toString() || "#!N/A",
+                b: member.premiumSince?.toString() || "#!N/A"
+            }
+        )
     }
     case "rand":
         if(args && args?.length > 0)

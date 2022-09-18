@@ -1236,7 +1236,74 @@ const commands: { [command: string]: Command } = {
             let e = new MessageEmbed()
             e.setTitle("TYPE `join <BET AMOUNT>` TO JOIN THE BATTLE")
             return {embeds: [e]}
-        }, category: CommandCategory.GAME
+        }, category: CommandCategory.GAME,
+        help: {
+            info: `<h1>A BATTLE SIMULATOR</h1>
+            <br>Rules:<br>
+            <ul>
+                <li>
+                    Every 4 seconds a random message will be sent dealing damage, or giving health to random players
+                </li>
+                <li>
+                    An item can only be used every 8 seconds<br>
+                    Lose 5 hp if you use an item on cooldown (can kill you)
+                </li>
+            </ul>
+
+            <br>Items:<br>
+            <ul>
+                <li>
+                    <b>heal</b>: gain randomly 1-20 hp (cost: $0.1 + 1%)
+                </li>
+                <li>
+                    <b>anger toolbox</b>: reduce everyone's health by 0.1% (cost: $3)
+                </li>
+                <li>
+                    <b>anger euro</b>: say STOPPING (cost: $3)
+                </li>
+                <li>
+                    <b>blowtorch*</b>: deal randomly 1-20 hp to all other players (cost: $1 + 1%)
+                </li>
+                <li>
+                    <b>double bet</b>: Double your bet (cost: 1%)
+                </li>
+                <li>
+                    <b>swap*</b>: Swap health with a random player (cost (3 * player count)%)
+                </li>
+                <li>
+                    <b>double</b>: Double the damage of the next game attack (cost: $2 + 5%)
+                </li>
+                <li>
+                    <b>triple</b>: Triple the damage of the next game attack (cost: $3 + 10%)
+                </li>
+                <li>
+                    <b>blue shll</b>: Deal 50 damage to the player with the most health (if they have more than 50 health) (cost: $0.5 + 2%)
+                </li>
+                    <b>shield</b>: Block the next game attack (cost: $0.5 + 0.3%)
+                </li>
+                <li>
+                    <b>mumbo</b>: Add a dummy player. When he dies lose 0.5%, If he wins, you get half of the pool (cost: $1)
+                </li>
+                <li>
+                    <b>suicide*</b>: Deal randomly 2-10 damage to yourself (cost: $1 + 0.1%)
+                </li>
+            </ul>
+            <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
+            `,
+            arguments: {
+                "bet": {
+                    description: "Your bet (must be at minimum 0.2%)"
+                },
+                "pool type": {
+                    description: "The type of pool, can be winnter take all (wta) or distribute (where when someone dies, their money gets distributed)"
+                }
+            },
+            options: {
+                "no-items": {
+                    description: "Disable items"
+                }
+            }
+        }
     },
     abattle: {
         run: async(msg, args) => {
@@ -1939,7 +2006,15 @@ const commands: { [command: string]: Command } = {
             }
             delete BLACKJACK_GAMES[msg.author.id]
             return { content: `**${status}**\n${stats}` }
-        }, category: CommandCategory.GAME
+        }, category: CommandCategory.GAME,
+        help: {
+            info: "Play a round of blackjack",
+            arguments: {
+                "bet": {
+                    description: "The amount to bet"
+                }
+            }
+        }
     },
     leaderboard: {
         run: async (msg, args) => {
