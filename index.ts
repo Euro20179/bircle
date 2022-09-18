@@ -24,7 +24,7 @@ const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, 
 
 const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks } = require("./economy.js")
 
-const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem} = require("./shop.js")
+const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems} = require("./shop.js")
 
 
 enum CommandCategory {
@@ -1150,6 +1150,7 @@ const commands: { [command: string]: Command } = {
                     }
                     let text = ""
                     let remaining = Object.keys(players).length - eliminations.length
+
                     for(let elim of eliminations){
                         if(elim === 'mumbo'){
                             //@ts-ignore
@@ -1177,6 +1178,7 @@ const commands: { [command: string]: Command } = {
                         }
                         delete players[elim]
                     }
+
                     for(let player in players){
                         if(isNaN(players[player])){
                             if(player === 'mumbo'){
@@ -1229,7 +1231,7 @@ const commands: { [command: string]: Command } = {
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
-                await msg.channel.send({embeds: [e]})
+                await handleSending(msg, {embeds: [e], content: `\`${JSON.stringify(turns)}\``})
                 BATTLEGAME = false
                 itemUseCollector.stop()
             })
@@ -7416,6 +7418,14 @@ ${styles}
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
+    RESET_ITEMS: {
+        run: async(msg, args) => {
+            resetItems()
+            return {content: "Items reset"}
+        },
+        permCheck: (m) => ADMINS.includes(m.author.id),
+        category: CommandCategory.META
+    },
     SETMONEY: {
         run: async(msg, args) => {
             let user = await fetchUser(msg.guild, args[0])
@@ -8814,17 +8824,17 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let nBet = 0
             if(bet){
                 nBet = calculateAmountFromString(interaction.member?.user.id, bet)
-                if(!canBetAmount(interaction.member?.user.id, nBet)){
+                if(!canBetAmount(interaction.member?.user.id, nBet) || nBet < 0){
                     interaction.reply({content: "You cant bet this much"})
                     return
                 }
             }
-            let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
-            let paper = new MessageButton({ customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY" })
-            let scissors = new MessageButton({ customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY" })
-            BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            let rock = new MessageButton({ customId: `button.rock:${opponent}:${interaction.user.id}`, label: "rock", style: "PRIMARY" })
+            let paper = new MessageButton({ customId: `button.paper:${opponent}:${interaction.user.id}`, label: "paper", style: "PRIMARY" })
+            let scissors = new MessageButton({ customId: `button.scissors:${opponent}:${interaction.user.id}`, label: "scissors", style: "PRIMARY" })
+            BUTTONS[`button.rock:${opponent}:${interaction.user.id}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            BUTTONS[`button.paper:${opponent}:${interaction.user.id}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            BUTTONS[`button.scissors:${opponent}:${interaction.user.id}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
             interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` })
         }

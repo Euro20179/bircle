@@ -24,6 +24,12 @@ export function saveItems(){
     fs.writeFileSync("./inventory.json", JSON.stringify(INVENTORY))
 }
 
+function resetItems(){
+    INVENTORY = {}
+    lottery = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
+    saveItems()
+}
+
 function hasItem(user: string, item: string){
     if(INVENTORY[user]?.[item]){
         return true
@@ -61,5 +67,6 @@ module.exports = {
     saveItems,
     loadItems,
     hasItem,
-    useItem
+    useItem,
+    resetItems
 }
