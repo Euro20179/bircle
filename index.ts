@@ -7583,13 +7583,20 @@ ${styles}
                 lastRun = new Date(Date.now())
             }
             let diff = Date.now() - lastRun.getTime()
-            let milliseconds = Math.floor(diff % 1000)
+            let milliseconds = Math.floor(diff % 1000).toString()
             let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/, "0$1")
             let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
             let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
             let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
             if (canEarn(msg.author.id)) {
-                addMoney(msg.author.id, diff / (1000 * 60 * 60))
+                let amount = diff / (1000 * 60 * 60)
+                if(hours == minutes){
+                    amount *= 1.001
+                }
+                if(hours == minutes && minutes == seconds){
+                    amount *= 1.5
+                }
+                addMoney(msg.author.id, amount)
                 fmt += `\n{earnings}`
                 fs.writeFileSync("./command-results/last-run", String(Date.now()))
             }
