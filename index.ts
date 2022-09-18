@@ -8663,6 +8663,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let ogBet = Number(bet)
             if(interaction.member?.user.id === ogUser){
                 interaction.reply({content: "Ur a dingus"})
+                return
             }
             if (userChoice == oppChoice) {
                 interaction.reply({ content: "TIE" })
