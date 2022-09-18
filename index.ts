@@ -1217,7 +1217,7 @@ const commands: { [command: string]: Command } = {
                     addMoney(mumboUser, betTotal / 2)
                     e.setTitle("GAME OVER")
                     e.setColor("DARK_GREEN")
-                    e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GGETS HALF THE WINNINGS! ($${betTotal / 2})`)
+                    e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GETS HALF THE WINNINGS! ($${betTotal / 2})`)
                 }
                 else{
                     addMoney(winner[0], betTotal * bonus)
@@ -1232,7 +1232,17 @@ const commands: { [command: string]: Command } = {
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
-                await handleSending(msg, {embeds: [e]})
+                let bonusText = ""
+                if(winner[1] > 100){
+                    if(ECONOMY()[winner[0]]){
+                        addMoney(winner[0], winner[1] - 100)
+                        bonusText += `<@${winner[1]}> GOT THE 100+ HP BONUS`
+                    }
+                }
+                if(bonusText)
+                    await handleSending(msg, {embeds: [e], content: bonusText})
+                else
+                    await handleSending(msg, {embeds: [e]})
                 BATTLEGAME = false
                 itemUseCollector.stop()
             })
@@ -1252,7 +1262,12 @@ const commands: { [command: string]: Command } = {
                     Lose 5 hp if you use an item on cooldown (can kill you)
                 </li>
             </ul>
-
+            <br>Bonuses:<br>
+            <ul>
+                <li>
+                    If the winner has 100+ hp, they get $1 for every hp they had above 100
+                </li>
+            </ul>
             <br>Items:<br>
             <ul>
                 <li>
