@@ -22,7 +22,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer } = require("./economy.js")
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems} = require("./shop.js")
 
@@ -51,6 +51,7 @@ let SPAMS: { [id: string]: boolean } = {}
 let BLACKJACK_GAMES: {[id: string]: boolean} = {}
 
 let BATTLEGAME: boolean = false;
+let CRIME: boolean = false;
 
 let lastCommand: Message;
 let snipes: (Message | PartialMessage)[] = [];
@@ -7417,6 +7418,17 @@ ${styles}
 
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
+    },
+    RESET_PLAYER: {
+        run: async(msg, args) => {
+            let player = await fetchUser(msg.guild, args[0])
+            if(!player)
+                return {content: "No player found"}
+            resetPlayer(player.user.id)
+            return {content: `Reset: <@${player.user.id}>`}
+        },
+        category: CommandCategory.META,
+        permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_ITEMS: {
         run: async(msg, args) => {

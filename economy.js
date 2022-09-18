@@ -230,6 +230,11 @@ function resetEconomy() {
     saveEconomy();
     loadEconomy();
 }
+function resetPlayer(id) {
+    if (ECONOMY[id]) {
+        delete ECONOMY[id];
+    }
+}
 function sellStock(id, stock, shares, sellPrice) {
     if (ECONOMY[id].stocks?.[stock]) {
         //@ts-ignore
@@ -308,4 +313,5 @@ module.exports = {
     newLottery,
     removeStock,
     giveStock,
+    resetPlayer
 };
