@@ -1231,7 +1231,7 @@ const commands: { [command: string]: Command } = {
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
-                await handleSending(msg, {embeds: [e], content: `\`${JSON.stringify(turns)}\``})
+                await handleSending(msg, {embeds: [e]})
                 BATTLEGAME = false
                 itemUseCollector.stop()
             })
