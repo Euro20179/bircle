@@ -737,6 +737,8 @@ const commands: { [command: string]: Command } = {
             let bonus = 1.1
             let mumboUser: string | null = null
 
+            let itemUses: {[key: string]: number} = {}
+
             let responseMultiplier = 1
 
             await msg.channel.send(`${msg.author} has joined the battle with a $${nBet} bet`)
@@ -985,6 +987,12 @@ const commands: { [command: string]: Command } = {
                         //buying an item increases the bet
                         betTotal += a
                         bets[m.author.id] += a
+                        if(itemUses[m.author.id]){
+                            itemUses[m.author.id]++
+                        }
+                        else{
+                            itemUses[m.author.id] = 1
+                        }
                     })
                 }
                 let playerCount = Object.keys(players).length
@@ -1233,10 +1241,18 @@ const commands: { [command: string]: Command } = {
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
                 let bonusText = ""
-                if(winner[1] > 100){
+                if(winner[1] >= 100){
                     if(ECONOMY()[winner[0]]){
                         addMoney(winner[0], winner[1] - 100)
                         bonusText += `<@${winner[1]}> GOT THE 100+ HP BONUS`
+                    }
+                }
+                if(Object.keys(itemUses).length > 0){
+                    let mostUsed = Object.entries(itemUses).sort((a, b) => b[1] - a[1])
+                    let bonusAmount = mostUsed[0][1] - (mostUsed[1]?.[1] || 0)
+                    if(bonusAmount && ECONOMY()[mostUsed[0][0]]){
+                        addMoney(mostUsed[0][0], bonusAmount)
+                        bonusText += `<@${mostUsed[0][0]}> GOT THE ITEM BONUS BY USING ${mostUsed[0][1]} ITEMS AND WON $${bonusAmount}`
                     }
                 }
                 if(bonusText)
@@ -1266,6 +1282,9 @@ const commands: { [command: string]: Command } = {
             <ul>
                 <li>
                     If the winner has 100+ hp, they get $1 for every hp they had above 100
+                </li>
+                <li>
+                    The person who uses the most items gets the item bonus and wins $(most items used - 2nd most items used)
                 </li>
             </ul>
             <br>Items:<br>
