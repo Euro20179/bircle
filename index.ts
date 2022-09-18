@@ -24,7 +24,7 @@ const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, 
 
 const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer } = require("./economy.js")
 
-const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems} = require("./shop.js")
+const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
 
 
 enum CommandCategory {
@@ -7430,6 +7430,17 @@ ${styles}
         category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
     },
+    RESET_PLAYER_ITEMS: {
+        run: async(msg, args) => {
+            let player = await fetchUser(msg.guild, args[0])
+            if(!player)
+                return {content: "No player found"}
+            resetPlayerItems(player.user.id)
+            return {content: `Reset: <@${player.user.id}>`}
+        },
+        category: CommandCategory.META,
+        permCheck: m => ADMINS.includes(m.author.id)
+    },
     RESET_ITEMS: {
         run: async(msg, args) => {
             resetItems()
@@ -8650,6 +8661,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
             let [userChoice, ogUser, bet] = BUTTONS[interaction.customId].split(":")
             let ogBet = Number(bet)
+            if(interaction.member?.user.id === ogUser){
+                interaction.reply({content: "Ur a dingus"})
+            }
             if (userChoice == oppChoice) {
                 interaction.reply({ content: "TIE" })
             }
