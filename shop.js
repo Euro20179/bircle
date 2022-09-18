@@ -26,6 +26,11 @@ function resetItems() {
     lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] };
     saveItems();
 }
+function resetPlayerItems(id) {
+    if (INVENTORY[id]) {
+        delete INVENTORY[id];
+    }
+}
 function hasItem(user, item) {
     if (INVENTORY[user]?.[item]) {
         return true;
@@ -62,5 +67,6 @@ module.exports = {
     loadItems,
     hasItem,
     useItem,
-    resetItems
+    resetItems,
+    resetPlayerItems
 };

@@ -2019,6 +2019,19 @@ const commands: { [command: string]: Command } = {
             }
         }
     },
+    economy: {
+        run: async(msg, args) => {
+            return {files: [
+                {
+                    attachment: `economy.json`,
+                    name: `economy.json`,
+                    description: "This is the economy",
+                    delete: false
+                }
+            ]}
+        },
+        category: CommandCategory.META
+    },
     leaderboard: {
         run: async (msg, args) => {
             let opts;
