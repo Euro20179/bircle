@@ -8650,7 +8650,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             else {
                 if(ogBet){
-                    loseMoneyToBank(interaction.member?.user.id, ogBet)
+                    loseMoneyToBank(ogUser, ogBet)
                     interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
                 }
                 else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
@@ -8829,12 +8829,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                     return
                 }
             }
-            let rock = new MessageButton({ customId: `button.rock:${opponent}:${interaction.user.id}`, label: "rock", style: "PRIMARY" })
-            let paper = new MessageButton({ customId: `button.paper:${opponent}:${interaction.user.id}`, label: "paper", style: "PRIMARY" })
-            let scissors = new MessageButton({ customId: `button.scissors:${opponent}:${interaction.user.id}`, label: "scissors", style: "PRIMARY" })
-            BUTTONS[`button.rock:${opponent}:${interaction.user.id}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            BUTTONS[`button.paper:${opponent}:${interaction.user.id}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            BUTTONS[`button.scissors:${opponent}:${interaction.user.id}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
+            let paper = new MessageButton({ customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY" })
+            let scissors = new MessageButton({ customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY" })
+            BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
             interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` })
         }
