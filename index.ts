@@ -737,6 +737,8 @@ const commands: { [command: string]: Command } = {
             let bonus = 1.1
             let mumboUser: string | null = null
 
+            let usedEarthquake = false
+
             let itemUses: {[key: string]: number} = {}
 
             let responseMultiplier = 1
@@ -791,7 +793,8 @@ const commands: { [command: string]: Command } = {
                     "blue shell": {amount: 0.5, percent: 0.02},
                     "shield": {amount: 0.5, percent: 0.003},
                     "mumbo": {amount: 1},
-                    "suicide": {amount: 1, percent: 0.001}
+                    "suicide": {amount: 1, percent: 0.001},
+                    "earthquake": {amount: 2, percent: 0.04}
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -980,6 +983,21 @@ const commands: { [command: string]: Command } = {
                                 e.setDescription(`<@${m.author.id}> took ${damage} damage`)
                                 await msg.channel.send({embeds: [e]})
                                 players[m.author.id] -= damage
+                                break
+                            }
+                            case "earthquake": {
+                                if(usedEarthquake)
+                                    break
+                                let sumHealths = Object.values(players).reduce((a, b) => a + b, 0)
+                                let average = sumHealths / Object.keys(players).length
+                                e.setTitle("EARTHQUAKE")
+                                e.setColor("GREY")
+                                for(let player in players){
+                                    players[player] = average
+                                }
+                                e.setDescription(`<@${m.author.id}> CAUSED AN EARTHQUAKE`)
+                                await msg.channel.send({embeds: [e]})
+                                usedEarthquake = true
                                 break
                             }
                         }
@@ -1244,7 +1262,7 @@ const commands: { [command: string]: Command } = {
                 if(winner && winner[1] >= 100){
                     if(ECONOMY()[winner[0]]){
                         addMoney(winner[0], winner[1] - 100)
-                        bonusText += `<@${winner[1]}> GOT THE 100+ HP BONUS`
+                        bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS`
                     }
                 }
                 if(Object.keys(itemUses).length > 0){
