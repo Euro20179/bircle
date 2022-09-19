@@ -1444,8 +1444,8 @@ const commands: { [command: string]: Command } = {
             }
             e.setFooter({text: `Cost: ${amount}`})
             if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
-                addMoney(msg.author.id, answer.pool)
                 let winningAmount = answer.pool * 1.5
+                addMoney(msg.author.id, winningAmount)
                 newLottery()
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
