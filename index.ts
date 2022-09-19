@@ -1241,7 +1241,7 @@ const commands: { [command: string]: Command } = {
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
                 let bonusText = ""
-                if(winner[1] >= 100){
+                if(winner && winner[1] >= 100){
                     if(ECONOMY()[winner[0]]){
                         addMoney(winner[0], winner[1] - 100)
                         bonusText += `<@${winner[1]}> GOT THE 100+ HP BONUS`
