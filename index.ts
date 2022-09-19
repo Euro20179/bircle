@@ -1846,6 +1846,9 @@ const commands: { [command: string]: Command } = {
     },
     blackjack: {
         run: async (msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let hardMode = Boolean(opts['hard'])
             let bet = calculateAmountFromString(msg.author.id, args[0])
             if (!bet) {
                 return { content: "no bet given" }
@@ -1853,6 +1856,9 @@ const commands: { [command: string]: Command } = {
             if(bet <= 0){
                 return {content: "No reverse blackjack here"}
             }
+            if(hardMode)
+                bet *= 2
+
             if(!canBetAmount(msg.author.id, bet)){
                 return {content: "That bet is too high for you"}
             }
@@ -2036,7 +2042,7 @@ const commands: { [command: string]: Command } = {
                     }
                     useItem(msg.author.id, "reset")
                 }
-                if (choice === 'stand' || calculateTotal(playersCards).total > 21) {
+                if ((choice === 'stand' && (hardMode == false || calculateTotal(playersCards).total >= 17)) || calculateTotal(playersCards).total > 21) {
                     break
                 }
             }
@@ -2064,6 +2070,11 @@ const commands: { [command: string]: Command } = {
         }, category: CommandCategory.GAME,
         help: {
             info: "Play a round of blackjack",
+            options: {
+                "hard": {
+                    description: "You can only stand if you have 17+"
+                }
+            },
             arguments: {
                 "bet": {
                     description: "The amount to bet"
