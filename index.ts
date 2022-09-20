@@ -1023,12 +1023,8 @@ const commands: { [command: string]: Command } = {
                     return
                 }
                 let responses = [
-                    "{user1} accidentally slipped while fighting - {amount} DAMAGE=1,2 AMOUNT=big",
-                    "{user1} punched {user2} VERY HARD - {amount} DAMAGE=2 AMOUNT=medium",
-                    "{user1} and {user2} run into each other -{amount} DAMAGE=1,2 AMOUNT=small",
-                    "{user1} found a bandaid and restored {amount} HEAL=1 AMOUNT=small",
-                    "{user1} hit {user2} who hit {user3} who then hit {user1} DAMAGE=1,2,3 AMOUNT=small",
-                    "{user7} died DAMAGE=7 AMOUNT=big"
+                    "{userall} died AMOUNT=huge DAMAGE=all",
+                    "{userall} lived AMOUNT=small HEAL=all",
                 ]
                 if(fs.existsSync("./command-results/battle")){
                     let d = fs.readFileSync("./command-results/battle", "utf-8")
@@ -1039,11 +1035,14 @@ const commands: { [command: string]: Command } = {
                     let embed = new MessageEmbed()
                     responses = responses.filter(v => {
                         let valid = true
-                        let matches = v.matchAll(/\{user(\d+)\}/g)
+                        let matches = v.matchAll(/\{user(\d+|all)\}/g)
                         let count = 0
                         for(let match of matches){
-                            count++
-                            if(!Object.keys(players)[Number(match[1]) - 1]){
+                            count++;
+                            if(match[1] == 'all'){
+                                valid = true
+                            }
+                            else if(!Object.keys(players)[Number(match[1]) - 1]){
                                 valid = false
                                 break
                             }
@@ -1072,13 +1071,23 @@ const commands: { [command: string]: Command } = {
                     }
                     let shuffledPlayers = Object.keys(players).sort(() => Math.random() - .5)
                     let playersToDoStuffTo: string[] = []
-                    responseChoice =  responseChoice.replaceAll(/\{user(\d+)\}/g, (v, pn) => {
-                        let playerNo = Number(pn) - 1
-                        //@ts-ignore
-                        playersToDoStuffTo.push(shuffledPlayers.at(playerNo))
-                        return `<@${shuffledPlayers.at(playerNo)}>`
+                    responseChoice =  responseChoice.replaceAll(/\{user(\d+|all)\}/g, (v, pn) => {
+                        if(pn ===  'all'){
+                            let text = ""
+                            for(let player of shuffledPlayers){
+                                text += `<@${player}>, `
+                                playersToDoStuffTo.push(player)
+                            }
+                            return text.trim().replace(/,$/, "")
+                        }
+                        else{
+                            let playerNo = Number(pn) - 1
+                            //@ts-ignore
+                            playersToDoStuffTo.push(shuffledPlayers.at(playerNo))
+                            return `<@${shuffledPlayers.at(playerNo)}>`
+                        }
                     })
-                    let responseTypeAndTwoWho = responseChoice.matchAll(/\b(DAMAGE|HEAL)=((?:\d+,?)+)/g)
+                    let responseTypeAndTwoWho = responseChoice.matchAll(/\b(DAMAGE|HEAL)=((?:(?:\d+|all),?)+)/g)
                     responseChoice = responseChoice.replace(amount[0], "")
                     let nAmount = 0;
                     let eliminations = []
@@ -1121,8 +1130,14 @@ const commands: { [command: string]: Command } = {
                             case "HEAL": {
                                 embed.setColor("GREEN")
                                 for(let match of toWho){
-                                    let p = Number(match)
-                                    players[shuffledPlayers.at(p - 1) as string] += nAmount
+                                    let n = Number(match)
+                                    let p = [n]
+                                    if(match == 'all')
+                                        //@ts-ignore
+                                        p = Object.keys(shuffledPlayers)
+                                    for(let id of p){
+                                        players[shuffledPlayers.at(id - 1) as string] += nAmount
+                                    }
                                 }
                                 break
                             }
@@ -1130,19 +1145,25 @@ const commands: { [command: string]: Command } = {
                                 embed.setColor("RED")
                                 nAmount *= -1
                                 for(let player of toWho){
-                                    let p = Number(player)
-                                    if(shields[shuffledPlayers.at(p - 1) as string]){
-                                        shields[shuffledPlayers.at(p - 1) as string] = false
-                                        let e = new MessageEmbed()
-                                        e.setTitle("BLOCKED")
-                                        e.setDescription(`<@${shuffledPlayers.at(p - 1) as string}> BLOCKED THE ATTACK`)
-                                        e.setColor("NAVY")
-                                        await msg.channel.send({embeds: [e]})
-                                    }
-                                    else{
-                                        players[shuffledPlayers.at(p - 1) as string] += nAmount
-                                        if(players[shuffledPlayers.at(p - 1) as string] <= 0){
-                                            eliminations.push(shuffledPlayers.at(p - 1) as string)
+                                    let n = Number(player)
+                                    let p = [n]
+                                    if(player == 'all')
+                                        //@ts-ignore
+                                        p = Object.keys(shuffledPlayers)
+                                    for(let id of p){
+                                        if(shields[shuffledPlayers.at(id - 1) as string]){
+                                            shields[shuffledPlayers.at(id - 1) as string] = false
+                                            let e = new MessageEmbed()
+                                            e.setTitle("BLOCKED")
+                                            e.setDescription(`<@${shuffledPlayers.at(id - 1) as string}> BLOCKED THE ATTACK`)
+                                            e.setColor("NAVY")
+                                            await msg.channel.send({embeds: [e]})
+                                        }
+                                        else{
+                                            players[shuffledPlayers.at(id - 1) as string] += nAmount
+                                            if(players[shuffledPlayers.at(id - 1) as string] <= 0){
+                                                eliminations.push(shuffledPlayers.at(id - 1) as string)
+                                            }
                                         }
                                     }
                                 }
@@ -1376,23 +1397,23 @@ const commands: { [command: string]: Command } = {
                 return {content: `You must provide a user to damage/heal`}
             }
             if(damageUsers !== undefined && typeof damageUsers !== 'string'){
-                return {content: "-damage must be a user number"}
+                return {content: "-damage must be a user number or all"}
             }
             if(healUsers !== undefined && typeof healUsers !== 'string'){
-                return {content: "-heal must be a user number"}
+                return {content: "-heal must be a user number or all"}
             }
             if(!amounts.includes(givenAmount)){
                 return {content: `You did not provide a valid amount (${amounts.join(", ")})`}
             }
             let damageHealText = ""
             if(damageUsers){
-                if(!damageUsers.match(/(?:\d+,?)+/)){
+                if(!damageUsers.match(/(?:(\d+|all),?)+/)){
                     return {content: "Users must be numbers seperated by ,"}
                 }
                 damageHealText += ` DAMAGE=${damageUsers}`
             }
             if(healUsers){
-                if(!healUsers.match(/(?:\d+,?)+/)){
+                if(!healUsers.match(/(?:(\d+|all),?)+/)){
                     return {content: "Users must be numbers seperated by ,"}
                 }
                 damageHealText += ` HEAL=${healUsers}`
