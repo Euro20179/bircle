@@ -154,7 +154,6 @@ function getContentFromResult(result: CommandReturn) {
         }
     }
     return res
-
 }
 
 
