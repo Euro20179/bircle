@@ -777,10 +777,12 @@ const commands: { [command: string]: Command } = {
                 midGameCollector.on("collect", async(m) => {
                     if(players[m.author.id]) return
                     if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined){
-                        bets[m.author.id] = 0
-                        ogBets[m.author.id] = 0
+                        let bet = calculateAmountFromString(m.author.id, "min", {min: (t, a) => t * .002})
+                        bets[m.author.id] = bet
+                        ogBets[m.author.id] = bet
                         cooldowns[m.author.id] = 0
                         players[m.author.id] = Math.floor(Object.values(players).reduce((p, c) => p + c, 0) / Object.values(players).length)
+                        betTotal += bet
                         await msg.channel.send(`${m.author} has intruded the battle with a bet of ${ogBets[m.author.id]}`)
                     }
                 })
@@ -797,7 +799,7 @@ const commands: { [command: string]: Command } = {
                     "triple": {percent: 0.10, amount: 3},
                     "blue shell": {amount: 0.5, percent: 0.02},
                     "shield": {amount: 0.5, percent: 0.003},
-                    "mumbo": {amount: 1},
+                    "mumbo": {amount: 1, percent: 0.01},
                     "suicide": {amount: 1, percent: 0.001},
                     "earthquake": {amount: 2, percent: 0.04},
                     "yoink": {amount: 2},
