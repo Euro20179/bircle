@@ -148,6 +148,11 @@ function getContentFromResult(result: CommandReturn) {
             res += fs.readFileSync(file.attachment, "base64") + "\n"
         }
     }
+    if(result.embeds){
+        for(let embed of result.embeds){
+            res += `${JSON.stringify(embed.toJSON())}\n`
+        }
+    }
     return res
 
 }
