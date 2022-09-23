@@ -53,9 +53,9 @@ function loseMoneyToPlayer(id, amount, otherId) {
     }
     ECONOMY[otherId].money += amount;
 }
-function earnMoney(id) {
+function earnMoney(id, percent = 1.001) {
     ECONOMY[id].lastTalk = Date.now();
-    ECONOMY[id].money *= 1.001;
+    ECONOMY[id].money *= percent;
 }
 function playerEconomyLooseTotal(id) {
     if (ECONOMY[id] === undefined)

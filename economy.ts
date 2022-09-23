@@ -64,9 +64,9 @@ function loseMoneyToPlayer(id: string, amount: number, otherId: string){
     ECONOMY[otherId].money += amount
 }
 
-function earnMoney(id: string){
+function earnMoney(id: string, percent=1.001){
     ECONOMY[id].lastTalk = Date.now()
-    ECONOMY[id].money *= 1.001
+    ECONOMY[id].money *= percent
 }
 
 function playerEconomyLooseTotal(id: string){
