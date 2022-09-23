@@ -736,6 +736,7 @@ const commands: { [command: string]: Command } = {
             let cooldowns: {[key: string]: number} = {[msg.author.id]: Date.now() / 1000}
             let usedSwap: string[] = []
             let usedShell: string[] = []
+            let usedYoink: string[] = []
             let shields: {[key: string]: boolean} = {}
             let betTotal = nBet
             let bonus = 1.1
@@ -798,7 +799,8 @@ const commands: { [command: string]: Command } = {
                     "shield": {amount: 0.5, percent: 0.003},
                     "mumbo": {amount: 1},
                     "suicide": {amount: 1, percent: 0.001},
-                    "earthquake": {amount: 2, percent: 0.04}
+                    "earthquake": {amount: 2, percent: 0.04},
+                    "yoink": {amount: 2},
                 }
 
                 let itemUseCollector = msg.channel.createMessageCollector({filter: m => Object.keys(players).includes(m.author.id) && Object.keys(items).includes(m.content.toLowerCase())})
@@ -976,6 +978,18 @@ const commands: { [command: string]: Command } = {
                                 cooldowns[m.author.id] = Date.now() / 1000
                                 players['mumbo'] = 100
                                 e.setTitle("MUMBO JOINS THE BATTLE")
+                                await msg.channel.send({embeds: [e]})
+                                break
+                            }
+                            case "yoink": {
+                                if(usedYoink.includes(m.author.id))
+                                    return
+                                else
+                                    usedYoink.push(m.author.id)
+                                cooldowns[m.author.id] = Date.now() / 1000
+                                mumboUser = m.author.id
+                                e.setTitle(`YOINK`)
+                                e.setDescription(`<@${m.author.id}> HAS STOLEN MUMBOくん`)
                                 await msg.channel.send({embeds: [e]})
                                 break
                             }
