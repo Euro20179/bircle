@@ -7751,6 +7751,8 @@ ${styles}
             if (!args.join(" ").trim().length)
                 channel = msg.channel
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
+            if(!channel)
+                return {content: "Channel not found"}
             let pinned = await channel?.messages?.fetchPinned()
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
