@@ -22,6 +22,6 @@
     "chatter": {
         "description": "Increases the amount you get from talking by .1%",
         "uses": 1,
-        "cost": ["100", ".1%"]
+        "cost": ["100", "1%"]
     }
 }
