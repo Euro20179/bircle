@@ -8804,6 +8804,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             else {
                 if(ogBet){
                     loseMoneyToBank(ogUser, ogBet)
+                    addMoney(interaction.member?.user.id, ogBet)
                     interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
                 }
                 else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
