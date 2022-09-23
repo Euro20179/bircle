@@ -4976,10 +4976,10 @@ const commands: { [command: string]: Command } = {
                 }
             },
             options: {
-                "width": {
+                "w": {
                     description: "width of image"
                 },
-                "height": {
+                "h": {
                     description: "height of image"
                 }
             }
