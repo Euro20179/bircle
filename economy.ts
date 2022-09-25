@@ -5,6 +5,16 @@ let ECONOMY: {[key: string]: EconomyData} = {}
 
 let lottery: {pool: number, numbers: [number, number, number]} = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
 
+function userHasStockSymbol(id: string, symbol: string){
+    let stocks = ECONOMY[id]?.stocks
+    if(!stocks)
+        return false
+    let matches = Object.keys(stocks).filter(v => v.toLowerCase().replace(/\(.*/, "") == symbol.toLowerCase())
+    if(matches.length > 0){
+        return {name: matches[0], info: stocks[matches[0]]}
+    }
+    return false
+}
 
 function loadEconomy(){
     if(fs.existsSync("./economy.json")){
@@ -343,5 +353,6 @@ module.exports = {
     newLottery,
     removeStock,
     giveStock,
-    resetPlayer
+    resetPlayer,
+    userHasStockSymbol
 }

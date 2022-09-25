@@ -22,7 +22,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol } = require("./economy.js")
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
 
@@ -376,6 +376,16 @@ const commands: { [command: string]: Command } = {
             }).end()
             return {noSend: true}
         }, category: CommandCategory.ECONOMY
+    },
+    "ustock": {
+        run: async(msg, args) => {
+            let user = args[1] || msg.author.id
+            let member = await fetchUser(msg.guild, user)
+            if(!member)
+                member = msg.member
+            let stockName = args[0]
+            return {content: JSON.stringify(userHasStockSymbol(member.user.id, stockName))}
+        }, category: CommandCategory.UTIL
     },
     "stocks": {
         run: async(msg, args) => {
