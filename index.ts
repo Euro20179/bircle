@@ -728,7 +728,7 @@ const commands: { [command: string]: Command } = {
                 return {content: "You must bet at least 0.2%"}
             }
 
-            let players: {[key: string]: number} = {[msg.author.id]: 100}
+            let players: {[key: string]: number} = {[msg.author.id]: -1}
             //total bet
             let bets: {[key: string]: number} = {[msg.author.id]: nBet}
             //initial bet
@@ -741,6 +741,7 @@ const commands: { [command: string]: Command } = {
             let betTotal = nBet
             let bonus = 1.1
             let mumboUser: string | null = null
+            let negativeHpBonus: {[key: string]: number} = {}
 
             let usedEarthquake = false
 
@@ -768,7 +769,7 @@ const commands: { [command: string]: Command } = {
                     bets[m.author.id] = nBet
                     ogBets[m.author.id] = nBet
                     cooldowns[m.author.id] = 0
-                    players[m.author.id] = 100
+                    players[m.author.id] = -1
                 }
                 await msg.channel.send(`${m.author} has joined the battle with a $${nBet} bet`)
             })
@@ -1203,6 +1204,14 @@ const commands: { [command: string]: Command } = {
                         else{
                             embed.addField(`${mem.user.username}`, `${players[player]}`, true)
                         }
+                        if(players[player] < 0){
+                            if(negativeHpBonus[player] && negativeHpBonus[player] > players[player]){
+                                negativeHpBonus[player] = players[player]
+                            }
+                            else if(!negativeHpBonus[player]){
+                                negativeHpBonus[player] = players[player]
+                            }
+                        }
                         //healthRemainingTable += `<@${player}>: ${players[player]}\n`
                     }
                     responseChoice = responseChoice.replaceAll("{amount}", String(nAmount))
@@ -1273,6 +1282,7 @@ const commands: { [command: string]: Command } = {
                 }
                 let winner = Object.entries(players).filter(v => v[1] > 0)?.[0]
                 let e = new MessageEmbed()
+                let bonusText = ""
                 if(!winner){
                     let last = Object.keys(players)[0]
                     loseMoneyToBank(last, ogBets[last])
@@ -1288,6 +1298,10 @@ const commands: { [command: string]: Command } = {
                 }
                 else{
                     addMoney(winner[0], betTotal * bonus)
+                    if(negativeHpBonus[winner[0]]){
+                        bonusText += `<@${winner[0]}> GOT THE NEGATIVE HP BONUS FOR ${negativeHpBonus[winner[0]]}\n`
+                        addMoney(winner[0], Math.abs(negativeHpBonus[winner[0]]))
+                    }
                     e.setTitle("GAME OVER!")
                     e.setColor("GREEN")
                     if(winningType === 'wta'){
@@ -1299,11 +1313,10 @@ const commands: { [command: string]: Command } = {
                 }
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
-                let bonusText = ""
                 if(winner && winner[1] >= 100){
                     if(ECONOMY()[winner[0]]){
                         addMoney(winner[0], winner[1] - 100)
-                        bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS`
+                        bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
                     }
                 }
                 if(Object.keys(itemUses).length > 0){
@@ -1311,7 +1324,7 @@ const commands: { [command: string]: Command } = {
                     let bonusAmount = mostUsed[0][1] - (mostUsed[1]?.[1] || 0)
                     if(bonusAmount && ECONOMY()[mostUsed[0][0]]){
                         addMoney(mostUsed[0][0], bonusAmount)
-                        bonusText += `<@${mostUsed[0][0]}> GOT THE ITEM BONUS BY USING ${mostUsed[0][1]} ITEMS AND WON $${bonusAmount}`
+                        bonusText += `<@${mostUsed[0][0]}> GOT THE ITEM BONUS BY USING ${mostUsed[0][1]} ITEMS AND WON $${bonusAmount}\n`
                     }
                 }
                 if(bonusText)
