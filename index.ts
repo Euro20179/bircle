@@ -728,7 +728,7 @@ const commands: { [command: string]: Command } = {
                 return {content: "You must bet at least 0.2%"}
             }
 
-            let players: {[key: string]: number} = {[msg.author.id]: -1}
+            let players: {[key: string]: number} = {[msg.author.id]: 100}
             //total bet
             let bets: {[key: string]: number} = {[msg.author.id]: nBet}
             //initial bet
@@ -769,7 +769,7 @@ const commands: { [command: string]: Command } = {
                     bets[m.author.id] = nBet
                     ogBets[m.author.id] = nBet
                     cooldowns[m.author.id] = 0
-                    players[m.author.id] = -1
+                    players[m.author.id] = 100
                 }
                 await msg.channel.send(`${m.author} has joined the battle with a $${nBet} bet`)
             })
