@@ -247,6 +247,39 @@ let HEIST_PLAYERS: string[] = []
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 
 const commands: { [command: string]: Command } = {
+    "stk": {
+        run: async(msg, args) => {
+            let stock = args[0]
+            https.get(`https://www.google.com/search?q=${encodeURI(stock)}+stock`, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async () => {
+                    let html = data.read().toString()
+                    let embed = new MessageEmbed()
+                    let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+                    if(!stockData){
+                        await msg.channel.send("No data found")
+                        return
+                    }
+                    stockData = stockData[0]
+                    let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+                    if(!stockName){
+                        await msg.channel.send("Could not get stock name")
+                        return
+                    }
+                    stockName = stockName[1]
+                    embed.setTitle(stockName.replace(/\(.*/, ""))
+                    await handleSending(msg, {embeds: [embed]})
+                })
+            }).end()
+            return {content: "Getting data"}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Gets the stock symbol for a stock"
+        }
+    },
     stock: {
         run: async(msg, args) => {
             https.get(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`, resp => {
