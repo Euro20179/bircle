@@ -249,49 +249,45 @@ let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 const commands: { [command: string]: Command } = {
     stock: {
         run: async(msg, args) => {
-            https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
+            https.get(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
                     data.push(chunk)
                 })
                 resp.on("end", async () => {
                     let html = data.read().toString()
+                    let stockData = html.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim()}"([^>]+)>`, "g"))
+                    let jsonStockInfo: {[key: string]: string} = {}
+                    //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
+                    for(let stockInfo of stockData){
+                        if(!stockInfo[1]) continue;
+                        let field = stockInfo[1].match(/data-field="([^"]+)"/)
+                        let value = stockInfo[1].match(/value="([^"]+)"/)
+                        if(!value || !field) continue
+                        jsonStockInfo[field[1]] = value[1]
+                    }
+                    if(Object.keys(jsonStockInfo).length < 1){
+                        await handleSending(msg, {content: "This does not appear to be a stock"})
+                        return
+                    }
                     let embed = new MessageEmbed()
-                    let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-                    if(!stockData){
-                        await msg.channel.send("No data found")
-                        return
-                    }
-                    stockData = stockData[0]
-                    let price = stockData.match(/>(\d+\.\d+)/)
-                    if(!price){
-                        await msg.channel.send("No price found")
-                        return
-                    }
-                    price = price[1]
-                    let change = stockData.match(/(\+|-)(\d+\.\d+)/)
-                    if(!change){
-                        await msg.channel.send("No change found")
-                        return
-                    }
-                    change = `${change[1]}${change[2]}`
-                    let numberchange = Number(change)
-                    let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-                    if(!stockName){
-                        await msg.channel.send("Could not get stock name")
-                        return
-                    }
-                    stockName = stockName[1]
-                    if(numberchange > 0){
-                        embed.setColor("GREEN")
-                    }
-                    else{
+                    let nChange = Number(jsonStockInfo["regularMarketChange"])
+                    embed.setTitle(args[0].toUpperCase())
+                    embed.addField("price", jsonStockInfo["regularMarketPrice"] || "N/A", true)
+                    embed.addField("change", jsonStockInfo["regularMarketChange"] || "N/A", true)
+                    embed.addField("%change", jsonStockInfo["regularMarketChangePercent"] || "N/A", true)
+                    embed.addField("volume", jsonStockInfo["regularMarketVolume"] || "N/A")
+                    if(nChange < 0){
                         embed.setColor("RED")
                     }
-                    embed.setTitle(stockName)
-                    embed.addField("Price", price)
-                    embed.addField("Price change", change, true)
-                    await msg.channel.send({ embeds: [embed] })
+                    else if(nChange > 0){
+                        embed.setColor("#00ff00")
+                    }
+                    else{
+                        embed.setColor("#ffff00")
+                    }
+                    await handleSending(msg, {embeds: [embed]})
+                    //await msg.channel.send({ embeds: [embed] })
                 })
             }).end()
             return {
