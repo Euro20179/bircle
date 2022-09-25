@@ -18,10 +18,5 @@
         "description": "Type join to join a battle mid game",
         "uses": 1,
         "cost": ["3", "0.5%"]
-    },
-    "chatter": {
-        "description": "Increases the amount you get from talking by .1%",
-        "uses": 1,
-        "cost": ["100", "1%"]
     }
 }

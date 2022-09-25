@@ -8687,7 +8687,7 @@ client.on("messageCreate", async (m: Message) => {
         let rangeSearch = search[3]
         if (!regexSearch && !rangeSearch) {
             if (canEarn(m.author.id)) {
-                earnMoney(m.author.id, 1 + (0.5 / ECONOMY()[m.author.id]?.money * INVENTORY()[m.author.id]?.['chatter']) || 1.001)
+                earnMoney(m.author.id)
             }
             return
         }
@@ -8749,13 +8749,13 @@ client.on("messageCreate", async (m: Message) => {
     }
     if (content.slice(0, prefix.length) !== prefix) {
         if (canEarn(m.author.id)) {
-            earnMoney(m.author.id, 1 + (0.5 / ECONOMY()[m.author.id]?.money * INVENTORY()[m.author.id]?.['chatter']) || 1.001)
+            earnMoney(m.author.id)
         }
         return
     }
     await doCmd(m)
     if (canEarn(m.author.id)) {
-        earnMoney(m.author.id, 1 + (0.5 / ECONOMY()[m.author.id]?.money * INVENTORY()[m.author.id]?.['chatter']) || 1.001)
+        earnMoney(m.author.id)
     }
 })
 
