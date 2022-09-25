@@ -335,6 +335,7 @@ const commands: { [command: string]: Command } = {
             if(!stock){
                 return {content: "No stock given"}
             }
+            stock = stock.toUpperCase()
             let amount = Number(args[1])
             if(!amount){
                 return {content: "No share count given"}
@@ -342,65 +343,74 @@ const commands: { [command: string]: Command } = {
             if(amount < .1){
                 return {content: "You must buy at least 1/10 of a share"}
             }
-            https.get(`https://www.google.com/search?q=${encodeURI(stock)}+stock`, resp => {
+            https.get(`https://finance.yahoo.com/quote/${encodeURI(stock)}`, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
                     data.push(chunk)
                 })
                 resp.on("end", async () => {
                     let html = data.read().toString()
+                    let stockData = html.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim()}"([^>]+)>`, "g"))
+                    let jsonStockInfo: {[key: string]: string} = {}
+                    //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
+                    for(let stockInfo of stockData){
+                        if(!stockInfo[1]) continue;
+                        let field = stockInfo[1].match(/data-field="([^"]+)"/)
+                        let value = stockInfo[1].match(/value="([^"]+)"/)
+                        if(!value || !field) continue
+                        jsonStockInfo[field[1]] = value[1]
+                    }
+                    if(Object.keys(jsonStockInfo).length < 1){
+                        await handleSending(msg, {content: "This does not appear to be a stock"})
+                        return
+                    }
                     let embed = new MessageEmbed()
-                    let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-                    if(!stockData){
-                        await msg.channel.send("No data found")
-                        return
+                    let nChange = Number(jsonStockInfo["regularMarketChange"])
+                    let nPrice = Number(jsonStockInfo["regularMarketPrice"]) || 0
+                    embed.setTitle(args[0].toUpperCase())
+                    embed.addField("price", jsonStockInfo["regularMarketPrice"] || "N/A", true)
+                    embed.addField("change", jsonStockInfo["regularMarketChange"] || "N/A", true)
+                    embed.addField("%change", jsonStockInfo["regularMarketChangePercent"] || "N/A", true)
+                    embed.addField("volume", jsonStockInfo["regularMarketVolume"] || "N/A")
+                    if(nChange < 0){
+                        embed.setColor("RED")
                     }
-                    stockData = stockData[0]
-                    let price = stockData.match(/>(\d+\.\d+)/)
-                    if(!price){
-                        await msg.channel.send("No price found")
-                        return
+                    else if(nChange > 0){
+                        embed.setColor("#00ff00")
                     }
-                    price = Number(price[1])
-                    if(!price){
-                        await msg.channel.send("bad price")
-                        return
+                    else{
+                        embed.setColor("#ffff00")
                     }
-                    let change = stockData.match(/(\+|-)(\d+\.\d+)/)
-                    if(!change){
-                        await msg.channel.send("No change found")
-                        return
-                    }
-                    change = `${change[1]}${change[2]}`
-                    let numberchange = Number(change)
-                    if(!numberchange){
-                        await msg.channel.send("This stock cost does not exist")
-                        return
-                    }
-                    let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-                    if(!stockName){
-                        await msg.channel.send("Could not get stock name")
-                        return
-                    }
-                    stockName = stockName[1]
+                    await handleSending(msg, {embeds: [embed]})
+                    let realStock = userHasStockSymbol(msg.author.id, stock)
                     if(hasItem(msg.author.id, "discount") && amount >= 1){
-                        if(!canBetAmount(msg.author.id, price * (.5 ** INVENTORY()[msg.author.id]['discount']))){
+                        if(!canBetAmount(msg.author.id, nPrice * (.5 ** INVENTORY()[msg.author.id]['discount']))){
                             await msg.channel.send("You cannot afford this")
                             return
                         }
-                        buyStock(msg.author.id, stockName, 1, price * (.5 ** INVENTORY()[msg.author.id]['discount']))
-                        await msg.channel.send({content: `${msg.author} has bought 1 share of ${stockName} for $${price * (.5 ** INVENTORY()[msg.author.id]["discount"])}`})
+                        if(realStock){
+                            buyStock(msg.author.id, realStock.name, 1, nPrice * (.5 ** INVENTORY()[msg.author.id]['discount']))
+                        }
+                        else{
+                            buyStock(msg.author.id, stock.toUpperCase(), 1, nPrice * (.5 ** INVENTORY()[msg.author.id]["discount"]))
+                        }
+                        await msg.channel.send({content: `${msg.author} has bought 1 share of ${stock} for $${nPrice * (.5 ** INVENTORY()[msg.author.id]["discount"])}`})
                         useItem(msg.author.id, "discount", INVENTORY()[msg.author.id]["discount"])
                         amount--;
                     }
                     if(!amount)
                         return
-                    if(!canBetAmount(msg.author.id, price * amount)){
+                    if(!canBetAmount(msg.author.id, nPrice * amount)){
                         await msg.channel.send("You cannot afford this")
                         return
                     }
-                    buyStock(msg.author.id, stockName, amount, price)
-                    await msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stockName} for $${price * amount}`})
+                    if(realStock){
+                        buyStock(msg.author.id, realStock.name, amount, nPrice)
+                    }
+                    else{
+                        buyStock(msg.author.id, stock.toUpperCase(), amount, nPrice)
+                    }
+                    await msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${nPrice * amount}`})
                 })
             }).end()
             return {noSend: true}
