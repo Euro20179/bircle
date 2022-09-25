@@ -690,11 +690,14 @@ const commands: { [command: string]: Command } = {
                 return {content: "You own no stocks"}
             }
             let stock = args[0]
+            if(!stock)
+                return {content: "no stock given"}
+            stock = stock.toUpperCase()
             let amount = args[1]
             let data
             try {
                 //@ts-ignore
-                data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+                data = await got(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
             }
             catch (err) {
                 return { content: "Could not fetch data" }
@@ -702,36 +705,26 @@ const commands: { [command: string]: Command } = {
             if (!data?.body) {
                 return { content: "No data found" }
             }
-            let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-            if(!stockData){
-                return {content: "No data found"}
+            let stockData = data.body.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim()}"([^>]+)>`, "g"))
+            let jsonStockInfo: {[key: string]: string} = {}
+            //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
+            for(let stockInfo of stockData){
+                if(!stockInfo[1]) continue;
+                let field = stockInfo[1].match(/data-field="([^"]+)"/)
+                let value = stockInfo[1].match(/value="([^"]+)"/)
+                if(!value || !field) continue
+                jsonStockInfo[field[1]] = value[1]
             }
-            stockData = stockData[0]
-            let price = stockData.match(/>(\d+\.\d+)/)
-            if(!price){
-                return {content: "No price found"}
+            if(Object.keys(jsonStockInfo).length < 1){
+                return {content: "This does not appear to be a stock"}
             }
-            price = Number(price[1])
-            if(!price){
-                return {content: "bad price"}
-            }
-            let change = stockData.match(/(\+|-)(\d+\.\d+)/)
-            if(!change){
-                return {content: "No change found"}
-            }
-            change = `${change[1]}${change[2]}`
-            let numberchange = Number(change)
-            if(!change){
-                return {content: "Change is nonnumber"}
-            }
-            if(!numberchange){
-                return {content: "This stock cost does not exist"}
-            }
-            let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-            if(!stockName){
-                return {content: "Could not get stock name"}
-            }
-            stockName = stockName[1]
+            let nPrice = Number(jsonStockInfo["regularMarketPrice"])
+            if(!nPrice)
+                return {content: `${stock} does not appear to have a price`}
+            let realStockInfo = userHasStockSymbol(msg.author.id, stock)
+            let stockName = stock
+            if(realStockInfo)
+                stockName = realStockInfo.name
             if(!ECONOMY()[msg.author.id].stocks[stockName]){
                 return {content: "You do not own this stock"}
             }
@@ -744,8 +737,8 @@ const commands: { [command: string]: Command } = {
                 if(sellAmount > stockInfo.shares){
                     return {content: "YOu do not own that many shares"}
                 }
-                let profit = (price - stockInfo.buyPrice) * sellAmount
-                sellStock(msg.author.id, stockName, sellAmount, price)
+                let profit = (nPrice - stockInfo.buyPrice) * sellAmount
+                sellStock(msg.author.id, stockName, sellAmount, nPrice)
                 addMoney(msg.author.id, profit)
                 return {content: `You sold: ${stockName} and made $${profit} in total`}
             }
