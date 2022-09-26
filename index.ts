@@ -325,10 +325,11 @@ const commands: { [command: string]: Command } = {
                     }
                     let embed = new MessageEmbed()
                     let nChange = Number(jsonStockInfo["regularMarketChange"])
+                    let nPChange = Number(jsonStockInfo["regularMarketChangePercent"]) * 100
                     embed.setTitle(args[0].toUpperCase())
                     embed.addField("price", jsonStockInfo["regularMarketPrice"] || "N/A", true)
                     embed.addField("change", jsonStockInfo["regularMarketChange"] || "N/A", true)
-                    embed.addField("%change", jsonStockInfo["regularMarketChangePercent"] || "N/A", true)
+                    embed.addField("%change", String(nPChange) || "N/A", true)
                     embed.addField("volume", jsonStockInfo["regularMarketVolume"] || "N/A")
                     if(nChange < 0){
                         embed.setColor("RED")
