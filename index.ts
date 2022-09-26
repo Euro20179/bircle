@@ -1790,7 +1790,7 @@ const commands: { [command: string]: Command } = {
                 if (opts['no-round'])
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
                 else
-                    embed.setDescription(`${user} has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
+                    embed.setDescription(`${userBeingTaxed} has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
                 if(reflected){
                     return {content: "REFLECTED", embeds: [embed]}
                 }
@@ -1856,7 +1856,7 @@ const commands: { [command: string]: Command } = {
             return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage}`}
         }, category: CommandCategory.UTIL,
         help: {
-            info: "Add a battle command with a nice ui ™️",
+            info: "Add a heist prompt with a nice ui ™️",
             arguments: {
                 "text": {
                     description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc...",
@@ -2024,6 +2024,10 @@ const commands: { [command: string]: Command } = {
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                 }
                             }
+                        }
+                        let subStage = response.match(/SUBSTAGE=([^ ]+)/)
+                        if(subStage?.[1]){
+                            response = response.replace(/SUBSTAGE=[^ ]+/, "")
                         }
                         response = response.replaceAll(/\{amount\}/g, amount >= 0 ? `+${amount}` : `${amount}`)
                         response = response.replace(/GAIN=[^ ]+/, "")
