@@ -21,8 +21,8 @@
     },
     "reflect": {
         "description": "When someone tries to tax you, they will be taxed instead",
-        "uses": 1,
-        "cost": ["5", "8%"],
+        "uses": 2,
+        "cost": ["5", "6%"],
         "max": 1
     }
 }

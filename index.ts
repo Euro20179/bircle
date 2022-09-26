@@ -1781,7 +1781,7 @@ const commands: { [command: string]: Command } = {
                     userGainingMoney = user.id
                     useItem(user.id, "reflect")
                     taxAmount = taxPlayer(msg.author.id)
-                    addMoney(user.id, taxAmount.amount)
+                    addMoney(user.id, taxAmount.amount * 5)
                 }
                 else{
                     taxAmount = taxPlayer(userBeingTaxed)
