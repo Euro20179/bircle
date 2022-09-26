@@ -2215,6 +2215,20 @@ const commands: { [command: string]: Command } = {
         },
         category: CommandCategory.META
     },
+    "inventory.json": {
+        run: async(msg, args) => {
+            return {
+                files: [
+                    {
+                        attachment: `inventory.json`,
+                        name: "Inventory.json",
+                        description: "Everyone's inventory",
+                        delete: false
+                    }
+                ]
+            }
+        }, category: CommandCategory.META
+    },
     leaderboard: {
         run: async (msg, args) => {
             let opts;
