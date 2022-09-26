@@ -38,7 +38,7 @@ function mulStr(str, amount){
 
 async function fetchChannel(guild, find){
     let channels = await guild.channels.fetch()
-    let channel = channels.filter(channel => `<#${channel.id}>` == find || channel.id == find || channel.name == find || channel.name.indexOf(find) > -1).at(0)
+    let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || channel?.name?.indexOf(find) > -1).at(0)
     return channel
 }
 
