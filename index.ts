@@ -600,7 +600,7 @@ const commands: { [command: string]: Command } = {
                     continue
                 }
                 let numberchange = Number(jsonStockInfo["regularMarketChange"])
-                if(!numberchange){
+                if(isNaN(numberchange)){
                     continue
                 }
                 let userStockData = userHasStockSymbol(msg.author.id, stock)
