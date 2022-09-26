@@ -1807,6 +1807,82 @@ const commands: { [command: string]: Command } = {
             }
         }
     },
+    aheist: {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let text = args.join(" ")
+            let damageUsers = opts['lose'] || opts['l']
+            let healUsers = opts['gain'] || opts['g']
+            let amounts = ['normal', 'medium', 'large']
+            let givenAmount = opts['amount']  || opts['a']
+            let stages = ['getting_in', 'robbing', 'escape']
+            let stage = opts['stage'] || opts['s']
+            if(!stages.includes(String(stage))){
+                return {content: `You did not provide a valid stage (${stages.join(", ")})`}
+            }
+            if(typeof givenAmount !== 'string'){
+                return {content: `You must provide an amount (${amounts.join(", ")})`}
+            }
+            if(typeof damageUsers !== 'string' && typeof healUsers !== 'string'){
+                return {content: `You must provide a user to lose/gain`}
+            }
+            if(damageUsers !== undefined && typeof damageUsers !== 'string'){
+                return {content: "-lose must be a user number or all"}
+            }
+            if(healUsers !== undefined && typeof healUsers !== 'string'){
+                return {content: "-gain must be a user number or all"}
+            }
+            if(!amounts.includes(givenAmount)){
+                return {content: `You did not provide a valid amount (${amounts.join(", ")})`}
+            }
+            let damageHealText = ""
+            if(damageUsers && healUsers){
+                return {content: "Only -lose or -gain can be given, not both"}
+            }
+            if(damageUsers){
+                if(!damageUsers.match(/(?:(\d+|all),?)+/)){
+                    return {content: "Users must be numbers seperated by ,"}
+                }
+                damageHealText += ` LOSE=${damageUsers}`
+            }
+            if(healUsers){
+                if(!healUsers.match(/(?:(\d+|all),?)+/)){
+                    return {content: "Users must be numbers seperated by ,"}
+                }
+                damageHealText += ` GAIN=${healUsers}`
+            }
+            fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage};END\n`)
+            return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage}`}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Add a battle command with a nice ui ™️",
+            arguments: {
+                "text": {
+                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc...",
+                    required: true
+                }
+            },
+            options: {
+                "gain": {
+                    alternates: ['g'],
+                    description: "The user(s) to heal"
+                },
+                "lose": {
+                    alternates: ['l'],
+                    description: "The user(s) to damage"
+                },
+                "stage": {
+                    alternates: ['s'],
+                    description: "the stage of the game that the message is for (getting_in, robbing, escape)"
+                },
+                "amount": {
+                    alternates: ["a"],
+                    description: "The amount to gain/lose, (normal, medium, large)"
+                }
+            }
+        }
+    },
     heist: {
         run: async(msg, args) => {
             if(HEIST_PLAYERS.includes(msg.author.id)){
