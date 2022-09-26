@@ -550,9 +550,10 @@ const commands: { [command: string]: Command } = {
             let totalValue = 0
             for(let stock in ECONOMY()[msg.author.id].stocks){
                 let data
+                stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 try {
                     //@ts-ignore
-                    data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+                    data = await got(`https://finance.yahoo.com/quote/${encodeURI(stock)}`)
                 }
                 catch (err) {
                     continue
@@ -560,53 +561,44 @@ const commands: { [command: string]: Command } = {
                 if (!data?.body) {
                     continue
                 }
-                let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-                if(!stockData){
+                let stockData = data.body.matchAll(new RegExp(`data-symbol="${stock.replace("^", '.')}"([^>]+)>`, "g"))
+                let jsonStockInfo: {[key: string]: string} = {}
+                //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
+                for(let stockInfo of stockData){
+                    if(!stockInfo[1]) continue;
+                    let field = stockInfo[1].match(/data-field="([^"]+)"/)
+                    let value = stockInfo[1].match(/value="([^"]+)"/)
+                    if(!value || !field) continue
+                    jsonStockInfo[field[1]] = value[1]
+                }
+                if(Object.keys(jsonStockInfo).length < 1){
                     continue
                 }
-                stockData = stockData[0]
-                let price = stockData.match(/>(\d+\.\d+)/)
+                let price = Number(jsonStockInfo["regularMarketPrice"])
                 if(!price){
                     continue
                 }
-                price = Number(price[1])
-                if(!price){
-                    continue
-                }
-                let change = stockData.match(/(\+|-)(\d+\.\d+)/)
-                if(!change){
-                    continue
-                }
-                change = `${change[1]}${change[2]}`
-                let numberchange = Number(change)
-                if(!change){
-                    continue
-                }
+                let numberchange = Number(jsonStockInfo["regularMarketChange"])
                 if(!numberchange){
                     continue
                 }
-                let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-                if(!stockName){
+                let userStockData = userHasStockSymbol(msg.author.id, stock)
+                if(!userStockData){
                     continue
                 }
-                stockName = stockName[1]
-                if(!ECONOMY()[msg.author.id].stocks[stockName]){
-                    continue
-                }
-                else{
-                    text += `**${stockName}**\n`
-                    let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
-                    let profit = (price - stockInfo.buyPrice) * stockInfo.shares
-                    totalProfit += profit
-                    let todaysProfit = (numberchange * stockInfo.shares)
-                    totalDailiyProfit += todaysProfit
-                    totalValue += price * stockInfo.shares
-                    text += `Price: ${price}\n`
-                    text += `Change: ${change}\n`
-                    text += `Profit: ${profit}\n`
-                    text += `Todays profit: ${todaysProfit}\n`
-                    text += "---------------------------\n"
-                }
+                let stockName = userStockData.name
+                text += `**${stockName}**\n`
+                let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+                let profit = (price - stockInfo.buyPrice) * stockInfo.shares
+                totalProfit += profit
+                let todaysProfit = (numberchange * stockInfo.shares)
+                totalDailiyProfit += todaysProfit
+                totalValue += price * stockInfo.shares
+                text += `Price: ${price}\n`
+                text += `Change: ${numberchange}\n`
+                text += `Profit: ${profit}\n`
+                text += `Todays profit: ${todaysProfit}\n`
+                text += "---------------------------\n"
             }
             return {content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`}
         }, category: CommandCategory.ECONOMY
