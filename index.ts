@@ -1808,40 +1808,169 @@ const commands: { [command: string]: Command } = {
         }
     },
     heist: {
-        run: async (_msg, _args) => {
-            return { noSend: true }
+        run: async(msg, args) => {
+            if(HEIST_PLAYERS.includes(msg.author.id)){
+                return {content: "U dingus u are already in the game"}
+            }
+            if(canBetAmount(msg.author.id, 10)){
+                loseMoneyToBank(msg.author.id, 10)
+            }
+            else{
+                return {content: "You do not have $10"}
+            }
+            HEIST_PLAYERS.push(msg.author.id)
+            let timeRemaining = 30000
+            if(HEIST_TIMEOUT === null){
+                let int = setInterval(async() => {
+                    timeRemaining -= 1000
+                    if(timeRemaining % 5000 == 0)
+                        await msg.channel.send({content: `${timeRemaining / 1000} seconds until the heist commences!`})
+                }, 1000)
+                let data: {[key: string]: number} = {} //player_id: amount won
+                HEIST_TIMEOUT = setTimeout(async() => {
+                    clearInterval(int)
+                    await msg.channel.send({content: `Commencing heist with ${HEIST_PLAYERS.length} players`})
+                    let stages = ["getting in", "robbing", "escape"]
+                    for(let player of HEIST_PLAYERS){
+                        data[player] = 0
+                    }
+                    let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                    let responses: {[key: string]: string[]} = {
+                        getting_in_positive: [
+                            "{user1} successfully unlocked the door {amount} GAIN=1 AMOUNT=normal"
+                        ],
+                        getting_in_negative: [
+                            "{user1} accidentally shot {user2} while trying to get in {amount} LOSE=1,2 AMOUNT=medium"
+                        ],
+                        robbing_positive: [
+                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large"
+                        ],
+                        robbing_negative: [
+                            "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal"
+                        ],
+                        escape_positive: [
+                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
+                        ],
+                        escape_negative: [
+                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
+                        ]
+                    }
+                    for(let resp of fileResponses){
+                        let stage = resp.match(/STAGE=([^ ]+)/)
+                        if(!stage?.[1]){
+                            continue
+                        }
+                        resp = resp.replace(/STAGE=[^ ]+/, "")
+                        let type = ""
+                        let gain = resp.match(/GAIN=([^ ]+)/)
+                        if(gain?.[1])
+                            type = "positive"
+                        let lose = resp.match(/LOSE=([^ ]+)/)
+                        if(lose?.[1]){
+                            type = "negative"
+                        }
+                        let t = `${stage[1]}_${type}`
+                        if(responses[t]){
+                            responses[t].push(resp)
+                        }
+                        else{
+                            responses[t] = [resp]
+                        }
+                    }
+                    for(let stage of stages){
+                        let shuffledPlayers = HEIST_PLAYERS.sort(() => Math.random() - .5)
+                        let amount = Math.floor(Math.random() * 10)
+                        let negpos = ["negative", "positive"][Math.floor(Math.random() * 2)]
+                        let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+                        responseList = responseList.filter(v => {
+                            let enough_players = false
+                            let u = v.matchAll(/\{user(\d+|all)\}/g)
+                            for(let match of u){
+                                if(match?.[1]){
+                                    if(match[1] === 'all') enough_players = true
+                                    let number = Number(match[1])
+                                    if(number > HEIST_PLAYERS.length)
+                                        return false
+                                    enough_players = true
+                                }
+                            }
+                            return enough_players
+                        })
+                        if(responseList.length < 1){
+                            HEIST_PLAYERS = []
+                            HEIST_TIMEOUT = null
+                            await msg.channel.send("No valid responses for stage: " + stage + "_" + negpos)
+                            return
+                        }
+                        let response = responseList[Math.floor(Math.random() * responseList.length)]
+                        let amountType = response.match(/AMOUNT=([^ ]+)/)
+                        while(!amountType?.[1]){
+                            response = responseList[Math.floor(Math.random() * responseList.length)]
+                            amountType = response.match(/AMOUNT=([^ ]+)/)
+                        }
+                        let multiplier = Number({"normal": 1, "medium": 2, "large": 3}[amountType[1]])
+                        amount *= multiplier
+
+                        response = response.replaceAll(/\{user(\d+|all)\}/g, (all, capture) => {
+                            if(capture === "all"){
+                                let text = []
+                                for(let player of shuffledPlayers){
+                                    text.push(`<@${player}>`)
+                                }
+                                return text.join(', ')
+                            }
+                            let nUser = Number(capture) - 1
+                            return `<@${shuffledPlayers[nUser]}>`
+                        })
+                        let gainUsers = response.match(/GAIN=([^ ]+)/)
+                        if(gainUsers?.[1]){
+                            for(let user of gainUsers[1].split(",")){
+                                if(user == 'all'){
+                                    for(let player in data){
+                                        data[player] += amount
+                                    }
+                                }
+                                else{
+                                    data[shuffledPlayers[Number(user) - 1]] += amount
+                                }
+                            }
+                        }
+                        let loseUsers = response.match(/LOSE=([^ ]+)/)
+                        if(loseUsers?.[1]){
+                            amount *= -1
+                            for(let user of loseUsers[1].split(",")){
+                                if(user == 'all'){
+                                    for(let player in data){
+                                        data[player] += amount
+                                    }
+                                }
+                                else{
+                                    data[shuffledPlayers[Number(user) - 1]] += amount
+                                }
+                            }
+                        }
+                        response = response.replaceAll(/\{amount\}/g, amount >= 0 ? `+${amount}` : `${amount}`)
+                        response = response.replace(/GAIN=[^ ]+/, "")
+                        response = response.replace(/LOSE=[^ ]+/, "")
+                        response = response.replace(/AMOUNT=[^ ]+/, "")
+                        await handleSending(msg, {content: response})
+                        await new Promise(res => setTimeout(res, 4000))
+                    }
+                    HEIST_PLAYERS = []
+                    HEIST_TIMEOUT = null
+                    if(Object.keys(data).length > 0){
+                        let text = "TOTALS\n--------------------\n"
+                        for(let player in data){
+                            addMoney(player, data[player])
+                            text += `<@${player}>: ${data[player]}\n`
+                        }
+                        await handleSending(msg, {content: text})
+                    }
+                }, timeRemaining)
+            }
+            return {content: `${msg.author} joined the heist (cost: $10)`}
+
         }, category: CommandCategory.GAME
-        //     run: async(msg, args) => {
-        //         HEIST_PLAYERS.push(msg.author.id)
-        //         let timeRemaining = 3000
-        //         if(HEIST_TIMEOUT === null){
-        //             let int = setInterval(async() => {
-        //                 timeRemaining -= 1000
-        //                 await msg.channel.send({content: `${timeRemaining / 1000} seconds until the heist commences!`})
-        //             }, 1000)
-        //             HEIST_TIMEOUT = setTimeout(async() => {
-        //                 clearInterval(int)
-        //                 await msg.channel.send({content: `Commencing heist with ${HEIST_PLAYERS.length} players`})
-        //                 let stages = ["getting in", "robbing", "escape"]
-        //                 for(let stage of stages){
-        //                     let member = await msg.guild?.members.fetch(HEIST_PLAYERS[Math.floor(Math.random() * HEIST_PLAYERS.length)])
-        //                     if(!member)
-        //                         member = msg.member || undefined
-        //                     if(!member)
-        //                         continue
-        //                     let data = {player: member, money: 0}
-        //                     switch(stage){
-        //                         case "getting in":
-        //
-        //
-        //                     }
-        //                 }
-        //                 HEIST_PLAYERS = []
-        //             }, timeRemaining)
-        //         }
-        //         return {content: `${msg.author} joined the heist`}
-        //
-        //     }, category: CommandCategory.GAME
     },
     "egyption-war": {
         run: async(msg, args) => {
