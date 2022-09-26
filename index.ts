@@ -289,7 +289,7 @@ const commands: { [command: string]: Command } = {
                 })
                 resp.on("end", async () => {
                     let html = data.read().toString()
-                    let stockData = html.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim()}"([^>]+)>`, "g"))
+                    let stockData = html.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", '.')}"([^>]+)>`, "g"))
                     let jsonStockInfo: {[key: string]: string} = {}
                     //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
                     for(let stockInfo of stockData){
@@ -350,7 +350,7 @@ const commands: { [command: string]: Command } = {
                 })
                 resp.on("end", async () => {
                     let html = data.read().toString()
-                    let stockData = html.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim()}"([^>]+)>`, "g"))
+                    let stockData = html.matchAll(new RegExp(`data-symbol="${stock.toUpperCase().trim().replace("^", '.')}"([^>]+)>`, "g"))
                     let jsonStockInfo: {[key: string]: string} = {}
                     //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
                     for(let stockInfo of stockData){
@@ -705,7 +705,7 @@ const commands: { [command: string]: Command } = {
             if (!data?.body) {
                 return { content: "No data found" }
             }
-            let stockData = data.body.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim()}"([^>]+)>`, "g"))
+            let stockData = data.body.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
             let jsonStockInfo: {[key: string]: string} = {}
             //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
             for(let stockInfo of stockData){

@@ -3,6 +3,8 @@ const fs = require("fs");
 let ECONOMY = {};
 let lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] };
 function userHasStockSymbol(id, symbol) {
+    if (!symbol)
+        return false;
     let stocks = ECONOMY[id]?.stocks;
     if (!stocks)
         return false;
