@@ -1816,10 +1816,13 @@ const commands: { [command: string]: Command } = {
             let healUsers = opts['gain'] || opts['g']
             let amounts = ['normal', 'medium', 'large']
             let givenAmount = opts['amount']  || opts['a']
-            let stages = ['getting_in', 'robbing', 'escape']
             let stage = opts['stage'] || opts['s']
-            if(!stages.includes(String(stage))){
-                return {content: `You did not provide a valid stage (${stages.join(", ")})`}
+            let substage = opts['sub-stage'] || opts['ss']
+            if(typeof stage !== 'string'){
+                return {content: `You did not provide a valid stage`}
+            }
+            if (typeof substage !== 'undefined' && typeof substage !== 'string'){
+                return {content: "You did not provide a valid substage"}
             }
             if(typeof givenAmount !== 'string'){
                 return {content: `You must provide an amount (${amounts.join(", ")})`}
@@ -1852,8 +1855,14 @@ const commands: { [command: string]: Command } = {
                 }
                 damageHealText += ` GAIN=${healUsers}`
             }
-            fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage};END\n`)
-            return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage}`}
+            if(substage){
+                fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage} SUBSTAGE=${substage};END\n`)
+                return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage} SUBSTAGE=${substage}`}
+            }
+            else{
+                fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage};END\n`)
+                return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage}`}
+            }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Add a heist prompt with a nice ui ™️",
@@ -1913,10 +1922,10 @@ const commands: { [command: string]: Command } = {
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{user1} successfully unlocked the door {amount} GAIN=1 AMOUNT=normal"
+                            "{userall} got into the building GAIN=all AMOUNT=normal"
                         ],
                         getting_in_negative: [
-                            "{user1} accidentally shot {user2} while trying to get in {amount} LOSE=1,2 AMOUNT=medium"
+                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
                         ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large"
@@ -1929,7 +1938,7 @@ const commands: { [command: string]: Command } = {
                         ],
                         escape_negative: [
                             "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
-                        ]
+                        ],
                     }
                     for(let resp of fileResponses){
                         let stage = resp.match(/STAGE=([^ ]+)/)
@@ -1953,11 +1962,14 @@ const commands: { [command: string]: Command } = {
                             responses[t] = [resp]
                         }
                     }
-                    for(let stage of stages){
+                    async function handleStage(stage: string): Promise<boolean>{
                         let shuffledPlayers = HEIST_PLAYERS.sort(() => Math.random() - .5)
                         let amount = Math.floor(Math.random() * 10)
                         let negpos = ["negative", "positive"][Math.floor(Math.random() * 2)]
                         let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+                        if(!responseList){
+                            return false
+                        }
                         responseList = responseList.filter(v => {
                             let enough_players = false
                             let u = v.matchAll(/\{user(\d+|all)\}/g)
@@ -1973,10 +1985,7 @@ const commands: { [command: string]: Command } = {
                             return enough_players
                         })
                         if(responseList.length < 1){
-                            HEIST_PLAYERS = []
-                            HEIST_TIMEOUT = null
-                            await msg.channel.send("No valid responses for stage: " + stage + "_" + negpos)
-                            return
+                            return false
                         }
                         let response = responseList[Math.floor(Math.random() * responseList.length)]
                         let amountType = response.match(/AMOUNT=([^ ]+)/)
@@ -2035,6 +2044,18 @@ const commands: { [command: string]: Command } = {
                         response = response.replace(/AMOUNT=[^ ]+/, "")
                         await handleSending(msg, {content: response})
                         await new Promise(res => setTimeout(res, 4000))
+                        if(subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]){
+                            return await handleStage(subStage[1])
+                        }
+                        return true
+                    }
+                    for(let stage of stages){
+                        if (!await handleStage(stage)){
+                            HEIST_PLAYERS = []
+                            HEIST_TIMEOUT = null
+                            await msg.channel.send("No valid responses for stage: " + stage)
+                            return
+                        }
                     }
                     HEIST_PLAYERS = []
                     HEIST_TIMEOUT = null
