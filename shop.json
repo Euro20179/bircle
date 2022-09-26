@@ -7,7 +7,7 @@
     "reset": {
         "description": "Adds a reset option in black jack",
         "uses": 1,
-        "cost": ["5%", "10"]
+        "cost": ["4%", "10"]
     },
     "discount": {
         "description": "Your next stock share purchase costs 50% less (used immediately on purchase)",
