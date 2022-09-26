@@ -18,5 +18,11 @@
         "description": "Type join to join a battle mid game",
         "uses": 1,
         "cost": ["3", "0.5%"]
+    },
+    "reflect": {
+        "description": "When someone tries to tax you, they will be taxed instead",
+        "uses": 1,
+        "cost": ["5", "8%"],
+        "max": 1
     }
 }

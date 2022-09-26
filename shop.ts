@@ -1,6 +1,6 @@
 import fs = require("fs")
 
-type ItemData = {[key: string]: {count: number, uses: number}}
+type ItemData = {[key: string]: {count: number, uses: number, description: string, max?: number}}
 let INVENTORY: {[key: string]: {[key: string]: number}} = {}
 let ITEMS: ItemData = {}
 
@@ -45,15 +45,22 @@ function hasItem(user: string, item: string){
 export function buyItem(user: string, item: string, count?: number){
     if(INVENTORY[user]){
         if(INVENTORY[user][item]){
-            INVENTORY[user][item] += ITEMS[item].uses * (count ?? 1)
+            if(INVENTORY[user][item] < (ITEMS[item].max || Infinity)){
+                INVENTORY[user][item] += ITEMS[item].uses * (count ?? 1)
+                return true
+            }
+            return false
         }
         else{
             INVENTORY[user][item] = ITEMS[item].uses * (count ?? 1)
+            return true
         }
     }
     else{
         INVENTORY[user] = {[item]: ITEMS[item].uses * (count ?? 1)}
+        return false
     }
+    return true
 }
 
 function useItem(user: string, item: string, times?: number){

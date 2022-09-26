@@ -496,9 +496,13 @@ const commands: { [command: string]: Command } = {
                     totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
                 if(canBetAmount(msg.author.id, totalCost)){
-                    buyItem(msg.author.id, item)
-                    loseMoneyToBank(msg.author.id, totalCost)
-                    totalSpent += totalCost
+                    if(buyItem(msg.author.id, item)){
+                        loseMoneyToBank(msg.author.id, totalCost)
+                        totalSpent += totalCost
+                    }
+                    else{
+                        return {content: `You already have the maximum of ${item}`}
+                    }
                 }
                 else{
                     if(i > 0){
@@ -1767,13 +1771,29 @@ const commands: { [command: string]: Command } = {
             if (ct) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Taxation Time")
-                let taxAmount = taxPlayer(user.id)
-                addMoney(msg.author.id, taxAmount.amount)
+                let userBeingTaxed = user.id
+                let userGainingMoney = msg.author.id
+                let taxAmount;
+                let reflected = false
+                if(hasItem(user.id, "reflect")){
+                    reflected = true
+                    userBeingTaxed = msg.author.id
+                    userGainingMoney = user.id
+                    useItem(user.id, "reflect")
+                    taxAmount = taxPlayer(msg.author.id)
+                    addMoney(user.id, taxAmount.amount)
+                }
+                else{
+                    taxAmount = taxPlayer(userBeingTaxed)
+                }
+                addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
-                    embed.setDescription(`${user} has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
+                    embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
                 else
                     embed.setDescription(`${user} has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
-
+                if(reflected){
+                    return {content: "REFLECTED", embeds: [embed]}
+                }
                 return { embeds: [embed] }
             }
             return { content: `${user.user.username} cannot be taxed` }
