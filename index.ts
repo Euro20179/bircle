@@ -121,6 +121,89 @@ const slashCommands = [
         createChatCommandOption(STRING, "options", "Options are seperated by |", { required: true }),
         createChatCommandOption(STRING, "title", "The title of the poll", { required: false }),
     ]),
+    {
+        name: 'aheist',
+        description: 'Add a heist response',
+        options: [
+            {
+                type: STRING,
+                name: "stage",
+                required: true,
+                description: "The stage (getting_in, robbing, escape)",
+
+            },
+            {
+                type: STRING,
+                name: "gain-or-lose",
+                description: "Whether to gain or lose money",
+                required: true,
+                choices: [
+                    {
+                        name: "gain",
+                        value: "GAIN",
+                    },
+                    {
+                        name: "lose",
+                        value: "LOSE",
+                    }
+                ]
+            },
+            {
+                type: STRING,
+                name: "users-to-gain-or-lose",
+                description: "User numbers (or all) seperated by ,",
+                required: true
+            },
+            {
+                type: STRING,
+                name: "amount",
+                description: "The amount to gain/lose",
+                required: true,
+                choices: [
+                    {
+                        name: "none",
+                        value: "none"
+                    },
+                    {
+                        name: "normal",
+                        value: "normal",
+                    },
+                    {
+                        name: "medium",
+                        value: "medium",
+                    },
+                    {
+                        name: "large",
+                        value: "large"
+                    }
+                ]
+            },
+            {
+                type: STRING,
+                name: "message",
+                description: "The message, {userx} is replaced w/ user x, {userall} with all users, and {amount} with amount",
+                required: true
+            },
+            {
+                type: STRING,
+                name: "substage",
+                description: "The substage to enter into after this response",
+                required: false,
+            },
+            {
+                type: STRING,
+                name: "location",
+                description: "The location of this response",
+                required: false,
+            },
+            {
+                type: STRING,
+                name: "set-location",
+                description: "The location that this response will set the game to",
+                required: false
+            }
+        ]
+    },
     createChatCommand("help", "get help", []),
     createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", { required: true })]),
     createChatCommand("add-8", "add a response to 8ball", [createChatCommandOption(STRING, "response", "the response", { required: true })]),
@@ -1814,10 +1897,20 @@ const commands: { [command: string]: Command } = {
             let text = args.join(" ")
             let damageUsers = opts['lose'] || opts['l']
             let healUsers = opts['gain'] || opts['g']
-            let amounts = ['normal', 'medium', 'large']
+            let amounts = ['none', 'normal', 'medium', 'large']
             let givenAmount = opts['amount']  || opts['a']
             let stage = opts['stage'] || opts['s']
             let substage = opts['sub-stage'] || opts['ss']
+            let isNeutral = Boolean(opts['neutral'])
+            let location = opts['location']
+            let set_location = opts['set-location']
+            if(isNeutral){
+                givenAmount = 'none'
+                healUsers = 'all'
+                //@ts-ignore
+                damageUsers = undefined
+            }
+            let textOptions = ""
             if(typeof stage !== 'string'){
                 return {content: `You did not provide a valid stage`}
             }
@@ -1847,22 +1940,26 @@ const commands: { [command: string]: Command } = {
                 if(!damageUsers.match(/(?:(\d+|all),?)+/)){
                     return {content: "Users must be numbers seperated by ,"}
                 }
-                damageHealText += ` LOSE=${damageUsers}`
+                textOptions += ` LOSE=${damageUsers}`
             }
             if(healUsers){
                 if(!healUsers.match(/(?:(\d+|all),?)+/)){
                     return {content: "Users must be numbers seperated by ,"}
                 }
-                damageHealText += ` GAIN=${healUsers}`
+                textOptions += ` GAIN=${healUsers}`
             }
+            textOptions += ` STAGE=${stage}`
             if(substage){
-                fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage} SUBSTAGE=${substage};END\n`)
-                return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage} SUBSTAGE=${substage}`}
+                textOptions += ` SUBSTAGE=${substage}`
             }
-            else{
-                fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage};END\n`)
-                return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText} STAGE=${stage}`}
+            if(location && typeof location === 'string'){
+                textOptions += ` LOCATION=${location}`
             }
+            if(set_location && typeof set_location === 'string'){
+                textOptions += ` SET_LOCATION=${set_location}`
+            }
+            fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
+            return {content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}`}
         }, category: CommandCategory.UTIL,
         help: {
             info: "Add a heist prompt with a nice ui ™️",
@@ -1908,7 +2005,7 @@ const commands: { [command: string]: Command } = {
             if(HEIST_TIMEOUT === null){
                 let int = setInterval(async() => {
                     timeRemaining -= 1000
-                    if(timeRemaining % 5000 == 0)
+                    if(timeRemaining % 8000 == 0)
                         await msg.channel.send({content: `${timeRemaining / 1000} seconds until the heist commences!`})
                 }, 1000)
                 let data: {[key: string]: number} = {} //player_id: amount won
@@ -1922,13 +2019,14 @@ const commands: { [command: string]: Command } = {
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{userall} got into the building GAIN=all AMOUNT=normal"
+                            "{userall} got into the building GAIN=all AMOUNT=normal SET_LCATION=bank"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
+                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal SET_LOCATION=BANK"
                         ],
                         robbing_positive: [
-                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large"
+                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large",
+                            "{user1} robbed the bank for {amount} LOCATION=bank GAIN=1 AMOUNT=large"
                         ],
                         robbing_negative: [
                             "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal"
@@ -1962,6 +2060,9 @@ const commands: { [command: string]: Command } = {
                             responses[t] = [resp]
                         }
                     }
+
+                    let current_location = "__generic__"
+
                     async function handleStage(stage: string): Promise<boolean>{
                         let shuffledPlayers = HEIST_PLAYERS.sort(() => Math.random() - .5)
                         let amount = Math.floor(Math.random() * 10)
@@ -1984,6 +2085,17 @@ const commands: { [command: string]: Command } = {
                             }
                             return enough_players
                         })
+                        responseList = responseList.filter(v => {
+                            let location = v.match(/LOCATION=([^ ]+)/)
+                            if(!location?.[1]){
+                                return false
+                            }
+                            if(location[1].toLowerCase() == current_location.toLowerCase() || current_location == "__generic__"){
+                                return true
+                            }
+                            return false
+                        })
+                        console.log(responseList, current_location, stage, negpos)
                         if(responseList.length < 1){
                             return false
                         }
@@ -1993,7 +2105,7 @@ const commands: { [command: string]: Command } = {
                             response = responseList[Math.floor(Math.random() * responseList.length)]
                             amountType = response.match(/AMOUNT=([^ ]+)/)
                         }
-                        let multiplier = Number({"normal": 1, "medium": 2, "large": 3}[amountType[1]])
+                        let multiplier = Number({"none": 0, "normal": 1, "medium": 2, "large": 3}[amountType[1]])
                         amount *= multiplier
 
                         response = response.replaceAll(/\{user(\d+|all)\}/g, (all, capture) => {
@@ -2038,6 +2150,12 @@ const commands: { [command: string]: Command } = {
                         if(subStage?.[1]){
                             response = response.replace(/SUBSTAGE=[^ ]+/, "")
                         }
+                        let setLocation = response.match(/SET_LOCATION=([^ ]+)/)
+                        if(setLocation?.[1]){
+                            response = response.replace(/SET_LOCATION=[^ ]+/, "")
+                            current_location = setLocation[1].toLowerCase()
+                        }
+                        response = response.replace(/LOCATION=[^ ]+/, "")
                         response = response.replaceAll(/\{amount\}/g, amount >= 0 ? `+${amount}` : `${amount}`)
                         response = response.replace(/GAIN=[^ ]+/, "")
                         response = response.replace(/LOSE=[^ ]+/, "")
@@ -2053,7 +2171,7 @@ const commands: { [command: string]: Command } = {
                         if (!await handleStage(stage)){
                             HEIST_PLAYERS = []
                             HEIST_TIMEOUT = null
-                            await msg.channel.send("No valid responses for stage: " + stage)
+                            await msg.channel.send(`FAILURE on stage: ${stage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}`)
                             return
                         }
                     }
@@ -9188,6 +9306,128 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             await interaction.reply(`Attacking ${user}...`)
             await interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`)
+        }
+        else if(interaction.commandName == 'aheist'){
+            //
+            // {
+            //     name: 'aheist',
+            //     description: 'Add a heist response',
+            //     options: [
+            //         {
+            //             type: STRING,
+            //             name: "stage",
+            //             required: true,
+            //             description: "The stage (getting_in, robbing, escape)",
+            //
+            //         },
+            //         {
+            //             type: STRING,
+            //             name: "gain-or-lose",
+            //             description: "Whether to gain or lose money",
+            //             required: true,
+            //             choices: [
+            //                 {
+            //                     name: "gain",
+            //                     value: "GAIN",
+            //                 },
+            //                 {
+            //                     name: "lose",
+            //                     value: "LOSE",
+            //                 }
+            //             ]
+            //         },
+            //         {
+            //             type: STRING,
+            //             name: "amount",
+            //             description: "The amount to gain/lose",
+            //             required: true,
+            //             choices: [
+            //                 {
+            //                     name: "none",
+            //                     value: "none"
+            //                 },
+            //                 {
+            //                     name: "normal",
+            //                     value: "normal",
+            //                 },
+            //                 {
+            //                     name: "medium",
+            //                     value: "medium",
+            //                 },
+            //                 {
+            //                     name: "large",
+            //                     value: "large"
+            //                 }
+            //             ]
+            //         },
+            //         {
+            //             type: STRING,
+            //             name: "message",
+            //             description: "The message, {userx} is replaced w/ user x, {userall} with all users, and {amount} with amount",
+            //             required: true
+            //         },
+            //         {
+            //             type: STRING,
+            //             name: "substage",
+            //             description: "The substage to enter into after this response",
+            //             required: false,
+            //         },
+            //         {
+            //             type: STRING,
+            //             name: "location",
+            //             description: "The location of this response",
+            //             required: false,
+            //         },
+            //         {
+            //             type: STRING,
+            //             name: "set-location",
+            //             description: "The location that this response will set the game to",
+            //             required: false
+            //         }
+            //     ]
+            // }
+            let userId = interaction.user.id
+            let stage = interaction.options.get("stage")?.value
+            if(!stage){
+                interaction.reply(`${stage} is not a valid stage`)
+                return
+            }
+            let gainOrLose = interaction.options.get("gain-or-lose")?.value as string
+            if(!gainOrLose){
+                interaction.reply("You messed up bubs")
+                return
+            }
+            let users = interaction.options.get("users-to-gain-or-lose")?.value as string
+            if(!users){
+                interaction.reply("You messed up bubs")
+                return
+            }
+            if(!users.match(/^(:?(\d+|all),?)+$/)){
+                interaction.reply(`${users} does not match ((digit|all),)+`)
+                return
+            }
+            let amount = interaction.options.get("amount")?.value
+            if(!amount){
+                interaction.reply("You messed up bubs")
+                return
+            }
+            let message = interaction.options.get("message")?.value
+            if(!message){
+                interaction.reply("You messed up bubs")
+                return
+            }
+            let text = `${userId}: ${message} AMOUNT=${amount} STAGE=${stage} ${gainOrLose.toUpperCase()}=${users}`
+            let substage = interaction.options.get("substage")?.value
+            if(substage)
+                text += `SUBSTAGE=${substage}`
+            let location = interaction.options.get("location")?.value
+            if(location)
+                text += `LOCATION=${location}`
+            let set_location = interaction.options.get("set-location")?.value
+            if(set_location)
+                text += `SET_LOCATION=${set_location}`
+            fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
+            interaction.reply(`Added:\n${text}`)
         }
         else if (interaction.commandName == 'ping') {
             let user = interaction.options.get("user")?.value || `<@${interaction.user.id}>`
