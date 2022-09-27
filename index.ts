@@ -2119,10 +2119,7 @@ const commands: { [command: string]: Command } = {
                         })
                         responseList = responseList.filter(v => {
                             let location = v.match(/LOCATION=([^ ]+)/)
-                            if(!location?.[1]){
-                                return false
-                            }
-                            if(location[1].toLowerCase() == current_location.toLowerCase() || current_location == "__generic__"){
+                            if(location?.[1].toLowerCase() == current_location.toLowerCase() || current_location == "__generic__"){
                                 return true
                             }
                             return false
