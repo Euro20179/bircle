@@ -173,7 +173,7 @@ const slashCommands = [
             {
                 type: STRING,
                 name: "message",
-                description: "The message, {userx} is replaced w/ user x, {userall} with all users, and {amount} with amount",
+                description: "The message, {user1} is replaced w/ user 1, {userall} with all users, and {amount} with amount",
                 required: true
             },
             {
@@ -2042,6 +2042,8 @@ const commands: { [command: string]: Command } = {
                         data[player] = 0
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                    let legacyNextStages = {"getting_in": "robbing", "robbing": "escape", "escape": "end"}
+                    let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
                             "{userall} got into the building GAIN=all AMOUNT=normal"
@@ -2056,10 +2058,10 @@ const commands: { [command: string]: Command } = {
                             "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal"
                         ],
                         escape_positive: [
-                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
+                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal SUBSTAGE=getting_in"
                         ],
                         escape_negative: [
-                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
+                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal SUBSTAGE=getting_in"
                         ],
                     }
                     for(let resp of fileResponses){
@@ -2119,7 +2121,6 @@ const commands: { [command: string]: Command } = {
                             }
                             return false
                         })
-                        console.log(responseList, current_location, stage, negpos)
                         if(responseList.length < 1){
                             return false
                         }
@@ -2186,17 +2187,35 @@ const commands: { [command: string]: Command } = {
                         response = response.replace(/AMOUNT=[^ ]+/, "")
                         await handleSending(msg, {content: response})
                         await new Promise(res => setTimeout(res, 4000))
+                        console.log(lastLegacyStage, subStage?.[1])
                         if(subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]){
+                            if(Object.keys(legacyNextStages).includes(subStage[1])){
+                                lastLegacyStage = subStage[1]
+                            }
+                            stage = subStage[1]
                             return await handleStage(subStage[1])
                         }
                         return true
                     }
-                    for(let stage of stages){
+                    let stage: string = lastLegacyStage
+                    while(stage != 'end'){
                         if (!await handleStage(stage)){
                             HEIST_PLAYERS = []
                             HEIST_TIMEOUT = null
                             await msg.channel.send(`FAILURE on stage: ${stage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}`)
                             return
+                        }
+                        else{
+                            console.log("fallback", lastLegacyStage, stage)
+                            //@ts-ignore
+                            if(legacyNextStages[lastLegacyStage]){
+                                //@ts-ignore
+                                stage = legacyNextStages[lastLegacyStage]
+                                lastLegacyStage = stage
+                            }
+                            else{
+                                stage = 'end'
+                            }
                         }
                     }
                     HEIST_PLAYERS = []
