@@ -580,6 +580,9 @@ const commands: { [command: string]: Command } = {
             if(!ECONOMY()[msg.author.id].loanUsed){
                 return {content: "You have no loans to pay off"}
             }
+            if(!canBetAmount(msg.author.id, ECONOMY()[msg.author.id].loanUsed)){
+                return {content: "U cant pay that back yet"}
+            }
             payLoan(msg.author.id)
             return {content: "You have payed off your loan with a 1% interest"}
         }, category: CommandCategory.ECONOMY
