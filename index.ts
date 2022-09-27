@@ -2030,6 +2030,9 @@ const commands: { [command: string]: Command } = {
             if(HEIST_PLAYERS.includes(msg.author.id)){
                 return {content: "U dingus u are already in the game"}
             }
+            if((ECONOMY()[msg.author.id]?.money || 0) <= 0){
+                return {content: "U dont have money"}
+            }
             HEIST_PLAYERS.push(msg.author.id)
             let timeRemaining = 30000
             if(HEIST_TIMEOUT === null){
