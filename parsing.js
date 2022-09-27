@@ -40,14 +40,6 @@ async function buildFormat(sequence, msg, curArg, customFormats){
         let user = member.user
         return format(fmt,
             {
-                id: user.id || "#!N/A",
-                username: user.username || "#!N/A",
-                nickname: member.nickName || "#!N/A",
-                "0xcolor": member.displayHexColor.toString() || "#!N/A",
-                color: member.displayColor.toString() || "#!N/A",
-                created: user.createdAt.toString() || "#!N/A",
-                joined: member.joinedAt.toString() || "#!N/A",
-                boost: member.premiumSince?.toString() || "#!N/A",
                 i: user.id || "#!N/A",
                 u: user.username || "#!N/A",
                 n: member.nickName || "#!N/A",

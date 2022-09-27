@@ -2116,7 +2116,7 @@ const commands: { [command: string]: Command } = {
                             return enough_players
                         })
                         responseList = responseList.filter(v => {
-                            let location = v.match(/LOCATION=([^ ]+)/)
+                            let location = v.match(/(?<!SET_)LOCATION=([^ ]+)/)
                             if(!location?.[1] && current_location == "__generic__"){
                                 return true
                             }
