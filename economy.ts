@@ -1,6 +1,6 @@
 const fs = require("fs")
 
-type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}}
+type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}, loanUsed?: number}
 let ECONOMY: {[key: string]: EconomyData} = {}
 
 let lottery: {pool: number, numbers: [number, number, number]} = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
@@ -79,6 +79,16 @@ function loseMoneyToPlayer(id: string, amount: number, otherId: string){
 function earnMoney(id: string, percent=1.001){
     ECONOMY[id].lastTalk = Date.now()
     ECONOMY[id].money *= percent
+}
+
+function useLoan(id: string, amount: number){
+    ECONOMY[id].loanUsed = amount
+}
+function payLoan(id: string){
+    if(!ECONOMY[id].money)
+        return
+    ECONOMY[id].money -= (ECONOMY[id].loanUsed || 0) * 1.01
+    delete ECONOMY[id].loanUsed
 }
 
 function playerEconomyLooseTotal(id: string){
@@ -356,5 +366,7 @@ module.exports = {
     removeStock,
     giveStock,
     resetPlayer,
-    userHasStockSymbol
+    userHasStockSymbol,
+    useLoan,
+    payLoan
 }

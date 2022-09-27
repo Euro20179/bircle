@@ -69,6 +69,15 @@ function earnMoney(id, percent = 1.001) {
     ECONOMY[id].lastTalk = Date.now();
     ECONOMY[id].money *= percent;
 }
+function useLoan(id, amount) {
+    ECONOMY[id].loanUsed = amount;
+}
+function payLoan(id) {
+    if (!ECONOMY[id].money)
+        return;
+    ECONOMY[id].money -= (ECONOMY[id].loanUsed || 0) * 1.01;
+    delete ECONOMY[id].loanUsed;
+}
 function playerEconomyLooseTotal(id) {
     if (ECONOMY[id] === undefined)
         return 0;
@@ -326,5 +335,7 @@ module.exports = {
     removeStock,
     giveStock,
     resetPlayer,
-    userHasStockSymbol
+    userHasStockSymbol,
+    useLoan,
+    payLoan
 };

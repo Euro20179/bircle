@@ -22,7 +22,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan } = require("./economy.js")
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
 
@@ -554,6 +554,36 @@ const commands: { [command: string]: Command } = {
             return {content: text || "No stocks", allowedMentions: {parse: []}}
         }, category: CommandCategory.ECONOMY
     },
+    loan: {
+        run: async(msg, args) => {
+            if(!hasItem(msg.author.id, "loan")){
+                return {content: "You do not have a loan"}
+            }
+            if(ECONOMY()[msg.author.id].loanUsed){
+                return {content: "U have not payed off your loan"}
+            }
+            let top = Object.entries(ECONOMY()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
+            //@ts-ignore
+            let max = top[1]?.money || 100
+            let needed = Math.abs(ECONOMY()[msg.author.id].money) + 1
+            if(needed  > max){
+                needed = max
+            }
+            addMoney(msg.author.id, needed)
+            useLoan(msg.author.id, needed)
+            useItem(msg.author.id, "loan")
+            return {content: `<@${msg.author.id}> Used a loan and got ${needed}`}
+        }, category: CommandCategory.ECONOMY
+    },
+    "pay-loan": {
+        run: async(msg, args) => {
+            if(!ECONOMY()[msg.author.id].loanUsed){
+                return {content: "You have no loans to pay off"}
+            }
+            payLoan(msg.author.id)
+            return {content: "You have payed off your loan with a 1% interest"}
+        }, category: CommandCategory.ECONOMY
+    },
     bitem: {
         run: async(msg, args) => {
             let opts;
@@ -578,7 +608,7 @@ const commands: { [command: string]: Command } = {
                 for(let cost of ITEMS()[item].cost){
                     totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
-                if(canBetAmount(msg.author.id, totalCost)){
+                if(canBetAmount(msg.author.id, totalCost) || totalCost == 0){
                     if(buyItem(msg.author.id, item)){
                         loseMoneyToBank(msg.author.id, totalCost)
                         totalSpent += totalCost
