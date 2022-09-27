@@ -84,7 +84,7 @@ function earnMoney(id: string, percent=1.001){
 function useLoan(id: string, amount: number){
     ECONOMY[id].loanUsed = amount
 }
-function payLoan(id: string, amount: string){
+function payLoan(id: string){
     if(!ECONOMY[id].money)
         return
     ECONOMY[id].money -= (ECONOMY[id].loanUsed || 0) * 1.01
