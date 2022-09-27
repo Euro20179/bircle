@@ -2052,14 +2052,13 @@ const commands: { [command: string]: Command } = {
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{userall} got into the building GAIN=all AMOUNT=normal SET_LCATION=bank"
+                            "{userall} got into the building GAIN=all AMOUNT=normal"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal SET_LOCATION=BANK"
+                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
                         ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large",
-                            "{user1} robbed the bank for {amount} LOCATION=bank GAIN=1 AMOUNT=large"
                         ],
                         robbing_negative: [
                             "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal"
