@@ -2058,10 +2058,10 @@ const commands: { [command: string]: Command } = {
                             "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal"
                         ],
                         escape_positive: [
-                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal SUBSTAGE=getting_in"
+                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
                         ],
                         escape_negative: [
-                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal SUBSTAGE=getting_in"
+                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
                         ],
                     }
                     for(let resp of fileResponses){
