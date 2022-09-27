@@ -178,8 +178,8 @@ const slashCommands = [
             },
             {
                 type: STRING,
-                name: "substage",
-                description: "The substage to enter into after this response",
+                name: "nextstage",
+                description: "The stage to enter into after this response",
                 required: false,
             },
             {
@@ -9460,7 +9460,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             let text = `${userId}: ${message} AMOUNT=${amount} STAGE=${stage} ${gainOrLose.toUpperCase()}=${users}`
-            let substage = interaction.options.get("substage")?.value
+            let substage = interaction.options.get("nextstage")?.value
             if(substage)
                 text += ` SUBSTAGE=${substage}`
             let location = interaction.options.get("location")?.value
