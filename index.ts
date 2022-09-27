@@ -22,7 +22,7 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan } = require("./economy.js")
+const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan, calculateLoanAmountFromString } = require("./economy.js")
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
 
@@ -572,14 +572,18 @@ const commands: { [command: string]: Command } = {
     },
     "pay-loan": {
         run: async(msg, args) => {
+            let amount = args[0] || "all"
+            let nAmount = calculateLoanAmountFromString(msg.author.id, amount) * 1.01
             if(!ECONOMY()[msg.author.id].loanUsed){
                 return {content: "You have no loans to pay off"}
             }
-            if(!canBetAmount(msg.author.id, ECONOMY()[msg.author.id].loanUsed)){
-                return {content: "U cant pay that back yet"}
+            if(!canBetAmount(msg.author.id, nAmount)){
+                return {content: "U do not have enough money to pay that back"}
             }
-            payLoan(msg.author.id)
-            return {content: "You have payed off your loan with a 1% interest"}
+            if(payLoan(msg.author.id, nAmount)){
+                return {content: "You have fully payed off your loan"}
+            }
+            return {content: `You have payed off ${nAmount} of your loan and have ${ECONOMY()[msg.author.id].loanUsed} left`}
         }, category: CommandCategory.ECONOMY
     },
     bitem: {

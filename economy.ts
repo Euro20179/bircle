@@ -84,11 +84,20 @@ function earnMoney(id: string, percent=1.001){
 function useLoan(id: string, amount: number){
     ECONOMY[id].loanUsed = amount
 }
-function payLoan(id: string){
+function payLoan(id: string, amount: number){
     if(!ECONOMY[id].money)
         return
-    ECONOMY[id].money -= (ECONOMY[id].loanUsed || 0) * 1.01
-    delete ECONOMY[id].loanUsed
+    ECONOMY[id].money -= amount * 1.01
+    if(ECONOMY[id].loanUsed){
+        //@ts-ignore
+        ECONOMY[id].loanUsed -= amount
+    }
+    //@ts-ignore
+    if(ECONOMY[id].loanUsed && ECONOMY[id].loanUsed <= 0){
+        delete ECONOMY[id].loanUsed
+        return true
+    }
+    return false
 }
 
 function playerEconomyLooseTotal(id: string){
@@ -233,7 +242,31 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     return 0
 }
 
-function calculateAmountFromString(id: string, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
+function calculateLoanAmountFromString(id: string, amount: string){
+    let loanDebt = ECONOMY[id]?.loanUsed
+    if(!loanDebt)
+        return NaN
+    amount = amount.toLowerCase()
+    if(amount == "all"){
+        return loanDebt
+    }
+    if(Number(amount)){
+        return Number(amount)
+    }
+    else if(amount[0] === "$" && Number(amount.slice(1))){
+        return Number(amount.slice(1))
+    }
+    else if(amount[amount.length - 1] === "%"){
+        let percent = Number(amount.slice(0, -1))
+        if(!percent){
+            return 0
+        }
+        return loanDebt * percent / 100
+    }
+    return 0
+}
+
+function calculateAmountFromString(id: string, amount: string, extras: {[key: string]: (total: number, k: string, data: EconomyData) => number}){
     if(amount == undefined || amount == null){
         return NaN
     }
@@ -249,7 +282,7 @@ function calculateAmountFromString(id: string, amount: string, extras: {[key: st
     }
     for(let e in extras){
         if (amount.match(e)){
-            return extras[e](ECONOMY[id].money, amount)
+            return extras[e](ECONOMY[id].money, amount, ECONOMY[id])
         }
     }
     if(Number(amount)){
@@ -368,5 +401,6 @@ module.exports = {
     resetPlayer,
     userHasStockSymbol,
     useLoan,
-    payLoan
+    payLoan,
+    calculateLoanAmountFromString
 }
