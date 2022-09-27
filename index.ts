@@ -562,6 +562,9 @@ const commands: { [command: string]: Command } = {
             if(ECONOMY()[msg.author.id].loanUsed){
                 return {content: "U have not payed off your loan"}
             }
+            if(ECONOMY()[msg.author.id].money >= 0){
+                return {content: "Ur not in debt"}
+            }
             let top = Object.entries(ECONOMY()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
             //@ts-ignore
             let max = top[1]?.money || 100
@@ -2027,12 +2030,6 @@ const commands: { [command: string]: Command } = {
             if(HEIST_PLAYERS.includes(msg.author.id)){
                 return {content: "U dingus u are already in the game"}
             }
-            if(canBetAmount(msg.author.id, 10)){
-                loseMoneyToBank(msg.author.id, 10)
-            }
-            else{
-                return {content: "You do not have $10"}
-            }
             HEIST_PLAYERS.push(msg.author.id)
             let timeRemaining = 30000
             if(HEIST_TIMEOUT === null){
@@ -2216,7 +2213,7 @@ const commands: { [command: string]: Command } = {
                     }
                 }, timeRemaining)
             }
-            return {content: `${msg.author} joined the heist (cost: $10)`}
+            return {content: `${msg.author} joined the heist`}
 
         }, category: CommandCategory.GAME
     },
