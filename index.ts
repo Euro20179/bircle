@@ -168,14 +168,6 @@ const slashCommands = [
                         name: "normal",
                         value: "normal",
                     },
-                    {
-                        name: "medium",
-                        value: "medium",
-                    },
-                    {
-                        name: "large",
-                        value: "large"
-                    }
                 ]
             },
             {
@@ -2137,7 +2129,7 @@ const commands: { [command: string]: Command } = {
                             response = responseList[Math.floor(Math.random() * responseList.length)]
                             amountType = response.match(/AMOUNT=([^ ]+)/)
                         }
-                        let multiplier = Number({"none": 0, "normal": 1, "medium": 2, "large": 3}[amountType[1]])
+                        let multiplier = Number({"none": 0, "normal": 1, "medium": 1, "large": 1}[amountType[1]])
                         amount *= multiplier
 
                         response = response.replaceAll(/\{user(\d+|all)\}/g, (all, capture) => {
