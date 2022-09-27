@@ -2046,7 +2046,7 @@ const commands: { [command: string]: Command } = {
                     let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{userall} got into the building GAIN=all AMOUNT=normal"
+                            "{userall} got into the building GAIN=all AMOUNT=normal "
                         ],
                         getting_in_negative: [
                             "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
