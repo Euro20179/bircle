@@ -9448,13 +9448,13 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let text = `${userId}: ${message} AMOUNT=${amount} STAGE=${stage} ${gainOrLose.toUpperCase()}=${users}`
             let substage = interaction.options.get("substage")?.value
             if(substage)
-                text += `SUBSTAGE=${substage}`
+                text += ` SUBSTAGE=${substage}`
             let location = interaction.options.get("location")?.value
             if(location)
-                text += `LOCATION=${location}`
+                text += ` LOCATION=${location}`
             let set_location = interaction.options.get("set-location")?.value
             if(set_location)
-                text += `SET_LOCATION=${set_location}`
+                text += ` SET_LOCATION=${set_location}`
             fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
             interaction.reply(`Added:\n${text}`)
         }
