@@ -8849,8 +8849,9 @@ async function doCmd(msg: Message, returnJson = false) {
         //replaces %{\d:} with the full result
         args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
         //replaces %{\d:\d} with the argno result
+        let regexp = new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g")
         args = args.map((v) => {
-            return v.replaceAll(new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g"), (_fullMatch, index) => {
+            return v.replaceAll(regexp, (_fullMatch, index) => {
                 return splitData[index]
             })
         })
