@@ -9,11 +9,6 @@
         "uses": 1,
         "cost": ["4%", "10"]
     },
-    "discount": {
-        "description": "Your next stock share purchase costs 50% less (used immediately on purchase)",
-        "uses": 1,
-        "cost": ["75", "1%"]
-    },
     "intrude": {
         "description": "Type join to join a battle mid game",
         "uses": 1,

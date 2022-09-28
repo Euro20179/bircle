@@ -479,21 +479,6 @@ const commands: { [command: string]: Command } = {
                     }
                     await handleSending(msg, {embeds: [embed]})
                     let realStock = userHasStockSymbol(msg.author.id, stock)
-                    if(hasItem(msg.author.id, "discount") && amount >= 1){
-                        if(!canBetAmount(msg.author.id, nPrice * (.5 ** INVENTORY()[msg.author.id]['discount']))){
-                            await msg.channel.send("You cannot afford this")
-                            return
-                        }
-                        if(realStock){
-                            buyStock(msg.author.id, realStock.name, 1, nPrice * (.5 ** INVENTORY()[msg.author.id]['discount']))
-                        }
-                        else{
-                            buyStock(msg.author.id, stock.toUpperCase(), 1, nPrice * (.5 ** INVENTORY()[msg.author.id]["discount"]))
-                        }
-                        await msg.channel.send({content: `${msg.author} has bought 1 share of ${stock} for $${nPrice * (.5 ** INVENTORY()[msg.author.id]["discount"])}`})
-                        useItem(msg.author.id, "discount", INVENTORY()[msg.author.id]["discount"])
-                        amount--;
-                    }
                     if(!amount)
                         return
                     if(!canBetAmount(msg.author.id, nPrice * amount)){
