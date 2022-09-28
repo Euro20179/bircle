@@ -860,6 +860,9 @@ const commands: { [command: string]: Command } = {
                 if(sellAmount > stockInfo.shares){
                     return {content: "YOu do not own that many shares"}
                 }
+                if(sellAmount <= 0){
+                    return {content: "Must sell more than 0"}
+                }
                 let profit = (nPrice - stockInfo.buyPrice) * sellAmount
                 sellStock(msg.author.id, stockName, sellAmount, nPrice)
                 addMoney(msg.author.id, profit)
