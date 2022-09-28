@@ -1,6 +1,6 @@
 const fs = require("fs")
 
-type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}, loanUsed?: number}
+type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}, loanUsed?: number, lastLottery?: number}
 let ECONOMY: {[key: string]: EconomyData} = {}
 
 let lottery: {pool: number, numbers: [number, number, number]} = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
@@ -37,8 +37,14 @@ function saveEconomy(){
 }
 
 function buyLotteryTicket(id: string, cost: number){
+    const LOTTERY_DELAY = 60 * 5 //minutes
+    //@ts-ignore
+    if(ECONOMY[id].lastLottery && Date.now() / 1000 - ECONOMY[id].lastLottery < LOTTERY_DELAY){
+        return false
+    }
     if(ECONOMY[id]){
         ECONOMY[id].money -= cost
+        ECONOMY[id].lastLottery = Date.now() / 1000
         lottery.pool += cost
         let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]
         return ticket
