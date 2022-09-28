@@ -32,8 +32,14 @@ function saveEconomy() {
     fs.writeFileSync("./lottery.json", JSON.stringify(lottery));
 }
 function buyLotteryTicket(id, cost) {
+    const LOTTERY_DELAY = 60 * 5; //minutes
+    //@ts-ignore
+    if (ECONOMY[id].lastLottery && Date.now() / 1000 - ECONOMY[id].lastLottery < LOTTERY_DELAY) {
+        return false;
+    }
     if (ECONOMY[id]) {
         ECONOMY[id].money -= cost;
+        ECONOMY[id].lastLottery = Date.now() / 1000;
         lottery.pool += cost;
         let ticket = [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)];
         return ticket;

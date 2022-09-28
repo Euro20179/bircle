@@ -1721,6 +1721,21 @@ const commands: { [command: string]: Command } = {
             return {content: `$${amount}`}
         }, category: CommandCategory.UTIL
     },
+    calcl: {
+        run: async(msg, args) => {
+            let amount = calculateLoanAmountFromString(msg.author.id, args.join(" "))
+            if(!amount){
+                return {content: "None"}
+            }
+            return {content: `$${amount}`}
+        }, category: CommandCategory.UTIL
+    },
+    calcms: {
+        run: async(msg, args) => {
+            let amount = calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ").trim())
+            return {content: `$${amount}`}
+        }, category: CommandCategory.UTIL
+    },
     money: {
         run: async (msg, args) => {
             let opts;
@@ -9058,7 +9073,9 @@ async function doCmd(msg: Message, returnJson = false) {
         msg.content = msg.content.replaceAll(/(?<!\\)\{args(\d+)?\.\.\.\}/g, (...repl) => {
             let argStart = parseInt(repl[1])
             if (argStart) {
-                return args.slice(argStart - 1).join(" ")
+                if(args.slice(argStart -1).join(" "))
+                    return args.slice(argStart - 1).join(" ")
+                return ""
             }
             else {
                 return args.join(" ")
@@ -9068,10 +9085,14 @@ async function doCmd(msg: Message, returnJson = false) {
             let argNo = parseInt(repl[1])
             let argTo = parseInt(repl[2]?.replace(/\./g, ""))
             if (argTo) {
-                return args.slice(argNo - 1, argTo).join(" ")
+                if(args.slice(argNo  - 1, argTo).join(" "))
+                    return args.slice(argNo - 1, argTo).join(" ")
+                return ""
             }
             else {
-                return args[argNo - 1]
+                if(args[argNo - 1])
+                    return args[argNo - 1]
+                return ""
             }
         })
         msg.content = msg.content.replaceAll("{sender}", String(msg.author))
