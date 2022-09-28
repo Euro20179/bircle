@@ -4358,35 +4358,6 @@ const commands: { [command: string]: Command } = {
                         return
                     }
                     else if (m.content == wordstr) {
-                        let money = "Earnings\n"
-                        if(participants[msg.author.id]){
-                            delete participants[msg.author.id]
-                        }
-                        if(Object.keys(participants).length >= 1){
-                            let uniqueCharacters = ""
-                            for(let letter of [...wordstr]){
-                                if(!uniqueCharacters.includes(letter)){
-                                    uniqueCharacters += letter
-                                }
-                            }
-                            if(startingLives <= uniqueCharacters.length * 10){
-                                if(ECONOMY()[msg.author.id] !== undefined){
-                                    money += `<@${msg.author.id}>: ${lives / uniqueCharacters.length}\n`
-                                    addMoney(msg.author.id, lives / uniqueCharacters.length)
-                                }
-                                for(let participant in participants){
-                                    if(participant === msg.author.id) continue
-                                    if(ECONOMY()[participant] !== undefined){
-                                        money += `<@${participant}>: ${lives / uniqueCharacters.length}\n`
-                                        addMoney(participant, lives / uniqueCharacters.length)
-                                    }
-                                }
-                                await handleSending(msg, {content: money})
-                            }
-                            else{
-                                await handleSending(msg, {content: "There were too many lives to earn money"})
-                            }
-                        }
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
                         collection.stop()
                         gameIsGoing = false
@@ -4407,23 +4378,6 @@ const commands: { [command: string]: Command } = {
                         points += winningStreak ** 2
                     }
                     if (lives < 1) {
-                        let money = "Earnigns\n"
-                        if(ECONOMY()[msg.author.id] !== undefined){
-                            let amount = -(ECONOMY()[msg.author.id].money * .01)
-                            money += `<@${msg.author.id}>: ${amount}\n`
-                            addMoney(msg.author.id, amount)
-                        }
-                        if(participants[msg.author.id]){
-                            delete participants[msg.author.id]
-                        }
-                        for(let participant in participants){
-                            if(ECONOMY()[participant] !== undefined){
-                                let amount = -(ECONOMY()[participant].money * .01)
-                                money += `<@${participant}>: ${amount}\n`
-                                addMoney(participant, amount)
-                            }
-                        }
-                        await handleSending(msg, {content: money})
                         await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         gameIsGoing = false
@@ -4455,48 +4409,6 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     if (disp.replaceAll("   ", " ") == wordstr) {
-                        let money = "Earnings\n"
-                        let amount = 0
-                        if(wordLength < 5){
-                            amount = 0.005
-                        }
-                        if(wordLength < 10){
-                            amount = 0.01
-                        }
-                        if(wordLength < 20){
-                            amount = 0.015
-                        }
-                        if(wordLength >= 20){
-                            amount = 0.02
-                        }
-                        if(participants[msg.author.id]){
-                            delete participants[msg.author.id]
-                        }
-                        if(Object.keys(participants).length >= 1){
-                            let uniqueCharacters = ""
-                            for(let letter of [...wordstr]){
-                                if(!uniqueCharacters.includes(letter)){
-                                    uniqueCharacters += letter
-                                }
-                            }
-                            if(startingLives <= uniqueCharacters.length * 10){
-                                if(ECONOMY()[msg.author.id] !== undefined){
-                                    money += `<@${msg.author.id}>: ${lives / uniqueCharacters.length}\n`
-                                    addMoney(msg.author.id, lives / uniqueCharacters.length)
-                                }
-                                for(let participant in participants){
-                                    if(participant === msg.author.id) continue
-                                    if(ECONOMY()[participant] !== undefined){
-                                        money += `<@${participant}>: ${lives / uniqueCharacters.length}\n`
-                                        addMoney(participant, lives / uniqueCharacters.length)
-                                    }
-                                }
-                                await handleSending(msg, {content: money})
-                            }
-                            else{
-                                await handleSending(msg, {content: "There were too many lives to earn money"})
-                            }
-                        }
                         await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
                         collection.stop()
                         gameIsGoing = false
