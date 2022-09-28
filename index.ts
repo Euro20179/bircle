@@ -865,9 +865,9 @@ const commands: { [command: string]: Command } = {
             let bet = args[0]
             let winningType = args[1]
             if(!winningType){
-                winningType = "wta"
+                winningType = "dist"
             }
-            if(!["wta", "distribute", "dist"].includes(winningType)){
+            if(!["wta", "distribute", "dist", "winnertakesall", "winnertakeall"].includes(winningType)){
                 return {content: "Betting type must be wta (winner takes all) or distribute"}
             }
             if (winningType == 'dist')
