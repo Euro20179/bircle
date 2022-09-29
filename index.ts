@@ -1377,7 +1377,7 @@ const commands: { [command: string]: Command } = {
                         if(m?.deletable){
                             await m.delete()
                         }
-                    }
+                   }
                     let text = ""
                     let remaining = Object.keys(players).length - eliminations.length
 
@@ -1898,7 +1898,7 @@ const commands: { [command: string]: Command } = {
                     max = ECONOMY()[userBeingTaxed].money
                 }
                 taxAmount = taxPlayer(userBeingTaxed, max)
-                if(taxAmount == max){
+                if(taxAmount.amount == max){
                     useItem(userBeingTaxed, "tax shield")
                 }
                 addMoney(userGainingMoney, taxAmount.amount)
