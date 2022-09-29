@@ -1899,16 +1899,15 @@ const commands: { [command: string]: Command } = {
                     userGainingMoney = user.id
                     useItem(user.id, "reflect")
                     taxAmount = taxPlayer(msg.author.id)
-                    addMoney(user.id, taxAmount.amount * 5)
                 }
                 else{
-                    taxAmount = taxPlayer(userBeingTaxed)
+                    taxAmount = taxPlayer(userBeingTaxed, ct)
                 }
                 addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
                 else
-                    embed.setDescription(`${userBeingTaxed} has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
+                    embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
                 if(reflected){
                     return {content: "REFLECTED", embeds: [embed]}
                 }

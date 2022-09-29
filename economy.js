@@ -105,11 +105,13 @@ function playerEconomyLooseTotal(id) {
     }
     return money;
 }
-function taxPlayer(id) {
+function taxPlayer(id, max) {
     ECONOMY[id].lastTaxed = Date.now();
     let total = playerEconomyLooseTotal(id);
     let taxPercent = (Math.random() * (1 - .992) + .992);
     let amountTaxed = total - (total * taxPercent);
+    if (amountTaxed > max)
+        amountTaxed = max;
     ECONOMY[id].money -= amountTaxed;
     return { amount: amountTaxed, percent: 1 - taxPercent };
 }
@@ -124,24 +126,28 @@ function canEarn(id) {
 }
 function canTax(id, bonusTime) {
     if (!ECONOMY[id])
-        return false;
+        return 0;
     if (!ECONOMY[id].lastTaxed) {
         ECONOMY[id].lastTaxed = 0;
-        return true;
+        return Infinity;
     }
     if (ECONOMY[id].money === 0) {
-        return false;
+        return 0;
+    }
+    let minMoney = -(playerEconomyLooseTotal(id) * 0.005);
+    if (ECONOMY[id].money <= minMoney) {
+        return 0;
     }
     //@ts-ignore
     let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000;
     //5 minutes
     if (bonusTime && secondsDiff > 900 + bonusTime) {
-        return true;
+        return ECONOMY[id].money - minMoney;
     }
     else if (!bonusTime && secondsDiff > 900) {
-        return true;
+        return ECONOMY[id].money - minMoney;
     }
-    return false;
+    return 0;
 }
 function canBetAmount(id, amount) {
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
