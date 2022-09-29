@@ -1898,6 +1898,9 @@ const commands: { [command: string]: Command } = {
                     max = ECONOMY()[userBeingTaxed].money
                 }
                 taxAmount = taxPlayer(userBeingTaxed, max)
+                if(taxAmount == max){
+                    useItem(userBeingTaxed, "tax shield")
+                }
                 addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
