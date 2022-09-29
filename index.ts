@@ -1893,7 +1893,11 @@ const commands: { [command: string]: Command } = {
                 let userGainingMoney = msg.author.id
                 let taxAmount;
                 let reflected = false
-                taxAmount = taxPlayer(userBeingTaxed, ct)
+                let max = Infinity
+                if(hasItem(userBeingTaxed, "tax shield")){
+                    max = ECONOMY()[userBeingTaxed].money
+                }
+                taxAmount = taxPlayer(userBeingTaxed, max)
                 addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)

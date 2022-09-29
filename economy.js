@@ -126,28 +126,24 @@ function canEarn(id) {
 }
 function canTax(id, bonusTime) {
     if (!ECONOMY[id])
-        return 0;
+        return false;
     if (!ECONOMY[id].lastTaxed) {
         ECONOMY[id].lastTaxed = 0;
-        return Infinity;
+        return true;
     }
     if (ECONOMY[id].money === 0) {
-        return 0;
-    }
-    let minMoney = -(playerEconomyLooseTotal(id) * 0.005);
-    if (ECONOMY[id].money <= minMoney) {
-        return 0;
+        return false;
     }
     //@ts-ignore
     let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000;
     //5 minutes
     if (bonusTime && secondsDiff > 900 + bonusTime) {
-        return ECONOMY[id].money - minMoney;
+        return true;
     }
     else if (!bonusTime && secondsDiff > 900) {
-        return ECONOMY[id].money - minMoney;
+        return true;
     }
-    return 0;
+    return false;
 }
 function canBetAmount(id, amount) {
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
