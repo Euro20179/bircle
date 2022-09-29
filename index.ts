@@ -1884,7 +1884,7 @@ const commands: { [command: string]: Command } = {
                 return { content: `${args.join(" ")} not found` }
             let ct = canTax(user.id)
             if(hasItem(user.id, "tax evasion")){
-                ct = canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 30)
+                ct = canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
             }
             if (ct) {
                 let embed = new MessageEmbed()
