@@ -8543,6 +8543,9 @@ valid formats:<br>
             let cmd
             [cmd, ...args] = args
             let realCmd = args[0]
+            if(realCmd.includes(" ")){
+                return {content: "Name cannot have space"}
+            }
             args = args.slice(1)
             if (aliases[cmd]) {
                 return { content: `Failed to add "${cmd}", it already exists` }
