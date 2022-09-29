@@ -9264,6 +9264,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
     }
     else if (interaction.isCommand() && !interaction.replied) {
+        if(BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)){
+            interaction.reply({content: "You are blacklisted from this"})
+            return
+        }
         addToCmdUse(`/${interaction.commandName}`)
         if (interaction.commandName == 'attack') {
             let user = interaction.options.get("user")?.['value']
