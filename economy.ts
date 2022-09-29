@@ -147,7 +147,8 @@ function canTax(id: string, bonusTime?: number){
         ECONOMY[id].lastTaxed = 0
         return true
     }
-    if(ECONOMY[id].money === 0){
+    let total = playerEconomyLooseTotal(id)
+    if(total === 0){
         return false
     }
     //@ts-ignore
