@@ -1893,16 +1893,7 @@ const commands: { [command: string]: Command } = {
                 let userGainingMoney = msg.author.id
                 let taxAmount;
                 let reflected = false
-                if(hasItem(user.id, "reflect")){
-                    reflected = true
-                    userBeingTaxed = msg.author.id
-                    userGainingMoney = user.id
-                    useItem(user.id, "reflect")
-                    taxAmount = taxPlayer(msg.author.id)
-                }
-                else{
-                    taxAmount = taxPlayer(userBeingTaxed, ct)
-                }
+                taxAmount = taxPlayer(userBeingTaxed, ct)
                 addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
