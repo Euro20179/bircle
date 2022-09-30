@@ -809,6 +809,9 @@ const commands: { [command: string]: Command } = {
             let stock = args[0]
             if(!stock)
                 return {content: "no stock given"}
+            if(stock == prefix){
+                return {"content": "Looks like ur pulling a tool"}
+            }
             stock = stock.toUpperCase()
             let amount = args[1]
             let data
