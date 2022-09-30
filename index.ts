@@ -9226,17 +9226,21 @@ client.on("messageCreate", async (m: Message) => {
                 if(ap == 'puffle'){
                     if(Math.random() <= .01){ // 1% chance
                         if(Math.random() > .30){ //30% for money
-                            let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.009) +  0.001))
+                            let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.02) +  0.01))
                             addMoney(m.author.id, amount)
                             await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
                         }
                         else{ //70% for items
-                            let items = fs.readFileSync("./shop.json", "utf-8")
-                            let itemJ = JSON.parse(items)
-                            let itemNames = Object.keys(itemJ)
-                            let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                            buyItem(m.author.id,  randItemName)
-                            await m.channel.send(`<@${m.author.id}>'s puffle found a ${randItemName}`)
+                            let foundItems = []
+                            for(let i = 0; i < 2; i++){
+                                let items = fs.readFileSync("./shop.json", "utf-8")
+                                let itemJ = JSON.parse(items)
+                                let itemNames = Object.keys(itemJ)
+                                let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                                buyItem(m.author.id,  randItemName)
+                                foundItems.push(randItemName)
+                            }
+                            await m.channel.send(`<@${m.author.id}>'s puffle found: ${foundItems.join(", ")}`)
                         }
                     }
                 }
@@ -9314,17 +9318,21 @@ client.on("messageCreate", async (m: Message) => {
             if(ap == 'puffle'){
                 if(Math.random() <= .01){ // 1% chance
                     if(Math.random() > .30){ //30% for money
-                        let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.009) +  0.001))
+                        let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.02) +  0.01))
                         addMoney(m.author.id, amount)
                         await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
                     }
                     else{ //70% for items
-                        let items = fs.readFileSync("./shop.json", "utf-8")
-                        let itemJ = JSON.parse(items)
-                        let itemNames = Object.keys(itemJ)
-                        let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                        buyItem(m.author.id,  randItemName)
-                        await m.channel.send(`<@${m.author.id}>'s puffle found a ${randItemName}`)
+                        let foundItems = []
+                        for(let i = 0; i < 2; i++){
+                            let items = fs.readFileSync("./shop.json", "utf-8")
+                            let itemJ = JSON.parse(items)
+                            let itemNames = Object.keys(itemJ)
+                            let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                            buyItem(m.author.id,  randItemName)
+                            foundItems.push(randItemName)
+                        }
+                        await m.channel.send(`<@${m.author.id}>'s puffle found: ${foundItems.join(", ")}`)
                     }
                 }
             }
@@ -9347,17 +9355,21 @@ client.on("messageCreate", async (m: Message) => {
         if(ap == 'puffle'){
             if(Math.random() <= .01){ // 1% chance
                 if(Math.random() > .30){ //30% for money
-                    let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.009) +  0.001))
+                    let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.02) +  0.01))
                     addMoney(m.author.id, amount)
                     await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
                 }
                 else{ //70% for items
-                    let items = fs.readFileSync("./shop.json", "utf-8")
-                    let itemJ = JSON.parse(items)
-                    let itemNames = Object.keys(itemJ)
-                    let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                    buyItem(m.author.id,  randItemName)
-                    await m.channel.send(`<@${m.author.id}>'s puffle found a ${randItemName}`)
+                    let foundItems = []
+                    for(let i = 0; i < 2; i++){
+                        let items = fs.readFileSync("./shop.json", "utf-8")
+                        let itemJ = JSON.parse(items)
+                        let itemNames = Object.keys(itemJ)
+                        let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                        buyItem(m.author.id,  randItemName)
+                        foundItems.push(randItemName)
+                    }
+                    await m.channel.send(`<@${m.author.id}>'s puffle found: ${foundItems.join(", ")}`)
                 }
             }
         }
