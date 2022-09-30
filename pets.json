@@ -16,5 +16,11 @@
         "max-hunger": 75,
         "cost": ["10", "4%"],
         "favorite-food": "bone"
+    },
+    "dog": {
+        "description": "start with 110 hp in battle instead of 100",
+        "max-hunger": 80,
+        "cost": ["5", "1%"],
+        "favorite-food": "bone"
     }
 }
