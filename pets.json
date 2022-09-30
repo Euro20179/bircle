@@ -6,7 +6,7 @@
         "favorite-food": "milk"
     },
     "tiger": {
-        "description": "get taxed -0.4% - 0.6% instead of 0.1% - 0.8%",
+        "description": "get taxed -0.25% - 0.6% instead of 0.1% - 0.8%",
         "max-hunger": 85,
         "cost": ["5", "3%"],
         "favorite-food": "meat"
