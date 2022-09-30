@@ -1408,7 +1408,6 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     if(responseMultiplier > 0){
-                        responseMultiplier = 1
                         nAmount *= responseMultiplier
                     }
 
