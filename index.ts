@@ -705,8 +705,13 @@ const commands: { [command: string]: Command } = {
             }
             let e = new MessageEmbed()
             e.setTitle(`${user.user.username}'s pets`)
+            let activePet = pet.getActivePet(msg.author.id)
+            e.setDescription(`active pet: ${activePet}`)
             for(let pet in pets){
-                e.addField(pet, String(pets[pet]))
+                e.addField(pet, String(pets[pet]), true)
+            }
+            if(!activePet){
+                e.setFooter({text: `To set an active pet run: ${prefix}sapet <pet name>`})
             }
             return {embeds: [e]}
         }, category: CommandCategory.ECONOMY
@@ -721,12 +726,16 @@ const commands: { [command: string]: Command } = {
             if(!hasItem(msg.author.id, item)){
                 return {content: `You do not have the item: ${item}`}
             }
+            useItem(msg.author.id, item)
             let feedAmount = pet.feedPet(msg.author.id, petName, item)
             if(feedAmount){
                 return {content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`}
             }
             return {contnet: "The feeding was unsuccessful"}
-        }, category: CommandCategory.FUN
+        }, category: CommandCategory.FUN,
+        help: {
+            info: "feed-peth <pet> <item>"
+        }
     },
     shop: {
         run: async(msg, args) => {
@@ -9204,11 +9213,32 @@ client.on("messageCreate", async (m: Message) => {
         let rangeSearch = search[3]
         if (!regexSearch && !rangeSearch) {
             if (canEarn(m.author.id)) {
-                if(pet.getActivePet(m.author.id) == 'cat'){
-                    earnMoney(m.author.id, 1.003)
+                let deaths = pet.damageUserPetsRandomly(m.author.id)
+                if(deaths.length)
+                    await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
+                let ap = pet.getActivePet(m.author.id)
+                if(ap == 'cat'){
+                    earnMoney(m.author.id, 1.002)
                 }
                 else{
                     earnMoney(m.author.id)
+                }
+                if(ap == 'puffle'){
+                    if(Math.random() <= .01){ // 1% chance
+                        if(Math.random() > .30){ //30% for money
+                            let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.009) +  0.001))
+                            addMoney(m.author.id, amount)
+                            await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
+                        }
+                        else{ //70% for items
+                            let items = fs.readFileSync("./shop.json", "utf-8")
+                            let itemJ = JSON.parse(items)
+                            let itemNames = Object.keys(itemJ)
+                            let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                            buyItem(m.author.id,  randItemName)
+                            await m.channel.send(`<@${m.author.id}>'s puffle found a ${randItemName}`)
+                        }
+                    }
                 }
             }
             return
@@ -9271,19 +9301,32 @@ client.on("messageCreate", async (m: Message) => {
     }
     if (content.slice(0, prefix.length) !== prefix) {
         if (canEarn(m.author.id)) {
-            for(let p in pet.getUserPets(m.author.id)){
-                if(Math.random() > .1){
-                    let rv = pet.damagePet(m.author.id, p)
-                    if(rv  == 2){
-                        await m.channel.send(`<@${m.author.id}>'s ${p} died`)
-                    }
-                }
-            }
-            if(pet.getActivePet(m.author.id) == 'cat'){
-                earnMoney(m.author.id, 1.003)
+            let deaths = pet.damageUserPetsRandomly(m.author.id)
+            if(deaths.length)
+                await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
+            let ap = pet.getActivePet(m.author.id)
+            if(ap == 'cat'){
+                earnMoney(m.author.id, 1.002)
             }
             else{
                 earnMoney(m.author.id)
+            }
+            if(ap == 'puffle'){
+                if(Math.random() <= .01){ // 1% chance
+                    if(Math.random() > .30){ //30% for money
+                        let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.009) +  0.001))
+                        addMoney(m.author.id, amount)
+                        await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
+                    }
+                    else{ //70% for items
+                        let items = fs.readFileSync("./shop.json", "utf-8")
+                        let itemJ = JSON.parse(items)
+                        let itemNames = Object.keys(itemJ)
+                        let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                        buyItem(m.author.id,  randItemName)
+                        await m.channel.send(`<@${m.author.id}>'s puffle found a ${randItemName}`)
+                    }
+                }
             }
         }
         return
@@ -9291,19 +9334,32 @@ client.on("messageCreate", async (m: Message) => {
     await doCmd(m)
     writeCmdUse()
     if (canEarn(m.author.id)) {
-        for(let p in pet.getUserPets(m.author.id)){
-            if(Math.random() > .1){
-                let rv = pet.damagePet(m.author.id, p)
-                if(rv  == 2){
-                    await m.channel.send(`<@${m.author.id}>'s ${p} died`)
-                }
-            }
-        }
-        if(pet.getActivePet(m.author.id) == 'cat'){
-            earnMoney(m.author.id, 1.003)
+        let deaths = pet.damageUserPetsRandomly(m.author.id)
+        if(deaths.length)
+            await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
+        let ap = pet.getActivePet(m.author.id)
+        if(ap == 'cat'){
+            earnMoney(m.author.id, 1.002)
         }
         else{
             earnMoney(m.author.id)
+        }
+        if(ap == 'puffle'){
+            if(Math.random() <= .01){ // 1% chance
+                if(Math.random() > .30){ //30% for money
+                    let amount = calculateAmountFromStringIncludingStocks(m.author.id, 1 + (Math.random() * (0.009) +  0.001))
+                    addMoney(m.author.id, amount)
+                    await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
+                }
+                else{ //70% for items
+                    let items = fs.readFileSync("./shop.json", "utf-8")
+                    let itemJ = JSON.parse(items)
+                    let itemNames = Object.keys(itemJ)
+                    let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                    buyItem(m.author.id,  randItemName)
+                    await m.channel.send(`<@${m.author.id}>'s puffle found a ${randItemName}`)
+                }
+            }
         }
     }
 })

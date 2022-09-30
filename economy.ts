@@ -387,6 +387,9 @@ function buyStock(id: string, stock: string, shares: number, cost: number){
 function _set_active_pet(id: string, pet: string){
     ECONOMY[id].activePet = pet
 }
+function _get_active_pet(id: string){
+    return ECONOMY[id].activePet
+}
 
 loadEconomy()
 
@@ -421,5 +424,38 @@ module.exports = {
     useLoan,
     payLoan,
     calculateLoanAmountFromString,
-    _set_active_pet
+    _set_active_pet,
+    _get_active_pet
+}
+
+export{
+    loadEconomy,
+    saveEconomy,
+    createPlayer,
+    earnMoney,
+    canEarn,
+    addMoney,
+    canBetAmount,
+    canTax,
+    taxPlayer,
+    loseMoneyToBank,
+    calculateAmountFromString,
+    loseMoneyToPlayer,
+    setMoney,
+    resetEconomy,
+    buyStock,
+    calculateStockAmountFromString,
+    calculateAmountFromStringIncludingStocks,
+    sellStock,
+    buyLotteryTicket,
+    newLottery,
+    removeStock,
+    giveStock,
+    resetPlayer,
+    userHasStockSymbol,
+    useLoan,
+    payLoan,
+    calculateLoanAmountFromString,
+    _set_active_pet,
+    _get_active_pet
 }

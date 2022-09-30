@@ -1,5 +1,8 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports._get_active_pet = exports._set_active_pet = exports.calculateLoanAmountFromString = exports.payLoan = exports.useLoan = exports.userHasStockSymbol = exports.resetPlayer = exports.giveStock = exports.removeStock = exports.newLottery = exports.buyLotteryTicket = exports.sellStock = exports.calculateAmountFromStringIncludingStocks = exports.calculateStockAmountFromString = exports.buyStock = exports.resetEconomy = exports.setMoney = exports.loseMoneyToPlayer = exports.calculateAmountFromString = exports.loseMoneyToBank = exports.taxPlayer = exports.canTax = exports.canBetAmount = exports.addMoney = exports.canEarn = exports.earnMoney = exports.createPlayer = exports.saveEconomy = exports.loadEconomy = void 0;
 const fs = require("fs");
+const pet = require("./pets");
 let ECONOMY = {};
 let lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] };
 function userHasStockSymbol(id, symbol) {
@@ -14,6 +17,7 @@ function userHasStockSymbol(id, symbol) {
     }
     return false;
 }
+exports.userHasStockSymbol = userHasStockSymbol;
 function loadEconomy() {
     if (fs.existsSync("./economy.json")) {
         let data = fs.readFileSync("./economy.json");
@@ -27,10 +31,12 @@ function loadEconomy() {
         lottery = JSON.parse(data);
     }
 }
+exports.loadEconomy = loadEconomy;
 function saveEconomy() {
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY));
     fs.writeFileSync("./lottery.json", JSON.stringify(lottery));
 }
+exports.saveEconomy = saveEconomy;
 function buyLotteryTicket(id, cost) {
     const LOTTERY_DELAY = 60 * 5; //minutes
     //@ts-ignore
@@ -46,22 +52,27 @@ function buyLotteryTicket(id, cost) {
     }
     return false;
 }
+exports.buyLotteryTicket = buyLotteryTicket;
 function newLottery() {
     lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] };
 }
+exports.newLottery = newLottery;
 function createPlayer(id, startingCash = 100) {
     ECONOMY[id] = { money: startingCash, lastTalk: 0, lastTaxed: 0, stocks: {} };
 }
+exports.createPlayer = createPlayer;
 function addMoney(id, amount) {
     if (ECONOMY[id]) {
         ECONOMY[id].money += amount;
     }
 }
+exports.addMoney = addMoney;
 function loseMoneyToBank(id, amount) {
     if (ECONOMY[id]) {
         ECONOMY[id].money -= amount;
     }
 }
+exports.loseMoneyToBank = loseMoneyToBank;
 function loseMoneyToPlayer(id, amount, otherId) {
     if (ECONOMY[id]) {
         ECONOMY[id].money -= amount;
@@ -71,13 +82,16 @@ function loseMoneyToPlayer(id, amount, otherId) {
     }
     ECONOMY[otherId].money += amount;
 }
+exports.loseMoneyToPlayer = loseMoneyToPlayer;
 function earnMoney(id, percent = 1.001) {
     ECONOMY[id].lastTalk = Date.now();
     ECONOMY[id].money *= percent;
 }
+exports.earnMoney = earnMoney;
 function useLoan(id, amount) {
     ECONOMY[id].loanUsed = amount;
 }
+exports.useLoan = useLoan;
 function payLoan(id, amount) {
     if (!ECONOMY[id].money)
         return;
@@ -93,6 +107,7 @@ function payLoan(id, amount) {
     }
     return false;
 }
+exports.payLoan = payLoan;
 function playerEconomyLooseTotal(id) {
     if (ECONOMY[id] === undefined)
         return 0;
@@ -109,12 +124,16 @@ function taxPlayer(id, max) {
     ECONOMY[id].lastTaxed = Date.now();
     let total = playerEconomyLooseTotal(id);
     let taxPercent = (Math.random() * (1 - .992) + .992);
+    if (pet.getActivePet(id) == 'tiger') {
+        taxPercent = (Math.random() * (1 - 1.002) + .994);
+    }
     let amountTaxed = total - (total * taxPercent);
     if (amountTaxed > max)
         amountTaxed = max;
     ECONOMY[id].money -= amountTaxed;
     return { amount: amountTaxed, percent: 1 - taxPercent };
 }
+exports.taxPlayer = taxPlayer;
 function canEarn(id) {
     if (!ECONOMY[id])
         return false;
@@ -124,6 +143,7 @@ function canEarn(id) {
     }
     return false;
 }
+exports.canEarn = canEarn;
 function canTax(id, bonusTime) {
     if (!ECONOMY[id])
         return false;
@@ -146,12 +166,14 @@ function canTax(id, bonusTime) {
     }
     return false;
 }
+exports.canTax = canTax;
 function canBetAmount(id, amount) {
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
         return true;
     }
     return false;
 }
+exports.canBetAmount = canBetAmount;
 function setMoney(id, amount) {
     if (ECONOMY[id]) {
         ECONOMY[id].money = amount;
@@ -161,6 +183,7 @@ function setMoney(id, amount) {
         ECONOMY[id].money = amount;
     }
 }
+exports.setMoney = setMoney;
 function calculateAmountFromStringIncludingStocks(id, amount, extras) {
     if (amount == undefined || amount == null) {
         return NaN;
@@ -203,6 +226,7 @@ function calculateAmountFromStringIncludingStocks(id, amount, extras) {
     }
     return 0;
 }
+exports.calculateAmountFromStringIncludingStocks = calculateAmountFromStringIncludingStocks;
 function calculateStockAmountFromString(id, shareCount, amount, extras) {
     if (amount == undefined || amount == null) {
         return NaN;
@@ -229,6 +253,7 @@ function calculateStockAmountFromString(id, shareCount, amount, extras) {
     }
     return 0;
 }
+exports.calculateStockAmountFromString = calculateStockAmountFromString;
 function calculateLoanAmountFromString(id, amount) {
     let loanDebt = ECONOMY[id]?.loanUsed;
     if (!loanDebt)
@@ -252,6 +277,7 @@ function calculateLoanAmountFromString(id, amount) {
     }
     return 0;
 }
+exports.calculateLoanAmountFromString = calculateLoanAmountFromString;
 function calculateAmountFromString(id, amount, extras) {
     if (amount == undefined || amount == null) {
         return NaN;
@@ -287,16 +313,19 @@ function calculateAmountFromString(id, amount, extras) {
     }
     return 0;
 }
+exports.calculateAmountFromString = calculateAmountFromString;
 function resetEconomy() {
     ECONOMY = {};
     saveEconomy();
     loadEconomy();
 }
+exports.resetEconomy = resetEconomy;
 function resetPlayer(id) {
     if (ECONOMY[id]) {
         delete ECONOMY[id];
     }
 }
+exports.resetPlayer = resetPlayer;
 function sellStock(id, stock, shares, sellPrice) {
     if (ECONOMY[id].stocks?.[stock]) {
         //@ts-ignore
@@ -310,11 +339,13 @@ function sellStock(id, stock, shares, sellPrice) {
         }
     }
 }
+exports.sellStock = sellStock;
 function removeStock(id, stock) {
     if (ECONOMY[id].stocks?.[stock]) {
         delete ECONOMY[id].stocks[stock];
     }
 }
+exports.removeStock = removeStock;
 function giveStock(id, stock, buyPrice, shares) {
     if (ECONOMY[id].stocks) {
         ECONOMY[id].stocks[stock] = { buyPrice: buyPrice, shares: shares };
@@ -324,6 +355,7 @@ function giveStock(id, stock, buyPrice, shares) {
         ECONOMY[id].stocks[stock] = { buyPrice: buyPrice, shares: shares };
     }
 }
+exports.giveStock = giveStock;
 function buyStock(id, stock, shares, cost) {
     if (!ECONOMY[id]) {
         return;
@@ -349,9 +381,15 @@ function buyStock(id, stock, shares, cost) {
     }
     loseMoneyToBank(id, cost * shares);
 }
+exports.buyStock = buyStock;
 function _set_active_pet(id, pet) {
     ECONOMY[id].activePet = pet;
 }
+exports._set_active_pet = _set_active_pet;
+function _get_active_pet(id) {
+    return ECONOMY[id].activePet;
+}
+exports._get_active_pet = _get_active_pet;
 loadEconomy();
 module.exports = {
     ECONOMY: () => ECONOMY,
@@ -383,5 +421,6 @@ module.exports = {
     useLoan,
     payLoan,
     calculateLoanAmountFromString,
-    _set_active_pet
+    _set_active_pet,
+    _get_active_pet
 };

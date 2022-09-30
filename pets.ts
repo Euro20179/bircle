@@ -9,8 +9,9 @@
 //you can own as many pets as you like, you just must keep them alive, but you can only have one active at a time
 
 import fs = require("fs")
+import economy = require("./economy")
 
-const {loseMoneyToBank, calculateAmountFromStringIncludingStocks, _set_active_pet, ECONOMY} = require("./economy.js")
+//const {loseMoneyToBank, calculateAmountFromStringIncludingStocks, _set_active_pet, _get_active_pet} = require("./economy.js")
 
 type PetData = {[pet: string]: {description: string, "max-hunger": number, cost: string[]}}
 type UserPetData = {[pet: string]: number}
@@ -46,18 +47,18 @@ function buyPet(id: string, pet: string){
         PETINVENTORY[id][pet] = PETSHOP[pet]["max-hunger"]
         let total = 0
         for(let cost of PETSHOP[pet].cost){
-            total += calculateAmountFromStringIncludingStocks(id, cost)
+            total += economy.calculateAmountFromStringIncludingStocks(id, cost)
         }
-        loseMoneyToBank(id, total)
+        economy.loseMoneyToBank(id, total)
         return true
     }
     else{
         PETINVENTORY[id] = {[pet]: PETSHOP[pet]["max-hunger"]}
         let total = 0
         for(let cost of PETSHOP[pet].cost){
-            total += calculateAmountFromStringIncludingStocks(id, cost)
+            total += economy.calculateAmountFromStringIncludingStocks(id, cost)
         }
-        loseMoneyToBank(id, total)
+        economy.loseMoneyToBank(id, total)
         return true
     }
 }
@@ -93,14 +94,14 @@ function feedPet(id: string, pet: string, itemName: string){
 
 function setActivePet(id: string, pet: string){
     if(PETINVENTORY[id]?.[pet]){
-        _set_active_pet(id, pet)
+        economy._set_active_pet(id, pet)
         return true
     }
     return false
 }
 
 function getActivePet(id: string){
-    let activePet = ECONOMY()[id]?.activePet
+    let activePet = economy._get_active_pet(id)
     if(activePet)
         return activePet
     return false
@@ -129,6 +130,19 @@ function damagePet(id: string, pet: string){
     return 0
 }
 
+function damageUserPetsRandomly(id:  string){
+    let deaths = []
+    for(let p in getUserPets(id)){
+        if(Math.random() > .8){
+            let rv =  damagePet(id, p)
+            if(rv  == 2){
+                deaths.push(p)
+            }
+        }
+    }
+    return deaths
+}
+
 loadPets()
 
 export{
@@ -141,5 +155,6 @@ export{
     setActivePet,
     getActivePet,
     getUserPets,
-    damagePet
+    damagePet,
+    damageUserPetsRandomly
 }

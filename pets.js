@@ -9,9 +9,9 @@
 //eg: dog, every 60 seconds, there is a 1% chance to dig up a treasure
 //you can own as many pets as you like, you just must keep them alive, but you can only have one active at a time
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.damagePet = exports.getUserPets = exports.getActivePet = exports.setActivePet = exports.savePetData = exports.feedPet = exports.hasPet = exports.buyPet = exports.getPetShop = exports.getPetInventory = void 0;
+exports.damageUserPetsRandomly = exports.damagePet = exports.getUserPets = exports.getActivePet = exports.setActivePet = exports.savePetData = exports.feedPet = exports.hasPet = exports.buyPet = exports.getPetShop = exports.getPetInventory = void 0;
 const fs = require("fs");
-const { loseMoneyToBank, calculateAmountFromStringIncludingStocks, _set_active_pet, ECONOMY } = require("./economy.js");
+const economy = require("./economy");
 let PETSHOP = {};
 let PETINVENTORY = {};
 function loadPets() {
@@ -42,18 +42,18 @@ function buyPet(id, pet) {
         PETINVENTORY[id][pet] = PETSHOP[pet]["max-hunger"];
         let total = 0;
         for (let cost of PETSHOP[pet].cost) {
-            total += calculateAmountFromStringIncludingStocks(id, cost);
+            total += economy.calculateAmountFromStringIncludingStocks(id, cost);
         }
-        loseMoneyToBank(id, total);
+        economy.loseMoneyToBank(id, total);
         return true;
     }
     else {
         PETINVENTORY[id] = { [pet]: PETSHOP[pet]["max-hunger"] };
         let total = 0;
         for (let cost of PETSHOP[pet].cost) {
-            total += calculateAmountFromStringIncludingStocks(id, cost);
+            total += economy.calculateAmountFromStringIncludingStocks(id, cost);
         }
-        loseMoneyToBank(id, total);
+        economy.loseMoneyToBank(id, total);
         return true;
     }
 }
@@ -89,14 +89,14 @@ function feedPet(id, pet, itemName) {
 exports.feedPet = feedPet;
 function setActivePet(id, pet) {
     if (PETINVENTORY[id]?.[pet]) {
-        _set_active_pet(id, pet);
+        economy._set_active_pet(id, pet);
         return true;
     }
     return false;
 }
 exports.setActivePet = setActivePet;
 function getActivePet(id) {
-    let activePet = ECONOMY()[id]?.activePet;
+    let activePet = economy._get_active_pet(id);
     if (activePet)
         return activePet;
     return false;
@@ -104,6 +104,9 @@ function getActivePet(id) {
 exports.getActivePet = getActivePet;
 function killPet(id, pet) {
     if (PETINVENTORY[id]?.[pet]) {
+        if (getActivePet(id) == pet) {
+            setActivePet(id, "");
+        }
         delete PETINVENTORY[id][pet];
         return true;
     }
@@ -121,4 +124,17 @@ function damagePet(id, pet) {
     return 0;
 }
 exports.damagePet = damagePet;
+function damageUserPetsRandomly(id) {
+    let deaths = [];
+    for (let p in getUserPets(id)) {
+        if (Math.random() > .8) {
+            let rv = damagePet(id, p);
+            if (rv == 2) {
+                deaths.push(p);
+            }
+        }
+    }
+    return deaths;
+}
+exports.damageUserPetsRandomly = damageUserPetsRandomly;
 loadPets();
