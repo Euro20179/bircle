@@ -6421,7 +6421,7 @@ const commands: { [command: string]: Command } = {
                         }
                         let title = stack.pop()
                         if (typeof title !== 'string') {
-                            return { err: true, content: `name must be a string` }
+                            return { err: true, content: `initialArgs must be a string` }
                         }
                         let e = stack.pop()
                         if (!(e instanceof MessageEmbed)) {
@@ -9164,6 +9164,7 @@ client.on("messageCreate", async (m: Message) => {
         return
     }
     await doCmd(m)
+    writeCmdUse()
     if (canEarn(m.author.id)) {
         earnMoney(m.author.id)
     }
@@ -9615,7 +9616,6 @@ function addToCmdUse(cmd: string) {
     } else {
         CMDUSE[cmd] = 1
     }
-    fs.writeFileSync("cmduse", generateCmdUseFile())
 }
 
 function writeCmdUse() {
