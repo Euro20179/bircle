@@ -5634,7 +5634,7 @@ const commands: { [command: string]: Command } = {
                     else break
                 }
             }
-            let argc = stack.length
+            let argc = initialArgs.length
             let ram: { [key: string]: number | string | Message | GuildMember | Function } = {
                 true: 1,
                 false: 0,
