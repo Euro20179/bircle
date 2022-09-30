@@ -2694,7 +2694,7 @@ const commands: { [command: string]: Command } = {
                 return { content: "You cannot bet, but not have a guess" }
             }
             let side = Math.random() > .5 ? "heads" : "tails"
-            if (!bet) {
+            if (!bet || bet < 0) {
                 return { content: side }
             }
             if (!canBetAmount(msg.author.id, bet)) {
