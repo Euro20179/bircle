@@ -708,7 +708,7 @@ const commands: { [command: string]: Command } = {
             let activePet = pet.getActivePet(msg.author.id)
             e.setDescription(`active pet: ${activePet}`)
             for(let pet in pets){
-                e.addField(pet, String(pets[pet]), true)
+                e.addField(pet, `${pets[pet]} hunger`, true)
             }
             if(!activePet){
                 e.setFooter({text: `To set an active pet run: ${prefix}sapet <pet name>`})
