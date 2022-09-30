@@ -1088,7 +1088,7 @@ const commands: { [command: string]: Command } = {
                                 delete players[m.author.id]
                                 let e = new MessageEmbed()
                                 e.setTitle("NEW LOSER")
-                                if(winningType === 'distribute'){
+                                if(winningType === 'distribute' && remaining > 0){
                                     betTotal -= bets[m.author.id]
                                     e.setDescription(`<@${m.author.id}> HAS DIED and distributed ${bets[m.author.id] / remaining * bonus} to each player`)
                                     e.setColor("BLUE")
@@ -1505,7 +1505,7 @@ const commands: { [command: string]: Command } = {
                         else{
                             loseMoneyToBank(elim, ogBets[elim])
                             text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${ogBets[elim]} \n`
-                            if(winningType === 'distribute'){
+                            if(winningType === 'distribute' && remaining > 0){
                                 let e = new MessageEmbed()
                                 e.setTitle("NEW LOSER")
                                 e.setDescription(`<@${elim}> HAS DIED and distributed ${bets[elim] / remaining * bonus} to each player`)
