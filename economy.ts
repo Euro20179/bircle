@@ -1,6 +1,8 @@
 const fs = require("fs")
 
-type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}, loanUsed?: number, lastLottery?: number}
+import pet = require("./pets")
+
+type EconomyData = {money: number, lastTalk: number, lastTaxed?: number, stocks?: {[key: string]: {buyPrice: number, shares: number}}, loanUsed?: number, lastLottery?: number, activePet?: string}
 let ECONOMY: {[key: string]: EconomyData} = {}
 
 let lottery: {pool: number, numbers: [number, number, number]} = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
@@ -123,6 +125,9 @@ function taxPlayer(id: string, max: number){
     ECONOMY[id].lastTaxed = Date.now()
     let total = playerEconomyLooseTotal(id)
     let taxPercent = (Math.random() * (1 - .992) + .992)
+    if(pet.getActivePet(id) == 'tiger'){
+        taxPercent = (Math.random() * (1 - 1.002) + .994)
+    }
     let amountTaxed = total - (total * taxPercent)
     if(amountTaxed > max)
         amountTaxed = max
@@ -379,6 +384,10 @@ function buyStock(id: string, stock: string, shares: number, cost: number){
     loseMoneyToBank(id, cost * shares)
 }
 
+function _set_active_pet(id: string, pet: string){
+    ECONOMY[id].activePet = pet
+}
+
 loadEconomy()
 
 
@@ -411,5 +420,6 @@ module.exports = {
     userHasStockSymbol,
     useLoan,
     payLoan,
-    calculateLoanAmountFromString
+    calculateLoanAmountFromString,
+    _set_active_pet
 }

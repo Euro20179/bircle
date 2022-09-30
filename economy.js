@@ -349,6 +349,9 @@ function buyStock(id, stock, shares, cost) {
     }
     loseMoneyToBank(id, cost * shares);
 }
+function _set_active_pet(id, pet) {
+    ECONOMY[id].activePet = pet;
+}
 loadEconomy();
 module.exports = {
     ECONOMY: () => ECONOMY,
@@ -379,5 +382,6 @@ module.exports = {
     userHasStockSymbol,
     useLoan,
     payLoan,
-    calculateLoanAmountFromString
+    calculateLoanAmountFromString,
+    _set_active_pet
 };

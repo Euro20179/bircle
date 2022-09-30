@@ -10,7 +10,7 @@
 
 import fs = require("fs")
 
-const {loseMoneyToBank, calculateAmountFromString} = require("./economy.js")
+const {loseMoneyToBank, calculateAmountFromStringIncludingStocks, _set_active_pet, ECONOMY} = require("./economy.js")
 
 type PetData = {[pet: string]: {description: string, "max-hunger": number, cost: string[]}}
 type UserPetData = {[pet: string]: number}
@@ -46,11 +46,24 @@ function buyPet(id: string, pet: string){
         PETINVENTORY[id][pet] = PETSHOP[pet]["max-hunger"]
         let total = 0
         for(let cost of PETSHOP[pet].cost){
-            total += calculateAmountFromString(id, cost)
+            total += calculateAmountFromStringIncludingStocks(id, cost)
         }
         loseMoneyToBank(id, total)
+        return true
     }
-    return true
+    else{
+        PETINVENTORY[id] = {[pet]: PETSHOP[pet]["max-hunger"]}
+        let total = 0
+        for(let cost of PETSHOP[pet].cost){
+            total += calculateAmountFromStringIncludingStocks(id, cost)
+        }
+        loseMoneyToBank(id, total)
+        return true
+    }
+}
+
+function getUserPets(id: string){
+    return PETINVENTORY[id]
 }
 
 function hasPet(id: string, pet: string){
@@ -61,10 +74,11 @@ function feedPet(id: string, pet: string, itemName: string){
     if(!PETINVENTORY[id]?.[pet]){
         return false
     }
+    let amount
     switch(itemName){
         case "bone": {
             let max = PETSHOP[pet]["max-hunger"]
-            let amount =  Math.floor(Math.random() * 3 + 2)
+            amount =  Math.floor(Math.random() * 3 + 2)
             PETINVENTORY[id][pet] += amount
             if(PETINVENTORY[id][pet] > max){
                 PETINVENTORY[id][pet] = max
@@ -74,7 +88,42 @@ function feedPet(id: string, pet: string, itemName: string){
         default:
             return false
     }
-    return true
+    return amount
+}
+
+function setActivePet(id: string, pet: string){
+    if(PETINVENTORY[id]?.[pet]){
+        _set_active_pet(id, pet)
+        return true
+    }
+    return false
+}
+
+function getActivePet(id: string){
+    let activePet = ECONOMY()[id]?.activePet
+    if(activePet)
+        return activePet
+    return false
+}
+
+function  killPet(id: string, pet: string){
+    if(PETINVENTORY[id]?.[pet]){
+        delete PETINVENTORY[id][pet]
+        return true
+    }
+    return false
+}
+
+function damagePet(id: string, pet: string){
+    if(PETINVENTORY[id]?.[pet]){
+        PETINVENTORY[id][pet] -= Math.floor(Math.random() * 4 + 1)
+        if(PETINVENTORY[id][pet] <= 0){
+            killPet(id, pet)
+            return 2
+        }
+        return 1
+    }
+    return 0
 }
 
 loadPets()
@@ -85,5 +134,9 @@ export{
     buyPet,
     hasPet,
     feedPet,
-    savePetData
+    savePetData,
+    setActivePet,
+    getActivePet,
+    getUserPets,
+    damagePet
 }

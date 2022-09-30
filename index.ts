@@ -637,6 +637,97 @@ const commands: { [command: string]: Command } = {
             return {embeds: [e]}
         }, category: CommandCategory.ECONOMY
     },
+    "pet-shop": {
+        run: async(msg, args) => {
+            let embed = new MessageEmbed()
+            let shopData = pet.getPetShop()
+            for(let pet in shopData){
+                let data = shopData[pet]
+                let totalCost =0
+                for(let cost of data.cost){
+                    totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                }
+                embed.addField(`${pet}\n${totalCost}`, `${data.description}`, true)
+            }
+            return {embeds: [embed]}
+        }, category: CommandCategory.ECONOMY
+    },
+    'bpet': {
+        run: async(msg, args) => {
+            let requested_pet = args[0]
+            if(!requested_pet){
+                return {content: "You didnt specify a pet"}
+            }
+            let shopData = pet.getPetShop()
+            requested_pet = requested_pet.toLowerCase()
+            if(!shopData[requested_pet]){
+                return {content: `${requested_pet}: not a valid pet`}
+            }
+            let petData = shopData[requested_pet]
+            let totalCost =0
+            for(let cost of petData.cost){
+                totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+            }
+            if(!canBetAmount(msg.author.id, totalCost)){
+                return {content: "You do not have enough money to buy this pet"}
+            }
+            if(pet.buyPet(msg.author.id, requested_pet)){
+                return  {content: `You have successfuly bought: ${requested_pet} for: $${totalCost}`}
+            }
+            return {content: "You already have this pet"}
+        }, category: CommandCategory.ECONOMY
+    },
+    "gapet": {
+        run: async(msg, args) => {
+            return {content: String(pet.getActivePet(msg.author.id))}
+        },  category: CommandCategory.UTIL
+    },
+    "sapet": {
+        run: async(msg, args) => {
+            let newActivePet = args[0]?.toLowerCase()
+            if(!pet.hasPet(msg.author.id, newActivePet)){
+                return {content: `You do not have a ${newActivePet}`}
+            }
+            if(pet.setActivePet(msg.author.id, newActivePet)){
+                return {content: `Your new active pet is ${newActivePet}`}
+            }
+            return {content: "Failed to set active pet"}
+        },  category: CommandCategory.UTIL
+    },
+    pets: {
+        run: async(msg, args) => {
+            let user = await  fetchUser(msg.guild, args[0] ||  msg.author.id)
+            if(!user)
+                return {content: "User not found"}
+            let pets = pet.getUserPets(user.user.id)
+            if(!pets){
+                return {content: `<@${user.user.id}> does not have pets`, allowedMentions: {parse: []}}
+            }
+            let e = new MessageEmbed()
+            e.setTitle(`${user.user.username}'s pets`)
+            for(let pet in pets){
+                e.addField(pet, String(pets[pet]))
+            }
+            return {embeds: [e]}
+        }, category: CommandCategory.ECONOMY
+    },
+    "feed-pet": {
+        run: async(msg, args) => {
+            let petName = args[0]?.toLowerCase()
+            let item = args.slice(1).join(" ").toLowerCase()
+            if(!pet.hasPet(msg.author.id, petName)){
+                return {content: `You do not  have a ${petName}`}
+            }
+            if(!hasItem(msg.author.id, item)){
+                return {content: `You do not have the item: ${item}`}
+            }
+            let feedAmount = pet.feedPet(msg.author.id, petName, item)
+            if(feedAmount){
+                return {content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`}
+            }
+            return {contnet: "The feeding was unsuccessful"}
+        }, category: CommandCategory.FUN
+    },
     shop: {
         run: async(msg, args) => {
             let opts;
@@ -9175,6 +9266,14 @@ client.on("messageCreate", async (m: Message) => {
     }
     if (content.slice(0, prefix.length) !== prefix) {
         if (canEarn(m.author.id)) {
+            for(let p in pet.getUserPets(m.author.id)){
+                if(Math.random() > .1){
+                    let rv = pet.damagePet(m.author.id, p)
+                    if(rv  == 2){
+                        await m.channel.send(`<@${m.author.id}>'s ${p} died`)
+                    }
+                }
+            }
             earnMoney(m.author.id)
         }
         return
