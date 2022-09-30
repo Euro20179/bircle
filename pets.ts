@@ -133,7 +133,7 @@ function damagePet(id: string, pet: string){
 function damageUserPetsRandomly(id:  string){
     let deaths = []
     for(let p in getUserPets(id)){
-        if(Math.random() > .8){
+        if(Math.random() > .92){
             let rv =  damagePet(id, p)
             if(rv  == 2){
                 deaths.push(p)
