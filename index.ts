@@ -26,6 +26,7 @@ const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
 
+import pet = require("./pets")
 
 enum CommandCategory {
     UTIL,
@@ -2693,6 +2694,7 @@ const commands: { [command: string]: Command } = {
         run: async (msg, args) => {
             saveEconomy()
             saveItems()
+            pet.savePetData()
             return { content: "Economy saved" }
         }, category: CommandCategory.ECONOMY
     },
@@ -8041,6 +8043,7 @@ ${styles}
             await msg.channel.send("STOPPING")
             saveEconomy()
             saveItems()
+            pet.savePetData()
             client.destroy()
             return {
                 content: "STOPPING"
@@ -9088,9 +9091,10 @@ client.on("messageCreate", async (m: Message) => {
     if (ECONOMY()[m.author.id] === undefined && !m.author.bot) {
         createPlayer(m.author.id)
     }
-    if (Math.random() > .60) {
+    if (Math.random() > .55) {
         saveEconomy()
         saveItems()
+        pet.savePetData()
     }
     let content = m.content
     if (!m.author.bot) {

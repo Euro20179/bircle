@@ -1,0 +1,17 @@
+{
+    "cat": {
+        "description": "gain 0.3% from talking instead of 0.1%",
+        "max-hunger": 75,
+        "cost": ["5","2%"]
+    },
+    "tiger": {
+        "description": "get taxed -0.1% - 0.6% instead of 0.1% - 0.8%",
+        "max-hunger": 120,
+        "cost": ["5", "4%"]
+    },
+    "dog": {
+        "description": "every 60 seconds, there is a 1% chance to dig up a treasure",
+        "max-hunger": 85,
+        "cost": ["10", "4%"]
+    }
+}

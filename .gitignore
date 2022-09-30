@@ -18,5 +18,6 @@ out
 economy.json
 lottery.json
 inventory.json
+petinventory.json
 
 !command-perms/holder
