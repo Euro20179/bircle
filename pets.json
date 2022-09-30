@@ -12,8 +12,8 @@
         "favorite-food": "meat"
     },
     "puffle": {
-        "description": "every 60 seconds, there is a 1% chance to dig up a treasure",
-        "max-hunger": 75,
+        "description": "every 60 seconds, there is a 5% chance to dig up a treasure",
+        "max-hunger": 70,
         "cost": ["10", "4%"],
         "favorite-food": "bone"
     },
