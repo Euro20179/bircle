@@ -136,7 +136,7 @@ function taxPlayer(id: string, max: number){
     if(amountTaxed > max)
         amountTaxed = max
     ECONOMY[id].money -= amountTaxed
-    return {amount: amountTaxed, percent: taxPercent * 100}
+    return {amount: amountTaxed, percent: taxPercent}
 }
 
 function canEarn(id: string){

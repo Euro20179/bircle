@@ -120,18 +120,21 @@ function playerEconomyLooseTotal(id) {
     }
     return money;
 }
+function randInt(min, max) {
+    return Math.random() * (max - min) + min;
+}
 function taxPlayer(id, max) {
     ECONOMY[id].lastTaxed = Date.now();
     let total = playerEconomyLooseTotal(id);
-    let taxPercent = (Math.random() * (1 - .992) + .992);
+    let taxPercent = randInt(0.001, 0.008);
     if (pet.getActivePet(id) == 'tiger') {
-        taxPercent = (Math.random() * (1 - .99) + -.004);
+        taxPercent = randInt(-.004, .006);
     }
     let amountTaxed = total - (total * taxPercent);
     if (amountTaxed > max)
         amountTaxed = max;
     ECONOMY[id].money -= amountTaxed;
-    return { amount: amountTaxed, percent: 1 - taxPercent };
+    return { amount: amountTaxed, percent: taxPercent };
 }
 exports.taxPlayer = taxPlayer;
 function canEarn(id) {
