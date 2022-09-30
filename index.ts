@@ -377,6 +377,12 @@ const commands: { [command: string]: Command } = {
     },
     stock: {
         run: async(msg, args) => {
+            if(!args[0]){
+                return {content: "Looks like u pulled a cam"}
+            }
+            if(args[0] == prefix){
+                return {content: "nah ah ah"}
+            }
             https.get(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -430,6 +436,9 @@ const commands: { [command: string]: Command } = {
             let stock = args[0]
             if(!stock){
                 return {content: "No stock given"}
+            }
+            if(stock == prefix){
+                return {content: "nah ah ah"}
             }
             stock = stock.toUpperCase()
             let amount = Number(args[1])
