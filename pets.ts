@@ -108,6 +108,9 @@ function getActivePet(id: string){
 
 function  killPet(id: string, pet: string){
     if(PETINVENTORY[id]?.[pet]){
+        if(getActivePet(id) == pet){
+            setActivePet(id, "")
+        }
         delete PETINVENTORY[id][pet]
         return true
     }

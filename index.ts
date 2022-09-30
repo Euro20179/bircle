@@ -9204,7 +9204,12 @@ client.on("messageCreate", async (m: Message) => {
         let rangeSearch = search[3]
         if (!regexSearch && !rangeSearch) {
             if (canEarn(m.author.id)) {
-                earnMoney(m.author.id)
+                if(pet.getActivePet(m.author.id) == 'cat'){
+                    earnMoney(m.author.id, 1.003)
+                }
+                else{
+                    earnMoney(m.author.id)
+                }
             }
             return
         }
@@ -9274,14 +9279,32 @@ client.on("messageCreate", async (m: Message) => {
                     }
                 }
             }
-            earnMoney(m.author.id)
+            if(pet.getActivePet(m.author.id) == 'cat'){
+                earnMoney(m.author.id, 1.003)
+            }
+            else{
+                earnMoney(m.author.id)
+            }
         }
         return
     }
     await doCmd(m)
     writeCmdUse()
     if (canEarn(m.author.id)) {
-        earnMoney(m.author.id)
+        for(let p in pet.getUserPets(m.author.id)){
+            if(Math.random() > .1){
+                let rv = pet.damagePet(m.author.id, p)
+                if(rv  == 2){
+                    await m.channel.send(`<@${m.author.id}>'s ${p} died`)
+                }
+            }
+        }
+        if(pet.getActivePet(m.author.id) == 'cat'){
+            earnMoney(m.author.id, 1.003)
+        }
+        else{
+            earnMoney(m.author.id)
+        }
     }
 })
 
