@@ -839,7 +839,7 @@ const commands: { [command: string]: Command } = {
             else{
                 let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
                 let sellAmount = calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
-                if(!sellAmount){
+                if(!sellAmount || sellAmount <= 0){
                     return {content: "You must sell a number of shares of your stock"}
                 }
                 if(sellAmount > stockInfo.shares){
