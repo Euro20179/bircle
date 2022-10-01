@@ -32,7 +32,7 @@
         "cost": ["0.5", "0.3%"]
     },
     "puffle chat": {
-        "description": "get an extra .001% every minute talking",
+        "description": "get an extra .01% every minute talking",
         "uses": 1,
         "cost": ["Infinity"]
     }
