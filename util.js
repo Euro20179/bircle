@@ -1,5 +1,7 @@
 const {execFileSync} = require('child_process')
+const { userVars, vars } = require("./common.js")
 const vm = require('vm')
+const fs = require('fs')
 
 class UTF8String{
     constructor(text){
@@ -235,6 +237,85 @@ function getImgFromMsgAndOpts(opts, msg) {
     return img
 }
 
+function getOpts(args) {
+    let opts = {}
+    let newArgs = []
+    let idxOfFirstRealArg = 0
+    for (let arg of args) {
+        idxOfFirstRealArg++
+        if (arg[0] == "-") {
+            if (arg[1] && arg[1] === '-') {
+                break
+            }
+            if (arg[1]) {
+                let [opt, ...value] = arg.slice(1).split("=")
+                opts[opt] = value[0] == undefined ? true : value.join("=");
+            }
+        } else {
+            idxOfFirstRealArg--
+            break
+        }
+    }
+    for (let i = idxOfFirstRealArg; i < args.length; i++) {
+        newArgs.push(args[i])
+    }
+    return [opts, newArgs]
+}
+
+async function handleSending(msg, rv) {
+    if (!Object.keys(rv).length) {
+        return
+    }
+    if (rv.deleteFiles === undefined) {
+        rv.deleteFiles = true
+    }
+    if (rv.delete && msg.deletable) {
+        msg.delete().catch(_err => console.log("Message not deleted"))
+    }
+    if (rv.noSend) {
+        return
+    }
+    if ((rv.content?.length || 0) >= 2000) {
+        fs.writeFileSync("out", rv.content)
+        delete rv["content"]
+        if (rv.files) {
+            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
+        } else {
+            rv.files = [{
+                attachment: "out", name: "cmd.txt", description: "command output too long"
+            }]
+        }
+    }
+    if (!rv?.content) {
+        delete rv['content']
+    }
+    else {
+        if (userVars[msg.author.id]) {
+            userVars[msg.author.id][`_!`] = () => rv.content
+        }
+        else
+            userVars[msg.author.id] = { "_!": () => rv.content }
+        vars[`_!`] = () => rv.content
+    }
+    let location = msg.channel
+    if (rv['dm']) {
+        location = msg.author
+    }
+    try {
+        await location.send(rv)
+    }
+    catch (err) {
+        console.log(err)
+        await location.send("broken")
+    }
+    if (rv.files) {
+        for (let file of rv.files) {
+            if (file.delete !== false && rv.deleteFiles)
+                fs.rmSync(file.attachment)
+        }
+    }
+}
+
 module.exports = {
     fetchUser,
     fetchChannel,
@@ -252,6 +333,8 @@ module.exports = {
     strlen,
     UTF8String,
     cmdCatToStr,
-    getImgFromMsgAndOpts
+    getImgFromMsgAndOpts,
+    getOpts,
+    handleSending
 }
 

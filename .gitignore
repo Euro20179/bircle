@@ -24,5 +24,6 @@ economy.js
 pets.js
 shop.js
 uno.js
+battle.js
 
 !command-perms/holder
