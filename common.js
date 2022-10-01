@@ -1,6 +1,7 @@
 const { readFileSync, writeFileSync } = require("fs");
 
-const { ECONOMY } = require("./economy.js")
+
+const economy = require("./economy");
 
 const prefix = readFileSync("./prefix", "utf-8").trim()
 
@@ -71,8 +72,8 @@ let vars = {
     vcount: () => Object.keys(vars).length,
     sender: (msg) => `<@${msg.author.id}>`,
     carson: () => "The all legendary Carson Williams",
-    money: (msg) => ECONOMY[msg.author.id] ? ECONOMY[msg.author.id].money : 0,
-    "$": (msg) => ECONOMY[msg.author.id] ? ECONOMY[msg.author.id].money : 0
+    money: (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
+    "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
 }
 let userVars = {}
 module.exports = {

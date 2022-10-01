@@ -22,7 +22,10 @@ const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, ad
 const { parseCmd, parsePosition } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts } = require('./util.js')
 
-const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan, calculateLoanAmountFromString } = require("./economy.js")
+//const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan, calculateLoanAmountFromString } = require("./economy.js")
+//
+
+import economy = require("./economy")
 
 const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
 
@@ -501,18 +504,18 @@ const commands: { [command: string]: Command } = {
                         embed.setColor("#ffff00")
                     }
                     await handleSending(msg, {embeds: [embed]})
-                    let realStock = userHasStockSymbol(msg.author.id, stock)
+                    let realStock = economy.userHasStockSymbol(msg.author.id, stock)
                     if(!amount)
                         return
-                    if(!canBetAmount(msg.author.id, nPrice * amount)){
+                    if(!economy.canBetAmount(msg.author.id, nPrice * amount)){
                         await msg.channel.send("You cannot afford this")
                         return
                     }
                     if(realStock){
-                        buyStock(msg.author.id, realStock.name, amount, nPrice)
+                        economy.buyStock(msg.author.id, realStock.name, amount, nPrice)
                     }
                     else{
-                        buyStock(msg.author.id, stock.toUpperCase(), amount, nPrice)
+                        economy.buyStock(msg.author.id, stock.toUpperCase(), amount, nPrice)
                     }
                     await msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${nPrice * amount}`})
                 })
@@ -527,7 +530,7 @@ const commands: { [command: string]: Command } = {
             if(!member)
                 member = msg.member
             let stockName = args[0]
-            return {content: JSON.stringify(userHasStockSymbol(member.user.id, stockName))}
+            return {content: JSON.stringify(economy.userHasStockSymbol(member.user.id, stockName))}
         }, category: CommandCategory.UTIL
     },
     "stocks": {
@@ -543,12 +546,13 @@ const commands: { [command: string]: Command } = {
             if(!member){
                 return {content: ":weary:"}
             }
-            if(!ECONOMY()[member.id] || !ECONOMY()[member.id].stocks){
+            if(!economy.getEconomy()[member.id] || !economy.getEconomy()[member.id].stocks){
                 return {content: "You own no stocks"}
             }
             let text = `<@${member.id}>\n`
-            for(let stock in ECONOMY()[member.id].stocks){
-                let stockInfo = ECONOMY()[member.id].stocks[stock]
+            for(let stock in economy.getEconomy()[member.id].stocks){
+                //@ts-ignore
+                let stockInfo = economy.getEconomy()[member.id].stocks[stock]
                 text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
             return {content: text || "No stocks", allowedMentions: {parse: []}}
@@ -559,21 +563,21 @@ const commands: { [command: string]: Command } = {
             if(!hasItem(msg.author.id, "loan")){
                 return {content: "You do not have a loan"}
             }
-            if(ECONOMY()[msg.author.id].loanUsed){
+            if(economy.getEconomy()[msg.author.id].loanUsed){
                 return {content: "U have not payed off your loan"}
             }
-            if(ECONOMY()[msg.author.id].money >= 0){
+            if(economy.getEconomy()[msg.author.id].money >= 0){
                 return {content: "Ur not in debt"}
             }
-            let top = Object.entries(ECONOMY()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
+            let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
             //@ts-ignore
             let max = top[1]?.money || 100
-            let needed = Math.abs(ECONOMY()[msg.author.id].money) + 1
+            let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
             if(needed  > max){
                 needed = max
             }
-            addMoney(msg.author.id, needed)
-            useLoan(msg.author.id, needed)
+            economy.addMoney(msg.author.id, needed)
+            economy.useLoan(msg.author.id, needed)
             useItem(msg.author.id, "loan")
             return {content: `<@${msg.author.id}> Used a loan and got ${needed}`}
         }, category: CommandCategory.ECONOMY
@@ -581,17 +585,17 @@ const commands: { [command: string]: Command } = {
     "pay-loan": {
         run: async(msg, args) => {
             let amount = args[0] || "all"
-            let nAmount = calculateLoanAmountFromString(msg.author.id, amount) * 1.01
-            if(!ECONOMY()[msg.author.id].loanUsed){
+            let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
+            if(!economy.getEconomy()[msg.author.id].loanUsed){
                 return {content: "You have no loans to pay off"}
             }
-            if(!canBetAmount(msg.author.id, nAmount)){
+            if(!economy.canBetAmount(msg.author.id, nAmount)){
                 return {content: "U do not have enough money to pay that back"}
             }
-            if(payLoan(msg.author.id, nAmount)){
+            if(economy.payLoan(msg.author.id, nAmount)){
                 return {content: "You have fully payed off your loan"}
             }
-            return {content: `You have payed off ${nAmount} of your loan and have ${ECONOMY()[msg.author.id].loanUsed} left`}
+            return {content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left`}
         }, category: CommandCategory.ECONOMY
     },
     bitem: {
@@ -616,11 +620,11 @@ const commands: { [command: string]: Command } = {
             for(let i = 0; i < count; i++){
                 let totalCost = 0
                 for(let cost of ITEMS()[item].cost){
-                    totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
-                if(canBetAmount(msg.author.id, totalCost) || totalCost == 0){
+                if(economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0){
                     if(buyItem(msg.author.id, item)){
-                        loseMoneyToBank(msg.author.id, totalCost)
+                        economy.loseMoneyToBank(msg.author.id, totalCost)
                         totalSpent += totalCost
                     }
                     else{
@@ -658,7 +662,7 @@ const commands: { [command: string]: Command } = {
                 let data = shopData[pet]
                 let totalCost =0
                 for(let cost of data.cost){
-                    totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
                 embed.addField(`${pet}\n${totalCost}`, `${data.description}`, true)
             }
@@ -679,9 +683,9 @@ const commands: { [command: string]: Command } = {
             let petData = shopData[requested_pet]
             let totalCost =0
             for(let cost of petData.cost){
-                totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
             }
-            if(!canBetAmount(msg.author.id, totalCost)){
+            if(!economy.canBetAmount(msg.author.id, totalCost)){
                 return {content: "You do not have enough money to buy this pet"}
             }
             if(pet.buyPet(msg.author.id, requested_pet)){
@@ -767,7 +771,7 @@ const commands: { [command: string]: Command } = {
                 i++;
                 let totalCost = 0
                 for(let cost of itemJ[item].cost){
-                    totalCost += calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
                 if(round){
                     totalCost = Math.floor(totalCost * 100) / 100
@@ -789,14 +793,14 @@ const commands: { [command: string]: Command } = {
     },
     profits: {
         run: async(msg, args) => {
-            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+            if(!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks){
                 return {content: "You own no stocks"}
             }
             let totalProfit = 0
             let totalDailiyProfit = 0
             let text = ""
             let totalValue = 0
-            for(let stock in ECONOMY()[msg.author.id].stocks){
+            for(let stock in economy.getEconomy()[msg.author.id].stocks){
                 let data
                 stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 try {
@@ -830,13 +834,14 @@ const commands: { [command: string]: Command } = {
                 if(isNaN(numberchange)){
                     continue
                 }
-                let userStockData = userHasStockSymbol(msg.author.id, stock)
+                let userStockData = economy.userHasStockSymbol(msg.author.id, stock)
                 if(!userStockData){
                     continue
                 }
                 let stockName = userStockData.name
                 text += `**${stockName}**\n`
-                let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+                //@ts-ignore
+                let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
                 let profit = (price - stockInfo.buyPrice) * stockInfo.shares
                 totalProfit += profit
                 let todaysProfit = (numberchange * stockInfo.shares)
@@ -853,7 +858,7 @@ const commands: { [command: string]: Command } = {
     },
     "profit": {
         run: async(msg, args) => {
-            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+            if(!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks){
                 return {content: "You own no stocks"}
             }
             let stock = args[0]
@@ -890,7 +895,7 @@ const commands: { [command: string]: Command } = {
             if(isNaN(numberchange)){
                 return {content: "change is NaN"}
             }
-            let stockInfo = userHasStockSymbol(msg.author.id, stock)
+            let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
             if(!stockInfo){
                 return {content: "You dont have this stock"}
             }
@@ -917,7 +922,7 @@ const commands: { [command: string]: Command } = {
     },
     sell: {
         run: async(msg, args) => {
-            if(!ECONOMY()[msg.author.id] || !ECONOMY()[msg.author.id].stocks){
+            if(!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks){
                 return {content: "You own no stocks"}
             }
             let stock = args[0]
@@ -955,16 +960,17 @@ const commands: { [command: string]: Command } = {
             let nPrice = Number(jsonStockInfo["regularMarketPrice"])
             if(!nPrice)
                 return {content: `${stock} does not appear to have a price`}
-            let realStockInfo = userHasStockSymbol(msg.author.id, stock)
+            let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
             let stockName = stock
             if(realStockInfo)
                 stockName = realStockInfo.name
-            if(!ECONOMY()[msg.author.id].stocks[stockName]){
+            if(!economy.getEconomy()[msg.author.id].stocks?.[stockName]){
                 return {content: "You do not own this stock"}
             }
             else{
-                let stockInfo = ECONOMY()[msg.author.id].stocks[stockName]
-                let sellAmount = calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
+                //@ts-ignore
+                let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
+                let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
                 if(!sellAmount || sellAmount <= 0){
                     return {content: "You must sell a number of shares of your stock"}
                 }
@@ -975,8 +981,8 @@ const commands: { [command: string]: Command } = {
                     return {content: "Must sell more than 0"}
                 }
                 let profit = (nPrice - stockInfo.buyPrice) * sellAmount
-                sellStock(msg.author.id, stockName, sellAmount, nPrice)
-                addMoney(msg.author.id, profit)
+                economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
+                economy.addMoney(msg.author.id, profit)
                 return {content: `You sold: ${stockName} and made $${profit} in total`}
             }
         }, category: CommandCategory.ECONOMY
@@ -998,12 +1004,12 @@ const commands: { [command: string]: Command } = {
             }
             if (winningType == 'dist')
                 winningType = 'distribute'
-            let nBet = calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
+            let nBet = economy.calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
-            if(!nBet || !canBetAmount(msg.author.id, nBet) || nBet < 0){
+            if(!nBet || !economy.canBetAmount(msg.author.id, nBet) || nBet < 0){
                 return {content: "Not a valid bet"}
             }
-            if(nBet / ECONOMY()[msg.author.id].money < 0.002){
+            if(nBet / economy.getEconomy()[msg.author.id].money < 0.002){
                 return {content: "You must bet at least 0.2%"}
             }
 
@@ -1034,12 +1040,12 @@ const commands: { [command: string]: Command } = {
             collector.on("collect", async(m) => {
                 if(players[m.author.id]) return
                 let bet = m.content.split(" ")[1]
-                let nBet = calculateAmountFromString(m.author.id, bet, {min: (t, a) => t * 0.002})
-                if(!nBet || !canBetAmount(m.author.id, nBet) || nBet < 0){
+                let nBet = economy.calculateAmountFromString(m.author.id, bet, {min: (t, a) => t * 0.002})
+                if(!nBet || !economy.canBetAmount(m.author.id, nBet) || nBet < 0){
                     await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
                     return
                 }
-                if(nBet / ECONOMY()[m.author.id].money < 0.002){
+                if(nBet / economy.getEconomy()[m.author.id].money < 0.002){
                     await m.channel.send("You must bet at least 0.2%")
                     return
                 }
@@ -1069,7 +1075,7 @@ const commands: { [command: string]: Command } = {
                         usedEarthquake = true
                     }
                     else if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined){
-                        let bet = calculateAmountFromString(m.author.id, "min", {min: (t, a) => t * .002})
+                        let bet = economy.calculateAmountFromString(m.author.id, "min", {min: (t, a) => t * .002})
                         bets[m.author.id] = bet
                         ogBets[m.author.id] = bet
                         cooldowns[m.author.id] = 0
@@ -1101,13 +1107,13 @@ const commands: { [command: string]: Command } = {
                 let rarityTable = {"huge": .2, "big": .5, "medium": .7, "small": .9, "tiny": 1}
                 if(useItems){
                     itemUseCollector.on("collect", async(m) => {
-                        if(!ECONOMY()[m.author.id]){
+                        if(!economy.getEconomy()[m.author.id]){
                             return
                         }
                         if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
                             await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
                             players[m.author.id] -= 5
-                            loseMoneyToBank(m.author.id, ogBets[m.author.id])
+                            economy.loseMoneyToBank(m.author.id, ogBets[m.author.id])
                             if(players[m.author.id] <= 0){
                                 let remaining = Object.keys(players).length - 1
                                 delete players[m.author.id]
@@ -1118,7 +1124,7 @@ const commands: { [command: string]: Command } = {
                                     e.setDescription(`<@${m.author.id}> HAS DIED and distributed ${bets[m.author.id] / remaining * bonus} to each player`)
                                     e.setColor("BLUE")
                                     for(let player in players){
-                                        addMoney(player, bets[m.author.id] / remaining * bonus)
+                                        economy.addMoney(player, bets[m.author.id] / remaining * bonus)
                                     }
                                 }
                                 else{
@@ -1133,9 +1139,9 @@ const commands: { [command: string]: Command } = {
                         let cost = items[i]
                         let a = cost.amount ?? 0
                         if(cost.percent){
-                            a += calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
+                            a += economy.calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
                         }
-                        if(ECONOMY()[m.author.id].money - bets[m.author.id] < a){
+                        if(economy.getEconomy()[m.author.id].money - bets[m.author.id] < a){
                             await m.channel.send("You cannot afford this")
                             return
                         }
@@ -1171,7 +1177,7 @@ const commands: { [command: string]: Command } = {
                                 break
                             }
                             case "double bet": {
-                                if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
+                                if(economy.getEconomy()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
                                     cooldowns[m.author.id] = Date.now() / 1000
                                     betTotal += bets[m.author.id]
                                     bets[m.author.id] *= 2
@@ -1313,7 +1319,7 @@ const commands: { [command: string]: Command } = {
                                 break
                             }
                         }
-                        loseMoneyToBank(m.author.id, a)
+                        economy.loseMoneyToBank(m.author.id, a)
                         //buying an item increases the bet
                         betTotal += a
                         bets[m.author.id] += a
@@ -1522,13 +1528,13 @@ const commands: { [command: string]: Command } = {
                     for(let elim of eliminations){
                         if(elim === 'mumbo'){
                             //@ts-ignore
-                            text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${ECONOMY()[mumboUser]?.money * 0.005} \n`
+                            text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`
                             //@ts-ignore
-                            loseMoneyToBank(mumboUser, ECONOMY()[mumboUser]?.money * 0.005)
+                            economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
                             mumboUser = null
                         }
                         else{
-                            loseMoneyToBank(elim, ogBets[elim])
+                            economy.loseMoneyToBank(elim, ogBets[elim])
                             text += `<@${elim}> HAS BEEN ELIMINATED AND LOST $${ogBets[elim]} \n`
                             if(winningType === 'distribute' && remaining > 0){
                                 let e = new MessageEmbed()
@@ -1538,7 +1544,7 @@ const commands: { [command: string]: Command } = {
                                 betTotal -= bets[elim]
                                 for(let player in players){
                                     if(!eliminations.includes(player)){
-                                        addMoney(player, bets[elim] / remaining * bonus)
+                                        economy.addMoney(player, bets[elim] / remaining * bonus)
                                     }
                                 }
                                 await msg.channel.send({embeds: [e]})
@@ -1551,13 +1557,13 @@ const commands: { [command: string]: Command } = {
                         if(isNaN(players[player])){
                             if(player === 'mumbo'){
                                 //@ts-ignore
-                                await msg.channel.send( `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${ECONOMY()[mumboUser]?.money * 0.005} \n`)
+                                await msg.channel.send( `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`)
                                 //@ts-ignore
-                                loseMoneyToBank(mumboUser, ECONOMY()[mumboUser]?.money * 0.005)
+                                economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
                                 mumboUser = null
                             }
                             else{
-                                loseMoneyToBank(player, ogBets[player])
+                                economy.loseMoneyToBank(player, ogBets[player])
                                 await msg.channel.send(`<@${player}> HAS NaN HEALTH AND DIED`)
                             }
                             delete players[player]
@@ -1576,22 +1582,22 @@ const commands: { [command: string]: Command } = {
                 let bonusText = ""
                 if(!winner){
                     let last = Object.keys(players)[0]
-                    loseMoneyToBank(last, ogBets[last])
+                    economy.loseMoneyToBank(last, ogBets[last])
                     e.setDescription(`THE GAME IS A TIE`)
                     e.setTitle("TIE")
                     e.setColor("YELLOW")
                 }
                 else if(winner[0] == 'mumbo'){
-                    addMoney(mumboUser, betTotal / 2)
+                    economy.addMoney(mumboUser as string, betTotal / 2)
                     e.setTitle("GAME OVER")
                     e.setColor("DARK_GREEN")
                     e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GETS HALF THE WINNINGS! ($${betTotal / 2})`)
                 }
                 else{
-                    addMoney(winner[0], betTotal * bonus)
+                    economy.addMoney(winner[0], betTotal * bonus)
                     if(negativeHpBonus[winner[0]]){
                         bonusText += `<@${winner[0]}> GOT THE NEGATIVE HP BONUS FOR ${negativeHpBonus[winner[0]]}\n`
-                        addMoney(winner[0], Math.abs(negativeHpBonus[winner[0]]))
+                        economy.addMoney(winner[0], Math.abs(negativeHpBonus[winner[0]]))
                     }
                     e.setTitle("GAME OVER!")
                     e.setColor("GREEN")
@@ -1605,16 +1611,16 @@ const commands: { [command: string]: Command } = {
                 e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
                 midGameCollector.stop()
                 if(winner && winner[1] >= 100){
-                    if(ECONOMY()[winner[0]]){
-                        addMoney(winner[0], winner[1] - 100)
+                    if(economy.getEconomy()[winner[0]]){
+                        economy.addMoney(winner[0], winner[1] - 100)
                         bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
                     }
                 }
                 if(Object.keys(itemUses).length > 0){
                     let mostUsed = Object.entries(itemUses).sort((a, b) => b[1] - a[1])
                     let bonusAmount = mostUsed[0][1] - (mostUsed[1]?.[1] || 0)
-                    if(bonusAmount && ECONOMY()[mostUsed[0][0]]){
-                        addMoney(mostUsed[0][0], bonusAmount)
+                    if(bonusAmount && economy.getEconomy()[mostUsed[0][0]]){
+                        economy.addMoney(mostUsed[0][0], bonusAmount)
                         bonusText += `<@${mostUsed[0][0]}> GOT THE ITEM BONUS BY USING ${mostUsed[0][1]} ITEMS AND WON $${bonusAmount}\n`
                     }
                 }
@@ -1773,34 +1779,28 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let round = !opts['no-round']
-            let amount = calculateAmountFromString(msg.author.id, args[0], {min: (t: number, a: string) => t * 0.005})
+            let amount = economy.calculateAmountFromString(msg.author.id, args[0], {min: (t: number, a: string) => t * 0.005})
             let numbers = args.slice(1, 4)
             if(!amount){
                 return {content: "No amount given"}
             }
-            if(!canBetAmount(msg.author.id, amount)){
+            if(!economy.canBetAmount(msg.author.id, amount)){
                 return {content: "You do not have enough money for this"}
             }
-            if(amount / ECONOMY()[msg.author.id].money < 0.005){
+            if(amount / economy.getEconomy()[msg.author.id].money < 0.005){
                 return {content: "You must bet at least 0.5%"}
             }
-            let ticket = buyLotteryTicket(msg.author.id, amount)
+            let ticket = economy.buyLotteryTicket(msg.author.id, amount)
             if(!ticket){
                 return {content: "Could not buy ticket"}
             }
             if(numbers && numbers.length == 1){
-                ticket = numbers[0].split("")
-                for(let i = 0; i < ticket.length; i++){
-                    ticket[i] = Number(ticket[i])
-                }
+                ticket = numbers[0].split("").map(v => Number(v))
             }
             else if(numbers && numbers.length == 3){
-                ticket = numbers
-                for(let i = 0; i < ticket.length; i++){
-                    ticket[i] = Number(ticket[i])
-                }
+                ticket = numbers.map(v => Number(v))
             }
-            let answer = LOTTERY()
+            let answer = economy.getLottery()
             let e = new MessageEmbed()
             if(round){
                 amount = Math.floor(amount * 100) / 100
@@ -1808,8 +1808,8 @@ const commands: { [command: string]: Command } = {
             e.setFooter({text: `Cost: ${amount}`})
             if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
                 let winningAmount = answer.pool * 2
-                addMoney(msg.author.id, winningAmount)
-                newLottery()
+                economy.addMoney(msg.author.id, winningAmount)
+                economy.newLottery()
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
                 e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
@@ -1835,18 +1835,18 @@ const commands: { [command: string]: Command } = {
     },
     lottery: {
         run: async(msg, args) => {
-            return {content: `The lottery pool is: ${LOTTERY().pool * 2}`}
+            return {content: `The lottery pool is: ${economy.getLottery().pool * 2}`}
         }, category: CommandCategory.FUN
     },
     calcm: {
         run: async(msg, args) => {
-            let amount = calculateAmountFromString(msg.author.id, args.join(" "))
+            let amount = economy.calculateAmountFromString(msg.author.id, args.join(" "))
             return {content: `$${amount}`}
         }, category: CommandCategory.UTIL
     },
     calcl: {
         run: async(msg, args) => {
-            let amount = calculateLoanAmountFromString(msg.author.id, args.join(" "))
+            let amount = economy.calculateLoanAmountFromString(msg.author.id, args.join(" "))
             if(!amount){
                 return {content: "None"}
             }
@@ -1855,7 +1855,7 @@ const commands: { [command: string]: Command } = {
     },
     calcms: {
         run: async(msg, args) => {
-            let amount = calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ").trim())
+            let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ").trim())
             return {content: `$${amount}`}
         }, category: CommandCategory.UTIL
     },
@@ -1872,23 +1872,23 @@ const commands: { [command: string]: Command } = {
                 return { content: "How are you not a member?" }
             }
             let text = ""
-            if (ECONOMY()[user.id]) {
+            if (economy.getEconomy()[user.id]) {
                 if (opts['m']) {
-                    text += `${ECONOMY()[user.id].money}\n`
+                    text += `${economy.getEconomy()[user.id].money}\n`
                 }
                 if (opts['l']) {
-                    text += `${ECONOMY()[user.id].lastTalk}\n`
+                    text += `${economy.getEconomy()[user.id].lastTalk}\n`
                 }
                 if (opts['t']) {
-                    text += `${ECONOMY()[user.id].lastTaxed}\n`
+                    text += `${economy.getEconomy()[user.id].lastTaxed}\n`
                 }
                 if(text){
                     return {content: text}
                 }
                 if(opts['no-round']){
-                    return { content: `${user.user.username}\n$${ECONOMY()[user.id].money}` }
+                    return { content: `${user.user.username}\n$${economy.getEconomy()[user.id].money}` }
                 }
-                return { content: `${user.user.username}\n$${Math.round(ECONOMY()[user.id].money * 100) / 100}` }
+                return { content: `${user.user.username}\n$${Math.round(economy.getEconomy()[user.id].money * 100) / 100}` }
             }
             return { content: "none" }
         }, category: CommandCategory.ECONOMY,
@@ -1926,15 +1926,15 @@ const commands: { [command: string]: Command } = {
             let member = await fetchUser(msg.guild, userSearch)
             if(!member)
                 return {content: `${userSearch} not found`}
-            let realAmount = calculateAmountFromString(msg.author.id, amount)
+            let realAmount = economy.calculateAmountFromString(msg.author.id, amount)
             if (!realAmount){
                 return {content: "Nothing to give"}
             }
             if(realAmount < 0){
                 return {content: "What are you trying to pull <:Watching1:697677860336304178>"}
             }
-            if(canBetAmount(msg.author.id, realAmount) && !member.user.bot){
-                loseMoneyToPlayer(msg.author.id, realAmount, member.id)
+            if(economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot){
+                economy.loseMoneyToPlayer(msg.author.id, realAmount, member.id)
                 return {content: `You gave ${realAmount} to ${member.user.username}`}
             }
             else{
@@ -1966,14 +1966,16 @@ const commands: { [command: string]: Command } = {
                 return {content: "Stock not found"}
             }
             stockName = stockName[1]
-            if(!ECONOMY()[msg.author.id].stocks?.[stockName]){
+            if(!economy.getEconomy()[msg.author.id].stocks?.[stockName]){
                 return {content: "You do not own that stock"}
             }
-            let amount = calculateStockAmountFromString(msg.author.id, ECONOMY()[msg.author.id].stocks[stockName].shares, a) as number
+            //@ts-ignore
+            let amount = economy.calculateStockAmountFromString(msg.author.id, economy.getEconomy()[msg.author.id].stocks[stockName].shares, a) as number
             if(!amount){
                 return {content: `Invalid share count`}
             }
-            let userStockInfo = ECONOMY()[msg.author.id].stocks[stockName]
+            //@ts-ignore
+            let userStockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
             if(amount > userStockInfo.shares){
                 return {content: "You dont have that many shares"}
             }
@@ -1982,25 +1984,36 @@ const commands: { [command: string]: Command } = {
             if(!member){
                 return {content: `Member: ${player} not found`}
             }
-            if(!ECONOMY()[member.id]){
+            if(!economy.getEconomy()[member.id]){
                 return {content: "Cannot give stocks to this player"}
             }
             let oldUserShares = userStockInfo.shares
             userStockInfo.shares -= amount
-            let otherStockInfo = ECONOMY()[member.id]?.stocks?.[stockName] || {}
+            let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
+            if(Object.keys(otherStockInfo).length < 1){
+                return {content: "No stock data"}
+            }
+            //@ts-ignore
             if(!otherStockInfo.buyPrice){
+                //@ts-ignore
                 otherStockInfo.buyPrice = userStockInfo.buyPrice
+                //@ts-ignore
                 otherStockInfo.shares = amount
             }
             else{
+                //@ts-ignore
                 let oldShareCount = otherStockInfo.shares
+                //@ts-ignore
                 let newShareCount = otherStockInfo.shares + amount
+                //@ts-ignore
                 otherStockInfo.buyPrice = (otherStockInfo.buyPrice * (oldShareCount / newShareCount)) + (userStockInfo.buyPrice * (oldUserShares / newShareCount))
+                //@ts-ignore
                 otherStockInfo.shares += amount
             }
-            giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
+            //@ts-ignore
+            economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
             if(userStockInfo.shares == 0){
-                removeStock(msg.author.id, stockName)
+                economy.removeStock(msg.author.id, stockName)
             }
             return {content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${stockName}`}
         }, category: CommandCategory.ECONOMY
@@ -2020,9 +2033,9 @@ const commands: { [command: string]: Command } = {
             let user = await fetchUser(msg.guild, args.join(" "))
             if (!user)
                 return { content: `${args.join(" ")} not found` }
-            let ct = canTax(user.id)
+            let ct = economy.canTax(user.id)
             if(hasItem(user.id, "tax evasion")){
-                ct = canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
+                ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
             }
             if (ct) {
                 let embed = new MessageEmbed()
@@ -2033,13 +2046,13 @@ const commands: { [command: string]: Command } = {
                 let reflected = false
                 let max = Infinity
                 if(hasItem(userBeingTaxed, "tax shield")){
-                    max = ECONOMY()[userBeingTaxed].money
+                    max = economy.getEconomy()[userBeingTaxed].money
                 }
-                taxAmount = taxPlayer(userBeingTaxed, max)
+                taxAmount = economy.taxPlayer(userBeingTaxed, max)
                 if(taxAmount.amount == max){
                     useItem(userBeingTaxed, "tax shield")
                 }
-                addMoney(userGainingMoney, taxAmount.amount)
+                economy.addMoney(userGainingMoney, taxAmount.amount)
                 if (opts['no-round'])
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
                 else
@@ -2164,7 +2177,7 @@ const commands: { [command: string]: Command } = {
             if(HEIST_PLAYERS.includes(msg.author.id)){
                 return {content: "U dingus u are already in the game"}
             }
-            if((ECONOMY()[msg.author.id]?.money || 0) <= 0){
+            if((economy.getEconomy()[msg.author.id]?.money || 0) <= 0){
                 return {content: "U dont have money"}
             }
             HEIST_PLAYERS.push(msg.author.id)
@@ -2365,7 +2378,7 @@ const commands: { [command: string]: Command } = {
                     if(Object.keys(data).length > 0){
                         let text = "TOTALS\n--------------------\n"
                         for(let player in data){
-                            addMoney(player, data[player])
+                            economy.addMoney(player, data[player])
                             text += `<@${player}>: ${data[player]}\n`
                         }
                         await handleSending(msg, {content: text})
@@ -2502,7 +2515,7 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let hardMode = Boolean(opts['hard'])
-            let bet = calculateAmountFromString(msg.author.id, args[0])
+            let bet = economy.calculateAmountFromString(msg.author.id, args[0])
             if (!bet) {
                 return { content: "no bet given" }
             }
@@ -2512,7 +2525,7 @@ const commands: { [command: string]: Command } = {
             if(hardMode)
                 bet *= 2
 
-            if(!canBetAmount(msg.author.id, bet)){
+            if(!economy.canBetAmount(msg.author.id, bet)){
                 return {content: "That bet is too high for you"}
             }
             if(BLACKJACK_GAMES[msg.author.id]){
@@ -2575,12 +2588,12 @@ const commands: { [command: string]: Command } = {
                 giveRandomCard(cards, dealerCards)
             }
             if (calculateTotal(playersCards).total === 21) {
-                addMoney(msg.author.id, bet * 3)
+                economy.addMoney(msg.author.id, bet * 3)
                 delete BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
             }
             if(calculateTotal(dealerCards).total === 21){
-                loseMoneyToBank(msg.author.id, bet)
+                economy.loseMoneyToBank(msg.author.id, bet)
                 delete BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
             }
@@ -2638,7 +2651,7 @@ const commands: { [command: string]: Command } = {
                         })
                     }
                     catch (err) {
-                        loseMoneyToBank(msg.author.id, bet)
+                        economy.loseMoneyToBank(msg.author.id, bet)
                         delete BLACKJACK_GAMES[msg.author.id]
                         return { content: `Did not respond  in time, lost ${bet}` }
                     }
@@ -2646,7 +2659,7 @@ const commands: { [command: string]: Command } = {
                 }
                 let choice = response.content.toLowerCase()
                 if (choice === 'double bet') {
-                    if(!canBetAmount(msg.author.id, bet * 2)){
+                    if(!economy.canBetAmount(msg.author.id, bet * 2)){
                         await msg.channel.send({content: "That bet is too high for you"})
                         continue
                     }
@@ -2670,7 +2683,7 @@ const commands: { [command: string]: Command } = {
                         giveRandomCard(cards, dealerCards)
                     }
                     if (calculateTotal(playersCards).total === 21) {
-                        addMoney(msg.author.id, bet * 3)
+                        economy.addMoney(msg.author.id, bet * 3)
                         delete BLACKJACK_GAMES[msg.author.id]
                         useItem(msg.author.id, "reset")
                         return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
@@ -2689,7 +2702,7 @@ const commands: { [command: string]: Command } = {
                         }
                     }
                     if(calculateTotal(dealerCards).total === 21){
-                        loseMoneyToBank(msg.author.id, bet)
+                        economy.loseMoneyToBank(msg.author.id, bet)
                         delete BLACKJACK_GAMES[msg.author.id]
                         return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
                     }
@@ -2705,18 +2718,18 @@ const commands: { [command: string]: Command } = {
             let status = "You won"
             if (playerTotal > 21) {
                 status = `You lost: $${bet} (over 21)`
-                loseMoneyToBank(msg.author.id, bet)
+                economy.loseMoneyToBank(msg.author.id, bet)
             }
             else if (playerTotal === dealerTotal) {
                 status = "TIE"
             }
             else if (playerTotal < dealerTotal && dealerTotal < 22) {
                 status = `You lost: $${bet} (dealer won)`
-                loseMoneyToBank(msg.author.id, bet)
+                economy.loseMoneyToBank(msg.author.id, bet)
             }
             else {
                 status = `You won: $${bet}`
-                addMoney(msg.author.id, bet)
+                economy.addMoney(msg.author.id, bet)
             }
             delete BLACKJACK_GAMES[msg.author.id]
             return { content: `**${status}**\n${stats}` }
@@ -2779,9 +2792,9 @@ const commands: { [command: string]: Command } = {
             let embed = new MessageEmbed()
             let text = ""
             //@ts-ignore
-            let sortedEconomy = Object.entries(ECONOMY()).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
+            let sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
             //@ts-ignore
-            let allValues = Object.values(ECONOMY())
+            let allValues = Object.values(economy.getEconomy())
             let totalEconomy = 0
             for(let value of allValues){
                 //@ts-ignore
@@ -2790,7 +2803,7 @@ const commands: { [command: string]: Command } = {
             place = 0
             for (let user of sortedEconomy) {
                 let id = user[0]
-                let money = ECONOMY()[id].money
+                let money = economy.getEconomy()[id].money
                 let percent = money / totalEconomy * 100
                 if (!opts['no-round']) {
                     money = Math.round(money * 100) / 100
@@ -2817,7 +2830,7 @@ const commands: { [command: string]: Command } = {
     },
     savee: {
         run: async (msg, args) => {
-            saveEconomy()
+            economy.saveEconomy()
             saveItems()
             pet.savePetData()
             return { content: "Economy saved" }
@@ -2828,7 +2841,7 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let guess = args[0]
-            let bet = calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
+            let bet = economy.calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
             if (bet && !guess) {
                 return { content: "You cannot bet, but not have a guess" }
             }
@@ -2836,16 +2849,16 @@ const commands: { [command: string]: Command } = {
             if (!bet || bet < 0) {
                 return { content: side }
             }
-            if (!canBetAmount(msg.author.id, bet)) {
+            if (!economy.canBetAmount(msg.author.id, bet)) {
                 return { content: "You dont have enough money for this bet" }
             }
             guess = guess.toLowerCase()
             if (side == guess) {
-                addMoney(msg.author.id, bet)
+                economy.addMoney(msg.author.id, bet)
                 return { content: `The side was: ${side}\nYou won: ${bet}` }
             }
             else {
-                loseMoneyToBank(msg.author.id, bet)
+                economy.loseMoneyToBank(msg.author.id, bet)
                 return { content: `The side was: ${side}\nYou lost: ${bet}` }
             }
         }, category: CommandCategory.GAME
@@ -5725,6 +5738,7 @@ const commands: { [command: string]: Command } = {
         run: async (msg, args) => {
             //@ts-ignore
             try {
+                //@ts-ignore
                 let data = await got(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
                 let text = data.body
                 let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
@@ -7090,6 +7104,7 @@ const commands: { [command: string]: Command } = {
                         else if (stack[stack.length - 1] == "%sram") {
                             let sram = stack.pop()
                             let item = stack.pop()
+                            //@ts-ignore
                             ram[arg as string] = item
                         }
                         else if (stack[stack.length - 1] == '%lram') {
@@ -8068,7 +8083,7 @@ ${styles}
     },
     RESET_ECONOMY: {
         run: async(msg, args) => {
-            resetEconomy()
+            economy.resetEconomy()
 
             return {content: "Economy reset"}
 
@@ -8080,7 +8095,7 @@ ${styles}
             let player = await fetchUser(msg.guild, args[0])
             if(!player)
                 return {content: "No player found"}
-            resetPlayer(player.user.id)
+            economy.resetPlayer(player.user.id)
             return {content: `Reset: <@${player.user.id}>`}
         },
         category: CommandCategory.META,
@@ -8111,9 +8126,9 @@ ${styles}
             if(!user){
                 return {content: "user not found"}
             }
-            let amount = calculateAmountFromString(msg.author.id, args[1])
+            let amount = economy.calculateAmountFromString(msg.author.id, args[1])
             if(amount){
-                setMoney(user.id, amount)
+                economy.setMoney(user.id, amount)
                 return {content: `${user.id} now has ${amount}`}
             }
             return {content: "nothign happened"}
@@ -8166,7 +8181,7 @@ ${styles}
     END: {
         run: async (msg: Message, args: ArgumentList) => {
             await msg.channel.send("STOPPING")
-            saveEconomy()
+            economy.saveEconomy()
             saveItems()
             pet.savePetData()
             client.destroy()
@@ -8198,7 +8213,7 @@ ${styles}
             let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
             let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
             let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
-            if (canEarn(msg.author.id)) {
+            if (economy.canEarn(msg.author.id)) {
                 let amount = diff / (1000 * 60 * 60)
                 if(hours == minutes){
                     amount *= 1.001
@@ -8206,7 +8221,7 @@ ${styles}
                 if(hours == minutes && minutes == seconds){
                     amount *= 1.5
                 }
-                addMoney(msg.author.id, amount)
+                economy.addMoney(msg.author.id, amount)
                 fmt += `\n{earnings}`
                 fs.writeFileSync("./command-results/last-run", String(Date.now()))
             }
@@ -8579,7 +8594,7 @@ valid formats:<br>
     },
     "non-assigned-roles": {
         run: async (msg, args) => {
-            await msg.guild.members.fetch()
+            await msg.guild?.members.fetch()
             let roles = await msg.guild?.roles.fetch()
             let rolesNonAssigned: any[] = []
             roles?.forEach(r => {
@@ -9213,11 +9228,11 @@ client.on("messageDeleteBulk", async (m) => {
 })
 
 client.on("messageCreate", async (m: Message) => {
-    if (ECONOMY()[m.author.id] === undefined && !m.author.bot) {
-        createPlayer(m.author.id)
+    if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
+        economy.createPlayer(m.author.id)
     }
     if (Math.random() > .55) {
-        saveEconomy()
+        economy.saveEconomy()
         saveItems()
         pet.savePetData()
     }
@@ -9237,7 +9252,7 @@ client.on("messageCreate", async (m: Message) => {
         let regexSearch = search[2]
         let rangeSearch = search[3]
         if (!regexSearch && !rangeSearch) {
-            if (canEarn(m.author.id)) {
+            if (economy.canEarn(m.author.id)) {
                 let deaths = pet.damageUserPetsRandomly(m.author.id)
                 if(deaths.length)
                     await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
@@ -9246,16 +9261,16 @@ client.on("messageCreate", async (m: Message) => {
                 let pcount = Number(hasItem(m.author.id, "puffle chat"))
                 percent +=  .0001 * pcount
                 if(ap == 'cat'){
-                    earnMoney(m.author.id, percent + .003)
+                    economy.earnMoney(m.author.id, percent + .003)
                 }
                 else{
-                    earnMoney(m.author.id, percent)
+                    economy.earnMoney(m.author.id, percent)
                 }
                 if(ap == 'puffle'){
                     if(Math.random() <= .025){ // 1% chance
                         if(Math.random() > .30){ //70% for money
-                            let amount = calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                            addMoney(m.author.id, amount)
+                            let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
+                            economy.addMoney(m.author.id, amount)
                             await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
                         }
                         else{ //30% for items
@@ -9332,7 +9347,7 @@ client.on("messageCreate", async (m: Message) => {
         handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
     }
     if (content.slice(0, prefix.length) !== prefix) {
-        if (canEarn(m.author.id)) {
+        if (economy.canEarn(m.author.id)) {
             let deaths = pet.damageUserPetsRandomly(m.author.id)
             if(deaths.length)
                 await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
@@ -9341,16 +9356,16 @@ client.on("messageCreate", async (m: Message) => {
             let pcount = Number(hasItem(m.author.id, "puffle chat"))
             percent +=  .0001 * pcount
             if(ap == 'cat'){
-                earnMoney(m.author.id, percent + .003)
+                economy.earnMoney(m.author.id, percent + .003)
             }
             else{
-                earnMoney(m.author.id, percent)
+                economy.earnMoney(m.author.id, percent)
             }
             if(ap == 'puffle'){
                 if(Math.random() <= .025){ // 1% chance
                     if(Math.random() > .30){ //30% for money
-                        let amount = calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                        addMoney(m.author.id, amount)
+                        let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
+                        economy.addMoney(m.author.id, amount)
                         await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
                     }
                     else{ //70% for items
@@ -9372,7 +9387,7 @@ client.on("messageCreate", async (m: Message) => {
     }
     await doCmd(m)
     writeCmdUse()
-    if (canEarn(m.author.id)) {
+    if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
         if(deaths.length)
             await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
@@ -9381,16 +9396,16 @@ client.on("messageCreate", async (m: Message) => {
         let pcount = Number(hasItem(m.author.id, "puffle chat"))
         percent +=  .0001 * pcount
         if(ap == 'cat'){
-            earnMoney(m.author.id, percent + .003)
+            economy.earnMoney(m.author.id, percent + .003)
         }
         else{
-            earnMoney(m.author.id, percent)
+            economy.earnMoney(m.author.id, percent)
         }
         if(ap == 'puffle'){
             if(Math.random() <= .025){ // 1% chance
                 if(Math.random() > .30){ //30% for money
-                    let amount = calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                    addMoney(m.author.id, amount)
+                    let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
+                    economy.addMoney(m.author.id, amount)
                     await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
                 }
                 else{ //70% for items
@@ -9436,6 +9451,11 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
+            if(typeof BUTTONS[interaction.customId] !== 'string'){
+                interaction.reply({content: "Something went wrong"})
+                return
+            }
+            //@ts-ignore
             let [userChoice, ogUser, bet] = BUTTONS[interaction.customId].split(":")
             let ogBet = Number(bet)
             if(interaction.member?.user.id === ogUser){
@@ -9447,16 +9467,19 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             else if (table[oppChoice] == userChoice) {
                 if(ogBet){
-                    addMoney(ogUser, ogBet)
+                    economy.addMoney(ogUser, ogBet)
                     interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` })
                 }
                 else interaction.reply({ content: `<@${ogUser}> user wins!` })
             }
             else {
                 if(ogBet){
-                    loseMoneyToBank(ogUser, ogBet)
-                    addMoney(interaction.member?.user.id, ogBet)
-                    interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
+                    economy.loseMoneyToBank(ogUser, ogBet)
+                    if(interaction.member?.user.id){
+                        //@ts-ignore
+                        economy.addMoney(interaction.member?.user.id, ogBet)
+                        interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
+                    }
                 }
                 else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
             }
@@ -9754,10 +9777,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let bet = interaction.options.get("bet")?.value as string
             let nBet = 0
             if(bet){
-                nBet = calculateAmountFromString(interaction.member?.user.id, bet)
-                if(!canBetAmount(interaction.member?.user.id, nBet) || nBet < 0){
-                    interaction.reply({content: "You cant bet this much"})
-                    return
+                if(interaction.member?.user.id){
+                    nBet = economy.calculateAmountFromString(interaction.member.user.id, bet)
+                    if(!economy.canBetAmount(interaction.member.user.id, nBet) || nBet < 0){
+                        interaction.reply({content: "You cant bet this much"})
+                        return
+                    }
                 }
             }
             let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
