@@ -13,7 +13,7 @@ let BATTLEGAME: boolean = false;
 
 const BATTLE_GAME_BONUS = 1.1;
 
-async function handleDeath(id: string, players: {[key: string]: number}, winningType: "distribute" | "wta", bets: {[key: string]: number}, ogBets: {[key: string]: number}): {amountToRemoveFromBetTotal: number, send: MessageEmbed}{
+async function handleDeath(id: string, players: {[key: string]: number}, winningType: "distribute" | "wta", bets: {[key: string]: number}, ogBets: {[key: string]: number}): Promise<{amountToRemoveFromBetTotal: number, send: MessageEmbed}>{
     let remaining = Object.keys(players).length - 1
     delete players[id]
     let e = new MessageEmbed()
@@ -31,6 +31,7 @@ async function handleDeath(id: string, players: {[key: string]: number}, winning
         e.setDescription(`<@${id}> HAS DIED AND LOST $${ogBets[id]}`)
         e.setColor("RED")
     }
+    rv.send = e
     loseMoneyToBank(id, ogBets[id])
     return rv
 }
@@ -103,14 +104,12 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setDescription(`<@${m.author.id}> healed for ${amount}`)
             if(players[m.author.id])
                 players[m.author.id] += amount
-            await msg.channel.send({embeds: [e]})
             return true
         },
         "anger toolbox": async(m, e) => {
             e.setTitle("TOOLBOX IS ANGRY")
             e.setColor("RED")
             e.setDescription(`<@${m.author.id}> has angered toolbox`)
-            await msg.channel.send({embeds: [e]})
             for(let player in players){
                 players[player] *= .99432382
             }
@@ -118,7 +117,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         },
         "anger euro": async(m, e) => {
             await msg.channel.send("STOPPING")
-            return true
+            return false
         },
         "double bet": async(m, e) => {
             if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
@@ -127,7 +126,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                 e.setTitle("DOUBLE BET")
                 e.setDescription(`${m.author} has doubled their bet to ${bets[m.author.id]}`)
                 e.setColor("GREEN")
-                await msg.channel.send({embeds: [e]})
                 return true
             }
             return false
@@ -137,7 +135,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setTitle("BLOWTORCH")
             e.setColor("RED")
             e.setDescription(`<@${m.author.id}> blowtorches everyone for ${amount} damage`)
-            await msg.channel.send({embeds: [e]})
             for(let player in players){
                 if(player === m.author.id) continue
                 players[player] -= amount
@@ -156,7 +153,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setColor("#ffff00")
             players[m.author.id] = otherPlayerHealth
             players[p] = thisPlayerHealth
-            await msg.channel.send({embeds: [e]})
             usedSwap.push(m.author.id)
             return true
         },
@@ -165,7 +161,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setTitle("DOUBLE")
             e.setColor("GREEN")
             e.setDescription(`<@${m.author.id}> has doubled the multiplier\n**multiplier: ${responseMultiplier}**`)
-            await msg.channel.send({embeds: [e]})
             return true
         },
         triple: async(m, e) => {
@@ -173,7 +168,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setTitle("TRIPLE")
             e.setColor("GREEN")
             e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
-            await msg.channel.send({embeds: [e]})
             return true
         },
         "blue shell": async(m, e) => {
@@ -190,7 +184,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             }
             e.setDescription(`<@${m.author.id}> hit <@${firstPlace[0]}> with a blue shell`)
             players[firstPlace[0]] -= 50
-            await msg.channel.send({embeds: [e]})
             usedShell.push(m.author.id)
             return true
         },
@@ -200,7 +193,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                 e.setTitle("SHIELD")
                 e.setColor("WHITE")
                 e.setDescription(`<@${m.author.id}> bout a shield`)
-                await msg.channel.send({embeds: [e]})
                 return true
             }
             return false
@@ -211,7 +203,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             mumboUser = m.author.id
             players['mumbo'] = 100
             e.setTitle("MUMBO JOINS THE BATTLE")
-            await msg.channel.send({embeds: [e]})
             return true
         },
         yoink: async(m, e) => {
@@ -221,7 +212,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             mumboUser = m.author.id
             e.setTitle(`YOINK`)
             e.setDescription(`<@${m.author.id}> HAS STOLEN MUMBOくん`)
-            await msg.channel.send({embeds: [e]})
             return true
         },
         suicide: async(m, e) => {
@@ -229,7 +219,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setColor("DARK_RED")
             let damage =  Math.floor(Math.random() * 8 + 2)
             e.setDescription(`<@${m.author.id}> took ${damage} damage`)
-            await msg.channel.send({embeds: [e]})
             players[m.author.id] -= damage
             return true
         },
@@ -244,7 +233,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                 players[player] = average
             }
             e.setDescription(`<@${m.author.id}> CAUSED AN EARTHQUAKE`)
-            await msg.channel.send({embeds: [e]})
             usedEarthquake = true
             return true
         }
@@ -260,7 +248,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                 await msg.channel.send(`<@${m.author.id}> Used an item on cooldown -5 hp (cooldown remaining: **${8 - (Date.now() / 1000 - cooldowns[m.author.id])}**`)
                 players[m.author.id] -= 5
                 if(players[m.author.id] <= 0){
-                    let rv = handleDeath(m.author.id, players, winningType, bets, ogBets)
+                    let rv = await  handleDeath(m.author.id, players, winningType, bets, ogBets)
                     betTotal -= rv.amountToRemoveFromBetTotal
                     await m.channel.send({embeds: [rv.send]})
                 }
@@ -278,18 +266,18 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             }
             let e = new MessageEmbed()
             e.setFooter({text: `Cost: ${a}`})
-            //reset cooldown AFTER purchase
-            switch(i){
-            }
-            loseMoneyToBank(m.author.id, a)
-            //buying an item increases the bet
-            betTotal += a
-            bets[m.author.id] += a
-            if(itemUses[m.author.id]){
-                itemUses[m.author.id]++
-            }
-            else{
-                itemUses[m.author.id] = 1
+            let rv = await itemFunctionTable[i](m, e)
+            if(rv){
+                loseMoneyToBank(m.author.id, a)
+                await m.channel.send({embeds: [e]})
+                betTotal += a
+                bets[m.author.id] += a
+                if(itemUses[m.author.id]){
+                    itemUses[m.author.id]++
+                }
+                else{
+                    itemUses[m.author.id] = 1
+                }
             }
         })
     }
@@ -486,7 +474,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                 delete players[elim]
             }
             else{
-                let rv = handleDeath(elim, players, winningType, bets, ogBets)
+                let rv = await  handleDeath(elim, players, winningType, bets, ogBets)
                 betTotal -= rv.amountToRemoveFromBetTotal
                 await msg.channel.send({embeds: [rv.send]})
             }
@@ -502,7 +490,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                     mumboUser = null
                 }
                 else{
-                    let rv = handleDeath(player, players, winningType, bets, ogBets)
+                    let rv = await  handleDeath(player, players, winningType, bets, ogBets)
                     betTotal -= rv.amountToRemoveFromBetTotal
                     await msg.channel.send(`<@${player}> HAS NaN HEALTH AND DIED`)
                 }
