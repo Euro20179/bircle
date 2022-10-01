@@ -11,8 +11,6 @@
 import fs = require("fs")
 import economy = require("./economy")
 
-//const {loseMoneyToBank, calculateAmountFromStringIncludingStocks, _set_active_pet, _get_active_pet} = require("./economy.js")
-
 type PetData = {[pet: string]: {description: string, "max-hunger": number, cost: string[], "favorite-food": string}}
 type UserPetData = {[pet: string]: number}
 let PETSHOP: PetData = {}

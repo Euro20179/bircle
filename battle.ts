@@ -6,7 +6,8 @@ import fs = require("fs")
 
 const { getOpts, handleSending } = require("./util.js")
 
-const { calculateAmountFromString, ECONOMY, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
+//const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
+import economy = require("./economy")
 const { hasItem } = require("./shop.js")
 
 let BATTLEGAME: boolean = false;
@@ -24,7 +25,7 @@ async function handleDeath(id: string, players: {[key: string]: number}, winning
         e.setDescription(`<@${id}> HAS DIED and distributed ${bets[id] / remaining * BATTLE_GAME_BONUS} to each player`)
         e.setColor("BLUE")
         for(let player in players){
-            addMoney(player, bets[id] / remaining * BATTLE_GAME_BONUS)
+            economy.addMoney(player, bets[id] / remaining * BATTLE_GAME_BONUS)
         }
     }
     else{
@@ -32,7 +33,7 @@ async function handleDeath(id: string, players: {[key: string]: number}, winning
         e.setColor("RED")
     }
     rv.send = e
-    loseMoneyToBank(id, ogBets[id])
+    economy.loseMoneyToBank(id, ogBets[id])
     return rv
 }
 
@@ -60,7 +61,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             usedEarthquake = true
         }
         else if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined){
-            let bet = calculateAmountFromString(m.author.id, "min", {min: (t, a) => t * .002})
+            let bet = economy.calculateAmountFromString(m.author.id, "min", {min: (t, a) => t * .002})
             bets[m.author.id] = bet
             ogBets[m.author.id] = bet
             cooldowns[m.author.id] = 0
@@ -120,7 +121,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             return false
         },
         "double bet": async(m, e) => {
-            if(ECONOMY()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
+            if(economy.getEconomy()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
                 betTotal += bets[m.author.id]
                 bets[m.author.id] *= 2
                 e.setTitle("DOUBLE BET")
@@ -241,7 +242,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
     if(useItems){
         itemUseCollector.on("collect", async(m) => {
-            if(!ECONOMY()[m.author.id]){
+            if(!economy.getEconomy()[m.author.id]){
                 return
             }
             if(Date.now() / 1000 - cooldowns[m.author.id] < 8){
@@ -258,9 +259,9 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             let cost = items[i]
             let a = cost.amount ?? 0
             if(cost.percent){
-                a += calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
+                a += economy.calculateAmountFromString(m.author.id, `${cost.percent * 100}%`)
             }
-            if(ECONOMY()[m.author.id].money - bets[m.author.id] < a){
+            if(economy.getEconomy()[m.author.id].money - bets[m.author.id] < a){
                 await m.channel.send("You cannot afford this")
                 return
             }
@@ -268,7 +269,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setFooter({text: `Cost: ${a}`})
             let rv = await itemFunctionTable[i](m, e)
             if(rv){
-                loseMoneyToBank(m.author.id, a)
+                economy.loseMoneyToBank(m.author.id, a)
                 await m.channel.send({embeds: [e]})
                 betTotal += a
                 bets[m.author.id] += a
@@ -467,9 +468,9 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         for(let elim of eliminations){
             if(elim === 'mumbo'){
                 //@ts-ignore
-                text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${ECONOMY()[mumboUser]?.money * 0.005} \n`
+                text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`
                 //@ts-ignore
-                loseMoneyToBank(mumboUser, ECONOMY()[mumboUser]?.money * 0.005)
+                economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
                 mumboUser = null
                 delete players[elim]
             }
@@ -484,9 +485,9 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             if(isNaN(players[player])){
                 if(player === 'mumbo'){
                     //@ts-ignore
-                    await msg.channel.send( `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${ECONOMY()[mumboUser]?.money * 0.005} \n`)
+                    await msg.channel.send( `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`)
                     //@ts-ignore
-                    loseMoneyToBank(mumboUser, ECONOMY()[mumboUser]?.money * 0.005)
+                    economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
                     mumboUser = null
                 }
                 else{
@@ -509,22 +510,22 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
     let bonusText = ""
     if(!winner){
         let last = Object.keys(players)[0]
-        loseMoneyToBank(last, ogBets[last])
+        economy.loseMoneyToBank(last, ogBets[last])
         e.setDescription(`THE GAME IS A TIE`)
         e.setTitle("TIE")
         e.setColor("YELLOW")
     }
     else if(winner[0] == 'mumbo'){
-        addMoney(mumboUser, betTotal / 2)
+        economy.addMoney(mumboUser, betTotal / 2)
         e.setTitle("GAME OVER")
         e.setColor("DARK_GREEN")
         e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GETS HALF THE WINNINGS! ($${betTotal / 2})`)
     }
     else{
-        addMoney(winner[0], betTotal * BATTLE_GAME_BONUS)
+        economy.addMoney(winner[0], betTotal * BATTLE_GAME_BONUS)
         if(negativeHpBonus[winner[0]]){
             bonusText += `<@${winner[0]}> GOT THE NEGATIVE HP BONUS FOR ${negativeHpBonus[winner[0]]}\n`
-            addMoney(winner[0], Math.abs(negativeHpBonus[winner[0]]))
+            economy.addMoney(winner[0], Math.abs(negativeHpBonus[winner[0]]))
         }
         e.setTitle("GAME OVER!")
         e.setColor("GREEN")
@@ -538,16 +539,16 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
     e.setFooter({text: `The game lasted: ${Date.now() / 1000 - start} seconds`})
     midGameCollector.stop()
     if(winner && winner[1] >= 100){
-        if(ECONOMY()[winner[0]]){
-            addMoney(winner[0], winner[1] - 100)
+        if(economy.getEconomy()[winner[0]]){
+            economy.addMoney(winner[0], winner[1] - 100)
             bonusText += `<@${winner[0]}> GOT THE 100+ HP BONUS\n`
         }
     }
     if(Object.keys(itemUses).length > 0){
         let mostUsed = Object.entries(itemUses).sort((a, b) => b[1] - a[1])
         let bonusAmount = mostUsed[0][1] - (mostUsed[1]?.[1] || 0)
-        if(bonusAmount && ECONOMY()[mostUsed[0][0]]){
-            addMoney(mostUsed[0][0], bonusAmount)
+        if(bonusAmount && economy.getEconomy()[mostUsed[0][0]]){
+            economy.addMoney(mostUsed[0][0], bonusAmount)
             bonusText += `<@${mostUsed[0][0]}> GOT THE ITEM BONUS BY USING ${mostUsed[0][1]} ITEMS AND WON $${bonusAmount}\n`
         }
     }
@@ -573,12 +574,12 @@ async function battle(msg: Message, args: ArgumentList){
     if (winningType == 'dist')
         winningType = 'distribute'
     //@ts-ignore
-    let nBet = calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
+    let nBet = economy.calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
-    if(!nBet || !canBetAmount(msg.author.id, nBet) || nBet < 0){
+    if(!nBet || !economy.canBetAmount(msg.author.id, nBet) || nBet < 0){
         return {content: "Not a valid bet"}
     }
-    if(nBet / ECONOMY()[msg.author.id].money < 0.002){
+    if(nBet / economy.getEconomy()[msg.author.id].money < 0.002){
         return {content: "You must bet at least 0.2%"}
     }
 
@@ -605,13 +606,13 @@ async function battle(msg: Message, args: ArgumentList){
         if(players[m.author.id]) return
         let bet = m.content.split(" ")[1]
         //@ts-ignore
-        let nBet = calculateAmountFromString(m.author.id, bet, {min: (t, a) => t * 0.002})
-        if(!nBet || !canBetAmount(m.author.id, nBet) || nBet < 0){
+        let nBet = economy.calculateAmountFromString(m.author.id, bet, {min: (t, a) => t * 0.002})
+        if(!nBet || !economy.canBetAmount(m.author.id, nBet) || nBet < 0){
             await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)
             return
         }
 
-        if(nBet / ECONOMY()[m.author.id].money < 0.002){
+        if(nBet / economy.getEconomy()[m.author.id].money < 0.002){
             await m.channel.send("You must bet at least 0.2%")
             return
         }

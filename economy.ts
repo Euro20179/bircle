@@ -189,7 +189,7 @@ function setMoney(id: string, amount: number){
     }
 }
 
-function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
+function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: {[key: string]: (total: number, k: string) => number}){
     if(amount == undefined || amount == null){
         return NaN
     }
@@ -234,7 +234,7 @@ function calculateAmountFromStringIncludingStocks(id: string, amount: string, ex
     return 0
 }
 
-function calculateStockAmountFromString(id: string, shareCount: number, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
+function calculateStockAmountFromString(id: string, shareCount: number, amount: string){
     if(amount == undefined || amount == null){
         return NaN
     }
@@ -290,7 +290,7 @@ function calculateLoanAmountFromString(id: string, amount: string){
     return 0
 }
 
-function calculateAmountFromString(id: string, amount: string, extras: {[key: string]: (total: number, k: string, data: EconomyData) => number}){
+function calculateAmountFromString(id: string, amount: string, extras?: {[key: string]: (total: number, k: string, data: EconomyData) => number}){
     if(amount == undefined || amount == null){
         return NaN
     }
@@ -356,16 +356,19 @@ function sellStock(id: string, stock: string, shares: number, sellPrice: number)
 
 function removeStock(id: string, stock: string){
     if(ECONOMY[id].stocks?.[stock]){
+        //@ts-ignore
         delete ECONOMY[id].stocks[stock]
     }
 }
 
 function giveStock(id: string, stock: string, buyPrice: number, shares: number){
     if(ECONOMY[id].stocks){
+        //@ts-ignore
         ECONOMY[id].stocks[stock] = {buyPrice: buyPrice, shares: shares}
     }
     else{
         ECONOMY[id].stocks = {}
+        //@ts-ignore
         ECONOMY[id].stocks[stock] = {buyPrice: buyPrice, shares: shares}
     }
 }
@@ -406,38 +409,12 @@ function _get_active_pet(id: string){
 loadEconomy()
 
 
-module.exports = {
-    ECONOMY: () => ECONOMY,
-    LOTTERY: () => lottery,
-    loadEconomy,
-    saveEconomy,
-    createPlayer,
-    earnMoney,
-    canEarn,
-    addMoney,
-    canBetAmount,
-    canTax,
-    taxPlayer,
-    loseMoneyToBank,
-    calculateAmountFromString,
-    loseMoneyToPlayer,
-    setMoney,
-    resetEconomy,
-    buyStock,
-    calculateStockAmountFromString,
-    calculateAmountFromStringIncludingStocks,
-    sellStock,
-    buyLotteryTicket,
-    newLottery,
-    removeStock,
-    giveStock,
-    resetPlayer,
-    userHasStockSymbol,
-    useLoan,
-    payLoan,
-    calculateLoanAmountFromString,
-    _set_active_pet,
-    _get_active_pet
+function getEconomy(){
+    return ECONOMY
+}
+
+function getLottery(){
+    return lottery
 }
 
 export{
@@ -469,5 +446,7 @@ export{
     payLoan,
     calculateLoanAmountFromString,
     _set_active_pet,
-    _get_active_pet
+    _get_active_pet,
+    getEconomy,
+    getLottery
 }
