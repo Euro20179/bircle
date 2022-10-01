@@ -1035,14 +1035,7 @@ const commands: { [command: string]: Command } = {
                     bets[m.author.id] = nBet
                     ogBets[m.author.id] = nBet
                     cooldowns[m.author.id] = 0
-                    if(Object.keys(players).length < 2){
-                        players[Object.keys(players)[0]] = 100
-                        players[m.author.id] = 0
-                        usedSwap.push(m.author.id)
-                        usedShell.push(m.author.id)
-                        usedEarthquake = true
-                    }
-                    else if(pet.getActivePet(m.author.id) == 'dog'){
+                    if(pet.getActivePet(m.author.id) == 'dog'){
                         players[m.author.id] = 110
                     }
                     else{
@@ -1055,7 +1048,14 @@ const commands: { [command: string]: Command } = {
                 let midGameCollector = msg.channel.createMessageCollector({filter: m => !m.author.bot && m.content.toLowerCase() == 'join' && hasItem(m.author.id, "intrude")})
                 midGameCollector.on("collect", async(m) => {
                     if(players[m.author.id]) return
-                    if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined){
+                    if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined &&  Object.keys(players).length < 2){
+                        players[Object.keys(players)[0]] = 100
+                        players[m.author.id] = 0
+                        usedSwap.push(m.author.id)
+                        usedShell.push(m.author.id)
+                        usedEarthquake = true
+                    }
+                    else if(!Object.keys(players).includes(m.author.id) && ogBets[m.author.id] === undefined){
                         let bet = calculateAmountFromString(m.author.id, "min", {min: (t, a) => t * .002})
                         bets[m.author.id] = bet
                         ogBets[m.author.id] = bet
