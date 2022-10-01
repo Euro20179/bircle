@@ -1035,7 +1035,10 @@ const commands: { [command: string]: Command } = {
                     bets[m.author.id] = nBet
                     ogBets[m.author.id] = nBet
                     cooldowns[m.author.id] = 0
-                    if(pet.getActivePet(m.author.id) == 'dog'){
+                    if(Object.keys(players).length < 2){
+                        players[m.author.id] = -1000000
+                    }
+                    else if(pet.getActivePet(m.author.id) == 'dog'){
                         players[m.author.id] = 110
                     }
                     else{
