@@ -323,6 +323,19 @@ let HEIST_PLAYERS: string[] = []
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 
 const commands: { [command: string]: Command } = {
+    "send-log": {
+        run: async(msg, args) => {
+            return {files: [
+                {
+                    attachment: `log.txt`,
+                    name: `log.txt`,
+                    description: "log",
+                    delete: false
+                }
+            ]}
+        },  category: CommandCategory.UTIL,
+        permCheck: (m) => ADMINS.includes(m.author.id)
+    },
     "stk": {
         run: async(msg, args) => {
             https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
@@ -9342,10 +9355,10 @@ client.on("messageCreate", async (m: Message) => {
                     }
                     else{ //70% for items
                         let foundItems = []
+                        let items = fs.readFileSync("./shop.json", "utf-8")
+                        let itemJ = JSON.parse(items)
+                        let itemNames = Object.keys(itemJ)
                         for(let i = 0; i < 2; i++){
-                            let items = fs.readFileSync("./shop.json", "utf-8")
-                            let itemJ = JSON.parse(items)
-                            let itemNames = Object.keys(itemJ)
                             let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
                             buyItem(m.author.id,  randItemName)
                             foundItems.push(randItemName)
@@ -9382,10 +9395,10 @@ client.on("messageCreate", async (m: Message) => {
                 }
                 else{ //70% for items
                     let foundItems = []
+                    let items = fs.readFileSync("./shop.json", "utf-8")
+                    let itemJ = JSON.parse(items)
+                    let itemNames = Object.keys(itemJ)
                     for(let i = 0; i < 2; i++){
-                        let items = fs.readFileSync("./shop.json", "utf-8")
-                        let itemJ = JSON.parse(items)
-                        let itemNames = Object.keys(itemJ)
                         let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
                         buyItem(m.author.id,  randItemName)
                         foundItems.push(randItemName)
