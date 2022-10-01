@@ -196,6 +196,8 @@ function calculateAmountFromStringIncludingStocks(id: string, amount: string, ex
     if(ECONOMY[id] === undefined){
         return NaN
     }
+    if(amount === 'Infinity')
+        return Infinity
     amount = amount.toLowerCase()
     if(amount == "all"){
         return ECONOMY[id].money * .99
@@ -239,6 +241,8 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     if(ECONOMY[id] === undefined){
         return NaN
     }
+    if(amount === "Infinity")
+        return Infinity
     amount = amount.toLowerCase()
     if(amount == "all"){
         return shareCount
@@ -264,6 +268,8 @@ function calculateLoanAmountFromString(id: string, amount: string){
     let loanDebt = ECONOMY[id]?.loanUsed
     if(!loanDebt)
         return NaN
+    if(amount === "Infinity")
+        return Infinity
     amount = amount.toLowerCase()
     if(amount == "all"){
         return loanDebt
@@ -291,6 +297,8 @@ function calculateAmountFromString(id: string, amount: string, extras: {[key: st
     if(ECONOMY[id] === undefined){
         return NaN
     }
+    if(amount === 'Infinity')
+        return Infinity
     amount = amount.toLowerCase()
     if(amount == "all"){
         return ECONOMY[id].money * .99

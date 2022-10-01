@@ -128,7 +128,7 @@ function taxPlayer(id, max) {
     let total = playerEconomyLooseTotal(id);
     let taxPercent = randInt(0.001, 0.008);
     if (pet.getActivePet(id) == 'tiger') {
-        taxPercent = randInt(-.004, .006);
+        taxPercent = randInt(-.0025, .006);
     }
     let amountTaxed = total * taxPercent;
     if (amountTaxed > max)
@@ -194,6 +194,8 @@ function calculateAmountFromStringIncludingStocks(id, amount, extras) {
     if (ECONOMY[id] === undefined) {
         return NaN;
     }
+    if (amount === 'Infinity')
+        return Infinity;
     amount = amount.toLowerCase();
     if (amount == "all") {
         return ECONOMY[id].money * .99;
@@ -237,6 +239,8 @@ function calculateStockAmountFromString(id, shareCount, amount, extras) {
     if (ECONOMY[id] === undefined) {
         return NaN;
     }
+    if (amount === "Infinity")
+        return Infinity;
     amount = amount.toLowerCase();
     if (amount == "all") {
         return shareCount;
@@ -261,6 +265,8 @@ function calculateLoanAmountFromString(id, amount) {
     let loanDebt = ECONOMY[id]?.loanUsed;
     if (!loanDebt)
         return NaN;
+    if (amount === "Infinity")
+        return Infinity;
     amount = amount.toLowerCase();
     if (amount == "all") {
         return loanDebt;
@@ -288,6 +294,8 @@ function calculateAmountFromString(id, amount, extras) {
     if (ECONOMY[id] === undefined) {
         return NaN;
     }
+    if (amount === 'Infinity')
+        return Infinity;
     amount = amount.toLowerCase();
     if (amount == "all") {
         return ECONOMY[id].money * .99;

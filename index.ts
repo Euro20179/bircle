@@ -759,7 +759,7 @@ const commands: { [command: string]: Command } = {
                 if(round){
                     totalCost = Math.floor(totalCost * 100) / 100
                 }
-                e.addField(item.toUpperCase(), `**$${totalCost}**\n${itemJ[item].description}`, true)
+                e.addField(item.toUpperCase(), `**${totalCost == Infinity ? "puffle only" : `$${totalCost}`}**\n${itemJ[item].description}`, true)
                 if(i % 25 == 0){
                     pages.push(e)
                     e = new MessageEmbed()
@@ -1414,8 +1414,9 @@ const commands: { [command: string]: Command } = {
                             continue
                         }
                     }
-                    if(responseMultiplier > 0){
+                    if(responseMultiplier > 1){
                         nAmount *= responseMultiplier
+                        responseMultiplier = 1
                     }
 
                     let tawCount = 0

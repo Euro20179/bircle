@@ -30,5 +30,10 @@
         "description": "Restore randomly 2-5 hunger to a pet of your  choice",
         "uses": 1,
         "cost": ["0.5", "0.3%"]
+    },
+    "chatty": {
+        "description": "Increase the talking bonus by .1%",
+        "uses": 1,
+        "cost": ["Infinity"]
     }
 }
