@@ -9252,7 +9252,7 @@ client.on("messageCreate", async (m: Message) => {
                     earnMoney(m.author.id, percent)
                 }
                 if(ap == 'puffle'){
-                    if(Math.random() <= .05){ // 1% chance
+                    if(Math.random() <= .025){ // 1% chance
                         if(Math.random() > .30){ //70% for money
                             let amount = calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
                             addMoney(m.author.id, amount)
@@ -9347,7 +9347,7 @@ client.on("messageCreate", async (m: Message) => {
                 earnMoney(m.author.id, percent)
             }
             if(ap == 'puffle'){
-                if(Math.random() <= .05){ // 1% chance
+                if(Math.random() <= .025){ // 1% chance
                     if(Math.random() > .30){ //30% for money
                         let amount = calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
                         addMoney(m.author.id, amount)
@@ -9387,7 +9387,7 @@ client.on("messageCreate", async (m: Message) => {
             earnMoney(m.author.id, percent)
         }
         if(ap == 'puffle'){
-            if(Math.random() <= .05){ // 1% chance
+            if(Math.random() <= .025){ // 1% chance
                 if(Math.random() > .30){ //30% for money
                     let amount = calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
                     addMoney(m.author.id, amount)
