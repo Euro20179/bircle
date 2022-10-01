@@ -37,7 +37,7 @@ function resetPlayerItems(id: string){
 
 function hasItem(user: string, item: string){
     if(INVENTORY[user]?.[item]){
-        return true
+        return INVENTORY[user][item]
     }
     return false
 }

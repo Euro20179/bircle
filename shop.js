@@ -33,7 +33,7 @@ function resetPlayerItems(id) {
 }
 function hasItem(user, item) {
     if (INVENTORY[user]?.[item]) {
-        return true;
+        return INVENTORY[user][item];
     }
     return false;
 }

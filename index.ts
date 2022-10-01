@@ -9229,11 +9229,14 @@ client.on("messageCreate", async (m: Message) => {
                 if(deaths.length)
                     await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
                 let ap = pet.getActivePet(m.author.id)
+                let percent = 1.001
+                let pcount = Number(hasItem(m.author.id, "puffle chat"))
+                percent +=  .0001 * pcount
                 if(ap == 'cat'){
-                    earnMoney(m.author.id, 1.002)
+                    earnMoney(m.author.id, percent + .003)
                 }
                 else{
-                    earnMoney(m.author.id)
+                    earnMoney(m.author.id, percent)
                 }
                 if(ap == 'puffle'){
                     if(Math.random() <= .05){ // 1% chance
@@ -9321,11 +9324,14 @@ client.on("messageCreate", async (m: Message) => {
             if(deaths.length)
                 await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
             let ap = pet.getActivePet(m.author.id)
+            let percent = 1.001
+            let pcount = Number(hasItem(m.author.id, "puffle chat"))
+            percent +=  .0001 * pcount
             if(ap == 'cat'){
-                earnMoney(m.author.id, 1.002)
+                earnMoney(m.author.id, percent + .003)
             }
             else{
-                earnMoney(m.author.id)
+                earnMoney(m.author.id, percent)
             }
             if(ap == 'puffle'){
                 if(Math.random() <= .05){ // 1% chance
@@ -9358,11 +9364,14 @@ client.on("messageCreate", async (m: Message) => {
         if(deaths.length)
             await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
         let ap = pet.getActivePet(m.author.id)
+        let percent = 1.001
+        let pcount = Number(hasItem(m.author.id, "puffle chat"))
+        percent +=  .0001 * pcount
         if(ap == 'cat'){
-            earnMoney(m.author.id, 1.002)
+            earnMoney(m.author.id, percent + .003)
         }
         else{
-            earnMoney(m.author.id)
+            earnMoney(m.author.id, percent)
         }
         if(ap == 'puffle'){
             if(Math.random() <= .05){ // 1% chance
