@@ -9,7 +9,6 @@ cmduse
 emoteuse
 command-perms
 command-results
-index.js
 log.txt
 make-changelog
 *.txt
@@ -19,5 +18,11 @@ economy.json
 lottery.json
 inventory.json
 petinventory.json
+
+index.js
+economy.js
+pets.js
+shop.js
+uno.js
 
 !command-perms/holder
