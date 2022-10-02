@@ -47,7 +47,7 @@ let PETACTIONS: {[key: string]: Function} = {
         }
         return false
     },
-    tiger: () => randInt(-.0025, .006),
+    tiger: () => randInt(-.003, .006),
     dog: (start?: number) => (start ?? 0) + 10
 }
 
