@@ -338,6 +338,84 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
     return [command, args, doFirsts]
 }
 
+function parseAliasReplacement(msg, cmdContent, args){
+    let finalText = ""
+    let isEscaped = false
+    for(let i = 0; i < cmdContent.length; i++){
+        let ch = cmdContent[i]
+        switch(ch){
+            case "\\": {
+                isEscaped = true
+                break
+            }
+            case "{": {
+                let startingI = i
+                if(isEscaped){
+                    isEscaped = false
+                    finalText += "{"
+                    continue
+                }
+                let val = ""
+                for(i++; i < cmdContent.length; i++){
+                    let ch = cmdContent[i]
+                    if(!"abcdefghijklmnopqrstuvwxyz".includes(ch)){
+                        i--
+                        break
+                    }
+                    val += ch
+                }
+                let suffix = ""
+                let isSlice = false
+                let dotsInARow = 0
+                for(i++; i < cmdContent.length; i++){
+                    let ch = cmdContent[i]
+                    if(ch === "}"){
+                        break
+                    }
+                    if(ch == '.'){
+                        dotsInARow++
+                        isSlice = true
+                    }
+                    suffix += ch
+                }
+                if(val == "arg" || val == "args"){
+                    if(suffix == "#"){
+                        finalText += String(args.length)
+                    }
+                    else if(dotsInARow == 3){
+                        finalText += String(args.slice(Number(suffix)))
+                    }
+                    else if(dotsInARow == 2){
+                        let [n1, n2] = suffix.split("..")
+                        finalText += String(args.slice(Number(n1), Number(n2)))
+                    }
+                    else if(Number(suffix)){
+                        finalText += args[Number(suffix)]
+                    }
+                    else{
+                        finalText += `{${val}${suffix}`
+                    }
+                }
+                else if(val == "sender"){
+                    finalText += String(msg.author)
+                }
+                else if(val == "sendername"){
+                    finalText += String(msg.author.username)
+                }
+                else if(val == "channel"){
+                    finalText += String(msg.channel)
+                }
+                break
+            }
+            default:{
+                isEscaped = false
+                finalText += ch
+            }
+        }
+    }
+    return finalText
+}
+
 function operateOnPositionValues(v1, op, v2, areaSize, objectSize, numberConv){
     let conversions
     if(!objectSize){
@@ -408,4 +486,5 @@ function parsePosition(position, areaSize, objectSize, numberConv){
 module.exports = {
     parseCmd: parseCmd,
     parsePosition: parsePosition,
+    parseAliasReplacement: parseAliasReplacement
 }

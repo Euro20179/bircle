@@ -22,7 +22,7 @@ import { intToRGBA } from "jimp/*"
 
 
 const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
-const { parseCmd, parsePosition } = require('./parsing.js')
+const { parseCmd, parsePosition, parseAliasReplacement } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
 
 //const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan, calculateLoanAmountFromString } = require("./economy.js")
@@ -8339,7 +8339,6 @@ async function doCmd(msg: Message, returnJson = false) {
     let oldSend = msg.channel.send
     let typing = false
     let redir: boolean | [Object, string] = false
-    let redirAll = false
     let m;
     if (m = command.match(/^s:/)) {
         msg.channel.send = async (_data) => msg
@@ -8350,7 +8349,6 @@ async function doCmd(msg: Message, returnJson = false) {
         let skip = 9
         if (all) {
             skip++
-            redirAll = true
             msg.channel.send = async (_data) => {
                 //@ts-ignore
                 if (_data.content) {
@@ -8435,35 +8433,8 @@ async function doCmd(msg: Message, returnJson = false) {
         writeCmdUse()
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
         let oldC = msg.content
-        msg.content = msg.content.replaceAll(/(?<!\\)\{args#\}/g, String(args.length))
-        msg.content = msg.content.replaceAll(/(?<!\\)\{args(\d+)?\.\.\.\}/g, (...repl) => {
-            let argStart = parseInt(repl[1])
-            if (argStart) {
-                if(args.slice(argStart -1).join(" "))
-                    return args.slice(argStart - 1).join(" ")
-                return ""
-            }
-            else {
-                return args.join(" ")
-            }
-        })
-        msg.content = msg.content.replaceAll(/(?<!\\)\{arg(\d+)(..\d+)?\}/g, (...repl) => {
-            let argNo = parseInt(repl[1])
-            let argTo = parseInt(repl[2]?.replace(/\./g, ""))
-            if (argTo) {
-                if(args.slice(argNo  - 1, argTo).join(" "))
-                    return args.slice(argNo - 1, argTo).join(" ")
-                return ""
-            }
-            else {
-                if(args[argNo - 1])
-                    return args[argNo - 1]
-                return ""
-            }
-        })
-        msg.content = msg.content.replaceAll("{sender}", String(msg.author))
-        msg.content = msg.content.replaceAll("{sendername}", String(msg.author.username))
-        msg.content = msg.content.replaceAll("{channel}", String(msg.channel))
+        //aliasPreArgs.join is the command  content, args is what the user typed
+        msg.content = `${prefix}${command} ${parseAliasReplacement(msg,  aliasPreArgs.join(" "), args)}`
         if (oldC == msg.content) {
             msg.content = msg.content + ` ${args.join(" ")}`
         }
