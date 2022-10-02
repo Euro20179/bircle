@@ -39,7 +39,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: Function}} 
 export async function handleApiArgumentType(msg: Message, t: string, argument: string){
     switch(t){
         case "id": {
-            return (await fetchUser(msg.guild, argument)).user.id || msg.author.id
+            return (await fetchUser(msg.guild, argument))?.user?.id || msg.author.id
         }
         case "symbol": {
             return argument
