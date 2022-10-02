@@ -76,6 +76,25 @@ let vars = {
     "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
 }
 let userVars = {}
+
+function getVarFn(varName, isUserVar, prefix){
+    if(isUserVar && userVars[prefix]?.[varName]){
+        return userVars[prefix][varName]
+    }
+    else if(isUserVar && vars[varName]){
+        return vars[varName]
+    }
+    else if(prefix && !isUserVar && userVars[prefix]?.[varName]){
+        return userVars[prefix][varName]
+    }
+    else if(vars[varName]){
+        return vars[varName]
+    }
+    else{
+        return false
+    }
+}
+
 module.exports = {
     prefix: prefix,
     vars: vars,
@@ -90,5 +109,6 @@ module.exports = {
     LOGFILE: LOGFILE,
     VERSION: VERSION,
     userVars: userVars,
-    USER_SETTINGS: USER_SETTINGS
+    USER_SETTINGS: USER_SETTINGS,
+    getVarFn: getVarFn
 }

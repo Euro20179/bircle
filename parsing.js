@@ -1,4 +1,4 @@
-const {prefix, vars, userVars} = require('./common.js')
+const {prefix, vars, userVars, getVarFn} = require('./common.js')
 const {format, safeEval} = require('./util.js')
 
 async function buildFormat(sequence, msg, curArg, customFormats){
@@ -170,16 +170,15 @@ function buildEscape(letter, sequence, msg, curArg){
                 scope = msg.author.id
             }
             else if(scope == "."){
-                if(vars[name]){
-                    return vars[name](msg, curArg)
-                }
-                return `\\v${sequence}`
+                let v = getVarFn(name, false)
+                if(v)
+                    return v(msg, curArg)
+                else return `\\v{${sequence}}`
             }
-            if(userVars[scope]?.[name]){
-                return userVars[scope][name](msg, curArg)
-            }
-            return `\\v${sequence}`
-            break
+            let v = getVarFn(name, false, scope)
+            if(v)
+                return v(msg, curArg)
+            else return `\\v{${sequence}}`
         }
         case "v":
             let num = Number(sequence)
@@ -189,18 +188,14 @@ function buildEscape(letter, sequence, msg, curArg){
                 return String(args[num])
             }
             try{
+                let name = sequence
                 if(sequence.split(":")[0] == "."){
-                    return vars[sequence.split(":").slice(1).join(":")](msg, curArg) || `\\V{${sequence}}`
+                    name = sequence.split(":").slice(1).join(":")
                 }
-                if(userVars[msg.author.id]){
-                    if(userVars[msg.author.id][sequence]){
-                        return userVars[msg.author.id][sequence](msg, curArg)
-                    }
-                }
-                if(vars[sequence])
-                    return vars[sequence](msg, curArg) ?? `\\V{${sequence}}`
-                else
-                    return `\\V{${sequence}}`
+                let v = getVarFn(name, false, msg.author.id)
+                if(v)
+                    return v(msg, curArg)
+                else return `\\v{${sequence}}`
             } catch(err){
                 console.log(err)
                 return "\\V"
