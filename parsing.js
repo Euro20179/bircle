@@ -223,7 +223,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
     if(!content) content = msg.content
     if(!command){
         command = getCommand(content.slice(prefix.length))
-        content = content.replace(`${prefix}${command}`, "").trim()
+        content = content.slice(command.length + prefix.length)
     }
     let args = []
     //it should be smth like: {3: "$(...)"}, where 3 represents the argNo

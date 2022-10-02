@@ -583,7 +583,7 @@ async function battle(msg: Message, args: ArgumentList){
         return {content: "You must bet at least 0.2%"}
     }
 
-    let players: {[key: string]: number} = {[msg.author.id]: pet.getActivePet(msg.author.id) == 'dog' ? 110 : 100}
+    let players: {[key: string]: number} = {[msg.author.id]: pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100}
     //total bet
     let bets: {[key: string]: number} = {[msg.author.id]: nBet}
     //initial bet
@@ -624,7 +624,7 @@ async function battle(msg: Message, args: ArgumentList){
             ogBets[m.author.id] = nBet
             cooldowns[m.author.id] = 0
             if(pet.getActivePet(m.author.id) == 'dog'){
-                players[m.author.id] = 110
+                players[m.author.id] = pet.PETACTIONS['dog'](100)
             }
             else{
                 players[m.author.id] = 100

@@ -13,6 +13,7 @@ import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, Gu
 import uno = require("./uno")
 
 import battle = require("./battle")
+import API = require("./api")
 
 import sharp = require('sharp')
 import got = require('got')
@@ -2607,6 +2608,37 @@ const commands: { [command: string]: Command } = {
             }
         },
         category: CommandCategory.FUN
+    },
+    "api": {
+        run: async(msg, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            if(opts['l']){
+                let text = ""
+                for(let fn in API.APICmds){
+                    text += `${fn}: ${API.APICmds[fn].requirements.join(", ")}\n--------------------\n`
+                }
+                return {content: text}
+            }
+            let fn = args.join(" ")
+            if(!Object.keys(API.APICmds).includes(fn)){
+                return  {content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`}
+            }
+            let apiFn = API.APICmds[fn]
+            let argsForFn: {[key: string]: any} = {}
+            for(let i in opts){
+                if(!apiFn.requirements.includes(i))
+                    continue;
+                else{
+                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts[i]))
+                }
+            }
+            if(Object.keys(argsForFn).length < apiFn.requirements.length){
+                let missing = apiFn.requirements.filter(v => !Object.keys(argsForFn).includes(v))
+                return {content: `You are missing the following options: ${missing}`}
+            }
+            return {content: String(apiFn.exec(argsForFn))}
+        }, category: CommandCategory.META
     },
     "get": {
         run: async (msg, opts) => {
@@ -8457,6 +8489,7 @@ async function doCmd(msg: Message, returnJson = false) {
         msg.channel.send = oldSend
         return
     }
+    console.log(rv)
     handleSending(msg, rv)
     msg.channel.send = oldSend
 }
@@ -8542,31 +8575,12 @@ client.on("messageCreate", async (m: Message) => {
                 let pcount = Number(hasItem(m.author.id, "puffle chat"))
                 percent +=  .0001 * pcount
                 if(ap == 'cat'){
-                    economy.earnMoney(m.author.id, percent + .003)
+                    percent += pet.PETACTIONS['cat']()
                 }
-                else{
-                    economy.earnMoney(m.author.id, percent)
-                }
+                economy.earnMoney(m.author.id, percent)
                 if(ap == 'puffle'){
-                    if(Math.random() <= .025){ // 1% chance
-                        if(Math.random() > .30){ //70% for money
-                            let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                            economy.addMoney(m.author.id, amount)
-                            await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
-                        }
-                        else{ //30% for items
-                            let foundItems = []
-                            for(let i = 0; i < 2; i++){
-                                let items = fs.readFileSync("./shop.json", "utf-8")
-                                let itemJ = JSON.parse(items)
-                                let itemNames = Object.keys(itemJ)
-                                let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                                buyItem(m.author.id,  randItemName)
-                                foundItems.push(randItemName)
-                            }
-                            await m.channel.send(`<@${m.author.id}>'s puffle found: ${foundItems.join(", ")}`)
-                        }
-                    }
+                    let stuff = await pet.PETACTIONS['puffle'](m)
+                    await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
                 }
             }
             return
@@ -8643,25 +8657,8 @@ client.on("messageCreate", async (m: Message) => {
                 economy.earnMoney(m.author.id, percent)
             }
             if(ap == 'puffle'){
-                if(Math.random() <= .025){ // 1% chance
-                    if(Math.random() > .30){ //30% for money
-                        let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                        economy.addMoney(m.author.id, amount)
-                        await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
-                    }
-                    else{ //70% for items
-                        let foundItems = []
-                        let items = fs.readFileSync("./shop.json", "utf-8")
-                        let itemJ = JSON.parse(items)
-                        let itemNames = Object.keys(itemJ)
-                        for(let i = 0; i < 2; i++){
-                            let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                            buyItem(m.author.id,  randItemName)
-                            foundItems.push(randItemName)
-                        }
-                        await m.channel.send(`<@${m.author.id}>'s puffle found: ${foundItems.join(", ")}`)
-                    }
-                }
+                let stuff = await pet.PETACTIONS['puffle'](m)
+                await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
             }
         }
         return
@@ -8683,25 +8680,8 @@ client.on("messageCreate", async (m: Message) => {
             economy.earnMoney(m.author.id, percent)
         }
         if(ap == 'puffle'){
-            if(Math.random() <= .025){ // 1% chance
-                if(Math.random() > .30){ //30% for money
-                    let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                    economy.addMoney(m.author.id, amount)
-                    await m.channel.send(`<@${m.author.id}>'s puffle found $${amount}`)
-                }
-                else{ //70% for items
-                    let foundItems = []
-                    let items = fs.readFileSync("./shop.json", "utf-8")
-                    let itemJ = JSON.parse(items)
-                    let itemNames = Object.keys(itemJ)
-                    for(let i = 0; i < 2; i++){
-                        let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                        buyItem(m.author.id,  randItemName)
-                        foundItems.push(randItemName)
-                    }
-                    await m.channel.send(`<@${m.author.id}>'s puffle found: ${foundItems.join(", ")}`)
-                }
-            }
+            let stuff = await pet.PETACTIONS['puffle'](m)
+            await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
         }
     }
 })

@@ -7,14 +7,54 @@
 //eg: tiger, get taxed from .1 - .6% instead of .1 - .8%
 //eg: dog, every 60 seconds, there is a 1% chance to dig up a treasure
 //you can own as many pets as you like, you just must keep them alive, but you can only have one active at a time
+//
+
+import { Message } from 'discord.js'
 
 import fs = require("fs")
 import economy = require("./economy")
+
+const { buyItem } = require("./shop.js")
 
 type PetData = {[pet: string]: {description: string, "max-hunger": number, cost: string[], "favorite-food": string}}
 type UserPetData = {[pet: string]: number}
 let PETSHOP: PetData = {}
 let PETINVENTORY: {[id: string]: UserPetData} = {}
+
+let PETACTIONS: {[key: string]: Function} = {
+    cat: () => {
+        return .003 //increases chat bonus by .003%
+    },
+    puffle: async(m: Message) => {
+        let stuff = {money: 0, items: [""]}
+        if(Math.random() <= .025){ // 1% chance
+            if(Math.random() >= .30){ //70% for money
+                let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
+                console.log(amount)
+                economy.addMoney(m.author.id, amount)
+                stuff.money = amount
+            }
+            else{ //30% for items
+                for(let i = 0; i < 2; i++){
+                    let items = fs.readFileSync("./shop.json", "utf-8")
+                    let itemJ = JSON.parse(items)
+                    let itemNames = Object.keys(itemJ)
+                    let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                    buyItem(m.author.id,  randItemName)
+                    stuff.items.push(randItemName)
+                }
+            }
+        }
+        stuff.items = (stuff.items.filter(v => v) || [])
+        return stuff
+    },
+    tiger: () => randInt(-.0025, .006),
+    dog: (start?: number) => (start ?? 0) + 10
+}
+
+function randInt(min: number, max: number){
+    return Math.random()  * (max - min) + min
+}
 
 function loadPets(){
     if(fs.existsSync("./pets.json")){
@@ -154,5 +194,6 @@ export{
     getActivePet,
     getUserPets,
     damagePet,
-    damageUserPetsRandomly
+    damageUserPetsRandomly,
+    PETACTIONS
 }
