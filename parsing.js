@@ -385,10 +385,10 @@ function parseAliasReplacement(msg, cmdContent, args){
                         finalText += String(args.slice(Number(n1), Number(n2)))
                     }
                     else if(Number(suffix)){
-                        finalText += args[Number(suffix)]
+                        finalText += args[Number(suffix) - 1]
                     }
                     else{
-                        finalText += `{${val}${suffix}`
+                        finalText += `{${val}${suffix}}`
                     }
                 }
                 else if(val == "sender"){
