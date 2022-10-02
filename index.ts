@@ -8471,11 +8471,7 @@ async function doCmd(msg: Message, returnJson = false) {
     }
     else if (aliases[command]) {
         //if it's an alias, it counts as use
-        if (CMDUSE[command]) {
-            CMDUSE[command] += 1
-        } else {
-            CMDUSE[command] = 1
-        }
+        addToCmdUse(command)
         let aliasPreArgs = aliases[command].slice(1);
         command = aliases[command][0]
         let expansions = 0
