@@ -8540,130 +8540,100 @@ client.on("messageDeleteBulk", async (m) => {
         purgeSnipe.length = 5
 })
 
+async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray){
+    let count = Number(search[1]) || Infinity
+    let regexSearch = search[2]
+    let rangeSearch = search[3]
+    if (!regexSearch && !rangeSearch) {
+        return false
+    }
+
+    let after = search[4]
+    let messages = await m.channel.messages.fetch({ limit: 100 })
+    let index = -1
+    let finalMessages: string[] = []
+    if (regexSearch) {
+        let regexpSearch: RegExp
+        try {
+            regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 2))
+        }
+        catch (err) {
+            await m.channel.send("Bad regex")
+            return false
+        }
+        let success = 0
+        messages.forEach(async (msg) => {
+            index++
+            if (index == 0 || success >= count) return
+            if (msg.content.match(regexpSearch)) {
+                success++
+                finalMessages.push(msg.content)
+
+            }
+        })
+    }
+    else if (rangeSearch) {
+        let [num1, num2] = rangeSearch.split(",")
+        messages.forEach(async (msg) => {
+            index++
+            if (!isNaN(Number(num2)) && index == Number(num1)) {
+                finalMessages.push(msg.content)
+                return
+            }
+            if (index >= Number(num1) && index < Number(num2)) {
+                finalMessages.push(msg.content)
+            }
+        })
+    }
+    if (after) {
+        let cmds = after.split("/")
+        let result = finalMessages.join("\n")
+        let oldSend = m.channel.send
+        m.channel.send = async (data) => {
+            return m
+        }
+        for (let cmd of cmds) {
+            m.content = `${prefix}${cmd} ${result}`
+            let rv = await doCmd(m, true)
+            //@ts-ignore
+            if (rv?.content) result = rv.content
+        }
+        m.channel.send = oldSend
+        finalMessages = [result]
+    }
+    handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
+}
+
 client.on("messageCreate", async (m: Message) => {
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
     }
+    //saves economy stuff 45% of the time
     if (Math.random() > .55) {
         economy.saveEconomy()
         saveItems()
         pet.savePetData()
     }
+
     let content = m.content
+
     if (!m.author.bot) {
+        //checks for emotes
         for (let match of content.matchAll(/<a?:([^:]+):([\d]+)>/g)) {
             addToEmoteUse(match[2])
         }
     }
+
+    //if any other bots have an equivelent to [spam they should add u!stop
     if (content == 'u!stop') {
         m.content = '[stop'
         content = m.content
     }
+
     let search;
     if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
-        let count = Number(search[1]) || Infinity
-        let regexSearch = search[2]
-        let rangeSearch = search[3]
-        if (!regexSearch && !rangeSearch) {
-            if (economy.canEarn(m.author.id)) {
-                let deaths = pet.damageUserPetsRandomly(m.author.id)
-                if(deaths.length)
-                    await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
-                let ap = pet.getActivePet(m.author.id)
-                let percent = 1.001
-                let pcount = Number(hasItem(m.author.id, "puffle chat"))
-                percent +=  .0001 * pcount
-                if(ap == 'cat'){
-                    percent += pet.PETACTIONS['cat']()
-                }
-                economy.earnMoney(m.author.id, percent)
-                if(ap == 'puffle'){
-                    let stuff = await pet.PETACTIONS['puffle'](m)
-                    await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
-                }
-            }
-            return
-        }
-
-        let after = search[4]
-        let messages = await m.channel.messages.fetch({ limit: 100 })
-        let index = -1
-        let finalMessages: string[] = []
-        if (regexSearch) {
-            let regexpSearch: RegExp
-            try {
-                regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 2))
-            }
-            catch (err) {
-                await m.channel.send("Bad regex")
-                return
-            }
-            let success = 0
-            messages.forEach(async (msg) => {
-                index++
-                if (index == 0 || success >= count) return
-                if (msg.content.match(regexpSearch)) {
-                    success++
-                    finalMessages.push(msg.content)
-
-                }
-            })
-        }
-        else if (rangeSearch) {
-            let [num1, num2] = rangeSearch.split(",")
-            messages.forEach(async (msg) => {
-                index++
-                if (!isNaN(Number(num2)) && index == Number(num1)) {
-                    finalMessages.push(msg.content)
-                    return
-                }
-                if (index >= Number(num1) && index < Number(num2)) {
-                    finalMessages.push(msg.content)
-                }
-            })
-        }
-        if (after) {
-            let cmds = after.split("/")
-            let result = finalMessages.join("\n")
-            let oldSend = m.channel.send
-            m.channel.send = async (data) => {
-                return m
-            }
-            for (let cmd of cmds) {
-                m.content = `${prefix}${cmd} ${result}`
-                let rv = await doCmd(m, true)
-                //@ts-ignore
-                if (rv?.content) result = rv.content
-            }
-            m.channel.send = oldSend
-            finalMessages = [result]
-        }
-        handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
+        await handleChatSearchCommandType(m, search)
     }
-    if (content.slice(0, prefix.length) !== prefix) {
-        if (economy.canEarn(m.author.id)) {
-            let deaths = pet.damageUserPetsRandomly(m.author.id)
-            if(deaths.length)
-                await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
-            let ap = pet.getActivePet(m.author.id)
-            let percent = 1.001
-            let pcount = Number(hasItem(m.author.id, "puffle chat"))
-            percent +=  .0001 * pcount
-            if(ap == 'cat'){
-                economy.earnMoney(m.author.id, percent + .003)
-            }
-            else{
-                economy.earnMoney(m.author.id, percent)
-            }
-            if(ap == 'puffle'){
-                let stuff = await pet.PETACTIONS['puffle'](m)
-                await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
-            }
-        }
-        return
-    }
-    await doCmd(m)
-    writeCmdUse()
     if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
         if(deaths.length)
@@ -8682,6 +8652,10 @@ client.on("messageCreate", async (m: Message) => {
             let stuff = await pet.PETACTIONS['puffle'](m)
             await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
         }
+    }
+    if (content.slice(0, prefix.length) == prefix) {
+        await doCmd(m)
+        writeCmdUse()
     }
 })
 
