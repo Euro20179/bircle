@@ -643,7 +643,7 @@ const commands: { [command: string]: Command } = {
                 for(let cost of data.cost){
                     totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
-                embed.addField(`${pet}\n${totalCost}`, `${data.description}`, true)
+                embed.addField(`${pet}\n$${totalCost}`, `${data.description}`, true)
             }
             return {embeds: [embed]}
         }, category: CommandCategory.ECONOMY
