@@ -379,35 +379,19 @@ const commands: { [command: string]: Command } = {
             if(args[0] == prefix){
                 return {content: "nah ah ah"}
             }
-            https.get(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on("end", async () => {
-                    let html = data.read().toString()
-                    let stockData = html.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", '.')}"([^>]+)>`, "g"))
-                    let jsonStockInfo: {[key: string]: string} = {}
-                    //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-                    for(let stockInfo of stockData){
-                        if(!stockInfo[1]) continue;
-                        let field = stockInfo[1].match(/data-field="([^"]+)"/)
-                        let value = stockInfo[1].match(/value="([^"]+)"/)
-                        if(!value || !field) continue
-                        jsonStockInfo[field[1]] = value[1]
-                    }
-                    if(Object.keys(jsonStockInfo).length < 1){
-                        await handleSending(msg, {content: "This does not appear to be a stock"})
+            economy.getStockInformation(args[0], (data) => {
+                    if(!data){
+                        msg.channel.send("No info found")
                         return
                     }
                     let embed = new MessageEmbed()
-                    let nChange = Number(jsonStockInfo["regularMarketChange"])
-                    let nPChange = Number(jsonStockInfo["regularMarketChangePercent"]) * 100
+                    let nChange = Number(data.change)
+                    let nPChange = Number(data["%change"]) * 100
                     embed.setTitle(args[0].toUpperCase())
-                    embed.addField("price", jsonStockInfo["regularMarketPrice"] || "N/A", true)
-                    embed.addField("change", jsonStockInfo["regularMarketChange"] || "N/A", true)
+                    embed.addField("price", String(data.price), true)
+                    embed.addField("change", String(data.change), true)
                     embed.addField("%change", String(nPChange) || "N/A", true)
-                    embed.addField("volume", jsonStockInfo["regularMarketVolume"] || "N/A")
+                    embed.addField("volume", data.volume)
                     if(nChange < 0){
                         embed.setColor("RED")
                     }
@@ -417,10 +401,9 @@ const commands: { [command: string]: Command } = {
                     else{
                         embed.setColor("#ffff00")
                     }
-                    await handleSending(msg, {embeds: [embed]})
+                    handleSending(msg, {embeds: [embed]})
+            })
                     //await msg.channel.send({ embeds: [embed] })
-                })
-            }).end()
             return {
                 content: "getting data"
             }
@@ -756,7 +739,8 @@ const commands: { [command: string]: Command } = {
     },
     "gapet": {
         run: async(msg, args) => {
-            return {content: String(pet.getActivePet(msg.author.id))}
+            let user = await fetchUser(msg.guild, args[0] || msg.author.id)
+            return {content: String(pet.getActivePet(user.user.id))}
         },  category: CommandCategory.UTIL
     },
     "sapet": {
