@@ -8674,7 +8674,7 @@ client.on("messageCreate", async (m: Message) => {
         let pcount = Number(hasItem(m.author.id, "puffle chat"))
         percent +=  .0001 * pcount
         if(ap == 'cat'){
-            economy.earnMoney(m.author.id, percent + .003)
+            economy.earnMoney(m.author.id, percent + .002)
         }
         else{
             economy.earnMoney(m.author.id, percent)
