@@ -1778,8 +1778,10 @@ const commands: { [command: string]: Command } = {
                     if(Object.keys(data).length > 0){
                         let text = "TOTALS\n--------------------\n"
                         for(let player in data){
-                            economy.addMoney(player, data[player])
-                            text += `<@${player}>: ${data[player]}\n`
+                            if(!isNaN(data[player])){
+                                economy.addMoney(player, data[player])
+                                text += `<@${player}>: ${data[player]}\n`
+                            }
                         }
                         await handleSending(msg, {content: text})
                     }
