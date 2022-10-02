@@ -26,11 +26,10 @@ let PETACTIONS: {[key: string]: Function} = {
         return .003 //increases chat bonus by .003%
     },
     puffle: async(m: Message) => {
-        let stuff = {money: 0, items: [""]}
-        if(Math.random() <= .025){ // 1% chance
+        let stuff: {money: number, items: string[]} = {money: 0, items: []}
+        if(Math.random() <= .25){ // 1% chance
             if(Math.random() >= .30){ //70% for money
                 let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
-                console.log(amount)
                 economy.addMoney(m.author.id, amount)
                 stuff.money = amount
             }
@@ -45,7 +44,6 @@ let PETACTIONS: {[key: string]: Function} = {
                 }
             }
         }
-        stuff.items = (stuff.items.filter(v => v) || [])
         return stuff
     },
     tiger: () => randInt(-.0025, .006),

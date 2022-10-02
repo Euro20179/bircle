@@ -8489,7 +8489,6 @@ async function doCmd(msg: Message, returnJson = false) {
         msg.channel.send = oldSend
         return
     }
-    console.log(rv)
     handleSending(msg, rv)
     msg.channel.send = oldSend
 }
