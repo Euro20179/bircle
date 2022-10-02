@@ -8430,7 +8430,6 @@ async function doCmd(msg: Message, returnJson = false) {
             aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
             command = aliases[command][0]
         }
-        writeCmdUse()
         msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
         let oldC = msg.content
         //aliasPreArgs.join is the command  content, args is what the user typed
