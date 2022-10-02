@@ -42,10 +42,10 @@ function hasItem(user: string, item: string){
     return false
 }
 
-export function buyItem(user: string, item: string, count?: number){
+export function buyItem(user: string, item: string, count?: number, forceBuy?: boolean){
     if(INVENTORY[user]){
         if(INVENTORY[user][item]){
-            if(INVENTORY[user][item] < (ITEMS[item].max || Infinity)){
+            if((INVENTORY[user][item] < (ITEMS[item].max || Infinity)) || forceBuy){
                 INVENTORY[user][item] += ITEMS[item].uses * (count ?? 1)
                 return true
             }
@@ -60,7 +60,6 @@ export function buyItem(user: string, item: string, count?: number){
         INVENTORY[user] = {[item]: ITEMS[item].uses * (count ?? 1)}
         return false
     }
-    return true
 }
 
 function useItem(user: string, item: string, times?: number){
