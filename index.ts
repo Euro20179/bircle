@@ -806,19 +806,31 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let items = fs.readFileSync("./shop.json", "utf-8")
+            let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
+            if(!user){
+                return {content: `${opts['as']} not found`}
+            }
+            let userCheckingShop = user.user
             let itemJ = JSON.parse(items)
             let pages = []
             let i = 0
             let e = new MessageEmbed()
             let au = msg.author.avatarURL()
-            if(au)
+            if(au){
                 e.setThumbnail(au)
+            }
+            let userShopAu = userCheckingShop.avatarURL()
+            if(userShopAu)
+                e.setFooter({text: `Viewing shop as: ${userCheckingShop.username}`, iconURL: userShopAu})
+            else{
+                e.setFooter({text: `Viewing shop as: ${userCheckingShop.username}`})
+            }
             let round = !opts['no-round']
             for(let item in itemJ){
                 i++;
                 let totalCost = 0
                 for(let cost of itemJ[item].cost){
-                    totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    totalCost += economy.calculateAmountFromStringIncludingStocks(userCheckingShop.id, cost)
                 }
                 if(round){
                     totalCost = Math.floor(totalCost * 100) / 100
@@ -836,7 +848,15 @@ const commands: { [command: string]: Command } = {
                 pages.push(e)
             }
             return {embeds: pages}
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "List items in the shop",
+            options: {
+                "as": {
+                    description: "View the shop as another user"
+                }
+            }
+        }
     },
     profits: {
         run: async(msg, args) => {
