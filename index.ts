@@ -685,13 +685,16 @@ const commands: { [command: string]: Command } = {
     },
     inventory: {
         run: async(msg, args) => {
+            let user = await fetchUser(msg.guild, args[0] ||  msg.author.id)
+            if(!user)
+                return {content: `${args[0]}  not  found`}
             let e = new MessageEmbed()
             e.setTitle("ITEMS")
-            let au = msg.author.avatarURL()
+            let au = user.user.avatarURL()
             if(au)
                 e.setThumbnail(au)
-            for(let item in INVENTORY()[msg.author.id]){
-                e.addField(item, `${INVENTORY()[msg.author.id][item]}`)
+            for(let item in INVENTORY()[user.id]){
+                e.addField(item, `${INVENTORY()[user.id][item]}`)
             }
             return {embeds: [e]}
         }, category: CommandCategory.ECONOMY
