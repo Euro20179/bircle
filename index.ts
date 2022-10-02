@@ -8421,11 +8421,7 @@ async function doCmd(msg: Message, returnJson = false) {
                 await msg.channel.send("Alias expansion limit reached")
                 return {}
             }
-            if (CMDUSE[command]) {
-                CMDUSE[command] += 1
-            } else {
-                CMDUSE[command] = 1
-            }
+            addToCmdUse(command)
             //for every expansion, it counts as a use
             aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
             command = aliases[command][0]
