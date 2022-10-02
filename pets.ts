@@ -43,8 +43,9 @@ let PETACTIONS: {[key: string]: Function} = {
                     stuff.items.push(randItemName)
                 }
             }
+            return stuff
         }
-        return stuff
+        return false
     },
     tiger: () => randInt(-.0025, .006),
     dog: (start?: number) => (start ?? 0) + 10

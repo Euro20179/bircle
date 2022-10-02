@@ -1,4 +1,6 @@
 const fs = require("fs")
+const https = require("https")
+import Stream = require('stream')
 
 import pet = require("./pets")
 
@@ -417,6 +419,40 @@ function getLottery(){
     return lottery
 }
 
+function getStockInformation(quote: string, cb: (data: {change: number, price: number, "%change": string, volume: string} | false) => any){
+    https.get(`https://finance.yahoo.com/quote/${encodeURI(quote)}`, resp => {
+        let streamData = new Stream.Transform()
+        resp.on("data", chunk => {
+            streamData.push(chunk)
+        })
+        resp.on("end", async () => {
+            let html = streamData.read().toString()
+            let stockData = html.matchAll(new RegExp(`data-symbol="${quote.toUpperCase().trim().replace("^", '.')}"([^>]+)>`, "g"))
+            let jsonStockInfo: {[key: string]: string} = {}
+            //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
+            for(let stockInfo of stockData){
+                if(!stockInfo[1]) continue;
+                let field = stockInfo[1].match(/data-field="([^"]+)"/)
+                let value = stockInfo[1].match(/value="([^"]+)"/)
+                if(!value || !field) continue
+                jsonStockInfo[field[1]] = value[1]
+            }
+            if(Object.keys(jsonStockInfo).length < 1){
+                cb(false)
+                return
+            }
+            let data: {change: number, price: number, "%change": string, volume: string}  = {change: 0, price: 0, "%change": "0%", volume: "0"}
+            let nChange = Number(jsonStockInfo["regularMarketChange"])
+            let nPrice = Number(jsonStockInfo["regularMarketPrice"]) || 0
+            data["change"] = nChange
+            data["price" ] = nPrice
+            data["%change"] = jsonStockInfo["regularMarketChangePercent"]
+            data["volume"] = jsonStockInfo["regularMarketVolume"]
+            cb(data)
+        })
+    }).end()
+}
+
 export{
     loadEconomy,
     saveEconomy,
@@ -449,5 +485,6 @@ export{
     _get_active_pet,
     getEconomy,
     getLottery,
-    playerEconomyLooseTotal
+    playerEconomyLooseTotal,
+    getStockInformation
 }

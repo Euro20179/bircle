@@ -429,6 +429,123 @@ const commands: { [command: string]: Command } = {
     },
     buy: {
         run: async(msg, args) => {
+            let allowedTypes = ["stock", "pet", "item"]
+            let type = args[0]
+            let item = args[1]
+            if(!allowedTypes.includes(type)){
+                //if is in format of old [buy <stock> <shares>
+                if(Number(item) && !allowedTypes.includes(type)){
+                    await msg.channel.send(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix} stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
+                    return await commands['bstock'].run(msg, args)
+                }
+                //else
+                return {content: `The shop of item must be one of: \`${allowedTypes.join(", ")}\``}
+            }
+            let amount = Number(args[2])
+            if(!item){
+                return {content: "No item specified"}
+            }
+            switch(type){
+                case "stock":{
+                    if(!amount || amount <  0){
+                        return {content: `${amount} is an invalid amount`}
+                    }
+                    economy.getStockInformation(item, (data) => {
+                        if(data === false){
+                            msg.channel.send({content: `${item} does not exist`})
+                            return
+                        }
+                        let realStock = economy.userHasStockSymbol(msg.author.id, item)
+                        if(!economy.canBetAmount(msg.author.id, data.price * amount)){
+                            msg.channel.send({content: "You cannot afford this"})
+                            return
+                        }
+                        if(realStock){
+                            economy.buyStock(msg.author.id, realStock.name, amount, data.price)
+                        }
+                        else{
+                            economy.buyStock(msg.author.id, item.toLowerCase(), amount, data.price)
+                        }
+                        msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`})
+                    })
+                }
+                case "pet": {
+                    if(!item){
+                        return {content: "You didnt specify a pet"}
+                    }
+                    let shopData = pet.getPetShop()
+                    item = item.toLowerCase()
+                    if(!shopData[item]){
+                        return {content: `${item}: not a valid pet`}
+                    }
+                    let petData = shopData[item]
+                    let totalCost =0
+                    for(let cost of petData.cost){
+                        totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    }
+                    if(!economy.canBetAmount(msg.author.id, totalCost)){
+                        return {content: "You do not have enough money to buy this pet"}
+                    }
+                    if(pet.buyPet(msg.author.id, item)){
+                        return  {content: `You have successfuly bought: ${item} for: $${totalCost}\nTo activate it run ${prefix}sapet ${item}`}
+                    }
+                    return {content: "You already have this pet"}
+                }
+                case "item": {
+                    if(!amount)
+                        amount = 1
+                    if(msg.author.bot){
+                        return {content: "Bots cannot buy items"}
+                    }
+                    if(!ITEMS()[item]){
+                        return {content: `${item} does not exist`}
+                    }
+                    let itemData = ITEMS()[item]
+                    let totalSpent = 0
+                    for(let i = 0; i < amount; i++){
+                        let totalCost = 0
+                        for(let cost of itemData.cost){
+                            totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                        }
+                        if(economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0){
+                            if(buyItem(msg.author.id, item)){
+                                economy.loseMoneyToBank(msg.author.id, totalCost)
+                                totalSpent += totalCost
+                            }
+                            else{
+                                return {content: `You already have the maximum of ${item}`}
+                            }
+                        }
+                        else{
+                            if(i > 0){
+                                return {content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`}
+                            }
+                            return {content: `This item is too expensive for u`}
+                        }
+                    }
+                    return {content: `You bought: ${item} for $${totalSpent}`}
+                }
+            }
+            return {noSend: true}
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Buy stuff!",
+            arguments: {
+                shop: {
+                    description: "can be either: <code>stock, pet, item</code>"
+                },
+                item: {
+                    description: "What to buy from the  specified shop"
+                },
+                amount: {
+                    description: "The  amount of items to buy from <q>shop</q>",
+                    required: false
+                }
+            }
+        }
+    },
+    bstock: {
+        run: async(msg, args) => {
             let stock = args[0]
             if(!stock){
                 return {content: "No stock given"}
@@ -444,61 +561,24 @@ const commands: { [command: string]: Command } = {
             if(amount < .1){
                 return {content: "You must buy at least 1/10 of a share"}
             }
-            https.get(`https://finance.yahoo.com/quote/${encodeURI(stock)}`, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on("end", async () => {
-                    let html = data.read().toString()
-                    let stockData = html.matchAll(new RegExp(`data-symbol="${stock.toUpperCase().trim().replace("^", '.')}"([^>]+)>`, "g"))
-                    let jsonStockInfo: {[key: string]: string} = {}
-                    //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-                    for(let stockInfo of stockData){
-                        if(!stockInfo[1]) continue;
-                        let field = stockInfo[1].match(/data-field="([^"]+)"/)
-                        let value = stockInfo[1].match(/value="([^"]+)"/)
-                        if(!value || !field) continue
-                        jsonStockInfo[field[1]] = value[1]
-                    }
-                    if(Object.keys(jsonStockInfo).length < 1){
-                        await handleSending(msg, {content: "This does not appear to be a stock"})
-                        return
-                    }
-                    let embed = new MessageEmbed()
-                    let nChange = Number(jsonStockInfo["regularMarketChange"])
-                    let nPrice = Number(jsonStockInfo["regularMarketPrice"]) || 0
-                    embed.setTitle(args[0].toUpperCase())
-                    embed.addField("price", jsonStockInfo["regularMarketPrice"] || "N/A", true)
-                    embed.addField("change", jsonStockInfo["regularMarketChange"] || "N/A", true)
-                    embed.addField("%change", jsonStockInfo["regularMarketChangePercent"] || "N/A", true)
-                    embed.addField("volume", jsonStockInfo["regularMarketVolume"] || "N/A")
-                    if(nChange < 0){
-                        embed.setColor("RED")
-                    }
-                    else if(nChange > 0){
-                        embed.setColor("#00ff00")
-                    }
-                    else{
-                        embed.setColor("#ffff00")
-                    }
-                    await handleSending(msg, {embeds: [embed]})
-                    let realStock = economy.userHasStockSymbol(msg.author.id, stock)
-                    if(!amount)
-                        return
-                    if(!economy.canBetAmount(msg.author.id, nPrice * amount)){
-                        await msg.channel.send("You cannot afford this")
-                        return
-                    }
-                    if(realStock){
-                        economy.buyStock(msg.author.id, realStock.name, amount, nPrice)
-                    }
-                    else{
-                        economy.buyStock(msg.author.id, stock.toUpperCase(), amount, nPrice)
-                    }
-                    await msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${nPrice * amount}`})
-                })
-            }).end()
+            economy.getStockInformation(stock, (data) => {
+                if(data === false){
+                    msg.channel.send({content: `${stock} does not exist`})
+                    return
+                }
+                let realStock = economy.userHasStockSymbol(msg.author.id, stock)
+                if(!economy.canBetAmount(msg.author.id, data.price * amount)){
+                    msg.channel.send({content: "You cannot afford this"})
+                    return
+                }
+                if(realStock){
+                    economy.buyStock(msg.author.id, realStock.name, amount, data.price)
+                }
+                else{
+                    economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
+                }
+                msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}`})
+            })
             return {noSend: true}
         }, category: CommandCategory.ECONOMY
     },
@@ -645,6 +725,7 @@ const commands: { [command: string]: Command } = {
                 }
                 embed.addField(`${pet}\n$${totalCost}`, `${data.description}`, true)
             }
+            embed.setFooter({text: `To buy a pet, do ${prefix}bpet <pet name>`})
             return {embeds: [embed]}
         }, category: CommandCategory.ECONOMY
     },
@@ -8616,7 +8697,8 @@ client.on("messageCreate", async (m: Message) => {
         }
         if(ap == 'puffle'){
             let stuff = await pet.PETACTIONS['puffle'](m)
-            await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
+            if(stuff)
+                await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
         }
     }
     if (content.slice(0, prefix.length) == prefix) {
