@@ -60,7 +60,7 @@ let BLACKJACK_GAMES: {[id: string]: boolean} = {}
 let BATTLEGAME: boolean = false;
 let CRIME: boolean = false;
 
-let lastCommand: Message;
+let lastCommand: {[key: string]: string};
 let snipes: (Message | PartialMessage)[] = [];
 let purgeSnipe: (Message | PartialMessage)[];
 
@@ -2731,6 +2731,10 @@ const commands: { [command: string]: Command } = {
                             data = bots?.filter(u => u.user.bot)
                             break
                         }
+                        case "commands": {
+                            data = String(Object.keys(commands).length)
+                            break
+                        }
                     }
                     if (!data) {
                         return { content: `${object} is invalid` }
@@ -2774,7 +2778,7 @@ const commands: { [command: string]: Command } = {
             } else sep = String(sep)
             let ret: any[] = []
             try {
-                ret.push(JSON.stringify(safeEval(args.join(" "), { yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand?.content, ...vars }, { timeout: 3000 })))
+                ret.push(JSON.stringify(safeEval(args.join(" "), { yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand[msg.author.id], ...vars }, { timeout: 3000 })))
             }
             catch (err) {
                 console.log(err)
@@ -2837,7 +2841,7 @@ const commands: { [command: string]: Command } = {
         run: async (msg, args) => {
             let [condition, cmd] = args.join(" ").split(";")
             cmd = cmd.split(";end")[0]
-            if (safeEval(condition, { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand?.content }, { timeout: 3000 })) {
+            if (safeEval(condition, { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
                 msg.content = `${prefix}${cmd.trim()}`
                 return await doCmd(msg, true) as CommandReturn
             }
@@ -8146,15 +8150,16 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "!!": {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['check'] || opts['print'] || opts['see'])
-                return { content: `\`${lastCommand.content}\`` }
-            if (!lastCommand) {
+                return { content: `\`${lastCommand[msg.author.id]}\`` }
+            if (!lastCommand[msg.author.id]) {
                 return { content: "You ignorance species, there have not been any commands run." }
             }
-            return await doCmd(lastCommand, true) as CommandReturn
+            msg.content = lastCommand[msg.author.id]
+            return await doCmd(msg, true) as CommandReturn
         },
         help: {
             info: "Run the last command that was run",
@@ -8503,7 +8508,7 @@ async function doCmd(msg: Message, returnJson = false) {
         rv = { content: `${command} does not exist` }
     }
     if (!illegalLastCmds.includes(command)) {
-        lastCommand = msg
+        lastCommand[msg.author.id] = msg.content
     }
     if (returnJson) {
         msg.channel.send = oldSend
