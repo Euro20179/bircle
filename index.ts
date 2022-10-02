@@ -8694,6 +8694,10 @@ client.on("messageCreate", async (m: Message) => {
     if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
         await handleChatSearchCommandType(m, search)
     }
+    if (content.slice(0, prefix.length) == prefix) {
+        await doCmd(m)
+        writeCmdUse()
+    }
     if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
         if(deaths.length)
@@ -8713,10 +8717,6 @@ client.on("messageCreate", async (m: Message) => {
             if(stuff)
                 await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
         }
-    }
-    if (content.slice(0, prefix.length) == prefix) {
-        await doCmd(m)
-        writeCmdUse()
     }
 })
 
