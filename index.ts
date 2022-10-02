@@ -60,7 +60,7 @@ let BLACKJACK_GAMES: {[id: string]: boolean} = {}
 let BATTLEGAME: boolean = false;
 let CRIME: boolean = false;
 
-let lastCommand: {[key: string]: string};
+let lastCommand: {[key: string]: string} = {};
 let snipes: (Message | PartialMessage)[] = [];
 let purgeSnipe: (Message | PartialMessage)[];
 
@@ -2728,16 +2728,19 @@ const commands: { [command: string]: Command } = {
                         }
                         case "bot": {
                             let bots = await msg.guild?.members.fetch()
-                            data = bots?.filter(u => u.user.bot)
+                            data = bots?.filter(u => u.user.bot).size
                             break
                         }
-                        case "commands": {
-                            data = String(Object.keys(commands).length)
+                        case "command": {
+                            data = Object.keys(commands).length
                             break
                         }
                     }
                     if (!data) {
                         return { content: `${object} is invalid` }
+                    }
+                    if(typeof data === 'number'){
+                        return {content: String(data)}
                     }
                     if (number) {
                         return { content: String(data.at(number)), allowedMentions: { parse: [] } }
