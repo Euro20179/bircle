@@ -116,7 +116,7 @@ function feedPet(id: string, pet: string, itemName: string){
     switch(itemName){
         case "bone": {
             let max = PETSHOP[pet]["max-hunger"]
-            amount =  Math.floor(Math.random() * 3 + 2)
+            amount =  Math.floor(Math.random() * 4 + 3)
             PETINVENTORY[id][pet] += amount
             if(PETINVENTORY[id][pet] > max){
                 PETINVENTORY[id][pet] = max

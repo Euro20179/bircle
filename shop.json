@@ -27,9 +27,9 @@
         "max": 1
     },
     "bone": {
-        "description": "Restore randomly 2-5 hunger to a pet of your  choice",
+        "description": "Restore randomly 3-7 hunger to a pet of your  choice",
         "uses": 1,
-        "cost": ["0.5", "0.3%"]
+        "cost": ["0.5", "0.2%"]
     },
     "puffle chat": {
         "description": "get an extra .01% every minute talking",
