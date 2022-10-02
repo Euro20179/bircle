@@ -132,7 +132,7 @@ function taxPlayer(id: string, max: number){
     let total = playerEconomyLooseTotal(id)
     let taxPercent = randInt(0.001, 0.008)
     if(pet.getActivePet(id) == 'tiger'){
-        taxPercent += pet.PETACTIONS['tiger']()
+        taxPercent = pet.PETACTIONS['tiger']()
     }
     let amountTaxed = total * taxPercent
     if(amountTaxed > max)
