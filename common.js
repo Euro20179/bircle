@@ -9,7 +9,7 @@ const ADMINS = ["334538784043696130"]
 
 const LOGFILE = "log.txt"
 
-const VERSION = {major: 1, minor: 17, bug: 11, part: "_B", beta: false, alpha: false}
+const VERSION = {major: 1, minor: 18, bug: 0, part: "", beta: false, alpha: false}
 
 let USER_SETTINGS = {}
 
