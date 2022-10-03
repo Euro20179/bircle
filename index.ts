@@ -447,7 +447,7 @@ const commands: { [command: string]: Command } = {
                             economy.buyStock(msg.author.id, realStock.name, amount, data.price)
                         }
                         else{
-                            economy.buyStock(msg.author.id, item.toLowerCase(), amount, data.price)
+                            economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
                         }
                         msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`})
                     })
