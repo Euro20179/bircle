@@ -451,6 +451,7 @@ const commands: { [command: string]: Command } = {
                         }
                         msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`})
                     })
+                    break
                 }
                 case "pet": {
                     if(!item){
