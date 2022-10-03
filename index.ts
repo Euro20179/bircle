@@ -1672,10 +1672,7 @@ const commands: { [command: string]: Command } = {
             }
             HEIST_PLAYERS.push(msg.author.id)
             let timeRemaining = 30000
-            let DEBUG_MODE = false
             if(HEIST_TIMEOUT === null){
-                if(opts['debug'])
-                    DEBUG_MODE = true
                 let int = setInterval(async() => {
                     timeRemaining -= 1000
                     if(timeRemaining % 8000 == 0)
@@ -1852,10 +1849,17 @@ const commands: { [command: string]: Command } = {
                     let stage: string = lastLegacyStage
                     while(stage != 'end'){
                         if (!await handleStage(stage)){
-                            HEIST_PLAYERS = []
-                            HEIST_TIMEOUT = null
-                            await msg.channel.send(`FAILURE on stage: ${stage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}`)
-                            return
+                            let oldStage = stage
+                            //@ts-ignore
+                            if(legacyNextStages[lastLegacyStage]){
+                                //@ts-ignore
+                                stage = legacyNextStages[lastLegacyStage]
+                                lastLegacyStage = stage
+                            }
+                            else{
+                                stage = 'end'
+                            }
+                            await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, advancing to stage: ${stage}`)
                         }
                         else{
                             console.log("fallback", lastLegacyStage, stage)
