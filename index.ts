@@ -21,7 +21,7 @@ import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
 
-const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
+const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn } = require('./common.js')
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
 
@@ -6906,6 +6906,25 @@ const commands: { [command: string]: Command } = {
         help: {
             info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
         }
+    },
+    "gvar": {
+        run: async(msg, args) => {
+            let [scope, ...nameList] = args.join(" ").split(":")
+            let name = nameList.join(":")
+            if(scope == "%"){
+                scope = msg.author.id
+            }
+            else if(scope == "."){
+                let v = getVarFn(name, false)
+                if(v)
+                    return {content: String(v(msg, ""))}
+                else return {content: `\\v{${args.join(" ")}}`}
+            }
+            let v = getVarFn(name, false, scope)
+            if(v)
+                return {content: String(v(msg, ""))}
+            else return {content: `\\v{${args.join(" ")}}`}
+        }, category: CommandCategory.META
     },
     "var": {
         run: async (msg: Message, args: ArgumentList) => {
