@@ -394,6 +394,9 @@ function parseAliasReplacement(msg, cmdContent, args){
                 else if(val == "sender"){
                     finalText += String(msg.author)
                 }
+                else if(val ==  "senderid"){
+                    finalText += msg.author.id
+                }
                 else if(val == "sendername"){
                     finalText += String(msg.author.username)
                 }

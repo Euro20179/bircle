@@ -8517,7 +8517,6 @@ async function doCmd(msg: Message, returnJson = false) {
         doFirstCountNoToArgNo[idxNo] = idx
         idxNo++
     }
-    console.log(doFirstData, doFirstCountNoToArgNo)
     args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
         // let splitData = data.split(" ")
         // //replaces %{\d:} with the full result
