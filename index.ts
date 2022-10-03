@@ -528,6 +528,70 @@ const commands: { [command: string]: Command } = {
             }
         }
     },
+    "heist-info": {
+        run: async(msg, args) => {
+            let action = args[0] || 'list-types'
+            let text = ""
+            let responses = fs.readFileSync("./command-results/heist", "utf-8").split("\n").map(v => v.split(":").slice(1).join(":").replace(/;END$/, "").trim())
+            switch(action){
+                case "list-responses": {
+                    text = responses.join("\n")
+                    break
+                }
+                case "list-types": {
+                    let locations: string[] = ["__generic__"]
+                    let stages: string[] = ["getting_in", "robbing", "escape", "end"]
+                    for(let resp of responses){
+                        let stage = resp.match(/STAGE=([^ ]+)/)
+                        if(!stage?.[1]) continue;
+                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        let locationText = location?.[1]
+                        let stageText = stage[1]
+                        if(locationText && !locations.includes(locationText)){
+                            locations.push(locationText)
+                        }
+                        if(stageText && !stages.includes(stageText)){
+                            stages.push(stageText)
+                        }
+                    }
+                    text = `LOCATIONS:\n${locations.join("\n")}\n---------------------\nSTAGES:\n${stages.join("\n")}`
+                    break
+                }
+                case "search": {
+                    let query = args[1]
+                    if(!query){
+                        text = "No search query"
+                        break
+                    }
+                    let results = []
+                    for(let i = 0; i < responses.length; i++){
+                        if(responses[i].match(query)){
+                            results.push([i + 1, responses[i]])
+                        }
+                    }
+                    text = `RESULTS\n-------------------------\n${results.map(v => `${v[0]}: ${v[1]}`).join("\n")}`
+                    break
+                }
+                default: {
+                    text = `${action} is not a valid action`
+                    break
+                }
+            }
+            return {content: text.replaceAll(/__/g, "\\_") || "nothing"}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Get information about heist responses",
+            arguments: {
+                type: {
+                    description:  "The type of information<br>can be:<br><ul><li>list-responses</li><li>list-types</li><li>search (requires search query)</li></ul>"
+                },
+                search_query: {
+                    requires: "type",
+                    description: "The search query if type is <code>search</code>"
+                }
+            }
+        }
+    },
     bstock: {
         run: async(msg, args) => {
             let stock = args[0]
