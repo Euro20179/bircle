@@ -1743,11 +1743,14 @@ const commands: { [command: string]: Command } = {
                             return false
                         }
                         responseList = responseList.filter(v => {
-                            let enough_players = false
+                            let enough_players = true
                             let u = v.matchAll(/\{user(\d+|all)\}/g)
                             for(let match of u){
                                 if(match?.[1]){
-                                    if(match[1] === 'all') enough_players = true
+                                    if(match[1] === 'all'){
+                                        enough_players = true
+                                        continue
+                                    }
                                     let number = Number(match[1])
                                     if(number > HEIST_PLAYERS.length)
                                         return false
@@ -6895,6 +6898,15 @@ const commands: { [command: string]: Command } = {
             let id = Math.floor(Math.random() * 10000000)
             SPAMS[id] = true
             await msg.channel.send(`Starting id: ${id}`)
+            function parseRunLine(line: string): string{
+                let currFn = ""
+                let match = "runfn_"
+                for(let i = 0; i < line.length; i++){
+                    if(match.startsWith(currFn)){
+                    }
+                }
+                return ""
+            }
             for (let line of text) {
                 if (!SPAMS[id])
                     break
