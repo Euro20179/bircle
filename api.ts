@@ -8,7 +8,7 @@ const { fetchUser } = require("./util.js")
 export const APICmds: {[key: string]: {requirements: string[], exec: Function}} = {
     userHasStockSymbol:  {
         requirements: ["id", "symbol"],
-        exec: ({ id, symbol }: {id: string, symbol: string}) => economy.userHasStockSymbol(id, symbol),
+        exec: ({ id, symbol }: {id: string, symbol: string}) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
     },
     saveEconomy: {
         requirements: [],
