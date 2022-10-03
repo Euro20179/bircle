@@ -462,13 +462,23 @@ function parseDoFirst(cmdData, doFirstCountNoToArgNo, args){
                             finalArg += "__BIRCLE__UNDEFINED__"
                         }
                         else{
-                            let splitData = cmdData[doFirstCountNoToArgNo[argIdx]].split(" ")
-                            finalArg += splitData[slice]
+                            if(cmdData[doFirstCountNoToArgNo[argIdx]]){
+                                let splitData = cmdData[doFirstCountNoToArgNo[argIdx]].split(" ")
+                                finalArg += splitData[slice]
+                            }
+                            else{
+                                finalArg += `%{${data}}`
+                            }
                         }
                     }
                     else if(doFirstIndex !== argIdx && slice !== undefined){
-                        let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
-                        finalArg += `${splitData[slice]}`
+                        if(cmdData[doFirstCountNoToArgNo[doFirstIndex]]){
+                            let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
+                            finalArg += `${splitData[slice]}`
+                        }
+                        else{
+                            finalArg += `%{${data}}`
+                        }
                     }
                     else if(isNaN(doFirstIndex)){
                         finalArg += cmdData[argIdx]
