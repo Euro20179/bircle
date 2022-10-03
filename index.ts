@@ -6898,15 +6898,15 @@ const commands: { [command: string]: Command } = {
             let id = Math.floor(Math.random() * 10000000)
             SPAMS[id] = true
             await msg.channel.send(`Starting id: ${id}`)
-            function parseRunLine(line: string): string{
-                let currFn = ""
-                let match = "runfn_"
-                for(let i = 0; i < line.length; i++){
-                    if(match.startsWith(currFn)){
-                    }
-                }
-                return ""
-            }
+            // function parseRunLine(line: string): string{
+            //     let currFn = ""
+            //     let match = "runfn_"
+            //     for(let i = 0; i < line.length; i++){
+            //         if(match.startsWith(currFn)){
+            //         }
+            //     }
+            //     return ""
+            // }
             for (let line of text) {
                 if (!SPAMS[id])
                     break
