@@ -388,7 +388,7 @@ function parseAliasReplacement(msg, cmdContent, args){
                         finalText += args[Number(suffix) - 1]
                     }
                     else{
-                        finalText += `{${val}${suffix}}`
+                        finalText += `{${cmdContent.slice(startingI, i)}}`
                     }
                 }
                 else if(val == "sender"){
@@ -399,6 +399,9 @@ function parseAliasReplacement(msg, cmdContent, args){
                 }
                 else if(val == "channel"){
                     finalText += String(msg.channel)
+                }
+                else{
+                    finalText += `{${cmdContent.slice(startingI + 1, i)}}`
                 }
                 break
             }
