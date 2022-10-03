@@ -416,7 +416,7 @@ function parseAliasReplacement(msg, cmdContent, args){
 
 function parseDoFirstInnerBracketData(data) {
     if(data == "")
-        return [NaN, NaN]
+        return [undefined, undefined]
     let [doFirstIndex, slice] = data.split(":")
     if(doFirstIndex == data){
         slice = Number(doFirstIndex)
@@ -454,10 +454,6 @@ function parseDoFirst(cmdData, doFirstCountNoToArgNo, args){
                     if(doFirstIndex !== undefined && slice === undefined){
                         finalArg += `${cmdData[doFirstCountNoToArgNo[doFirstIndex]]}`
                     }
-                    else if(doFirstIndex !== indexNo && slice !== undefined){
-                        let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
-                        finalArg += `${splitData[slice]}`
-                    }
                     else if(doFirstIndex === undefined && slice !== undefined){
                         if(slice == -1){
                             finalArg += "__BIRCLE__UNDEFINED__"
@@ -466,6 +462,10 @@ function parseDoFirst(cmdData, doFirstCountNoToArgNo, args){
                             let splitData = cmdData[doFirstCountNoToArgNo[argIdx]].split(" ")
                             finalArg += splitData[slice]
                         }
+                    }
+                    else if(doFirstIndex !== argIdx && slice !== undefined){
+                        let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
+                        finalArg += `${splitData[slice]}`
                     }
                     else if(isNaN(doFirstIndex)){
                         finalArg += cmdData[argIdx]

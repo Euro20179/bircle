@@ -8509,13 +8509,15 @@ async function doCmd(msg: Message, returnJson = false) {
     let idxNo = 0
     for (let idx in doFirsts) {
         let cmd = doFirsts[idx]
+        let oldContent = msg.content
         msg.content = cmd
         let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
+        msg.content = oldContent
         doFirstData[idx] = data
         doFirstCountNoToArgNo[idxNo] = idx
         idxNo++
     }
-    let oldContent = msg.content
+    console.log(doFirstData, doFirstCountNoToArgNo)
     args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
         // let splitData = data.split(" ")
         // //replaces %{\d:} with the full result
@@ -8533,7 +8535,6 @@ async function doCmd(msg: Message, returnJson = false) {
         // for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
         //     args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
         // }
-    msg.content = oldContent
     args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
     let canRun = true
     let exists = true
