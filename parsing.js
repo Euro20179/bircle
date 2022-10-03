@@ -414,6 +414,79 @@ function parseAliasReplacement(msg, cmdContent, args){
     return finalText
 }
 
+function parseDoFirstInnerBracketData(data) {
+    if(data == "")
+        return [NaN, NaN]
+    let [doFirstIndex, slice] = data.split(":")
+    if(doFirstIndex == data){
+        slice = Number(doFirstIndex)
+        doFirstIndex = undefined
+    }
+    else{
+        doFirstIndex = Number(doFirstIndex)
+        if(slice)
+            slice = Number(slice)
+        else
+            slice = undefined
+    }
+    return [doFirstIndex, slice]
+}
+
+function parseDoFirst(cmdData, doFirstCountNoToArgNo, args){
+    let finalArgs = []
+    for(let i = 0; i < args.length; i++){
+        let arg = args[i]
+        let argIdx = i
+        let finalArg = ""
+        for(let i = 0; i < arg.length; i++){
+            let ch = arg[i]
+            if(ch == "%"){
+                i++
+                ch = arg[i]
+                if(ch == "{"){
+                    let data = ""
+                    for(i++; i < arg.length; i++){
+                        ch = arg[i]
+                        if(ch == "}") break;
+                        data += ch
+                    }
+                    let [doFirstIndex, slice] = parseDoFirstInnerBracketData(data)
+                    if(doFirstIndex !== undefined && slice === undefined){
+                        finalArg += `${cmdData[doFirstCountNoToArgNo[doFirstIndex]]}`
+                    }
+                    else if(doFirstIndex !== indexNo && slice !== undefined){
+                        let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
+                        finalArg += `${splitData[slice]}`
+                    }
+                    else if(doFirstIndex === undefined && slice !== undefined){
+                        if(slice == -1){
+                            finalArg += "__BIRCLE__UNDEFINED__"
+                        }
+                        else{
+                            let splitData = cmdData[doFirstCountNoToArgNo[argIdx]].split(" ")
+                            finalArg += splitData[slice]
+                        }
+                    }
+                    else if(isNaN(doFirstIndex)){
+                        finalArg += cmdData[argIdx]
+                    }
+                    else{
+                        finalArg += `%{${data}}`
+                    }
+                }
+                else{
+                    finalArg += `%${ch}`
+                }
+            }
+            else{
+                finalArg += ch
+            }
+        }
+        finalArgs.push(finalArg)
+    }
+    return finalArgs
+}
+
 function operateOnPositionValues(v1, op, v2, areaSize, objectSize, numberConv){
     let conversions
     if(!objectSize){
@@ -484,5 +557,6 @@ function parsePosition(position, areaSize, objectSize, numberConv){
 module.exports = {
     parseCmd: parseCmd,
     parsePosition: parsePosition,
-    parseAliasReplacement: parseAliasReplacement
+    parseAliasReplacement: parseAliasReplacement,
+    parseDoFirst: parseDoFirst
 }

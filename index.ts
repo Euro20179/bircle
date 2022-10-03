@@ -22,7 +22,7 @@ import { intToRGBA } from "jimp/*"
 
 
 const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS } = require('./common.js')
-const { parseCmd, parsePosition, parseAliasReplacement } = require('./parsing.js')
+const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
 
 //const { ECONOMY, canEarn, earnMoney, createPlayer, addMoney, saveEconomy, canTax, taxPlayer, loseMoneyToBank, canBetAmount, calculateAmountFromString, loseMoneyToPlayer, setMoney, resetEconomy, buyStock, calculateStockAmountFromString, sellStock, LOTTERY, buyLotteryTicket, newLottery, removeStock, giveStock, calculateAmountFromStringIncludingStocks, resetPlayer, userHasStockSymbol, useLoan, payLoan, calculateLoanAmountFromString } = require("./economy.js")
@@ -8504,31 +8504,36 @@ async function doCmd(msg: Message, returnJson = false) {
     let args: Array<string>
     let doFirsts: { [item: number]: string }
     [command, args, doFirsts] = await parseCmd({ msg: msg })
-    let idxNo = 0;
+    let doFirstData: {[key: number]: string} = {} //where key is the argno that the dofirst is at
+    let doFirstCountNoToArgNo: {[key: number]: string} = {} //where key is the doFirst number
+    let idxNo = 0
     for (let idx in doFirsts) {
-        let oldContent = msg.content
         let cmd = doFirsts[idx]
         msg.content = cmd
         let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
-        let splitData = data.split(" ")
-        //replaces %{\d:} with the full result
-        args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
-        //replaces %{\d:\d} with the argno result
-        let regexp = new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g")
-        args = args.map((v) => {
-            return v.replaceAll(regexp, (_fullMatch, index) => {
-                return splitData[index]
-            })
-        })
-        //@ts-ignore
-        args[idx] = args[idx].replaceAll("%{}", data)
-        args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
-        for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
-            args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
-        }
-        msg.content = oldContent
+        doFirstData[idx] = data
+        doFirstCountNoToArgNo[idxNo] = idx
         idxNo++
     }
+    let oldContent = msg.content
+    args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
+        // let splitData = data.split(" ")
+        // //replaces %{\d:} with the full result
+        // args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
+        // //replaces %{\d:\d} with the argno result
+        // let regexp = new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g")
+        // args = args.map((v) => {
+        //     return v.replaceAll(regexp, (_fullMatch, index) => {
+        //         return splitData[index]
+        //     })
+        // })
+        // //@ts-ignore
+        // args[idx] = args[idx].replaceAll("%{}", data)
+        // args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
+        // for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
+        //     args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
+        // }
+    msg.content = oldContent
     args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
     let canRun = true
     let exists = true
