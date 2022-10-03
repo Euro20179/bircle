@@ -418,7 +418,7 @@ const commands: { [command: string]: Command } = {
             if(!allowedTypes.includes(type)){
                 //if is in format of old [buy <stock> <shares>
                 if(Number(item) && !allowedTypes.includes(type)){
-                    await msg.channel.send(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix} stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
+                    await msg.channel.send(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
                     return await commands['bstock'].run(msg, args)
                 }
                 //else
