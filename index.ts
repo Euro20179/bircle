@@ -210,6 +210,12 @@ const slashCommands = [
                 name: "button-response",
                 description: "Reply that happens if set-location is multiple locations",
                 required: false
+            },
+            {
+                type: STRING,
+                name: "if",
+                description: "This response can only happen under this condition",
+                required: false
             }
         ]
     },
@@ -1586,6 +1592,7 @@ const commands: { [command: string]: Command } = {
             let location = opts['location']
             let set_location = opts['set-location']
             let button_response = opts['button-response']
+            let condition = opts['if']
             if(isNeutral){
                 givenAmount = 'none'
                 healUsers = 'all'
@@ -1643,6 +1650,9 @@ const commands: { [command: string]: Command } = {
                     textOptions += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
                 }
             }
+            if(condition && typeof condition === 'string'){
+                textOptions += ` IF=${condition}`
+            }
             fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
             return {content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}`}
         }, category: CommandCategory.UTIL,
@@ -1682,6 +1692,9 @@ const commands: { [command: string]: Command } = {
                 },
                 "sub-stage": {
                     description: "Specify the stage that happens after this response (builtin stages: getting_in, robbing, escape, end)"
+                },
+                "if": {
+                    description: "Specify a condition in the form of >x, <x or =x, where x is the total amount of money gained/lost from heist<br>This response will only happen if the total amount of money is >, <, or = to x"
                 }
             }
         }
@@ -9282,6 +9295,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let button_response = interaction.options.get("button-response")?.value
             if(button_response){
                 text += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
+            }
+            let condition = interaction.options.get("if")?.value
+            if(condition){
+                text += ` IF=${condition}`
             }
             fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
             interaction.reply(`Added:\n${text}`)
