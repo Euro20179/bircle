@@ -175,6 +175,10 @@ const slashCommands = [
                         name: "normal",
                         value: "normal",
                     },
+                    {
+                        name: "cents",
+                        value: "cents",
+                    }
                 ]
             },
             {
@@ -1695,7 +1699,7 @@ const commands: { [command: string]: Command } = {
                             "{userall} got into the building GAIN=all AMOUNT=normal"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all"
+                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
                         ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
@@ -1742,7 +1746,22 @@ const commands: { [command: string]: Command } = {
 
                     let current_location = String(opts['location'] || opts['loc'] || opts['l'] || "__generic__")
 
-                    async function handleStage(stage: string): Promise<boolean>{
+                    let stats: {locationsVisited: {[key: string]: {[key: string]: number}}, adventureOrder: [string, string][]} = {locationsVisited: {}, adventureOrder: []}
+
+                    function addToLocationStat(location: string, user: string, amount: number){
+                        if(!stats.locationsVisited[location][user]){
+                            stats.locationsVisited[location][user] = amount
+                        }
+                        else{
+                            stats.locationsVisited[location][user] += amount
+                        }
+                    }
+
+                    async function handleStage(stage: string): Promise<boolean>{//{{{
+                        if(!stats.locationsVisited[current_location]){
+                            stats.locationsVisited[current_location] = {}
+                        }
+                        stats.adventureOrder.push([current_location, stage])
                         let shuffledPlayers = HEIST_PLAYERS.sort(() => Math.random() - .5)
                         let amount = Math.floor(Math.random() * 10)
                         let negpos = ["negative", "positive"][Math.floor(Math.random() * 2)]
@@ -1786,8 +1805,13 @@ const commands: { [command: string]: Command } = {
                             response = responseList[Math.floor(Math.random() * responseList.length)]
                             amountType = response.match(/AMOUNT=([^ ]+)/)
                         }
-                        let multiplier = Number({"none": 0, "normal": 1, "medium": 1, "large": 1}[amountType[1]])
-                        amount *= multiplier
+                        if(amountType[1] === 'cents'){
+                            amount = Math.random()
+                        }
+                        else{
+                            let multiplier = Number({"none": 0, "normal": 1, "medium": 1, "large": 1}[amountType[1]])
+                            amount *= multiplier
+                        }
 
                         response = response.replaceAll(/\{user(\d+|all)\}/g, (all, capture) => {
                             if(capture === "all"){
@@ -1805,10 +1829,12 @@ const commands: { [command: string]: Command } = {
                             for(let user of gainUsers[1].split(",")){
                                 if(user == 'all'){
                                     for(let player in data){
+                                        addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                     }
                                 }
                                 else{
+                                    addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                 }
                             }
@@ -1819,10 +1845,12 @@ const commands: { [command: string]: Command } = {
                             for(let user of loseUsers[1].split(",")){
                                 if(user == 'all'){
                                     for(let player in data){
+                                        addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                     }
                                 }
                                 else{
+                                    addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                 }
                             }
@@ -1840,7 +1868,15 @@ const commands: { [command: string]: Command } = {
                             }
                         }
                         response = response.replace(/LOCATION=[^ ]+/, "")
-                        response = response.replaceAll(/\{amount\}/g, amount >= 0 ? `+${amount}` : `${amount}`)
+                        response = response.replaceAll(/\{(\+|-)amount\}/g, (match, pm) => {
+                            if(pm && pm == "+"){
+                                return `+${amount}`
+                            }
+                            else if(pm && pm == "-"){
+                                return `-${Math.abs(amount)}`
+                            }
+                            return String(amount)
+                        })
                         response = response.replace(/GAIN=[^ ]+/, "")
                         response = response.replace(/LOSE=[^ ]+/, "")
                         response = response.replace(/AMOUNT=[^ ]+/, "")
@@ -1858,13 +1894,15 @@ const commands: { [command: string]: Command } = {
                             stage = 'end'
                         }
                         return true
-                    }
+                    }//}}}
                     let stage: string = lastLegacyStage
                     while(stage != 'end'){
                         if (!await handleStage(stage)){
+                            stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
                             let oldStage = stage
                             //@ts-ignore
                             if(legacyNextStages[lastLegacyStage]){
+                                console.log("legacy", lastLegacyStage, stage)
                                 //@ts-ignore
                                 stage = legacyNextStages[lastLegacyStage]
                                 lastLegacyStage = stage
@@ -1890,12 +1928,24 @@ const commands: { [command: string]: Command } = {
                     HEIST_PLAYERS = []
                     HEIST_TIMEOUT = null
                     if(Object.keys(data).length > 0){
-                        let text = "TOTALS\n--------------------\n"
+                        let text = 'STATS:\n---------------------\n'
+                        for(let location in stats.locationsVisited){
+                            text += `${location}:\n`
+                            for(let player in stats.locationsVisited[location]){
+                                text +=  `<@${player}>: ${stats.locationsVisited[location][player]}\n`
+                            }
+                            text += '-----------\n'
+                        }
+                        text += "---------------------\nTOTALS:\n---------------------\n"
                         for(let player in data){
                             if(!isNaN(data[player])){
                                 economy.addMoney(player, data[player])
-                                text += `<@${player}>: ${data[player]}\n`
+                                text += `<@${player}>: ${data[player]}, `
                             }
+                        }
+                        text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
+                        for(let place of stats.adventureOrder){
+                            text += `${place[0]} (${place[1]})\n`
                         }
                         await handleSending(msg, {content: text})
                     }
