@@ -8956,15 +8956,6 @@ client.on('ready', async () => {
                 dmChannel.send("ONLINE").then(console.log).catch(console.log)
             }).catch(console.log)
         }).catch(console.log)
-        if (prefix != 'd[') {
-            for (let member of ["334538784043696130"]) {
-                guild.members.fetch(member).then(user => {
-                    user.createDM().then(dmChannel => {
-                        dmChannel.send(`USERBOT ONLINE\nVERSION: ${VERSION.major}.${VERSION.minor}.${VERSION.bug}${VERSION.part ? "." + VERSION.part : ""}`).then(() => console.log(`sent to: ${member}`)).catch(console.log)
-                    }).catch(console.log)
-                }).catch(console.log)
-            }
-        }
     }).catch(console.log)
     console.log("ONLINE")
 })
