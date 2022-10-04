@@ -1584,7 +1584,7 @@ const commands: { [command: string]: Command } = {
             let text = args.join(" ")
             let damageUsers = opts['lose'] || opts['l']
             let healUsers = opts['gain'] || opts['g']
-            let amounts = ['none', 'normal', 'medium', 'large']
+            let amounts = ['none', 'normal', 'medium', 'large', "cents"]
             let givenAmount = opts['amount']  || opts['a']
             let stage = opts['stage'] || opts['s']
             let substage = opts['sub-stage'] || opts['ss']
@@ -1725,8 +1725,8 @@ const commands: { [command: string]: Command } = {
                     for(let player of HEIST_PLAYERS){
                         data[player] = 0
                     }
-                    //let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
-                    let fileResponses: string[] = []
+                    let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                    //let fileResponses: string[] = []
                     let legacyNextStages = {"getting_in": "robbing", "robbing": "escape", "escape": "end"}
                     let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
