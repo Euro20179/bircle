@@ -1718,10 +1718,10 @@ const commands: { [command: string]: Command } = {
                     let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal"
+                            "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal IF=>10"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal"
+                            "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal IF=>10"
                         ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
@@ -1818,6 +1818,29 @@ const commands: { [command: string]: Command } = {
                             }
                             return false
                         })
+                        let sum = Object.values(data).reduce((a, b) => a + b, 0)
+                        responseList = responseList.filter(v => {
+                            let condition = v.match(/IF=(<|>|=)(\d+)/)
+                            if(!condition?.[1])
+                                return true;
+                            let conditional = condition[1]
+                            let conditionType = conditional[0]
+                            let number = Number(conditional.slice(1))
+                            if(isNaN(number))
+                                return true;
+                            switch(conditionType){
+                                case "=":{
+                                    return sum == number
+                                }
+                                case ">":{
+                                    return sum > number
+                                }
+                                case "<": {
+                                    return sum < number
+                                }
+                            }
+                            return true
+                        })
                         if(responseList.length < 1){
                             return false
                         }
@@ -1902,6 +1925,7 @@ const commands: { [command: string]: Command } = {
                         response = response.replace(/GAIN=[^ ]+/, "")
                         response = response.replace(/LOSE=[^ ]+/, "")
                         response = response.replace(/AMOUNT=[^ ]+/, "")
+                        response = response.replace(/IF=(<|>|=)\d+/, "")
                         let locationOptions = current_location.split("|").map(v => v.trim())
                         if(locationOptions.length > 1){
                             let rows: MessageActionRow[] = []
