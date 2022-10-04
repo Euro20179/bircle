@@ -6901,13 +6901,13 @@ const commands: { [command: string]: Command } = {
             function handleRunFn(fn: string, contents: string){
                 switch(fn){
                     case "RUN_FN_VAR":{
-                        return `\\v{${contents}}`
+                        return `\\v{${parseRunLine(contents)}}`
                     }
                     case "RUN_FN_DOFIRST": {
-                        return `$(${contents})`
+                        return `$(${parseRunLine(contents)})`
                     }
                     case "RUN_FN_FMT": {
-                        return `{${contents}}`
+                        return `{${parseRunLine(contents)}}`
                     }
                     default: {
                         return contents
