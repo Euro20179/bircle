@@ -1938,7 +1938,7 @@ const commands: { [command: string]: Command } = {
                             else if(pm && (pm == "=" || pm == "!" || pm == "?")){
                                 return `${Math.abs(amount)}`
                             }
-                            return String(amount)
+                            return amount >= 0 ? `+${amount}` : `${amount}`
                         })
                         response = response.replace(/GAIN=[^ ]+/, "")
                         response = response.replace(/LOSE=[^ ]+/, "")
