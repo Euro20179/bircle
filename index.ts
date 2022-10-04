@@ -1662,7 +1662,7 @@ const commands: { [command: string]: Command } = {
     },
     heist: {
         run: async(msg, args) => {
-            let opts;
+            let opts: Opts;
             [opts, args] = getOpts(args)
             if(HEIST_PLAYERS.includes(msg.author.id)){
                 return {content: "U dingus u are already in the game"}
@@ -1732,7 +1732,7 @@ const commands: { [command: string]: Command } = {
                         }
                     }
 
-                    let current_location = "__generic__"
+                    let current_location = String(opts['location'] || opts['loc'] || opts['l'] || "__generic__")
 
                     async function handleStage(stage: string): Promise<boolean>{
                         let shuffledPlayers = HEIST_PLAYERS.sort(() => Math.random() - .5)
@@ -8597,7 +8597,9 @@ async function doCmd(msg: Message, returnJson = false) {
         doFirstCountNoToArgNo[idxNo] = idx
         idxNo++
     }
-    args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
+    if(Object.keys(doFirstData)){
+        args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
+    }
         // let splitData = data.split(" ")
         // //replaces %{\d:} with the full result
         // args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
