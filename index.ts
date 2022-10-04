@@ -2035,6 +2035,8 @@ const commands: { [command: string]: Command } = {
                     HEIST_PLAYERS = []
                     HEIST_TIMEOUT = null
                     if(Object.keys(data).length > 0){
+                        let useEmbed = false
+                        let e = new MessageEmbed()
                         let text = ''
                         if(!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']){
                             text += 'STATS:\n---------------------\n'
@@ -2047,11 +2049,18 @@ const commands: { [command: string]: Command } = {
                             }
                         }
                         if(!opts['no-total'] && !opts['nt']){
-                            text += "---------------------\nTOTALS:\n---------------------\n"
+                            e.setTitle("TOTALS")
+                            useEmbed = true
                             for(let player in data){
                                 if(!isNaN(data[player])){
+                                    let member = msg.guild?.members.cache.get(player)
+                                    if(member){
+                                        e.addField(String(member.nickname || member.user.username), `${data[player]}`)
+                                    }
+                                    else{
+                                        e.addField(String(data[player]), `<@${player}>`)
+                                    }
                                     economy.addMoney(player, data[player])
-                                    text += `<@${player}>: ${data[player]}, `
                                 }
                             }
                         }
@@ -2061,7 +2070,7 @@ const commands: { [command: string]: Command } = {
                                 text += `${place[0]} (${place[1]})\n`
                             }
                         }
-                        await handleSending(msg, {content: text || "The end!"})
+                        await handleSending(msg, {content: text || "The end!", embeds: useEmbed ? [e] : undefined})
                     }
                 }, timeRemaining)
             }
