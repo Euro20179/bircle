@@ -6898,15 +6898,59 @@ const commands: { [command: string]: Command } = {
             let id = Math.floor(Math.random() * 10000000)
             SPAMS[id] = true
             await msg.channel.send(`Starting id: ${id}`)
-            // function parseRunLine(line: string): string{
-            //     let currFn = ""
-            //     let match = "runfn_"
-            //     for(let i = 0; i < line.length; i++){
-            //         if(match.startsWith(currFn)){
-            //         }
-            //     }
-            //     return ""
-            // }
+            function handleRunFn(fn: string, contents: string){
+                switch(fn){
+                    case "RUN_FN_VAR":{
+                        return `\\v{${contents}}`
+                    }
+                    case "RUN_FN_DOFIRST": {
+                        return `$(${contents})`
+                    }
+                    case "RUN_FN_FMT": {
+                        return `{${contents}}`
+                    }
+                    default: {
+                        return contents
+                    }
+                }
+            }
+            function parseRunLine(line: string): string{
+                let text = ""
+                let currFn = ""
+                let prefix = "RUN_FN_"
+                for(let i = 0; i < line.length; i++){
+                    let ch = line[i]
+                    if(ch == "(" && currFn.startsWith(prefix)){
+                        let parenCount = 1
+                        let fnContents = ""
+                        for(i++; i < line.length; i++){
+                            ch = line[i]
+                            if(ch == "("){
+                                parenCount++;
+                            }
+                            else if(ch == ")"){
+                                parenCount--;
+                            }
+                            if(parenCount == 0)
+                                break;
+                            fnContents += ch
+                        }
+                        text += handleRunFn(currFn, fnContents)
+                        currFn = ""
+                    }
+                    else if("ABCDEFGHIJKLMNOPQRSTUVWXYZ_".includes(ch)){
+                        currFn += ch
+                    }
+                    else{
+                        text += currFn + ch
+                        currFn = ""
+                    }
+                }
+                if(currFn){
+                    text += currFn
+                }
+                return text
+            }
             for (let line of text) {
                 if (!SPAMS[id])
                     break
@@ -6914,7 +6958,8 @@ const commands: { [command: string]: Command } = {
                 if (line.startsWith(prefix)) {
                     line = line.slice(prefix.length)
                 }
-                msg.content = `${prefix}${line}`
+                msg.content = `${prefix}${parseRunLine(line)}`
+                console.log(msg.content)
                 await doCmd(msg, false)
             }
             return { noSend: true }
