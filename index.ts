@@ -1998,32 +1998,60 @@ const commands: { [command: string]: Command } = {
                     HEIST_PLAYERS = []
                     HEIST_TIMEOUT = null
                     if(Object.keys(data).length > 0){
-                        let text = 'STATS:\n---------------------\n'
-                        for(let location in stats.locationsVisited){
-                            text += `${location}:\n`
-                            for(let player in stats.locationsVisited[location]){
-                                text +=  `<@${player}>: ${stats.locationsVisited[location][player]}\n`
-                            }
-                            text += '-----------\n'
-                        }
-                        text += "---------------------\nTOTALS:\n---------------------\n"
-                        for(let player in data){
-                            if(!isNaN(data[player])){
-                                economy.addMoney(player, data[player])
-                                text += `<@${player}>: ${data[player]}, `
+                        let text = ''
+                        if(!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']){
+                            text += 'STATS:\n---------------------\n'
+                            for(let location in stats.locationsVisited){
+                                text += `${location}:\n`
+                                for(let player in stats.locationsVisited[location]){
+                                    text +=  `<@${player}>: ${stats.locationsVisited[location][player]},  `
+                                }
+                                text += '\n'
                             }
                         }
-                        text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
-                        for(let place of stats.adventureOrder){
-                            text += `${place[0]} (${place[1]})\n`
+                        if(!opts['no-total'] && !opts['nt']){
+                            text += "---------------------\nTOTALS:\n---------------------\n"
+                            for(let player in data){
+                                if(!isNaN(data[player])){
+                                    economy.addMoney(player, data[player])
+                                    text += `<@${player}>: ${data[player]}, `
+                                }
+                            }
                         }
-                        await handleSending(msg, {content: text})
+                        if(!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']){
+                            text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
+                            for(let place of stats.adventureOrder){
+                                text += `${place[0]} (${place[1]})\n`
+                            }
+                        }
+                        await handleSending(msg, {content: text || "The end!"})
                     }
                 }, timeRemaining)
             }
             return {content: `${msg.author} joined the heist`}
 
-        }, category: CommandCategory.GAME
+        }, category: CommandCategory.GAME,
+        help: {
+            info: "Go on a \"heist\"",
+            options: {
+                "no-stats": {
+                    description: "Display only the amount gained/lost from the heist",
+                    alternates: ["ns"]
+                },
+                "no-adventure-order": {
+                    description: "Do not display  the  adventure order",
+                    alternates: ["noa"]
+                },
+                "no-location-stats": {
+                    description: "Do not display amount gained/lost from each location",
+                    alternates: ["nls"]
+                },
+                "no-total": {
+                    description: "Do not display the amount gained/lost",
+                    alternates: ["nt"]
+                }
+            }
+        }
     },
     "egyption-war": {
         run: async(msg, args) => {
