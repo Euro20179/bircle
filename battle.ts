@@ -193,7 +193,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                 shields[m.author.id] = true
                 e.setTitle("SHIELD")
                 e.setColor("WHITE")
-                e.setDescription(`<@${m.author.id}> bout a shield`)
+                e.setDescription(`<@${m.author.id}> bought a shield`)
                 return true
             }
             return false
