@@ -1690,16 +1690,16 @@ const commands: { [command: string]: Command } = {
                     for(let player of HEIST_PLAYERS){
                         data[player] = 0
                     }
-                    let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
-                    //let fileResponses: string[] = []
+                    //let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                    let fileResponses: string[] = []
                     let legacyNextStages = {"getting_in": "robbing", "robbing": "escape", "escape": "end"}
                     let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{userall} got into the building GAIN=all AMOUNT=normal"
+                            "{userall} got into the building {+amount} GAIN=all AMOUNT=normal"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
+                            "{userall} spent {=amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
                         ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
@@ -1868,12 +1868,15 @@ const commands: { [command: string]: Command } = {
                             }
                         }
                         response = response.replace(/LOCATION=[^ ]+/, "")
-                        response = response.replaceAll(/\{(\+|-)amount\}/g, (match, pm) => {
+                        response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (match, pm) => {
                             if(pm && pm == "+"){
-                                return `+${amount}`
+                                return `+${Math.abs(amount)}`
                             }
                             else if(pm && pm == "-"){
                                 return `-${Math.abs(amount)}`
+                            }
+                            else if(pm && (pm == "=" || pm == "!" || pm == "?")){
+                                return `${Math.abs(amount)}`
                             }
                             return String(amount)
                         })
