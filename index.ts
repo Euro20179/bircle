@@ -1686,7 +1686,8 @@ const commands: { [command: string]: Command } = {
                     for(let player of HEIST_PLAYERS){
                         data[player] = 0
                     }
-                    let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                    //let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                    let fileResponses: string[] = []
                     let legacyNextStages = {"getting_in": "robbing", "robbing": "escape", "escape": "end"}
                     let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
@@ -1694,13 +1695,13 @@ const commands: { [command: string]: Command } = {
                             "{userall} got into the building GAIN=all AMOUNT=normal"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
+                            "{userall} spent {amount} on a lock pick to get into the building LOSE=all"
                         ],
                         robbing_positive: [
-                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large",
+                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
                         ],
                         robbing_negative: [
-                            "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal"
+                            "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal  LOCATION=bank"
                         ],
                         escape_positive: [
                             "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
@@ -1709,10 +1710,17 @@ const commands: { [command: string]: Command } = {
                             "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
                         ],
                     }
+                    let LOCATIONS = ["__generic__"]
                     for(let resp of fileResponses){
                         let stage = resp.match(/STAGE=([^ ]+)/)
                         if(!stage?.[1]){
                             continue
+                        }
+                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        if(location?.[1]){
+                            if(!LOCATIONS.includes(location[1])){
+                                LOCATIONS.push(location[1])
+                            }
                         }
                         resp = resp.replace(/STAGE=[^ ]+/, "")
                         let type = ""
@@ -1827,6 +1835,10 @@ const commands: { [command: string]: Command } = {
                         if(setLocation?.[1]){
                             response = response.replace(/SET_LOCATION=[^ ]+/, "")
                             current_location = setLocation[1].toLowerCase()
+                            if(current_location == "__random__"){
+                                console.log(LOCATIONS, current_location)
+                                current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                            }
                         }
                         response = response.replace(/LOCATION=[^ ]+/, "")
                         response = response.replaceAll(/\{amount\}/g, amount >= 0 ? `+${amount}` : `${amount}`)
