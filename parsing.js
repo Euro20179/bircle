@@ -488,7 +488,9 @@ function parseDoFirst(cmdData, doFirstCountNoToArgNo, args){
                     }
                 }
                 else{
-                    finalArg += `%${ch}`
+                    finalArg += "%"
+                    if(ch)
+                        finalArg += ch
                 }
             }
             else{
