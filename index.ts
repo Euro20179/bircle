@@ -1836,7 +1836,6 @@ const commands: { [command: string]: Command } = {
                             response = response.replace(/SET_LOCATION=[^ ]+/, "")
                             current_location = setLocation[1].toLowerCase()
                             if(current_location == "__random__"){
-                                console.log(LOCATIONS, current_location)
                                 current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
                             }
                         }
@@ -1847,7 +1846,6 @@ const commands: { [command: string]: Command } = {
                         response = response.replace(/AMOUNT=[^ ]+/, "")
                         await handleSending(msg, {content: response})
                         await new Promise(res => setTimeout(res, 4000))
-                        console.log(lastLegacyStage, subStage?.[1])
                         if(subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]){
                             if(Object.keys(legacyNextStages).includes(subStage[1])){
                                 lastLegacyStage = subStage[1]
@@ -7789,6 +7787,34 @@ ${styles}
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
+    'blacklist': {
+        run: async(msg, args) => {
+            let addOrRemove = args[0]
+            if (!["a", "r"].includes(addOrRemove)) {
+                return {
+                    content: "did not specify, (a)dd or (r)emove"
+                }
+            }
+            let cmds = args.slice(1)
+            if (!cmds.length) {
+                return {
+                    content: "no cmd given"
+                }
+            }
+            if (addOrRemove == "a") {
+                addToPermList(BLACKLIST, "blacklists", msg.member, cmds)
+
+                return {
+                    content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`
+                }
+            } else {
+                removeFromPermList(BLACKLIST, "blacklists", msg.member, cmds)
+                return {
+                    content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`
+                }
+            }
+        }, category: CommandCategory.UTIL
+    },
     BLACKLIST: {
         run: async (msg: Message, args: ArgumentList) => {
             let user = args[0]
@@ -8702,33 +8728,45 @@ async function doCmd(msg: Message, returnJson = false) {
     }
     else if (aliases[command]) {
         //if it's an alias, it counts as use
-        addToCmdUse(command)
-        let aliasPreArgs = aliases[command].slice(1);
-        command = aliases[command][0]
-        let expansions = 0
-        //finds the original command
-        while (aliases[command]?.[0]) {
-            expansions++;
-            if (expansions > 1000) {
-                await msg.channel.send("Alias expansion limit reached")
-                return {}
-            }
+        if (BLACKLIST[msg.author.id]?.includes(command)) {
+            canRun = false
+            rv = { content: "You do not have permissions to run this command" }
+        }
+        else{
             addToCmdUse(command)
-            //for every expansion, it counts as a use
-            aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
+            let aliasPreArgs = aliases[command].slice(1);
             command = aliases[command][0]
+            let expansions = 0
+            //finds the original command
+            while (aliases[command]?.[0]) {
+                expansions++;
+                if (expansions > 1000) {
+                    await msg.channel.send("Alias expansion limit reached")
+                    return {}
+                }
+                if (BLACKLIST[msg.author.id]?.includes(command)) {
+                    canRun = false
+                    rv = { content: "You do not have permissions to run this command" }
+                }
+                addToCmdUse(command)
+                //for every expansion, it counts as a use
+                aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
+                command = aliases[command][0]
+            }
+            msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
+            let oldC = msg.content
+            //aliasPreArgs.join is the command  content, args is what the user typed
+            msg.content = `${prefix}${command} ${parseAliasReplacement(msg,  aliasPreArgs.join(" "), args)}`
+            if (oldC == msg.content) {
+                msg.content = msg.content + ` ${args.join(" ")}`
+            }
+            if (typing) {
+                await msg.channel.sendTyping()
+            }
         }
-        msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
-        let oldC = msg.content
-        //aliasPreArgs.join is the command  content, args is what the user typed
-        msg.content = `${prefix}${command} ${parseAliasReplacement(msg,  aliasPreArgs.join(" "), args)}`
-        if (oldC == msg.content) {
-            msg.content = msg.content + ` ${args.join(" ")}`
+        if(canRun){
+            rv = await doCmd(msg, true) as CommandReturn
         }
-        if (typing) {
-            await msg.channel.sendTyping()
-        }
-        rv = await doCmd(msg, true) as CommandReturn
     }
     else {
         rv = { content: `${command} does not exist` }
