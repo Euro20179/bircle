@@ -204,6 +204,12 @@ const slashCommands = [
                 name: "set-location",
                 description: "The location that this response will set the game to",
                 required: false
+            },
+            {
+                type: STRING,
+                name: "button-response",
+                description: "Reply that happens if set-location is multiple locations",
+                required: false
             }
         ]
     },
@@ -1579,6 +1585,7 @@ const commands: { [command: string]: Command } = {
             let isNeutral = Boolean(opts['neutral'])
             let location = opts['location']
             let set_location = opts['set-location']
+            let button_response = opts['button-response']
             if(isNeutral){
                 givenAmount = 'none'
                 healUsers = 'all'
@@ -1632,6 +1639,9 @@ const commands: { [command: string]: Command } = {
             }
             if(set_location && typeof set_location === 'string'){
                 textOptions += ` SET_LOCATION=${set_location}`
+                if(button_response && typeof button_response === 'string'){
+                    textOptions += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
+                }
             }
             fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
             return {content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}`}
@@ -1665,7 +1675,10 @@ const commands: { [command: string]: Command } = {
                     description: "Specify the location that the response takes place at"
                 },
                 "set-location": {
-                    description: "Specify the location that  the response takes you to, (builtin locations: \\_\\_generic__, \\_\\_random\\_\\_) "
+                    description: "Specify the location that  the response takes you to<br>seperate locations with | for the user to choose where they want to go<br>(builtin locations: \\_\\_generic__, \\_\\_random\\_\\_)"
+                },
+                "button-response": {
+                    description: "Specify the message sent after the button is clicked, if the user can chose the location<br>{location} will be replaced with the location the user picked<br>{user} will be replaced with  the user who clicked the button<br>If this is not given, nothing will be sent"
                 },
                 "sub-stage": {
                     description: "Specify the stage that happens after this response (builtin stages: getting_in, robbing, escape, end)"
@@ -1919,9 +1932,11 @@ const commands: { [command: string]: Command } = {
                             try{
                                 let interaction = await m.awaitMessageComponent({componentType: "BUTTON", time: 30000})
                                 choice = interaction.customId.split(":")[1]
+                                buttonResponse = buttonResponse.replaceAll("{user}", `<@${interaction.user.id}>`)
                             }
                             catch(err){
                                 choice = locationOptions[Math.floor(Math.random() * locationOptions.length)]
+                                buttonResponse = buttonResponse.replaceAll("{user}", ``)
                             }
                             if(buttonResponse){
                                 await m.reply({content: buttonResponse.replaceAll("{location}", choice)})
@@ -9181,84 +9196,6 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             await interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`)
         }
         else if(interaction.commandName == 'aheist'){
-            //
-            // {
-            //     name: 'aheist',
-            //     description: 'Add a heist response',
-            //     options: [
-            //         {
-            //             type: STRING,
-            //             name: "stage",
-            //             required: true,
-            //             description: "The stage (getting_in, robbing, escape)",
-            //
-            //         },
-            //         {
-            //             type: STRING,
-            //             name: "gain-or-lose",
-            //             description: "Whether to gain or lose money",
-            //             required: true,
-            //             choices: [
-            //                 {
-            //                     name: "gain",
-            //                     value: "GAIN",
-            //                 },
-            //                 {
-            //                     name: "lose",
-            //                     value: "LOSE",
-            //                 }
-            //             ]
-            //         },
-            //         {
-            //             type: STRING,
-            //             name: "amount",
-            //             description: "The amount to gain/lose",
-            //             required: true,
-            //             choices: [
-            //                 {
-            //                     name: "none",
-            //                     value: "none"
-            //                 },
-            //                 {
-            //                     name: "normal",
-            //                     value: "normal",
-            //                 },
-            //                 {
-            //                     name: "medium",
-            //                     value: "medium",
-            //                 },
-            //                 {
-            //                     name: "large",
-            //                     value: "large"
-            //                 }
-            //             ]
-            //         },
-            //         {
-            //             type: STRING,
-            //             name: "message",
-            //             description: "The message, {userx} is replaced w/ user x, {userall} with all users, and {amount} with amount",
-            //             required: true
-            //         },
-            //         {
-            //             type: STRING,
-            //             name: "substage",
-            //             description: "The substage to enter into after this response",
-            //             required: false,
-            //         },
-            //         {
-            //             type: STRING,
-            //             name: "location",
-            //             description: "The location of this response",
-            //             required: false,
-            //         },
-            //         {
-            //             type: STRING,
-            //             name: "set-location",
-            //             description: "The location that this response will set the game to",
-            //             required: false
-            //         }
-            //     ]
-            // }
             let userId = interaction.user.id
             let stage = interaction.options.get("stage")?.value
             if(!stage){
@@ -9299,6 +9236,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let set_location = interaction.options.get("set-location")?.value
             if(set_location)
                 text += ` SET_LOCATION=${set_location}`
+            let button_response = interaction.options.get("button-response")?.value
+            if(button_response){
+                text += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
+            }
             fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
             interaction.reply(`Added:\n${text}`)
         }
