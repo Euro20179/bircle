@@ -581,8 +581,13 @@ const commands: { [command: string]: Command } = {
                     }
                     let results = []
                     for(let i = 0; i < responses.length; i++){
-                        if(responses[i].match(query)){
-                            results.push([i + 1, responses[i]])
+                        try{
+                            if(responses[i].match(query)){
+                                results.push([i + 1, responses[i]])
+                            }
+                        }
+                        catch(err){
+                            return {content: `${query} is an invalid regular expression`}
                         }
                     }
                     text = `RESULTS\n-------------------------\n${results.map(v => `${v[0]}: ${v[1]}`).join("\n")}`
