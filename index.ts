@@ -1640,7 +1640,7 @@ const commands: { [command: string]: Command } = {
             info: "Add a heist prompt with a nice ui ™️",
             arguments: {
                 "text": {
-                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc...",
+                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc...<br>{userall} will be replaced with every user<br>{amount} will be replaced with the amount gained/losed<br>{+amount} will show amount with a + sign in front (even if it should  be negative), same thing with -<br>{=amount} will show amount with  no sign",
                     required: true
                 }
             },
@@ -1660,6 +1660,15 @@ const commands: { [command: string]: Command } = {
                 "amount": {
                     alternates: ["a"],
                     description: "The amount to gain/lose, (normal, medium, large)"
+                },
+                "location": {
+                    description: "Specify the location that the response takes place at"
+                },
+                "set-location": {
+                    description: "Specify the location that  the response takes you to, (builtin locations: \\_\\_generic__, \\_\\_random\\_\\_) "
+                },
+                "sub-stage": {
+                    description: "Specify the stage that happens after this response (builtin stages: getting_in, robbing, escape, end)"
                 }
             }
         }
@@ -1696,10 +1705,10 @@ const commands: { [command: string]: Command } = {
                     let lastLegacyStage = "getting_in"
                     let responses: {[key: string]: string[]} = {
                         getting_in_positive: [
-                            "{userall} got into the building {+amount} GAIN=all AMOUNT=normal"
+                            "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal"
                         ],
                         getting_in_negative: [
-                            "{userall} spent {=amount} on a lock pick to get into the building LOSE=all AMOUNT=normal"
+                            "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal"
                         ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
@@ -1863,9 +1872,6 @@ const commands: { [command: string]: Command } = {
                         if(setLocation?.[1]){
                             response = response.replace(/SET_LOCATION=[^ ]+/, "")
                             current_location = setLocation[1].toLowerCase()
-                            if(current_location == "__random__"){
-                                current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
-                            }
                         }
                         response = response.replace(/LOCATION=[^ ]+/, "")
                         response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (match, pm) => {
@@ -1883,7 +1889,53 @@ const commands: { [command: string]: Command } = {
                         response = response.replace(/GAIN=[^ ]+/, "")
                         response = response.replace(/LOSE=[^ ]+/, "")
                         response = response.replace(/AMOUNT=[^ ]+/, "")
-                        await handleSending(msg, {content: response})
+                        let locationOptions = current_location.split("|").map(v => v.trim())
+                        if(locationOptions.length > 1){
+                            let rows: MessageActionRow[] = []
+                            let buttonClickResponseInChoice = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
+                            let buttonResponse = ""
+                            if(buttonClickResponseInChoice?.[1]){
+                                buttonResponse = buttonClickResponseInChoice[1]
+                                response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
+                            }
+                            let row = new MessageActionRow()
+                            for(let op of locationOptions){
+                                if(!op) continue;
+                                if(op == "__random__"){
+                                    op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                                }
+                                let button = new MessageButton({ customId: `button.heist:${op}`, label: op, style: "PRIMARY" })
+                                row.addComponents(button)
+                                if(row.components.length > 2){
+                                    rows.push(row)
+                                    row = new MessageActionRow()
+                                }
+                            }
+                            if(row.components.length > 0){
+                                rows.push(row)
+                            }
+                            let m = await msg.channel.send({content: response, components: rows})
+                            let choice = ""
+                            try{
+                                let interaction = await m.awaitMessageComponent({componentType: "BUTTON", time: 30000})
+                                choice = interaction.customId.split(":")[1]
+                            }
+                            catch(err){
+                                choice = locationOptions[Math.floor(Math.random() * locationOptions.length)]
+                            }
+                            if(buttonResponse){
+                                await m.reply({content: buttonResponse.replaceAll("{location}", choice)})
+                            }
+                            current_location = choice
+                        }
+                        else{
+                            await handleSending(msg, {content: response})
+                        }
+
+                        if(current_location == "__random__"){
+                            current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                        }
+
                         await new Promise(res => setTimeout(res, 4000))
                         if(subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]){
                             if(Object.keys(legacyNextStages).includes(subStage[1])){
