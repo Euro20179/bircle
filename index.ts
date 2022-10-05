@@ -735,7 +735,7 @@ const commands: { [command: string]: Command } = {
     },
     "pay-loan": {
         run: async (msg, args) => {
-            let amount = args[0] || "all"
+            let amount = args[0] || "all!"
             let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
             if (!economy.getEconomy()[msg.author.id].loanUsed) {
                 return { content: "You have no loans to pay off" }
