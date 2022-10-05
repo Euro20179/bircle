@@ -380,11 +380,11 @@ function parseAliasReplacement(msg, cmdContent, args){
                     }
                     else if(dotsInARow == 3){
                         console.log(suffix)
-                        finalText += String(args.slice(Number(suffix) - 1))
+                        finalText += String(args.slice(Number(suffix) - 1).join(" "))
                     }
                     else if(dotsInARow == 2){
                         let [n1, n2] = suffix.split("..")
-                        finalText += String(args.slice(Number(n1) - 1, Number(n2) - 1))
+                        finalText += String(args.slice(Number(n1) - 1, Number(n2) - 1).join(" "))
                     }
                     else if(Number(suffix)){
                         finalText += args[Number(suffix) - 1]
