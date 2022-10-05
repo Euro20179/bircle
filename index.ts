@@ -1792,7 +1792,7 @@ const commands: { [command: string]: Command } = {
                         }
                     }
 
-                    let current_location = String(opts['location'] || opts['loc'] || opts['l'] || "__generic__")
+                    let current_location = "__generic__"
 
                     let stats: {locationsVisited: {[key: string]: {[key: string]: number}}, adventureOrder: [string, string][]} = {locationsVisited: {}, adventureOrder: []}
 
@@ -7843,7 +7843,7 @@ ${styles}
                 const ext = exts[fmt] || fmt
                 try {
                     execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
-                }
+_B                }
                 catch (err) {
                     continue
                 }
