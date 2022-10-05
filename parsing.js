@@ -370,6 +370,7 @@ function parseAliasReplacement(msg, cmdContent, args){
                     if(ch == '.'){
                         dotsInARow++
                         isSlice = true
+                        continue
                     }
                     suffix += ch
                 }
@@ -378,11 +379,12 @@ function parseAliasReplacement(msg, cmdContent, args){
                         finalText += String(args.length)
                     }
                     else if(dotsInARow == 3){
-                        finalText += String(args.slice(Number(suffix)))
+                        console.log(suffix)
+                        finalText += String(args.slice(Number(suffix) - 1))
                     }
                     else if(dotsInARow == 2){
                         let [n1, n2] = suffix.split("..")
-                        finalText += String(args.slice(Number(n1), Number(n2)))
+                        finalText += String(args.slice(Number(n1) - 1, Number(n2) - 1))
                     }
                     else if(Number(suffix)){
                         finalText += args[Number(suffix) - 1]
