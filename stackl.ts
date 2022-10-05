@@ -267,6 +267,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             }
 
             //logic
+            case "||":
             case "%or": {
                 let arg1 = stack.pop()
                 let arg2 = stack.pop()
@@ -284,6 +285,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 }
                 break;
             }
+            case "&&":
             case "%and": {
                 let arg1 = stack.pop()
                 let arg2 = stack.pop()
@@ -301,6 +303,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 }
                 break
             }
+            case "x|":
             case "%xor": {
                 let arg1 = stack.pop()
                 let arg2 = stack.pop()
@@ -321,6 +324,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 }
                 break
             }
+            case "!&":
             case "%nand": {
                 let arg1 = stack.pop()
                 let arg2 = stack.pop()
