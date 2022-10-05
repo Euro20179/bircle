@@ -3131,9 +3131,13 @@ const commands: { [command: string]: Command } = {
             if (!sep) {
                 sep = "\n"
             } else sep = String(sep)
+            let stringifyFn = JSON.stringify
+            if(opts['s']){
+                stringifyFn = String
+            }
             let ret: any[] = []
             try {
-                ret.push(JSON.stringify(safeEval(args.join(" "), { yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand[msg.author.id], ...vars }, { timeout: 3000 })))
+                ret.push(stringifyFn(safeEval(args.join(" "), { yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand[msg.author.id], ...vars }, { timeout: 3000 })))
             }
             catch (err) {
                 console.log(err)
@@ -3234,44 +3238,6 @@ const commands: { [command: string]: Command } = {
             info: "Prints the number of arguments given to this command"
         },
         category: CommandCategory.META
-    },
-    json: {
-        run: async(msg,  args) => {
-            let data = args.join(" ")
-            let startingType = data[0]
-            if(!startingType){
-                return {content: "No json given"}
-            }
-            let endingType = {"{": "}", "[": "]"}
-            let startingTypeFromEndingType = {"}": "{", "]": "["}
-            let jsonData = ""
-            let inner = 0
-            for(let i = 0; i < data.length; i++){
-                let ch = data[i]
-                jsonData += ch
-                //@ts-ignore
-                if(startingTypeFromEndingType[ch] !== undefined && endingType[startingType] && startingType == startingTypeFromEndingType[ch] && i > 0)
-                    inner--;
-                //@ts-ignore
-                if(ch == startingType)
-                    inner++;
-                if(inner == 0)
-                    break;
-            }
-            let result = ""
-            let afterData = data.slice(jsonData.length).trim().split(" ")
-            let object
-            try{
-                object = JSON.parse(jsonData)
-            }
-            catch(err){
-                return {content: "invalid json"}
-            }
-            for(let op of afterData){
-            }
-            console.log(object)
-            return {noSend: true}
-        }, category: CommandCategory.UTIL
     },
     opts: {
         run: async (msg, args) => {
