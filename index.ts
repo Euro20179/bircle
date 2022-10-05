@@ -392,9 +392,6 @@ const commands: { [command: string]: Command } = {
             if(!args[0]){
                 return {content: "Looks like u pulled a cam"}
             }
-            if(args[0] == prefix){
-                return {content: "nah ah ah"}
-            }
             economy.getStockInformation(args[0], (data) => {
                     if(!data){
                         msg.channel.send("No info found")
@@ -403,11 +400,11 @@ const commands: { [command: string]: Command } = {
                     let embed = new MessageEmbed()
                     let nChange = Number(data.change)
                     let nPChange = Number(data["%change"]) * 100
-                    embed.setTitle(args[0].toUpperCase())
-                    embed.addField("price", String(data.price), true)
-                    embed.addField("change", String(data.change), true)
-                    embed.addField("%change", String(nPChange) || "N/A", true)
-                    embed.addField("volume", data.volume)
+                    embed.setTitle(args[0].toUpperCase().trim() || "N/A")
+                    embed.addField("price", String(data.price).trim() || "N/A", true)
+                    embed.addField("change", String(data.change).trim() || "N/A", true)
+                    embed.addField("%change", String(nPChange).trim() || "N/A", true)
+                    embed.addField("volume", data.volume?.trim() || "N/A")
                     if(nChange < 0){
                         embed.setColor("RED")
                     }
@@ -418,6 +415,8 @@ const commands: { [command: string]: Command } = {
                         embed.setColor("#ffff00")
                     }
                     handleSending(msg, {embeds: [embed]})
+            }, () => {
+                msg.channel.send(`Failed to get stock data for:  ${args[0]}`)
             })
                     //await msg.channel.send({ embeds: [embed] })
             return {
@@ -466,6 +465,8 @@ const commands: { [command: string]: Command } = {
                             economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
                         }
                         msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`})
+                    }, () => {
+                        msg.channel.send(`Failed to get stock data for: ${item}`)
                     })
                     break
                 }
@@ -647,6 +648,8 @@ const commands: { [command: string]: Command } = {
                     economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
                 }
                 msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}`})
+            }, () => {
+                msg.channel.send(`Failed to get stock data for: ${stock}`)
             })
             return {noSend: true}
         }, category: CommandCategory.ECONOMY
