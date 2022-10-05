@@ -41,7 +41,7 @@ exports.APICmds = {
                 return JSON.stringify(data);
             return false;
         }
-    }
+    },
 };
 async function handleApiArgumentType(msg, t, argument) {
     switch (t) {

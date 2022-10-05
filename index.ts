@@ -32,7 +32,7 @@ const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, 
 
 import economy = require("./economy")
 
-const {saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems} = require("./shop.js")
+const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems } = require("./shop.js")
 
 import pet = require("./pets")
 
@@ -57,12 +57,12 @@ let BUTTONS: { [id: string]: string | (() => string) } = {}
 let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 let SPAMS: { [id: string]: boolean } = {}
 
-let BLACKJACK_GAMES: {[id: string]: boolean} = {}
+let BLACKJACK_GAMES: { [id: string]: boolean } = {}
 
 let BATTLEGAME: boolean = false;
 let CRIME: boolean = false;
 
-let lastCommand: {[key: string]: string} = {};
+let lastCommand: { [key: string]: string } = {};
 let snipes: (Message | PartialMessage)[] = [];
 let purgeSnipe: (Message | PartialMessage)[];
 
@@ -118,7 +118,7 @@ const slashCommands = [
     createChatCommand("rps", "Rock paper scissors", [
         createChatCommandOption(USER, "opponent", "opponent", { required: true }),
         createChatCommandOption(STRING, "choice", "choice", { required: true }),
-        createChatCommandOption(STRING, "bet", "bet", {required: false})
+        createChatCommandOption(STRING, "bet", "bet", { required: false })
     ]),
     createChatCommand("rccmd", "remove a custom command, WOWZERS", [
         createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", { required: true }),
@@ -248,8 +248,8 @@ function getContentFromResult(result: CommandReturn) {
             res += fs.readFileSync(file.attachment, "base64") + "\n"
         }
     }
-    if(result.embeds){
-        for(let embed of result.embeds){
+    if (result.embeds) {
+        for (let embed of result.embeds) {
             res += `${JSON.stringify(embed.toJSON())}\n`
         }
     }
@@ -321,24 +321,26 @@ let connection: any;
 
 let HEIST_PLAYERS: string[] = []
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
-let  HEIST_STARTED = false
+let HEIST_STARTED = false
 
 const commands: { [command: string]: Command } = {
     "send-log": {
-        run: async(msg, args) => {
-            return {files: [
-                {
-                    attachment: `log.txt`,
-                    name: `log.txt`,
-                    description: "log",
-                    delete: false
-                }
-            ]}
-        },  category: CommandCategory.UTIL,
+        run: async (msg, args) => {
+            return {
+                files: [
+                    {
+                        attachment: `log.txt`,
+                        name: `log.txt`,
+                        description: "log",
+                        delete: false
+                    }
+                ]
+            }
+        }, category: CommandCategory.UTIL,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     "stk": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -348,34 +350,34 @@ const commands: { [command: string]: Command } = {
                     let html = data.read().toString()
                     let embed = new MessageEmbed()
                     let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-                    if(!stockData){
+                    if (!stockData) {
                         await msg.channel.send("No data found")
                         return
                     }
                     stockData = stockData[0]
                     let price = stockData.match(/>(\d+\.\d+)/)
-                    if(!price){
+                    if (!price) {
                         await msg.channel.send("No price found")
                         return
                     }
                     price = price[1]
                     let change = stockData.match(/(\+|-)(\d+\.\d+)/)
-                    if(!change){
+                    if (!change) {
                         await msg.channel.send("No change found")
                         return
                     }
                     change = `${change[1]}${change[2]}`
                     let numberchange = Number(change)
                     let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-                    if(!stockName){
+                    if (!stockName) {
                         await msg.channel.send("Could not get stock name")
                         return
                     }
                     stockName = stockName[1]
-                    if(numberchange > 0){
+                    if (numberchange > 0) {
                         embed.setColor("GREEN")
                     }
-                    else{
+                    else {
                         embed.setColor("RED")
                     }
                     embed.setTitle(stockName)
@@ -384,27 +386,27 @@ const commands: { [command: string]: Command } = {
                     await msg.channel.send({ embeds: [embed] })
                 })
             }).end()
-            return {content: "Getting data"}
+            return { content: "Getting data" }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Gets the stock symbol for a stock"
         }
     },
     stock: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let fmt = String(opts['fmt'] || "{embed}")
             let stock = args.join(" ")
-            if(!stock){
-                return {content: "Looks like u pulled a cam"}
+            if (!stock) {
+                return { content: "Looks like u pulled a cam" }
             }
-            let  data = await economy.getStockInformation(stock)
-            if(!data){
-                return {content: "No  info found"}
+            let data = await economy.getStockInformation(stock)
+            if (!data) {
+                return { content: "No  info found" }
             }
             await msg.channel.send("Getting data")
-            if(fmt == "{embed}"){
+            if (fmt == "{embed}") {
                 let embed = new MessageEmbed()
                 let nChange = Number(data.change)
                 let nPChange = Number(data["%change"]) * 100
@@ -413,18 +415,18 @@ const commands: { [command: string]: Command } = {
                 embed.addField("change", String(data.change).trim() || "N/A", true)
                 embed.addField("%change", String(nPChange).trim() || "N/A", true)
                 embed.addField("volume", data.volume?.trim() || "N/A")
-                if(nChange < 0){
+                if (nChange < 0) {
                     embed.setColor("RED")
                 }
-                else if(nChange > 0){
+                else if (nChange > 0) {
                     embed.setColor("#00ff00")
                 }
-                else{
+                else {
                     embed.setColor("#ffff00")
                 }
-                return {embeds: [embed]}
+                return { embeds: [embed] }
             }
-            else{
+            else {
                 return {
                     content: format(fmt, {
                         p: String(data.price).trim() || "0",
@@ -447,102 +449,105 @@ const commands: { [command: string]: Command } = {
         }
     },
     buy: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let allowedTypes = ["stock", "pet", "item"]
             let type = args[0]
-            let item = args[1]
-            if(!allowedTypes.includes(type)){
+            let item = args.slice(1).join(" ")
+            if (!item) {
+                return { content: "No item specified" }
+            }
+            let amount = Number(args[args.length - 1])
+            if(!isNaN(amount)){
+                item = item.split(" ").slice(0, -1).join(" ")
+            }
+            if (!allowedTypes.includes(type)) {
                 //if is in format of old [buy <stock> <shares>
-                if(Number(item) && !allowedTypes.includes(type)){
+                if (Number(item) && !allowedTypes.includes(type)) {
                     await msg.channel.send(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
                     return await commands['bstock'].run(msg, args)
                 }
                 //else
-                return {content: `The shop of item must be one of: \`${allowedTypes.join(", ")}\``}
+                return { content: `The shop of item must be one of: \`${allowedTypes.join(", ")}\`` }
             }
-            let amount = Number(args[2])
-            if(!item){
-                return {content: "No item specified"}
-            }
-            switch(type){
-                case "stock":{
-                    if(!amount || amount <  0){
-                        return {content: `${amount} is an invalid amount`}
+            switch (type) {
+                case "stock": {
+                    if (!amount || amount < 0) {
+                        return { content: `${amount} is an invalid amount` }
                     }
                     let data = await economy.getStockInformation(item)
-                    if(data === false){
-                        return {content: `${item} does not exist`}
+                    if (data === false) {
+                        return { content: `${item} does not exist` }
                     }
                     let realStock = economy.userHasStockSymbol(msg.author.id, item)
-                    if(!economy.canBetAmount(msg.author.id, data.price * amount)){
-                        return {content: "You cannot afford this"}
+                    if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
+                        return { content: "You cannot afford this" }
                     }
-                    if(realStock){
+                    if (realStock) {
                         economy.buyStock(msg.author.id, realStock.name, amount, data.price)
                     }
-                    else{
+                    else {
                         economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
                     }
-                    return {content:  `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`}
+                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}` }
                 }
                 case "pet": {
-                    if(!item){
-                        return {content: "You didnt specify a pet"}
+                    if (!item) {
+                        return { content: "You didnt specify a pet" }
                     }
                     let shopData = pet.getPetShop()
                     item = item.toLowerCase()
-                    if(!shopData[item]){
-                        return {content: `${item}: not a valid pet`}
+                    if (!shopData[item]) {
+                        return { content: `${item}: not a valid pet` }
                     }
                     let petData = shopData[item]
-                    let totalCost =0
-                    for(let cost of petData.cost){
+                    let totalCost = 0
+                    for (let cost of petData.cost) {
                         totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                     }
-                    if(!economy.canBetAmount(msg.author.id, totalCost)){
-                        return {content: "You do not have enough money to buy this pet"}
+                    if (!economy.canBetAmount(msg.author.id, totalCost)) {
+                        return { content: "You do not have enough money to buy this pet" }
                     }
-                    if(pet.buyPet(msg.author.id, item)){
-                        return  {content: `You have successfuly bought: ${item} for: $${totalCost}\nTo activate it run ${prefix}sapet ${item}`}
+                    if (pet.buyPet(msg.author.id, item)) {
+                        return { content: `You have successfuly bought: ${item} for: $${totalCost}\nTo activate it run ${prefix}sapet ${item}` }
                     }
-                    return {content: "You already have this pet"}
+                    return { content: "You already have this pet" }
                 }
                 case "item": {
-                    if(!amount)
+                    if (!amount)
                         amount = 1
-                    if(msg.author.bot){
-                        return {content: "Bots cannot buy items"}
+                    if (msg.author.bot) {
+                        return { content: "Bots cannot buy items" }
                     }
-                    if(!ITEMS()[item]){
-                        return {content: `${item} does not exist`}
+                    if (!ITEMS()[item]) {
+                        return { content: `${item} does not exist` }
                     }
                     let itemData = ITEMS()[item]
                     let totalSpent = 0
-                    for(let i = 0; i < amount; i++){
+                    for (let i = 0; i < amount; i++) {
                         let totalCost = 0
-                        for(let cost of itemData.cost){
+                        for (let cost of itemData.cost) {
                             totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                         }
-                        if(economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0){
-                            if(buyItem(msg.author.id, item)){
+                        if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
+                            if (buyItem(msg.author.id, item)) {
                                 economy.loseMoneyToBank(msg.author.id, totalCost)
                                 totalSpent += totalCost
                             }
-                            else{
-                                return {content: `You already have the maximum of ${item}`}
+                            else {
+                                return { content: `You already have the maximum of ${item}` }
                             }
                         }
-                        else{
-                            if(i > 0){
-                                return {content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`}
+                        else {
+                            if (i > 0) {
+                                return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}` }
                             }
-                            return {content: `This item is too expensive for u`}
+                            return { content: `This item is too expensive for u` }
                         }
                     }
-                    return {content: `You bought: ${item} for $${totalSpent}`}
+                    return { content: `You bought: ${amount} ${item}(s) for $${totalSpent}` }
                 }
             }
-            return {noSend: true}
+            return { noSend: true }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "Buy stuff!",
@@ -561,11 +566,11 @@ const commands: { [command: string]: Command } = {
         }
     },
     "heist-info": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let action = args[0] || 'list-types'
             let text = ""
             let responses = fs.readFileSync("./command-results/heist", "utf-8").split("\n").map(v => v.split(":").slice(1).join(":").replace(/;END$/, "").trim())
-            switch(action){
+            switch (action) {
                 case "list-responses": {
                     text = responses.join("\n")
                     break
@@ -573,16 +578,16 @@ const commands: { [command: string]: Command } = {
                 case "list-types": {
                     let locations: string[] = ["__generic__"]
                     let stages: string[] = ["getting_in", "robbing", "escape", "end"]
-                    for(let resp of responses){
+                    for (let resp of responses) {
                         let stage = resp.match(/STAGE=([^ ]+)/)
-                        if(!stage?.[1]) continue;
+                        if (!stage?.[1]) continue;
                         let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
                         let locationText = location?.[1]
                         let stageText = stage[1]
-                        if(locationText && !locations.includes(locationText)){
+                        if (locationText && !locations.includes(locationText)) {
                             locations.push(locationText)
                         }
-                        if(stageText && !stages.includes(stageText)){
+                        if (stageText && !stages.includes(stageText)) {
                             stages.push(stageText)
                         }
                     }
@@ -591,19 +596,19 @@ const commands: { [command: string]: Command } = {
                 }
                 case "search": {
                     let query = args[1]
-                    if(!query){
+                    if (!query) {
                         text = "No search query"
                         break
                     }
                     let results = []
-                    for(let i = 0; i < responses.length; i++){
-                        try{
-                            if(responses[i].match(query)){
+                    for (let i = 0; i < responses.length; i++) {
+                        try {
+                            if (responses[i].match(query)) {
                                 results.push([i + 1, responses[i]])
                             }
                         }
-                        catch(err){
-                            return {content: `${query} is an invalid regular expression`}
+                        catch (err) {
+                            return { content: `${query} is an invalid regular expression` }
                         }
                     }
                     text = `RESULTS\n-------------------------\n${results.map(v => `${v[0]}: ${v[1]}`).join("\n")}`
@@ -614,13 +619,13 @@ const commands: { [command: string]: Command } = {
                     break
                 }
             }
-            return {content: text.replaceAll(/__/g, "\\_") || "nothing"}
+            return { content: text.replaceAll(/__/g, "\\_") || "nothing" }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Get information about heist responses",
             arguments: {
                 type: {
-                    description:  "The type of information<br>can be:<br><ul><li>list-responses</li><li>list-types</li><li>search (requires search query)</li></ul>"
+                    description: "The type of information<br>can be:<br><ul><li>list-responses</li><li>list-types</li><li>search (requires search query)</li></ul>"
                 },
                 search_query: {
                     requires: "type",
@@ -630,289 +635,289 @@ const commands: { [command: string]: Command } = {
         }
     },
     bstock: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let stock = args[0]
-            if(!stock){
-                return {content: "No stock given"}
+            if (!stock) {
+                return { content: "No stock given" }
             }
-            if(stock == prefix){
-                return {content: "nah ah ah"}
+            if (stock == prefix) {
+                return { content: "nah ah ah" }
             }
             stock = stock.toUpperCase()
             let amount = Number(args[1])
-            if(!amount){
-                return {content: "No share count given"}
+            if (!amount) {
+                return { content: "No share count given" }
             }
-            if(amount < .1){
-                return {content: "You must buy at least 1/10 of a share"}
+            if (amount < .1) {
+                return { content: "You must buy at least 1/10 of a share" }
             }
             economy.getStockInformation(stock, (data) => {
-                if(data === false){
-                    msg.channel.send({content: `${stock} does not exist`})
+                if (data === false) {
+                    msg.channel.send({ content: `${stock} does not exist` })
                     return
                 }
                 let realStock = economy.userHasStockSymbol(msg.author.id, stock)
-                if(!economy.canBetAmount(msg.author.id, data.price * amount)){
-                    msg.channel.send({content: "You cannot afford this"})
+                if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
+                    msg.channel.send({ content: "You cannot afford this" })
                     return
                 }
-                if(realStock){
+                if (realStock) {
                     economy.buyStock(msg.author.id, realStock.name, amount, data.price)
                 }
-                else{
+                else {
                     economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
                 }
-                msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}`})
+                msg.channel.send({ content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}` })
             }, () => {
                 msg.channel.send(`Failed to get stock data for: ${stock}`)
             })
-            return {noSend: true}
+            return { noSend: true }
         }, category: CommandCategory.ECONOMY
     },
     "ustock": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let user = args[1] || msg.author.id
             let member = await fetchUser(msg.guild, user)
-            if(!member)
+            if (!member)
                 member = msg.member
             let stockName = args[0]
-            return {content: JSON.stringify(economy.userHasStockSymbol(member.user.id, stockName))}
+            return { content: JSON.stringify(economy.userHasStockSymbol(member.user.id, stockName)) }
         }, category: CommandCategory.UTIL
     },
     "stocks": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let user = args[0]
             let member = msg.member
-            if(user){
+            if (user) {
                 member = await fetchUser(msg.guild, user)
-                if(!member){
-                    return {content: `${args[0]} not found`}
+                if (!member) {
+                    return { content: `${args[0]} not found` }
                 }
             }
-            if(!member){
-                return {content: ":weary:"}
+            if (!member) {
+                return { content: ":weary:" }
             }
-            if(!economy.getEconomy()[member.id] || !economy.getEconomy()[member.id].stocks){
-                return {content: "You own no stocks"}
+            if (!economy.getEconomy()[member.id] || !economy.getEconomy()[member.id].stocks) {
+                return { content: "You own no stocks" }
             }
             let text = `<@${member.id}>\n`
-            for(let stock in economy.getEconomy()[member.id].stocks){
+            for (let stock in economy.getEconomy()[member.id].stocks) {
                 //@ts-ignore
                 let stockInfo = economy.getEconomy()[member.id].stocks[stock]
                 text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
-            return {content: text || "No stocks", allowedMentions: {parse: []}}
+            return { content: text || "No stocks", allowedMentions: { parse: [] } }
         }, category: CommandCategory.ECONOMY
     },
     loan: {
-        run: async(msg, args) => {
-            if(!hasItem(msg.author.id, "loan")){
-                return {content: "You do not have a loan"}
+        run: async (msg, args) => {
+            if (!hasItem(msg.author.id, "loan")) {
+                return { content: "You do not have a loan" }
             }
-            if(economy.getEconomy()[msg.author.id].loanUsed){
-                return {content: "U have not payed off your loan"}
+            if (economy.getEconomy()[msg.author.id].loanUsed) {
+                return { content: "U have not payed off your loan" }
             }
-            if(economy.getEconomy()[msg.author.id].money >= 0){
-                return {content: "Ur not in debt"}
+            if (economy.getEconomy()[msg.author.id].money >= 0) {
+                return { content: "Ur not in debt" }
             }
             let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
             //@ts-ignore
             let max = top[1]?.money || 100
             let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
-            if(needed  > max){
+            if (needed > max) {
                 needed = max
             }
             economy.addMoney(msg.author.id, needed)
             economy.useLoan(msg.author.id, needed)
             useItem(msg.author.id, "loan")
-            return {content: `<@${msg.author.id}> Used a loan and got ${needed}`}
+            return { content: `<@${msg.author.id}> Used a loan and got ${needed}` }
         }, category: CommandCategory.ECONOMY
     },
     "pay-loan": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let amount = args[0] || "all"
             let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
-            if(!economy.getEconomy()[msg.author.id].loanUsed){
-                return {content: "You have no loans to pay off"}
+            if (!economy.getEconomy()[msg.author.id].loanUsed) {
+                return { content: "You have no loans to pay off" }
             }
-            if(!economy.canBetAmount(msg.author.id, nAmount)){
-                return {content: "U do not have enough money to pay that back"}
+            if (!economy.canBetAmount(msg.author.id, nAmount)) {
+                return { content: "U do not have enough money to pay that back" }
             }
-            if(economy.payLoan(msg.author.id, nAmount)){
-                return {content: "You have fully payed off your loan"}
+            if (economy.payLoan(msg.author.id, nAmount)) {
+                return { content: "You have fully payed off your loan" }
             }
-            return {content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left`}
+            return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left` }
         }, category: CommandCategory.ECONOMY
     },
     bitem: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = Number(opts['count'] || opts['c'])
-            if(!count)
+            if (!count)
                 count = 1
             let item = args.join(" ")
-            if(!item){
-                return {content: "no item"}
+            if (!item) {
+                return { content: "no item" }
             }
-            if(msg.author.bot){
-                return {content: "Bots cannot buy items"}
+            if (msg.author.bot) {
+                return { content: "Bots cannot buy items" }
             }
-            if(!ITEMS()[item]){
-                return {content: `${item} does not exist`}
+            if (!ITEMS()[item]) {
+                return { content: `${item} does not exist` }
             }
             let itemData = ITEMS()[item]
             let totalSpent = 0
-            for(let i = 0; i < count; i++){
+            for (let i = 0; i < count; i++) {
                 let totalCost = 0
-                for(let cost of ITEMS()[item].cost){
+                for (let cost of ITEMS()[item].cost) {
                     totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
-                if(economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0){
-                    if(buyItem(msg.author.id, item)){
+                if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
+                    if (buyItem(msg.author.id, item)) {
                         economy.loseMoneyToBank(msg.author.id, totalCost)
                         totalSpent += totalCost
                     }
-                    else{
-                        return {content: `You already have the maximum of ${item}`}
+                    else {
+                        return { content: `You already have the maximum of ${item}` }
                     }
                 }
-                else{
-                    if(i > 0){
-                        return {content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`}
+                else {
+                    if (i > 0) {
+                        return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}` }
                     }
-                    return {content: `This item is too expensive for u`}
+                    return { content: `This item is too expensive for u` }
                 }
             }
-            return {content: `You bought: ${item} for $${totalSpent}`}
+            return { content: `You bought: ${item} for $${totalSpent}` }
         }, category: CommandCategory.ECONOMY
     },
     inventory: {
-        run: async(msg, args) => {
-            let user = await fetchUser(msg.guild, args[0] ||  msg.author.id)
-            if(!user)
-                return {content: `${args[0]}  not  found`}
+        run: async (msg, args) => {
+            let user = await fetchUser(msg.guild, args[0] || msg.author.id)
+            if (!user)
+                return { content: `${args[0]}  not  found` }
             let e = new MessageEmbed()
             e.setTitle("ITEMS")
             let au = user.user.avatarURL()
-            if(au)
+            if (au)
                 e.setThumbnail(au)
-            for(let item in INVENTORY()[user.id]){
+            for (let item in INVENTORY()[user.id]) {
                 e.addField(item, `${INVENTORY()[user.id][item]}`)
             }
-            return {embeds: [e]}
+            return { embeds: [e] }
         }, category: CommandCategory.ECONOMY
     },
     "pet-shop": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let embed = new MessageEmbed()
             let shopData = pet.getPetShop()
-            for(let pet in shopData){
+            for (let pet in shopData) {
                 let data = shopData[pet]
-                let totalCost =0
-                for(let cost of data.cost){
+                let totalCost = 0
+                for (let cost of data.cost) {
                     totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
                 embed.addField(`${pet}\n$${totalCost}`, `${data.description}`, true)
             }
-            embed.setFooter({text: `To buy a pet, do ${prefix}bpet <pet name>`})
-            return {embeds: [embed]}
+            embed.setFooter({ text: `To buy a pet, do ${prefix}bpet <pet name>` })
+            return { embeds: [embed] }
         }, category: CommandCategory.ECONOMY
     },
     'bpet': {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let requested_pet = args[0]
-            if(!requested_pet){
-                return {content: "You didnt specify a pet"}
+            if (!requested_pet) {
+                return { content: "You didnt specify a pet" }
             }
             let shopData = pet.getPetShop()
             requested_pet = requested_pet.toLowerCase()
-            if(!shopData[requested_pet]){
-                return {content: `${requested_pet}: not a valid pet`}
+            if (!shopData[requested_pet]) {
+                return { content: `${requested_pet}: not a valid pet` }
             }
             let petData = shopData[requested_pet]
-            let totalCost =0
-            for(let cost of petData.cost){
+            let totalCost = 0
+            for (let cost of petData.cost) {
                 totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
             }
-            if(!economy.canBetAmount(msg.author.id, totalCost)){
-                return {content: "You do not have enough money to buy this pet"}
+            if (!economy.canBetAmount(msg.author.id, totalCost)) {
+                return { content: "You do not have enough money to buy this pet" }
             }
-            if(pet.buyPet(msg.author.id, requested_pet)){
-                return  {content: `You have successfuly bought: ${requested_pet} for: $${totalCost}`}
+            if (pet.buyPet(msg.author.id, requested_pet)) {
+                return { content: `You have successfuly bought: ${requested_pet} for: $${totalCost}` }
             }
-            return {content: "You already have this pet"}
+            return { content: "You already have this pet" }
         }, category: CommandCategory.ECONOMY
     },
     "gapet": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
-            return {content: String(pet.getActivePet(user.user.id))}
-        },  category: CommandCategory.UTIL
+            return { content: String(pet.getActivePet(user.user.id)) }
+        }, category: CommandCategory.UTIL
     },
     "sapet": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let newActivePet = args[0]?.toLowerCase()
-            if(!pet.hasPet(msg.author.id, newActivePet)){
-                return {content: `You do not have a ${newActivePet}`}
+            if (!pet.hasPet(msg.author.id, newActivePet)) {
+                return { content: `You do not have a ${newActivePet}` }
             }
-            if(pet.setActivePet(msg.author.id, newActivePet)){
-                return {content: `Your new active pet is ${newActivePet}`}
+            if (pet.setActivePet(msg.author.id, newActivePet)) {
+                return { content: `Your new active pet is ${newActivePet}` }
             }
-            return {content: "Failed to set active pet"}
-        },  category: CommandCategory.UTIL
+            return { content: "Failed to set active pet" }
+        }, category: CommandCategory.UTIL
     },
     pets: {
-        run: async(msg, args) => {
-            let user = await  fetchUser(msg.guild, args[0] ||  msg.author.id)
-            if(!user)
-                return {content: "User not found"}
+        run: async (msg, args) => {
+            let user = await fetchUser(msg.guild, args[0] || msg.author.id)
+            if (!user)
+                return { content: "User not found" }
             let pets = pet.getUserPets(user.user.id)
-            if(!pets){
-                return {content: `<@${user.user.id}> does not have pets`, allowedMentions: {parse: []}}
+            if (!pets) {
+                return { content: `<@${user.user.id}> does not have pets`, allowedMentions: { parse: [] } }
             }
             let e = new MessageEmbed()
             e.setTitle(`${user.user.username}'s pets`)
             let activePet = pet.getActivePet(msg.author.id)
             e.setDescription(`active pet: ${activePet}`)
-            for(let pet in pets){
+            for (let pet in pets) {
                 e.addField(pet, `${pets[pet]} hunger`, true)
             }
-            if(!activePet){
-                e.setFooter({text: `To set an active pet run: ${prefix}sapet <pet name>`})
+            if (!activePet) {
+                e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
             }
-            return {embeds: [e]}
+            return { embeds: [e] }
         }, category: CommandCategory.ECONOMY
     },
     "feed-pet": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let petName = args[0]?.toLowerCase()
             let item = args.slice(1).join(" ").toLowerCase()
-            if(!pet.hasPet(msg.author.id, petName)){
-                return {content: `You do not  have a ${petName}`}
+            if (!pet.hasPet(msg.author.id, petName)) {
+                return { content: `You do not  have a ${petName}` }
             }
-            if(!hasItem(msg.author.id, item)){
-                return {content: `You do not have the item: ${item}`}
+            if (!hasItem(msg.author.id, item)) {
+                return { content: `You do not have the item: ${item}` }
             }
             useItem(msg.author.id, item)
             let feedAmount = pet.feedPet(msg.author.id, petName, item)
-            if(feedAmount){
-                return {content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`}
+            if (feedAmount) {
+                return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back` }
             }
-            return {contnet: "The feeding was unsuccessful"}
+            return { contnet: "The feeding was unsuccessful" }
         }, category: CommandCategory.FUN,
         help: {
             info: "feed-peth <pet> <item>"
         }
     },
     shop: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let items = fs.readFileSync("./shop.json", "utf-8")
             let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
-            if(!user){
-                return {content: `${opts['as']} not found`}
+            if (!user) {
+                return { content: `${opts['as']} not found` }
             }
             let userCheckingShop = user.user
             let itemJ = JSON.parse(items)
@@ -920,38 +925,38 @@ const commands: { [command: string]: Command } = {
             let i = 0
             let e = new MessageEmbed()
             let au = msg.author.avatarURL()
-            if(au){
+            if (au) {
                 e.setThumbnail(au)
             }
             let userShopAu = userCheckingShop.avatarURL()
-            if(userShopAu)
-                e.setFooter({text: `Viewing shop as: ${userCheckingShop.username}`, iconURL: userShopAu})
-            else{
-                e.setFooter({text: `Viewing shop as: ${userCheckingShop.username}`})
+            if (userShopAu)
+                e.setFooter({ text: `Viewing shop as: ${userCheckingShop.username}`, iconURL: userShopAu })
+            else {
+                e.setFooter({ text: `Viewing shop as: ${userCheckingShop.username}` })
             }
             let round = !opts['no-round']
-            for(let item in itemJ){
+            for (let item in itemJ) {
                 i++;
                 let totalCost = 0
-                for(let cost of itemJ[item].cost){
+                for (let cost of itemJ[item].cost) {
                     totalCost += economy.calculateAmountFromStringIncludingStocks(userCheckingShop.id, cost)
                 }
-                if(round){
+                if (round) {
                     totalCost = Math.floor(totalCost * 100) / 100
                 }
                 e.addField(item.toUpperCase(), `**${totalCost == Infinity ? "puffle only" : `$${totalCost}`}**\n${itemJ[item].description}`, true)
-                if(i % 25 == 0){
+                if (i % 25 == 0) {
                     pages.push(e)
                     e = new MessageEmbed()
-                    if(au)
+                    if (au)
                         e.setThumbnail(au)
                     i = 0
                 }
             }
-            if(e.fields.length > 0){
+            if (e.fields.length > 0) {
                 pages.push(e)
             }
-            return {embeds: pages}
+            return { embeds: pages }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "List items in the shop",
@@ -963,15 +968,15 @@ const commands: { [command: string]: Command } = {
         }
     },
     profits: {
-        run: async(msg, args) => {
-            if(!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks){
-                return {content: "You own no stocks"}
+        run: async (msg, args) => {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+                return { content: "You own no stocks" }
             }
             let totalProfit = 0
             let totalDailiyProfit = 0
             let text = ""
             let totalValue = 0
-            for(let stock in economy.getEconomy()[msg.author.id].stocks){
+            for (let stock in economy.getEconomy()[msg.author.id].stocks) {
                 let data
                 stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 try {
@@ -985,28 +990,28 @@ const commands: { [command: string]: Command } = {
                     continue
                 }
                 let stockData = data.body.matchAll(new RegExp(`data-symbol="${stock.replace("^", '.')}"([^>]+)>`, "g"))
-                let jsonStockInfo: {[key: string]: string} = {}
+                let jsonStockInfo: { [key: string]: string } = {}
                 //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-                for(let stockInfo of stockData){
-                    if(!stockInfo[1]) continue;
+                for (let stockInfo of stockData) {
+                    if (!stockInfo[1]) continue;
                     let field = stockInfo[1].match(/data-field="([^"]+)"/)
                     let value = stockInfo[1].match(/value="([^"]+)"/)
-                    if(!value || !field) continue
+                    if (!value || !field) continue
                     jsonStockInfo[field[1]] = value[1]
                 }
-                if(Object.keys(jsonStockInfo).length < 1){
+                if (Object.keys(jsonStockInfo).length < 1) {
                     continue
                 }
                 let price = Number(jsonStockInfo["regularMarketPrice"])
-                if(!price){
+                if (!price) {
                     continue
                 }
                 let numberchange = Number(jsonStockInfo["regularMarketChange"])
-                if(isNaN(numberchange)){
+                if (isNaN(numberchange)) {
                     continue
                 }
                 let userStockData = economy.userHasStockSymbol(msg.author.id, stock)
-                if(!userStockData){
+                if (!userStockData) {
                     continue
                 }
                 let stockName = userStockData.name
@@ -1024,13 +1029,13 @@ const commands: { [command: string]: Command } = {
                 text += `Todays profit: ${todaysProfit}\n`
                 text += "---------------------------\n"
             }
-            return {content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`}
+            return { content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}` }
         }, category: CommandCategory.ECONOMY
     },
     "profit": {
-        run: async(msg, args) => {
-            if(!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks){
-                return {content: "You own no stocks"}
+        run: async (msg, args) => {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+                return { content: "You own no stocks" }
             }
             let stock = args[0]
             let data
@@ -1040,35 +1045,35 @@ const commands: { [command: string]: Command } = {
                 data = await got(`https://finance.yahoo.com/quote/${encodeURI(stock)}`)
             }
             catch (err) {
-                return {contnet: "err"}
+                return { contnet: "err" }
             }
             if (!data?.body) {
-                return {content: "no text"}
+                return { content: "no text" }
             }
             let stockData = data.body.matchAll(new RegExp(`data-symbol="${stock.replace("^", '.')}"([^>]+)>`, "g"))
-            let jsonStockInfo: {[key: string]: string} = {}
+            let jsonStockInfo: { [key: string]: string } = {}
             //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-            for(let stockInfo of stockData){
-                if(!stockInfo[1]) continue;
+            for (let stockInfo of stockData) {
+                if (!stockInfo[1]) continue;
                 let field = stockInfo[1].match(/data-field="([^"]+)"/)
                 let value = stockInfo[1].match(/value="([^"]+)"/)
-                if(!value || !field) continue
+                if (!value || !field) continue
                 jsonStockInfo[field[1]] = value[1]
             }
-            if(Object.keys(jsonStockInfo).length < 1){
-                return {content: "No stock info"}
+            if (Object.keys(jsonStockInfo).length < 1) {
+                return { content: "No stock info" }
             }
             let price = Number(jsonStockInfo["regularMarketPrice"])
-            if(!price){
-                return {content: "No price"}
+            if (!price) {
+                return { content: "No price" }
             }
             let numberchange = Number(jsonStockInfo["regularMarketChange"])
-            if(isNaN(numberchange)){
-                return {content: "change is NaN"}
+            if (isNaN(numberchange)) {
+                return { content: "change is NaN" }
             }
             let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
-            if(!stockInfo){
-                return {content: "You dont have this stock"}
+            if (!stockInfo) {
+                return { content: "You dont have this stock" }
             }
             let stockName = stockInfo.name
             let profit = (price - stockInfo.info.buyPrice) * stockInfo.info.shares
@@ -1076,10 +1081,10 @@ const commands: { [command: string]: Command } = {
             let embed = new MessageEmbed()
             embed.setTitle(stockName)
             embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
-            if(profit > 0){
+            if (profit > 0) {
                 embed.setColor("GREEN")
             }
-            else{
+            else {
                 embed.setColor("RED")
             }
             embed.addField("Price", String(price), true)
@@ -1088,19 +1093,19 @@ const commands: { [command: string]: Command } = {
             embed.addField("Profit", String(profit), true)
             embed.addField("Today's Profit", String(todaysProfit), true)
             embed.addField("Value", String(price * stockInfo.info.shares))
-            return {embeds: [embed]}
+            return { embeds: [embed] }
         }, category: CommandCategory.ECONOMY
     },
     sell: {
-        run: async(msg, args) => {
-            if(!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks){
-                return {content: "You own no stocks"}
+        run: async (msg, args) => {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+                return { content: "You own no stocks" }
             }
             let stock = args[0]
-            if(!stock)
-                return {content: "no stock given"}
-            if(stock == prefix){
-                return {"content": "Looks like ur pulling a tool"}
+            if (!stock)
+                return { content: "no stock given" }
+            if (stock == prefix) {
+                return { "content": "Looks like ur pulling a tool" }
             }
             stock = stock.toUpperCase()
             let amount = args[1]
@@ -1116,50 +1121,50 @@ const commands: { [command: string]: Command } = {
                 return { content: "No data found" }
             }
             let stockData = data.body.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
-            let jsonStockInfo: {[key: string]: string} = {}
+            let jsonStockInfo: { [key: string]: string } = {}
             //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-            for(let stockInfo of stockData){
-                if(!stockInfo[1]) continue;
+            for (let stockInfo of stockData) {
+                if (!stockInfo[1]) continue;
                 let field = stockInfo[1].match(/data-field="([^"]+)"/)
                 let value = stockInfo[1].match(/value="([^"]+)"/)
-                if(!value || !field) continue
+                if (!value || !field) continue
                 jsonStockInfo[field[1]] = value[1]
             }
-            if(Object.keys(jsonStockInfo).length < 1){
-                return {content: "This does not appear to be a stock"}
+            if (Object.keys(jsonStockInfo).length < 1) {
+                return { content: "This does not appear to be a stock" }
             }
             let nPrice = Number(jsonStockInfo["regularMarketPrice"])
-            if(!nPrice)
-                return {content: `${stock} does not appear to have a price`}
+            if (!nPrice)
+                return { content: `${stock} does not appear to have a price` }
             let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
             let stockName = stock
-            if(realStockInfo)
+            if (realStockInfo)
                 stockName = realStockInfo.name
-            if(!economy.getEconomy()[msg.author.id].stocks?.[stockName]){
-                return {content: "You do not own this stock"}
+            if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
+                return { content: "You do not own this stock" }
             }
-            else{
+            else {
                 //@ts-ignore
                 let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
                 let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
-                if(!sellAmount || sellAmount <= 0){
-                    return {content: "You must sell a number of shares of your stock"}
+                if (!sellAmount || sellAmount <= 0) {
+                    return { content: "You must sell a number of shares of your stock" }
                 }
-                if(sellAmount > stockInfo.shares){
-                    return {content: "YOu do not own that many shares"}
+                if (sellAmount > stockInfo.shares) {
+                    return { content: "YOu do not own that many shares" }
                 }
-                if(sellAmount <= 0){
-                    return {content: "Must sell more than 0"}
+                if (sellAmount <= 0) {
+                    return { content: "Must sell more than 0" }
                 }
                 let profit = (nPrice - stockInfo.buyPrice) * sellAmount
                 economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
                 economy.addMoney(msg.author.id, profit)
-                return {content: `You sold: ${stockName} and made $${profit} in total`}
+                return { content: `You sold: ${stockName} and made $${profit} in total` }
             }
         }, category: CommandCategory.ECONOMY
     },
     battle: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             return battle.battle(msg, args)
         }, category: CommandCategory.GAME,
         help: {
@@ -1239,44 +1244,44 @@ const commands: { [command: string]: Command } = {
         }
     },
     abattle: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let text = args.join(" ")
             let damageUsers = opts['damage'] || opts['d']
             let healUsers = opts['heal'] || opts['h']
             let amounts = ['huge', 'big', 'medium', 'small', 'tiny']
-            let givenAmount = opts['amount']  || opts['a']
-            if(typeof givenAmount !== 'string'){
-                return {content: `You must provide an amount (${amounts.join(", ")})`}
+            let givenAmount = opts['amount'] || opts['a']
+            if (typeof givenAmount !== 'string') {
+                return { content: `You must provide an amount (${amounts.join(", ")})` }
             }
-            if(typeof damageUsers !== 'string' && typeof healUsers !== 'string'){
-                return {content: `You must provide a user to damage/heal`}
+            if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
+                return { content: `You must provide a user to damage/heal` }
             }
-            if(damageUsers !== undefined && typeof damageUsers !== 'string'){
-                return {content: "-damage must be a user number or all"}
+            if (damageUsers !== undefined && typeof damageUsers !== 'string') {
+                return { content: "-damage must be a user number or all" }
             }
-            if(healUsers !== undefined && typeof healUsers !== 'string'){
-                return {content: "-heal must be a user number or all"}
+            if (healUsers !== undefined && typeof healUsers !== 'string') {
+                return { content: "-heal must be a user number or all" }
             }
-            if(!amounts.includes(givenAmount)){
-                return {content: `You did not provide a valid amount (${amounts.join(", ")})`}
+            if (!amounts.includes(givenAmount)) {
+                return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
             }
             let damageHealText = ""
-            if(damageUsers){
-                if(!damageUsers.match(/(?:(\d+|all),?)+/)){
-                    return {content: "Users must be numbers seperated by ,"}
+            if (damageUsers) {
+                if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
+                    return { content: "Users must be numbers seperated by ," }
                 }
                 damageHealText += ` DAMAGE=${damageUsers}`
             }
-            if(healUsers){
-                if(!healUsers.match(/(?:(\d+|all),?)+/)){
-                    return {content: "Users must be numbers seperated by ,"}
+            if (healUsers) {
+                if (!healUsers.match(/(?:(\d+|all),?)+/)) {
+                    return { content: "Users must be numbers seperated by ," }
                 }
                 damageHealText += ` HEAL=${healUsers}`
             }
             fs.appendFileSync("./command-results/battle", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText};END\n`)
-            return {content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}`}
+            return { content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}` }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Add a battle command with a nice ui ™️",
@@ -1302,38 +1307,38 @@ const commands: { [command: string]: Command } = {
         }
     },
     ticket: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let round = !opts['no-round']
-            let amount = economy.calculateAmountFromString(msg.author.id, args[0], {min: (t: number, a: string) => t * 0.005})
+            let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, a: string) => t * 0.005 })
             let numbers = args.slice(1, 4)
-            if(!amount){
-                return {content: "No amount given"}
+            if (!amount) {
+                return { content: "No amount given" }
             }
-            if(!economy.canBetAmount(msg.author.id, amount)){
-                return {content: "You do not have enough money for this"}
+            if (!economy.canBetAmount(msg.author.id, amount)) {
+                return { content: "You do not have enough money for this" }
             }
-            if(amount / economy.getEconomy()[msg.author.id].money < 0.005){
-                return {content: "You must bet at least 0.5%"}
+            if (amount / economy.getEconomy()[msg.author.id].money < 0.005) {
+                return { content: "You must bet at least 0.5%" }
             }
             let ticket = economy.buyLotteryTicket(msg.author.id, amount)
-            if(!ticket){
-                return {content: "Could not buy ticket"}
+            if (!ticket) {
+                return { content: "Could not buy ticket" }
             }
-            if(numbers && numbers.length == 1){
+            if (numbers && numbers.length == 1) {
                 ticket = numbers[0].split("").map(v => Number(v))
             }
-            else if(numbers && numbers.length == 3){
+            else if (numbers && numbers.length == 3) {
                 ticket = numbers.map(v => Number(v))
             }
             let answer = economy.getLottery()
             let e = new MessageEmbed()
-            if(round){
+            if (round) {
                 amount = Math.floor(amount * 100) / 100
             }
-            e.setFooter({text: `Cost: ${amount}`})
-            if(JSON.stringify(ticket) == JSON.stringify(answer.numbers)){
+            e.setFooter({ text: `Cost: ${amount}` })
+            if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
                 let winningAmount = answer.pool * 2
                 economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
@@ -1341,12 +1346,12 @@ const commands: { [command: string]: Command } = {
                 e.setColor("GREEN")
                 e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
             }
-            else{
+            else {
                 e.setColor("RED")
                 e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
-                e.setDescription( `<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
+                e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
             }
-            return {embeds: [e]}
+            return { embeds: [e] }
         }, category: CommandCategory.GAME,
         help: {
             info: "Buy a lottery ticket",
@@ -1361,88 +1366,88 @@ const commands: { [command: string]: Command } = {
         }
     },
     lottery: {
-        run: async(msg, args) => {
-            return {content: `The lottery pool is: ${economy.getLottery().pool * 2}`}
+        run: async (msg, args) => {
+            return { content: `The lottery pool is: ${economy.getLottery().pool * 2}` }
         }, category: CommandCategory.FUN
     },
     calcm: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
-            [opts, args]  = getOpts(args)
+            [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
-            if(as && typeof as === 'string'){
+            if (as && typeof as === 'string') {
                 as = (await fetchUser(msg.guild, as)).user.id
             }
-            if(!as)
+            if (!as)
                 as = msg.author.id
 
             let amount = economy.calculateAmountFromString(as, args.join(" "), {
                 ticketmin: (total, _k, _data) => total * 0.005,
                 battlemin: (total, _k, _data) => total * 0.002
             })
-            if(dollarSign === true){
-                return {content: `${amount}`}
+            if (dollarSign === true) {
+                return { content: `${amount}` }
             }
-            return {content: `${dollarSign}${amount}`}
+            return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
     calcl: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
-            [opts, args]  = getOpts(args)
+            [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
-            if(as && typeof as === 'string'){
+            if (as && typeof as === 'string') {
                 as = (await fetchUser(msg.guild, as)).user.id
             }
-            if(!as)
+            if (!as)
                 as = msg.author.id
             let amount = economy.calculateLoanAmountFromString(as, args.join(" "))
-            if(!amount){
-                return {content: "None"}
+            if (!amount) {
+                return { content: "None" }
             }
-            if(dollarSign === true){
-                return {content: `${amount}`}
+            if (dollarSign === true) {
+                return { content: `${amount}` }
             }
-            return {content: `${dollarSign}${amount}`}
+            return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
     calcms: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
-            [opts, args]  = getOpts(args)
+            [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
-            if(as && typeof as === 'string'){
+            if (as && typeof as === 'string') {
                 as = (await fetchUser(msg.guild, as)).user.id
             }
-            if(!as)
+            if (!as)
                 as = msg.author.id
             let amount = economy.calculateAmountFromStringIncludingStocks(as, args.join(" ").trim())
-            if(dollarSign === true){
-                return {content: `${amount}`}
+            if (dollarSign === true) {
+                return { content: `${amount}` }
             }
-            return {content: `${dollarSign}${amount}`}
+            return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
     "calcam": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
-            [opts, args]  = getOpts(args)
+            [opts, args] = getOpts(args)
             let [moneyStr, ...reqAmount] = args
             let amountStr = reqAmount.join(" ")
             let money = Number(moneyStr)
-            if(isNaN(money)){
-                return {content: `${moneyStr} is not a number`}
+            if (isNaN(money)) {
+                return { content: `${moneyStr} is not a number` }
             }
             let dollarSign = opts['sign'] || ""
             //the id here doesn't really matter since we're basing this off a predetermined number
             let amount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, amountStr)
-            if(dollarSign === true){
-                return {content: `${amount}`}
+            if (dollarSign === true) {
+                return { content: `${amount}` }
             }
-            return {content: `${dollarSign}${amount}`}
+            return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
     money: {
@@ -1468,10 +1473,10 @@ const commands: { [command: string]: Command } = {
                 if (opts['t']) {
                     text += `${economy.getEconomy()[user.id].lastTaxed}\n`
                 }
-                if(text){
-                    return {content: text}
+                if (text) {
+                    return { content: text }
                 }
-                if(opts['no-round']){
+                if (opts['no-round']) {
                     return { content: `${user.user.username}\n$${economy.getEconomy()[user.id].money}` }
                 }
                 return { content: `${user.user.username}\n$${Math.round(economy.getEconomy()[user.id].money * 100) / 100}` }
@@ -1503,33 +1508,33 @@ const commands: { [command: string]: Command } = {
         }
     },
     give: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let [amount, ...user] = args
             let userSearch = user.join(" ")
-            if(!userSearch){
-                return {content: "No user to search for"}
+            if (!userSearch) {
+                return { content: "No user to search for" }
             }
             let member = await fetchUser(msg.guild, userSearch)
-            if(!member)
-                return {content: `${userSearch} not found`}
+            if (!member)
+                return { content: `${userSearch} not found` }
             let realAmount = economy.calculateAmountFromString(msg.author.id, amount)
-            if (!realAmount){
-                return {content: "Nothing to give"}
+            if (!realAmount) {
+                return { content: "Nothing to give" }
             }
-            if(realAmount < 0){
-                return {content: "What are you trying to pull <:Watching1:697677860336304178>"}
+            if (realAmount < 0) {
+                return { content: "What are you trying to pull <:Watching1:697677860336304178>" }
             }
-            if(economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot){
+            if (economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot) {
                 economy.loseMoneyToPlayer(msg.author.id, realAmount, member.id)
-                return {content: `You gave ${realAmount} to ${member.user.username}`}
+                return { content: `You gave ${realAmount} to ${member.user.username}` }
             }
-            else{
-                return {content: `You cannot give away ${realAmount}`}
+            else {
+                return { content: `You cannot give away ${realAmount}` }
             }
         }, category: CommandCategory.ECONOMY
     },
     "give-stock": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let stock = args[0]
             let a = args[1]
             let data
@@ -1538,55 +1543,55 @@ const commands: { [command: string]: Command } = {
                 data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
             }
             catch (err) {
-                return {content: "No data found"}
+                return { content: "No data found" }
             }
             if (!data?.body) {
-                return {content: "No data found"}
+                return { content: "No data found" }
             }
             let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-            if(!stockData){
-                return {content: "No data found"}
+            if (!stockData) {
+                return { content: "No data found" }
             }
             let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-            if(!stockName){
-                return {content: "Stock not found"}
+            if (!stockName) {
+                return { content: "Stock not found" }
             }
             stockName = stockName[1]
-            if(!economy.getEconomy()[msg.author.id].stocks?.[stockName]){
-                return {content: "You do not own that stock"}
+            if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
+                return { content: "You do not own that stock" }
             }
             //@ts-ignore
             let amount = economy.calculateStockAmountFromString(msg.author.id, economy.getEconomy()[msg.author.id].stocks[stockName].shares, a) as number
-            if(!amount){
-                return {content: `Invalid share count`}
+            if (!amount) {
+                return { content: `Invalid share count` }
             }
             //@ts-ignore
             let userStockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
-            if(amount > userStockInfo.shares){
-                return {content: "You dont have that many shares"}
+            if (amount > userStockInfo.shares) {
+                return { content: "You dont have that many shares" }
             }
             let player = args.slice(2).join(" ")
             let member = await fetchUser(msg.guild, player)
-            if(!member){
-                return {content: `Member: ${player} not found`}
+            if (!member) {
+                return { content: `Member: ${player} not found` }
             }
-            if(!economy.getEconomy()[member.id]){
-                return {content: "Cannot give stocks to this player"}
+            if (!economy.getEconomy()[member.id]) {
+                return { content: "Cannot give stocks to this player" }
             }
             let oldUserShares = userStockInfo.shares
             userStockInfo.shares -= amount
             let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
-            if(Object.keys(otherStockInfo).length < 1){
-                return {content: "No stock data"}
+            if (Object.keys(otherStockInfo).length < 1) {
+                return { content: "No stock data" }
             }
             //@ts-ignore
-            if(!otherStockInfo.buyPrice){
+            if (!otherStockInfo.buyPrice) {
                 //@ts-ignore
                 otherStockInfo.buyPrice = userStockInfo.buyPrice
                 //@ts-ignore
                 otherStockInfo.shares = amount
             }
-            else{
+            else {
                 //@ts-ignore
                 let oldShareCount = otherStockInfo.shares
                 //@ts-ignore
@@ -1598,16 +1603,16 @@ const commands: { [command: string]: Command } = {
             }
             //@ts-ignore
             economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-            if(userStockInfo.shares == 0){
+            if (userStockInfo.shares == 0) {
                 economy.removeStock(msg.author.id, stockName)
             }
-            return {content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${stockName}`}
+            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${stockName}` }
         }, category: CommandCategory.ECONOMY
     },
     tax: {
         run: async (msg, args) => {
-            if(msg.author.bot){
-                return {content: "Bots cannot steal"}
+            if (msg.author.bot) {
+                return { content: "Bots cannot steal" }
             }
             let opts;
             [opts, args] = getOpts(args)
@@ -1620,7 +1625,7 @@ const commands: { [command: string]: Command } = {
             if (!user)
                 return { content: `${args.join(" ")} not found` }
             let ct = economy.canTax(user.id)
-            if(hasItem(user.id, "tax evasion")){
+            if (hasItem(user.id, "tax evasion")) {
                 ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
             }
             let embed = new MessageEmbed()
@@ -1631,11 +1636,11 @@ const commands: { [command: string]: Command } = {
                 let taxAmount;
                 let reflected = false
                 let max = Infinity
-                if(hasItem(userBeingTaxed, "tax shield")){
+                if (hasItem(userBeingTaxed, "tax shield")) {
                     max = economy.getEconomy()[userBeingTaxed].money
                 }
                 taxAmount = economy.taxPlayer(userBeingTaxed, max)
-                if(taxAmount.amount == max){
+                if (taxAmount.amount == max) {
                     useItem(userBeingTaxed, "tax shield")
                 }
                 economy.addMoney(userGainingMoney, taxAmount.amount)
@@ -1643,11 +1648,11 @@ const commands: { [command: string]: Command } = {
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
                 else
                     embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
-                if(reflected){
-                    return {content: "REFLECTED", embeds: [embed]}
+                if (reflected) {
+                    return { content: "REFLECTED", embeds: [embed] }
                 }
             }
-            else{
+            else {
                 embed.setTitle("REVERSE Taxation time")
                 let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
                 embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
@@ -1665,14 +1670,14 @@ const commands: { [command: string]: Command } = {
         }
     },
     aheist: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let text = args.join(" ")
             let damageUsers = opts['lose'] || opts['l']
             let healUsers = opts['gain'] || opts['g']
             let amounts = ['none', 'normal', 'medium', 'large', "cents"]
-            let givenAmount = opts['amount']  || opts['a']
+            let givenAmount = opts['amount'] || opts['a']
             let stage = opts['stage'] || opts['s']
             let substage = opts['sub-stage'] || opts['ss']
             let isNeutral = Boolean(opts['neutral'])
@@ -1680,68 +1685,68 @@ const commands: { [command: string]: Command } = {
             let set_location = opts['set-location']
             let button_response = opts['button-response']
             let condition = opts['if']
-            if(isNeutral){
+            if (isNeutral) {
                 givenAmount = 'none'
                 healUsers = 'all'
                 //@ts-ignore
                 damageUsers = undefined
             }
             let textOptions = ""
-            if(typeof stage !== 'string'){
-                return {content: `You did not provide a valid stage`}
+            if (typeof stage !== 'string') {
+                return { content: `You did not provide a valid stage` }
             }
-            if (typeof substage !== 'undefined' && typeof substage !== 'string'){
-                return {content: "You did not provide a valid substage"}
+            if (typeof substage !== 'undefined' && typeof substage !== 'string') {
+                return { content: "You did not provide a valid substage" }
             }
-            if(typeof givenAmount !== 'string'){
-                return {content: `You must provide an amount (${amounts.join(", ")})`}
+            if (typeof givenAmount !== 'string') {
+                return { content: `You must provide an amount (${amounts.join(", ")})` }
             }
-            if(typeof damageUsers !== 'string' && typeof healUsers !== 'string'){
-                return {content: `You must provide a user to lose/gain`}
+            if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
+                return { content: `You must provide a user to lose/gain` }
             }
-            if(damageUsers !== undefined && typeof damageUsers !== 'string'){
-                return {content: "-lose must be a user number or all"}
+            if (damageUsers !== undefined && typeof damageUsers !== 'string') {
+                return { content: "-lose must be a user number or all" }
             }
-            if(healUsers !== undefined && typeof healUsers !== 'string'){
-                return {content: "-gain must be a user number or all"}
+            if (healUsers !== undefined && typeof healUsers !== 'string') {
+                return { content: "-gain must be a user number or all" }
             }
-            if(!amounts.includes(givenAmount)){
-                return {content: `You did not provide a valid amount (${amounts.join(", ")})`}
+            if (!amounts.includes(givenAmount)) {
+                return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
             }
             let damageHealText = ""
-            if(damageUsers && healUsers){
-                return {content: "Only -lose or -gain can be given, not both"}
+            if (damageUsers && healUsers) {
+                return { content: "Only -lose or -gain can be given, not both" }
             }
-            if(damageUsers){
-                if(!damageUsers.match(/(?:(\d+|all),?)+/)){
-                    return {content: "Users must be numbers seperated by ,"}
+            if (damageUsers) {
+                if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
+                    return { content: "Users must be numbers seperated by ," }
                 }
                 textOptions += ` LOSE=${damageUsers}`
             }
-            if(healUsers){
-                if(!healUsers.match(/(?:(\d+|all),?)+/)){
-                    return {content: "Users must be numbers seperated by ,"}
+            if (healUsers) {
+                if (!healUsers.match(/(?:(\d+|all),?)+/)) {
+                    return { content: "Users must be numbers seperated by ," }
                 }
                 textOptions += ` GAIN=${healUsers}`
             }
             textOptions += ` STAGE=${stage}`
-            if(substage){
+            if (substage) {
                 textOptions += ` SUBSTAGE=${substage}`
             }
-            if(location && typeof location === 'string'){
+            if (location && typeof location === 'string') {
                 textOptions += ` LOCATION=${location}`
             }
-            if(set_location && typeof set_location === 'string'){
+            if (set_location && typeof set_location === 'string') {
                 textOptions += ` SET_LOCATION=${set_location}`
-                if(button_response && typeof button_response === 'string'){
+                if (button_response && typeof button_response === 'string') {
                     textOptions += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
                 }
             }
-            if(condition && typeof condition === 'string'){
+            if (condition && typeof condition === 'string') {
                 textOptions += ` IF=${condition}`
             }
             fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
-            return {content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}`}
+            return { content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}` }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Add a heist prompt with a nice ui ™️",
@@ -1787,41 +1792,41 @@ const commands: { [command: string]: Command } = {
         }
     },
     heist: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
-            if(HEIST_PLAYERS.includes(msg.author.id)){
-                return {content: "U dingus u are already in the game"}
+            if (HEIST_PLAYERS.includes(msg.author.id)) {
+                return { content: "U dingus u are already in the game" }
             }
-            if((economy.getEconomy()[msg.author.id]?.money || 0) <= 0){
-                return {content: "U dont have money"}
+            if ((economy.getEconomy()[msg.author.id]?.money || 0) <= 0) {
+                return { content: "U dont have money" }
             }
-            if(HEIST_STARTED){
-                return {content: "The game  has already started"}
+            if (HEIST_STARTED) {
+                return { content: "The game  has already started" }
             }
             HEIST_PLAYERS.push(msg.author.id)
             let timeRemaining = 30000
-            if(HEIST_TIMEOUT === null){
-                let int = setInterval(async() => {
+            if (HEIST_TIMEOUT === null) {
+                let int = setInterval(async () => {
                     timeRemaining -= 1000
-                    if(timeRemaining % 8000 == 0)
-                        await msg.channel.send({content: `${timeRemaining / 1000} seconds until the heist commences!`})
+                    if (timeRemaining % 8000 == 0)
+                        await msg.channel.send({ content: `${timeRemaining / 1000} seconds until the heist commences!` })
                 }, 1000)
-                let data: {[key: string]: number} = {} //player_id: amount won
-                HEIST_TIMEOUT = setTimeout(async() => {
+                let data: { [key: string]: number } = {} //player_id: amount won
+                HEIST_TIMEOUT = setTimeout(async () => {
                     HEIST_STARTED = true
                     clearInterval(int)
-                    await msg.channel.send({content: `Commencing heist with ${HEIST_PLAYERS.length} players`})
+                    await msg.channel.send({ content: `Commencing heist with ${HEIST_PLAYERS.length} players` })
                     let stages = ["getting in", "robbing", "escape"]
-                    for(let player of HEIST_PLAYERS){
+                    for (let player of HEIST_PLAYERS) {
                         data[player] = 0
                         userVars[player]['__heist'] = () => 0
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     //let fileResponses: string[] = []
-                    let legacyNextStages = {"getting_in": "robbing", "robbing": "escape", "escape": "end"}
+                    let legacyNextStages = { "getting_in": "robbing", "robbing": "escape", "escape": "end" }
                     let lastLegacyStage = "getting_in"
-                    let responses: {[key: string]: string[]} = {
+                    let responses: { [key: string]: string[] } = {
                         getting_in_positive: [
                             "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal IF=>10"
                         ],
@@ -1842,50 +1847,50 @@ const commands: { [command: string]: Command } = {
                         ],
                     }
                     let LOCATIONS = ["__generic__"]
-                    for(let resp of fileResponses){
+                    for (let resp of fileResponses) {
                         let stage = resp.match(/STAGE=([^ ]+)/)
-                        if(!stage?.[1]){
+                        if (!stage?.[1]) {
                             continue
                         }
                         let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                        if(location?.[1]){
-                            if(!LOCATIONS.includes(location[1])){
+                        if (location?.[1]) {
+                            if (!LOCATIONS.includes(location[1])) {
                                 LOCATIONS.push(location[1])
                             }
                         }
                         resp = resp.replace(/STAGE=[^ ]+/, "")
                         let type = ""
                         let gain = resp.match(/GAIN=([^ ]+)/)
-                        if(gain?.[1])
+                        if (gain?.[1])
                             type = "positive"
                         let lose = resp.match(/LOSE=([^ ]+)/)
-                        if(lose?.[1]){
+                        if (lose?.[1]) {
                             type = "negative"
                         }
                         let t = `${stage[1]}_${type}`
-                        if(responses[t]){
+                        if (responses[t]) {
                             responses[t].push(resp)
                         }
-                        else{
+                        else {
                             responses[t] = [resp]
                         }
                     }
 
                     let current_location = "__generic__"
 
-                    let stats: {locationsVisited: {[key: string]: {[key: string]: number}}, adventureOrder: [string, string][]} = {locationsVisited: {}, adventureOrder: []}
+                    let stats: { locationsVisited: { [key: string]: { [key: string]: number } }, adventureOrder: [string, string][] } = { locationsVisited: {}, adventureOrder: [] }
 
-                    function addToLocationStat(location: string, user: string, amount: number){
-                        if(!stats.locationsVisited[location][user]){
+                    function addToLocationStat(location: string, user: string, amount: number) {
+                        if (!stats.locationsVisited[location][user]) {
                             stats.locationsVisited[location][user] = amount
                         }
-                        else{
+                        else {
                             stats.locationsVisited[location][user] += amount
                         }
                     }
 
-                    async function handleStage(stage: string): Promise<boolean>{//{{{
-                        if(!stats.locationsVisited[current_location]){
+                    async function handleStage(stage: string): Promise<boolean> {//{{{
+                        if (!stats.locationsVisited[current_location]) {
                             stats.locationsVisited[current_location] = {}
                         }
                         stats.adventureOrder.push([current_location, stage])
@@ -1893,20 +1898,20 @@ const commands: { [command: string]: Command } = {
                         let amount = Math.floor(Math.random() * 10)
                         let negpos = ["negative", "positive"][Math.floor(Math.random() * 2)]
                         let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
-                        if(!responseList){
+                        if (!responseList) {
                             return false
                         }
                         responseList = responseList.filter(v => {
                             let enough_players = true
                             let u = v.matchAll(/\{user(\d+|all)\}/g)
-                            for(let match of u){
-                                if(match?.[1]){
-                                    if(match[1] === 'all'){
+                            for (let match of u) {
+                                if (match?.[1]) {
+                                    if (match[1] === 'all') {
                                         enough_players = true
                                         continue
                                     }
                                     let number = Number(match[1])
-                                    if(number > HEIST_PLAYERS.length)
+                                    if (number > HEIST_PLAYERS.length)
                                         return false
                                     enough_players = true
                                 }
@@ -1915,10 +1920,10 @@ const commands: { [command: string]: Command } = {
                         })
                         responseList = responseList.filter(v => {
                             let location = v.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                            if(!location?.[1] && current_location == "__generic__"){
+                            if (!location?.[1] && current_location == "__generic__") {
                                 return true
                             }
-                            if(location?.[1].toLowerCase() == current_location.toLowerCase()){
+                            if (location?.[1].toLowerCase() == current_location.toLowerCase()) {
                                 return true
                             }
                             return false
@@ -1926,18 +1931,18 @@ const commands: { [command: string]: Command } = {
                         let sum = Object.values(data).reduce((a, b) => a + b, 0)
                         responseList = responseList.filter(v => {
                             let condition = v.match(/IF=(<|>|=)(\d+)/)
-                            if(!condition?.[1])
+                            if (!condition?.[1])
                                 return true;
                             let conditional = condition[1]
                             let conditionType = conditional[0]
                             let number = Number(conditional.slice(1))
-                            if(isNaN(number))
+                            if (isNaN(number))
                                 return true;
-                            switch(conditionType){
-                                case "=":{
+                            switch (conditionType) {
+                                case "=": {
                                     return sum == number
                                 }
-                                case ">":{
+                                case ">": {
                                     return sum > number
                                 }
                                 case "<": {
@@ -1946,27 +1951,27 @@ const commands: { [command: string]: Command } = {
                             }
                             return true
                         })
-                        if(responseList.length < 1){
+                        if (responseList.length < 1) {
                             return false
                         }
                         let response = responseList[Math.floor(Math.random() * responseList.length)]
                         let amountType = response.match(/AMOUNT=([^ ]+)/)
-                        while(!amountType?.[1]){
+                        while (!amountType?.[1]) {
                             response = responseList[Math.floor(Math.random() * responseList.length)]
                             amountType = response.match(/AMOUNT=([^ ]+)/)
                         }
-                        if(amountType[1] === 'cents'){
+                        if (amountType[1] === 'cents') {
                             amount = Math.random()
                         }
-                        else{
-                            let multiplier = Number({"none": 0, "normal": 1, "medium": 1, "large": 1}[amountType[1]])
+                        else {
+                            let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
                             amount *= multiplier
                         }
 
                         response = response.replaceAll(/\{user(\d+|all)\}/g, (all, capture) => {
-                            if(capture === "all"){
+                            if (capture === "all") {
                                 let text = []
-                                for(let player of shuffledPlayers){
+                                for (let player of shuffledPlayers) {
                                     text.push(`<@${player}>`)
                                 }
                                 return text.join(', ')
@@ -1975,17 +1980,17 @@ const commands: { [command: string]: Command } = {
                             return `<@${shuffledPlayers[nUser]}>`
                         })
                         let gainUsers = response.match(/GAIN=([^ ]+)/)
-                        if(gainUsers?.[1]){
-                            for(let user of gainUsers[1].split(",")){
-                                if(user == 'all'){
-                                    for(let player in data){
+                        if (gainUsers?.[1]) {
+                            for (let user of gainUsers[1].split(",")) {
+                                if (user == 'all') {
+                                    for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                         let oldValue = userVars[player]["__heist"]()
                                         userVars[player]['__heist'] = () => oldValue + amount
                                     }
                                 }
-                                else{
+                                else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     let oldValue = userVars[shuffledPlayers[Number(user) - 1]]["__heist"]()
@@ -1994,18 +1999,18 @@ const commands: { [command: string]: Command } = {
                             }
                         }
                         let loseUsers = response.match(/LOSE=([^ ]+)/)
-                        if(loseUsers?.[1]){
+                        if (loseUsers?.[1]) {
                             amount *= -1
-                            for(let user of loseUsers[1].split(",")){
-                                if(user == 'all'){
-                                    for(let player in data){
+                            for (let user of loseUsers[1].split(",")) {
+                                if (user == 'all') {
+                                    for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                         let oldValue = userVars[player]["__heist"]()
                                         userVars[player]['__heist'] = () => oldValue + amount
                                     }
                                 }
-                                else{
+                                else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     let oldValue = userVars[shuffledPlayers[Number(user) - 1]]["__heist"]()
@@ -2014,23 +2019,23 @@ const commands: { [command: string]: Command } = {
                             }
                         }
                         let subStage = response.match(/SUBSTAGE=([^ ]+)/)
-                        if(subStage?.[1]){
+                        if (subStage?.[1]) {
                             response = response.replace(/SUBSTAGE=[^ ]+/, "")
                         }
                         let setLocation = response.match(/SET_LOCATION=([^ ]+)/)
-                        if(setLocation?.[1]){
+                        if (setLocation?.[1]) {
                             response = response.replace(/SET_LOCATION=[^ ]+/, "")
                             current_location = setLocation[1].toLowerCase()
                         }
                         response = response.replace(/LOCATION=[^ ]+/, "")
                         response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (match, pm) => {
-                            if(pm && pm == "+"){
+                            if (pm && pm == "+") {
                                 return `+${Math.abs(amount)}`
                             }
-                            else if(pm && pm == "-"){
+                            else if (pm && pm == "-") {
                                 return `-${Math.abs(amount)}`
                             }
-                            else if(pm && (pm == "=" || pm == "!" || pm == "?")){
+                            else if (pm && (pm == "=" || pm == "!" || pm == "?")) {
                                 return `${Math.abs(amount)}`
                             }
                             return amount >= 0 ? `+${amount}` : `${amount}`
@@ -2040,94 +2045,94 @@ const commands: { [command: string]: Command } = {
                         response = response.replace(/AMOUNT=[^ ]+/, "")
                         response = response.replace(/IF=(<|>|=)\d+/, "")
                         let locationOptions = current_location.split("|").map(v => v.trim())
-                        if(locationOptions.length > 1){
+                        if (locationOptions.length > 1) {
                             let rows: MessageActionRow[] = []
                             let buttonClickResponseInChoice = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
                             let buttonResponse = ""
-                            if(buttonClickResponseInChoice?.[1]){
+                            if (buttonClickResponseInChoice?.[1]) {
                                 buttonResponse = buttonClickResponseInChoice[1]
                                 response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
                             }
                             let row = new MessageActionRow()
-                            for(let op of locationOptions){
-                                if(!op) continue;
-                                if(op == "__random__"){
+                            for (let op of locationOptions) {
+                                if (!op) continue;
+                                if (op == "__random__") {
                                     op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
                                 }
                                 let button = new MessageButton({ customId: `button.heist:${op}`, label: op, style: "PRIMARY" })
                                 row.addComponents(button)
-                                if(row.components.length > 2){
+                                if (row.components.length > 2) {
                                     rows.push(row)
                                     row = new MessageActionRow()
                                 }
                             }
-                            if(row.components.length > 0){
+                            if (row.components.length > 0) {
                                 rows.push(row)
                             }
-                            let m = await msg.channel.send({content: response, components: rows})
+                            let m = await msg.channel.send({ content: response, components: rows })
                             let choice = ""
-                            try{
-                                let interaction = await m.awaitMessageComponent({componentType: "BUTTON", time: 30000})
+                            try {
+                                let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
                                 choice = interaction.customId.split(":")[1]
                                 buttonResponse = buttonResponse.replaceAll("{user}", `<@${interaction.user.id}>`)
                             }
-                            catch(err){
+                            catch (err) {
                                 choice = locationOptions[Math.floor(Math.random() * locationOptions.length)]
                                 buttonResponse = buttonResponse.replaceAll("{user}", ``)
                             }
-                            if(buttonResponse){
-                                await m.reply({content: buttonResponse.replaceAll("{location}", choice)})
+                            if (buttonResponse) {
+                                await m.reply({ content: buttonResponse.replaceAll("{location}", choice) })
                             }
                             current_location = choice
                         }
-                        else{
-                            await handleSending(msg, {content: response})
+                        else {
+                            await handleSending(msg, { content: response })
                         }
 
-                        if(current_location == "__random__"){
+                        if (current_location == "__random__") {
                             current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
                         }
 
                         await new Promise(res => setTimeout(res, 4000))
-                        if(subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]){
-                            if(Object.keys(legacyNextStages).includes(subStage[1])){
+                        if (subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]) {
+                            if (Object.keys(legacyNextStages).includes(subStage[1])) {
                                 lastLegacyStage = subStage[1]
                             }
                             stage = subStage[1]
                             return await handleStage(subStage[1])
                         }
-                        if(subStage?.[1] == 'end'){
+                        if (subStage?.[1] == 'end') {
                             lastLegacyStage = 'end'
                             stage = 'end'
                         }
                         return true
                     }//}}}
                     let stage: string = lastLegacyStage
-                    while(stage != 'end'){
-                        if (!await handleStage(stage)){
+                    while (stage != 'end') {
+                        if (!await handleStage(stage)) {
                             stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
                             let oldStage = stage
                             //@ts-ignore
-                            if(legacyNextStages[lastLegacyStage]){
+                            if (legacyNextStages[lastLegacyStage]) {
                                 console.log("legacy", lastLegacyStage, stage)
                                 //@ts-ignore
                                 stage = legacyNextStages[lastLegacyStage]
                                 lastLegacyStage = stage
                             }
-                            else{
+                            else {
                                 stage = 'end'
                             }
                             await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, advancing to stage: ${stage}`)
                         }
-                        else{
+                        else {
                             console.log("fallback", lastLegacyStage, stage)
                             //@ts-ignore
-                            if(legacyNextStages[lastLegacyStage]){
+                            if (legacyNextStages[lastLegacyStage]) {
                                 //@ts-ignore
                                 stage = legacyNextStages[lastLegacyStage]
                                 lastLegacyStage = stage
                             }
-                            else{
+                            else {
                                 stage = 'end'
                             }
                         }
@@ -2135,47 +2140,47 @@ const commands: { [command: string]: Command } = {
                     HEIST_PLAYERS = []
                     HEIST_TIMEOUT = null
                     HEIST_STARTED = false
-                    if(Object.keys(data).length > 0){
+                    if (Object.keys(data).length > 0) {
                         let useEmbed = false
                         let e = new MessageEmbed()
                         let text = ''
-                        if(!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']){
+                        if (!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']) {
                             text += 'STATS:\n---------------------\n'
-                            for(let location in stats.locationsVisited){
+                            for (let location in stats.locationsVisited) {
                                 text += `${location}:\n`
-                                for(let player in stats.locationsVisited[location]){
-                                    text +=  `<@${player}>: ${stats.locationsVisited[location][player]},  `
+                                for (let player in stats.locationsVisited[location]) {
+                                    text += `<@${player}>: ${stats.locationsVisited[location][player]},  `
                                 }
                                 text += '\n'
                             }
                         }
-                        if(!opts['no-total'] && !opts['nt']){
+                        if (!opts['no-total'] && !opts['nt']) {
                             e.setTitle("TOTALS")
                             useEmbed = true
-                            for(let player in data){
-                                if(!isNaN(data[player])){
+                            for (let player in data) {
+                                if (!isNaN(data[player])) {
                                     let member = msg.guild?.members.cache.get(player)
-                                    if(member){
+                                    if (member) {
                                         e.addField(String(member.nickname || member.user.username), `${data[player]}`)
                                     }
-                                    else{
+                                    else {
                                         e.addField(String(data[player]), `<@${player}>`)
                                     }
                                     economy.addMoney(player, data[player])
                                 }
                             }
                         }
-                        if(!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']){
+                        if (!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']) {
                             text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
-                            for(let place of stats.adventureOrder){
+                            for (let place of stats.adventureOrder) {
                                 text += `${place[0]} (${place[1]})\n`
                             }
                         }
-                        await handleSending(msg, {content: text || "The end!", embeds: useEmbed ? [e] : undefined})
+                        await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined })
                     }
                 }, timeRemaining)
             }
-            return {content: `${msg.author} joined the heist`}
+            return { content: `${msg.author} joined the heist` }
 
         }, category: CommandCategory.GAME,
         help: {
@@ -2201,7 +2206,7 @@ const commands: { [command: string]: Command } = {
         }
     },
     "egyption-war": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
 
             function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
                 let no = Math.floor(Math.random() * cardsToChooseFrom.length)
@@ -2212,42 +2217,42 @@ const commands: { [command: string]: Command } = {
             let cards = []
             let stack: string[] = []
             for (let suit of ["♦", "S", "♥️", "C"]) {
-                for (let num of ["A",  "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
                     cards.push(`${num} of ${suit}`)
                 }
             }
             let totalCards = cards.length
-            let players: {[key: string]: string[]} = {[msg.author.id]: []}
-            for(let arg of args){
+            let players: { [key: string]: string[] } = { [msg.author.id]: [] }
+            for (let arg of args) {
                 let user = await fetchUser(msg.guild, arg)
                 players[user.id] = []
             }
             let cardsPerPlayer = Math.floor(cards.length / Object.keys(players).length)
-            for(let player in players){
-                for(let i = 0; i < cardsPerPlayer; i++){
+            for (let player in players) {
+                for (let i = 0; i < cardsPerPlayer; i++) {
                     giveRandomCard(cards, players[player])
                 }
             }
-            if(cards.length){
+            if (cards.length) {
                 stack = JSON.parse(JSON.stringify(cards))
             }
-            let collector = msg.channel.createMessageCollector({filter: m => ['slap', 's'].includes(m.content) && !m.author.bot})
+            let collector = msg.channel.createMessageCollector({ filter: m => ['slap', 's'].includes(m.content) && !m.author.bot })
             collector.on("collect", m => {
                 let lastCard = stack[stack.length - 1]?.split(" of")[0]
                 let secondLastCard = stack[stack.length - 2]?.split(" of")[0]
                 let thirdLastCard = stack[stack.length - 3]?.split(" of")[0]
-                if((lastCard === secondLastCard || thirdLastCard === lastCard) && lastCard != undefined){
-                    if(players[m.author.id]){
+                if ((lastCard === secondLastCard || thirdLastCard === lastCard) && lastCard != undefined) {
+                    if (players[m.author.id]) {
                         players[m.author.id] = [...players[m.author.id], ...stack]
                     }
-                    else{
+                    else {
                         players[m.author.id] = [...stack]
                     }
                     playerKeys.push(m.author.id)
                     stack = []
                     msg.channel.send(`${m.author} got the stack`)
                 }
-                else{
+                else {
                     msg.channel.send("No slap")
                 }
             })
@@ -2260,65 +2265,65 @@ const commands: { [command: string]: Command } = {
             let playerKeys = Object.keys(players)
             let attempts = 0
             let lastPlayer;
-            for(let i = 0; true; i = ++i >= playerKeys.length ? 0 : i){
+            for (let i = 0; true; i = ++i >= playerKeys.length ? 0 : i) {
                 let turn = playerKeys[i]
-                if(attempts && lastPlayer){
+                if (attempts && lastPlayer) {
                     let gotFaceCard = false
-                    for(; attempts > 0; attempts--){
+                    for (; attempts > 0; attempts--) {
                         await msg.channel.send(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
-                        try{
-                            let m = await msg.channel.awaitMessages({filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time']})
+                        try {
+                            let m = await msg.channel.awaitMessages({ filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time'] })
                             giveRandomCard(players[turn], stack)
                             let recentCard = stack[stack.length - 1]
                             let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
                             await msg.channel.send(`${recentCard} (${stack.length})`)
-                            if(isFaceCard){
+                            if (isFaceCard) {
                                 attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
                                 gotFaceCard = true
                                 break
                             }
                         }
-                        catch(err){
-                            await handleSending(msg, {content: `<@${turn}> didnt go in time they are out`})
+                        catch (err) {
+                            await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
                             delete players[turn]
                             playerKeys = playerKeys.filter(v => v != turn)
                         }
                     }
-                    if(!gotFaceCard){
+                    if (!gotFaceCard) {
                         players[lastPlayer] = [...players[lastPlayer], ...stack]
                         await msg.channel.send(`<@${lastPlayer}> got the stack (${stack.length} cards)`)
                         stack = []
                     }
                 }
-                else{
+                else {
                     await msg.channel.send(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
-                    try{
-                        let m = await msg.channel.awaitMessages({filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time']})
+                    try {
+                        let m = await msg.channel.awaitMessages({ filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time'] })
                         giveRandomCard(players[turn], stack)
                         let recentCard = stack[stack.length - 1]
                         let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
-                        if(isFaceCard){
+                        if (isFaceCard) {
                             attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
                         }
                         await msg.channel.send(`${recentCard} (${stack.length})`)
                     }
-                    catch(err){
-                        await handleSending(msg, {content: `<@${turn}> didnt go in time they are out`})
+                    catch (err) {
+                        await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
                         delete players[turn]
                         playerKeys = playerKeys.filter(v => v != turn)
                     }
                 }
-                if(playerKeys.length <= 1){
-                    return {content: "Everyone left"}
+                if (playerKeys.length <= 1) {
+                    return { content: "Everyone left" }
                 }
-                for(let player in players){
-                    if(players[player].length == totalCards){
-                        return {content: `<@${player}> WINS`}
+                for (let player in players) {
+                    if (players[player].length == totalCards) {
+                        return { content: `<@${player}> WINS` }
                     }
                 }
                 lastPlayer = turn
             }
-            return {content: "Starting"}
+            return { content: "Starting" }
         }, category: CommandCategory.GAME
     },
     blackjack: {
@@ -2330,17 +2335,17 @@ const commands: { [command: string]: Command } = {
             if (!bet) {
                 return { content: "no bet given" }
             }
-            if(bet <= 0){
-                return {content: "No reverse blackjack here"}
+            if (bet <= 0) {
+                return { content: "No reverse blackjack here" }
             }
-            if(hardMode)
+            if (hardMode)
                 bet *= 2
 
-            if(!economy.canBetAmount(msg.author.id, bet)){
-                return {content: "That bet is too high for you"}
+            if (!economy.canBetAmount(msg.author.id, bet)) {
+                return { content: "That bet is too high for you" }
             }
-            if(BLACKJACK_GAMES[msg.author.id]){
-                return {content: "You idiot u already playing the game"}
+            if (BLACKJACK_GAMES[msg.author.id]) {
+                return { content: "You idiot u already playing the game" }
             }
             BLACKJACK_GAMES[msg.author.id] = true
             let cards = []
@@ -2352,19 +2357,19 @@ const commands: { [command: string]: Command } = {
             function calculateCardValue(card: string, total: number) {
                 if (card == "A") {
                     if (total + 11 >= 22) {
-                        return {amount: 1, soft: false}
+                        return { amount: 1, soft: false }
                     }
                     else {
-                        return {amount: 11, soft: true}
+                        return { amount: 11, soft: true }
                     }
                 }
                 else if (["10", "J", "Q", "K"].includes(card)) {
-                    return {amount: 10, soft: false}
+                    return { amount: 10, soft: false }
                 }
                 else if (Number(card)) {
-                    return {amount: Number(card), soft: false}
+                    return { amount: Number(card), soft: false }
                 }
-                return {amount: NaN, soft: false}
+                return { amount: NaN, soft: false }
             }
             function calculateTotal(cards: string[]) {
                 let total = 0
@@ -2375,16 +2380,16 @@ const commands: { [command: string]: Command } = {
                         total += val.amount
                     }
                 }
-                for(let card of cards.filter(v => v.split(" of")[0] === 'A')){
+                for (let card of cards.filter(v => v.split(" of")[0] === 'A')) {
                     let val = calculateCardValue(card, total)
-                    if(!isNaN(val.amount)){
+                    if (!isNaN(val.amount)) {
                         total += val.amount
                     }
-                    if(val.soft){
+                    if (val.soft) {
                         soft = true
                     }
                 }
-                return {total: total, soft: soft}
+                return { total: total, soft: soft }
             }
             function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
                 let no = Math.floor(Math.random() * cardsToChooseFrom.length)
@@ -2403,7 +2408,7 @@ const commands: { [command: string]: Command } = {
                 delete BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
             }
-            if(calculateTotal(dealerCards).total === 21){
+            if (calculateTotal(dealerCards).total === 21) {
                 economy.loseMoneyToBank(msg.author.id, bet)
                 delete BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
@@ -2424,22 +2429,22 @@ const commands: { [command: string]: Command } = {
             while (true) {
                 let embed = new MessageEmbed()
                 embed.setTitle("Blackjack")
-                if(msg.member?.user.avatarURL()){
+                if (msg.member?.user.avatarURL()) {
                     //@ts-ignore
                     embed.setThumbnail(msg.member.user.avatarURL().toString())
                 }
                 let playerTotal = calculateTotal(playersCards)
-                if(playerTotal.soft){
+                if (playerTotal.soft) {
                     embed.addField("Your cards", `value: **${playerTotal.total}** (soft)`, true)
                 }
                 else embed.addField("Your cards", `value: **${playerTotal.total}**`, true)
                 //FIXME: edge case where dealerCards[0] is "A", this could be wrong
                 embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
                 embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
-                if(hasItem(msg.author.id, "reset")){
+                if (hasItem(msg.author.id, "reset")) {
                     embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
-                else{
+                else {
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
                 let message = await msg.channel.send({ embeds: [embed] })
@@ -2450,10 +2455,10 @@ const commands: { [command: string]: Command } = {
                         collectedMessages = await msg.channel.awaitMessages({
                             filter: m => {
                                 if (m.author.id === msg.author.id) {
-                                    if(hasItem(msg.author.id, "reset") && (['hit', 'stand', 'double bet', 'reset'].includes(m.content.toLowerCase()))) {
+                                    if (hasItem(msg.author.id, "reset") && (['hit', 'stand', 'double bet', 'reset'].includes(m.content.toLowerCase()))) {
                                         return true
                                     }
-                                    else if(['hit', 'stand', 'double bet' ].includes(m.content.toLowerCase())) {
+                                    else if (['hit', 'stand', 'double bet'].includes(m.content.toLowerCase())) {
                                         return true
                                     }
                                 }
@@ -2470,8 +2475,8 @@ const commands: { [command: string]: Command } = {
                 }
                 let choice = response.content.toLowerCase()
                 if (choice === 'double bet') {
-                    if(!economy.canBetAmount(msg.author.id, bet * 2)){
-                        await msg.channel.send({content: "That bet is too high for you"})
+                    if (!economy.canBetAmount(msg.author.id, bet * 2)) {
+                        await msg.channel.send({ content: "That bet is too high for you" })
                         continue
                     }
                     bet *= 2
@@ -2480,7 +2485,7 @@ const commands: { [command: string]: Command } = {
                 if (choice === 'hit') {
                     giveRandomCard(cards, playersCards)
                 }
-                if(choice === 'reset' && hasItem(msg.author.id, "reset")){
+                if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
                     cards = []
                     for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                         for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
@@ -2512,7 +2517,7 @@ const commands: { [command: string]: Command } = {
                             break
                         }
                     }
-                    if(calculateTotal(dealerCards).total === 21){
+                    if (calculateTotal(dealerCards).total === 21) {
                         economy.loseMoneyToBank(msg.author.id, bet)
                         delete BLACKJACK_GAMES[msg.author.id]
                         return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
@@ -2560,20 +2565,22 @@ const commands: { [command: string]: Command } = {
         }
     },
     economy: {
-        run: async(msg, args) => {
-            return {files: [
-                {
-                    attachment: `economy.json`,
-                    name: `economy.json`,
-                    description: "This is the economy",
-                    delete: false
-                }
-            ]}
+        run: async (msg, args) => {
+            return {
+                files: [
+                    {
+                        attachment: `economy.json`,
+                        name: `economy.json`,
+                        description: "This is the economy",
+                        delete: false
+                    }
+                ]
+            }
         },
         category: CommandCategory.META
     },
     "inventory.json": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             return {
                 files: [
                     {
@@ -2607,7 +2614,7 @@ const commands: { [command: string]: Command } = {
             //@ts-ignore
             let allValues = Object.values(economy.getEconomy())
             let totalEconomy = 0
-            for(let value of allValues){
+            for (let value of allValues) {
                 //@ts-ignore
                 totalEconomy += value.money
             }
@@ -2631,7 +2638,7 @@ const commands: { [command: string]: Command } = {
             if (opts['text'])
                 return { content: text, allowedMentions: { parse: [] } }
             embed.setTitle(`Leaderboard`)
-            if(opts['no-round'])
+            if (opts['no-round'])
                 embed.setDescription(`Total wealth: ${totalEconomy}`)
             else
                 embed.setDescription(`Total wealth: ${Math.round(totalEconomy * 100) / 100}`)
@@ -3086,34 +3093,34 @@ const commands: { [command: string]: Command } = {
         category: CommandCategory.FUN
     },
     "api": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
-            if(opts['l']){
+            if (opts['l']) {
                 let text = ""
-                for(let fn in API.APICmds){
+                for (let fn in API.APICmds) {
                     text += `${fn}: ${API.APICmds[fn].requirements.join(", ")}\n--------------------\n`
                 }
-                return {content: text}
+                return { content: text }
             }
             let fn = args.join(" ")
-            if(!Object.keys(API.APICmds).includes(fn)){
-                return  {content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`}
+            if (!Object.keys(API.APICmds).includes(fn)) {
+                return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands` }
             }
             let apiFn = API.APICmds[fn]
-            let argsForFn: {[key: string]: any} = {}
-            for(let i in opts){
-                if(!apiFn.requirements.includes(i))
+            let argsForFn: { [key: string]: any } = {}
+            for (let i in opts) {
+                if (!apiFn.requirements.includes(i))
                     continue;
-                else{
+                else {
                     argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts[i]))
                 }
             }
-            if(Object.keys(argsForFn).length < apiFn.requirements.length){
+            if (Object.keys(argsForFn).length < apiFn.requirements.length) {
                 let missing = apiFn.requirements.filter(v => !Object.keys(argsForFn).includes(v))
-                return {content: `You are missing the following options: ${missing}`}
+                return { content: `You are missing the following options: ${missing}` }
             }
-            return {content: String(await apiFn.exec(argsForFn))}
+            return { content: String(await apiFn.exec(argsForFn)) }
         }, category: CommandCategory.META
     },
     "get": {
@@ -3150,8 +3157,8 @@ const commands: { [command: string]: Command } = {
                     if (!data) {
                         return { content: `${object} is invalid` }
                     }
-                    if(typeof data === 'number'){
-                        return {content: String(data)}
+                    if (typeof data === 'number') {
+                        return { content: String(data) }
                     }
                     if (number) {
                         return { content: String(data.at(number)), allowedMentions: { parse: [] } }
@@ -3191,7 +3198,7 @@ const commands: { [command: string]: Command } = {
                 sep = "\n"
             } else sep = String(sep)
             let stringifyFn = JSON.stringify
-            if(opts['s']){
+            if (opts['s']) {
                 stringifyFn = String
             }
             let ret: any[] = []
@@ -3574,7 +3581,7 @@ const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let guess = NaN
-            if(opts['guess']){
+            if (opts['guess']) {
                 guess = Number(opts['guess'])
                 opts['round'] = true
             }
@@ -3582,18 +3589,18 @@ const commands: { [command: string]: Command } = {
             const high = parseFloat(args[1]) || 100
             let bet = high - low
             let ans = Math.random() * (high - low) + low
-            if(opts['round']){
+            if (opts['round']) {
                 ans = Math.floor(ans)
             }
-            if(!isNaN(guess) && high > low){
-                if(economy.canBetAmount(msg.author.id,  bet)){
-                    if(guess === ans){
+            if (!isNaN(guess) && high > low) {
+                if (economy.canBetAmount(msg.author.id, bet)) {
+                    if (guess === ans) {
                         economy.addMoney(msg.author.id, bet)
-                        return {content: `<@${msg.author.id}> WON! THE ANSWER WAS ${ans}, CONGRATS ON YOUR $${bet}`}
+                        return { content: `<@${msg.author.id}> WON! THE ANSWER WAS ${ans}, CONGRATS ON YOUR $${bet}` }
                     }
-                    else{
+                    else {
                         economy.loseMoneyToBank(msg.author.id, bet)
-                        return {content: `<@${msg.author.id}> LOST! THE ANSWER WAS ${ans}, YOU LOST $${bet}`}
+                        return { content: `<@${msg.author.id}> LOST! THE ANSWER WAS ${ans}, YOU LOST $${bet}` }
                     }
                 }
             }
@@ -3730,13 +3737,13 @@ const commands: { [command: string]: Command } = {
             let final = []
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i]
-                try{
+                try {
                     if (line.match(search)) {
                         final.push(`${i}: ${line}`)
                     }
                 }
-                catch(err){
-                    return {content: "Invalid regex"}
+                catch (err) {
+                    return { content: "Invalid regex" }
                 }
             }
             return { content: final.join("\n") }
@@ -4342,7 +4349,7 @@ const commands: { [command: string]: Command } = {
             let points = 0
             let losingStreak = 0
             let winningStreak = 0
-            let participants: {[key: string]: number} = {}
+            let participants: { [key: string]: number } = {}
             async function game(wordstr: string) {
                 let wordLength = strlen(wordstr)
                 if (!caseSensitive) {
@@ -4370,7 +4377,7 @@ const commands: { [command: string]: Command } = {
                 let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
                 let gameIsGoing = true
                 collection.on("collect", async (m) => {
-                    if(!gameIsGoing) return
+                    if (!gameIsGoing) return
                     if (m.content == '\\n' || m.content == "<enter>")
                         m.content = '\n'
                     if (m.content == "STOP") {
@@ -4382,7 +4389,7 @@ const commands: { [command: string]: Command } = {
                     if (!caseSensitive) {
                         m.content = m.content.toLowerCase()
                     }
-                    if(participants[m.author.id] === undefined && !m.author.bot){
+                    if (participants[m.author.id] === undefined && !m.author.bot) {
                         participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
@@ -5660,9 +5667,9 @@ const commands: { [command: string]: Command } = {
 
             let stack = await stackl.parse(args, useStart, msg, SPAMS)
             //@ts-ignore
-            if(stack?.err){
+            if (stack?.err) {
                 //@ts-ignore
-                return {content: stack.content}
+                return { content: stack.content }
             }
 
             let embeds = []
@@ -5856,12 +5863,12 @@ const commands: { [command: string]: Command } = {
             }
             let id = Math.floor(Math.random() * 10000000)
             SPAMS[id] = true
-            if(!opts['s']){
+            if (!opts['s']) {
                 await msg.channel.send(`Starting id: ${id}`)
             }
-            function handleRunFn(fn: string, contents: string){
-                switch(fn){
-                    case "RUN_FN_VAR":{
+            function handleRunFn(fn: string, contents: string) {
+                switch (fn) {
+                    case "RUN_FN_VAR": {
                         return `\\v{${parseRunLine(contents)}}`
                     }
                     case "RUN_FN_DOFIRST": {
@@ -5875,39 +5882,39 @@ const commands: { [command: string]: Command } = {
                     }
                 }
             }
-            function parseRunLine(line: string): string{
+            function parseRunLine(line: string): string {
                 let text = ""
                 let currFn = ""
                 let prefix = "RUN_FN_"
-                for(let i = 0; i < line.length; i++){
+                for (let i = 0; i < line.length; i++) {
                     let ch = line[i]
-                    if(ch == "(" && currFn.startsWith(prefix)){
+                    if (ch == "(" && currFn.startsWith(prefix)) {
                         let parenCount = 1
                         let fnContents = ""
-                        for(i++; i < line.length; i++){
+                        for (i++; i < line.length; i++) {
                             ch = line[i]
-                            if(ch == "("){
+                            if (ch == "(") {
                                 parenCount++;
                             }
-                            else if(ch == ")"){
+                            else if (ch == ")") {
                                 parenCount--;
                             }
-                            if(parenCount == 0)
+                            if (parenCount == 0)
                                 break;
                             fnContents += ch
                         }
                         text += handleRunFn(currFn, fnContents)
                         currFn = ""
                     }
-                    else if("ABCDEFGHIJKLMNOPQRSTUVWXYZ_".includes(ch)){
+                    else if ("ABCDEFGHIJKLMNOPQRSTUVWXYZ_".includes(ch)) {
                         currFn += ch
                     }
-                    else{
+                    else {
                         text += currFn + ch
                         currFn = ""
                     }
                 }
-                if(currFn){
+                if (currFn) {
                     text += currFn
                 }
                 return text
@@ -5930,22 +5937,22 @@ const commands: { [command: string]: Command } = {
         }
     },
     "gvar": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let [scope, ...nameList] = args.join(" ").split(":")
             let name = nameList.join(":")
-            if(scope == "%"){
+            if (scope == "%") {
                 scope = msg.author.id
             }
-            else if(scope == "."){
+            else if (scope == ".") {
                 let v = getVarFn(name, false)
-                if(v)
-                    return {content: String(v(msg, ""))}
-                else return {content: `\\v{${args.join(" ")}}`}
+                if (v)
+                    return { content: String(v(msg, "")) }
+                else return { content: `\\v{${args.join(" ")}}` }
             }
             let v = getVarFn(name, false, scope)
-            if(v)
-                return {content: String(v(msg, ""))}
-            else return {content: `\\v{${args.join(" ")}}`}
+            if (v)
+                return { content: String(v(msg, "")) }
+            else return { content: `\\v{${args.join(" ")}}` }
         }, category: CommandCategory.META
     },
     "var": {
@@ -6236,8 +6243,8 @@ ${fs.readdirSync("./command-results").join("\n")}
             let expansions = 0
             while (aliases[command]?.[0]) {
                 expansions++;
-                if(expansions >= 1000)
-                    return {content: "Alias expansion limit reached"}
+                if (expansions >= 1000)
+                    return { content: "Alias expansion limit reached" }
                 a = aliases[command].slice(1).join(" ") + " " + a + " "
                 if (showArgs)
                     chain.push(`${aliases[command][0]} ${a}`.trim())
@@ -6578,7 +6585,8 @@ ${styles}
                 const ext = exts[fmt] || fmt
                 try {
                     execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
-_B                }
+                    _B
+                }
                 catch (err) {
                     continue
                 }
@@ -6685,61 +6693,61 @@ _B                }
 
     },
     RESET_ECONOMY: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             economy.resetEconomy()
 
-            return {content: "Economy reset"}
+            return { content: "Economy reset" }
 
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     RESET_PLAYER: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let player = await fetchUser(msg.guild, args[0])
-            if(!player)
-                return {content: "No player found"}
+            if (!player)
+                return { content: "No player found" }
             economy.resetPlayer(player.user.id)
-            return {content: `Reset: <@${player.user.id}>`}
+            return { content: `Reset: <@${player.user.id}>` }
         },
         category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_PLAYER_ITEMS: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let player = await fetchUser(msg.guild, args[0])
-            if(!player)
-                return {content: "No player found"}
+            if (!player)
+                return { content: "No player found" }
             resetPlayerItems(player.user.id)
-            return {content: `Reset: <@${player.user.id}>`}
+            return { content: `Reset: <@${player.user.id}>` }
         },
         category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_ITEMS: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             resetItems()
-            return {content: "Items reset"}
+            return { content: "Items reset" }
         },
         permCheck: (m) => ADMINS.includes(m.author.id),
         category: CommandCategory.META
     },
     SETMONEY: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let user = await fetchUser(msg.guild, args[0])
-            if(!user){
-                return {content: "user not found"}
+            if (!user) {
+                return { content: "user not found" }
             }
             let amount = economy.calculateAmountFromString(msg.author.id, args[1])
-            if(amount){
+            if (amount) {
                 economy.setMoney(user.id, amount)
-                return {content: `${user.id} now has ${amount}`}
+                return { content: `${user.id} now has ${amount}` }
             }
-            return {content: "nothign happened"}
+            return { content: "nothign happened" }
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     'blacklist': {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let addOrRemove = args[0]
             if (!["a", "r"].includes(addOrRemove)) {
                 return {
@@ -6846,10 +6854,10 @@ _B                }
             let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
             if (economy.canEarn(msg.author.id)) {
                 let amount = diff / (1000 * 60 * 60)
-                if(hours == minutes){
+                if (hours == minutes) {
                     amount *= 1.001
                 }
-                if(hours == minutes && minutes == seconds){
+                if (hours == minutes && minutes == seconds) {
                     amount *= 1.5
                 }
                 economy.addMoney(msg.author.id, amount)
@@ -6957,8 +6965,8 @@ _B                }
             if (!args.join(" ").trim().length)
                 channel = msg.channel
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
-            if(!channel)
-                return {content: "Channel not found"}
+            if (!channel)
+                return { content: "Channel not found" }
             let pinned = await channel?.messages?.fetchPinned()
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
@@ -7327,21 +7335,21 @@ valid formats:<br>
             let cmd
             [cmd, ...args] = args
             let realCmd = args[0]
-            if(!realCmd){
-                return {content:  "No  alias name given"}
+            if (!realCmd) {
+                return { content: "No  alias name given" }
             }
-            if(realCmd.includes(" ")){
-                return {content: "Name cannot have space"}
+            if (realCmd.includes(" ")) {
+                return { content: "Name cannot have space" }
             }
             args = args.slice(1)
-            if(!args){
-                return {content: "No command given"}
+            if (!args) {
+                return { content: "No command given" }
             }
             if (aliases[cmd]) {
                 return { content: `Failed to add "${cmd}", it already exists` }
             }
-            if(commands[cmd]){
-                return {content: `Failed to add "${cmd}", it is a builtin`}
+            if (commands[cmd]) {
+                return { content: `Failed to add "${cmd}", it is a builtin` }
             }
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
             aliases = createAliases()
@@ -7579,8 +7587,8 @@ async function doCmd(msg: Message, returnJson = false) {
     let args: Array<string>
     let doFirsts: { [item: number]: string }
     [command, args, doFirsts] = await parseCmd({ msg: msg })
-    let doFirstData: {[key: number]: string} = {} //where key is the argno that the dofirst is at
-    let doFirstCountNoToArgNo: {[key: number]: string} = {} //where key is the doFirst number
+    let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
+    let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
     let idxNo = 0
     for (let idx in doFirsts) {
         let cmd = doFirsts[idx]
@@ -7592,25 +7600,25 @@ async function doCmd(msg: Message, returnJson = false) {
         doFirstCountNoToArgNo[idxNo] = idx
         idxNo++
     }
-    if(Object.keys(doFirstData)){
+    if (Object.keys(doFirstData)) {
         args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
     }
-        // let splitData = data.split(" ")
-        // //replaces %{\d:} with the full result
-        // args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
-        // //replaces %{\d:\d} with the argno result
-        // let regexp = new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g")
-        // args = args.map((v) => {
-        //     return v.replaceAll(regexp, (_fullMatch, index) => {
-        //         return splitData[index]
-        //     })
-        // })
-        // //@ts-ignore
-        // args[idx] = args[idx].replaceAll("%{}", data)
-        // args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
-        // for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
-        //     args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
-        // }
+    // let splitData = data.split(" ")
+    // //replaces %{\d:} with the full result
+    // args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
+    // //replaces %{\d:\d} with the argno result
+    // let regexp = new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g")
+    // args = args.map((v) => {
+    //     return v.replaceAll(regexp, (_fullMatch, index) => {
+    //         return splitData[index]
+    //     })
+    // })
+    // //@ts-ignore
+    // args[idx] = args[idx].replaceAll("%{}", data)
+    // args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
+    // for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
+    //     args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
+    // }
     args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
     let canRun = true
     let exists = true
@@ -7689,7 +7697,7 @@ async function doCmd(msg: Message, returnJson = false) {
             canRun = false
             rv = { content: "You do not have permissions to run this command" }
         }
-        else{
+        else {
             addToCmdUse(command)
             let aliasPreArgs = aliases[command].slice(1);
             command = aliases[command][0]
@@ -7713,7 +7721,7 @@ async function doCmd(msg: Message, returnJson = false) {
             msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
             let oldC = msg.content
             //aliasPreArgs.join is the command  content, args is what the user typed
-            msg.content = `${prefix}${command} ${parseAliasReplacement(msg,  aliasPreArgs.join(" "), args)}`
+            msg.content = `${prefix}${command} ${parseAliasReplacement(msg, aliasPreArgs.join(" "), args)}`
             if (oldC == msg.content) {
                 msg.content = msg.content + ` ${args.join(" ")}`
             }
@@ -7721,7 +7729,7 @@ async function doCmd(msg: Message, returnJson = false) {
                 await msg.channel.sendTyping()
             }
         }
-        if(canRun){
+        if (canRun) {
             rv = await doCmd(msg, true) as CommandReturn
         }
     }
@@ -7784,7 +7792,7 @@ client.on("messageDeleteBulk", async (m) => {
         purgeSnipe.length = 5
 })
 
-async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray){
+async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray) {
     let count = Number(search[1]) || Infinity
     let regexSearch = search[2]
     let rangeSearch = search[3]
@@ -7884,21 +7892,21 @@ client.on("messageCreate", async (m: Message) => {
     }
     if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
-        if(deaths.length)
+        if (deaths.length)
             await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
         let ap = pet.getActivePet(m.author.id)
         let percent = 1.001
         let pcount = Number(hasItem(m.author.id, "puffle chat"))
-        percent +=  .0001 * pcount
-        if(ap == 'cat'){
+        percent += .0001 * pcount
+        if (ap == 'cat') {
             economy.earnMoney(m.author.id, percent + .002)
         }
-        else{
+        else {
             economy.earnMoney(m.author.id, percent)
         }
-        if(ap == 'puffle'){
+        if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
-            if(stuff)
+            if (stuff)
                 await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
         }
     }
@@ -7930,31 +7938,31 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
-            if(typeof BUTTONS[interaction.customId] !== 'string'){
-                interaction.reply({content: "Something went wrong"})
+            if (typeof BUTTONS[interaction.customId] !== 'string') {
+                interaction.reply({ content: "Something went wrong" })
                 return
             }
             //@ts-ignore
             let [userChoice, ogUser, bet] = BUTTONS[interaction.customId].split(":")
             let ogBet = Number(bet)
-            if(interaction.member?.user.id === ogUser){
-                interaction.reply({content: "Ur a dingus"})
+            if (interaction.member?.user.id === ogUser) {
+                interaction.reply({ content: "Ur a dingus" })
                 return
             }
             if (userChoice == oppChoice) {
                 interaction.reply({ content: "TIE" })
             }
             else if (table[oppChoice] == userChoice) {
-                if(ogBet){
+                if (ogBet) {
                     economy.addMoney(ogUser, ogBet)
                     interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` })
                 }
                 else interaction.reply({ content: `<@${ogUser}> user wins!` })
             }
             else {
-                if(ogBet){
+                if (ogBet) {
                     economy.loseMoneyToBank(ogUser, ogBet)
-                    if(interaction.member?.user.id){
+                    if (interaction.member?.user.id) {
                         //@ts-ignore
                         economy.addMoney(interaction.member?.user.id, ogBet)
                         interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
@@ -8010,8 +8018,8 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
     }
     else if (interaction.isCommand() && !interaction.replied) {
-        if(BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)){
-            interaction.reply({content: "You are blacklisted from this"})
+        if (BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)) {
+            interaction.reply({ content: "You are blacklisted from this" })
             return
         }
         addToCmdUse(`/${interaction.commandName}`)
@@ -8023,53 +8031,53 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             await interaction.reply(`Attacking ${user}...`)
             await interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`)
         }
-        else if(interaction.commandName == 'aheist'){
+        else if (interaction.commandName == 'aheist') {
             let userId = interaction.user.id
             let stage = interaction.options.get("stage")?.value
-            if(!stage){
+            if (!stage) {
                 interaction.reply(`${stage} is not a valid stage`)
                 return
             }
             let gainOrLose = interaction.options.get("gain-or-lose")?.value as string
-            if(!gainOrLose){
+            if (!gainOrLose) {
                 interaction.reply("You messed up bubs")
                 return
             }
             let users = interaction.options.get("users-to-gain-or-lose")?.value as string
-            if(!users){
+            if (!users) {
                 interaction.reply("You messed up bubs")
                 return
             }
-            if(!users.match(/^(:?(\d+|all),?)+$/)){
+            if (!users.match(/^(:?(\d+|all),?)+$/)) {
                 interaction.reply(`${users} does not match ((digit|all),)+`)
                 return
             }
             let amount = interaction.options.get("amount")?.value
-            if(!amount){
+            if (!amount) {
                 interaction.reply("You messed up bubs")
                 return
             }
             let message = interaction.options.get("message")?.value
-            if(!message){
+            if (!message) {
                 interaction.reply("You messed up bubs")
                 return
             }
             let text = `${userId}: ${message} AMOUNT=${amount} STAGE=${stage} ${gainOrLose.toUpperCase()}=${users}`
             let substage = interaction.options.get("nextstage")?.value
-            if(substage)
+            if (substage)
                 text += ` SUBSTAGE=${substage}`
             let location = interaction.options.get("location")?.value
-            if(location)
+            if (location)
                 text += ` LOCATION=${location}`
             let set_location = interaction.options.get("set-location")?.value
-            if(set_location)
+            if (set_location)
                 text += ` SET_LOCATION=${set_location}`
             let button_response = interaction.options.get("button-response")?.value
-            if(button_response){
+            if (button_response) {
                 text += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
             }
             let condition = interaction.options.get("if")?.value
-            if(condition){
+            if (condition) {
                 text += ` IF=${condition}`
             }
             fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
@@ -8185,11 +8193,11 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let choice = interaction.options.get("choice")?.value as string
             let bet = interaction.options.get("bet")?.value as string
             let nBet = 0
-            if(bet){
-                if(interaction.member?.user.id){
+            if (bet) {
+                if (interaction.member?.user.id) {
                     nBet = economy.calculateAmountFromString(interaction.member.user.id, bet)
-                    if(!economy.canBetAmount(interaction.member.user.id, nBet) || nBet < 0){
-                        interaction.reply({content: "You cant bet this much"})
+                    if (!economy.canBetAmount(interaction.member.user.id, nBet) || nBet < 0) {
+                        interaction.reply({ content: "You cant bet this much" })
                         return
                     }
                 }

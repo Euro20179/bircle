@@ -42,7 +42,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
                 return JSON.stringify(data)
             return false
         }
-    }
+    },
 }
 
 export async function handleApiArgumentType(msg: Message, t: string, argument: string){
