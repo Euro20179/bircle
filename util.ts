@@ -1,10 +1,13 @@
+import { Guild, Message } from "discord.js"
+
 const {execFileSync} = require('child_process')
 const { userVars, vars } = require("./common.js")
 const vm = require('vm')
 const fs = require('fs')
 
 class UTF8String{
-    constructor(text){
+    text: string[]
+    constructor(text: string){
         this.text = [...text]
     }
     toString(){
@@ -15,7 +18,7 @@ class UTF8String{
     }
 }
 
-function* cycle(iter, onNext){
+function* cycle(iter: any, onNext: Function){
     for(let i = 0; true; i++){
 	onNext(i)
 	yield iter[i % iter.length]
@@ -30,7 +33,7 @@ function randomColor(){
     return colors
 }
 
-function mulStr(str, amount){
+function mulStr(str: string, amount: number){
     let ans = ""
     for(let i = 0; i < amount; i++){
 	ans += str
@@ -38,13 +41,13 @@ function mulStr(str, amount){
     return ans
 }
 
-async function fetchChannel(guild, find){
+async function fetchChannel(guild: Guild, find: string){
     let channels = await guild.channels.fetch()
     let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || channel?.name?.indexOf(find) > -1).at(0)
     return channel
 }
 
-async function fetchUser(guild, find){
+async function fetchUser(guild: Guild, find: string){
     let res;
     if(res = find?.match(/<@!?(\d{18})>/)){
         find = res[1]
@@ -56,27 +59,24 @@ async function fetchUser(guild, find){
             user = await guild.members.fetch({user: find})
         }
         catch(DiscordAPIError){
-            user = null
+            user = undefined
         }
     }
     if(!user){
-        user = (await guild.members.list()).filter(u => u.id == find || u.username?.indexOf(find) > -1 || u.nickName?.indexOf(find) > -1)?.at(0)
-        if(user?.size < 1){
-            user = null
-        }
+        user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
     }
     return user
 }
 
-function generateFileName(cmd, userId){
+function generateFileName(cmd: string, userId: string){
     return `${cmd}::${userId}.txt`
 }
 
-function downloadSync(url){
+function downloadSync(url: string){
     return execFileSync(`curl`, ['--silent', url])
 }
 
-function format(str, formats, doPercent, doBraces){
+function format(str: string, formats: {[key: string]: string}, doPercent?: boolean, doBraces?: boolean){
     if(doBraces === undefined) doBraces = true
     if(doPercent === undefined) doPercent = true
     for(let fmt in formats){
@@ -88,7 +88,7 @@ function format(str, formats, doPercent, doBraces){
     return str
 }
 
-async function createGradient(gradient, width, height){
+async function createGradient(gradient: string[], width: number | string, height: number | string){
     let gradientSvg = "<linearGradient id=\"gradient\">"
     let styleSvg = "<style type=\"text/css\"><![CDATA[#rect{fill: url(#gradient);}"
     let colorStep = 1 / (gradient.length - 1)
@@ -110,6 +110,7 @@ async function createGradient(gradient, width, height){
     return svg
 }
 
+//@ts-ignore
 async function applyJimpFilter(img, filter, arg){
     switch(filter){
         case "rotate":
@@ -157,16 +158,18 @@ async function applyJimpFilter(img, filter, arg){
     }
 }
 
-function rgbToHex(r, g, b){
+function rgbToHex(r: number, g: number, b: number){
     let [rhex, ghex, bhex] = [r.toString(16), g.toString(16), b.toString(16)]
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
 
-function safeEval (code, context, opts) {
+function safeEval (code: string, context: {[key: string]: any}, opts: any) {
   let sandbox = {}
 
   let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
+  //@ts-ignore
   sandbox[resultKey] = {}
+  //@ts-ignore
   sandbox["Buffer"] = Buffer
   let clearContext = `
     (function() {
@@ -182,11 +185,13 @@ function safeEval (code, context, opts) {
   code = clearContext + resultKey + '=' + code
   if (context) {
     Object.keys(context).forEach(function (key) {
+        //@ts-ignore
       sandbox[key] = context[key]
     })
   }
     try{
       vm.runInNewContext(code, sandbox, opts)
+      //@ts-ignore
       return sandbox[resultKey]
     }
     catch(err){
@@ -195,15 +200,15 @@ function safeEval (code, context, opts) {
     }
 }
 
-function escapeShell(text){
+function escapeShell(text:  string){
     return text.replaceAll(/\$/g, "\\$").replaceAll(";", "\\;")
 }
 
-function strlen(text){
+function strlen(text: string){
     return [...text].length
 }
 
-function cmdCatToStr(cat){
+function cmdCatToStr(cat: number){
     switch(cat){
         case 0:
             return "util"
@@ -218,9 +223,10 @@ function cmdCatToStr(cat){
     }
 }
 
-function getImgFromMsgAndOpts(opts, msg) {
+function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
     let img = opts['img']
     if (msg.attachments?.at(0)) {
+        //@ts-ignore
         img = msg.attachments.at(0)?.attachment
     }
     //@ts-ignore
@@ -229,15 +235,17 @@ function getImgFromMsgAndOpts(opts, msg) {
         img = msg.reply.attachments.at(0)?.attachment
     }
     else if (msg.embeds?.at(0)?.image?.url) {
+        //@ts-ignore
         img = msg.embeds?.at(0)?.image?.url
     }
     else if (!img) {
+        //@ts-ignore
         img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }
     return img
 }
 
-function getOpts(args) {
+function getOpts(args: ArgumentList) {
     let opts = {}
     let newArgs = []
     let idxOfFirstRealArg = 0
@@ -249,6 +257,7 @@ function getOpts(args) {
             }
             if (arg[1]) {
                 let [opt, ...value] = arg.slice(1).split("=")
+                //@ts-ignore
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             }
         } else {
@@ -262,7 +271,7 @@ function getOpts(args) {
     return [opts, newArgs]
 }
 
-async function handleSending(msg, rv) {
+async function handleSending(msg:  Message, rv: CommandReturn) {
     if (!Object.keys(rv).length) {
         return
     }
@@ -299,6 +308,8 @@ async function handleSending(msg, rv) {
     }
     let location = msg.channel
     if (rv['dm']) {
+
+        //@ts-ignore
         location = msg.author
     }
     try {
@@ -316,7 +327,7 @@ async function handleSending(msg, rv) {
     }
 }
 
-module.exports = {
+export {
     fetchUser,
     fetchChannel,
     generateFileName,

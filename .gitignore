@@ -26,5 +26,6 @@ shop.js
 uno.js
 battle.js
 stackl.js
+util.js
 
 !command-perms/holder

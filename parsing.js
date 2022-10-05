@@ -42,7 +42,7 @@ async function buildFormat(sequence, msg, curArg, customFormats){
             {
                 i: user.id || "#!N/A",
                 u: user.username || "#!N/A",
-                n: member.nickName || "#!N/A",
+                n: member.nickname || "#!N/A",
                 X: member.displayHexColor.toString() || "#!N/A",
                 x: member.displayColor.toString() || "#!N/A",
                 c: user.createdAt.toString() || "#!N/A",
@@ -76,7 +76,7 @@ async function buildFormat(sequence, msg, curArg, customFormats){
                 {
                     i: user.id || "#!N/A",
                     u: user.username || "#!N/A",
-                    n: member.nickName || "#!N/A",
+                    n: member.nickname || "#!N/A",
                     X: member.displayHexColor.toString() || "#!N/A",
                     x: member.displayColor.toString() || "#!N/A",
                     c: user.createdAt.toString() || "#!N/A",
