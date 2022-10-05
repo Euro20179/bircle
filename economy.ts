@@ -192,89 +192,57 @@ function setMoney(id: string, amount: number){
 }
 
 function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: {[key: string]: (total: number, k: string) => number}){
-    if(amount == undefined || amount == null){
+    if(ECONOMY[id] === undefined){
         return NaN
     }
+    let total = ECONOMY[id].money
+    let stocks = ECONOMY[id].stocks
+    if(stocks){
+        for(let stock in ECONOMY[id].stocks){
+            total += stocks[stock].buyPrice * stocks[stock].shares
+        }
+    }
+    return calculateAmountOfMoneyFromString(id, total, amount, extras)
+}
+
+function calculateStockAmountFromString(id: string, shareCount: number, amount: string){
     if(ECONOMY[id] === undefined){
+        return NaN
+    }
+    return calculateAmountOfMoneyFromString(id, shareCount, amount)
+}
+
+function calculateLoanAmountFromString(id: string, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
+    let loanDebt = ECONOMY[id]?.loanUsed
+    if(!loanDebt)
+        return NaN
+    return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras)
+}
+
+function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: {[key: string]: (total: number, k: string, data:  EconomyData) => number}){
+    if(amount == undefined || amount == null){
         return NaN
     }
     if(amount === 'Infinity')
         return Infinity
     amount = amount.toLowerCase()
     if(amount == "all"){
-        return ECONOMY[id].money * .99
+        return money * .99
     }
-    if(amount == "all!"){
-        return ECONOMY[id].money
+    else if(amount == "all!"){
+        return money
+    }
+    else if(amount.startsWith('#')){
+        let toNextMultipleOf = Number(amount.slice(1))
+        if(isNaN(toNextMultipleOf)){
+            return NaN
+        }
+        return money % toNextMultipleOf
     }
     for(let e in extras){
         if (amount.match(e)){
-            return extras[e](ECONOMY[id].money, amount)
+            return extras[e](money, amount, ECONOMY[id])
         }
-    }
-    if(Number(amount)){
-        return Number(amount)
-    }
-    else if(amount[0] === "$" && Number(amount.slice(1))){
-        return Number(amount.slice(1))
-    }
-    else if(amount[amount.length - 1] === "%"){
-        let total = 0
-        let stocks = ECONOMY[id].stocks
-        if(stocks){
-            for(let stock in ECONOMY[id].stocks){
-                total += stocks[stock].buyPrice * stocks[stock].shares
-            }
-        }
-        let percent = Number(amount.slice(0, -1))
-        let money = ECONOMY[id].money
-        if(!percent){
-            return 0
-        }
-        return (total + money)  * percent / 100
-    }
-    return 0
-}
-
-function calculateStockAmountFromString(id: string, shareCount: number, amount: string){
-    if(amount == undefined || amount == null){
-        return NaN
-    }
-    if(ECONOMY[id] === undefined){
-        return NaN
-    }
-    if(amount === "Infinity")
-        return Infinity
-    amount = amount.toLowerCase()
-    if(amount == "all"){
-        return shareCount
-    }
-
-    if(Number(amount)){
-        return Number(amount)
-    }
-    else if(amount[0] === "$" && Number(amount.slice(1))){
-        return Number(amount.slice(1))
-    }
-    else if(amount[amount.length - 1] === "%"){
-        let percent = Number(amount.slice(0, -1))
-        if(!percent){
-            return 0
-        }
-        return shareCount * percent / 100
-    }
-    return 0
-}
-
-function calculateLoanAmountFromString(id: string, amount: string){
-    let loanDebt = ECONOMY[id]?.loanUsed
-    if(!loanDebt)
-        return NaN
-    if(amount === "Infinity")
-        return Infinity
-    amount = amount.toLowerCase()
-    if(amount == "all"){
-        return loanDebt
     }
     if(Number(amount)){
         return Number(amount)
@@ -287,47 +255,16 @@ function calculateLoanAmountFromString(id: string, amount: string){
         if(!percent){
             return 0
         }
-        return loanDebt * percent / 100
+        return money * percent / 100
     }
     return 0
 }
 
 function calculateAmountFromString(id: string, amount: string, extras?: {[key: string]: (total: number, k: string, data: EconomyData) => number}){
-    if(amount == undefined || amount == null){
-        return NaN
-    }
     if(ECONOMY[id] === undefined){
         return NaN
     }
-    if(amount === 'Infinity')
-        return Infinity
-    amount = amount.toLowerCase()
-    if(amount == "all"){
-        return ECONOMY[id].money * .99
-    }
-    if(amount == "all!"){
-        return ECONOMY[id].money
-    }
-    for(let e in extras){
-        if (amount.match(e)){
-            return extras[e](ECONOMY[id].money, amount, ECONOMY[id])
-        }
-    }
-    if(Number(amount)){
-        return Number(amount)
-    }
-    else if(amount[0] === "$" && Number(amount.slice(1))){
-        return Number(amount.slice(1))
-    }
-    else if(amount[amount.length - 1] === "%"){
-        let percent = Number(amount.slice(0, -1))
-        if(!percent){
-            return 0
-        }
-        let money = ECONOMY[id].money
-        return money * percent / 100
-    }
-    return 0
+    return calculateAmountOfMoneyFromString(id, ECONOMY[id].money, amount, extras)
 }
 
 function resetEconomy(){
