@@ -130,6 +130,8 @@ function feedPet(id: string, pet: string, itemName: string){
 }
 
 function setActivePet(id: string, pet: string){
+    if(!pet)
+        economy._set_active_pet(id, "")
     if(PETINVENTORY[id]?.[pet]){
         economy._set_active_pet(id, pet)
         return true
@@ -145,7 +147,7 @@ function getActivePet(id: string){
 }
 
 function  killPet(id: string, pet: string){
-    if(PETINVENTORY[id]?.[pet]){
+    if(PETINVENTORY[id]?.[pet] !== undefined){
         if(getActivePet(id) == pet){
             setActivePet(id, "")
         }
@@ -156,7 +158,7 @@ function  killPet(id: string, pet: string){
 }
 
 function damagePet(id: string, pet: string){
-    if(PETINVENTORY[id]?.[pet]){
+    if(PETINVENTORY[id]?.[pet] !== undefined){
         PETINVENTORY[id][pet] -= Math.floor(Math.random() * 4 + 1)
         if(PETINVENTORY[id][pet] <= 0){
             killPet(id, pet)
