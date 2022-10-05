@@ -212,7 +212,7 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     return calculateAmountOfMoneyFromString(id, shareCount, amount)
 }
 
-function calculateLoanAmountFromString(id: string, amount: string, extras: {[key: string]: (total: number, k: string) => number}){
+function calculateLoanAmountFromString(id: string, amount: string, extras?: {[key: string]: (total: number, k: string) => number}){
     let loanDebt = ECONOMY[id]?.loanUsed
     if(!loanDebt)
         return NaN
@@ -238,6 +238,14 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
             return NaN
         }
         return money % toNextMultipleOf
+    }
+    else if(amount.startsWith("neededfor(") && amount.endsWith(")")){
+        let wantedAmount = parseFloat(amount.slice("neededfor(".length))
+        return wantedAmount - money
+    }
+    else if(amount.startsWith("ineededfor(") && amount.endsWith(")")){
+        let wantedAmount = parseFloat(amount.slice("ineededfor(".length))
+        return money - wantedAmount
     }
     for(let e in extras){
         if (amount.match(e)){

@@ -1367,7 +1367,10 @@ const commands: { [command: string]: Command } = {
     },
     calcm: {
         run: async(msg, args) => {
-            let amount = economy.calculateAmountFromString(msg.author.id, args.join(" "))
+            let amount = economy.calculateAmountFromString(msg.author.id, args.join(" "), {
+                ticketmin: (total, _k, _data) => total * 0.005,
+                battlemin: (total, _k, _data) => total * 0.002
+            })
             return {content: `$${amount}`}
         }, category: CommandCategory.UTIL
     },
