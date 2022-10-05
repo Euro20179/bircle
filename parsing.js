@@ -373,7 +373,6 @@ function parseAliasReplacement(msg, cmdContent, args){
                         finalText += String(args.length)
                     }
                     else if(dotsInARow == 3){
-                        console.log(suffix)
                         finalText += String(args.slice(Number(suffix) - 1).join(" "))
                     }
                     else if(dotsInARow == 2){
@@ -405,8 +404,13 @@ function parseAliasReplacement(msg, cmdContent, args){
                 break
             }
             default:{
+                if(isEscaped){
+                    finalText += `\\${ch}`
+                }
+                else{
+                    finalText += ch
+                }
                 isEscaped = false
-                finalText += ch
             }
         }
     }
