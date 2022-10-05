@@ -3638,8 +3638,13 @@ const commands: { [command: string]: Command } = {
             let final = []
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i]
-                if (line.match(search)) {
-                    final.push(`${i}: ${line}`)
+                try{
+                    if (line.match(search)) {
+                        final.push(`${i}: ${line}`)
+                    }
+                }
+                catch(err){
+                    return {content: "Invalid regex"}
                 }
             }
             return { content: final.join("\n") }
@@ -9577,6 +9582,7 @@ function loadEmoteUse() {
     }
     return emoteuse
 }
+
 
 let CMDUSE = loadCmdUse()
 let EMOTEUSE = loadEmoteUse()
