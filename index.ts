@@ -7092,6 +7092,8 @@ const commands: { [command: string]: Command } = {
     },
     "run": {
         run: async (msg: Message, args) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
             let file = msg.attachments.at(0)
             let text;
             if (!file) {
@@ -7114,7 +7116,9 @@ const commands: { [command: string]: Command } = {
             }
             let id = Math.floor(Math.random() * 10000000)
             SPAMS[id] = true
-            await msg.channel.send(`Starting id: ${id}`)
+            if(!opts['s']){
+                await msg.channel.send(`Starting id: ${id}`)
+            }
             function handleRunFn(fn: string, contents: string){
                 switch(fn){
                     case "RUN_FN_VAR":{
