@@ -320,6 +320,7 @@ let connection: any;
 
 let HEIST_PLAYERS: string[] = []
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
+let  HEIST_STARTED = false
 
 const commands: { [command: string]: Command } = {
     "send-log": {
@@ -1735,6 +1736,9 @@ const commands: { [command: string]: Command } = {
             if((economy.getEconomy()[msg.author.id]?.money || 0) <= 0){
                 return {content: "U dont have money"}
             }
+            if(HEIST_STARTED){
+                return {content: "The game  has already started"}
+            }
             HEIST_PLAYERS.push(msg.author.id)
             let timeRemaining = 30000
             if(HEIST_TIMEOUT === null){
@@ -1745,11 +1749,13 @@ const commands: { [command: string]: Command } = {
                 }, 1000)
                 let data: {[key: string]: number} = {} //player_id: amount won
                 HEIST_TIMEOUT = setTimeout(async() => {
+                    HEIST_STARTED = true
                     clearInterval(int)
                     await msg.channel.send({content: `Commencing heist with ${HEIST_PLAYERS.length} players`})
                     let stages = ["getting in", "robbing", "escape"]
                     for(let player of HEIST_PLAYERS){
                         data[player] = 0
+                        userVars[player]['__heist'] = () => 0
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     //let fileResponses: string[] = []
@@ -1915,11 +1921,15 @@ const commands: { [command: string]: Command } = {
                                     for(let player in data){
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
+                                        let oldValue = userVars[player]["__heist"]()
+                                        userVars[player]['__heist'] = () => oldValue + amount
                                     }
                                 }
                                 else{
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
+                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]["__heist"]()
+                                    userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
                                 }
                             }
                         }
@@ -1931,11 +1941,15 @@ const commands: { [command: string]: Command } = {
                                     for(let player in data){
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
+                                        let oldValue = userVars[player]["__heist"]()
+                                        userVars[player]['__heist'] = () => oldValue + amount
                                     }
                                 }
                                 else{
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
+                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]["__heist"]()
+                                    userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
                                 }
                             }
                         }
@@ -2060,6 +2074,7 @@ const commands: { [command: string]: Command } = {
                     }
                     HEIST_PLAYERS = []
                     HEIST_TIMEOUT = null
+                    HEIST_STARTED = false
                     if(Object.keys(data).length > 0){
                         let useEmbed = false
                         let e = new MessageEmbed()

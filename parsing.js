@@ -280,7 +280,9 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     }
                 }
                 else{
-                    curArg += `$${ch}`
+                    curArg += "$"
+                    if(ch)
+                        curArg += ch
                 }
                 break;
             case "\\":
