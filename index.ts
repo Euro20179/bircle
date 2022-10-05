@@ -1367,26 +1367,82 @@ const commands: { [command: string]: Command } = {
     },
     calcm: {
         run: async(msg, args) => {
-            let amount = economy.calculateAmountFromString(msg.author.id, args.join(" "), {
+            let opts;
+            [opts, args]  = getOpts(args)
+            let dollarSign = opts['sign'] || ""
+            let as = opts['as'] || msg.author.id
+            if(as && typeof as === 'string'){
+                as = (await fetchUser(msg.guild, as)).user.id
+            }
+            if(!as)
+                as = msg.author.id
+
+            let amount = economy.calculateAmountFromString(as, args.join(" "), {
                 ticketmin: (total, _k, _data) => total * 0.005,
                 battlemin: (total, _k, _data) => total * 0.002
             })
-            return {content: `$${amount}`}
+            if(dollarSign === true){
+                return {content: `${amount}`}
+            }
+            return {content: `${dollarSign}${amount}`}
         }, category: CommandCategory.UTIL
     },
     calcl: {
         run: async(msg, args) => {
-            let amount = economy.calculateLoanAmountFromString(msg.author.id, args.join(" "))
+            let opts;
+            [opts, args]  = getOpts(args)
+            let dollarSign = opts['sign'] || ""
+            let as = opts['as'] || msg.author.id
+            if(as && typeof as === 'string'){
+                as = (await fetchUser(msg.guild, as)).user.id
+            }
+            if(!as)
+                as = msg.author.id
+            let amount = economy.calculateLoanAmountFromString(as, args.join(" "))
             if(!amount){
                 return {content: "None"}
             }
-            return {content: `$${amount}`}
+            if(dollarSign === true){
+                return {content: `${amount}`}
+            }
+            return {content: `${dollarSign}${amount}`}
         }, category: CommandCategory.UTIL
     },
     calcms: {
         run: async(msg, args) => {
-            let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ").trim())
-            return {content: `$${amount}`}
+            let opts;
+            [opts, args]  = getOpts(args)
+            let dollarSign = opts['sign'] || ""
+            let as = opts['as'] || msg.author.id
+            if(as && typeof as === 'string'){
+                as = (await fetchUser(msg.guild, as)).user.id
+            }
+            if(!as)
+                as = msg.author.id
+            let amount = economy.calculateAmountFromStringIncludingStocks(as, args.join(" ").trim())
+            if(dollarSign === true){
+                return {content: `${amount}`}
+            }
+            return {content: `${dollarSign}${amount}`}
+        }, category: CommandCategory.UTIL
+    },
+    "calcam": {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args]  = getOpts(args)
+            let [moneyStr, ...reqAmount] = args
+            let amountStr = reqAmount.join(" ")
+            let money = Number(moneyStr)
+            if(isNaN(money)){
+                return {content: `${moneyStr} is not a number`}
+            }
+            let dollarSign = opts['sign'] || ""
+            //the id here doesn't really matter since we're basing this off a predetermined number
+            let amount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, amountStr)
+            if(dollarSign === true){
+                return {content: `${amount}`}
+            }
+            return {content: `${dollarSign}${amount}`}
         }, category: CommandCategory.UTIL
     },
     money: {
