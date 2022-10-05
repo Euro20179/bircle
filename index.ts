@@ -7337,6 +7337,7 @@ valid formats:<br>
             if (!realCmd) {
                 return { content: "No  alias name given" }
             }
+            realCmd = realCmd.trim()
             if (realCmd.includes(" ")) {
                 return { content: "Name cannot have space" }
             }
