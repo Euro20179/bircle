@@ -7263,10 +7263,16 @@ valid formats:<br>
             let cmd
             [cmd, ...args] = args
             let realCmd = args[0]
+            if(!realCmd){
+                return {content:  "No  alias name given"}
+            }
             if(realCmd.includes(" ")){
                 return {content: "Name cannot have space"}
             }
             args = args.slice(1)
+            if(!args){
+                return {content: "No command given"}
+            }
             if (aliases[cmd]) {
                 return { content: `Failed to add "${cmd}", it already exists` }
             }

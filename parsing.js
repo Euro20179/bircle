@@ -72,15 +72,7 @@ async function buildFormat(sequence, msg, curArg, customFormats){
         if(!member)
             member = (await msg.channel.guild.members.fetch()).random()
         let user = member.user
-        return format(fmt
-                .replaceAll("{id}", user.id || "#!N/A")
-                .replaceAll("{username}", user.username || "#!N/A")
-                .replaceAll("{nickname}", member.nickName || "#!N/A")
-                .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
-                .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+        return format(fmt,
                 {
                     i: user.id || "#!N/A",
                     u: user.username || "#!N/A",
