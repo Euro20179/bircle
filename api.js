@@ -7,31 +7,40 @@ const { fetchUser } = require("./util.js");
 exports.APICmds = {
     userHasStockSymbol: {
         requirements: ["id", "symbol"],
-        exec: ({ id, symbol }) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
+        exec: async ({ id, symbol }) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
     },
     saveEconomy: {
         requirements: [],
-        exec: () => economy.saveEconomy(),
+        exec: async () => economy.saveEconomy(),
     },
     loan: {
         requirements: ["id"],
-        exec: ({ id }) => economy.getEconomy()[id]?.loanUsed || 0
+        exec: async ({ id }) => economy.getEconomy()[id]?.loanUsed || 0
     },
     playerEconomyLooseTotal: {
         requirements: ["id"],
-        exec: ({ id }) => economy.playerEconomyLooseTotal(id)
+        exec: async ({ id }) => economy.playerEconomyLooseTotal(id)
     },
     canEarnMoney: {
         requirements: ["id"],
-        exec: ({ id }) => economy.canEarn(id)
+        exec: async ({ id }) => economy.canEarn(id)
     },
     listPets: {
         requirements: [],
-        exec: () => Object.keys(pet.getPetShop()).join("\n")
+        exec: async () => Object.keys(pet.getPetShop()).join("\n")
     },
     getActivePet: {
         requirements: ["id"],
-        exec: ({ id }) => pet.getActivePet(id)
+        exec: async ({ id }) => pet.getActivePet(id)
+    },
+    getStockInformation: {
+        requirements: ["symbol"],
+        exec: async ({ symbol }) => {
+            let data = await economy.getStockInformation(symbol);
+            if (data)
+                return JSON.stringify(data);
+            return false;
+        }
     }
 };
 async function handleApiArgumentType(msg, t, argument) {

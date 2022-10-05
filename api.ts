@@ -5,34 +5,43 @@ import shop = require("./shop")
 
 const { fetchUser } = require("./util.js")
 
-export const APICmds: {[key: string]: {requirements: string[], exec: Function}} = {
+export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>}} = {
     userHasStockSymbol:  {
         requirements: ["id", "symbol"],
-        exec: ({ id, symbol }: {id: string, symbol: string}) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
+        exec: async({ id, symbol }: {id: string, symbol: string}) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
     },
     saveEconomy: {
         requirements: [],
-        exec: () => economy.saveEconomy(),
+        exec: async() => economy.saveEconomy(),
     },
     loan: {
         requirements: ["id"],
-        exec: ({ id }: {id: string}) => economy.getEconomy()[id]?.loanUsed || 0
+        exec: async({ id }: {id: string}) => economy.getEconomy()[id]?.loanUsed || 0
     },
     playerEconomyLooseTotal: {
         requirements: ["id"],
-        exec: ({ id }: {id: string}) => economy.playerEconomyLooseTotal(id)
+        exec: async({ id }: {id: string}) => economy.playerEconomyLooseTotal(id)
     },
     canEarnMoney: {
         requirements: ["id"],
-        exec: ({ id }: {id: string}) => economy.canEarn(id)
+        exec: async({ id }: {id: string}) => economy.canEarn(id)
     },
     listPets:  {
         requirements: [],
-        exec: () => Object.keys(pet.getPetShop()).join("\n")
+        exec: async() => Object.keys(pet.getPetShop()).join("\n")
     },
     getActivePet: {
         requirements: ["id"],
-        exec: ({ id }: {id: string}) => pet.getActivePet(id)
+        exec: async({ id }: {id: string}) => pet.getActivePet(id)
+    },
+    getStockInformation: {
+        requirements: ["symbol"],
+        exec: async({ symbol }: {symbol:  string}) => {
+            let data = await economy.getStockInformation(symbol)
+            if(data)
+                return JSON.stringify(data)
+            return false
+        }
     }
 }
 

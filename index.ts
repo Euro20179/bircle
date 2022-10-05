@@ -389,41 +389,59 @@ const commands: { [command: string]: Command } = {
     },
     stock: {
         run: async(msg, args) => {
-            if(!args[0]){
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let fmt = String(opts['fmt'] || "{embed}")
+            let stock = args.join(" ")
+            if(!stock){
                 return {content: "Looks like u pulled a cam"}
             }
-            economy.getStockInformation(args[0], (data) => {
-                    if(!data){
-                        msg.channel.send("No info found")
-                        return
-                    }
-                    let embed = new MessageEmbed()
-                    let nChange = Number(data.change)
-                    let nPChange = Number(data["%change"]) * 100
-                    embed.setTitle(args[0].toUpperCase().trim() || "N/A")
-                    embed.addField("price", String(data.price).trim() || "N/A", true)
-                    embed.addField("change", String(data.change).trim() || "N/A", true)
-                    embed.addField("%change", String(nPChange).trim() || "N/A", true)
-                    embed.addField("volume", data.volume?.trim() || "N/A")
-                    if(nChange < 0){
-                        embed.setColor("RED")
-                    }
-                    else if(nChange > 0){
-                        embed.setColor("#00ff00")
-                    }
-                    else{
-                        embed.setColor("#ffff00")
-                    }
-                    handleSending(msg, {embeds: [embed]})
-            }, () => {
-                msg.channel.send(`Failed to get stock data for:  ${args[0]}`)
-            })
-                    //await msg.channel.send({ embeds: [embed] })
-            return {
-                content: "getting data"
+            let  data = await economy.getStockInformation(stock)
+            if(!data){
+                return {content: "No  info found"}
+            }
+            await msg.channel.send("Getting data")
+            if(fmt == "{embed}"){
+                let embed = new MessageEmbed()
+                let nChange = Number(data.change)
+                let nPChange = Number(data["%change"]) * 100
+                embed.setTitle(stock.toUpperCase().trim() || "N/A")
+                embed.addField("price", String(data.price).trim() || "N/A", true)
+                embed.addField("change", String(data.change).trim() || "N/A", true)
+                embed.addField("%change", String(nPChange).trim() || "N/A", true)
+                embed.addField("volume", data.volume?.trim() || "N/A")
+                if(nChange < 0){
+                    embed.setColor("RED")
+                }
+                else if(nChange > 0){
+                    embed.setColor("#00ff00")
+                }
+                else{
+                    embed.setColor("#ffff00")
+                }
+                return {embeds: [embed]}
+            }
+            else{
+                return {
+                    content: format(fmt, {
+                        p: String(data.price).trim() || "0",
+                        n: stock.toUpperCase().trim(),
+                        c: String(data.change).trim() || "0",
+                        C: String(data["%change"]).trim() || "0",
+                        v: String(data.volume?.trim()) || "N/A"
+                    })
+                }
             }
         },
-        category: CommandCategory.FUN
+        category: CommandCategory.FUN,
+        help: {
+            info: "Get information about a stock symbol",
+            options: {
+                "fmt": {
+                    description: "Specify the format<br><ul><li><b>%p</b>: price</li><li><b>%n</b>: stock name</li><li><b>%c</b>: $change</li><li><b>%C</b>: %change</li><li><b>%v</b>: volume<li><b>{embed}</b>: give an embed instead</li></ul>"
+                }
+            }
+        }
     },
     buy: {
         run: async(msg, args) => {
@@ -448,27 +466,21 @@ const commands: { [command: string]: Command } = {
                     if(!amount || amount <  0){
                         return {content: `${amount} is an invalid amount`}
                     }
-                    economy.getStockInformation(item, (data) => {
-                        if(data === false){
-                            msg.channel.send({content: `${item} does not exist`})
-                            return
-                        }
-                        let realStock = economy.userHasStockSymbol(msg.author.id, item)
-                        if(!economy.canBetAmount(msg.author.id, data.price * amount)){
-                            msg.channel.send({content: "You cannot afford this"})
-                            return
-                        }
-                        if(realStock){
-                            economy.buyStock(msg.author.id, realStock.name, amount, data.price)
-                        }
-                        else{
-                            economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
-                        }
-                        msg.channel.send({content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`})
-                    }, () => {
-                        msg.channel.send(`Failed to get stock data for: ${item}`)
-                    })
-                    break
+                    let data = await economy.getStockInformation(item)
+                    if(data === false){
+                        return {content: `${item} does not exist`}
+                    }
+                    let realStock = economy.userHasStockSymbol(msg.author.id, item)
+                    if(!economy.canBetAmount(msg.author.id, data.price * amount)){
+                        return {content: "You cannot afford this"}
+                    }
+                    if(realStock){
+                        economy.buyStock(msg.author.id, realStock.name, amount, data.price)
+                    }
+                    else{
+                        economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
+                    }
+                    return {content:  `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`}
                 }
                 case "pet": {
                     if(!item){
@@ -3025,7 +3037,7 @@ const commands: { [command: string]: Command } = {
                 let missing = apiFn.requirements.filter(v => !Object.keys(argsForFn).includes(v))
                 return {content: `You are missing the following options: ${missing}`}
             }
-            return {content: String(apiFn.exec(argsForFn))}
+            return {content: String(await apiFn.exec(argsForFn))}
         }, category: CommandCategory.META
     },
     "get": {
