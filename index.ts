@@ -1546,8 +1546,8 @@ const commands: { [command: string]: Command } = {
             if(hasItem(user.id, "tax evasion")){
                 ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
             }
+            let embed = new MessageEmbed()
             if (ct) {
-                let embed = new MessageEmbed()
                 embed.setTitle("Taxation Time")
                 let userBeingTaxed = user.id
                 let userGainingMoney = msg.author.id
@@ -1569,9 +1569,14 @@ const commands: { [command: string]: Command } = {
                 if(reflected){
                     return {content: "REFLECTED", embeds: [embed]}
                 }
-                return { embeds: [embed] }
             }
-            return { content: `${user.user.username} cannot be taxed` }
+            else{
+                embed.setTitle("REVERSE Taxation time")
+                let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
+                embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
+                economy.loseMoneyToPlayer(msg.author.id, amount, user.user.id)
+            }
+            return { embeds: [embed] }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "Tax someone evily",
