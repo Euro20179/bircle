@@ -6585,7 +6585,6 @@ ${styles}
                 const ext = exts[fmt] || fmt
                 try {
                     execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
-                    _B
                 }
                 catch (err) {
                     continue
