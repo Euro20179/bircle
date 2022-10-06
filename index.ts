@@ -7591,56 +7591,49 @@ const rest = new REST({ version: "9" }).setToken(token);
     }
 })();
 
+async function expandAlias(command: string, onExpand?: (alias: string) => any): Promise<[string, string[]] | false>{
+    let expansions = 0
+    let aliasPreArgs = aliases[command].slice(1)
+    command = aliases[command][0]
+    if(onExpand && !onExpand?.(command)){
+        return false
+    }
+    while(aliases[command]?.[0]){
+        expansions++;
+        if (expansions > 1000) {
+            return false
+        }
+        aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
+        command = aliases[command][0]
+        if(onExpand && !onExpand?.(command)){
+            return false
+        }
+    }
+    return [command, aliasPreArgs]
+}
+
 
 async function doCmd(msg: Message, returnJson = false) {
     let command: string
     let args: Array<string>
     let doFirsts: { [item: number]: string }
-    [command, args, doFirsts] = await parseCmd({ msg: msg })
-    let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
-    let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
-    let idxNo = 0
-    for (let idx in doFirsts) {
-        let cmd = doFirsts[idx]
-        let oldContent = msg.content
-        msg.content = cmd
-        let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
-        msg.content = oldContent
-        doFirstData[idx] = data
-        doFirstCountNoToArgNo[idxNo] = idx
-        idxNo++
-    }
-    if (Object.keys(doFirstData)) {
-        args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
-    }
-    // let splitData = data.split(" ")
-    // //replaces %{\d:} with the full result
-    // args = args.map((v) => v.replaceAll(`%{${idxNo}:}`, data))
-    // //replaces %{\d:\d} with the argno result
-    // let regexp = new RegExp(`%\\{${idxNo}:(\\d+)\\}`, "g")
-    // args = args.map((v) => {
-    //     return v.replaceAll(regexp, (_fullMatch, index) => {
-    //         return splitData[index]
-    //     })
-    // })
-    // //@ts-ignore
-    // args[idx] = args[idx].replaceAll("%{}", data)
-    // args[idx] = args[idx].replaceAll("%{-1}", "__BIRCLE__UNDEFINED__")
-    // for (let m of args[idx].matchAll(/%\{(\d+)\}/g)) {
-    //     args[idx] = args[idx].replace(m[0], splitData[parseInt(m[1])])
-    // }
-    args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
     let canRun = true
     let exists = true
-    let rv: CommandReturn;
-    let oldSend = msg.channel.send
     let typing = false
     let redir: boolean | [Object, string] = false
+    let rv: CommandReturn = {};
+    command = msg.content.split(" ")[0].slice(prefix.length)
+    args = msg.content.split(" ").slice(1)
+    //[command, args, doFirsts] = await parseCmd({ msg: msg })
+
+
+    //first check for modifiers
     let m;
     if (m = command.match(/^s:/)) {
         msg.channel.send = async (_data) => msg
         command = command.slice(2)
     }
+    //this regex matches: /redir!?\((prefix)?:variable\)
     else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) {
         let all = m[1]
         let skip = 9
@@ -7670,6 +7663,7 @@ async function doCmd(msg: Message, returnJson = false) {
             redir = [userVars[prefix], name]
         }
         skip += name.length
+        console.log(name, command.slice(skip))
         command = command.slice(skip)
     }
     else if (m = command.match(/^t:/)) {
@@ -7680,10 +7674,65 @@ async function doCmd(msg: Message, returnJson = false) {
         command = command.slice(2)
         if (msg.deletable) await msg.delete()
     }
-    if (!commands[command]) {
+
+    //next expand aliases
+    if (!commands[command] && aliases[command]) {
+        let expansion = await expandAlias(command, (alias) =>  {
+            addToCmdUse(alias)
+            if(BLACKLIST[msg.author.id]?.includes(alias)){
+                handleSending(msg, {content: `You are blacklisted from ${alias}`})
+                return false
+            }
+            return true
+        })
+        if(expansion){
+            let [alias, aliasPreArgs] = expansion
+            msg.content = `${prefix}${alias} ${aliasPreArgs.join(" ")}`
+            let oldC = msg.content
+            //aliasPreArgs.join is the command  content, args is what the user typed
+            msg.content = `${prefix}${alias} ${parseAliasReplacement(msg, aliasPreArgs.join(" "), args)}`
+            if (oldC == msg.content) {
+                msg.content = msg.content + ` ${args.join(" ")}`
+            }
+            command = alias
+            //rv = await doCmd(msg, true) as CommandReturn
+        }
+        else{
+            rv = {content: `failed to expand ${command}`}
+            exists = false
+        }
+    }
+    if(!commands[command]){
         rv = { content: `${command} does not exist` }
         exists = false
     }
+
+    //Then parse cmd to get the cmd, arguments, and dofirsts
+    [command, args, doFirsts] = await parseCmd({ msg: msg })
+
+    let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
+    let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
+
+    let idxNo = 0
+    for (let idx in doFirsts) {
+        let cmd = doFirsts[idx]
+        let oldContent = msg.content
+        msg.content = cmd
+        let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
+        msg.content = oldContent
+        doFirstData[idx] = data
+        doFirstCountNoToArgNo[idxNo] = idx
+        idxNo++
+    }
+
+    //If there is a dofirst, parse the %{...} stuff
+    if (Object.keys(doFirstData)) {
+        args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
+        args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
+    }
+
+    let oldSend = msg.channel.send
+
     if (exists) {
         if (commands[command].permCheck) {
             canRun = commands[command].permCheck?.(msg) ?? true
@@ -7695,57 +7744,15 @@ async function doCmd(msg: Message, returnJson = false) {
             canRun = false
         }
         if (canRun) {
+            if(typing)
+                await msg.channel.sendTyping()
             rv = await commands[command].run(msg, args)
             //if normal command, it counts as use
             addToCmdUse(command)
         }
         else rv = { content: "You do not have permissions to run this command" }
     }
-    else if (aliases[command]) {
-        //if it's an alias, it counts as use
-        if (BLACKLIST[msg.author.id]?.includes(command)) {
-            canRun = false
-            rv = { content: "You do not have permissions to run this command" }
-        }
-        else {
-            addToCmdUse(command)
-            let aliasPreArgs = aliases[command].slice(1);
-            command = aliases[command][0]
-            let expansions = 0
-            //finds the original command
-            while (aliases[command]?.[0]) {
-                expansions++;
-                if (expansions > 1000) {
-                    await msg.channel.send("Alias expansion limit reached")
-                    return {}
-                }
-                if (BLACKLIST[msg.author.id]?.includes(command)) {
-                    canRun = false
-                    rv = { content: "You do not have permissions to run this command" }
-                }
-                addToCmdUse(command)
-                //for every expansion, it counts as a use
-                aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
-                command = aliases[command][0]
-            }
-            msg.content = `${prefix}${command} ${aliasPreArgs.join(" ")}`
-            let oldC = msg.content
-            //aliasPreArgs.join is the command  content, args is what the user typed
-            msg.content = `${prefix}${command} ${parseAliasReplacement(msg, aliasPreArgs.join(" "), args)}`
-            if (oldC == msg.content) {
-                msg.content = msg.content + ` ${args.join(" ")}`
-            }
-            if (typing) {
-                await msg.channel.sendTyping()
-            }
-        }
-        if (canRun) {
-            rv = await doCmd(msg, true) as CommandReturn
-        }
-    }
-    else {
-        rv = { content: `${command} does not exist` }
-    }
+
     if (!illegalLastCmds.includes(command)) {
         lastCommand[msg.author.id] = msg.content
     }

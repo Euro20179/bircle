@@ -47,7 +47,8 @@ async function buildFormat(sequence, msg, curArg, customFormats){
                 x: member.displayColor.toString() || "#!N/A",
                 c: user.createdAt.toString() || "#!N/A",
                 j: member.joinedAt.toString() || "#!N/A",
-                b: member.premiumSince?.toString() || "#!N/A"
+                b: member.premiumSince?.toString() || "#!N/A",
+                a:  member.user.avatarURL() || "#N/A"
             }
         )
     }
