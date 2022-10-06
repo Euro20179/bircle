@@ -5,7 +5,9 @@ import Stream = require('stream')
 import pet = require("./pets")
 import { fetchUser } from './util'
 
-type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: { buyPrice: number, shares: number } }, loanUsed?: number, lastLottery?: number, activePet?: string }
+import api = require("./api")
+
+type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: { buyPrice: number, shares: number } }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -68,7 +70,9 @@ function createPlayer(id: string, startingCash = 100) {
 function addMoney(id: string, amount: number) {
     if (ECONOMY[id]) {
         ECONOMY[id].money += amount
+        return true
     }
+    return false
 }
 
 function loseMoneyToBank(id: string, amount: number) {
@@ -148,6 +152,51 @@ function canEarn(id: string) {
     let secondsDiff = (Date.now() - ECONOMY[id].lastTalk) / 1000
     if (secondsDiff > 60) {
         return true
+    }
+    return false
+}
+
+function canWork(id: string){
+    if(!ECONOMY[id]){
+        return false
+    }
+    if(playerEconomyLooseTotal(id) >= 0)
+        return false;
+    let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
+    if(secondsDiff > 3600){
+        return true
+    }
+    return false
+}
+
+function economyLooseGrandTotal(){
+    let moneyTotal = 0
+    let stockTotal = 0
+    let loanTotal = 0
+    let econ = getEconomy()
+    for(let player in econ){
+        let pst = 0
+        moneyTotal += econ[player].money
+        for(let stock in econ[player].stocks){
+            //@ts-ignore
+            pst += econ[player].stocks[stock].shares * econ[player].stocks[stock].buyPrice
+        }
+        stockTotal += pst
+        if(econ[player].loanUsed){
+            //@ts-ignore
+            loanTotal += econ[player].loanUsed
+        }
+    }
+    return {money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal}
+}
+
+function work(id: string){
+    if(!ECONOMY[id])
+        return false
+    ECONOMY[id].lastWork = Date.now()
+    let minimumWage = .001 * (economyLooseGrandTotal().total)
+    if(addMoney(id, minimumWage)){
+        return minimumWage
     }
     return false
 }
@@ -456,5 +505,8 @@ export {
     getLottery,
     playerEconomyLooseTotal,
     getStockInformation,
-    calculateAmountOfMoneyFromString
+    calculateAmountOfMoneyFromString,
+    work,
+    economyLooseGrandTotal,
+    canWork
 }

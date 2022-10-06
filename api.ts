@@ -46,33 +46,17 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     economyLooseGrandTotal: {
         requirements: ["of"],
         exec: async({ of }: {of: "money" | "loan" | "stock" | "all"}) => {
-            let moneyTotal = 0
-            let stockTotal = 0
-            let loanTotal = 0
-            let econ = economy.getEconomy()
-            for(let player in econ){
-                let pst = 0
-                moneyTotal += econ[player].money
-                for(let stock in econ[player].stocks){
-                    //@ts-ignore
-                    pst += econ[player].stocks[stock].shares * econ[player].stocks[stock].buyPrice
-                }
-                stockTotal += pst
-                if(econ[player].loanUsed){
-                    //@ts-ignore
-                    loanTotal += econ[player].loanUsed
-                }
-            }
+            let {money, stocks, loan, total} = economy.economyLooseGrandTotal()
             switch(of){
                 case "loan":
-                    return loanTotal
+                    return loan
                 case "money":
-                    return moneyTotal
+                    return money
                 case "stock":
-                    return stockTotal
+                    return stocks
                 case "all":
                 default:
-                    return moneyTotal + stockTotal - loanTotal
+                    return total
             }
         }
     }
