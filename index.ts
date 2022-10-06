@@ -1335,7 +1335,7 @@ const commands: { [command: string]: Command } = {
             }
             e.setFooter({ text: `Cost: ${amount}` })
             if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
-                let winningAmount = answer.pool * 2
+                let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")
                 economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
                 e.setTitle("WINNER!!!")
@@ -1363,7 +1363,7 @@ const commands: { [command: string]: Command } = {
     },
     lottery: {
         run: async (msg, args) => {
-            return { content: `The lottery pool is: ${economy.getLottery().pool * 2}` }
+            return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}` }
         }, category: CommandCategory.FUN
     },
     calcet: {
@@ -1373,8 +1373,8 @@ const commands: { [command: string]: Command } = {
             let  moneyAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, reqAmount)
             let  stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
             let  loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
-            console.log(reqAmount)
-            return {content: `Money: ${moneyAmount}\nStocks: ${stockAmount}\nLoans: ${loanAmount}\n---------------------\nGRAND TOTAL: ${moneyAmount + stockAmount - loanAmount}`}
+            let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money  + stocks - loan, reqAmount)
+            return {content: `Money: ${moneyAmount}\nStocks: ${stockAmount}\nLoans: ${loanAmount}\n---------------------\nGRAND TOTAL: ${grandTotal}`}
         }, category: CommandCategory.UTIL,
         help: {
             info: "Calculate the net worth of the economy"
