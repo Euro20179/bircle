@@ -292,7 +292,7 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
                 let alternates = options[option].alternates || 0
                 let requiresValue = options[option].requiresValue || false
                 html += `<li class="command-option">
-    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}</summary> ${desc}</details>`
+    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}&nbsp</summary> ${desc}</details>`
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
