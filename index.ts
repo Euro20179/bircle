@@ -1047,62 +1047,49 @@ const commands: { [command: string]: Command } = {
                 return { content: "You own no stocks" }
             }
             let stock = args[0]
-            let data
-            stock = stock.replace(/\(.*/, "").toUpperCase().trim()
-            try {
-                //@ts-ignore
-                data = await got(`https://finance.yahoo.com/quote/${encodeURI(stock)}`)
+            let fmt = args.slice(1).join(" ").trim() || "{embed}"
+            if(!stock){
+                return {content: "No stock given"}
             }
-            catch (err) {
-                return { contnet: "err" }
+            let data = await economy.getStockInformation(stock)
+            if(!data){
+                return {content: "No stock data found"}
             }
-            if (!data?.body) {
-                return { content: "no text" }
-            }
-            let stockData = data.body.matchAll(new RegExp(`data-symbol="${stock.replace("^", '.')}"([^>]+)>`, "g"))
-            let jsonStockInfo: { [key: string]: string } = {}
-            //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-            for (let stockInfo of stockData) {
-                if (!stockInfo[1]) continue;
-                let field = stockInfo[1].match(/data-field="([^"]+)"/)
-                let value = stockInfo[1].match(/value="([^"]+)"/)
-                if (!value || !field) continue
-                jsonStockInfo[field[1]] = value[1]
-            }
-            if (Object.keys(jsonStockInfo).length < 1) {
-                return { content: "No stock info" }
-            }
-            let price = Number(jsonStockInfo["regularMarketPrice"])
-            if (!price) {
-                return { content: "No price" }
-            }
-            let numberchange = Number(jsonStockInfo["regularMarketChange"])
-            if (isNaN(numberchange)) {
-                return { content: "change is NaN" }
-            }
+            let embed = new MessageEmbed()
             let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
-            if (!stockInfo) {
-                return { content: "You dont have this stock" }
+            if(!stockInfo){
+                return {content: "You do not have this stock"}
             }
             let stockName = stockInfo.name
-            let profit = (price - stockInfo.info.buyPrice) * stockInfo.info.shares
-            let todaysProfit = (numberchange * stockInfo.info.shares)
-            let embed = new MessageEmbed()
+            let profit = (data.price - stockInfo.info.buyPrice) * stockInfo.info.shares
+            let todaysProfit = (Number(data.change) * stockInfo.info.shares)
             embed.setTitle(stockName)
             embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
-            if (profit > 0) {
+            if(profit > 0){
                 embed.setColor("GREEN")
             }
-            else {
+            else{
                 embed.setColor("RED")
             }
-            embed.addField("Price", String(price), true)
-            embed.addField("Change", String(numberchange), true)
-            embed.addField("Change %", String(numberchange / (price + numberchange)), true)
+            embed.addField("Price", String(data.price), true)
+            embed.addField("Change", String(data.change) || "N/A", true)
+            embed.addField("Change %", String(data["%change"]) || "N/A", true)
             embed.addField("Profit", String(profit), true)
             embed.addField("Today's Profit", String(todaysProfit), true)
-            embed.addField("Value", String(price * stockInfo.info.shares))
-            return { embeds: [embed] }
+            embed.addField("Value", String(data.price * stockInfo.info.shares))
+            if(fmt == "{embed}"){
+                return { embeds: [embed] }
+            }
+            else{
+                return {content: format(fmt, {
+                    p: String(data.price),
+                    c: String(data.change),
+                    C: String(data["%change"]),
+                    P: String(profit),
+                    T: String(todaysProfit),
+                    v: String(data.price * stockInfo.info.shares)
+                })}
+            }
         }, category: CommandCategory.ECONOMY
     },
     sell: {
