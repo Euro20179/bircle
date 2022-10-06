@@ -6251,7 +6251,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             if(aliases[args[0]]){
                 let result =  expandAlias(args[0], (alias, preArgs) => {
                     if(expand){
-                        a = parseAliasReplacement(msg, preArgs.join(" "), args) + " " + a + " "
+                        a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
                     }
                     else{
                         a = preArgs.join(" ") + " " + a + " "
