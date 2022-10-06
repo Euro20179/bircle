@@ -280,7 +280,7 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
                     extraText = `<span class="requires">requires: ${requires}</span>`
                 }
                 html += `<li class="command-argument" data-required="${required}">
-    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}</summary>${argument}<br>${extraText}</details>
+    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}&nbsp;</summary>${argument}<br>${extraText}</details>
     </li>`
             }
             html += "</ul>"
@@ -6242,34 +6242,49 @@ ${fs.readdirSync("./command-results").join("\n")}
             let opts;
             [opts, args] = getOpts(args)
             let showArgs = true
+            let expand = opts['e'] || false
             if (opts['n'] || opts['no-args']) {
                 showArgs = false
             }
-            let chain = []
-            let command = args[0]
-            let a = ""
-            chain.push(command)
-            //finds the original command
-            let expansions = 0
-            while (aliases[command]?.[0]) {
-                expansions++;
-                if (expansions >= 1000)
-                    return { content: "Alias expansion limit reached" }
-                a = aliases[command].slice(1).join(" ") + " " + a + " "
-                if (showArgs)
-                    chain.push(`${aliases[command][0]} ${a}`.trim())
-                else
-                    chain.push(aliases[command][0])
-                command = aliases[command][0]
+            let chain: string[] = [args[0]]
+            let  a = ""
+            if(aliases[args[0]]){
+                let result =  expandAlias(args[0], (alias, preArgs) => {
+                    if(expand){
+                        a = parseAliasReplacement(msg, preArgs.join(" "), args) + " " + a + " "
+                    }
+                    else{
+                        a = preArgs.join(" ") + " " + a + " "
+                    }
+                    if(showArgs){
+                        chain.push(`${alias} ${a}`)
+                    }
+                    else{
+                        chain.push(alias)
+                    }
+                    return true
+                })
+                if(!result){
+                    return {content: "failed to expand alias"}
+                }
+                return {content: `${chain.join(" -> ")}`}
             }
-
-            return { content: chain.join(" -> ") }
+            return {content: `${args[0].trim() || "No command given"}`}
         },
         help: {
             info: "Shows which command the alias turns into when run",
             arguments: {
                 cmd: {
                     description: "The command to get the chain for"
+                }
+            },
+            options: {
+                "n": {
+                    description: "Do not show extra arguments",
+                    alternates: ["no-args"]
+                },
+                "e": {
+                    description: "Expand alias arguments, eg: {sender}"
                 }
             }
         },
@@ -7591,11 +7606,11 @@ const rest = new REST({ version: "9" }).setToken(token);
     }
 })();
 
-async function expandAlias(command: string, onExpand?: (alias: string) => any): Promise<[string, string[]] | false>{
+async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false>{
     let expansions = 0
     let aliasPreArgs = aliases[command].slice(1)
     command = aliases[command][0]
-    if(onExpand && !onExpand?.(command)){
+    if(onExpand && !onExpand?.(command, aliasPreArgs)){
         return false
     }
     while(aliases[command]?.[0]){
@@ -7603,9 +7618,10 @@ async function expandAlias(command: string, onExpand?: (alias: string) => any): 
         if (expansions > 1000) {
             return false
         }
-        aliasPreArgs = aliases[command].slice(1).concat(aliasPreArgs)
+        let newPreArgs = aliases[command].slice(1)
+        aliasPreArgs = newPreArgs.concat(aliasPreArgs)
         command = aliases[command][0]
-        if(onExpand && !onExpand?.(command)){
+        if(onExpand && !onExpand?.(command, newPreArgs)){
             return false
         }
     }
