@@ -27,5 +27,6 @@ uno.js
 battle.js
 stackl.js
 util.js
+api.js
 
 !command-perms/holder
