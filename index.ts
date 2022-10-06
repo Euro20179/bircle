@@ -1370,6 +1370,36 @@ const commands: { [command: string]: Command } = {
             return { content: `The lottery pool is: ${economy.getLottery().pool * 2}` }
         }, category: CommandCategory.FUN
     },
+    calcet: {
+        run: async(msg, args) => {
+            let moneyTotal = 0
+            let stockTotal = 0
+            let loanTotal = 0
+            let econ = economy.getEconomy()
+            let reqAmount = args.join(" ") || "all!"
+            for(let player in econ){
+                let pst = 0
+                moneyTotal += econ[player].money
+                for(let stock in econ[player].stocks){
+                    //@ts-ignore
+                    pst += econ[player].stocks[stock].shares * econ[player].stocks[stock].buyPrice
+                }
+                stockTotal += pst
+                if(econ[player].loanUsed){
+                    //@ts-ignore
+                    loanTotal += econ[player].loanUsed
+                }
+            }
+            let  moneyAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, moneyTotal, reqAmount)
+            let  stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stockTotal, reqAmount)
+            let  loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loanTotal, reqAmount)
+            console.log(reqAmount)
+            return {content: `Money: ${moneyAmount}\nStocks: ${stockAmount}\nLoans: ${loanAmount}\n---------------------\nGRAND TOTAL: ${moneyAmount + stockAmount + loanAmount}`}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Calculate the net worth of the economy"
+        }
+    },
     calcm: {
         run: async (msg, args) => {
             let opts;
