@@ -1394,7 +1394,7 @@ const commands: { [command: string]: Command } = {
             let  stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stockTotal, reqAmount)
             let  loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loanTotal, reqAmount)
             console.log(reqAmount)
-            return {content: `Money: ${moneyAmount}\nStocks: ${stockAmount}\nLoans: ${loanAmount}\n---------------------\nGRAND TOTAL: ${moneyAmount + stockAmount + loanAmount}`}
+            return {content: `Money: ${moneyAmount}\nStocks: ${stockAmount}\nLoans: ${loanAmount}\n---------------------\nGRAND TOTAL: ${moneyAmount + stockAmount - loanAmount}`}
         }, category: CommandCategory.UTIL,
         help: {
             info: "Calculate the net worth of the economy"
