@@ -7652,6 +7652,7 @@ async function doCmd(msg: Message, returnJson = false) {
 
 
     //first check for modifiers
+    let oldSend = msg.channel.send
     let m;
     if (m = command.match(/^s:/)) {
         msg.channel.send = async (_data) => msg
@@ -7754,7 +7755,6 @@ async function doCmd(msg: Message, returnJson = false) {
         args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
     }
 
-    let oldSend = msg.channel.send
 
     if (exists) {
         if (commands[command].permCheck) {
