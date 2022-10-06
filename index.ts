@@ -1368,16 +1368,24 @@ const commands: { [command: string]: Command } = {
     },
     calcet: {
         run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
             let reqAmount = args.join(" ") || "all!"
             let {money, stocks, loan, total} = economy.economyLooseGrandTotal()
             let  moneyAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, reqAmount)
             let  stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
             let  loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
             let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money  + stocks - loan, reqAmount)
-            return {content: `Money: ${moneyAmount}\nStocks: ${stockAmount}\nLoans: ${loanAmount}\n---------------------\nGRAND TOTAL: ${grandTotal}`}
+            return {content: format(fmt, {m: moneyAmount, s: stockAmount, l: loanAmount, t: grandTotal})}
         }, category: CommandCategory.UTIL,
         help: {
-            info: "Calculate the net worth of the economy"
+            info: "Calculate the net worth of the economy",
+            options: {
+                "fmt": {
+                    description: "The format<br><ul><li>m: The money</li><li>s: The stocks</li><li>l: The loans</li><li>t: total</li>"
+                }
+            }
         }
     },
     calcm: {
@@ -7679,7 +7687,6 @@ async function doCmd(msg: Message, returnJson = false) {
             redir = [userVars[prefix], name]
         }
         skip += name.length
-        console.log(name, command.slice(skip))
         command = command.slice(skip)
     }
     else if (m = command.match(/^t:/)) {
