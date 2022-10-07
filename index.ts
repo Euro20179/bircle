@@ -1817,11 +1817,15 @@ variables:
                     return { content: "REFLECTED", embeds: [embed] }
                 }
             }
-            else {
+            else if(economy.playerEconomyLooseTotal(user.user.id) - (economy.getEconomy()[user.user.id]?.loanUsed || 0)) {
                 embed.setTitle("REVERSE Taxation time")
                 let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
                 embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
                 economy.loseMoneyToPlayer(msg.author.id, amount, user.user.id)
+            }
+            else{
+                embed.setTitle("TAX FAILURE")
+                embed.setDescription(`<@${user.user.id}> cannot be taxed yet`)
             }
             return { embeds: [embed] }
         }, category: CommandCategory.ECONOMY,
