@@ -1,0 +1,56 @@
+* Stackl
+  Stackl is a stack based language that interacts with discord.
+** Syntax
+   Each token is deliminated by a space.
+** Types
+   Not all types can be created by the user, and must be created in another way.
+
+   The following is a list of types
+
+   - [Numbers]{*** Numbers}
+   - [Strings]{*** Strings}
+   - [Messages]{*** Messages}
+   - [GuildMembers]{*** GuildMembers}
+   - [Operators]{*** Operators}
+   - [Functions]{*** Functions}
+   - [Arrays]{*** Arrays}
+   - [Message Embeds]{*** Message Embeds}
+   - [Objects]{*** Objects}
+
+*** Numbers
+    A number can be written by the digits 0-9, and with a . if it is a decimal.
+
+*** Strings
+    A string is any text surrounded by ".
+    It is currently not possible to escape " inside of a string.
+
+*** Messages
+    A message is a discord message, and can be obtained with the %msg function.
+
+*** GuildMembers
+    A guildmember is a discord user can be obtained with the %getusr function.
+
+*** Function
+    Here is a {**** List Of Operators}.
+
+**** List Of Operators
+     - `<value: number> ++`
+     -- Increases `value` by 1.
+    - `<position: number> %argv`
+    -- Gets the argument at position `<number>`
+     - `<strings...: string> <strfmt: string> %s`
+     -- Formats `strings...` by the format `strfmt`
+        Available formats include:
+     ---- `%s`
+     ----- Format a string
+     ---- `%d`
+     ----- Format a number
+     ---- `%f`
+     ----- Format a float
+     ---- `%<char>l`
+          Join a list by `char`
+
+*** User-defined Functions
+    A user-defined function can be created with the %function [Operator]{**** List Of Operators}.
+
+

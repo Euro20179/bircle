@@ -1974,7 +1974,7 @@ variables:
                 return { content: "The game  has already started" }
             }
             HEIST_PLAYERS.push(msg.author.id)
-            let timeRemaining = 30000
+            let timeRemaining = 1000
             if (HEIST_TIMEOUT === null) {
                 let int = setInterval(async () => {
                     timeRemaining -= 1000
@@ -1989,6 +1989,9 @@ variables:
                     let stages = ["getting in", "robbing", "escape"]
                     for (let player of HEIST_PLAYERS) {
                         data[player] = 0
+                        if(!userVars[player]){
+                            userVars[player] = {}
+                        }
                         userVars[player]['__heist'] = () => 0
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
@@ -2073,6 +2076,8 @@ variables:
                         responseList = responseList.filter(v => {
                             let enough_players = true
                             let u = v.matchAll(/\{user(\d+|all)\}/g)
+                            if(!u)
+                                return true
                             for (let match of u) {
                                 if (match?.[1]) {
                                     if (match[1] === 'all') {
