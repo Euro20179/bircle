@@ -995,24 +995,6 @@ const commands: { [command: string]: Command } = {
                 stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 promises.push(economy.getStockInformation(stock))
             }
-            //     let userStockData = economy.userHasStockSymbol(msg.author.id, stock)
-            //     if (!userStockData) {
-            //         continue
-            //     }
-            //     let stockName = userStockData.name
-            //     text += `**${stockName}**\n`
-            //     //@ts-ignore
-            //     let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
-            //     let profit = (price - stockInfo.buyPrice) * stockInfo.shares
-            //     totalProfit += profit
-            //     let todaysProfit = (numberchange * stockInfo.shares)
-            //     totalDailiyProfit += todaysProfit
-            //     totalValue += price * stockInfo.shares
-            //     text += `Price: ${price}\n`
-            //     text += `Change: ${numberchange}\n`
-            //     text += `Profit: ${profit}\n`
-            //     text += `Todays profit: ${todaysProfit}\n`
-            //     text += "---------------------------\n"
             try{
                 let rPromises = await Promise.all(promises)
                 for(let stockInfo of rPromises){
@@ -1051,58 +1033,7 @@ const commands: { [command: string]: Command } = {
             catch(err){
                 return {content: "Something went wrong"}
             }
-            return {content: format(fmt, {i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue)})}
-            //     try {
-            //         //@ts-ignore
-            //         data = await got(`https://finance.yahoo.com/quote/${encodeURI(stock)}`)
-            //     }
-            //     catch (err) {
-            //         continue
-            //     }
-            //     if (!data?.body) {
-            //         continue
-            //     }
-            //     let stockData = data.body.matchAll(new RegExp(`data-symbol="${stock.replace("^", '.')}"([^>]+)>`, "g"))
-            //     let jsonStockInfo: { [key: string]: string } = {}
-            //     //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-            //     for (let stockInfo of stockData) {
-            //         if (!stockInfo[1]) continue;
-            //         let field = stockInfo[1].match(/data-field="([^"]+)"/)
-            //         let value = stockInfo[1].match(/value="([^"]+)"/)
-            //         if (!value || !field) continue
-            //         jsonStockInfo[field[1]] = value[1]
-            //     }
-            //     if (Object.keys(jsonStockInfo).length < 1) {
-            //         continue
-            //     }
-            //     let price = Number(jsonStockInfo["regularMarketPrice"])
-            //     if (!price) {
-            //         continue
-            //     }
-            //     let numberchange = Number(jsonStockInfo["regularMarketChange"])
-            //     if (isNaN(numberchange)) {
-            //         continue
-            //     }
-            //     let userStockData = economy.userHasStockSymbol(msg.author.id, stock)
-            //     if (!userStockData) {
-            //         continue
-            //     }
-            //     let stockName = userStockData.name
-            //     text += `**${stockName}**\n`
-            //     //@ts-ignore
-            //     let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
-            //     let profit = (price - stockInfo.buyPrice) * stockInfo.shares
-            //     totalProfit += profit
-            //     let todaysProfit = (numberchange * stockInfo.shares)
-            //     totalDailiyProfit += todaysProfit
-            //     totalValue += price * stockInfo.shares
-            //     text += `Price: ${price}\n`
-            //     text += `Change: ${numberchange}\n`
-            //     text += `Profit: ${profit}\n`
-            //     text += `Todays profit: ${todaysProfit}\n`
-            //     text += "---------------------------\n"
-            // }
-            // return { content: `${text}\nTOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}` }
+            return {content: format(ffmt, {i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue)})}
         }, category: CommandCategory.ECONOMY
     },
     "profit": {
