@@ -5846,6 +5846,18 @@ variables:
             if (opts['no-start'] === true) {
                 useStart = false
             }
+            if(opts['docs'] === true){
+                return {
+                    files: [
+                        {
+                            name: "stackl.txt",
+                            description: "The stackl documentation",
+                            delete: false,
+                            attachment: "stackl.norg"
+                        }
+                    ]
+                }
+            }
 
             let stack = await stackl.parse(args, useStart, msg, SPAMS)
             //@ts-ignore
@@ -5873,6 +5885,14 @@ variables:
             arguments: {
                 code: {
                     description: "The code to run"
+                }
+            },
+            options: {
+                "no-start": {
+                    description: "Remove the need for %start"
+                },
+                "docs": {
+                    description:  "Post the documentation"
                 }
             }
         }

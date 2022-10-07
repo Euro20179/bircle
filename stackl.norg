@@ -1,28 +1,44 @@
 * Stackl
   Stackl is a stack based language that interacts with discord.
+
+  All stackl programs start with  the `%start` operator.
+  - Any argument before `%start` gets added to the `argv` list
+
 ** Syntax
    Each token is deliminated by a space.
+
+** The Stack
+   Each value is pushed ontop of  the stack,
+   Then operators, and functions can use the items on the stack to do stuff.
+
 ** Types
    Not all types can be created by the user, and must be created in another way.
 
    The following is a list of types
 
    - [Numbers]{*** Numbers}
+   - [Booleans]{*** Booleans}
    - [Strings]{*** Strings}
    - [Messages]{*** Messages}
    - [GuildMembers]{*** GuildMembers}
    - [Operators]{*** Operators}
-   - [Functions]{*** Functions}
+   - [Functions]{*** User-defined Functions}
    - [Arrays]{*** Arrays}
    - [Message Embeds]{*** Message Embeds}
    - [Objects]{*** Objects}
+   - [Stack]{*** Stack}
+   - [identifier]{*** Identifier}
 
 *** Numbers
     A number can be written by the digits 0-9, and with a . if it is a decimal.
 
+*** Booleans
+    A boolean is either a `0` or a `1`
+
 *** Strings
-    A string is any text surrounded by ".
+    A string is any text surrounded by /"/.
     It is currently not possible to escape " inside of a string.
+    Once the string is registered, and given back as a value, the leading and preceding /"/ will be missing.
 
 *** Messages
     A message is a discord message, and can be obtained with the %msg function.
@@ -30,20 +46,74 @@
 *** GuildMembers
     A guildmember is a discord user can be obtained with the %getusr function.
 
-*** Function
+*** Message Embeds
+    A Message embed can be created wth the `%embed` operator.
+
+*** Operators
     Here is a {**** List Of Operators}.
 
+    - {***** Argument List}
+    - {***** General Operators}
+    - {***** Stack Manipulation}
+    - {***** Variables}
+    - {***** String Manipulation}
+    - {***** Number Manipulation}
+    - {***** Array Manipulation}
+    - {***** Message Manipulation}
+    - {***** Embed Manipulation}
+    - {***** User Manipulation}
+    - {***** Control Flow}
+    - {***** Misc}
+
 **** List Of Operators
-     - `<value: number> ++`
+
+***** Argument List
+
+     - `<position: number> %argv -> string`
+     -- Gets the argument at position `<number>`
+
+***** General Operators
+
+     - `<value: number> ++ -> number`
      -- Increases `value` by 1.
+
      - `<value: number> <modby: number> %`
      -- Modulus
-     - `(<T>: string | number) <n1: T> <n2: T> >`
+
+     - `(<T>: string | number) <n1: T> <n2: T> > -> boolean`
      -- If `<T>` is string, check if `n1.length` is greater than `n2.length`
-     - `<position: number> %argv`
-    -- Gets the argument at position `<number>`
-     - `<strings...: string> <strfmt: string> %s`
-     -- Formats `strings...` by the format `strfmt`
+     -- If `<T>` is number, check if `n1` is greater than `n2`
+
+     - `(<T>: string | number) <n1: T> <n2: T> < -> boolean`
+     -- If `<T>` is string, check if `n1.length` is less than `n2.length`
+     -- If `<T>` is number, check if `n1` is less than `n2`
+
+     - `<n1: any> <n2: any> == -> boolean`
+     -- Do a loose equality cheeck between `n1` and `n2`
+
+     - `<n1: number> <n2: number> || -> boolean`
+     -- Check if `n1` or `n2` is `true`.
+     --- `<n1:  number> <n2: number> %or -> boolean` may also be used
+
+     - `<n1: number> <n2: number> && -> boolean`
+     -- Check if `n1` and `n2` is `true`.
+     --- `<n1:  number> <n2: number> %and -> boolean` may also be used
+
+     - `<n1: number> <n2: number> x| -> boolean`
+     -- Check if only one of `n1` or `n2` is true.
+     --- `<n1:  number> <n2: number> %xor -> boolean` may also be used
+
+     - `<n1: number> <n2: number> !& -> boolean`
+     -- Check if `n1 n2 &&` is false.
+     --- `<n1: number> <n2: number> %nand -> boolean` may also  be used
+
+     - `<n1: number> !`
+     -- Check if `n1` is false.
+     --- Also known as the /not/ operator.
+
+      - `<strings...(format count): string> <strfmt: string> %s -> string`
+      -- Formats `strings...` by the format `strfmt`
+      -- The amount of strings, should be  equal to the amount of formats in `strfmt`
         Available formats include:
      ---- `%s`
      ----- Format a string
@@ -54,7 +124,283 @@
      ---- `%<char>l`
           Join a list by `char`
 
+***** Stack Manipulation
+
+     - `<index: number> %istack -> any`
+     -- Get the item at the `index`th position in the [stack]{** The Stack}.
+
+      - `<item: T> %cpy -> T T`
+      -- Copy the item, and put `item`, then the copy of `item` on the top of the stack
+      - `<items...(stack.length): any> %cpystack -> any...(stack.length) any...(stack.length)`
+      -- Copy items ant put `items...` then the copy of `items...` on the top of the stack
+
+      - `<item1: T1> <item2: T2> %swp -> T2 T1`
+      -- Swap `item1` and `item2`'s position on the stack
+
+      - `<items...(stack.length): any> %rstack -> any...(stack.length)`
+      -- Reverse the stack
+
+      - `<item: any> %pop`
+      -- Remove the top item from the stack
+
+      - `%stack <name: identifier> -> stack`
+      -- Creates a new stack
+      -- If `name` is /__main__/, the original stack will be retrieved.
+
+      - `%stackend <name: identifier>`
+      -- Ends the stack `name`
+
+***** Variables
+
+      - `<item: any> %saveas <name: identifier>`
+      -- Save `item` to the variable `name` in the bot's global scope.
+
+      - `<name: string> %vexists -> boolean`
+      -- Check if the variable `name` exists in the bot's global scope.
+
+      - `<name: string> %uvexists -> boolean`
+      -- Check if the variable `name` exists in the user's scope.
+
+      - `%lvar <name: identifier> -> string`
+      -- Load the variable `name` from the bot's global scope.
+
+      - `<name: string> %gvar -> any`
+      -- Load the variable `name` from the bot's global scope.
+
+      - `<item: any> %sram <name: identifier>`
+      -- Save `item` to stackl ram as name `name`
+
+      - `<name: string> %gram -> any`
+        Load `name` from the stackl ram.
+
+      - `%lram <name: identifier> -> any`
+        Same as `<name: string> %gram -> any`
+
+***** String Manipulation
+
+      - `<str: string> <find: string> <repl: string> %repl -> string`
+      -- Find all occurences of `find` in `str` and replace it with `repl`
+
+      - `<str: string> <bytes: number> %rtrunc -> string
+      -- Remove the last `bytes` chars from `str`
+
+      - `<str: string> <bytes: number> %ltrunc -> string`
+      -- Remove the first `bytes` chars from `str`
+
+      - `<str: string> %trim -> string`
+      -- Remove preceding and leading whitespace from `str`
+
+      - `<str: string> <sb: string> %split -> (<string>)Array`
+      -- Split `str` by `sb` and give an [array]{*** Arrays} with [strings]{*** Strings}
+
+      - `<str: string> %upper -> string`
+      -- Convert `str` to be all uppercase
+
+      - `<str: string> %lower -> string`
+      -- Convert `str` to be all lowercase
+
+      - `<val: any> %str -> string`
+      -- Convert `val` to a [string]{*** Strings}
+
+      - `<val: string> %int -> number`
+      -- Convert `val` to a [number]{*** Numbers}
+      -- Cause an error if parseInt(`val`) results in /NaN/
+
+      - `<val: string> %float -> number`
+      -- Convert `val` to a [number]{*** Numbers}
+      -- Cause an error if parseFloat(`val`) results in /NaN/
+
+      - `<str: string> <index: number> %index -> string`
+      -- Return the character in `str` at `index`
+
+      - `<str: string> <find: string> %find -> (number>=0) | -1`
+      -- Find the position of `find` in the `str`
+      -- Push /-1/ if it is not found
+
+
+***** Number Manipulation
+
+      - `<val: number> %floor -> number`
+      -- Run the /floor/ math function on `val`
+
+      - `<val: number> %ceil -> number`
+      -- Run the /ceil/ math function on `val`
+
+      - `%rand -> number`
+      -- Push a random non-integer number from /0/ to /1/ to the stack
+
+***** Array Manipulation
+
+      - `<arr: Array> <str: string> %join -> string`
+      -- Join all elements in the array `arr` by `str.
+
+      - `<arr: (<T>)Array> <index: number> %index -> T`
+      -- Get the item at `index` in the array `arr`
+
+      - `<items...(size): T> <size: number> %list -> (<T>)Array`
+      -- Create an [array]{*** Arrays} with length `size` with `items` in the array.
+
+      - `<arr: (<T>)Array> <index: number> %find -> T`
+      -- Return the item of the `arr` at `index`
+
+
+***** Message Manipulation
+
+      - `%msg -> Message`
+      -- Get the message that the user sent to run stackl.
+
+      - `<id: string> %getmsg -> Message | 0`
+      -- Get a message from chat with `id`
+      -- /0/ is pushed if a message is not found
+
+      - `<text: any> %send -> Message`
+      -- Send a message to chat with the contents: String(`text`)
+
+      - `<message: Message> <newtext: string> %edit -> Message`
+      -- Edit the `message` with `newtext`
+
+      - `<message: Message> <text: string> %reply -> Message`
+      -- Reply to `message` with a message that says `text`
+
+***** Embed Manipulation
+
+      - `%embed -> Embed`
+      -- Create a new embed
+
+      - `<e: Embed> <title: string> %etitle -> Embed`
+      -- Set the title of `e` to `title`
+
+      - `<e: Embed> <url: string> %eimg -> Embed`
+      -- Set the image of `e` to `url`
+
+      - `<e: Embed> <url: string> %ethumb -> Embed`
+      -- Set the thumbnail of `e` to `url`
+
+      - `<e: Embed> <title: string> <value: string> <inline: boolean> %efld -> Embed`
+      -- Add a field to `e` with `title` that says `value`. `inline` determines if the embed is inline.
+
+      - `<e: Embed> <text: string> <image: 0 | string> %eftr -> Embed`
+      -- Set the footer of `e` to `text`.
+      -- If `image` is /0/ no image will be set.
+      -- Otherwise the image will be set to `image`
+
+      - `<e: Embed> <text: string> %edesc -> Embed`
+      -- Set the description of `e` to `text`
+
+      - `<e: Embed> <time: number> %etstmp -> Embed`
+      -- Set the timestamp of the embed to `time`
+      -- If `time` is /0/, the time will be set to the current time.
+
+      - `<e: Embed> <author: string> <img: 0 | string> %eauth -> Embed`
+      -- Set the author of `e` to `author`.
+      -- If `image` is /0/ no image will be set.
+      -- Otherwise the image will be set to `image`
+
+      - `<e: Embed> <color: "red" | "green" | "blue" | "yellow" | "purple" | "cyan" | "white" | "black" | "blackblack" | "random" |` [ColorResolvable]{https://discord.js.org/#/docs/discord.js/main/typedef/ColorResolvable}`> %eclr -> Embed`
+      -- Set the color of `e` to `color`
+      -- If color is one of the special colors not listed in [ColorResolvable]{https://discord.js.org/#/docs/discord.js/main/typedef/ColorResolvable}, it will expand to the following:
+      --- /red/: /\[255, 0, 0\]/
+      --- /green/: /\[0, 255, 0\]/
+      --- /blue/: /\[0, 0, 255\]/
+      --- /yellow/: /\[255, 255, 0\]/
+      --- /purple/: /\[255, 0, 255\]/
+      --- /cyan/: /\[0, 255, 255\]/
+      --- /white/: /\[255, 255, 255\]/
+      --- /black/: /\[1, 1, 1\]/
+      --- /blackblack/: /\[0, 0, 0\]/
+      --- /random/: A random color
+
+***** User Manipulation
+
+      - `<id: string> %getusr -> User | 0`
+      -- Find user with `id`
+      -- /0/ is pushed if a user is not found.
+
+***** Control Flow
+
+      - `%loop <STACKL -> T...> %endloop`
+      -- Run the `STACKL` code at most _2000_ times
+      -- All items pushed onto the stack in the loop, will remain on the stack.
+      -- Nested loops are *not* allowed.
+
+      - `%break`
+      -- End the program or a loop\*
+      --- \*Semantically, this should only be used to end a loop.
+
+      - `<condition: boolean> %if <STACKL -> T...> %endif`
+      -- Run the `STACKL` code if `condition` is /1/
+      -- All items pushed onto the stack in the if statement will remain on the stack.
+      -- Nested if statements *are* alloewd.
+
+      - `<condition: boolean> %if <STACKL -> T...> %else <STACKL -> T...> %endif`
+      -- Run the `STACKL` code after the /%else/ if the `condition` in `if statement` was /0/.
+
+      - `%function <name: identifier> <STACKL -> T...> %functionend`
+      -- Create a user function.
+      -- See {*** User-defined Functions} for more information on how to run them.
+
+***** Misc
+
+      - `%end`
+      -- End the program or a loop\*
+      --- \*Semantically, this should only be used to end the program.
+
+      - `<value: any> %json -> string`
+      -- Run JSON.stringify(`value`) and push it to the stack.
+
+      - `<value: any> %obj -> string`
+      -- Convert `value` to a javascript object
+      -- If `value` is a string, it will be converted to a JSONified version of a string.
+
+      - `<value: any> %isnumeric -> boolean`
+      -- If `value` is a number this will push /1/ to the stack.
+      -- Otherwise, this checks if `value` is a string and matches the regular expression: `^-?\d+(\.\d+)?$`
+
+      - `%time -> number`
+      -- Push the current unix time to the stack.
+
+      - `<ms: number> %sleep`
+      -- Sleep for `ms` milliseconds
+
+
+*** Objects
+    An object  is any javascript object
+
 *** User-defined Functions
     A user-defined function can be created with the %function [Operator]{**** List Of Operators}.
 
+    To run a user function, the `%call` operator can be used.
 
+    The function has it's own stack.
+
+    All values passed to the function will be on the top of the function's stack in the order they were given.
+
+    There is not an indented way to access the global stack in a function.
+
+    Once the function ends, the function's stack will be pushed onto the global stack.
+*** Arrays
+    An can be created with the `%list` operator.
+*** Stack
+    See [the stack]{** The Stack} for more information.
+
+    - The default stack is `__main__`.
+    - To create a new stack one may run `%stack <name: identifier>`
+    -- To go back to the main stack, one may use `%endstack <name: identifier>`
+
+*** Identifier
+    An identifier is plain text that is not a number, is not one of the {** Special Variables}, is not one of the {*** Operators}, and does not start with a `.`
+
+
+** Builtin Variables
+
+   - `$stacksize -> number`
+   -- The length of the current stack
+
+   - `$bottom -> any`
+   -- The item at the bottom of the stack
+
+   - `$argc -> number`
+   -- The amount of arguments in `$argv`
+
+   - `$argv -> (<any>)Array`
+   -- The initial arguments passed to the program.

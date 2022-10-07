@@ -334,11 +334,11 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (typeof arg2 !== 'number') {
                     return { err: true, content: `${arg2} is not a boolean` }
                 }
-                if (arg1 !== 1 && arg2 !== 1) {
-                    stack.push(1)
+                if (arg1 === 1 && arg2 === 1) {
+                    stack.push(0)
                 }
                 else {
-                    stack.push(0)
+                    stack.push(1)
                 }
                 break
             }
@@ -373,7 +373,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 break
             }
             case "%cpystack": {
-                stack.push(...stack)
+                stack.push(...JSON.parse(JSON.stringify(stack)))
                 break
             }
             case "%swp": {
@@ -685,6 +685,10 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                     console.log(err)
                     stack.push(0)
                 }
+                break
+            }
+            case "%msg": {
+                stack.push(msg)
                 break
             }
 
