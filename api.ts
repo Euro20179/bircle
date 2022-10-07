@@ -2,6 +2,7 @@ import { Message } from "discord.js"
 import economy = require("./economy")
 import pet = require('./pets')
 import shop = require("./shop")
+import fetch = require('node-fetch')
 
 const { fetchUser } = require("./util.js")
 
@@ -59,7 +60,17 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
                     return total
             }
         }
-    }
+    },
+    // fetchURL: {
+    //     requirements: ["url", "data"],
+    //     exec: async({ url, data }: {url: string, data: "text"}) => {
+    //         console.log(url)
+    //         let respData = await fetch.default(encodeURI(url))
+    //         if(data == "text"){
+    //             return respData.text()
+    //         }
+    //     }
+    // }
 }
 
 export async function handleApiArgumentType(msg: Message, t: string, argument: string){
@@ -73,6 +84,8 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
                 return member.id
             return (await fetchUser(msg.guild, argument))?.user?.id || msg.author.id
         }
+        case "url":
+        case "data":
         case "symbol": {
             return argument
         }

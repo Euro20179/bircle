@@ -3290,6 +3290,14 @@ variables:
             return { content: String(await apiFn.exec(argsForFn)) }
         }, category: CommandCategory.META
     },
+    "htmlq": {
+        run: async(msg, args) => {
+            let [query, ...html] = args.join(" ").split("|")
+            let realHTML = html.join("|")
+            let $ = cheerio.load(realHTML)(query).text()
+            return {content: $}
+        }, category: CommandCategory.UTIL
+    },
     "get": {
         run: async (msg, opts) => {
             let operator = opts[0]
