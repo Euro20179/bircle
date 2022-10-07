@@ -1,5 +1,5 @@
 const {prefix, vars, userVars, getVarFn} = require('./common.js')
-const {format, safeEval} = require('./util.js')
+const {format, safeEval, getOpts} = require('./util.js')
 
 async function buildFormat(sequence, msg, curArg, customFormats){
     let args
@@ -386,6 +386,13 @@ function parseAliasReplacement(msg, cmdContent, args){
                     else{
                         finalText += `{${cmdContent.slice(startingI, i)}}`
                     }
+                }
+                else if(val == "opt"){
+                    let opt = suffix.replace(":", "")
+                    let opts;
+                    [opts, args] = getOpts(args)
+                    console.log(opts, opt)
+                    finalText += opts[opt]
                 }
                 else if(val == "sender"){
                     finalText += String(msg.author)

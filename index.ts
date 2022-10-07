@@ -8453,7 +8453,6 @@ function loadEmoteUse() {
     return emoteuse
 }
 
-
 let CMDUSE = loadCmdUse()
 let EMOTEUSE = loadEmoteUse()
 
