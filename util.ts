@@ -76,6 +76,27 @@ function downloadSync(url: string){
     return execFileSync(`curl`, ['--silent', url])
 }
 
+function escapeRegex(str: string){
+    let finalString = ""
+    let escaped = false
+    for(let char of str){
+        if(escaped){
+            finalString += char
+        }
+        else if(char === "\\"){
+            escaped = true
+            finalString += "\\"
+        }
+        else if("^*+[]{}()$".includes(char)){
+            finalString += `\\${char}`
+        }
+        else{
+            finalString += char
+        }
+    }
+    return finalString
+}
+
 function format(str: string, formats: {[key: string]: string}, doPercent?: boolean, doBraces?: boolean){
     if(doBraces === undefined) doBraces = true
     if(doPercent === undefined) doPercent = true
@@ -83,7 +104,11 @@ function format(str: string, formats: {[key: string]: string}, doPercent?: boole
         if(fmt.length > 1){
             str = str.replaceAll(`{${fmt}}`, formats[fmt])
         }
-        else str = str.replaceAll(new RegExp(`((?<!%)%${fmt}|(?<!\\\\)\\{${fmt}\\})`, "g"), formats[fmt])
+        else{
+            let unescaped = fmt
+            fmt = escapeRegex(fmt)
+            str = str.replaceAll(new RegExp(`((?<!%)%${fmt}|(?<!\\\\)\\{${fmt}\\})`, "g"), formats[unescaped])
+        }
     }
     return str
 }
