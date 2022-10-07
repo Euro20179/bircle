@@ -1256,7 +1256,7 @@ variables:
             catch (err) {
                 return { content: "Could not fetch data" }
             }
-            let text = data.body.read()
+            let text = await data.text()
             if (text) {
                 return { content: "No data found" }
             }
@@ -1707,7 +1707,7 @@ variables:
             catch (err) {
                 return { content: "No data found" }
             }
-            let text = data.body.read()
+            let text = await data.text()
             if (text) {
                 return { content: "No data found" }
             }
@@ -3005,8 +3005,8 @@ variables:
             catch (err) {
                 return { content: "Could not fetch data" }
             }
-            let text = data.body.read()
-            if (text) {
+            let text = await data.text()
+            if (!text) {
                 return { content: "No data found" }
             }
             const JSONData = JSON.parse(text)
@@ -5812,7 +5812,7 @@ variables:
             try {
                 //@ts-ignore
                 let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
-                let text = data.body.read().toString()
+                let text = await data.text().toString()
                 let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
                 return { content: match?.[1] || "Nothing found :(" }
             }
@@ -5903,7 +5903,7 @@ variables:
             let subreddit = args[0]
             //@ts-ignore
             let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
-            let text = data.body.read()
+            let text = await data.text()
             if (!text) {
                 return { content: "nothing found" }
             }
