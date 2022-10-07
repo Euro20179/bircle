@@ -474,17 +474,15 @@ variables:
             }
         }
     },
-    "send-log": {
+    "clear-logs": {
         run: async (msg, args) => {
+            for(let file of fs.readdirSync("./command-results/")){
+                if(file.match(/log-\d+\.txt/)){
+                    fs.rmSync(`./command-results/${file}`)
+                }
+            }
             return {
-                files: [
-                    {
-                        attachment: `log.txt`,
-                        name: `log.txt`,
-                        description: "log",
-                        delete: false
-                    }
-                ]
+                content: "Cleared Logs"
             }
         }, category: CommandCategory.UTIL,
         permCheck: (m) => ADMINS.includes(m.author.id)
