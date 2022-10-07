@@ -1972,7 +1972,7 @@ variables:
                 return { content: "The game  has already started" }
             }
             HEIST_PLAYERS.push(msg.author.id)
-            let timeRemaining = 1000
+            let timeRemaining = 30000
             if (HEIST_TIMEOUT === null) {
                 let int = setInterval(async () => {
                     timeRemaining -= 1000

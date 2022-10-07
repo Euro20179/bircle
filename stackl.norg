@@ -36,7 +36,11 @@
 **** List Of Operators
      - `<value: number> ++`
      -- Increases `value` by 1.
-    - `<position: number> %argv`
+     - `<value: number> <modby: number> %`
+     -- Modulus
+     - `(<T>: string | number) <n1: T> <n2: T> >`
+     -- If `<T>` is string, check if `n1.length` is greater than `n2.length`
+     - `<position: number> %argv`
     -- Gets the argument at position `<number>`
      - `<strings...: string> <strfmt: string> %s`
      -- Formats `strings...` by the format `strfmt`
