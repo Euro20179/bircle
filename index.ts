@@ -1815,7 +1815,7 @@ variables:
                     return { content: "REFLECTED", embeds: [embed] }
                 }
             }
-            else if(economy.playerEconomyLooseTotal(user.user.id) - (economy.getEconomy()[user.user.id]?.loanUsed || 0)) {
+            else if(economy.playerEconomyLooseTotal(user.user.id) - (economy.getEconomy()[user.user.id]?.loanUsed || 0) > 0) {
                 embed.setTitle("REVERSE Taxation time")
                 let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
                 embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
@@ -2879,6 +2879,65 @@ variables:
             return { content: text.replaceAll(search, repl || "") }
         }, category: CommandCategory.UTIL
     },
+    "string": {
+        run: async(msg, args) => {
+            let operation = args[0]
+            let validOperations = ["upper", "lower", "title"]
+            let string = args.slice(1).join(" ")
+            if(!string){
+                return {content: "No text to manipulate"}
+            }
+            if(!validOperations.includes(operation.toLowerCase())){
+                return {content: `${operation} is not one of: \`${validOperations.join(", ")}\``}
+            }
+            switch(operation){
+                case "upper":
+                    return {content: string.toUpperCase()}
+                case "lower":
+                    return {content: string.toLowerCase()}
+                case "title":
+                    return {content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ")}
+            }
+            return {content: "Invalid Operation"}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Do something to some text",
+            arguments: {
+                operation: {
+                    description: `The operation to do<ul>
+    <li>upper: convert to upper case</li>
+    <li>lower: convert to lowercase</li>
+    <li>title: convert to title</li>
+</ul>`,
+                },
+                text: {
+                    description: "The text to operate on"
+                }
+
+            }
+        }
+    },
+    map: {
+        run: async(msg, args) => {
+            let string = args[0]
+            let functions = args.slice(1).join(" ").split(";EOL").map(v => `${prefix}${v.trim()}`)
+            if(!functions){
+                return {content: "nothing to  do"}
+            }
+            for(let fn of functions){
+                let replacedFn = fn.replaceAll("{string}", string)
+                if(replacedFn === fn){
+                    msg.content = `${fn} ${string}`
+                }
+                else{
+                    msg.content = `${replacedFn}`
+                }
+                string = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim()
+            }
+            return {content: string}
+        },
+        category: CommandCategory.UTIL
+    },
     time: {
         run: async (msg, args) => {
             let fmt = args.join(" ")
@@ -2964,14 +3023,14 @@ variables:
             for (let cmd in commands) {
                 if (cmd.match(search)) {
                     if (commands[cmd].help?.info) {
-                        results.push(`${cmd}: ${commands[cmd].help?.info}`)
+                        results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
                     }
                     else results.push(cmd)
                 }
                 else if (commands[cmd].help) {
                     let help = commands[cmd].help
                     if (help?.info?.match(search)) {
-                        results.push(`${cmd}: ${commands[cmd].help?.info}`)
+                        results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
                     }
                 }
             }
