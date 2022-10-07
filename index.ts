@@ -17,7 +17,8 @@ import API = require("./api")
 import stackl = require("./stackl")
 
 import sharp = require('sharp')
-import got = require('got')
+
+import fetch = require("node-fetch")
 import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
@@ -1103,15 +1104,16 @@ const commands: { [command: string]: Command } = {
             let data
             try {
                 //@ts-ignore
-                data = await got(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
+                data = await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
             }
             catch (err) {
                 return { content: "Could not fetch data" }
             }
-            if (!data?.body) {
+            let text = data.body.read()
+            if (text) {
                 return { content: "No data found" }
             }
-            let stockData = data.body.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
+            let stockData = text.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
             let jsonStockInfo: { [key: string]: string } = {}
             //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
             for (let stockInfo of stockData) {
@@ -1553,24 +1555,25 @@ const commands: { [command: string]: Command } = {
             let data
             try {
                 //@ts-ignore
-                data = await got(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
+                data = await fetch.default(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
             }
             catch (err) {
                 return { content: "No data found" }
             }
-            if (!data?.body) {
+            let text = data.body.read()
+            if (text) {
                 return { content: "No data found" }
             }
-            let stockData = data.body.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+            let stockData = text.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
             if (!stockData) {
                 return { content: "No data found" }
             }
-            let stockName = data.body.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-            if (!stockName) {
+            let stockName = text.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+            if (!stockName?.[1]) {
                 return { content: "Stock not found" }
             }
-            stockName = stockName[1]
-            if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
+            let sn = stockName[1]
+            if (!economy.getEconomy()[msg.author.id].stocks?.[sn]) {
                 return { content: "You do not own that stock" }
             }
             //@ts-ignore
@@ -2841,15 +2844,16 @@ const commands: { [command: string]: Command } = {
             let data
             try {
                 //@ts-ignore
-                data = await got(url)
+                data = await fetch.default(url)
             }
             catch (err) {
                 return { content: "Could not fetch data" }
             }
-            if (!data?.body) {
+            let text = data.body.read()
+            if (text) {
                 return { content: "No data found" }
             }
-            const JSONData = JSON.parse(data.body)
+            const JSONData = JSON.parse(text)
             for (let requestedUser of requestedUsers) {
                 if (!requestedUser) continue
                 let [ruser1, ruser2] = requestedUser.split("-")
@@ -3023,16 +3027,17 @@ const commands: { [command: string]: Command } = {
                 let resp
                 try {
                     //@ts-ignore
-                    resp = await got(`https://${baseurl}${path}`)
+                    resp = await fetch.default(`https://${baseurl}${path}`)
                 }
                 catch (err) {
                     return { content: "not found" }
                 }
-                if (resp.headers?.location) {
-                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.location.split("/wiki/")[1]}`])
+                if (resp.headers.get("location")) {
+                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location").split("/wiki/")[1]}`])
                 }
                 else {
-                    let $ = cheerio.load(resp.body)
+                    let respText = resp.body.read()
+                    let $ = cheerio.load(respText)
                     let text = $("p").text().trim().split("\n")
                     if (!text.length) {
                         return { content: "nothing" }
@@ -5642,10 +5647,10 @@ const commands: { [command: string]: Command } = {
             //@ts-ignore
             try {
                 //@ts-ignore
-                let data = await got(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
-                let text = data.body
+                let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
+                let text = data.body.read().toString()
                 let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                return { content: match[1] || "Nothing found :(" }
+                return { content: match?.[1] || "Nothing found :(" }
             }
             catch (err) {
                 return { content: "An error occured" }
@@ -5713,11 +5718,12 @@ const commands: { [command: string]: Command } = {
         run: async (msg, args) => {
             let subreddit = args[0]
             //@ts-ignore
-            let data = await got(`https://libreddit.spike.codes/r/${subreddit}`)
-            if (!data.body) {
+            let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
+            let text = data.body.read()
+            if (!text) {
                 return { content: "nothing found" }
             }
-            const $ = cheerio.load(data.body)
+            const $ = cheerio.load(text)
             type data = { text?: string, link?: string }
             let foundData: data[] = []
             for (let item of $("h2.post_title a[href]")) {
@@ -5863,7 +5869,7 @@ const commands: { [command: string]: Command } = {
                 let k = msg.attachments.keyAt(0) as string
                 msg.attachments.delete(k)
                 //@ts-ignore
-                let data = got(file.url)
+                let data = await fetch.default(file.url)
                 text = await data.text()
                 let bluecHeader = "%bluecircle37%\n"
                 if (text.slice(0, bluecHeader.length) !== bluecHeader) {
@@ -6136,7 +6142,7 @@ const commands: { [command: string]: Command } = {
             let att = msg.attachments.at(0)
             if (att) {
                 //@ts-ignore
-                let data: string = await got(att.attachment).text()
+                let data: string = await fetch.default(att.attachment).text()
                 return { content: data }
             }
             return { noSend: true }
@@ -6380,12 +6386,12 @@ ${fs.readdirSync("./command-results").join("\n")}
             to = encodeURI(to.trim())
             const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
             //@ts-ignore
-            const resp = await got(url, {
+            const resp = await fetch.default(url, {
                 headers: {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
                 }
             })
-            const $ = cheerio.load(resp.body)
+            const $ = cheerio.load(await resp.text())
             let text = $("p.home2").text()
             let drivingDistText = text.match(/The total driving distance from [^\.]* is ([\d,]*) miles/)
             let drivingDist = 0;
