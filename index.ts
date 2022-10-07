@@ -254,7 +254,43 @@ function getContentFromResult(result: CommandReturn) {
     return res
 }
 
-
+function generateTextFromCommandHelp(name: string, command: Command){
+    let text = `***${name}***:\n\n`
+    let helpData = command.help
+    if(!helpData)
+        return text
+    if(helpData.info){
+        text += `**${cheerio.load(helpData.info).text()}**\n\n`
+    }
+    if(helpData.aliases){
+        text += `Aliases: ${helpData.aliases.join(", ")}\n`
+    }
+    if(helpData.arguments){
+        text += "__Arguments__:\n"
+        for(let arg in helpData.arguments){
+            text += `\t* **${arg}**`
+            if(helpData.arguments[arg].required === false){
+                text += " (required) "
+            }
+            if(helpData.arguments[arg].requires){
+                text += ` (required: ${helpData.arguments[arg].requires}) `
+            }
+            text += `:\n\t\t- ${cheerio.load(helpData.arguments[arg].description).text()}\n`
+        }
+        text += "\n"
+    }
+    if(helpData.options){
+        text += "__Options__:\n"
+        for(let op in helpData.options){
+            text += `\t* **-${op}**: ${cheerio.load(helpData.options[op].description).text()}\n`
+            if(helpData.options[op].alternates){
+                text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
+            }
+        }
+        text += "\n"
+    }
+    return text.replace("\n\n\n", "\n")
+}
 
 function generateHTMLFromCommandHelp(name: string, command: any) {
     let html = `<div class="command-section"><h1 class="command-title">${name}</h1>`
@@ -322,6 +358,122 @@ let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 let HEIST_STARTED = false
 
 const commands: { [command: string]: Command } = {
+    "help": {
+        run: async(msg, args) => {
+            let opts
+            [opts, args] = getOpts(args)
+            if (opts["g"]) {
+                return {
+                    content: `\`\`\`
+Anything may be prefixed with a \\ to prevent it from happening immediately
+
+[command [args...]
+
+do first:
+    $(command)
+    put %{-1}$(command) to replace $(command) with nothing
+    %{0}$(command) gets replaced with the first word of the result
+    %{do-first-index:} gets replaces with the result of a specific $(command)
+    %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
+calc:
+    $[calculation]
+special commands:
+    [count]:<range>[cmd/...]
+    [t:cmd
+    [s:cmd
+escapes:
+    \\n: new line
+    \\t: tab
+    \\U{hex}: unicode
+    \\u{hex}: unicode
+    \\s: space
+    \\s{text}: all the text inside is treated as 1 argument
+    \\b{text}: bold
+    \\i{text}: italic
+    \\S{text}: strikethrough
+    \\d{date}: date
+    \\D{unix timestamp}: date from timestamp
+    \\v{(g:)variable name}: value of a variable (put g: to garantee global scope)
+    \\V{scope:variable name}: get a variable from a specific scope (. for global and % for user)
+    \\\\: backslash
+formats:
+    {ruser[|fmt]}: generate a user
+    {user}: mention yourself
+    {channel}: The current channel
+    {cmd}: the command
+    {fhex|number}: convert a number from a base
+    {hex|number}: convert a number to a base
+    {rev|string}: reverse a string
+    {c}: content used
+    {rand[|item1|item2...]}: random item
+    {time[|datetime format]}: time date format
+    {channel[|format]}: channel
+variables:
+    random: random number
+    rand: random number
+    prefix: bot's prefix
+    vcount: variable count
+    sender: mention yourself
+    you may also define custom variables like: [var x=y
+        or [var x=\\s{this is a long variable}
+\`\`\`
+`}
+            }
+            if (opts['l']) {
+                let category = String(opts['l']) || "all"
+                let catNum = -1
+                switch (category.toLowerCase()) {
+                    case "meta":
+                        catNum = CommandCategory.META
+                        break;
+                    case "util":
+                        catNum = CommandCategory.UTIL
+                        break;
+                    case "game":
+                        catNum = CommandCategory.GAME; break;
+                    case "fun":
+                        catNum = CommandCategory.FUN; break;
+                    case "images": catNum = CommandCategory.IMAGES; break;
+                }
+                let rv = ""
+                for (let cmd in commands) {
+                    if (catNum == -1 || commands[cmd].category == catNum)
+                        rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
+                }
+                return { content: rv }
+            }
+            let commandsToUse = commands
+            if (args[0]) {
+                commandsToUse = {}
+                if (args[0] == "?") {
+                    commandsToUse = commands
+                }
+                else {
+                    for (let cmd of args) {
+                        if (!commands[cmd]) continue
+                        commandsToUse[cmd] = commands[cmd]
+                    }
+                }
+            }
+            if (opts['json']) {
+                return { content: JSON.stringify(commandsToUse) }
+            }
+            let text = ""
+            for(let command in commandsToUse){
+                text += generateTextFromCommandHelp(command, commandsToUse[command]) + "--------------------------------------\n"
+            }
+            return {content: text}
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Get help with specific commands",
+            arguments: {
+                commands: {
+                    description: "The commands to get help on, seperated by a space<br>If command is ?, it will do all commands",
+                    required: false
+                }
+            }
+        }
+    },
     "send-log": {
         run: async (msg, args) => {
             return {
@@ -6463,91 +6615,11 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
         category: CommandCategory.FUN
     },
-    help: {
+    ht: {
         //help command
         run: async (msg, args) => {
             let opts
             [opts, args] = getOpts(args)
-            if (opts["g"]) {
-                return {
-                    content: `\`\`\`
-Anything may be prefixed with a \\ to prevent it from happening immediately
-
-[command [args...]
-
-do first:
-    $(command)
-    put %{-1}$(command) to replace $(command) with nothing
-    %{0}$(command) gets replaced with the first word of the result
-    %{do-first-index:} gets replaces with the result of a specific $(command)
-    %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
-calc:
-    $[calculation]
-special commands:
-    [count]:<range>[cmd/...]
-    [t:cmd
-    [s:cmd
-escapes:
-    \\n: new line
-    \\t: tab
-    \\U{hex}: unicode
-    \\u{hex}: unicode
-    \\s: space
-    \\s{text}: all the text inside is treated as 1 argument
-    \\b{text}: bold
-    \\i{text}: italic
-    \\S{text}: strikethrough
-    \\d{date}: date
-    \\D{unix timestamp}: date from timestamp
-    \\v{(g:)variable name}: value of a variable (put g: to garantee global scope)
-    \\V{scope:variable name}: get a variable from a specific scope (. for global and % for user)
-    \\\\: backslash
-formats:
-    {ruser[|fmt]}: generate a user
-    {user}: mention yourself
-    {channel}: The current channel
-    {cmd}: the command
-    {fhex|number}: convert a number from a base
-    {hex|number}: convert a number to a base
-    {rev|string}: reverse a string
-    {c}: content used
-    {rand[|item1|item2...]}: random item
-    {time[|datetime format]}: time date format
-    {channel[|format]}: channel
-variables:
-    random: random number
-    rand: random number
-    prefix: bot's prefix
-    vcount: variable count
-    sender: mention yourself
-    you may also define custom variables like: [var x=y
-        or [var x=\\s{this is a long variable}
-\`\`\`
-`}
-            }
-            if (opts['l']) {
-                let category = String(opts['l']) || "all"
-                let catNum = -1
-                switch (category.toLowerCase()) {
-                    case "meta":
-                        catNum = CommandCategory.META
-                        break;
-                    case "util":
-                        catNum = CommandCategory.UTIL
-                        break;
-                    case "game":
-                        catNum = CommandCategory.GAME; break;
-                    case "fun":
-                        catNum = CommandCategory.FUN; break;
-                    case "images": catNum = CommandCategory.IMAGES; break;
-                }
-                let rv = ""
-                for (let cmd in commands) {
-                    if (catNum == -1 || commands[cmd].category == catNum)
-                        rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
-                }
-                return { content: rv }
-            }
             let files = []
             let commandsToUse = commands
             if (args[0]) {
@@ -6581,9 +6653,6 @@ ${styles}
                     html += generateHTMLFromCommandHelp(command, commands[command])
                 }
                 fs.writeFileSync("help.html", html)
-            }
-            if (!Object.keys(opts).length) {
-                opts['p'] = true
             }
             if (opts["p"] || opts['t']) {
                 opts["plain"] = true
