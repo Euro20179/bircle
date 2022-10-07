@@ -391,8 +391,8 @@ function parseAliasReplacement(msg, cmdContent, args){
                     let opt = suffix.replace(":", "")
                     let opts;
                     [opts, args] = getOpts(args)
-                    console.log(opts, opt)
-                    finalText += opts[opt]
+                    if(opts[opt] !== undefined)
+                        finalText += opts[opt]
                 }
                 else if(val == "sender"){
                     finalText += String(msg.author)
