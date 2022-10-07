@@ -20,7 +20,6 @@
     "@types/sharp": "^0.30.2",
     "cheerio": "^1.0.0-rc.10",
     "discord-api-types": "^0.31.2",
-    "got": "^11.8.5",
     "jimp": "^0.16.1",
     "libsodium-wrappers": "^0.7.10",
     "printf": "^0.6.1",

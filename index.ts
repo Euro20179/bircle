@@ -60,9 +60,6 @@ let SPAMS: { [id: string]: boolean } = {}
 
 let BLACKJACK_GAMES: { [id: string]: boolean } = {}
 
-let BATTLEGAME: boolean = false;
-let CRIME: boolean = false;
-
 let lastCommand: { [key: string]: string } = {};
 let snipes: (Message | PartialMessage)[] = [];
 let purgeSnipe: (Message | PartialMessage)[];
