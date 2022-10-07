@@ -1184,6 +1184,98 @@ variables:
             return {content: format(ffmt, {i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue)})}
         }, category: CommandCategory.ECONOMY
     },
+    "align-table": {
+        run: async(msg, args)  => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let align = opts['align'] || "left"
+            let raw = opts['raw'] || false
+            let columnCounts = opts['cc'] || false
+            let table = args.join(" ")
+            let columnLongestLengths: {[key: number]: number} = {}
+            let longestRow = 0
+            let rows = table.split("\n")
+            let finalColumns: string[][] = []
+            for(let row  of rows){
+                let columns = row.split("|")
+                let nextColumn = []
+                for(let i = 0; i < columns.length; i++){
+                    nextColumn.push(columns[i])
+                    if(i > longestRow)
+                        longestRow = i
+                }
+                finalColumns.push(nextColumn)
+            }
+            for(let row of finalColumns){
+                for(let i = row.length - 1; i < longestRow; i++){
+                    row.push("")
+                }
+            }
+            if(raw){
+                return {content: `\\${JSON.stringify(finalColumns)}`}
+            }
+            for(let row of finalColumns){
+                for(let i = 0; i < row.length; i++){
+                    if(!columnLongestLengths[i]){
+                        columnLongestLengths[i] = 0
+                    }
+                    if(row[i].length > columnLongestLengths[i]){
+                        columnLongestLengths[i] = row[i].length
+                    }
+                }
+            }
+            if(columnCounts){
+                let text = ""
+                for(let i = 0; i < finalColumns[0].length; i++){
+                    text += `(col: ${i + 1}): ${columnLongestLengths[i]}\n`
+                }
+                return {content: text}
+            }
+            let newText = "```"
+            for(let row of finalColumns){
+                for(let i = 0; i < row.length; i++){
+                    let col = row[i].replace(/^\|/, "").replace(/\|$/, "")
+                    let maxLength  = columnLongestLengths[i]
+                    if(maxLength  == 0){
+                        continue
+                    }
+                    else{
+                        newText += "|"
+                    }
+                    if(col.length < maxLength){
+                        if(align == "left")
+                            col = col + mulStr(" ", maxLength - col.length)
+                        else if(align == "right")
+                            col = mulStr(" ", maxLength - col.length) + col
+                        else if(align == "center")
+                            col = mulStr(" ", Math.floor((maxLength - col.length) / 2)) + col + mulStr(" ", Math.ceil((maxLength - col.length) / 2))
+                    }
+                    newText += `${col}`
+                }
+                newText += '|\n'
+            }
+            return {content: newText + "```"}
+        }, category:  CommandCategory.UTIL,
+        help: {
+            info: "Align a table",
+            arguments: {
+                table: {
+                    description: "The markdown formatted table to align"
+                }
+            },
+            options: {
+                align: {
+                    description: "Align either: <code>left</code>, <code>center</code> or <code>right</code>"
+                },
+                raw: {
+                    description: "Give a javascript list containing lists of columns"
+                },
+                cc: {
+                    description: "Give the length of the longest column in each column"
+                }
+            }
+        }
+    },
     "profit": {
         run: async (msg, args) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {

@@ -9,7 +9,12 @@ import { fetchUser } from './util'
 
 import api = require("./api")
 
-type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: { buyPrice: number, shares: number } }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number }
+
+type TradeType = {type: "money" | "stock", item: number | {name: string, data: Stock}}
+
+type Stock = {buyPrice:  number, shares: number}
+
+type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -26,6 +31,27 @@ function userHasStockSymbol(id: string, symbol: string) {
     }
     return false
 }
+
+// function tradeItems(player1: string, item1: TradeType , player2: string, item2: TradeType){
+//     if(!ECONOMY[player1] || !ECONOMY[player2]){
+//         return false
+//     }
+//
+//     let handleGivingTradeTypes = {
+//         money: (player1: string, player2: string, data: number ) => {
+//             if(typeof data === 'number'){
+//                 loseMoneyToPlayer(player1,data, player2)
+//                 return true
+//             }
+//             return false
+//         },
+//         stock: (player1: string, player2: string, data: {name: string, data: Stock} ) => {
+//         }
+//     }
+//
+//     let player1ItemType = item1.type
+//     let player2ItemType = item2.type
+// }
 
 function loadEconomy() {
     if (fs.existsSync("./economy.json")) {
@@ -493,5 +519,6 @@ export {
     calculateAmountOfMoneyFromString,
     work,
     economyLooseGrandTotal,
-    canWork
+    canWork,
+    // tradeItems
 }
