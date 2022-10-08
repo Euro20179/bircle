@@ -6036,7 +6036,7 @@ variables:
             try {
                 //@ts-ignore
                 let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
-                let text = await data.text().toString()
+                let text = await data.text()
                 let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
                 return { content: match?.[1] || "Nothing found :(" }
             }
