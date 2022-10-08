@@ -343,9 +343,9 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
     return `${html}</div><hr>`
 }
 
+let HEIST_PLAYERS: string[] = []
 let connection: any;
 
-let HEIST_PLAYERS: string[] = []
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 let HEIST_STARTED = false
 
@@ -715,6 +715,34 @@ variables:
                     text = responses.join("\n")
                     break
                 }
+                case "locations":
+                case "list-locations": {
+                    let locations: string[] = ["__generic__"]
+                    for (let resp of responses) {
+                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        let locationText = location?.[1]
+                        if (locationText && !locations.includes(locationText)) {
+                            locations.push(locationText)
+                        }
+                    }
+                    text = `LOCATIONS:\n${locations.join("\n")}`
+                    break
+                }
+                case "stages":
+                case "list-stages": {
+                    let stages: string[] = ["getting_in", "robbing", "escape", "end"]
+                    for (let resp of responses) {
+                        let stage = resp.match(/STAGE=([^ ]+)/)
+                        if (!stage?.[1]) continue;
+                        let stageText = stage[1]
+                        if (stageText && !stages.includes(stageText)) {
+                            stages.push(stageText)
+                        }
+                    }
+                    text = `STAGES:\n${stages.join("\n")}`
+                    break
+                }
+
                 case "list-types": {
                     let locations: string[] = ["__generic__"]
                     let stages: string[] = ["getting_in", "robbing", "escape", "end"]
@@ -765,7 +793,14 @@ variables:
             info: "Get information about heist responses",
             arguments: {
                 type: {
-                    description: "The type of information<br>can be:<br><ul><li>list-responses</li><li>list-types</li><li>search (requires search query)</li></ul>"
+                    description: `The type of information can be:<br>
+<ul>
+    <li>list-locations</li>
+    <li>list-stages</li>
+    <li>list-responses</li>
+    <li>list-types</li>
+    <li>search (requires search query)</li>
+</ul>`
                 },
                 search_query: {
                     requires: "type",

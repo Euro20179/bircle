@@ -38,17 +38,21 @@ function reloadBlackList(){
 reloadBlackList()
 reloadWhiteList()
 
+function savePermList(list){
+    let data = ""
+    for(let user in list){
+        data += `${user}: ${list[user].join(" ")}\n`
+    }
+    writeFileSync(`command-perms/${listFile}`, data)
+}
+
 function addToPermList(list, listFile, user, cmds){
     if(list[user.id]){
         list[user.id] = list[user.id].concat(cmds)
     } else{
         list[user.id] = cmds
     }
-    let data = ""
-    for(let user in list){
-        data += `${user}: ${list[user].join(" ")}\n`
-    }
-    writeFileSync(`command-perms/${listFile}`, data)
+    savePermList()
 }
 function removeFromPermList(list, listFile, user, cmds){
     if(list[user.id]){
@@ -56,11 +60,7 @@ function removeFromPermList(list, listFile, user, cmds){
     } else{
         list[user.id] = []
     }
-    let data = ""
-    for(let user in list){
-        data += `${user}: ${list[user].join(" ")}\n`
-    }
-    writeFileSync(`command-perms/${listFile}`, data)
+    savePermList()
 }
 
 const FILE_SHORTCUTS = {"distance": "distance-easter-egg", "8": "8ball"}
