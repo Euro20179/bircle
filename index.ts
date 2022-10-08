@@ -2875,7 +2875,7 @@ variables:
 
             if(opts['list-attributes']){
                 let text = ""
-                for(let attr in reqElementData){
+                for(let attr in reqElementData[0]){
                     text += `**${attr}**: ${reqElementData[attr]}\n`
                 }
                 return {content: text}
