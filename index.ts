@@ -8,6 +8,9 @@ const { execSync, exec } = require('child_process')
 const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
+
+let {token, CLIENT_ID, GUILD_ID, SPAM_ALLOWED, BUTTONS, POLLS, SPAMS, BLACKJACK_GAMES} = require("./globals")
+
 import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter, CommandInteraction } from 'discord.js'
 
 import uno = require("./uno")
@@ -48,17 +51,6 @@ enum CommandCategory {
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
 
-const token = fs.readFileSync("./TOKEN", "utf-8").trim()
-const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8").trim()
-const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
-
-let SPAM_ALLOWED = true
-
-let BUTTONS: { [id: string]: string | (() => string) } = {}
-let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
-let SPAMS: { [id: string]: boolean } = {}
-
-let BLACKJACK_GAMES: { [id: string]: boolean } = {}
 
 let lastCommand: { [key: string]: string } = {};
 let snipes: (Message | PartialMessage)[] = [];

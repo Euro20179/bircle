@@ -28,5 +28,6 @@ battle.js
 stackl.js
 util.js
 api.js
+globals.js
 
 !command-perms/holder
