@@ -8078,9 +8078,9 @@ async function doCmd(msg: Message, returnJson = false) {
     }
 
     //If there is a dofirst, parse the %{...} stuff
-    if (Object.keys(doFirstData)) {
+    if (Object.keys(doFirstData).length > 0) {
         args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
-        args = args.filter(v => v !== "__BIRCLE__UNDEFINED__")
+        args = args.map(v => v.replaceAll("__BIRCLE__UNDEFINED__", ""))
     }
 
 

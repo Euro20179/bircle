@@ -429,6 +429,7 @@ function parseDoFirstInnerBracketData(data) {
     if(data == "")
         return [undefined, undefined]
     let [doFirstIndex, slice] = data.split(":")
+    console.log(doFirstIndex, slice, doFirstIndex ==  data)
     if(doFirstIndex == data){
         slice = Number(doFirstIndex)
         doFirstIndex = undefined
