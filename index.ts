@@ -2828,6 +2828,84 @@ variables:
             }
         }
     },
+    "periodic-table": {
+        run: async(msg,  args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+
+
+            let reqElem = args.join(" ")
+
+            if(opts['an'] || opts['n']){
+                reqElem += `AtomicNumber=${opts['n']}`
+            }
+
+            if(!reqElem && !opts['r']){
+                return {content: "No element requesed"}
+            }
+
+            if(opts['refresh']){
+                let data = await fetch.default("https://www.rsc.org/periodic-table/")
+                let text = await data.text()
+                let elementsData = text.match(/var elementsData = (.*);/)
+                if(!elementsData?.[1]){
+                    return {content: "Could not fetch data"}
+                }
+                fs.writeFileSync("./data/elements.json", elementsData[1])
+            }
+
+            let elementsData = fs.readFileSync("./data/elements.json", "utf-8")
+            let elementsJSON = JSON.parse(elementsData)["Elements"]
+
+            let [attr, value] = reqElem.split("=").map(v => v.trim())
+            let reqElementData;
+            if(opts['r']){
+                let count = Number(opts['r']) || 1
+                reqElementData = []
+                for(let i = 0; i  < count; i++){
+                    reqElementData.push(elementsJSON[Math.floor(Math.random() * elementsJSON.length)])
+                }
+            }
+            else{
+                reqElementData = elementsJSON.filter((v: any) => {
+                    if(v[attr] !== undefined && String(v[attr]).trim().toLowerCase() === value.trim().toLowerCase()){
+                        return true
+                    }
+                    return v.Symbol.toLowerCase() === reqElem.toLowerCase() || v.Name.toLowerCase() === reqElem.toLowerCase()
+                })
+            }
+            if(!reqElementData.length){
+                return {content: "No  element  found"}
+            }
+
+            if(opts['list-attributes']){
+                let text = ""
+                for(let attr in reqElementData){
+                    text += `**${attr}**: ${reqElementData[attr]}\n`
+                }
+                return {content: text}
+            }
+
+
+            let embeds = []
+            let elementsNamesList = []
+            for(let element  of reqElementData){
+                let embed = new MessageEmbed()
+                elementsNamesList.push(`${element.Name} (${element.Symbol})`)
+                embed.setTitle(`${element.Name} (${element.Symbol})`)
+                embed.setDescription(`Discovered in ${element.DiscoveryYear == "0" ? "Unknown" : element.DiscoveryYear} by ${element.DiscoveredBy == "-" ? "Unknown" : element.DiscoveredBy}`)
+                embed.addField("Atomic Number",  String(element.AtomicNumber),)
+                embed.addField("Atomic Mass", String(element.RelativeAtomicMass))
+                embed.addField("Melting Point C", String(element.MeltingPointC) || "N/A", true)
+                embed.addField("Boiling Point C", String(element.BoilingPointC) || "N/A", true)
+                embeds.push(embed)
+            }
+            if(embeds.length > 10 || opts['list-names']){
+                return {content: elementsNamesList.join("\n")}
+            }
+            return {embeds: embeds}
+        }, category: CommandCategory.UTIL
+    },
     economy: {
         run: async (msg, args) => {
             return {
@@ -5904,7 +5982,7 @@ variables:
             await msg.channel.send(`starting ${id}`)
             SPAMS[id] = true
             while (SPAMS[id] && times--) {
-                await msg.channel.send(`${format(send, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`)
+                await msg.channel.send(`${format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })}`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
@@ -8631,3 +8709,7 @@ let CMDUSE = loadCmdUse()
 let EMOTEUSE = loadEmoteUse()
 
 client.login(token)
+function elem(elem: any) {
+    throw new Error("Function not implemented.")
+}
+
