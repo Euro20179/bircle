@@ -140,7 +140,12 @@ function buildEscape(letter, sequence, msg, curArg){
             if(!sequence){
                 return "\\u"
             }
-            return String.fromCodePoint(parseInt(`0x${sequence}`))
+            try{
+                return String.fromCodePoint(parseInt(`0x${sequence}`))
+            }
+            catch(err){
+                return `\\u{${sequence}}`
+            }
         case "s":
             if(sequence){
                 return sequence
