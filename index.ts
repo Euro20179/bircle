@@ -261,7 +261,7 @@ function generateTextFromCommandHelp(name: string, command: Command){
         text += "__Arguments__:\n"
         for(let arg in helpData.arguments){
             text += `\t* **${arg}**`
-            if(helpData.arguments[arg].required === false){
+            if(helpData.arguments[arg].required !== false){
                 text += " (required) "
             }
             if(helpData.arguments[arg].requires){
@@ -847,7 +847,20 @@ variables:
                 msg.channel.send(`Failed to get stock data for: ${stock}`)
             })
             return { noSend: true }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: `Buy a stock, this is the same as ${prefix}buy stock <symbol> <amount>`,
+            arguments: {
+                symbol: {
+                    description: `The stock symbol to buy, if you do not know the symbol for a stock, use ${prefix}stk <search>`,
+                    required: true
+                },
+                amount: {
+                    description: "The amount of shares to buy of the stock",
+                    required: true
+                }
+            }
+        }
     },
     "ustock": {
         run: async (msg, args) => {
@@ -857,7 +870,18 @@ variables:
                 member = msg.member
             let stockName = args[0]
             return { content: JSON.stringify(economy.userHasStockSymbol(member.user.id, stockName)) }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Check if a user has a stock",
+            arguments: {
+                stockName: {
+                    description: "The stock to check if the user has"
+                },
+                user: {
+                    description: "The user to check"
+                }
+            }
+        }
     },
     "stocks": {
         run: async (msg, args) => {
@@ -882,7 +906,16 @@ variables:
                 text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
             return { content: text || "No stocks", allowedMentions: { parse: [] } }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Get the stocks of a user",
+            arguments: {
+                user: {
+                    description: "The user to check the stocks of",
+                    required: false
+                }
+            }
+        }
     },
     loan: {
         run: async (msg, args) => {
@@ -906,7 +939,11 @@ variables:
             economy.useLoan(msg.author.id, needed)
             useItem(msg.author.id, "loan")
             return { content: `<@${msg.author.id}> Used a loan and got ${needed}` }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: `Use a loan
+<br>A loan can only be used if you have payed off previous loans, and you are in debt`
+        }
     },
     work: {
         run: async(msg, args) => {
@@ -915,7 +952,10 @@ variables:
                 return {content: `You earned: ${amount}`}
             }
             return {content: "No working for you bubs"}
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: `Earn money (.1% of the economy) if your net worth is below 0`
+        }
     },
     "pay-loan": {
         run: async (msg, args) => {
