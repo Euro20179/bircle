@@ -5,7 +5,7 @@ const { vars, userVars } = require( "./common.js")
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
 type errType = {content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?:  boolean}
 
-async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc:  number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: number | string | Message | GuildMember | Function }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, SPAMS: {[key: string]: boolean}): Promise<stackTypes |  errType>{
+async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc:  number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: number | string | Message | GuildMember | Function }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, SPAMS: {[key: string]: boolean}): Promise<stackTypes |  errType >{
         switch (arg) {
             //vars
             case "$stacksize": {
@@ -393,6 +393,10 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 stack = stack.reverse()
                 break
             }
+            case "%rotate": {
+                stack = stack.map((_v, idx, arr) => idx !== arr.length -1 ? arr[idx + 1] : arr[0])
+                break
+            }
             case "%pop": {
                 stack.pop()
                 break
@@ -473,6 +477,11 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                         if (rv?.err) {
                             //@ts-ignore
                             return { chgI: i - argNo, ...rv }
+                        }
+                        //@ts-ignore
+                        if(rv?.stack){
+                            //@ts-ignore
+                            stack = rv.stack
                         }
 
                     }
@@ -1159,6 +1168,11 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                         if (rv?.err) {
                             return rv
                         }
+                        //@ts-ignore
+                        if(rv?.stack){
+                            //@ts-ignore
+                            stack = rv.stack
+                        }
                     }
                     if (loopCount > 2000) {
                         stack.push(0)
@@ -1215,6 +1229,11 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                             //@ts-ignore
                             return { chgI: i - argNo, ...rv }
                         }
+                        //@ts-ignore
+                        if(rv?.stack){
+                            //@ts-ignore
+                            stack = rv.stack
+                        }
                     }
                 }
                 else {
@@ -1235,6 +1254,11 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                                 if (rv?.err) {
                                     //@ts-ignore
                                     return { chgI: j - argNo, ...rv }
+                                }
+                                //@ts-ignore
+                                if(rv?.stack){
+                                    //@ts-ignore
+                                    stack = rv.stack
                                 }
                             }
                         }
@@ -1315,7 +1339,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 }
             }
         }
-        return {}
+        return {stack: stack}
     }
 
 async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS: {[key: string]: boolean}): Promise<stackTypes[] | errType | stackTypes>{
@@ -1402,6 +1426,11 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
             //@ts-ignore
         if (rv?.err) {
             return rv
+        }
+        //@ts-ignore
+        if(rv?.stack){
+            //@ts-ignore
+            stack = rv.stack
         }
     }
     return stack

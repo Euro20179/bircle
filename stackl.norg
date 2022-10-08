@@ -150,6 +150,9 @@
       - `%stackend <name: identifier>`
       -- Ends the stack `name`
 
+      - `<items...(stack.length): any> %rotate -> any...(stack.length)`
+      -- Rotates the stack to the right by 1
+
 ***** Variables
 
       - `<item: any> %saveas <name: identifier>`
