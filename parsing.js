@@ -379,7 +379,11 @@ function parseAliasReplacement(msg, cmdContent, args){
                         finalText += String(args.length)
                     }
                     else if(dotsInARow == 3){
-                        finalText += String(args.slice(Number(suffix) - 1).join(" "))
+                        let startingPoint = 0
+                        if(suffix){
+                            startingPoint = Number(suffix) - 1 || 0
+                        }
+                        finalText += String(args.slice(startingPoint).join(" "))
                     }
                     else if(dotsInARow == 2){
                         let [n1, n2] = suffix.split("..")
