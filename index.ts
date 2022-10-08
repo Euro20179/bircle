@@ -2781,11 +2781,6 @@ variables:
                             break
                         }
                     }
-                    if (calculateTotal(dealerCards).total === 21) {
-                        economy.loseMoneyToBank(msg.author.id, bet)
-                        delete BLACKJACK_GAMES[msg.author.id]
-                        return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
-                    }
                     useItem(msg.author.id, "reset")
                 }
                 if ((choice === 'stand' && (hardMode == false || calculateTotal(playersCards).total >= 17)) || calculateTotal(playersCards).total > 21) {
