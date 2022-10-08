@@ -1349,7 +1349,7 @@ variables:
                 return { content: "Could not fetch data" }
             }
             let text = await data.text()
-            if (text) {
+            if (!text) {
                 return { content: "No data found" }
             }
             let stockData = text.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
