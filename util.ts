@@ -1,4 +1,4 @@
-import { Guild, Message } from "discord.js"
+import { Client, Guild, Message } from "discord.js"
 
 const {execFileSync} = require('child_process')
 const { userVars, vars } = require("./common.js")
@@ -45,6 +45,13 @@ async function fetchChannel(guild: Guild, find: string){
     let channels = await guild.channels.fetch()
     let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || channel?.name?.indexOf(find) > -1).at(0)
     return channel
+}
+
+async function fetchUserFromClient(client: Client, find: string){
+    if(!client.guilds.cache.at(0)){
+        return undefined
+    }
+    return await fetchUser(client.guilds.cache.at(0) as Guild, find)
 }
 
 async function fetchUser(guild: Guild, find: string){
@@ -378,6 +385,7 @@ export {
     cmdCatToStr,
     getImgFromMsgAndOpts,
     getOpts,
-    handleSending
+    handleSending,
+    fetchUserFromClient
 }
 

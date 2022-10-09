@@ -26,7 +26,7 @@ import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
 
-const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn } = require('./common.js')
+const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client } = require('./common.js')
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
@@ -49,7 +49,6 @@ enum CommandCategory {
     ECONOMY
 }
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
 
 
 let lastCommand: { [key: string]: string } = {};

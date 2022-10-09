@@ -1,4 +1,5 @@
 const { readFileSync, writeFileSync } = require("fs");
+const {Client, Intents} = require("discord.js")
 
 
 const economy = require("./economy");
@@ -10,6 +11,8 @@ const ADMINS = ["334538784043696130"]
 const LOGFILE = "log.txt"
 
 const VERSION = {major: 2, minor: 2, bug: 18, part: "_B", beta: false, alpha: false}
+
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
 
 let USER_SETTINGS = {}
 
@@ -110,5 +113,6 @@ module.exports = {
     VERSION: VERSION,
     userVars: userVars,
     USER_SETTINGS: USER_SETTINGS,
-    getVarFn: getVarFn
+    getVarFn: getVarFn,
+    client: client
 }
