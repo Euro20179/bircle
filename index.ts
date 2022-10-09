@@ -36,10 +36,10 @@ const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, 
 
 import economy = require("./economy")
 
-const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems } = require("./shop.js")
+const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 
 import pet = require("./pets")
-import { generateSafeEvalContextFromMessage } from "./util"
+import { fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
 
 enum CommandCategory {
     UTIL,
@@ -1969,6 +1969,32 @@ variables:
                 }
             }
         }
+    },
+    "give-item": {
+        run: async(msg, args) => {
+            let [i, user] = args.join(" ").split("|").map( v => v.trim())
+            let [count, ...item] = i.split(" ")
+            let itemstr = item.join(" ")
+            if(!itemstr){
+                return {content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``}
+            }
+            let member = await fetchUserFromClient(client, user)
+            if(!member){
+                return {content: `${user} not found`}
+            }
+            let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
+            if(!itemData){
+                return {content: `You do not have ${itemstr.toLowerCase()}`}
+            }
+            let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(msg.author.id, itemData, count))
+            if(countnum <= 0 || countnum > itemData.count){
+                return {content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}`}
+            }
+            giveItem(member.id, itemstr.toLowerCase(), countnum)
+            useItem(msg.author.id, itemstr.toLowerCase(), countnum)
+            return {content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: {parse: []}}
+
+        }, category: CommandCategory.ECONOMY
     },
     tax: {
         run: async (msg, args) => {

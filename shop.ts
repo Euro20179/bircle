@@ -42,6 +42,23 @@ function hasItem(user: string, item: string){
     return false
 }
 
+export function giveItem(user: string,  item: string, count: number){
+    if(INVENTORY[user]){
+        if(INVENTORY[user][item]){
+            INVENTORY[user][item] += count
+            return true
+        }
+        else{
+            INVENTORY[user][item] = count
+            return true
+        }
+    }
+    else{
+        INVENTORY[user] = {[item]: count}
+        return true
+    }
+}
+
 export function buyItem(user: string, item: string, count?: number, forceBuy?: boolean){
     if(INVENTORY[user]){
         if(INVENTORY[user][item]){
@@ -80,5 +97,6 @@ module.exports = {
     hasItem,
     useItem,
     resetItems,
-    resetPlayerItems
+    resetPlayerItems,
+    giveItem
 }

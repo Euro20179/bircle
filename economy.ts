@@ -343,16 +343,21 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         if(fallbackFn){
             return fallbackFn(id, amount, extras)
         }
-        return NaN
+        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn)
     }
     else if(match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)){
         let side1 = match[1]
         let operator = match[2]
         let side2 = match[3]
-        if(!fallbackFn)
-            return NaN
-        let amount1 = fallbackFn(id, side1, extras)
-        let amount2 = fallbackFn(id, side2, extras)
+        let amount1, amount2
+        if(!fallbackFn){
+            amount1 = calculateAmountOfMoneyFromString(id, money, side1, extras, fallbackFn)
+            amount2 = calculateAmountOfMoneyFromString(id, money, side2, extras, fallbackFn)
+        }
+        else{
+            amount1 = fallbackFn(id, side1, extras)
+            amount2 = fallbackFn(id, side2, extras)
+        }
         switch(operator){
             case "+": return amount1 + amount2
             case "-": return amount1 - amount2
