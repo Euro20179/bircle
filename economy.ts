@@ -334,6 +334,21 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         }
         return NaN
     }
+    else if(match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)){
+        let side1 = match[1]
+        let operator = match[2]
+        let side2 = match[3]
+        if(!fallbackFn)
+            return NaN
+        let amount1 = fallbackFn(id, side1, extras)
+        let amount2 = fallbackFn(id, side2, extras)
+        switch(operator){
+            case "+": return amount1 + amount2
+            case "-": return amount1 - amount2
+            case "*": return amount1 * amount2
+            case "/": return amount1 / amount2
+        }
+    }
     for (let e in extras) {
         let match;
         if (match = amount.match(e)) {
