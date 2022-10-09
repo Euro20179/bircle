@@ -300,6 +300,7 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     if (!Object.keys(rv).length) {
         return
     }
+    //by default delete files that are being sent from local storage
     if (rv.deleteFiles === undefined) {
         rv.deleteFiles = true
     }
@@ -309,6 +310,7 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     if (rv.noSend) {
         return
     }
+    //if the content is > 2000 (discord limit), send a file instead
     if ((rv.content?.length || 0) >= 2000) {
         fs.writeFileSync("out", rv.content)
         delete rv["content"]
@@ -321,9 +323,11 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
         }
     }
     if (!rv?.content) {
+        //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
         delete rv['content']
     }
     else {
+        //if not empty, save in the _! variable
         if (userVars[msg.author.id]) {
             userVars[msg.author.id][`_!`] = () => rv.content
         }
@@ -331,6 +335,7 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
             userVars[msg.author.id] = { "_!": () => rv.content }
         vars[`_!`] = () => rv.content
     }
+    //the place to send message to
     let location = msg.channel
     if (rv['dm']) {
 
@@ -342,8 +347,10 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     }
     catch (err) {
         console.log(err)
+        //usually happens when there is nothing to send
         await location.send("broken")
     }
+    //delete files that were sent
     if (rv.files) {
         for (let file of rv.files) {
             if (file.delete !== false && rv.deleteFiles)

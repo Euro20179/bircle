@@ -8118,39 +8118,58 @@ async function expandAlias(command: string, onExpand?: (alias: string, preArgs: 
 }
 
 
+//as the name implies this  function does  a command based on the contents of a  message
+//TODO: Eventually I would  like to make it so that all that is necessary here, is to pass a command
 async function doCmd(msg: Message, returnJson = false) {
     let command: string
     let args: Array<string>
     let doFirsts: { [item: number]: string }
+
+    //canRun is true if the user is not BLACKLISTED from a command
+    //it is also  true if the user is WHITELISTED for a command
     let canRun = true
+    //This is true if the command exists
     let exists = true
 
+    //This is true if the bot  is supposed  to type
     let typing = false
 
-    let redir: boolean | [Object, string] = false
+    //This is  false  if the command result is not redirected into a variable
+    let redir: boolean | [Object, string] = false //Object is the object in which the variable is stored, string is the variable name
+
+    //The return  value from this function
     let rv: CommandReturn = {};
+
+    //Get the command (the first word in the message content)
     command = msg.content.split(" ")[0].slice(prefix.length)
+    //Args are the rest of the words
     args = msg.content.split(" ").slice(1)
-    //[command, args, doFirsts] = await parseCmd({ msg: msg })
 
 
     //first check for modifiers
+
+    //This variable keeps  track of how long the modifier is before the command
     let skipLength = 0
+    //the s: and redir: modifiers change this function to accomplish their goals
     let oldSend = msg.channel.send
-    let m;
-    if (m = command.match(/^s:/)) {
+
+    let m; //variable to keep track of the match
+    if (m = command.match(/^s:/)) { //s: (silent) modifier
+        //change this function to essentially do nothing, it just returns the orriginal message as it must return a message
         msg.channel.send = async (_data) => msg
         command = command.slice(2)
         skipLength = 2
     }
     //this regex matches: /redir!?\((prefix)?:variable\)
-    else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) {
-        let all = m[1]
+    else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) { //the redir: modifier
+        //whether or not to redirect *all* message sends to the variable, or just the return value from the command
+        let all = m[1] //this matches the ! after redir
         //length of: redir(:)
-        let skip = 9
+        let skip = 9 //the base length of redir:(:)
         if (all) {
             //add 1 for the !
             skip++
+            //change this function to redirect into the variable requested
             msg.channel.send = async (_data) => {
                 //@ts-ignore
                 if (_data.content) {
@@ -8163,8 +8182,10 @@ async function doCmd(msg: Message, returnJson = false) {
                 return msg
             }
         }
-        let prefix = m[2]
-        let name = m[3]
+        //the variable scope
+        let prefix = m[2] //matches the text before the  : in the parens in redir
+        //the variable name
+        let name = m[3] //matches the text after the :  in the parens in redir
         if (!prefix) {
             redir = [vars, name]
         }
@@ -8175,31 +8196,32 @@ async function doCmd(msg: Message, returnJson = false) {
             redir = [userVars[prefix], name]
         }
         skip += name.length
-        command = command.slice(skip)
         skipLength = skip
     }
     else if (m = command.match(/^t:/)) {
-        command = command.slice(2)
         typing = true
         skipLength = 2
     }
     else if (m = command.match(/^d:/)) {
-        command = command.slice(2)
         if (msg.deletable) await msg.delete()
         skipLength = 2
     }
 
     //next expand aliases
     if (!commands[command] && aliases[command]) {
+        //expand the alias to find the true command
         let expansion = await expandAlias(command, (alias) =>  {
-            addToCmdUse(alias)
-            if(BLACKLIST[msg.author.id]?.includes(alias)){
+            addToCmdUse(alias) //for every expansion, add to cmd use
+            if(BLACKLIST[msg.author.id]?.includes(alias)){ //make sure they're not blacklisted from the alias
                 handleSending(msg, {content: `You are blacklisted from ${alias}`})
                 return false
             }
             return true
         })
+        //if it was able to expand (not blacklisted, and no misc errors)
         if(expansion){
+            //alias is actually the real command
+            //aliasPreArgs are the arguments taht go after the commnad
             let [alias, aliasPreArgs] = expansion
             msg.content = `${prefix}${alias} ${aliasPreArgs.join(" ")}`
             let oldC = msg.content
@@ -8229,13 +8251,17 @@ async function doCmd(msg: Message, returnJson = false) {
     let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
     let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
 
+    //idxNo is the doFirst count (the number  of dofirst)
     let idxNo = 0
+    //idx is the position in the args variable, not the doFirst count
     for (let idx in doFirsts) {
         let cmd = doFirsts[idx]
         let oldContent = msg.content
+        //hack to run command as if message is cmd
         msg.content = cmd
         let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
         msg.content = oldContent
+        //end hack
         doFirstData[idx] = data
         doFirstCountNoToArgNo[idxNo] = idx
         idxNo++
@@ -8244,17 +8270,21 @@ async function doCmd(msg: Message, returnJson = false) {
     //If there is a dofirst, parse the %{...} stuff
     if (Object.keys(doFirstData).length > 0) {
         args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
+        //%{-1} expands to __BIRCLE__UNDEFINED__, replace with nothing
         args = args.map(v => v.replaceAll("__BIRCLE__UNDEFINED__", ""))
     }
 
 
     if (exists) {
+        //make sure it passes the command's perm check if it has one
         if (commands[command].permCheck) {
             canRun = commands[command].permCheck?.(msg) ?? true
         }
+        //is whitelisted
         if (WHITELIST[msg.author.id]?.includes(command)) {
             canRun = true
         }
+        //is blacklisted
         if (BLACKLIST[msg.author.id]?.includes(command)) {
             canRun = false
         }
@@ -8268,20 +8298,26 @@ async function doCmd(msg: Message, returnJson = false) {
         else rv = { content: "You do not have permissions to run this command" }
     }
 
+    //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
     if (!illegalLastCmds.includes(command)) {
+        //this is for the !! command
         lastCommand[msg.author.id] = msg.content
     }
     if (returnJson) {
+        //set back to old send so s: and redir: are not persistent
         msg.channel.send = oldSend
         return rv;
     }
     if (redir) {
         let [place, name] = redir
+        //set the variable to the response
         //@ts-ignore
-        place[name] = () => rv?.content
+        place[name] = () => getContentFromResult(rv)
         msg.channel.send = oldSend
+        //set back to old send so s: and redir: are not persistent
         return
     }
+    //handles the rv protocol
     handleSending(msg, rv)
     msg.channel.send = oldSend
 }
