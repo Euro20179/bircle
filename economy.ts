@@ -326,7 +326,7 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         let wantedAmount = parseFloat(amount.slice("ineeded(".length))
         return money - wantedAmount
     }
-    else if(match = amount.match(/(\d{18}):(.+)/)){
+    else if(match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)){
         let id = match[1]
         let amount = match[2]
         if(fallbackFn){
