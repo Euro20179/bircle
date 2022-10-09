@@ -1486,8 +1486,6 @@ variables:
                 return { content: "This does not appear to be a stock" }
             }
             let nPrice = Number(jsonStockInfo["regularMarketPrice"])
-            if (!nPrice)
-                return { content: `${stock} does not appear to have a price` }
             let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
             let stockName = stock
             if (realStockInfo)
