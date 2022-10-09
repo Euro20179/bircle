@@ -1973,12 +1973,15 @@ variables:
     "give-item": {
         run: async(msg, args) => {
             let [i, user] = args.join(" ").split("|").map( v => v.trim())
+            if(!user){
+                return {content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``}
+            }
             let [count, ...item] = i.split(" ")
             let itemstr = item.join(" ")
             if(!itemstr){
                 return {content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``}
             }
-            let member = await fetchUserFromClient(client, user)
+            let member = await fetchUser(msg.guild, user)
             if(!member){
                 return {content: `${user} not found`}
             }
