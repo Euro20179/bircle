@@ -1,5 +1,6 @@
 const {prefix, vars, userVars, getVarFn} = require('./common.js')
 const {format, safeEval, getOpts} = require('./util.js')
+const  economy = require('./economy.js')
 
 async function buildFormat(sequence, msg, curArg, customFormats){
     let args
@@ -33,6 +34,18 @@ async function buildFormat(sequence, msg, curArg, customFormats){
         let fmt = args.join(" ") || "<#%i>"
         let channel = msg.channel
         return format(fmt, { i: channel.id, n: channel.name })
+    }
+    case '$': {
+        return economy.calculateAmountFromString(msg.author.id, args.join(" ") || "100%")
+    }
+    case '$l': {
+        return economy.calculateLoanAmountFromString(msg.author.id, args.join(" ") || "100%")
+    }
+    case '$t': {
+        return economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%")
+    }
+    case '$n': {
+        return economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(msg.author.id, "100%")
     }
     case "user":{
         let fmt = args.join(" ") || "<@%i>"

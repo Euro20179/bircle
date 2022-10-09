@@ -293,7 +293,7 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
 function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
     let loanDebt = ECONOMY[id]?.loanUsed
     if (!loanDebt)
-        return NaN
+        return 0
     return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras, calculateLoanAmountFromString)
 }
 
