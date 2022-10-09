@@ -6699,7 +6699,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     },
     'send-log': {
         run: async(msg, args) => {
-            return {content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/, ".")}`, "utf-8")}
+            return {content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8")}
         }, category: CommandCategory.META
     },
     "list-files": {
