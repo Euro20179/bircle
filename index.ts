@@ -1358,12 +1358,17 @@ variables:
                         newText += "|"
                     }
                     if(col.length < maxLength){
-                        if(align == "left")
-                            col = col + mulStr(" ", maxLength - col.length)
-                        else if(align == "right")
-                            col = mulStr(" ", maxLength - col.length) + col
-                        else if(align == "center")
-                            col = mulStr(" ", Math.floor((maxLength - col.length) / 2)) + col + mulStr(" ", Math.ceil((maxLength - col.length) / 2))
+                        if(col.match(/^-+$/)){
+                            col = mulStr("-", maxLength)
+                        }
+                        else{
+                            if(align == "left")
+                                col = col + mulStr(" ", maxLength - col.length)
+                            else if(align == "right")
+                                col = mulStr(" ", maxLength - col.length) + col
+                            else if(align == "center")
+                                col = mulStr(" ", Math.floor((maxLength - col.length) / 2)) + col + mulStr(" ", Math.ceil((maxLength - col.length) / 2))
+                        }
                     }
                     newText += `${col}`
                 }
