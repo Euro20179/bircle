@@ -421,7 +421,7 @@ function sellStock(id: string, stock: string, shares: number, sellPrice: number)
 }
 
 function removeStock(id: string, stock: string) {
-    if (ECONOMY[id].stocks?.[stock]) {
+    if (ECONOMY[id].stocks?.[stock] !== undefined) {
         //@ts-ignore
         delete ECONOMY[id].stocks[stock]
     }
