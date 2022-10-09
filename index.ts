@@ -2228,11 +2228,17 @@ variables:
                         getting_in_negative: [
                             "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal IF=>10"
                         ],
+                        getting_in_neutral: [
+                            "{userall} is going in"
+                        ],
                         robbing_positive: [
                             "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
                         ],
                         robbing_negative: [
                             "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal  LOCATION=bank"
+                        ],
+                        robbing_neutral: [
+                            "{user1} found nothing"
                         ],
                         escape_positive: [
                             "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
@@ -2240,6 +2246,9 @@ variables:
                         escape_negative: [
                             "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
                         ],
+                        escape_neutral: [
+                            "{userall} finished the game"
+                        ]
                     }
                     let LOCATIONS = ["__generic__"]
                     for (let resp of fileResponses) {
@@ -2261,6 +2270,10 @@ variables:
                         let lose = resp.match(/LOSE=([^ ]+)/)
                         if (lose?.[1]) {
                             type = "negative"
+                        }
+                        let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
+                        if(neutral){
+                            type = "neutral"
                         }
                         let t = `${stage[1]}_${type}`
                         if (responses[t]) {
@@ -2291,9 +2304,14 @@ variables:
                         stats.adventureOrder.push([current_location, stage])
                         let shuffledPlayers = HEIST_PLAYERS.sort(() => Math.random() - .5)
                         let amount = Math.floor(Math.random() * 10)
-                        let negpos = ["negative", "positive"][Math.floor(Math.random() * 2)]
+                        let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                         let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
-                        if (!responseList) {
+                        //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
+                        while (!responseList && negpos === 'neutral') {
+                            let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
+                            responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+                        }
+                        if(!responseList){
                             return false
                         }
                         responseList = responseList.filter(v => {
