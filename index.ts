@@ -2022,7 +2022,7 @@ variables:
                     return { content: "REFLECTED", embeds: [embed] }
                 }
             }
-            else if(economy.playerEconomyLooseTotal(user.user.id) - (economy.getEconomy()[user.user.id]?.loanUsed || 0) > 0) {
+            else if(economy.playerEconomyLooseTotal(msg.author.id) - (economy.getEconomy()[msg.author.id]?.loanUsed || 0) > 0) {
                 embed.setTitle("REVERSE Taxation time")
                 let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
                 embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
