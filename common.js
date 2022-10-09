@@ -43,7 +43,7 @@ function savePermList(list){
     for(let user in list){
         data += `${user}: ${list[user].join(" ")}\n`
     }
-    writeFileSync(`command-perms/${listFile}`, data)
+    writeFileSync(`command-perms/${list}`, data)
 }
 
 function addToPermList(list, listFile, user, cmds){
