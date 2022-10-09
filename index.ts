@@ -2408,7 +2408,7 @@ variables:
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]["__heist"]()
+                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]?.["__heist"]() || 0
                                     userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
                                 }
                             }
@@ -2428,7 +2428,7 @@ variables:
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]["__heist"]()
+                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]?.["__heist"]() || 0
                                     userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
                                 }
                             }
