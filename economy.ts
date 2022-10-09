@@ -19,6 +19,17 @@ let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
+function setUserStockSymbol(id: string, symbol: string, data: {name: string, info: Stock}){
+    if(!ECONOMY[id])
+        return false
+    if(!ECONOMY[id].stocks){
+        ECONOMY[id].stocks = {}
+    }
+    //@ts-ignore
+    ECONOMY[id].stocks[data.name] = data.info
+    return true
+}
+
 function userHasStockSymbol(id: string, symbol: string) {
     if (!symbol)
         return false
@@ -467,6 +478,7 @@ function getLottery() {
     return lottery
 }
 
+
 async function getStockInformation(quote: string, cb?: (data: { change: number, price: number, "%change": string, volume: string, name: string } | false) => any, fail?: (err: any) => any): Promise<{ change: Number, price: number, "%change": string, volume: string, name: string } | false> {
     if (!quote)
         return false
@@ -545,5 +557,6 @@ export {
     work,
     economyLooseGrandTotal,
     canWork,
+    setUserStockSymbol
     // tradeItems
 }

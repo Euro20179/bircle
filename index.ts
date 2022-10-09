@@ -1911,38 +1911,20 @@ variables:
         run: async (msg, args) => {
             let stock = args[0]
             let a = args[1]
-            let data
-            try {
-                //@ts-ignore
-                data = await fetch.default(`https://www.google.com/search?q=${encodeURI(stock)}+stock`)
-            }
-            catch (err) {
+            let data = await economy.getStockInformation(stock)
+            if (!data) {
                 return { content: "No data found" }
             }
-            let text = await data.text()
-            if (text) {
-                return { content: "No data found" }
-            }
-            let stockData = text.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-            if (!stockData) {
-                return { content: "No data found" }
-            }
-            let stockName = text.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-            if (!stockName?.[1]) {
-                return { content: "Stock not found" }
-            }
-            let sn = stockName[1]
-            if (!economy.getEconomy()[msg.author.id].stocks?.[sn]) {
+            let sn = data.name
+            let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
+            if (!userStockData) {
                 return { content: "You do not own that stock" }
             }
-            //@ts-ignore
-            let amount = economy.calculateStockAmountFromString(msg.author.id, economy.getEconomy()[msg.author.id].stocks[stockName].shares, a) as number
+            let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
             if (!amount) {
                 return { content: `Invalid share count` }
             }
-            //@ts-ignore
-            let userStockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
-            if (amount > userStockInfo.shares) {
+            if (amount > userStockData.info.shares) {
                 return { content: "You dont have that many shares" }
             }
             let player = args.slice(2).join(" ")
@@ -1953,35 +1935,29 @@ variables:
             if (!economy.getEconomy()[member.id]) {
                 return { content: "Cannot give stocks to this player" }
             }
-            let oldUserShares = userStockInfo.shares
-            userStockInfo.shares -= amount
-            let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
-            if (Object.keys(otherStockInfo).length < 1) {
-                return { content: "No stock data" }
-            }
-            //@ts-ignore
-            if (!otherStockInfo.buyPrice) {
-                //@ts-ignore
-                otherStockInfo.buyPrice = userStockInfo.buyPrice
-                //@ts-ignore
-                otherStockInfo.shares = amount
+            userStockData.info.shares -= amount
+            //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
+            let otherStockInfo = economy.userHasStockSymbol(member.id, sn)
+            if(!otherStockInfo){
+                otherStockInfo = {name: sn, info: {
+                    buyPrice: userStockData.info.buyPrice,
+                    shares: amount
+                }}
             }
             else {
-                //@ts-ignore
-                let oldShareCount = otherStockInfo.shares
-                //@ts-ignore
-                let newShareCount = otherStockInfo.shares + amount
-                //@ts-ignore
-                otherStockInfo.buyPrice = (otherStockInfo.buyPrice * (oldShareCount / newShareCount)) + (userStockInfo.buyPrice * (oldUserShares / newShareCount))
-                //@ts-ignore
-                otherStockInfo.shares += amount
+                let oldShareCount = otherStockInfo.info.shares
+                let newShareCount = otherStockInfo.info.shares + amount
+                otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
+                otherStockInfo.info.shares += amount
             }
             //@ts-ignore
-            economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-            if (userStockInfo.shares == 0) {
-                economy.removeStock(msg.author.id, stockName)
+            //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
+            economy.setUserStockSymbol(msg.author.id, sn, userStockData)
+            economy.setUserStockSymbol(member.id, sn, otherStockInfo)
+            if (userStockData.info.shares == 0) {
+                economy.removeStock(msg.author.id, sn)
             }
-            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${stockName}` }
+            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}` }
         }, category: CommandCategory.ECONOMY
     },
     tax: {
