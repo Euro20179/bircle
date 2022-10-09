@@ -215,6 +215,10 @@ function safeEval (code: string, context: {[key: string]: any}, opts: any) {
     })();
   `
   code = clearContext + resultKey + '=' + code
+  if(!context){
+      context = {}
+  }
+  context = {rgbToHex, escapeRegex, escapeShell, randomColor, mulStr, ...context}
   if (context) {
     Object.keys(context).forEach(function (key) {
         //@ts-ignore
