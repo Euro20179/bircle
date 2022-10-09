@@ -195,6 +195,10 @@ function rgbToHex(r: number, g: number, b: number){
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
 
+function generateSafeEvalContextFromMessage(msg: Message){
+    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot }
+}
+
 function safeEval (code: string, context: {[key: string]: any}, opts: any) {
   let sandbox = {}
 
@@ -218,7 +222,7 @@ function safeEval (code: string, context: {[key: string]: any}, opts: any) {
   if(!context){
       context = {}
   }
-  context = {rgbToHex, escapeRegex, escapeShell, randomColor, mulStr, ...context}
+  context = {yes: true, no: false, rgbToHex, escapeRegex, escapeShell, randomColor, mulStr, ...context}
   if (context) {
     Object.keys(context).forEach(function (key) {
         //@ts-ignore
@@ -390,6 +394,7 @@ export {
     getImgFromMsgAndOpts,
     getOpts,
     handleSending,
-    fetchUserFromClient
+    fetchUserFromClient,
+    generateSafeEvalContextFromMessage
 }
 

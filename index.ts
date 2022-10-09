@@ -39,6 +39,7 @@ import economy = require("./economy")
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems } = require("./shop.js")
 
 import pet = require("./pets")
+import { generateSafeEvalContextFromMessage } from "./util"
 
 enum CommandCategory {
     UTIL,
@@ -3758,7 +3759,7 @@ variables:
             }
             let ret: any[] = []
             try {
-                ret.push(stringifyFn(safeEval(args.join(" "), { yes: true, no: false, uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, args: args, lastCommand: lastCommand[msg.author.id], ...vars }, { timeout: 3000 })))
+                ret.push(stringifyFn(safeEval(args.join(" "), {...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], ...vars }, { timeout: 3000 })))
             }
             catch (err) {
                 console.log(err)
@@ -3821,7 +3822,7 @@ variables:
         run: async (msg, args) => {
             let [condition, cmd] = args.join(" ").split(";")
             cmd = cmd.split(";end")[0]
-            if (safeEval(condition, { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
+            if (safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
                 msg.content = `${prefix}${cmd.trim()}`
                 return await doCmd(msg, true) as CommandReturn
             }
