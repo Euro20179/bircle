@@ -46,6 +46,7 @@ declare global{
                 alternates?: string[]
             }
         },
+        tags?: string[]
     }
 
     interface Command{

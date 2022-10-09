@@ -281,6 +281,9 @@ function generateTextFromCommandHelp(name: string, command: Command){
         }
         text += "\n"
     }
+    if(helpData.tags?.length){
+        text += `__Tags__:\n${helpData.tags.join(", ")}\n`
+    }
     return text.replace("\n\n\n", "\n")
 }
 
@@ -3251,9 +3254,16 @@ variables:
     "cmd-search": {
         run: async (msg, args) => {
             let search = args.join(" ")
+            let regexp;
+            try{
+                regexp = new RegExp(search)
+            }
+            catch(err){
+                return {content: "Invalid regex"}
+            }
             let results = []
             for (let cmd in commands) {
-                if (cmd.match(search)) {
+                if (cmd.match(regexp)) {
                     if (commands[cmd].help?.info) {
                         results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
                     }
@@ -3262,6 +3272,9 @@ variables:
                 else if (commands[cmd].help) {
                     let help = commands[cmd].help
                     if (help?.info?.match(search)) {
+                        results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
+                    }
+                    else if(help?.tags?.includes(search)){
                         results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
                     }
                 }
@@ -3581,9 +3594,23 @@ variables:
                     argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts[i]))
                 }
             }
-            if (Object.keys(argsForFn).length < apiFn.requirements.length) {
-                let missing = apiFn.requirements.filter(v => !Object.keys(argsForFn).includes(v))
-                return { content: `You are missing the following options: ${missing}` }
+            let missing = []
+            for(let req of apiFn.requirements.filter(v => !(apiFn.optional || []).includes(v))){
+                if(argsForFn[req] === undefined){
+                    missing.push(req)
+                }
+            }
+            if(missing.length){
+                return { content: `You are missing the following options: ${missing.join(", ")}` }
+            }
+            if(apiFn.extra){
+                let extraArgs: {[key: string]: any} = {}
+                for(let arg of apiFn.extra){
+                    if(arg === "msg"){
+                        extraArgs[arg] = msg
+                    }
+                }
+                return {content: String(await apiFn.exec({...extraArgs, ...argsForFn}))}
             }
             return { content: String(await apiFn.exec(argsForFn)) }
         }, category: CommandCategory.META
@@ -8036,7 +8063,9 @@ async function doCmd(msg: Message, returnJson = false) {
     let doFirsts: { [item: number]: string }
     let canRun = true
     let exists = true
+
     let typing = false
+
     let redir: boolean | [Object, string] = false
     let rv: CommandReturn = {};
     command = msg.content.split(" ")[0].slice(prefix.length)
@@ -8045,11 +8074,13 @@ async function doCmd(msg: Message, returnJson = false) {
 
 
     //first check for modifiers
+    let skipLength = 0
     let oldSend = msg.channel.send
     let m;
     if (m = command.match(/^s:/)) {
         msg.channel.send = async (_data) => msg
         command = command.slice(2)
+        skipLength = 2
     }
     //this regex matches: /redir!?\((prefix)?:variable\)
     else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) {
@@ -8084,14 +8115,17 @@ async function doCmd(msg: Message, returnJson = false) {
         }
         skip += name.length
         command = command.slice(skip)
+        skipLength = skip
     }
     else if (m = command.match(/^t:/)) {
         command = command.slice(2)
         typing = true
+        skipLength = 2
     }
     else if (m = command.match(/^d:/)) {
         command = command.slice(2)
         if (msg.deletable) await msg.delete()
+        skipLength = 2
     }
 
     //next expand aliases
@@ -8128,6 +8162,8 @@ async function doCmd(msg: Message, returnJson = false) {
 
     //Then parse cmd to get the cmd, arguments, and dofirsts
     [command, args, doFirsts] = await parseCmd({ msg: msg })
+
+    command = command.slice(skipLength)
 
     let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
     let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number

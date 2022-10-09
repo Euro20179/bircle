@@ -1,4 +1,4 @@
-import { Message } from "discord.js"
+import { Message, CollectorFilter } from "discord.js"
 import economy = require("./economy")
 import pet = require('./pets')
 import shop = require("./shop")
@@ -6,7 +6,7 @@ import fetch = require('node-fetch')
 
 const { fetchUser } = require("./util.js")
 
-export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>}} = {
+export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>, optional?: string[], extra?: "msg"[]}} = {
     userHasStockSymbol:  {
         requirements: ["id", "symbol"],
         exec: async({ id, symbol }: {id: string, symbol: string}) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
@@ -61,6 +61,38 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
             }
         }
     },
+    "input": {
+        exec: async ({msg, prompt, who, timeout}: {msg: Message, prompt?: string, who?: boolean | string | number, timeout?: number}) => {
+            if (prompt && typeof prompt === 'string') {
+                await msg.channel.send(prompt)
+            }
+            let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id && !m.author.bot
+            if (who === false || who === 0) {
+                filter = (m: Message) => !m.author.bot
+            }
+            else if (typeof who === 'string') {
+                filter = (m: any) => m.author.id === who && !m.author.bot
+            }
+            let t = 30000
+            if (typeof timeout === 'number') {
+                t = timeout * 1000
+            }
+            try {
+                let collected = await msg.channel.awaitMessages({ filter: filter, max: 1, time: t, errors: ["time"] })
+                let resp = collected.at(0)
+                if (typeof resp === 'undefined') {
+                    return "0"
+                }
+                return JSON.stringify(resp)
+            }
+            catch (err) {
+                return "0"
+            }
+        },
+        requirements: ["prompt", "who", "timeout"],
+        optional: ["who", "timeout"],
+        extra: ['msg']
+    },
     // fetchURL: {
     //     requirements: ["url", "data"],
     //     exec: async({ url, data }: {url: string, data: "text"}) => {
@@ -84,7 +116,18 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
                 return member.id
             return (await fetchUser(msg.guild, argument))?.user?.id || msg.author.id
         }
+        case "who":{
+            if(Number(argument) === 0){
+                return 0
+            }
+            else{
+                return argument
+            }
+        }
+        case "timeout":
+            return parseFloat(argument)
         case "url":
+        case "prompt":
         case "data":
         case "symbol": {
             return argument
