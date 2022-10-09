@@ -270,6 +270,16 @@ function setMoney(id: string, amount: number) {
 }
 
 function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }) {
+    let user;
+    [user, amount] = amount.split(":")
+    if(amount !== undefined){
+        if(!isNaN(Number(user)) && user.length === 18){
+            id = user
+        }
+    }
+    else{
+        amount = user
+    }
     if (ECONOMY[id] === undefined) {
         return NaN
     }
@@ -292,6 +302,17 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
 
 function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }) {
     let loanDebt = ECONOMY[id]?.loanUsed
+    let user;
+    [user, amount] = amount.split(":")
+    if(amount !== undefined){
+        if(!isNaN(Number(user)) && user.length === 18){
+            id = user
+            loanDebt = ECONOMY[id]?.loanUsed
+        }
+    }
+    else{
+        amount = user
+    }
     if (!loanDebt)
         return NaN
     return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras)
@@ -347,6 +368,17 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
 }
 
 function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData) => number }) {
+    let user;
+    [user, amount] = amount.split(":")
+    console.log(user, amount)
+    if(amount !== undefined){
+        if(!isNaN(Number(user)) && user.length === 18){
+            id = user
+        }
+    }
+    else{
+        amount = user
+    }
     if (ECONOMY[id] === undefined) {
         return NaN
     }
