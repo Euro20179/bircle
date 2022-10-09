@@ -6697,6 +6697,11 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
         category: CommandCategory.META
     },
+    'send-log': {
+        run: async(msg, args) => {
+            return {content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/, ".")}`, "utf-8")}
+        }, category: CommandCategory.META
+    },
     "list-files": {
         run: async (msg, args) => {
             return { content: fs.readdirSync('./command-results').join("\n") }
