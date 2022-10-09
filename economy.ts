@@ -269,17 +269,7 @@ function setMoney(id: string, amount: number) {
     }
 }
 
-function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }) {
-    let user;
-    [user, amount] = amount.split(":")
-    if(amount !== undefined){
-        if(!isNaN(Number(user)) && user.length === 18){
-            id = user
-        }
-    }
-    else{
-        amount = user
-    }
+function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
@@ -290,7 +280,7 @@ function calculateAmountFromStringIncludingStocks(id: string, amount: string, ex
             total += stocks[stock].buyPrice * stocks[stock].shares
         }
     }
-    return calculateAmountOfMoneyFromString(id, total, amount, extras)
+    return calculateAmountOfMoneyFromString(id, total, amount, extras, calculateAmountFromStringIncludingStocks)
 }
 
 function calculateStockAmountFromString(id: string, shareCount: number, amount: string) {
@@ -300,31 +290,21 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     return calculateAmountOfMoneyFromString(id, shareCount, amount)
 }
 
-function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }) {
+function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
     let loanDebt = ECONOMY[id]?.loanUsed
-    let user;
-    [user, amount] = amount.split(":")
-    if(amount !== undefined){
-        if(!isNaN(Number(user)) && user.length === 18){
-            id = user
-            loanDebt = ECONOMY[id]?.loanUsed
-        }
-    }
-    else{
-        amount = user
-    }
     if (!loanDebt)
         return NaN
-    return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras)
+    return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras, calculateLoanAmountFromString)
 }
 
-function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData) => number }): number {
+function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }, fallbackFn?: (id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number}) => number ): number {
     if (amount == undefined || amount == null) {
         return NaN
     }
     if (amount === 'Infinity')
         return Infinity
     amount = amount.toLowerCase()
+    let match //for else if(match =...)
     if (amount == "all") {
         return money * .99
     }
@@ -346,9 +326,18 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         let wantedAmount = parseFloat(amount.slice("ineeded(".length))
         return money - wantedAmount
     }
+    else if(match = amount.match(/(\d{18}):(.+)/)){
+        let id = match[1]
+        let amount = match[2]
+        if(fallbackFn){
+            return fallbackFn(id, amount, extras)
+        }
+        return NaN
+    }
     for (let e in extras) {
-        if (amount.match(e)) {
-            return extras[e](money, amount, ECONOMY[id])
+        let match;
+        if (match = amount.match(e)) {
+            return extras[e](money, amount, ECONOMY[id], match)
         }
     }
     if (Number(amount)) {
@@ -367,22 +356,11 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
     return 0
 }
 
-function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData) => number }) {
-    let user;
-    [user, amount] = amount.split(":")
-    console.log(user, amount)
-    if(amount !== undefined){
-        if(!isNaN(Number(user)) && user.length === 18){
-            id = user
-        }
-    }
-    else{
-        amount = user
-    }
+function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
-    return calculateAmountOfMoneyFromString(id, ECONOMY[id].money, amount, extras)
+    return calculateAmountOfMoneyFromString(id, ECONOMY[id].money, amount, extras, calculateAmountFromString)
 }
 
 function resetEconomy() {
