@@ -105,7 +105,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     // }
 }
 
-export async function handleApiArgumentType(msg: Message, t: string, argument: string){
+export async function handleApiArgumentType(msg: Message, t: string, argument: string): Promise<any>{
     switch(t){
         case "id": {
             if(argument.length == 19 && argument[0] == "%"){
@@ -121,7 +121,7 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
                 return 0
             }
             else{
-                return argument
+                return await handleApiArgumentType(msg, "id", argument)
             }
         }
         case "timeout":

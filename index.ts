@@ -3577,7 +3577,18 @@ variables:
             if (opts['l']) {
                 let text = ""
                 for (let fn in API.APICmds) {
-                    text += `${fn}: ${API.APICmds[fn].requirements.join(", ")}\n--------------------\n`
+                    let requirements = API.APICmds[fn].requirements
+                    let optional = API.APICmds[fn].optional
+                    text += `${fn}: `
+                    if(optional){
+                        //@ts-ignore
+                        requirements = requirements.filter(v => !optional.includes(v))
+                    }
+                    text += `${requirements.join(", ")} `
+                    if(optional){
+                        text += `${optional.map(v => `[${v}]`).join(", ")}`
+                    }
+                    text += `\n--------------------\n`
                 }
                 return { content: text }
             }
@@ -8389,6 +8400,9 @@ client.on("messageCreate", async (m: Message) => {
 })
 
 client.on("interactionCreate", async (interaction: Interaction) => {
+    if(interaction?.user?.username === undefined){
+        return
+    }
     if (interaction.isButton() && !interaction.replied) {
         if (interaction.customId == `button:${interaction.member?.user.id}`) {
             //@ts-ignore
