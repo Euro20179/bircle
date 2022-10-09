@@ -1911,17 +1911,13 @@ variables:
         run: async (msg, args) => {
             let stock = args[0]
             let a = args[1]
-            let data = await economy.getStockInformation(stock)
-            if (!data) {
-                return { content: "No data found" }
-            }
-            let sn = data.name
+            let sn = stock
             let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
             if (!userStockData) {
                 return { content: "You do not own that stock" }
             }
             let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
-            if (!amount) {
+            if (amount <= 0) {
                 return { content: `Invalid share count` }
             }
             if (amount > userStockData.info.shares) {
@@ -1957,8 +1953,22 @@ variables:
             if (userStockData.info.shares == 0) {
                 economy.removeStock(msg.author.id, sn)
             }
-            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}` }
-        }, category: CommandCategory.ECONOMY
+            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: {parse: []}}
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Give a stock to a user",
+            arguments: {
+                stock: {
+                    description: "The stock to give"
+                },
+                shares: {
+                    description: "The amount of shares to give"
+                },
+                user: {
+                    description: "The user to give the shares to"
+                }
+            }
+        }
     },
     tax: {
         run: async (msg, args) => {
