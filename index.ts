@@ -591,6 +591,51 @@ variables:
             }
         }
     },
+    'get-source': {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if(opts['of-file']){
+                let file = opts['of-file']
+                if(fs.existsSync(`./${file}.ts`)){
+
+                    return {
+                        files: [
+                            {
+                                attachment: `./${file}.ts`,
+                                delete: false,
+                                name: `${file}.ts`,
+                            }
+                        ]
+                    }
+                }
+                return {content: `./${file}.ts not found`}
+            }
+            let cmd = args[0]
+
+            if(!cmd){
+                return {content: "No cmd  chosen"}
+            }
+            let command = Object.keys(commands).filter(v => v.toLowerCase() === cmd.toLowerCase())
+            if(!command.length)
+                return {content: "no command found"}
+            return {content: String(commands[command[0]].run)}
+        }, category: CommandCategory.META,
+        help: {
+            info: "Get the source code of a file, or a command",
+            arguments: {
+                command: {
+                    description: "The command to get the source code  of",
+                    required: false
+                }
+            },
+            options: {
+                'of-file': {
+                    description: "If command is not given, use this to get the source of a file"
+                }
+            }
+        }
+    },
     buy: {
         run: async (msg, args) => {
             let allowedTypes = ["stock", "pet", "item"]
