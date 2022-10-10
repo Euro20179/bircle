@@ -69,29 +69,48 @@ function removeFromPermList(list, listFile, user, cmds){
 const FILE_SHORTCUTS = {"distance": "distance-easter-egg", "8": "8ball"}
 
 let vars = {
-    random: () => Math.random(),
-    rand: () => Math.random(),
-    prefix: () => prefix,
-    vcount: () => Object.keys(vars).length,
-    sender: (msg) => `<@${msg.author.id}>`,
-    carson: () => "The all legendary Carson Williams",
-    money: (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
+    "__global__": {
+        random: () => Math.random(),
+        rand: () => Math.random(),
+        prefix: () => prefix,
+        scopecount: () => Object.keys(vars).length,
+        sender: (msg) => `<@${msg.author.id}>`,
+        carson: () => "The all legendary Carson Williams",
+        money: (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
+        "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
+    }
 }
-let userVars = {}
+
+function setVar(varName, value, prefix){
+    if(!prefix){
+        prefix = "__global__"
+    }
+    if(!vars[prefix]){
+        vars[prefix] = {[varname]: value}
+    }
+    else if(vars[prefix]){
+        vars[prefix][varname] = value
+    }
+    if(typeof vars[prefix] === 'object'){
+        return false
+    }
+    return true
+}
 
 function getVarFn(varName, isUserVar, prefix){
-    if(isUserVar && userVars[prefix]?.[varName]){
-        return userVars[prefix][varName]
+    if(!prefix)
+        prefix = "__global__"
+    if(isUserVar && vars[prefix]?.[varName]){
+        return vars[prefix][varName]
     }
-    else if(isUserVar && vars[varName]){
+    else if(isUserVar && vars['__global__'][varName]){
         return vars[varName]
     }
-    else if(prefix && !isUserVar && userVars[prefix]?.[varName]){
-        return userVars[prefix][varName]
+    else if(prefix && !isUserVar && vars[prefix]?.[varName]){
+        return vars[prefix][varName]
     }
-    else if(vars[varName]){
-        return vars[varName]
+    else if(vars["__global__"][varName]){
+        return vars["__global__"][varName]
     }
     else{
         return false
@@ -127,9 +146,9 @@ module.exports = {
     removeFromPermList: removeFromPermList,
     LOGFILE: LOGFILE,
     VERSION: VERSION,
-    userVars: userVars,
     USER_SETTINGS: USER_SETTINGS,
     getVarFn: getVarFn,
     client: client,
-    readVar: readVar
+    readVar: readVar,
+    setVar: setVar
 }

@@ -1,4 +1,4 @@
-const {prefix, vars, userVars, getVarFn, readVar} = require('./common.js')
+const {prefix, vars, getVarFn, readVar} = require('./common.js')
 const {format, safeEval, getOpts, generateSafeEvalContextFromMessage} = require('./util.js')
 const  economy = require('./economy.js')
 

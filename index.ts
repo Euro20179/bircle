@@ -26,7 +26,7 @@ import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
 
-const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client, readVar } = require('./common.js')
+const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client, readVar, setVar } = require('./common.js')
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
@@ -2212,10 +2212,10 @@ variables:
                     let stages = ["getting in", "robbing", "escape"]
                     for (let player of HEIST_PLAYERS) {
                         data[player] = 0
-                        if(!userVars[player]){
-                            userVars[player] = {}
+                        if(!vars[player]){
+                            vars[player] = {}
                         }
-                        userVars[player]['__heist'] = 0
+                        vars[player]['__heist'] = 0
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     //let fileResponses: string[] = []
@@ -2402,14 +2402,14 @@ variables:
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                         let oldValue = Number(readVar(msg, "__heist", false, player))
-                                        userVars[player]['__heist'] = oldValue + amount
+                                        vars[player]['__heist'] = oldValue + amount
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
-                                    userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
+                                    vars[shuffledPlayers[Number(user) - 1]]['__heist'] = oldValue + amount
                                 }
                             }
                         }
@@ -2422,14 +2422,14 @@ variables:
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                         let oldValue = Number(readVar(msg, "__heist", false, player))
-                                        userVars[player]['__heist'] = () => oldValue + amount
+                                        vars[player]['__heist'] = () => oldValue + amount
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
-                                    userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
+                                    vars[shuffledPlayers[Number(user) - 1]]['__heist'] = oldValue + amount
                                 }
                             }
                         }
@@ -3795,16 +3795,16 @@ variables:
             }
             let ret: any[] = []
             try {
-                ret.push(stringifyFn(safeEval(args.join(" "), {...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], ...vars }, { timeout: 3000 })))
+                ret.push(stringifyFn(safeEval(args.join(" "), {...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], ...vars["__global__"] }, { timeout: 3000 })))
             }
             catch (err) {
                 console.log(err)
             }
             if (ret.length) {
-                if (userVars && userVars[msg.author.id])
-                    userVars[msg.author.id]["__calc"] = ret.join(sep as string)
+                if (vars && vars[msg.author.id])
+                    vars[msg.author.id]["__calc"] = ret.join(sep as string)
                 else
-                    userVars[msg.author.id] = { "__calc": ret.join(sep as string) }
+                    vars[msg.author.id] = { "__calc": ret.join(sep as string) }
             }
             return { content: ret.join(sep) }
         },
@@ -6233,15 +6233,13 @@ variables:
     },
     "vars": {
         run: async (msg, args) => {
-            let rv = "Global Vars:\n"
-            for (let v in vars) {
-                rv += `${v.replaceAll("_", "\\_")}\n`
-            }
-            for (let prefix in userVars) {
-                rv += `----------------------\n${prefix}:\n`
-                for (let v in userVars[prefix]) {
+            let rv = ""
+            for (let prefix in vars) {
+                rv += `${prefix}:\n`
+                for (let v in vars[prefix]) {
                     rv += `${v.replaceAll("_", "\\_")}\n`
                 }
+                rv += '-------------------------\n'
             }
             return { content: rv }
         },
@@ -6345,17 +6343,17 @@ variables:
         run: async (msg, args) => {
             let vname = args[0]
             let varValRet
-            let vardict = vars
+            let vardict = vars["__global__"]
             if (isNaN(parseFloat(vname))) {
-                let vvalue = vars[vname]
+                let vvalue = vars["__global__"][vname]
                 if (vvalue === undefined) {
-                    vardict = userVars[msg.author.id]
-                    vvalue = userVars[msg.author.id]?.[vname]
+                    vardict = vars[msg.author.id]
+                    vvalue = vars[msg.author.id]?.[vname]
                 }
                 if (vvalue === undefined) {
-                    vardict = vars
-                    vars[vname] = () => '0'
-                    vvalue = vars[vname]
+                    vardict = vars["__global__"]
+                    vars["__global__"][vname] = '0'
+                    vvalue = vars["__global__"][vname]
                 }
                 varValRet = vvalue(msg)
             }
@@ -6366,13 +6364,13 @@ variables:
             let op = args[1]
             let expr = args[2]
             if (expr && isNaN(parseFloat(expr))) {
-                let vvalue = vars[expr]
+                let vvalue = vars["__global__"][expr]
                 if (vvalue === undefined) {
-                    vvalue = userVars[msg.author.id]?.[expr]
+                    vvalue = vars[msg.author.id]?.[expr]
                 }
                 if (vvalue === undefined) {
-                    vars[expr] = () => '0'
-                    vvalue = vars[expr]
+                    vars["__global__"][expr] = '0'
+                    vvalue = vars["__global__"][expr]
                 }
                 if (vvalue === undefined) {
                     return { content: `var: **${expr}** does not exist` }
@@ -6430,7 +6428,7 @@ variables:
                     ans = parseFloat(varValRet) % parseFloat(expr)
                     break;
             }
-            vardict[vname] = () => ans
+            vardict[vname] = ans
             return { content: String(ans) }
         },
         help: {
@@ -6579,35 +6577,35 @@ variables:
             let realVal = value.join(" ")
             if (opts['prefix']) {
                 let prefix = String(opts['prefix'])
-                if (prefix.match(/^\d{19}/)) {
+                if (prefix.match(/^\d{18}/)) {
                     return { content: "No ids allowed" }
                 }
-                if (userVars[prefix]) {
-                    userVars[prefix][name] = realVal
+                if (vars[prefix]) {
+                    vars[prefix][name] = realVal
                 }
                 else {
-                    userVars[prefix] = { [name]: realVal }
+                    vars[prefix] = { [name]: realVal }
                 }
                 if (!opts['silent'])
                     return { content: readVar(msg, name, false, prefix) }
             }
             else if (opts['u']) {
-                if (userVars[msg.author.id]) {
-                    userVars[msg.author.id][name] = realVal
+                if (vars[msg.author.id]) {
+                    vars[msg.author.id][name] = realVal
                 }
                 else {
-                    userVars[msg.author.id] = { [name]: realVal }
+                    vars[msg.author.id] = { [name]: realVal }
                 }
                 if (!opts['silent'])
                     return {
-                        content: readVar(name, true)
+                        content: readVar(msg, name, true, msg.author.id)
                     }
             }
             else {
-                vars[name] = realVal
+                vars["__global__"][name] = realVal
                 if (!opts['silent'])
                     return {
-                        content: readVar(name, false)
+                        content: readVar(msg, name, false)
                     }
             }
             return { noSend: true }
@@ -8227,9 +8225,9 @@ async function doCmd(msg: Message, returnJson = false) {
         }
         else if (prefix) {
             skip += prefix.length
-            if (!userVars[prefix])
-                userVars[prefix] = {}
-            redir = [userVars[prefix], name]
+            if (!vars[prefix])
+                vars[prefix] = {}
+            redir = [vars[prefix], name]
         }
         skip += name.length
         skipLength = skip
