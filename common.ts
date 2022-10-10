@@ -168,9 +168,11 @@ function getVar(msg: Message, varName: string, prefix?: string){
         }
         else if(prefix === "%"){
             prefix = msg.author.id
+            varName = name.join(":")
         }
         else varName  = name.join(":");
     }
+    console.log(prefix, vars[prefix], vars[prefix]?.[varName])
     if(vars[prefix] && vars[prefix][varName]){
         return readVarVal(msg, vars[prefix][varName])
     }
