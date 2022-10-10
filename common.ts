@@ -166,7 +166,7 @@ function getVar(msg: Message, varName: string, prefix?: string){
             varName = prefix
             prefix = "__global__"
         }
-        if(prefix === "%"){
+        else if(prefix === "%"){
             prefix = msg.author.id
         }
         else varName  = name.join(":");
