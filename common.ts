@@ -105,7 +105,7 @@ function readVars(){
 
 readVars()
 
-function setVar(varName: string, value: string, prefix: string){
+function setVar(varName: string, value: string, prefix?: string){
     if(!prefix){
         prefix = "__global__"
     }
@@ -114,9 +114,6 @@ function setVar(varName: string, value: string, prefix: string){
     }
     else if(vars[prefix]){
         vars[prefix][varName] = value
-    }
-    if(typeof vars[prefix] === 'object'){
-        return false
     }
     return true
 }
@@ -153,6 +150,9 @@ function readVarVal(msg: Message, variableData: Function | any){
     else if(typeof variableData === 'function'){
         return variableData(msg)
     }
+    else if(typeof variableData === 'number'){
+        return String(variableData)
+    }
     else{
         return String(variableData)
     }
@@ -164,11 +164,15 @@ function getVar(msg: Message, varName: string, prefix?: string){
         [prefix, ...name] = varName.split(":")
         if(!name.length){
             varName = prefix
+            prefix = "__global__"
+        }
+        if(prefix === "%"){
+            prefix = msg.author.id
         }
         else varName  = name.join(":");
     }
     if(vars[prefix] && vars[prefix][varName]){
-        return readVarVal(msg, vars[prefix])
+        return readVarVal(msg, vars[prefix][varName])
     }
     return false
 }

@@ -6621,6 +6621,7 @@ variables:
             }
             else {
                 setVar(name, realVal)
+                console.log(getVar(msg, name))
                 if (!opts['silent'])
                     return {
                         content: getVar(msg, name)
