@@ -8541,7 +8541,6 @@ async function doCmd(msg: Message, returnJson = false) {
     if (m = command.match(/^s:/)) { //s: (silent) modifier
         //change this function to essentially do nothing, it just returns the orriginal message as it must return a message
         msg.channel.send = async (_data) => msg
-        command = command.slice(2)
         skipLength = 2
     }
     //this regex matches: /redir!?\((prefix)?:variable\)
@@ -8549,7 +8548,7 @@ async function doCmd(msg: Message, returnJson = false) {
         //whether or not to redirect *all* message sends to the variable, or just the return value from the command
         let all = m[1] //this matches the ! after redir
         //length of: redir(:)
-        let skip = 9 //the base length of redir:(:)
+        let skip = 9 //the base length of redir(:):
         if (all) {
             //add 1 for the !
             skip++
@@ -8567,11 +8566,14 @@ async function doCmd(msg: Message, returnJson = false) {
             }
         }
         //the variable scope
-        let prefix = m[2] || "__global__" //matches the text before the  : in the parens in redir
+        let prefix = m[2] //matches the text before the  : in the parens in redir
+        console.log(prefix.length)
+        skip += prefix.length
         //the variable name
         let name = m[3] //matches the text after the :  in the parens in redir
         if (!prefix) {
-            redir = [vars, name]
+            prefix = "__global__"
+            redir = [vars["__global__"], name]
         }
         else if (prefix) {
             skip += prefix.length
@@ -8579,7 +8581,7 @@ async function doCmd(msg: Message, returnJson = false) {
                 vars[prefix] = {}
             redir = [vars[prefix], name]
         }
-        skip += name.length + prefix.length
+        skip += name.length
         skipLength = skip
     }
     else if (m = command.match(/^t:/)) {
@@ -8590,6 +8592,9 @@ async function doCmd(msg: Message, returnJson = false) {
         if (msg.deletable) await msg.delete()
         skipLength = 2
     }
+
+    command = command.slice(skipLength)
+    console.log(command)
 
     //next expand aliases
     if (!commands[command] && aliases[command]) {
@@ -8628,9 +8633,8 @@ async function doCmd(msg: Message, returnJson = false) {
     }
 
     //Then parse cmd to get the cmd, arguments, and dofirsts
-    [command, args, doFirsts] = await parseCmd({ msg: msg })
-
-    command = command.slice(skipLength)
+    let _
+    [_, args, doFirsts] = await parseCmd({ msg: msg })
 
     let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
     let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
