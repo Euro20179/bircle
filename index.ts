@@ -3104,8 +3104,9 @@ variables:
                 sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => (b[1].loanUsed || 0) - (a[1].loanUsed || 0))
             }
             else{
-                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()
             }
+            sortedEconomy = sortedEconomy.slice(0, place)
             let totalEconomy = 0
             if(opts['nw']){
                 for(let id in econ){
