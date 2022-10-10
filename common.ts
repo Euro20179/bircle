@@ -1,3 +1,5 @@
+import { Message, User } from "discord.js";
+
 const { readFileSync, writeFileSync, existsSync } = require("fs");
 const {Client, Intents} = require("discord.js")
 
@@ -16,7 +18,7 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 
 let USER_SETTINGS = {}
 
-let WHITELIST = {}
+let WHITELIST: {[key: string]: string[]} = {}
 function reloadWhiteList(){
     let wlF = readFileSync("command-perms/whitelists", "utf-8")
     for(let line of wlF.split("\n")){
@@ -27,7 +29,7 @@ function reloadWhiteList(){
         WHITELIST[user] = cmdlist.split(" ")
     }
 }
-let BLACKLIST = {}
+let BLACKLIST: {[key: string]: string[]} = {}
 function reloadBlackList(){
     let blF = readFileSync("command-perms/blacklists", "utf-8")
     for(let line of blF.split("\n")){
@@ -41,7 +43,7 @@ function reloadBlackList(){
 reloadBlackList()
 reloadWhiteList()
 
-function savePermList(list, listFile){
+function savePermList(list: {[key: string]: string[]}, listFile: string){
     let data = ""
     for(let user in list){
         data += `${user}: ${list[user].join(" ")}\n`
@@ -49,7 +51,7 @@ function savePermList(list, listFile){
     writeFileSync(`command-perms/${listFile}`, data)
 }
 
-function addToPermList(list, listFile, user, cmds){
+function addToPermList(list: {[key: string]: string[]}, listFile: string, user: User, cmds: string[]){
     if(list[user.id]){
         list[user.id] = list[user.id].concat(cmds)
     } else{
@@ -57,7 +59,7 @@ function addToPermList(list, listFile, user, cmds){
     }
     savePermList(list, listFile)
 }
-function removeFromPermList(list, listFile, user, cmds){
+function removeFromPermList(list: {[key: string]: string[]}, listFile: string, user: User, cmds: string[]){
     if(list[user.id]){
         list[user.id] = list[user.id].filter(v => !cmds.includes(v))
     } else{
@@ -73,13 +75,13 @@ let defaultVars = {
     rand: () => Math.random(),
     prefix: () => prefix,
     scopecount: () => Object.keys(vars).length,
-    sender: (msg) => `<@${msg.author.id}>`,
+    sender: (msg: Message) => `<@${msg.author.id}>`,
     carson: () => "The all legendary Carson Williams",
-    money: (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
+    money: (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
+    "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
 }
 
-let vars = {
+let vars: {[key: string]: {[key: string]: Function | any}} = {
     "__global__": {
         ...defaultVars
     }
@@ -103,7 +105,7 @@ function readVars(){
 
 readVars()
 
-function setVar(varName, value, prefix){
+function setVar(varName: string, value: string, prefix: string){
     if(!prefix){
         prefix = "__global__"
     }
@@ -119,7 +121,7 @@ function setVar(varName, value, prefix){
     return true
 }
 
-function getVarFn(varName, isUserVar, prefix){
+function getVarFn(varName: string, isUserVar: boolean, prefix: string){
     if(!prefix)
         prefix = "__global__"
     if(isUserVar && vars[prefix]?.[varName]){
@@ -139,7 +141,7 @@ function getVarFn(varName, isUserVar, prefix){
     }
 }
 
-function readVar(msg, varName, isUserVar, prefix){
+function readVar(msg: Message, varName: string, isUserVar: boolean, prefix: string){
     let v = getVarFn(varName, isUserVar, prefix)
     if(v === false){
         return false
@@ -155,24 +157,24 @@ function readVar(msg, varName, isUserVar, prefix){
     }
 }
 
-module.exports = {
-    prefix: prefix,
-    vars: vars,
-    ADMINS: ADMINS,
-    FILE_SHORTCUTS: FILE_SHORTCUTS,
-    WHITELIST: WHITELIST,
-    BLACKLIST: BLACKLIST,
-    reloadBlackList: reloadBlackList,
-    reloadWhiteList: reloadWhiteList,
-    addToPermList: addToPermList,
-    removeFromPermList: removeFromPermList,
-    LOGFILE: LOGFILE,
-    VERSION: VERSION,
-    USER_SETTINGS: USER_SETTINGS,
-    getVarFn: getVarFn,
-    client: client,
-    readVar: readVar,
-    setVar: setVar,
-    readVars: readVars,
-    saveVars: saveVars
+export {
+    prefix,
+    vars,
+    ADMINS,
+    FILE_SHORTCUTS,
+    WHITELIST,
+    BLACKLIST,
+    reloadBlackList,
+    reloadWhiteList,
+    addToPermList,
+    removeFromPermList,
+    LOGFILE,
+    VERSION,
+    USER_SETTINGS,
+    getVarFn,
+    client,
+    readVar,
+    setVar,
+    readVars,
+    saveVars,
 }
