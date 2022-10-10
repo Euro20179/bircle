@@ -3176,7 +3176,7 @@ variables:
                 "nw": {
                     description: "Show the net worth  leaderboard"
                 }
-            }
+            },
         }
     },
     "del-var": {
@@ -3196,7 +3196,24 @@ variables:
                 }
             }
             return {content: `Deleted: \`${deleted.join(", ")}\``}
-        }, category: CommandCategory.META
+        }, category: CommandCategory.META,
+        help: {
+            info: "Delete a variable",
+            arguments: {
+                "variables...": {
+                    description: "Delete each variable seperatted by a space",
+                    required: true
+                }
+            },
+            options: {
+                u: {
+                    description: "Delete a user variable"
+                },
+                prefix: {
+                    description: "Delete  a variable from the specified prefix"
+                }
+            }
+        }
     },
     "savev": {
         run: async(msg, args) => {
