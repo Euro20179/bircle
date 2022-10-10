@@ -365,7 +365,7 @@ const commands: { [command: string]: Command } = {
                 //d, g, s
                 //also implement range based range eg: n,n2
                 //also add /regex/ range syntax
-                let cmds = "qnaipgsd"
+                let cmds = "qnaipgsdg"
                 let range = ""
                 let startArgs = false
                 let cmd = ""
@@ -487,6 +487,32 @@ const commands: { [command: string]: Command } = {
                 return [searchRegex, replaceWith, flags]
             }
 
+            async function handleTextInMode(textStr: string, mode: string){
+                if(mode === "normal"){
+                    let [range, cmd, cmdArgs] = parseNormalEdInput(textStr)
+                    if(edCmds[cmd]){
+                        if(!edCmds[cmd](range, cmdArgs)){
+                            return false
+                        }
+                    }
+                    else if(!isNaN(Number(range))){
+                        currentLine = Number(range)
+                    }
+                    else{
+                        await handleSending(msg, {content: "?"})
+                    }
+                }
+                else{
+                    if(textStr === '.'){
+                        mode = "normal"
+                    }
+                    else{
+                        text = addTextAtPosition(text, textStr, currentLine)
+                    }
+                }
+                return true
+            }
+
             let text: string[] = []
             let currentLine = 0
             let commandLines = [0]
@@ -563,31 +589,7 @@ const commands: { [command: string]: Command } = {
                     return false
                 }
             }
-            async function handleTextInMode(textStr: string, mode: string){
-                if(mode === "normal"){
-                    let [range, cmd, cmdArgs] = parseNormalEdInput(textStr)
-                    if(edCmds[cmd]){
-                        if(!edCmds[cmd](range, cmdArgs)){
-                            return false
-                        }
-                    }
-                    else if(!isNaN(Number(range))){
-                        currentLine = Number(range)
-                    }
-                    else{
-                        await handleSending(msg, {content: "?"})
-                    }
-                }
-                else{
-                    if(textStr === '.'){
-                        mode = "normal"
-                    }
-                    else{
-                        text = addTextAtPosition(text, textStr, currentLine)
-                    }
-                }
-                return true
-            }
+
             if(opts['exec']){
                 for(let line of args.join(" ").split("\n")){
                     if(!(await handleTextInMode(line, mode))){
@@ -8565,7 +8567,7 @@ async function doCmd(msg: Message, returnJson = false) {
             }
         }
         //the variable scope
-        let prefix = m[2] //matches the text before the  : in the parens in redir
+        let prefix = m[2] || "__global__" //matches the text before the  : in the parens in redir
         //the variable name
         let name = m[3] //matches the text after the :  in the parens in redir
         if (!prefix) {
@@ -8577,7 +8579,7 @@ async function doCmd(msg: Message, returnJson = false) {
                 vars[prefix] = {}
             redir = [vars[prefix], name]
         }
-        skip += name.length
+        skip += name.length + prefix.length
         skipLength = skip
     }
     else if (m = command.match(/^t:/)) {
