@@ -182,12 +182,12 @@ function buildEscape(letter, sequence, msg, curArg){
             }
             else if(scope == "."){
                 let v = getVar(msg, name)
-                if(v !== undefined)
+                if(v !== false)
                     return v
                 else return `\\V{${sequence}}`
             }
             let v = getVar(msg, name, scope)
-            if(v !== undefined)
+            if(v !== false)
                 return v
             else return `\\V{${sequence}}`
         }
@@ -199,9 +199,9 @@ function buildEscape(letter, sequence, msg, curArg){
                 return String(args[num])
             }
             let v = getVar(msg, sequence)
-            if(v === undefined)
+            if(v === false)
                 v = getVar(msg, sequence, msg.author.id)
-            if(v !== undefined)
+            if(v !== false)
                 return v
             else return `\\v{${sequence}}`
         case "\\":
