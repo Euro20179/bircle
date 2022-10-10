@@ -4402,7 +4402,7 @@ variables:
                 }
             }
             const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
-            let lines = text.split("\n")
+            let lines = text.split(";END")
             if (opts['arg']) {
                 let argNo = Number(opts['args'])
                 if (isNaN(argNo)) {
@@ -6747,6 +6747,8 @@ variables:
                             return
                         }
                         let removal = data[num - 1]
+                        if(!removal)
+                            return
                         let userCreated = removal.split(":")[0].trim()
                         if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
                             await msg.channel.send({
