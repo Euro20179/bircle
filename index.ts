@@ -6366,21 +6366,29 @@ variables:
 
     "expr": {
         run: async (msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
             let vname = args[0]
             let varValRet
-            let vardict = vars["__global__"]
+            let mainScope = "__global__"
+            let secondaryScope = msg.author.id
+            if(opts['u']){
+                mainScope = msg.author.id
+                secondaryScope = "__global__"
+            }
+            let vardict = vars[mainScope]
             if (isNaN(parseFloat(vname))) {
-                let vvalue = vars["__global__"][vname]
+                let vvalue = vars[mainScope][vname]
                 if (vvalue === undefined) {
-                    vardict = vars[msg.author.id]
-                    vvalue = vars[msg.author.id]?.[vname]
+                    vardict = vars[secondaryScope]
+                    vvalue = readVar(msg, vname, false, secondaryScope)
                 }
                 if (vvalue === undefined) {
-                    vardict = vars["__global__"]
-                    vars["__global__"][vname] = '0'
-                    vvalue = vars["__global__"][vname]
+                    vardict = vars[mainScope]
+                    setVar(vname, "0", mainScope)
+                    vvalue = readVar(msg, vname, false, mainScope)
                 }
-                varValRet = vvalue(msg)
+                varValRet = vvalue
             }
             else {
                 varValRet = vname
@@ -6389,13 +6397,13 @@ variables:
             let op = args[1]
             let expr = args[2]
             if (expr && isNaN(parseFloat(expr))) {
-                let vvalue = vars["__global__"][expr]
+                let vvalue = vars[mainScope][expr]
                 if (vvalue === undefined) {
-                    vvalue = vars[msg.author.id]?.[expr]
+                    vvalue = readVar(msg, vname, false, secondaryScope)
                 }
                 if (vvalue === undefined) {
-                    vars["__global__"][expr] = '0'
-                    vvalue = vars["__global__"][expr]
+                    setVar(vname, "0", mainScope)
+                    vvalue = readVar(msg, vname, false, mainScope)
                 }
                 if (vvalue === undefined) {
                     return { content: `var: **${expr}** does not exist` }
