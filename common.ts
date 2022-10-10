@@ -172,8 +172,7 @@ function getVar(msg: Message, varName: string, prefix?: string){
         }
         else varName  = name.join(":");
     }
-    console.log(prefix, vars[prefix], vars[prefix]?.[varName])
-    if(vars[prefix] && vars[prefix][varName]){
+    if(vars[prefix] && vars[prefix][varName] !== undefined){
         return readVarVal(msg, vars[prefix][varName])
     }
     return false
