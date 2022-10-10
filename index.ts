@@ -27,7 +27,7 @@ import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
 
-const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client, readVar, setVar, saveVars } = require('./common.js')
+const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, client, setVar, saveVars } = require('./common.js')
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
@@ -6376,12 +6376,12 @@ variables:
                 let vvalue = vars[mainScope][vname]
                 if (vvalue === undefined) {
                     vardict = vars[secondaryScope]
-                    vvalue = readVar(msg, vname, false, secondaryScope)
+                    vvalue = getVar(msg, vname, secondaryScope)
                 }
                 if (vvalue === undefined) {
                     vardict = vars[mainScope]
                     setVar(vname, "0", mainScope)
-                    vvalue = readVar(msg, vname, false, mainScope)
+                    vvalue = getVar(msg, vname, mainScope)
                 }
                 varValRet = vvalue
             }
@@ -6394,11 +6394,11 @@ variables:
             if (expr && isNaN(parseFloat(expr))) {
                 let vvalue = vars[mainScope][expr]
                 if (vvalue === undefined) {
-                    vvalue = readVar(msg, vname, false, secondaryScope)
+                    vvalue = getVar(msg, vname, secondaryScope)
                 }
                 if (vvalue === undefined) {
                     setVar(vname, "0", mainScope)
-                    vvalue = readVar(msg, vname, false, mainScope)
+                    vvalue = getVar(msg, vname, mainScope)
                 }
                 if (vvalue === undefined) {
                     return { content: `var: **${expr}** does not exist` }
@@ -6583,12 +6583,12 @@ variables:
                 scope = msg.author.id
             }
             else if (scope == ".") {
-                let v = readVar(msg, name, false)
+                let v = getVar(msg, name)
                 if (v)
                     return { content: String(v) }
                 else return { content: `\\v{${args.join(" ")}}` }
             }
-            let v = readVar(name, false, scope)
+            let v = getVar(msg, name, scope)
             if (v)
                 return { content: String(v) }
             else return { content: `\\v{${args.join(" ")}}` }
@@ -6610,20 +6610,20 @@ variables:
                 }
                 setVar(name, realVal, prefix)
                 if (!opts['silent'])
-                    return { content: readVar(msg, name, false, prefix) }
+                    return { content: getVar(msg, name, prefix) }
             }
             else if (opts['u']) {
                 setVar(name, realVal, msg.author.id)
                 if (!opts['silent'])
                     return {
-                        content: readVar(msg, name, true, msg.author.id)
+                        content: getVar(msg, name, msg.author.id)
                     }
             }
             else {
                 setVar(name, realVal)
                 if (!opts['silent'])
                     return {
-                        content: readVar(msg, name, false)
+                        content: getVar(msg, name)
                     }
             }
             return { noSend: true }
@@ -8229,7 +8229,7 @@ async function doCmd(msg: Message, returnJson = false) {
                     if (typeof redir === 'object') {
                         let [place, name] = redir
                         //@ts-ignore
-                        place[name] = () => _data.content
+                        place[name] = place[name] + "\n" + _data.content
                     }
                 }
                 return msg

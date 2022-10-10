@@ -1,4 +1,4 @@
-const {prefix, vars, getVarFn, readVar} = require('./common.js')
+const {prefix, vars} = require('./common.js')
 const {format, safeEval, getOpts, generateSafeEvalContextFromMessage} = require('./util.js')
 const  economy = require('./economy.js')
 
@@ -181,12 +181,12 @@ function buildEscape(letter, sequence, msg, curArg){
                 scope = msg.author.id
             }
             else if(scope == "."){
-                let v = readVar(msg, name, false)
+                let v = getVar(msg, name)
                 if(v)
                     return v
                 else return `\\v{${sequence}}`
             }
-            let v = readVar(msg, name, false, scope)
+            let v = getVar(msg, name, scope)
             if(v)
                 return v
             else return `\\v{${sequence}}`
@@ -203,7 +203,7 @@ function buildEscape(letter, sequence, msg, curArg){
                 if(sequence.split(":")[0] == "."){
                     name = sequence.split(":").slice(1).join(":")
                 }
-                let v = readVar(msg,  name, false, msg.author.id)
+                let v = getVar(msg, name, msg.author.id)
                 if(v)
                     return v
                 else return `\\v{${sequence}}`

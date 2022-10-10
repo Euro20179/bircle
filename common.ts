@@ -122,7 +122,7 @@ function setVar(varName: string, value: string, prefix: string){
 }
 
 /**
-    * @deprecated Use getVar(msg, varName) instead
+    * @deprecated Use getVar(msg, varName, prefix?) instead
 */
 function getVarFn(varName: string, isUserVar: boolean, prefix: string){
     if(!prefix)
@@ -144,24 +144,6 @@ function getVarFn(varName: string, isUserVar: boolean, prefix: string){
     }
 }
 
-/**
-    * @deprecated use getVar(msg, varName, prefix?) instead
-*/
-function readVar(msg: Message, varName: string, isUserVar: boolean, prefix: string){
-    let v = getVarFn(varName, isUserVar, prefix)
-    if(v === false){
-        return false
-    }
-    else if(typeof v === 'string'){
-        return v
-    }
-    else if(typeof v === 'function'){
-        return v(msg)
-    }
-    else{
-        return String(v)
-    }
-}
 
 
 function readVarVal(msg: Message, variableData: Function | any){
@@ -207,7 +189,6 @@ export {
     USER_SETTINGS,
     getVarFn,
     client,
-    readVar,
     setVar,
     readVars,
     saveVars,
