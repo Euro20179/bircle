@@ -98,6 +98,22 @@ function getVarFn(varName, isUserVar, prefix){
     }
 }
 
+function readVar(msg, varName, isUserVar, prefix){
+    let v = getVarFn(varName, isUserVar, prefix)
+    if(v === false){
+        return false
+    }
+    else if(typeof v === 'string'){
+        return v
+    }
+    else if(typeof v === 'function'){
+        return v(msg)
+    }
+    else{
+        return String(v)
+    }
+}
+
 module.exports = {
     prefix: prefix,
     vars: vars,
@@ -114,5 +130,6 @@ module.exports = {
     userVars: userVars,
     USER_SETTINGS: USER_SETTINGS,
     getVarFn: getVarFn,
-    client: client
+    client: client,
+    readVar: readVar
 }

@@ -344,11 +344,11 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     else {
         //if not empty, save in the _! variable
         if (userVars[msg.author.id]) {
-            userVars[msg.author.id][`_!`] = () => rv.content
+            userVars[msg.author.id][`_!`] = rv.content
         }
         else
-            userVars[msg.author.id] = { "_!": () => rv.content }
-        vars[`_!`] = () => rv.content
+            userVars[msg.author.id] = { "_!": rv.content }
+        vars[`_!`] =  rv.content
     }
     //the place to send message to
     let location = msg.channel

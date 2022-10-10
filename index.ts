@@ -26,7 +26,7 @@ import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
 
-const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client } = require('./common.js')
+const { prefix, vars, userVars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client, readVar } = require('./common.js')
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
@@ -2215,7 +2215,7 @@ variables:
                         if(!userVars[player]){
                             userVars[player] = {}
                         }
-                        userVars[player]['__heist'] = () => 0
+                        userVars[player]['__heist'] = 0
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     //let fileResponses: string[] = []
@@ -2401,14 +2401,14 @@ variables:
                                     for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
-                                        let oldValue = userVars[player]["__heist"]()
-                                        userVars[player]['__heist'] = () => oldValue + amount
+                                        let oldValue = Number(readVar(msg, "__heist", false, player))
+                                        userVars[player]['__heist'] = oldValue + amount
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]?.["__heist"]() || 0
+                                    let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
                                     userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
                                 }
                             }
@@ -2421,14 +2421,14 @@ variables:
                                     for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
-                                        let oldValue = userVars[player]["__heist"]()
+                                        let oldValue = Number(readVar(msg, "__heist", false, player))
                                         userVars[player]['__heist'] = () => oldValue + amount
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = userVars[shuffledPlayers[Number(user) - 1]]?.["__heist"]() || 0
+                                    let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
                                     userVars[shuffledPlayers[Number(user) - 1]]['__heist'] = () => oldValue + amount
                                 }
                             }
@@ -3802,9 +3802,9 @@ variables:
             }
             if (ret.length) {
                 if (userVars && userVars[msg.author.id])
-                    userVars[msg.author.id]["__calc"] = () => ret.join(sep as string)
+                    userVars[msg.author.id]["__calc"] = ret.join(sep as string)
                 else
-                    userVars[msg.author.id] = { "__calc": () => ret.join(sep as string) }
+                    userVars[msg.author.id] = { "__calc": ret.join(sep as string) }
             }
             return { content: ret.join(sep) }
         },
@@ -6557,14 +6557,14 @@ variables:
                 scope = msg.author.id
             }
             else if (scope == ".") {
-                let v = getVarFn(name, false)
+                let v = readVar(msg, name, false)
                 if (v)
-                    return { content: String(v(msg, "")) }
+                    return { content: String(v) }
                 else return { content: `\\v{${args.join(" ")}}` }
             }
-            let v = getVarFn(name, false, scope)
+            let v = readVar(name, false, scope)
             if (v)
-                return { content: String(v(msg, "")) }
+                return { content: String(v) }
             else return { content: `\\v{${args.join(" ")}}` }
         }, category: CommandCategory.META
     },
@@ -6583,31 +6583,31 @@ variables:
                     return { content: "No ids allowed" }
                 }
                 if (userVars[prefix]) {
-                    userVars[prefix][name] = () => realVal
+                    userVars[prefix][name] = realVal
                 }
                 else {
-                    userVars[prefix] = { [name]: () => realVal }
+                    userVars[prefix] = { [name]: realVal }
                 }
                 if (!opts['silent'])
-                    return { content: userVars[prefix][name]() }
+                    return { content: readVar(msg, name, false, prefix) }
             }
             else if (opts['u']) {
                 if (userVars[msg.author.id]) {
-                    userVars[msg.author.id][name] = () => realVal
+                    userVars[msg.author.id][name] = realVal
                 }
                 else {
-                    userVars[msg.author.id] = { [name]: () => realVal }
+                    userVars[msg.author.id] = { [name]: realVal }
                 }
                 if (!opts['silent'])
                     return {
-                        content: userVars[msg.author.id][name]()
+                        content: readVar(name, true)
                     }
             }
             else {
-                vars[name] = () => realVal
+                vars[name] = realVal
                 if (!opts['silent'])
                     return {
-                        content: vars[name]()
+                        content: readVar(name, false)
                     }
             }
             return { noSend: true }

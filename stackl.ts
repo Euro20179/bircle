@@ -1,6 +1,6 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable }  from 'discord.js'
 
-const { vars, userVars } = require( "./common.js")
+const { vars, userVars, readVar } = require( "./common.js")
 
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
 type errType = {content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?:  boolean}
@@ -602,7 +602,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                     return { err: true, content: `${name} is not a valid variable name` }
                 }
                 if (vars[name]) {
-                    stack.push(vars[name](msg))
+                    stack.push(readVar(msg, name, false))
                 }
                 else {
                     return { err: true, content: `${name} is not defined` }
@@ -1299,13 +1299,13 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                     if (typeof ans === 'undefined') {
                         return { err: true, content: `Cannot save undefined as variable` }
                     }
-                    vars[arg] = () => ans
+                    vars[arg] =  ans
                     stack.push(ans)
                 }
                 else if (stack[stack.length - 1] == '%lvar') {
-                    let value = vars[arg]?.(msg)
+                    let value = readVar(msg, arg, false)
                     if (typeof value === 'undefined') {
-                        value = userVars[msg.author.id]?.[arg]?.(msg)
+                        value = readVar(msg, arg, true)
                     }
                     if (typeof value === 'undefined') {
                         return { content: `var: **${arg}** does not exist`, err: true }
@@ -1328,9 +1328,9 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 else {
                     let value = ram[arg]
                     if (typeof value === 'undefined')
-                        value = vars[arg]?.(msg)
+                        value = readVar(msg, arg, false)
                     if (typeof value === 'undefined') {
-                        value = userVars[msg.author.id]?.[arg]?.(msg)
+                        value = readVar(msg, arg, true)
                     }
                     if (typeof value === 'undefined') {
                         return { content: `var: **${arg}** does not exist`, err: true }
