@@ -355,6 +355,248 @@ let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 let HEIST_STARTED = false
 
 const commands: { [command: string]: Command } = {
+    "ed": {
+        run: async(msg,  args) => {
+            let mode:  "normal" | "insert" = "normal"
+            function parseNormalEdInput(input: string){
+                //TODO: implement,
+                //d, g, s
+                //also implement range based range eg: n,n2
+                //also add /regex/ range syntax
+                let cmds = "qnaipgsd"
+                let range = ""
+                let startArgs = false
+                let cmd = ""
+                let args = ""
+                for(let i = 0; i < input.length; i++){
+                    let ch = input[i]
+                    if(cmds.includes(ch) && !startArgs){
+                        range += cmd + args
+                        cmd = ch
+                    }
+                    else if(ch === " "){
+                        startArgs = true
+                    }
+                    else if(!cmd){
+                        range += ch
+                    }
+                    else if(cmd){
+                        args +=  ch
+                    }
+                }
+                return [range, cmd, args]
+            }
+
+            function getLinesFromRange(range: string){
+                let m
+                if(!range)
+                    return [currentLine]
+                if(Number(range)){
+                    return [Number(range)]
+                }
+                else if(range === "$"){
+                    return [text.length]
+                }
+                else if(range === ","){
+                    return text.map((_v, i) => i + 1)
+                }
+                else if(m = range.match(/^(\d*),(\d*)$/)){
+                    let start = Number(m[1]) || 0
+                    let end = undefined
+                    if(m[2]){
+                        end = Number(m[2])
+                    }
+                    return text.slice(start - 1, end).map((_v, i) => i  + start)
+                }
+                else{
+                    let [search, _, __] = createSedRegex(range)
+                    if(search){
+                        let rgx
+                        try{
+                            rgx = new RegExp(search, "g")
+                            console.log(rgx)
+                        }
+                        catch(err){
+                            handleSending(msg, {content: "? Invalid regex'"})
+                            return [currentLine]
+                        }
+                        let validLines = []
+                        for(let i = 0; i < text.length; i++){
+                            if(text[i].match(rgx)){
+                                validLines.push(i + 1)
+                            }
+                        }
+                        if(validLines.length){
+                            return validLines
+                        }
+                        return [currentLine]
+                    }
+                }
+                return [currentLine]
+            }
+
+            function addTextAtPosition(text: string[], textToAdd: string, position: number){
+                let number = position
+                let dataAfter = text.slice(number)
+                text[number] = textToAdd
+                text = text.concat(dataAfter)
+                currentLine = position + 1
+                return text
+            }
+
+            function createSedRegex(str: string, buildReplace = false){
+                let searchRegex =  ""
+                let replaceWith = ""
+                let flags = ""
+                let delimiter = str[0]
+
+                let escape = false
+                let searchDone = false
+                let replaceDone = false
+
+                str = str.slice(1)
+                for(let char of str){
+                    if(char == "\\"){
+                        escape = true
+                        continue
+                    }
+                    else if(char === delimiter && searchRegex && !escape){
+                        if(!buildReplace)
+                            break
+                        searchDone = true
+                    }
+                    else if(char === delimiter && searchDone && !escape){
+                        replaceDone = true
+                    }
+                    else if(!searchDone){
+                        if(escape) searchRegex += "\\"
+                        searchRegex += char
+                    }
+                    else if(!replaceDone){
+                        if(escape) replaceWith += "\\"
+                        replaceWith += char
+                    }
+                    else if(replaceDone){
+                        if(escape) flags += "\\"
+                        flags += char
+                    }
+                    escape = false
+                }
+                return [searchRegex, replaceWith, flags]
+            }
+
+            let text: string[] = []
+            let currentLine = 0
+            let commandLines = [0]
+            let edCmds: {[key: string]: (range: string, args: string) => any} = {
+                i: (range, args) => {
+                    commandLines = getLinesFromRange(range)
+                    if(args){
+                        text = addTextAtPosition(text, args, commandLines[0])
+                    }
+                    else{
+                        mode = "insert"
+                    }
+                    return true
+                },
+                a: (range, args) => {
+                    commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
+                    if(args){
+                        text = addTextAtPosition(text, args, commandLines[0])
+                    }
+                    else{
+                        mode = "insert"
+                    }
+                    return true
+                },
+                d: (range, args)  => {
+                    commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
+                    for(let line of commandLines){
+                        //we are setting it to undefined to filter later, this is the easiest thing i can think of for now
+                        //@ts-ignore
+                        text[line] = undefined
+                    }
+                    text = text.filter(v => v !== undefined)
+                    if(text.length < currentLine)
+                        currentLine = text.length
+                    return true
+                },
+                p: (range,  args) => {
+                    commandLines  = getLinesFromRange(range).map(v => v - 1)
+                    let textToSend = ""
+                    for(let line of commandLines){
+                        textToSend += text[line] + "\n"
+                    }
+                    handleSending(msg, {content: textToSend})
+                    return true
+                },
+                n: (range, args) => {
+                    commandLines  = getLinesFromRange(range).map(v => v - 1)
+                    let textToSend = ""
+                    for(let line of commandLines){
+                        textToSend += `${String(line + 1)} ${text[line]}\n`
+                    }
+                    handleSending(msg, {content: textToSend})
+                    return true
+                },
+                s: (range, args) => {
+                    commandLines = getLinesFromRange(range).map(v => v - 1)
+                    let [searchRegex, replaceWith, flags] = createSedRegex(args, true)
+                    let rgx
+                    try{
+                        rgx = new RegExp(searchRegex, flags)
+                    }
+                    catch(err){
+                        handleSending(msg, {content: "? Invalid regex'"})
+                        return true
+                    }
+                    for(let line of commandLines){
+                        console.log(searchRegex, rgx)
+                        let newText = text[line].replace(rgx, replaceWith)
+                        text[line] = newText
+                    }
+                    return true
+                },
+                q: () => {
+                    return false
+                }
+            }
+            while(true){
+                let m
+                try{
+                    m = (await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1, time: 60000, errors: ["time"]})).at(0)
+                }
+                catch(err){
+                    return {content: "Timeout"}
+                }
+                if(!m)break
+                if(mode === "normal"){
+                    let [range, cmd, cmdArgs] = parseNormalEdInput(m.content)
+                    if(edCmds[cmd]){
+                        if(!edCmds[cmd](range, cmdArgs)){
+                            break
+                        }
+                    }
+                    else if(!isNaN(Number(range))){
+                        currentLine = Number(range)
+                    }
+                    else{
+                        await m.reply("?")
+                        continue
+                    }
+                }
+                else{
+                    if(m.content === '.'){
+                        mode = "normal"
+                    }
+                    else{
+                        text = addTextAtPosition(text, m.content, currentLine)
+                    }
+                }
+            }
+            return {content: text.join("\n")}
+        }, category: CommandCategory.UTIL
+    },
     "help": {
         run: async(msg, args) => {
             let opts
