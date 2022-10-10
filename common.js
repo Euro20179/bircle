@@ -1,4 +1,4 @@
-const { readFileSync, writeFileSync } = require("fs");
+const { readFileSync, writeFileSync, existsSync } = require("fs");
 const {Client, Intents} = require("discord.js")
 
 
@@ -68,28 +68,50 @@ function removeFromPermList(list, listFile, user, cmds){
 
 const FILE_SHORTCUTS = {"distance": "distance-easter-egg", "8": "8ball"}
 
+let defaultVars = {
+    random: () => Math.random(),
+    rand: () => Math.random(),
+    prefix: () => prefix,
+    scopecount: () => Object.keys(vars).length,
+    sender: (msg) => `<@${msg.author.id}>`,
+    carson: () => "The all legendary Carson Williams",
+    money: (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
+    "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
+}
+
 let vars = {
     "__global__": {
-        random: () => Math.random(),
-        rand: () => Math.random(),
-        prefix: () => prefix,
-        scopecount: () => Object.keys(vars).length,
-        sender: (msg) => `<@${msg.author.id}>`,
-        carson: () => "The all legendary Carson Williams",
-        money: (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-        "$": (msg) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
+        ...defaultVars
     }
 }
+
+function  saveVars(){
+    for(let vname in vars['__global__']){
+        if(Object.keys(defaultVars).includes(vname)){
+            delete vars['__global__'][vname]
+        }
+    }
+    writeFileSync("./vars", JSON.stringify(vars))
+}
+
+function readVars(){
+    if(existsSync("./vars")){
+        vars = JSON.parse(readFileSync("./vars", "utf-8"))
+        vars["__global__"] = {...vars["__global__"], ...defaultVars}
+    }
+}
+
+readVars()
 
 function setVar(varName, value, prefix){
     if(!prefix){
         prefix = "__global__"
     }
     if(!vars[prefix]){
-        vars[prefix] = {[varname]: value}
+        vars[prefix] = {[varName]: value}
     }
     else if(vars[prefix]){
-        vars[prefix][varname] = value
+        vars[prefix][varName] = value
     }
     if(typeof vars[prefix] === 'object'){
         return false
@@ -150,5 +172,7 @@ module.exports = {
     getVarFn: getVarFn,
     client: client,
     readVar: readVar,
-    setVar: setVar
+    setVar: setVar,
+    readVars: readVars,
+    saveVars: saveVars
 }

@@ -1,7 +1,7 @@
 import { Client, Guild, Message } from "discord.js"
 
 const {execFileSync} = require('child_process')
-const { vars } = require("./common.js")
+const { vars, setVar } = require("./common.js")
 const vm = require('vm')
 const fs = require('fs')
 
@@ -343,12 +343,8 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     }
     else {
         //if not empty, save in the _! variable
-        if (vars[msg.author.id]) {
-            vars[msg.author.id][`_!`] = rv.content
-        }
-        else
-            vars[msg.author.id] = { "_!": rv.content }
-        vars['__global__'][`_!`] =  rv.content
+        setVar("_!", rv.content, msg.author.id)
+        setVar("_!", rv.content)
     }
     //the place to send message to
     let location = msg.channel

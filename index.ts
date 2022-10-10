@@ -26,7 +26,7 @@ import cheerio = require('cheerio')
 import { intToRGBA } from "jimp/*"
 
 
-const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client, readVar, setVar } = require('./common.js')
+const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, getVarFn, client, readVar, setVar, saveVars } = require('./common.js')
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending } = require('./util.js')
@@ -2409,7 +2409,7 @@ variables:
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
-                                    vars[shuffledPlayers[Number(user) - 1]]['__heist'] = oldValue + amount
+                                    setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
                                 }
                             }
                         }
@@ -6580,29 +6580,19 @@ variables:
                 if (prefix.match(/^\d{18}/)) {
                     return { content: "No ids allowed" }
                 }
-                if (vars[prefix]) {
-                    vars[prefix][name] = realVal
-                }
-                else {
-                    vars[prefix] = { [name]: realVal }
-                }
+                setVar(name, realVal, prefix)
                 if (!opts['silent'])
                     return { content: readVar(msg, name, false, prefix) }
             }
             else if (opts['u']) {
-                if (vars[msg.author.id]) {
-                    vars[msg.author.id][name] = realVal
-                }
-                else {
-                    vars[msg.author.id] = { [name]: realVal }
-                }
+                setVar(name, realVal, msg.author.id)
                 if (!opts['silent'])
                     return {
                         content: readVar(msg, name, true, msg.author.id)
                     }
             }
             else {
-                vars["__global__"][name] = realVal
+                setVar(name, realVal)
                 if (!opts['silent'])
                     return {
                         content: readVar(msg, name, false)
@@ -7369,6 +7359,7 @@ ${styles}
             await msg.channel.send("STOPPING")
             economy.saveEconomy()
             saveItems()
+            saveVars()
             pet.savePetData()
             client.destroy()
             return {
