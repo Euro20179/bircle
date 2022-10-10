@@ -3134,6 +3134,31 @@ variables:
 
         }, category: CommandCategory.ECONOMY
     },
+    "del-var": {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let prefix = String(opts['prefix'] || "__global__")
+            if(opts['u']){
+                prefix = msg.author.id
+            }
+            let names = args
+            let deleted = []
+            for(let name of names){
+                if(vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function'){
+                    delete vars[prefix][name]
+                    deleted.push(name)
+                }
+            }
+            return {content: `Deleted: \`${deleted.join(", ")}\``}
+        }, category: CommandCategory.META
+    },
+    "savev": {
+        run: async(msg, args) => {
+            saveVars()
+            return {content: "Variables saved"}
+        }, category: CommandCategory.META
+    },
     savee: {
         run: async (msg, args) => {
             economy.saveEconomy()
