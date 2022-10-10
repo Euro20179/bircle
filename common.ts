@@ -121,6 +121,9 @@ function setVar(varName: string, value: string, prefix: string){
     return true
 }
 
+/**
+    * @deprecated Use getVar(msg, varName) instead
+*/
 function getVarFn(varName: string, isUserVar: boolean, prefix: string){
     if(!prefix)
         prefix = "__global__"
@@ -141,6 +144,9 @@ function getVarFn(varName: string, isUserVar: boolean, prefix: string){
     }
 }
 
+/**
+    * @deprecated use getVar(msg, varName, prefix?) instead
+*/
 function readVar(msg: Message, varName: string, isUserVar: boolean, prefix: string){
     let v = getVarFn(varName, isUserVar, prefix)
     if(v === false){
@@ -155,6 +161,31 @@ function readVar(msg: Message, varName: string, isUserVar: boolean, prefix: stri
     else{
         return String(v)
     }
+}
+
+
+function readVarVal(msg: Message, variableData: Function | any){
+    if(typeof variableData ===  'string'){
+        return variableData
+    }
+    else if(typeof variableData === 'function'){
+        return variableData(msg)
+    }
+    else{
+        return String(variableData)
+    }
+}
+
+function getVar(msg: Message, varName: string){
+    let [prefix, ...name] = varName.split(":")
+    if(!name.length){
+        varName = prefix
+    }
+    else varName  = name.join(":");
+    if(vars[prefix] && vars[prefix][varName]){
+        return readVarVal(msg, vars[prefix])
+    }
+    return false
 }
 
 export {
@@ -177,4 +208,6 @@ export {
     setVar,
     readVars,
     saveVars,
+    getVar
 }
+

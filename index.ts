@@ -40,7 +40,6 @@ import economy = require("./economy")
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 
 import pet = require("./pets")
-done
 import { fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
 
 enum CommandCategory {
