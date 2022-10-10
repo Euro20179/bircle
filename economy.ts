@@ -14,7 +14,7 @@ type TradeType = {type: "money" | "stock", item: number | {name: string, data: S
 
 type Stock = {buyPrice:  number, shares: number}
 
-type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number }
+export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -206,6 +206,12 @@ function canWork(id: string){
         return true
     }
     return false
+}
+
+function playerLooseNetWorth(id: string){
+    if(!ECONOMY[id])
+        return 0
+    return playerEconomyLooseTotal(id) - (ECONOMY[id]?.loanUsed || 0)
 }
 
 function economyLooseGrandTotal(){
@@ -561,6 +567,7 @@ export {
     calculateAmountOfMoneyFromString,
     work,
     economyLooseGrandTotal,
+    playerLooseNetWorth,
     canWork,
     setUserStockSymbol
     // tradeItems

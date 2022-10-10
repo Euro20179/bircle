@@ -3095,19 +3095,45 @@ variables:
             }
             let embed = new MessageEmbed()
             let text = ""
-            //@ts-ignore
-            let sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
-            //@ts-ignore
-            let allValues = Object.values(economy.getEconomy())
+            let sortedEconomy: [string, economy.EconomyData][] = []
+            let econ = economy.getEconomy()
+            if(opts['nw']){
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => economy.playerLooseNetWorth(b[0]) - economy.playerLooseNetWorth(a[0]))
+            }
+            else if(opts['loan']){
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => (b[1].loanUsed || 0) - (a[1].loanUsed || 0))
+            }
+            else{
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse().slice(0, place)
+            }
             let totalEconomy = 0
-            for (let value of allValues) {
-                //@ts-ignore
-                totalEconomy += value.money
+            if(opts['nw']){
+                for(let id in econ){
+                    totalEconomy += economy.playerLooseNetWorth(id)
+                }
+            }
+            else if(opts['loan']){
+                for(let id in econ){
+                    let value = econ[id]
+                    totalEconomy += value.loanUsed || 0
+                }
+            }
+            else{
+                for (let id in econ) {
+                    let value = econ[id]
+                    totalEconomy += value.money
+                }
             }
             place = 0
             for (let user of sortedEconomy) {
                 let id = user[0]
-                let money = economy.getEconomy()[id].money
+                let money = econ[id].money
+                if(opts['nw']){
+                    money = economy.playerLooseNetWorth(id)
+                }
+                else if(opts['loan']){
+                    money = econ[id].loanUsed || 0
+                }
                 let percent = money / totalEconomy * 100
                 if (!opts['no-round']) {
                     money = Math.round(money * 100) / 100
@@ -3130,7 +3156,27 @@ variables:
                 embed.setDescription(`Total wealth: ${Math.round(totalEconomy * 100) / 100}`)
             return { embeds: [embed] }
 
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Get the top players in the economy",
+            arguments: {
+                amount: {
+                    description: "Show the  top x players",
+                    required: false
+                }
+            },
+            options: {
+                "text": {
+                    description: "Show text instead of an embed"
+                },
+                "loan": {
+                    description: "Show the loan leaderboard",
+                },
+                "nw": {
+                    description: "Show the net worth  leaderboard"
+                }
+            }
+        }
     },
     "del-var": {
         run: async(msg, args) => {
@@ -6373,8 +6419,8 @@ variables:
             }
             let vardict = vars[mainScope]
             if (isNaN(parseFloat(vname))) {
-                let vvalue = vars[mainScope][vname]
-                if (vvalue === undefined) {
+                let vvalue = getVar(msg,  vname, mainScope)
+                if (vvalue === false) {
                     vardict = vars[secondaryScope]
                     vvalue = getVar(msg, vname, secondaryScope)
                 }
@@ -6392,8 +6438,8 @@ variables:
             let op = args[1]
             let expr = args[2]
             if (expr && isNaN(parseFloat(expr))) {
-                let vvalue = vars[mainScope][expr]
-                if (vvalue === undefined) {
+                let vvalue = getVar(msg, vname, mainScope)
+                if (vvalue === false) {
                     vvalue = getVar(msg, vname, secondaryScope)
                 }
                 if (vvalue === undefined) {
