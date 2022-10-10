@@ -357,6 +357,8 @@ let HEIST_STARTED = false
 const commands: { [command: string]: Command } = {
     "ed": {
         run: async(msg,  args) => {
+            let opts;
+            [opts, args] = getOpts(args)
             let mode:  "normal" | "insert" = "normal"
             function parseNormalEdInput(input: string){
                 //TODO: implement,
@@ -374,7 +376,7 @@ const commands: { [command: string]: Command } = {
                         range += cmd + args
                         cmd = ch
                     }
-                    else if(ch === " "){
+                    else if(ch === " " && !startArgs){
                         startArgs = true
                     }
                     else if(!cmd){
@@ -561,38 +563,55 @@ const commands: { [command: string]: Command } = {
                     return false
                 }
             }
-            while(true){
-                let m
-                try{
-                    m = (await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1, time: 60000, errors: ["time"]})).at(0)
-                }
-                catch(err){
-                    return {content: "Timeout"}
-                }
-                if(!m)break
+            async function handleTextInMode(textStr: string, mode: string){
                 if(mode === "normal"){
-                    let [range, cmd, cmdArgs] = parseNormalEdInput(m.content)
+                    let [range, cmd, cmdArgs] = parseNormalEdInput(textStr)
                     if(edCmds[cmd]){
                         if(!edCmds[cmd](range, cmdArgs)){
-                            break
+                            return false
                         }
                     }
                     else if(!isNaN(Number(range))){
                         currentLine = Number(range)
                     }
                     else{
-                        await m.reply("?")
-                        continue
+                        await handleSending(msg, {content: "?"})
                     }
                 }
                 else{
-                    if(m.content === '.'){
+                    if(textStr === '.'){
                         mode = "normal"
                     }
                     else{
-                        text = addTextAtPosition(text, m.content, currentLine)
+                        text = addTextAtPosition(text, textStr, currentLine)
                     }
                 }
+                return true
+            }
+            if(opts['exec']){
+                for(let line of args.join(" ").split("\n")){
+                    if(!(await handleTextInMode(line, mode))){
+                        break
+                    }
+                }
+            }
+            else{
+                while(true){
+                    let m
+                    try{
+                        m = (await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1, time: 60000, errors: ["time"]})).at(0)
+                    }
+                    catch(err){
+                        return {content: "Timeout"}
+                    }
+                    if(!m)break
+                    if(!(await handleTextInMode(m.content, mode))){
+                        break
+                    }
+                }
+            }
+            if(opts['s']){
+                return {noSend: true}
             }
             return {content: text.join("\n")}
         }, category: CommandCategory.UTIL
