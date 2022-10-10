@@ -4415,7 +4415,7 @@ variables:
                 let line = lines[i]
                 try {
                     if (line.match(search)) {
-                        final.push(`${i}: ${line}`)
+                        final.push(`${i + 1}: ${line}`)
                     }
                 }
                 catch (err) {
