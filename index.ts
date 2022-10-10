@@ -41,6 +41,7 @@ const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, rese
 
 import pet = require("./pets")
 import { fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
+import { getVar } from "./common"
 
 enum CommandCategory {
     UTIL,
@@ -2212,11 +2213,7 @@ variables:
                     await msg.channel.send({ content: `Commencing heist with ${HEIST_PLAYERS.length} players` })
                     let stages = ["getting in", "robbing", "escape"]
                     for (let player of HEIST_PLAYERS) {
-                        data[player] = 0
-                        if(!vars[player]){
-                            vars[player] = {}
-                        }
-                        vars[player]['__heist'] = 0
+                        setVar("__heist", 0, player)
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     //let fileResponses: string[] = []
@@ -2402,14 +2399,14 @@ variables:
                                     for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
-                                        let oldValue = Number(readVar(msg, "__heist", false, player))
-                                        vars[player]['__heist'] = oldValue + amount
+                                        let oldValue = Number(getVar(msg, `__heist`, player))
+                                        setVar("__heist", oldValue + amount, player)
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
+                                    let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
                                     setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
                                 }
                             }
@@ -2422,15 +2419,15 @@ variables:
                                     for (let player in data) {
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
-                                        let oldValue = Number(readVar(msg, "__heist", false, player))
-                                        vars[player]['__heist'] = () => oldValue + amount
+                                        let oldValue = Number(getVar(msg, `__heist`, player))
+                                        setVar("__heist", oldValue + amount, player)
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = Number(readVar(msg, "__heist", false,  shuffledPlayers[Number(user) - 1])) || 0
-                                    vars[shuffledPlayers[Number(user) - 1]]['__heist'] = oldValue + amount
+                                    let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                    setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
                                 }
                             }
                         }
@@ -3827,10 +3824,7 @@ variables:
                 console.log(err)
             }
             if (ret.length) {
-                if (vars && vars[msg.author.id])
-                    vars[msg.author.id]["__calc"] = ret.join(sep as string)
-                else
-                    vars[msg.author.id] = { "__calc": ret.join(sep as string) }
+                setVar("__calc", ret.join(sep as string), msg.author.id)
             }
             return { content: ret.join(sep) }
         },

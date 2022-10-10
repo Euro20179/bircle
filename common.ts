@@ -176,12 +176,15 @@ function readVarVal(msg: Message, variableData: Function | any){
     }
 }
 
-function getVar(msg: Message, varName: string){
-    let [prefix, ...name] = varName.split(":")
-    if(!name.length){
-        varName = prefix
+function getVar(msg: Message, varName: string, prefix?: string){
+    if(!prefix){
+        let name
+        [prefix, ...name] = varName.split(":")
+        if(!name.length){
+            varName = prefix
+        }
+        else varName  = name.join(":");
     }
-    else varName  = name.join(":");
     if(vars[prefix] && vars[prefix][varName]){
         return readVarVal(msg, vars[prefix])
     }
