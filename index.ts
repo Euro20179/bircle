@@ -2474,6 +2474,7 @@ variables:
                     await msg.channel.send({ content: `Commencing heist with ${HEIST_PLAYERS.length} players` })
                     let stages = ["getting in", "robbing", "escape"]
                     for (let player of HEIST_PLAYERS) {
+                        data[player] = 0
                         setVar("__heist", 0, player)
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
@@ -2566,8 +2567,8 @@ variables:
                         let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                         let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                         //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
-                        while (!responseList && negpos === 'neutral') {
-                            let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
+                        if (!responseList && negpos === 'neutral') {
+                            let negpos = ["positive", "neutral"][Math.floor(Math.random() * 2)]
                             responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                         }
                         if(!responseList){
