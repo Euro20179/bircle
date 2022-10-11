@@ -516,6 +516,13 @@ const commands: { [command: string]: Command } = {
 
             let text: string[] = []
             let currentLine = 0
+            if(opts['text-after']){
+                let newArgs;
+                [newArgs, ...text] = args.join(" ").split(String(opts['text-after']))
+                args = newArgs.split(" ")
+                text = text.join(String(opts['text-after'])).split("\n").map(v => v.trim())
+                currentLine = text.length
+            }
             let commandLines = [0]
             let edCmds: {[key: string]: (range: string, args: string) => any} = {
                 i: async(range, args) => {
