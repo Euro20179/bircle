@@ -588,15 +588,17 @@ const commands: { [command: string]: Command } = {
                 },
                 "!": async(range, args) => {
                     commandLines = getLinesFromRange(range).map(v => v - 1)
-                    let textAtLine = text[commandLines[0]]
                     if(args){
-                        let oldContent = msg.content
-                        setVar("__ed_line", textAtLine, msg.author.id)
-                        msg.content = `${prefix}${args}`
-                        let rv = await doCmd(msg, true)
-                        msg.content = oldContent
-                        let t = getContentFromResult(rv as CommandReturn)
-                        text = addTextAtPosition(text, t, commandLines[0] + 1)
+                        for(let i = 0; i < commandLines.length; i++){
+                            let textAtLine = text[commandLines[i]]
+                            let oldContent = msg.content
+                            setVar("__ed_line", textAtLine, msg.author.id)
+                            msg.content = `${prefix}${args}`
+                            let rv = await doCmd(msg, true)
+                            msg.content = oldContent
+                            let t = getContentFromResult(rv as CommandReturn).trim()
+                            text[commandLines[i]] = t
+                        }
                     }
                     return true
                 },
