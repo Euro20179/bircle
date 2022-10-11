@@ -440,7 +440,7 @@ const commands: { [command: string]: Command } = {
                         }
                         let validLines = []
                         for(let i = 0; i < text.length; i++){
-                            if(text[i].match(rgx)){
+                            if(text[i]?.match(rgx)){
                                 validLines.push(i + 1)
                             }
                         }
@@ -562,12 +562,7 @@ const commands: { [command: string]: Command } = {
                 },
                 d: async(range, args)  => {
                     commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
-                    for(let line of commandLines){
-                        //we are setting it to undefined to filter later, this is the easiest thing i can think of for now
-                        //@ts-ignore
-                        text[line] = undefined
-                    }
-                    text = text.filter(v => v !== undefined)
+                    text = text.filter((_v, i) => !commandLines.includes(i))
                     if(text.length < currentLine)
                         currentLine = text.length
                     return true
@@ -576,16 +571,27 @@ const commands: { [command: string]: Command } = {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
                     let textToSend = ""
                     for(let line of commandLines){
-                        textToSend += text[line] + "\n"
+                        if(text[line] === undefined){
+                            textToSend += "\n"
+                        }
+                        else{
+                            textToSend += text[line] + "\n"
+                        }
                     }
                     await handleSending(msg, {content: textToSend})
                     return true
                 },
                 n: async(range, args) => {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
+                    console.log(commandLines)
                     let textToSend = ""
                     for(let line of commandLines){
-                        textToSend += `${String(line + 1)} ${text[line]}\n`
+                        if(text[line] === undefined){
+                            textToSend += `?\n`
+                        }
+                        else{
+                            textToSend += `${String(line + 1)} ${text[line]}\n`
+                        }
                     }
                     await handleSending(msg, {content: textToSend})
                     return true
@@ -602,7 +608,8 @@ const commands: { [command: string]: Command } = {
                         return true
                     }
                     for(let line of commandLines){
-                        console.log(searchRegex, rgx)
+                        if(text[line] === undefined)
+                            continue
                         let newText = text[line].replace(rgx, replaceWith)
                         text[line] = newText
                     }
@@ -612,6 +619,8 @@ const commands: { [command: string]: Command } = {
                     commandLines = getLinesFromRange(range).map(v => v - 1)
                     if(args){
                         for(let i = 0; i < commandLines.length; i++){
+                            if(commandLines[i] === undefined)
+                                continue
                             let textAtLine = text[commandLines[i]]
                             let oldContent = msg.content
                             setVar("__ed_line", textAtLine, msg.author.id)
