@@ -487,11 +487,11 @@ const commands: { [command: string]: Command } = {
                 return [searchRegex, replaceWith, flags]
             }
 
-            async function handleTextInMode(textStr: string, mode: string){
+            async function handleTextInMode(textStr: string){
                 if(mode === "normal"){
                     let [range, cmd, cmdArgs] = parseNormalEdInput(textStr)
                     if(edCmds[cmd]){
-                        if(!edCmds[cmd](range, cmdArgs)){
+                        if(!(await edCmds[cmd](range, cmdArgs))){
                             return false
                         }
                     }
@@ -517,7 +517,7 @@ const commands: { [command: string]: Command } = {
             let currentLine = 0
             let commandLines = [0]
             let edCmds: {[key: string]: (range: string, args: string) => any} = {
-                i: (range, args) => {
+                i: async(range, args) => {
                     commandLines = getLinesFromRange(range)
                     if(args){
                         text = addTextAtPosition(text, args, commandLines[0])
@@ -527,7 +527,7 @@ const commands: { [command: string]: Command } = {
                     }
                     return true
                 },
-                a: (range, args) => {
+                a: async(range, args) => {
                     commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
                     if(args){
                         text = addTextAtPosition(text, args, commandLines[0])
@@ -537,7 +537,7 @@ const commands: { [command: string]: Command } = {
                     }
                     return true
                 },
-                d: (range, args)  => {
+                d: async(range, args)  => {
                     commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
                     for(let line of commandLines){
                         //we are setting it to undefined to filter later, this is the easiest thing i can think of for now
@@ -549,25 +549,25 @@ const commands: { [command: string]: Command } = {
                         currentLine = text.length
                     return true
                 },
-                p: (range,  args) => {
+                p: async(range,  args) => {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
                     let textToSend = ""
                     for(let line of commandLines){
                         textToSend += text[line] + "\n"
                     }
-                    handleSending(msg, {content: textToSend})
+                    await handleSending(msg, {content: textToSend})
                     return true
                 },
-                n: (range, args) => {
+                n: async(range, args) => {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
                     let textToSend = ""
                     for(let line of commandLines){
                         textToSend += `${String(line + 1)} ${text[line]}\n`
                     }
-                    handleSending(msg, {content: textToSend})
+                    await handleSending(msg, {content: textToSend})
                     return true
                 },
-                s: (range, args) => {
+                s: async(range, args) => {
                     commandLines = getLinesFromRange(range).map(v => v - 1)
                     let [searchRegex, replaceWith, flags] = createSedRegex(args, true)
                     let rgx
@@ -575,7 +575,7 @@ const commands: { [command: string]: Command } = {
                         rgx = new RegExp(searchRegex, flags)
                     }
                     catch(err){
-                        handleSending(msg, {content: "? Invalid regex'"})
+                        await handleSending(msg, {content: "? Invalid regex'"})
                         return true
                     }
                     for(let line of commandLines){
@@ -585,14 +585,14 @@ const commands: { [command: string]: Command } = {
                     }
                     return true
                 },
-                q: () => {
+                q: async() => {
                     return false
                 }
             }
 
             if(opts['exec']){
                 for(let line of args.join(" ").split("\n")){
-                    if(!(await handleTextInMode(line, mode))){
+                    if(!(await handleTextInMode(line))){
                         break
                     }
                 }
@@ -607,7 +607,7 @@ const commands: { [command: string]: Command } = {
                         return {content: "Timeout"}
                     }
                     if(!m)break
-                    if(!(await handleTextInMode(m.content, mode))){
+                    if(!(await handleTextInMode(m.content))){
                         break
                     }
                 }
