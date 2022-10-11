@@ -365,7 +365,7 @@ const commands: { [command: string]: Command } = {
                 //d, g, s
                 //also implement range based range eg: n,n2
                 //also add /regex/ range syntax
-                let cmds = "qnaipgsdg"
+                let cmds = "qnaipgsdg!"
                 let range = ""
                 let startArgs = false
                 let cmd = ""
@@ -375,6 +375,7 @@ const commands: { [command: string]: Command } = {
                     if(cmds.includes(ch) && !startArgs){
                         range += cmd + args
                         cmd = ch
+                        args = ""
                     }
                     else if(ch === " " && !startArgs){
                         startArgs = true
@@ -582,6 +583,20 @@ const commands: { [command: string]: Command } = {
                         console.log(searchRegex, rgx)
                         let newText = text[line].replace(rgx, replaceWith)
                         text[line] = newText
+                    }
+                    return true
+                },
+                "!": async(range, args) => {
+                    commandLines = getLinesFromRange(range).map(v => v - 1)
+                    let textAtLine = text[commandLines[0]]
+                    if(args){
+                        let oldContent = msg.content
+                        setVar("__ed_line", textAtLine, msg.author.id)
+                        msg.content = `${prefix}${args}`
+                        let rv = await doCmd(msg, true)
+                        msg.content = oldContent
+                        let t = getContentFromResult(rv as CommandReturn)
+                        text = addTextAtPosition(text, t, commandLines[0] + 1)
                     }
                     return true
                 },
