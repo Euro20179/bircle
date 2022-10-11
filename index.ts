@@ -604,6 +604,7 @@ const commands: { [command: string]: Command } = {
                             let rv = await doCmd(msg, true)
                             msg.content = oldContent
                             let t = getContentFromResult(rv as CommandReturn).trim()
+                            delete vars[msg.author.id]["__ed_line"]
                             text[commandLines[i]] = t
                         }
                     }
