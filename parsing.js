@@ -289,7 +289,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                         curArg += ch
                 }
                 break;
-            case "\\":
+            case "\\":{
                 i++
                 ch = content[i]
                 if(ch === undefined){
@@ -300,10 +300,16 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 i++
                 ch = content[i]
                 let sequence = ""
+                let parenCount = 0
                 if(ch == "{"){
+                    parenCount++
                     for(i++; i < content.length; i++){
                         ch = content[i]
-                        if(ch == "}") break;
+                        if(ch == "{")
+                            parenCount++;
+                        else if(ch == "}")
+                            parenCount--;
+                        if(parenCount == 0) break;
                         sequence += ch
                     }
                 }else{
@@ -312,6 +318,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 }
                 curArg += buildEscape(prefixLetter, sequence, msg, curArg, customEscapes)
                 break;
+            }
             case "{":
                 let value = ""
                 let parenCount = 1
