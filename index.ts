@@ -9330,7 +9330,3 @@ let CMDUSE = loadCmdUse()
 let EMOTEUSE = loadEmoteUse()
 
 client.login(token)
-function elem(elem: any) {
-    throw new Error("Function not implemented.")
-}
-
