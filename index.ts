@@ -360,7 +360,7 @@ const commands: { [command: string]: Command } = {
             if(EDS[msg.author.id]){
                 return {content: "Ur already editing"}
             }
-            let opts;
+            let opts: Opts;
             [opts, args] = getOpts(args)
             let mode:  "normal" | "insert" = "normal"
             let canEdit = String(opts['editors']).split(",")
@@ -518,7 +518,7 @@ const commands: { [command: string]: Command } = {
                     else if(!isNaN(Number(range))){
                         currentLine = Number(range)
                     }
-                    else{
+                    else if(!opts['exec']){
                         await handleSending(msg, {content: "?"})
                     }
                 }
@@ -2610,7 +2610,7 @@ variables:
                         let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                         let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                         //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
-                        if (!responseList.length && negpos === 'neutral') {
+                        if (!responseList?.length && negpos === 'neutral') {
                             let negpos = ["positive", "neutral"][Math.floor(Math.random() * 2)]
                             responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                         }
