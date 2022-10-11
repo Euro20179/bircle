@@ -42,6 +42,7 @@ const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, rese
 import pet = require("./pets")
 import { fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
 import { getVar } from "./common"
+import { spawn, spawnSync } from "child_process"
 
 enum CommandCategory {
     UTIL,
@@ -4178,6 +4179,32 @@ variables:
             let stringifyFn = JSON.stringify
             if (opts['s']) {
                 stringifyFn = String
+            }
+            if(opts['python']){
+                let codeStr = `math = __import__("math")
+random = __import__("random")
+if(hasattr(random, "_os")):
+    del random._os
+if(hasattr(random, "os")):
+    del random.os
+__import__ = None
+class VarHolder:
+    def __init__(self, dict):
+        self.__dict__ = dict
+    def __repr__(self):
+        return repr(self.__dict__)
+g = VarHolder(${JSON.stringify(vars['__global__'])})
+u = VarHolder(${JSON.stringify(vars[msg.author.id]) || "{}"})
+print(eval("""${args.join(" ")}"""))`
+                let moreDat = spawnSync("python3", ["-c", codeStr])
+                let sendText = ""
+                if(moreDat.stderr.toString("utf-8")){
+                    sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
+                }
+                if(moreDat.stdout.toString("utf-8")){
+                    sendText += moreDat.stdout.toString("utf-8").trim()
+                }
+                return {content: sendText}
             }
             let ret: any[] = []
             try {
