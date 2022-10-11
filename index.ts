@@ -2817,17 +2817,8 @@ variables:
                         if (!await handleStage(stage)) {
                             stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
                             let oldStage = stage
-                            //@ts-ignore
-                            if (legacyNextStages[lastLegacyStage]) {
-                                console.log("legacy", lastLegacyStage, stage)
-                                //@ts-ignore
-                                stage = legacyNextStages[lastLegacyStage]
-                                lastLegacyStage = stage
-                            }
-                            else {
-                                stage = 'end'
-                            }
-                            await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, advancing to stage: ${stage}`)
+                            await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`)
+                            current_location = '__generic__'
                         }
                         else {
                             console.log("fallback", lastLegacyStage, stage)
