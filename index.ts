@@ -2628,6 +2628,9 @@ variables:
                             if (location?.[1].toLowerCase() == current_location.toLowerCase()) {
                                 return true
                             }
+                            if(location?.[1].toLowerCase() === '__all__'){
+                                return true
+                            }
                             return false
                         })
                         let sum = Object.values(data).reduce((a, b) => a + b, 0)
