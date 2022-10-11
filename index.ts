@@ -10,7 +10,7 @@ const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 
-let {token, CLIENT_ID, GUILD_ID, SPAM_ALLOWED, BUTTONS, POLLS, SPAMS, BLACKJACK_GAMES} = require("./globals")
+let {token, CLIENT_ID, GUILD_ID, SPAM_ALLOWED, BUTTONS, POLLS, SPAMS, BLACKJACK_GAMES, EDS} = require("./globals")
 
 import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter, CommandInteraction } from 'discord.js'
 
@@ -357,9 +357,24 @@ let HEIST_STARTED = false
 const commands: { [command: string]: Command } = {
     "ed": {
         run: async(msg,  args) => {
+            if(EDS[msg.author.id]){
+                return {content: "Ur already editing"}
+            }
             let opts;
             [opts, args] = getOpts(args)
             let mode:  "normal" | "insert" = "normal"
+            let canEdit = String(opts['editors']).split(",")
+            canEdit.push(msg.author.id)
+            for(let i = 0; i < canEdit.length; i++){
+                canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
+                if(EDS[canEdit[i]])
+                    //@ts-ignore
+                    canEdit[i] = undefined
+            }
+            canEdit = canEdit.filter(v => v)
+            for(let ed of canEdit){
+                EDS[ed] = true
+            }
             function parseNormalEdInput(input: string){
                 //TODO: implement,
                 //d, g, s
@@ -626,7 +641,7 @@ const commands: { [command: string]: Command } = {
                 while(true){
                     let m
                     try{
-                        m = (await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1, time: 60000, errors: ["time"]})).at(0)
+                        m = (await msg.channel.awaitMessages({filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"]})).at(0)
                     }
                     catch(err){
                         return {content: "Timeout"}
@@ -636,6 +651,9 @@ const commands: { [command: string]: Command } = {
                         break
                     }
                 }
+            }
+            for(let ed in EDS){
+                delete EDS[ed]
             }
             if(opts['s']){
                 return {noSend: true}
