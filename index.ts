@@ -458,6 +458,10 @@ const commands: { [command: string]: Command } = {
                 let dataAfter = text.slice(number)
                 text[number] = textToAdd
                 text = text.concat(dataAfter)
+                for(let i = 0; i < number; i++){
+                    if(text[i] === undefined)
+                        text[i] = ""
+                }
                 currentLine = position + 1
                 return text
             }
@@ -571,27 +575,16 @@ const commands: { [command: string]: Command } = {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
                     let textToSend = ""
                     for(let line of commandLines){
-                        if(text[line] === undefined){
-                            textToSend += "\n"
-                        }
-                        else{
-                            textToSend += text[line] + "\n"
-                        }
+                        textToSend += text[line] + "\n"
                     }
                     await handleSending(msg, {content: textToSend})
                     return true
                 },
                 n: async(range, args) => {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
-                    console.log(commandLines)
                     let textToSend = ""
                     for(let line of commandLines){
-                        if(text[line] === undefined){
-                            textToSend += `?\n`
-                        }
-                        else{
-                            textToSend += `${String(line + 1)} ${text[line]}\n`
-                        }
+                        textToSend += `${String(line + 1)} ${text[line]}\n`
                     }
                     await handleSending(msg, {content: textToSend})
                     return true
@@ -608,8 +601,6 @@ const commands: { [command: string]: Command } = {
                         return true
                     }
                     for(let line of commandLines){
-                        if(text[line] === undefined)
-                            continue
                         let newText = text[line].replace(rgx, replaceWith)
                         text[line] = newText
                     }
@@ -619,8 +610,6 @@ const commands: { [command: string]: Command } = {
                     commandLines = getLinesFromRange(range).map(v => v - 1)
                     if(args){
                         for(let i = 0; i < commandLines.length; i++){
-                            if(commandLines[i] === undefined)
-                                continue
                             let textAtLine = text[commandLines[i]]
                             let oldContent = msg.content
                             setVar("__ed_line", textAtLine, msg.author.id)
