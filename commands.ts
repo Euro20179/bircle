@@ -4034,17 +4034,17 @@ print(eval("""${args.join(" ")}"""))`
                 }
                 return { content: sendText }
             }
-            let ret: any[] = []
+            let ret: string = ""
             try {
-                ret.push(stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], ...vars["__global__"] }, { timeout: 3000 })))
+                ret = stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
             }
             catch (err) {
                 console.log(err)
             }
             if (ret.length) {
-                setVar("__calc", ret.join(sep as string), msg.author.id)
+                setVar("__calc", ret, msg.author.id)
             }
-            return { content: ret.join(sep) }
+            return { content: ret }
         },
         help: {
             info: "Run a calculation",
