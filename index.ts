@@ -10,7 +10,7 @@ const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 
-let {token, CLIENT_ID, GUILD_ID, SPAM_ALLOWED, BUTTONS, POLLS, SPAMS, BLACKJACK_GAMES, EDS} = require("./globals")
+import globals = require("./globals")
 
 import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter, CommandInteraction } from 'discord.js'
 
@@ -40,7 +40,7 @@ import economy = require("./economy")
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 
 import pet = require("./pets")
-import { fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
+import { choice, fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
 import { getVar } from "./common"
 import { spawn, spawnSync } from "child_process"
 
@@ -358,7 +358,7 @@ let HEIST_STARTED = false
 const commands: { [command: string]: Command } = {
     "ed": {
         run: async(msg,  args) => {
-            if(EDS[msg.author.id]){
+            if(globals.EDS[msg.author.id]){
                 return {content: "Ur already editing"}
             }
             let opts: Opts;
@@ -368,13 +368,13 @@ const commands: { [command: string]: Command } = {
             canEdit.push(msg.author.id)
             for(let i = 0; i < canEdit.length; i++){
                 canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
-                if(EDS[canEdit[i]])
+                if(globals.EDS[canEdit[i]])
                     //@ts-ignore
                     canEdit[i] = undefined
             }
             canEdit = canEdit.filter(v => v)
             for(let ed of canEdit){
-                EDS[ed] = true
+                globals.EDS[ed] = true
             }
             function parseNormalEdInput(input: string){
                 //TODO: implement,
@@ -519,6 +519,7 @@ const commands: { [command: string]: Command } = {
                     else if(!isNaN(Number(range))){
                         currentLine = Number(range)
                     }
+
                     else if(!opts['exec']){
                         await handleSending(msg, {content: "?"})
                     }
@@ -651,8 +652,8 @@ const commands: { [command: string]: Command } = {
                     }
                 }
             }
-            for(let ed in EDS){
-                delete EDS[ed]
+            for(let ed in globals.EDS){
+                delete globals.EDS[ed]
             }
             if(opts['s']){
                 return {noSend: true}
@@ -2676,10 +2677,10 @@ variables:
                         if (responseList.length < 1) {
                             return false
                         }
-                        let response = responseList[Math.floor(Math.random() * responseList.length)]
+                        let response = choice(responseList)
                         let amountType = response.match(/AMOUNT=([^ ]+)/)
                         while (!amountType?.[1]) {
-                            response = responseList[Math.floor(Math.random() * responseList.length)]
+                            response = choice(responseList)
                             amountType = response.match(/AMOUNT=([^ ]+)/)
                         }
                         if (amountType[1] === 'cents') {
@@ -3057,10 +3058,10 @@ variables:
             if (!economy.canBetAmount(msg.author.id, bet)) {
                 return { content: "That bet is too high for you" }
             }
-            if (BLACKJACK_GAMES[msg.author.id]) {
+            if (globals.BLACKJACK_GAMES[msg.author.id]) {
                 return { content: "You idiot u already playing the game" }
             }
-            BLACKJACK_GAMES[msg.author.id] = true
+            globals.BLACKJACK_GAMES[msg.author.id] = true
             let cards = []
             for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                 for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
@@ -3118,12 +3119,12 @@ variables:
             }
             if (calculateTotal(playersCards).total === 21) {
                 economy.addMoney(msg.author.id, bet * 3)
-                delete BLACKJACK_GAMES[msg.author.id]
+                delete globals.BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
             }
             if (calculateTotal(dealerCards).total === 21) {
                 economy.loseMoneyToBank(msg.author.id, bet)
-                delete BLACKJACK_GAMES[msg.author.id]
+                delete globals.BLACKJACK_GAMES[msg.author.id]
                 return { content: `BLACKJACK!\nYou did not get: ${bet * 3}` }
             }
             let total = 0
@@ -3181,7 +3182,7 @@ variables:
                     }
                     catch (err) {
                         economy.loseMoneyToBank(msg.author.id, bet)
-                        delete BLACKJACK_GAMES[msg.author.id]
+                        delete globals.BLACKJACK_GAMES[msg.author.id]
                         return { content: `Did not respond  in time, lost ${bet}` }
                     }
                     response = collectedMessages.at(0)
@@ -3213,7 +3214,7 @@ variables:
                     }
                     if (calculateTotal(playersCards).total === 21) {
                         economy.addMoney(msg.author.id, bet * 3)
-                        delete BLACKJACK_GAMES[msg.author.id]
+                        delete globals.BLACKJACK_GAMES[msg.author.id]
                         useItem(msg.author.id, "reset")
                         return { content: `BLACKJACK!\nYou got: ${bet * 3}` }
                     }
@@ -3255,7 +3256,7 @@ variables:
                 status = `You won: $${bet}`
                 economy.addMoney(msg.author.id, bet)
             }
-            delete BLACKJACK_GAMES[msg.author.id]
+            delete globals.BLACKJACK_GAMES[msg.author.id]
             return { content: `**${status}**\n${stats}` }
         }, category: CommandCategory.GAME,
         help: {
@@ -3307,7 +3308,7 @@ variables:
                 let count = Number(opts['r']) || 1
                 reqElementData = []
                 for(let i = 0; i  < count; i++){
-                    reqElementData.push(elementsJSON[Math.floor(Math.random() * elementsJSON.length)])
+                    reqElementData.push(choice(elementsJSON))
                 }
             }
             else{
@@ -3768,7 +3769,7 @@ variables:
                 requestedUsers[0] = msg.author.id
             }
             let embeds = []
-            const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${GUILD_ID}`
+            const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${globals.GUILD_ID}`
             let data
             try {
                 //@ts-ignore
@@ -4430,8 +4431,8 @@ print(eval("""${args.join(" ")}"""))`
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
             let m = await msg.channel.send({ components: [row], content: content })
             if (opts['say'])
-                BUTTONS[msg.author.id] = String(opts['say'])
-            else BUTTONS[msg.author.id] = text
+                globals.BUTTONS[msg.author.id] = String(opts['say'])
+            else globals.BUTTONS[msg.author.id] = text
             if (!isNaN(delAfter)) {
                 setTimeout(async () => await m.delete(), delAfter * 1000)
             }
@@ -4461,8 +4462,8 @@ print(eval("""${args.join(" ")}"""))`
                 return { content: "no id given" }
             }
             let str = ""
-            for (let key in POLLS[`poll:${id}`]) {
-                str += `${key}: ${POLLS[`poll:${id}`]["votes"][key].length}\n`
+            for (let key in globals.POLLS[`poll:${id}`]) {
+                str += `${key}: ${globals.POLLS[`poll:${id}`]["votes"][key].length}\n`
             }
             return { content: str }
         },
@@ -4494,9 +4495,8 @@ print(eval("""${args.join(" ")}"""))`
             }
             let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
-            POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
+            globals.POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
             await msg.channel.send({ components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}` })
-            return { noSend: true }
         },
         help: {
             info: "create a poll",
@@ -4698,7 +4698,7 @@ print(eval("""${args.join(" ")}"""))`
                 let button = new MessageButton({ customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
                 let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let start = Date.now()
-                BUTTONS[msg.author.id] = () => {
+                globals.BUTTONS[msg.author.id] = () => {
                     return `${Date.now() - start}ms`
                 }
                 await msg.channel.send({ components: [row] })
@@ -4767,7 +4767,7 @@ print(eval("""${args.join(" ")}"""))`
             }
             const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
             const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
-            return { content: lines[Math.floor(Math.random() * lines.length)] }
+            return { content: choice(lines) }
         },
         help: {
             info: "Gets a random line from a file"
@@ -5010,7 +5010,7 @@ print(eval("""${args.join(" ")}"""))`
                                 let n = parseInt(cardM?.content as string)
                                 let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
                                 let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
-                                let randomPlayer = tempPlayerData[Math.floor(Math.random() * tempPlayerData.length)]
+                                let randomPlayer = choice(tempPlayerData)
                                 let hand = playerData[randomPlayer]
                                 playerData[m.author.id].remove(selectedRemovealCard)
                                 hand.add(selectedRemovealCard)
@@ -5032,7 +5032,7 @@ print(eval("""${args.join(" ")}"""))`
                             cardsPlayed++;
                             playerData[player.id].remove(Number(m.content) - 1)
                             pile.add(selectedCard)
-                            let randomPlayer = players.filter(v => v.id != player.id)[Math.floor(Math.random() * (players.length - 1))].id
+                            let randomPlayer = choice(players.filter(v => v.id != player.id)).id
                             await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
                             let newTopCard = playerData[randomPlayer].cards[0]
                             playerData[randomPlayer].remove(0)
@@ -5243,7 +5243,7 @@ print(eval("""${args.join(" ")}"""))`
             if (words.length == 0) {
                 return { content: "no words found" }
             }
-            let word = words[Math.floor(Math.random() * words.length)].toLowerCase()
+            let word = choice(words)
             let guesses = []
             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
             let guessCount = parseInt(opts["lives"] as string) || 6
@@ -5463,9 +5463,9 @@ print(eval("""${args.join(" ")}"""))`
                 if (!channels) {
                     return { content: "no channels found" }
                 }
-                let channel = channels[Math.floor(Math.random() * channels.length)]
+                let channel = choice(channels)
                 while (!channel.isText())
-                    channel = channels[Math.floor(Math.random() * channels.length)]
+                    channel = choice(channels)
                 let messages
                 try {
                     messages = await channel.messages.fetch({ limit: 100 })
@@ -6279,7 +6279,7 @@ print(eval("""${args.join(" ")}"""))`
             let ans = []
             args = args.join(" ").split("|")
             for (let i = 0; i < times; i++) {
-                ans.push(args[Math.floor(Math.random() * args.length)].trim())
+                ans.push(choice(args).trim())
             }
             return {
                 content: ans.join(sep) || "```invalid message```"
@@ -6482,7 +6482,7 @@ print(eval("""${args.join(" ")}"""))`
             let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
             let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
             let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-            return { content: format(options[Math.floor(Math.random() * options.length)], { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean }
+            return { content: format(choice(optsions), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean }
         },
         help: {
             info: "Create your favorite fantacies!!!!"
@@ -6522,8 +6522,8 @@ print(eval("""${args.join(" ")}"""))`
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
-            SPAMS[id] = true
-            while (SPAMS[id] && times--) {
+            globals.SPAMS[id] = true
+            while (globals.SPAMS[id] && times--) {
                 msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
                 await doCmd(msg)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
@@ -6547,9 +6547,9 @@ print(eval("""${args.join(" ")}"""))`
             }
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
-            SPAMS[id] = true
+            globals.SPAMS[id] = true
             let message = await msg.channel.send(sendText)
-            while (SPAMS[id] && timesToGo--) {
+            while (globals.SPAMS[id] && timesToGo--) {
                 if (message.deletable) await message.delete()
                 message = await msg.channel.send(sendText)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
@@ -6571,8 +6571,8 @@ print(eval("""${args.join(" ")}"""))`
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await msg.channel.send(`starting ${id}`)
-            SPAMS[id] = true
-            while (SPAMS[id] && times--) {
+            globals.SPAMS[id] = true
+            while (globals.SPAMS[id] && times--) {
                 await msg.channel.send(`${format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })}`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
@@ -6587,12 +6587,12 @@ print(eval("""${args.join(" ")}"""))`
     },
     stop: {
         run: async (msg: Message, args: ArgumentList) => {
-            if (!Object.keys(SPAMS).length) {
+            if (!Object.keys(globals.SPAMS).length) {
                 return { content: "no spams to stop" }
             }
             if (args[0]) {
-                if (SPAMS[args[0]]) {
-                    delete SPAMS[args[0]]
+                if (globals.SPAMS[args[0]]) {
+                    delete globals.SPAMS[args[0]]
                     return {
                         content: `stopping ${args[0]}`
                     }
@@ -6601,9 +6601,9 @@ print(eval("""${args.join(" ")}"""))`
                     content: `${args[0]} is not a spam id`
                 }
             }
-            SPAM_ALLOWED = false;
-            for (let spam in SPAMS) {
-                delete SPAMS[spam]
+            globals.SPAM_ALLOWED = false;
+            for (let spam in globals.SPAMS) {
+                delete globals.SPAMS[spam]
             }
             return {
                 content: "stopping all"
@@ -6677,7 +6677,7 @@ print(eval("""${args.join(" ")}"""))`
                 }
             }
 
-            let stack = await stackl.parse(args, useStart, msg, SPAMS)
+            let stack = await stackl.parse(args, useStart, msg, globals.SPAMS)
             //@ts-ignore
             if (stack?.err) {
                 //@ts-ignore
@@ -6741,7 +6741,7 @@ print(eval("""${args.join(" ")}"""))`
                 }
                 foundData.push(dataToAdd)
             }
-            let post = foundData[Math.floor(Math.random() * foundData.length)]
+            let post = choice(foundData)
             let embed = new MessageEmbed()
             embed.setTitle(post.text || "None")
             embed.setFooter({ text: post.link || "None" })
@@ -6891,7 +6891,7 @@ print(eval("""${args.join(" ")}"""))`
                 return { content: "No script" }
             }
             let id = Math.floor(Math.random() * 10000000)
-            SPAMS[id] = true
+            globals.SPAMS[id] = true
             if (!opts['s']) {
                 await msg.channel.send(`Starting id: ${id}`)
             }
@@ -6949,7 +6949,7 @@ print(eval("""${args.join(" ")}"""))`
                 return text
             }
             for (let line of text) {
-                if (!SPAMS[id])
+                if (!globals.SPAMS[id])
                     break
                 line = line.trim()
                 if (line.startsWith(prefix)) {
@@ -7349,7 +7349,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             let content = args.join(" ")
             let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
             return {
-                content: options[Math.floor(Math.random() * options.length)]
+                content: choice(optsions)
                     .slice(20)
                     .replaceAll("{content}", content)
                     .replaceAll("{u}", `${msg.author}`)
@@ -7381,7 +7381,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             if (fromUser && toUser) {
                 let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
-                    content: options[Math.floor(Math.random() * options.length)]
+                    content: choice(options)
                         .slice(20)
                         .replaceAll("{from}", fromUser.id)
                         .replaceAll("{to}", toUser.id)
@@ -7426,7 +7426,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             if (!drivingDist && !straightLineDist) {
                 let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
-                    content: options[Math.floor(Math.random() * options.length)]
+                    content: choice(options)
                         .slice(20)
                         .replaceAll("{from}", from)
                         .replaceAll("{to}", to)
@@ -8496,7 +8496,7 @@ valid formats:<br>
     spams: {
         run: async (_msg, _args) => {
             let data = ""
-            for (let id in SPAMS) {
+            for (let id in globals.SPAMS) {
                 data += `${id}\n`
             }
             return { content: data || "No spams" }
@@ -8524,14 +8524,14 @@ function createAliases() {
 }
 let aliases = createAliases()
 
-const rest = new REST({ version: "9" }).setToken(token);
+const rest = new REST({ version: "9" }).setToken(globals.token);
 
 (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
 
         await rest.put(
-            Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+            Routes.applicationGuildCommands(globals.CLIENT_ID, globals.GUILD_ID),
             { body: slashCommands },
         );
 
@@ -8937,18 +8937,18 @@ client.on("interactionCreate", async (interaction: Interaction) => {
     if (interaction.isButton() && !interaction.replied) {
         if (interaction.customId == `button:${interaction.member?.user.id}`) {
             //@ts-ignore
-            if (BUTTONS[interaction.member?.user.id] !== undefined) {
+            if (globals.BUTTONS[interaction.member?.user.id] !== undefined) {
                 //@ts-ignore
-                if (typeof BUTTONS[interaction.member?.user.id] === "string") {
+                if (typeof globals.BUTTONS[interaction.member?.user.id] === "string") {
                     //@ts-ignore
-                    interaction.reply(String(BUTTONS[interaction.member?.user.id]))
+                    interaction.reply(String(globals.BUTTONS[interaction.member?.user.id]))
                 }
                 else {
                     //@ts-ignore
-                    interaction.reply(String(BUTTONS[interaction.member?.user.id]()))
+                    interaction.reply(String(globals.BUTTONS[interaction.member?.user.id]()))
                 }
                 //@ts-ignore
-                delete BUTTONS[interaction.member?.user.id]
+                delete globals.BUTTONS[interaction.member?.user.id]
             }
         }
         if (interaction.customId.match(/button\.(rock|paper|scissors)/)) {
@@ -8959,12 +8959,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
-            if (typeof BUTTONS[interaction.customId] !== 'string') {
+            if (typeof globals.BUTTONS[interaction.customId] !== 'string') {
                 interaction.reply({ content: "Something went wrong" })
                 return
             }
             //@ts-ignore
-            let [userChoice, ogUser, bet] = BUTTONS[interaction.customId].split(":")
+            let [userChoice, ogUser, bet] = globals.BUTTONS[interaction.customId].split(":")
             let ogBet = Number(bet)
             if (interaction.member?.user.id === ogUser) {
                 interaction.reply({ content: "Ur a dingus" })
@@ -8991,9 +8991,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 }
                 else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
             }
-            for (let b in BUTTONS) {
+            for (let b in globals.BUTTONS) {
                 if (b.match(/button\.(rock|paper|scissors)/)) {
-                    delete BUTTONS[b]
+                    delete globals.BUTTONS[b]
                 }
             }
         }
@@ -9002,36 +9002,36 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         if (interaction.customId.includes("poll")) {
             let id = interaction.customId
             let key = interaction.values[0]
-            if (POLLS[id]["votes"]) {
+            if (globals.POLLS[id]["votes"]) {
                 //checks if the user voted
-                for (let key in POLLS[id]["votes"]) {
-                    if (POLLS[id]["votes"][key]?.length) {
-                        if (POLLS[id]["votes"][key].includes(String(interaction.member?.user.id))) {
+                for (let key in globals.POLLS[id]["votes"]) {
+                    if (globals.POLLS[id]["votes"][key]?.length) {
+                        if (globals.POLLS[id]["votes"][key].includes(String(interaction.member?.user.id))) {
                             return
                         }
                     }
                 }
 
-                if (POLLS[id]["votes"][key])
-                    POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
+                if (globals.POLLS[id]["votes"][key])
+                    globals.POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
                 else
-                    POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
+                    globals.POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
             }
-            else POLLS[id]["votes"] = { [id]: [String(interaction.member?.user.id)] }
+            else globals.POLLS[id]["votes"] = { [id]: [String(interaction.member?.user.id)] }
             let str = ""
-            for (let key in POLLS[id]["votes"]) {
-                str += `${key}: ${POLLS[id]["votes"][key].length}\n`
+            for (let key in globals.POLLS[id]["votes"]) {
+                str += `${key}: ${globals.POLLS[id]["votes"][key].length}\n`
             }
             let dispId = id.slice(id.indexOf(":"))
             if (interaction.message instanceof Message) {
-                if (str.length > 1990 - POLLS[id]["title"].length) {
+                if (str.length > 1990 - globals.POLLS[id]["title"].length) {
                     let fn = generateFileName("poll-reply", interaction.member?.user.id)
                     fs.writeFileSync(fn, str)
                     await interaction.message.edit({ files: [{ attachment: fn }], content: dispId })
                     fs.rmSync(fn)
                 }
                 else {
-                    interaction.message.edit({ content: `**${POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}` })
+                    interaction.message.edit({ content: `**${globals.POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}` })
                     interaction.reply({ content: `${interaction.values.toString()} is your vote`, ephemeral: true })
                 }
             }
@@ -9108,9 +9108,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let user = interaction.options.get("user")?.value || `<@${interaction.user.id}>`
             let times = interaction.options.get("evilness")?.value || 1
             interaction.reply("Pinging...")
-            SPAM_ALLOWED = true
+            globals.SPAM_ALLOWED = true
             for (let i = 0; i < times; i++) {
-                if (!SPAM_ALLOWED) break
+                if (!globals.SPAM_ALLOWED) break
                 await interaction.channel?.send(`<@${user}> has been pinged`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
@@ -9226,9 +9226,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
             let paper = new MessageButton({ customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY" })
             let scissors = new MessageButton({ customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY" })
-            BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            globals.BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            globals.BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
+            globals.BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
             interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` })
         }
@@ -9356,4 +9356,4 @@ function loadEmoteUse() {
 let CMDUSE = loadCmdUse()
 let EMOTEUSE = loadEmoteUse()
 
-client.login(token)
+client.login(globals.token)

@@ -33,10 +33,14 @@ function randomColor(){
     return colors
 }
 
+function choice(list: Array<any> | string){
+    return list[Math.floor(Math.random() * list.length)]
+}
+
 function mulStr(str: string, amount: number){
     let ans = ""
     for(let i = 0; i < amount; i++){
-	ans += str
+        ans += str
     }
     return ans
 }
@@ -222,7 +226,7 @@ function safeEval (code: string, context: {[key: string]: any}, opts: any) {
   if(!context){
       context = {}
   }
-  context = {yes: true, no: false, rgbToHex, escapeRegex, escapeShell, randomColor, mulStr, ...context}
+  context = {yes: true, no: false, rgbToHex, escapeRegex, escapeShell, randomColor, choice, ...context}
   if (context) {
     Object.keys(context).forEach(function (key) {
         //@ts-ignore
@@ -391,6 +395,7 @@ export {
     getOpts,
     handleSending,
     fetchUserFromClient,
-    generateSafeEvalContextFromMessage
+    generateSafeEvalContextFromMessage,
+    choice
 }
 
