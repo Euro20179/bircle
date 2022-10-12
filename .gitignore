@@ -30,6 +30,7 @@ util.js
 api.js
 globals.js
 common.js
+commands.js
 
 vars
 

@@ -1,9 +1,9 @@
 import { Message, User } from "discord.js";
 
 const { readFileSync, writeFileSync, existsSync } = require("fs");
+
+
 const {Client, Intents} = require("discord.js")
-
-
 const economy = require("./economy");
 
 const prefix = readFileSync("./prefix", "utf-8").trim()
@@ -178,6 +178,9 @@ function getVar(msg: Message, varName: string, prefix?: string){
     return false
 }
 
+
+
+
 export {
     prefix,
     vars,
@@ -197,6 +200,6 @@ export {
     setVar,
     readVars,
     saveVars,
-    getVar
+    getVar,
 }
 

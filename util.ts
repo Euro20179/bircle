@@ -1,10 +1,13 @@
 import { Client, Guild, Message } from "discord.js"
 
+import cheerio = require("cheerio")
+
+import globals = require("./globals")
+
 const {execFileSync} = require('child_process')
-const { vars, setVar } = require("./common.js")
+const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST } = require("./common.js")
 const vm = require('vm')
 const fs = require('fs')
-
 class UTF8String{
     text: string[]
     constructor(text: string){
@@ -374,6 +377,124 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     }
 }
 
+function getContentFromResult(result: CommandReturn) {
+    let res = ""
+    if (result.content)
+        res += result.content + "\n"
+    if (result.files) {
+        for (let file of result.files) {
+            res += fs.readFileSync(file.attachment, "base64") + "\n"
+        }
+    }
+    if (result.embeds) {
+        for (let embed of result.embeds) {
+            res += `${JSON.stringify(embed.toJSON())}\n`
+        }
+    }
+    return res
+}
+
+function generateTextFromCommandHelp(name: string, command: Command){
+    let text = `***${name}***:\n\n`
+    let helpData = command.help
+    if(!helpData)
+        return text
+    if(helpData.info){
+        text += `**${cheerio.load(helpData.info).text()}**\n\n`
+    }
+    if(helpData.aliases){
+        text += `Aliases: ${helpData.aliases.join(", ")}\n`
+    }
+    if(helpData.arguments){
+        text += "__Arguments__:\n"
+        for(let arg in helpData.arguments){
+            text += `\t* **${arg}**`
+            if(helpData.arguments[arg].required !== false){
+                text += " (required) "
+            }
+            if(helpData.arguments[arg].requires){
+                text += ` (required: ${helpData.arguments[arg].requires}) `
+            }
+            text += `:\n\t\t- ${cheerio.load(helpData.arguments[arg].description).text()}\n`
+        }
+        text += "\n"
+    }
+    if(helpData.options){
+        text += "__Options__:\n"
+        for(let op in helpData.options){
+            text += `\t* **-${op}**: ${cheerio.load(helpData.options[op].description).text()}\n`
+            if(helpData.options[op].alternates){
+                text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
+            }
+        }
+        text += "\n"
+    }
+    if(helpData.tags?.length){
+        text += `__Tags__:\n${helpData.tags.join(", ")}\n`
+    }
+    return text.replace("\n\n\n", "\n")
+}
+
+function generateHTMLFromCommandHelp(name: string, command: any) {
+    let html = `<div class="command-section"><h1 class="command-title">${name}</h1>`
+    let help = command["help"]
+    if (help) {
+        let info = help["info"] || ""
+        let aliases = help["aliases"] || []
+        let options = help["options"] || {}
+        let args = help["arguments"] || {}
+        if (info !== "") {
+            html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
+        }
+        if (args !== {}) {
+            html += `<h2 class="command-arguments">Arguments</h2><ul class="command-argument-list">`
+            for (let argName in args) {
+                let argument = args[argName].description
+                let required = args[argName].required || false
+                let requires = args[argName].requires || ""
+                let extraText = ""
+                if (requires) {
+                    extraText = `<span class="requires">requires: ${requires}</span>`
+                }
+                html += `<li class="command-argument" data-required="${required}">
+    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}&nbsp;</summary>${argument}<br>${extraText}</details>
+    </li>`
+            }
+            html += "</ul>"
+        }
+        if (options !== {}) {
+            html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
+            for (let option in options) {
+                let desc = options[option].description || ""
+                let alternates = options[option].alternates || 0
+                let requiresValue = options[option].requiresValue || false
+                html += `<li class="command-option">
+    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}&nbsp</summary> ${desc}</details>`
+                if (alternates) {
+                    html += '<span class="option-alternates-title">Aliases:</span>'
+                    html += `<ul class="option-alternates">`
+                    for (let alternate of alternates) {
+                        html += `<li class="option-alternate">-${alternate}</li>`
+                    }
+                    html += "</ul>"
+                }
+                html += "</li>"
+            }
+            html += "</ul>"
+
+        }
+        if (aliases !== []) {
+            html += `<h2 class="command-aliases">Aliases</h2><ul class="command-alias-list">`
+            for (let alias of aliases) {
+                html += `<li class="command-alias">${alias}</li>`
+            }
+            html += "</ul>"
+        }
+    }
+    return `${html}</div><hr>`
+}
+
+
 export {
     fetchUser,
     fetchChannel,
@@ -396,6 +517,9 @@ export {
     handleSending,
     fetchUserFromClient,
     generateSafeEvalContextFromMessage,
-    choice
+    choice,
+    getContentFromResult,
+    generateHTMLFromCommandHelp,
+    generateTextFromCommandHelp,
 }
 
