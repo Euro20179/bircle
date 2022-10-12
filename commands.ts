@@ -4021,6 +4021,7 @@ class VarHolder:
         self.__dict__ = dict
     def __repr__(self):
         return repr(self.__dict__)
+null = None
 g = VarHolder(${JSON.stringify(vars['__global__'])})
 u = VarHolder(${JSON.stringify(vars[msg.author.id]) || "{}"})
 print(eval("""${args.join(" ")}"""))`
