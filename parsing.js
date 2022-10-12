@@ -198,9 +198,9 @@ function buildEscape(letter, sequence, msg, curArg){
                 let args = msg.content.split(" ")
                 return String(args[num])
             }
-            let v = getVar(msg, sequence)
+            let v = getVar(msg, sequence, msg.author.id)
             if(v === false)
-                v = getVar(msg, sequence, msg.author.id)
+                v = getVar(msg, sequence)
             if(v !== false)
                 return v
             else return `\\v{${sequence}}`

@@ -3,7 +3,7 @@ import cheerio = require("cheerio")
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, Guild, Message } from "discord.js"
+import { Client, Guild, Message, MessageEmbed} from "discord.js"
 
 import globals = require("./globals")
 
