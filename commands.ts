@@ -1,44 +1,30 @@
-import globals = require("./globals")
-
 import fs = require("fs")
-
 import https = require('https')
 import Stream = require('stream')
 
+import sharp = require('sharp')
+import fetch = require("node-fetch")
+import cheerio = require('cheerio')
+
+import { spawnSync } from "child_process"
+import { MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji } from 'discord.js'
 const { execSync, exec } = require('child_process')
 
-const { createAudioPlayer, joinVoiceChannel } = require("@discordjs/voice")
-
-import { Client, Intents, MessageEmbed, Message, PartialMessage, Interaction, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, CollectorFilter, CommandInteraction } from 'discord.js'
-
+import globals = require("./globals")
 import uno = require("./uno")
-
 import battle = require("./battle")
 import API = require("./api")
 import stackl = require("./stackl")
-
-import sharp = require('sharp')
-
-import fetch = require("node-fetch")
-import cheerio = require('cheerio')
-import { intToRGBA } from "jimp/*"
-
-
-const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, USER_SETTINGS, client, setVar, saveVars } = require('./common.js')
-const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-
-const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, applyJimpFilter, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, UTF8String, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } = require('./util.js')
-
 import economy = require("./economy")
-
-const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
-
 import pet = require("./pets")
-import { choice, fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
-import { getVar } from "./common"
-import { spawn, spawnSync } from "child_process"
-import options from "cheerio/lib/options"
 
+import { getVar } from "./common"
+
+const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } = require('./common.js')
+const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
+const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } = require('./util.js')
+import { choice, generateSafeEvalContextFromMessage } from "./util"
+const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 enum CommandCategory {
     UTIL,
     GAME,
@@ -47,8 +33,6 @@ enum CommandCategory {
     IMAGES,
     ECONOMY
 }
-
-
 
 export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];

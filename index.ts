@@ -1,25 +1,22 @@
 ///<reference path="index.d.ts" />
-const { REST } = require('@discordjs/rest')
-const { Routes } = require("discord-api-types/v9")
-
-const {generateFileName, handleSending} = require("./util")
-
-const economy = require("./economy")
+import fs = require("fs")
 
 import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember } from "discord.js"
 
-import pet = require("./pets")
+const { REST } = require('@discordjs/rest')
+const { Routes } = require("discord-api-types/v9")
 
+
+import pet = require("./pets")
 import commands = require("./commands")
 
-let {client, purgeSnipe,  prefix, BLACKLIST} = require("./common")
+const economy = require("./economy")
 
+const {generateFileName, handleSending} = require("./util")
 const { saveItems, hasItem } = require("./shop")
-
 const globals = require("./globals")
 
-import fs = require("fs")
-
+let {client, purgeSnipe,  prefix, BLACKLIST} = require("./common")
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
 
@@ -560,6 +557,5 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
     }
 })
-
 
 client.login(globals.token)

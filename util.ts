@@ -1,13 +1,15 @@
-import { Client, Guild, Message } from "discord.js"
-
 import cheerio = require("cheerio")
+
+const vm = require('vm')
+const fs = require('fs')
+
+import { Client, Guild, Message } from "discord.js"
 
 import globals = require("./globals")
 
 const {execFileSync} = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST } = require("./common.js")
-const vm = require('vm')
-const fs = require('fs')
+
 class UTF8String{
     text: string[]
     constructor(text: string){
