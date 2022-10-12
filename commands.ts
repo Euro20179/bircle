@@ -4041,7 +4041,7 @@ print(eval("""${args.join(" ")}"""))`
             catch (err) {
                 console.log(err)
             }
-            if (ret.length) {
+            if (ret && ret.length) {
                 setVar("__calc", ret, msg.author.id)
             }
             return { content: ret }

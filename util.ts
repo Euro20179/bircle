@@ -3,124 +3,124 @@ import cheerio = require("cheerio")
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, Guild, Message, MessageEmbed} from "discord.js"
+import { Client, Guild, Message, MessageEmbed } from "discord.js"
 
 import globals = require("./globals")
 
-const {execFileSync} = require('child_process')
+const { execFileSync } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST } = require("./common.js")
 
-class UTF8String{
+class UTF8String {
     text: string[]
-    constructor(text: string){
+    constructor(text: string) {
         this.text = [...text]
     }
-    toString(){
+    toString() {
         return this.text.join("")
     }
-    length(){
+    length() {
         return this.text.length
     }
 }
 
-function* cycle(iter: any, onNext: Function){
-    for(let i = 0; true; i++){
-	onNext(i)
-	yield iter[i % iter.length]
+function* cycle(iter: any, onNext: Function) {
+    for (let i = 0; true; i++) {
+        onNext(i)
+        yield iter[i % iter.length]
     }
 }
 
-function randomColor(){
+function randomColor() {
     let colors = []
-    for(let i = 0; i < 3; i++){
+    for (let i = 0; i < 3; i++) {
         colors.push(Math.floor(Math.random() * 256))
     }
     return colors
 }
 
-function choice(list: Array<any> | string){
+function choice(list: Array<any> | string) {
     return list[Math.floor(Math.random() * list.length)]
 }
 
-function mulStr(str: string, amount: number){
+function mulStr(str: string, amount: number) {
     let ans = ""
-    for(let i = 0; i < amount; i++){
+    for (let i = 0; i < amount; i++) {
         ans += str
     }
     return ans
 }
 
-async function fetchChannel(guild: Guild, find: string){
+async function fetchChannel(guild: Guild, find: string) {
     let channels = await guild.channels.fetch()
     let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || channel?.name?.indexOf(find) > -1).at(0)
     return channel
 }
 
-async function fetchUserFromClient(client: Client, find: string){
-    if(!client.guilds.cache.at(0)){
+async function fetchUserFromClient(client: Client, find: string) {
+    if (!client.guilds.cache.at(0)) {
         return undefined
     }
     return await fetchUser(client.guilds.cache.at(0) as Guild, find)
 }
 
-async function fetchUser(guild: Guild, find: string){
+async function fetchUser(guild: Guild, find: string) {
     let res;
-    if(res = find?.match(/<@!?(\d{18})>/)){
+    if (res = find?.match(/<@!?(\d{18})>/)) {
         find = res[1]
     }
     await guild.members.fetch()
-    let user = (await guild.members.search({query: find}))?.at(0)
-    if(!user){
-        try{
-            user = await guild.members.fetch({user: find})
+    let user = (await guild.members.search({ query: find }))?.at(0)
+    if (!user) {
+        try {
+            user = await guild.members.fetch({ user: find })
         }
-        catch(DiscordAPIError){
+        catch (DiscordAPIError) {
             user = undefined
         }
     }
-    if(!user){
+    if (!user) {
         user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
     }
     return user
 }
 
-function generateFileName(cmd: string, userId: string){
+function generateFileName(cmd: string, userId: string) {
     return `${cmd}::${userId}.txt`
 }
 
-function downloadSync(url: string){
+function downloadSync(url: string) {
     return execFileSync(`curl`, ['--silent', url])
 }
 
-function escapeRegex(str: string){
+function escapeRegex(str: string) {
     let finalString = ""
     let escaped = false
-    for(let char of str){
-        if(escaped){
+    for (let char of str) {
+        if (escaped) {
             finalString += char
         }
-        else if(char === "\\"){
+        else if (char === "\\") {
             escaped = true
             finalString += "\\"
         }
-        else if("^*+[]{}()$".includes(char)){
+        else if ("^*+[]{}()$".includes(char)) {
             finalString += `\\${char}`
         }
-        else{
+        else {
             finalString += char
         }
     }
     return finalString
 }
 
-function format(str: string, formats: {[key: string]: string}, doPercent?: boolean, doBraces?: boolean){
-    if(doBraces === undefined) doBraces = true
-    if(doPercent === undefined) doPercent = true
-    for(let fmt in formats){
-        if(fmt.length > 1){
+function format(str: string, formats: { [key: string]: string }, doPercent?: boolean, doBraces?: boolean) {
+    if (doBraces === undefined) doBraces = true
+    if (doPercent === undefined) doPercent = true
+    for (let fmt in formats) {
+        if (fmt.length > 1) {
             str = str.replaceAll(`{${fmt}}`, formats[fmt])
         }
-        else{
+        else {
             let unescaped = fmt
             fmt = escapeRegex(fmt)
             str = str.replaceAll(new RegExp(`((?<!%)%${fmt}|(?<!\\\\)\\{${fmt}\\})`, "g"), formats[unescaped])
@@ -129,14 +129,14 @@ function format(str: string, formats: {[key: string]: string}, doPercent?: boole
     return str
 }
 
-async function createGradient(gradient: string[], width: number | string, height: number | string){
+async function createGradient(gradient: string[], width: number | string, height: number | string) {
     let gradientSvg = "<linearGradient id=\"gradient\">"
     let styleSvg = "<style type=\"text/css\"><![CDATA[#rect{fill: url(#gradient);}"
     let colorStep = 1 / (gradient.length - 1)
-    for(let i = 0; i < gradient.length; i++){
-	let grad = gradient[i]
-	gradientSvg += `<stop class="stop${i}" offset="${i*colorStep*100}%" />`
-	styleSvg += `.stop${i}{stop-color: ${grad};}`
+    for (let i = 0; i < gradient.length; i++) {
+        let grad = gradient[i]
+        gradientSvg += `<stop class="stop${i}" offset="${i * colorStep * 100}%" />`
+        styleSvg += `.stop${i}{stop-color: ${grad};}`
     }
     styleSvg += "]]></style>"
     gradientSvg += "</linearGradient>"
@@ -152,25 +152,25 @@ async function createGradient(gradient: string[], width: number | string, height
 }
 
 //@ts-ignore
-async function applyJimpFilter(img, filter, arg){
-    switch(filter){
+async function applyJimpFilter(img, filter, arg) {
+    switch (filter) {
         case "rotate":
             let deg, resize
-            if(arg?.length)
+            if (arg?.length)
                 [deg, resize] = arg.split(",")
             deg = parseFloat(deg) || 90.0
             resize = resize ?? true
-            if(resize=="false")
+            if (resize == "false")
                 resize = false
             return img.rotate(deg, resize)
         case "flip":
             let hor, vert
-            if(arg){
-                if(arg == "horizontal" || arg == "hor"){
+            if (arg) {
+                if (arg == "horizontal" || arg == "hor") {
                     hor = true
                     vert = false
                 }
-                else if(arg == 'vertical' || arg == "vert"){
+                else if (arg == 'vertical' || arg == "vert") {
                     hor = false
                     vert = true
                 }
@@ -179,7 +179,7 @@ async function applyJimpFilter(img, filter, arg){
                 vert = false
             }
             return img.flip(hor, vert)
-        case "brightness":{
+        case "brightness": {
             let val = parseInt(arg) || .5
             return img.brightness(val)
         }
@@ -190,7 +190,7 @@ async function applyJimpFilter(img, filter, arg){
             return img.greyscale()
         case "invert":
             return img.invert()
-        case "contrast":{
+        case "contrast": {
             let val = parseInt(arg) || .5
             return img.contrast(val)
         }
@@ -199,66 +199,65 @@ async function applyJimpFilter(img, filter, arg){
     }
 }
 
-function rgbToHex(r: number, g: number, b: number){
+function rgbToHex(r: number, g: number, b: number) {
     let [rhex, ghex, bhex] = [r.toString(16), g.toString(16), b.toString(16)]
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
 
-function generateSafeEvalContextFromMessage(msg: Message){
+function generateSafeEvalContextFromMessage(msg: Message) {
     return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot }
 }
 
-function safeEval (code: string, context: {[key: string]: any}, opts: any) {
-  let sandbox = {}
+function safeEval(code: string, context: { [key: string]: any }, opts: any) {
 
-  let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
-  //@ts-ignore
-  sandbox[resultKey] = {}
-  //@ts-ignore
-  sandbox["Buffer"] = Buffer
-  let clearContext = `
-    (function() {
+    let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
+    //@ts-ignore
+    context[resultKey] = {}
+    //@ts-ignore
+    context["Buffer"] = Buffer
+    let clearContext = `
       Function = undefined;
       const keys = Object.getOwnPropertyNames(this).concat(['constructor']);
-      keys.forEach((key) => {
+      for(let key of keys){
         const item = this[key];
-        if (!item || typeof item.constructor !== 'function') return;
+        if (!item || typeof item.constructor !== 'function') break;
         this[key].constructor = undefined;
-      });
-    })();
+      }
   `
-  code = clearContext + resultKey + '=' + code
-  if(!context){
-      context = {}
-  }
-  context = {yes: true, no: false, rgbToHex, escapeRegex, escapeShell, randomColor, mulStr, choice, ...context}
-  if (context) {
-    Object.keys(context).forEach(function (key) {
-        //@ts-ignore
-      sandbox[key] = context[key]
-    })
-  }
-    try{
-      vm.runInNewContext(code, sandbox, opts)
-      //@ts-ignore
-      return sandbox[resultKey]
+    //let clearContext = 'Function = undefined;'
+    code = clearContext + resultKey + '=' + code
+    if (!context) {
+        context = {}
     }
-    catch(err){
+    context['yes'] = true
+    context['no'] = false
+    context['rgbToHex'] = rgbToHex
+    context['escapeRegex'] = escapeRegex
+    context['escapeShell'] = escapeShell
+    context['randomColor'] = randomColor
+    context['mulStr'] = mulStr
+    context['choice'] = choice
+    try {
+        vm.runInNewContext(code, context, opts)
+        //@ts-ignore
+        return context[resultKey]
+    }
+    catch (err) {
         console.log(err)
         return undefined
     }
 }
 
-function escapeShell(text:  string){
+function escapeShell(text: string) {
     return text.replaceAll(/\$/g, "\\$").replaceAll(";", "\\;")
 }
 
-function strlen(text: string){
+function strlen(text: string) {
     return [...text].length
 }
 
-function cmdCatToStr(cat: number){
-    switch(cat){
+function cmdCatToStr(cat: number) {
+    switch (cat) {
         case 0:
             return "util"
         case 1:
@@ -320,7 +319,7 @@ function getOpts(args: ArgumentList) {
     return [opts, newArgs]
 }
 
-async function handleSending(msg:  Message, rv: CommandReturn) {
+async function handleSending(msg: Message, rv: CommandReturn) {
     if (!Object.keys(rv).length) {
         return
     }
@@ -396,42 +395,42 @@ function getContentFromResult(result: CommandReturn) {
     return res
 }
 
-function generateTextFromCommandHelp(name: string, command: Command){
+function generateTextFromCommandHelp(name: string, command: Command) {
     let text = `***${name}***:\n\n`
     let helpData = command.help
-    if(!helpData)
+    if (!helpData)
         return text
-    if(helpData.info){
+    if (helpData.info) {
         text += `**${cheerio.load(helpData.info).text()}**\n\n`
     }
-    if(helpData.aliases){
+    if (helpData.aliases) {
         text += `Aliases: ${helpData.aliases.join(", ")}\n`
     }
-    if(helpData.arguments){
+    if (helpData.arguments) {
         text += "__Arguments__:\n"
-        for(let arg in helpData.arguments){
+        for (let arg in helpData.arguments) {
             text += `\t* **${arg}**`
-            if(helpData.arguments[arg].required !== false){
+            if (helpData.arguments[arg].required !== false) {
                 text += " (required) "
             }
-            if(helpData.arguments[arg].requires){
+            if (helpData.arguments[arg].requires) {
                 text += ` (required: ${helpData.arguments[arg].requires}) `
             }
             text += `:\n\t\t- ${cheerio.load(helpData.arguments[arg].description).text()}\n`
         }
         text += "\n"
     }
-    if(helpData.options){
+    if (helpData.options) {
         text += "__Options__:\n"
-        for(let op in helpData.options){
+        for (let op in helpData.options) {
             text += `\t* **-${op}**: ${cheerio.load(helpData.options[op].description).text()}\n`
-            if(helpData.options[op].alternates){
+            if (helpData.options[op].alternates) {
                 text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
         }
         text += "\n"
     }
-    if(helpData.tags?.length){
+    if (helpData.tags?.length) {
         text += `__Tags__:\n${helpData.tags.join(", ")}\n`
     }
     return text.replace("\n\n\n", "\n")
