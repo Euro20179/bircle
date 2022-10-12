@@ -43,6 +43,7 @@ import pet = require("./pets")
 import { choice, fetchUserFromClient, generateSafeEvalContextFromMessage } from "./util"
 import { getVar } from "./common"
 import { spawn, spawnSync } from "child_process"
+import options from "cheerio/lib/options"
 
 enum CommandCategory {
     UTIL,
@@ -350,7 +351,6 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
 }
 
 let HEIST_PLAYERS: string[] = []
-let connection: any;
 
 let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 let HEIST_STARTED = false
@@ -566,14 +566,14 @@ const commands: { [command: string]: Command } = {
                     }
                     return true
                 },
-                d: async(range, args)  => {
+                d: async(range, _args)  => {
                     commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
                     text = text.filter((_v, i) => !commandLines.includes(i))
                     if(text.length < currentLine)
                         currentLine = text.length
                     return true
                 },
-                p: async(range,  args) => {
+                p: async(range,  _args) => {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
                     let textToSend = ""
                     for(let line of commandLines){
@@ -582,7 +582,7 @@ const commands: { [command: string]: Command } = {
                     await handleSending(msg, {content: textToSend})
                     return true
                 },
-                n: async(range, args) => {
+                n: async(range, _args) => {
                     commandLines  = getLinesFromRange(range).map(v => v - 1)
                     let textToSend = ""
                     for(let line of commandLines){
@@ -662,7 +662,7 @@ const commands: { [command: string]: Command } = {
         }, category: CommandCategory.UTIL
     },
     "help": {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let opts
             [opts, args] = getOpts(args)
             if (opts["g"]) {
@@ -678,6 +678,8 @@ do first:
     %{0}$(command) gets replaced with the first word of the result
     %{do-first-index:} gets replaces with the result of a specific $(command)
     %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
+end of statement:
+    putting a [; on its own line seperates commands.
 calc:
     $[calculation]
 special commands:
@@ -778,7 +780,7 @@ variables:
         }
     },
     "clear-logs": {
-        run: async (msg, args) => {
+        run: async (_msg, _args) => {
             for(let file of fs.readdirSync("./command-results/")){
                 if(file.match(/log-\d+\.txt/)){
                     fs.rmSync(`./command-results/${file}`)
@@ -900,7 +902,7 @@ variables:
         }
     },
     'get-source': {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             if(opts['of-file']){
@@ -1062,7 +1064,7 @@ variables:
         }
     },
     "heist-info": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let action = args[0] || 'list-types'
             let text = ""
             let responses = fs.readFileSync("./command-results/heist", "utf-8").split("\n").map(v => v.split(":").slice(1).join(":").replace(/;END$/, "").trim())
@@ -1274,7 +1276,7 @@ variables:
         }
     },
     loan: {
-        run: async (msg, args) => {
+        run: async (msg, _args) => {
             if (!hasItem(msg.author.id, "loan")) {
                 return { content: "You do not have a loan" }
             }
@@ -1302,7 +1304,7 @@ variables:
         }
     },
     work: {
-        run: async(msg, args) => {
+        run: async(msg, _args) => {
             if(economy.canWork(msg.author.id)){
                 let amount = economy.work(msg.author.id)
                 return {content: `You earned: ${amount}`}
@@ -1346,7 +1348,6 @@ variables:
             if (!ITEMS()[item]) {
                 return { content: `${item} does not exist` }
             }
-            let itemData = ITEMS()[item]
             let totalSpent = 0
             for (let i = 0; i < count; i++) {
                 let totalCost = 0
@@ -1389,7 +1390,7 @@ variables:
         }, category: CommandCategory.ECONOMY
     },
     "pet-shop": {
-        run: async (msg, args) => {
+        run: async (msg, _args) => {
             let embed = new MessageEmbed()
             let shopData = pet.getPetShop()
             for (let pet in shopData) {
@@ -1562,7 +1563,6 @@ variables:
             let fmt = args.join(" ") || "%i"
             let ffmt =  opts['ffmt'] || "%i\n%f"
             for (let stock in economy.getEconomy()[msg.author.id].stocks) {
-                let data
                 stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 promises.push(economy.getStockInformation(stock))
             }
@@ -1608,7 +1608,7 @@ variables:
         }, category: CommandCategory.ECONOMY
     },
     "align-table": {
-        run: async(msg, args)  => {
+        run: async(_msg, args)  => {
             let opts;
             [opts, args] = getOpts(args)
             let align = opts['align'] || "left"
@@ -1969,7 +1969,7 @@ variables:
             let opts;
             [opts, args] = getOpts(args)
             let round = !opts['no-round']
-            let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, a: string) => t * 0.005 })
+            let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
             let numbers = args.slice(1, 4)
             if (!amount) {
                 return { content: "No amount given" }
@@ -2024,7 +2024,7 @@ variables:
         }
     },
     lottery: {
-        run: async (msg, args) => {
+        run: async (msg, _args) => {
             return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}` }
         }, category: CommandCategory.FUN
     },
@@ -2413,7 +2413,6 @@ variables:
             if (!amounts.includes(givenAmount)) {
                 return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
             }
-            let damageHealText = ""
             if (damageUsers && healUsers) {
                 return { content: "Only -lose or -gain can be given, not both" }
             }
@@ -2517,7 +2516,6 @@ variables:
                     HEIST_STARTED = true
                     clearInterval(int)
                     await msg.channel.send({ content: `Commencing heist with ${HEIST_PLAYERS.length} players` })
-                    let stages = ["getting in", "robbing", "escape"]
                     for (let player of HEIST_PLAYERS) {
                         data[player] = 0
                         setVar("__heist", 0, player)
@@ -2687,11 +2685,12 @@ variables:
                             amount = Math.random()
                         }
                         else {
+                            //@ts-ignore
                             let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
                             amount *= multiplier
                         }
 
-                        response = response.replaceAll(/\{user(\d+|all)\}/g, (all, capture) => {
+                        response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
                             if (capture === "all") {
                                 let text = []
                                 for (let player of shuffledPlayers) {
@@ -2751,7 +2750,7 @@ variables:
                             current_location = setLocation[1].toLowerCase()
                         }
                         response = response.replace(/LOCATION=[^ ]+/, "")
-                        response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (match, pm) => {
+                        response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (_match: any, pm: any) => {
                             if (pm && pm == "+") {
                                 return `+${Math.abs(amount)}`
                             }
@@ -2986,7 +2985,6 @@ variables:
                     for (; attempts > 0; attempts--) {
                         await msg.channel.send(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
                         try {
-                            let m = await msg.channel.awaitMessages({ filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time'] })
                             giveRandomCard(players[turn], stack)
                             let recentCard = stack[stack.length - 1]
                             let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
@@ -3012,7 +3010,6 @@ variables:
                 else {
                     await msg.channel.send(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
                     try {
-                        let m = await msg.channel.awaitMessages({ filter: m => m.author.id === turn && ['go', 'g'].includes(m.content.toLowerCase()), time: 10000, max: 1, errors: ['time'] })
                         giveRandomCard(players[turn], stack)
                         let recentCard = stack[stack.length - 1]
                         let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
@@ -3037,7 +3034,6 @@ variables:
                 }
                 lastPlayer = turn
             }
-            return { content: "Starting" }
         }, category: CommandCategory.GAME
     },
     blackjack: {
@@ -3063,7 +3059,7 @@ variables:
             }
             globals.BLACKJACK_GAMES[msg.author.id] = true
             let cards = []
-            for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
+            for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                 for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
                     cards.push(`${num}`)
                 }
@@ -3161,7 +3157,7 @@ variables:
                 else {
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
-                let message = await msg.channel.send({ embeds: [embed] })
+                let _message = await msg.channel.send({ embeds: [embed] })
                 let response
                 while (!response) {
                     let collectedMessages
@@ -3201,7 +3197,7 @@ variables:
                 }
                 if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
                     cards = []
-                    for (let suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
+                    for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                         for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
                             cards.push(`${num}`)
                         }
@@ -3274,7 +3270,7 @@ variables:
         }
     },
     "periodic-table": {
-        run: async(msg,  args) => {
+        run: async(_msg,  args) => {
             let opts;
             [opts, args] = getOpts(args)
 
@@ -3352,7 +3348,7 @@ variables:
         }, category: CommandCategory.UTIL
     },
     economy: {
-        run: async (msg, args) => {
+        run: async (_msg, _args) => {
             return {
                 files: [
                     {
@@ -3367,7 +3363,7 @@ variables:
         category: CommandCategory.META
     },
     "inventory.json": {
-        run: async (msg, args) => {
+        run: async (_msg, _args) => {
             return {
                 files: [
                     {
@@ -3517,13 +3513,13 @@ variables:
         }
     },
     "savev": {
-        run: async(msg, args) => {
+        run: async(_msg, _args) => {
             saveVars()
             return {content: "Variables saved"}
         }, category: CommandCategory.META
     },
     savee: {
-        run: async (msg, args) => {
+        run: async (_msg,_args) => {
             economy.saveEconomy()
             saveItems()
             pet.savePetData()
@@ -3584,7 +3580,7 @@ variables:
         }, category: CommandCategory.UTIL
     },
     "string": {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let operation = args[0]
             let validOperations = ["upper", "lower", "title"]
             let string = args.slice(1).join(" ")
@@ -3643,7 +3639,7 @@ variables:
         category: CommandCategory.UTIL
     },
     time: {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let fmt = args.join(" ")
 
             const date = new Date()
@@ -3703,7 +3699,7 @@ variables:
     },
     */
     nothappening: {
-        run: async (msg, args) => {
+        run: async (_msg, _args) => {
             return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n") }
         },
         category: CommandCategory.META
@@ -3721,7 +3717,7 @@ variables:
         category: CommandCategory.UTIL
     },
     "cmd-search": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let search = args.join(" ")
             let regexp;
             try{
@@ -3877,8 +3873,8 @@ variables:
     },
     yt: {
         run: async (msg, args) => {
-            const fn = generateFileName("yt", msg.author.id)
-            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, stderr: any) => {
+            const _fn = generateFileName("yt", msg.author.id)
+            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, _stderr: any) => {
                 if (excep) {
                     console.log(excep)
                 }
@@ -3900,8 +3896,8 @@ variables:
     },
     ani: {
         run: async (msg, args) => {
-            const fn = generateFileName("ani", msg.author.id)
-            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, stderr: any) => {
+            const _fn = generateFileName("ani", msg.author.id)
+            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, _stderr: any) => {
                 if (excep) {
                     console.log(excep)
                 }
@@ -3962,7 +3958,7 @@ variables:
                     return { content: "not found" }
                 }
                 if (resp.headers.get("location")) {
-                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location").split("/wiki/")[1]}`])
+                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`])
                 }
                 else {
                     let respText = resp.body.read()
@@ -3994,7 +3990,7 @@ variables:
         category: CommandCategory.FUN
     },
     piglatin: {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let sep = opts['sep']
@@ -4096,7 +4092,7 @@ variables:
         }, category: CommandCategory.META
     },
     "htmlq": {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             let [query, ...html] = args.join(" ").split("|")
             let realHTML = html.join("|")
             let $ = cheerio.load(realHTML)(query).text()
@@ -4300,7 +4296,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "argc": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             return { content: String(args.length) }
         },
         help: {
@@ -4309,7 +4305,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     opts: {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let disp = ""
@@ -4456,7 +4452,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     "pcount": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let id = args[0]
             if (!id) {
                 return { content: "no id given" }
@@ -4477,7 +4473,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     poll: {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let actionRow = new MessageActionRow()
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -4496,7 +4492,7 @@ print(eval("""${args.join(" ")}"""))`
             let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
             globals.POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
-            await msg.channel.send({ components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}` })
+            return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}` }
         },
         help: {
             info: "create a poll",
@@ -4665,7 +4661,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     "create-file": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let file = args[0]
             if (!file) {
                 return { content: "No file specified" }
@@ -4681,11 +4677,11 @@ print(eval("""${args.join(" ")}"""))`
             let opts: Opts;
             [opts, args] = getOpts(args)
             if (opts['t']) {
-                msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(m => {
+                msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(_m => {
                     try {
                         let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                         let start = Date.now()
-                        collector.on("collect", async (m) => {
+                        collector.on("collect", async (_m) => {
                             await msg.channel.send(`${Date.now() - start}ms`)
                             collector.stop()
                         })
@@ -4711,7 +4707,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     "search-cmd-file": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let file = args[0]
@@ -4752,7 +4748,7 @@ print(eval("""${args.join(" ")}"""))`
         }, category: CommandCategory.UTIL
     },
     "rand-line": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let file = args[0]
             if (!file) {
                 return { content: "No file specified" }
@@ -4791,7 +4787,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "todo-list": {
-        run: async (msg, args) => {
+        run: async (_msg, _args) => {
             let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
             let strdata = data.slice(0, data.length - 1).join("\n")
             return { content: strdata }
@@ -5360,7 +5356,7 @@ print(eval("""${args.join(" ")}"""))`
                 let guessed = ""
                 let disp = ""
                 let lives = parseInt(opts["lives"] as string) || 10
-                let startingLives = lives
+                let _startingLives = lives
                 let word = [...wordstr]
                 for (let i = 0; i < wordLength; i++) {
                     if (word[i] == " ") {
@@ -5729,7 +5725,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     img: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
             let gradOpt = opts['gradient']
@@ -5827,8 +5823,8 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     polygon: {
-        run: async (msg: Message, args: ArgumentList) => {
-            let opts;
+        run: async (_msg: Message,_args: ArgumentList) => {
+            let _opts;
             return {
                 content: "Broken"
             }
@@ -5908,7 +5904,7 @@ print(eval("""${args.join(" ")}"""))`
             let opts;
             [opts, args] = getOpts(args)
             let color: string = <string>opts['color'] || "white"
-            let outline = opts['outline']
+            let _outline = opts['outline']
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
                 return {
@@ -5984,9 +5980,9 @@ print(eval("""${args.join(" ")}"""))`
                             }
                     */
                     fs.writeFileSync(fn, composedImg)
-                    msg.channel.send({ files: [{ attachment: fn, name: fn }] }).then(res => {
+                    msg.channel.send({ files: [{ attachment: fn, name: fn }] }).then(_res => {
                         fs.rmSync(fn)
-                    }).catch(err => {
+                    }).catch(_err => {
                     })
                 })
             }).end()
@@ -6062,7 +6058,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     scale: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message,_ args: ArgumentList) => {
             /*
                 let opts;
                 [opts, args] = getOpts(args)
@@ -6120,7 +6116,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     filter: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message,_ args: ArgumentList) => {
             /*
                 let opts;
                 [opts, args] = getOpts(args)
@@ -6174,7 +6170,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     text: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message,_ args: ArgumentList) => {
             /*
                     let opts
                     [opts, args] = getOpts(args)
@@ -6266,7 +6262,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     choose: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
             let times = 1
@@ -6452,7 +6448,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "l-bl": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/blacklists", "utf-8")
             }
@@ -6461,7 +6457,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "l-wl": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList) => {
             return {
                 content: fs.readFileSync("command-perms/whitelists", "utf-8")
             }
@@ -6469,7 +6465,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     ship: {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             if (args.length < 2) {
@@ -6482,7 +6478,7 @@ print(eval("""${args.join(" ")}"""))`
             let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
             let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
             let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-            return { content: format(choice(optsions), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean }
+            return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean }
         },
         help: {
             info: "Create your favorite fantacies!!!!"
@@ -6586,7 +6582,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     stop: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             if (!Object.keys(globals.SPAMS).length) {
                 return { content: "no spams to stop" }
             }
@@ -6627,7 +6623,7 @@ print(eval("""${args.join(" ")}"""))`
         }
     },
     "udict": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             //@ts-ignore
             try {
                 //@ts-ignore
@@ -6642,7 +6638,7 @@ print(eval("""${args.join(" ")}"""))`
         }, category: CommandCategory.FUN
     },
     "vars": {
-        run: async (msg, args) => {
+        run: async (_msg,_ args) => {
             let rv = ""
             for (let prefix in vars) {
                 rv += `${prefix}:\n`
@@ -6717,7 +6713,7 @@ print(eval("""${args.join(" ")}"""))`
     },
 
     "reddit": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let subreddit = args[0]
             //@ts-ignore
             let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
@@ -7129,19 +7125,19 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "b64": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let text = args.join(" ")
             return { content: Buffer.from(text).toString("base64") }
         }, category: CommandCategory.UTIL
     },
     "b64d": {
-        run: async (msg, args) => {
+        run: async (_msg, args) => {
             let text = args.join(" ")
             return { content: Buffer.from(text, "base64").toString("utf8") }
         }, category: CommandCategory.UTIL
     },
     "rfile": {
-        run: async (msg, args) => {
+        run: async (msg, _args) => {
             let att = msg.attachments.at(0)
             if (att) {
                 //@ts-ignore
@@ -7153,7 +7149,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     "command-file": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             let opts
             [opts, args] = getOpts(args)
             if (opts["l"]) {
@@ -7199,12 +7195,12 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.META
     },
     'send-log': {
-        run: async(msg, args) => {
+        run: async(_msg, args) => {
             return {content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8")}
         }, category: CommandCategory.META
     },
     "list-files": {
-        run: async (msg, args) => {
+        run: async (_msg,_ args) => {
             return { content: fs.readdirSync('./command-results').join("\n") }
         },
         category: CommandCategory.META
@@ -7349,7 +7345,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             let content = args.join(" ")
             let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
             return {
-                content: choice(optsions)
+                content: choice(options)
                     .slice(20)
                     .replaceAll("{content}", content)
                     .replaceAll("{u}", `${msg.author}`)
@@ -7454,7 +7450,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.FUN
     },
     "list-cmds": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message,_ args: ArgumentList) => {
             let values = ''
             let typeConv = { 1: "chat", 2: "user", 3: "message" }
             for (let cmd in commands) {
@@ -7599,7 +7595,7 @@ ${styles}
 
     },
     code: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message,_ args: ArgumentList) => {
             return {
                 content: "https://github.com/euro20179/bircle"
             }
@@ -7651,7 +7647,7 @@ ${styles}
 
     },
     RESET_ECONOMY: {
-        run: async (msg, args) => {
+        run: async (_msg,_ args) => {
             economy.resetEconomy()
 
             return { content: "Economy reset" }
@@ -7682,7 +7678,7 @@ ${styles}
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_ITEMS: {
-        run: async (msg, args) => {
+        run: async (_msg, _args) => {
             resetItems()
             return { content: "Items reset" }
         },
@@ -7776,7 +7772,7 @@ ${styles}
 
     },
     END: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, _args: ArgumentList) => {
             await msg.channel.send("STOPPING")
             economy.saveEconomy()
             saveItems()
@@ -8163,7 +8159,7 @@ valid formats:<br>
 
     },
     "cmd-use": {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList) => {
             let data = generateCmdUseFile()
                 .split("\n")
                 .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
@@ -8181,7 +8177,7 @@ valid formats:<br>
 
     },
     invite: {
-        run: async (msg, args) => {
+        run: async (msg, _args) => {
             let invites = await msg.guild?.invites.fetch()
             if (invites?.at(0)?.url) {
                 return { content: invites.at(0)?.url }
@@ -8191,7 +8187,7 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     "non-assigned-roles": {
-        run: async (msg, args) => {
+        run: async (msg, _args) => {
             await msg.guild?.members.fetch()
             let roles = await msg.guild?.roles.fetch()
             let rolesNonAssigned: any[] = []
@@ -8772,11 +8768,11 @@ async function doCmd(msg: Message, returnJson = false) {
     msg.channel.send = oldSend
 }
 
-client.on("guildMemberAdd", async (m) => {
+client.on("guildMemberAdd", async (m: Message) => {
     try {
-        let role = await m.guild.roles.fetch("427570287232417793")
+        let role = await m.guild?.roles.fetch("427570287232417793")
         if (role)
-            m.roles.add(role)
+            m.member?.roles.add(role)
     }
     catch (err) {
         console.log(err)
@@ -8785,9 +8781,9 @@ client.on("guildMemberAdd", async (m) => {
 
 client.on('ready', async () => {
 
-    client.guilds.fetch("427567510611820544").then(guild => {
-        guild.members.fetch("334538784043696130").then(user => {
-            user.createDM().then(dmChannel => {
+    client.guilds.fetch("427567510611820544").then((guild: any) => {
+        guild.members.fetch("334538784043696130").then((user: any) => {
+            user.createDM().then((dmChannel: any) => {
                 dmChannel.send("ONLINE").then(console.log).catch(console.log)
             }).catch(console.log)
         }).catch(console.log)
@@ -8795,7 +8791,7 @@ client.on('ready', async () => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async (m) => {
+client.on("messageDelete", async (m: Message) => {
     if (m.author?.id != client.user?.id) {
         for (let i = 3; i >= 0; i--) {
             snipes[i + 1] = snipes[i]
@@ -8804,7 +8800,7 @@ client.on("messageDelete", async (m) => {
     }
 })
 
-client.on("messageDeleteBulk", async (m) => {
+client.on("messageDeleteBulk", async (m: any) => {
     purgeSnipe = m.toJSON()
     if (purgeSnipe.length > 5)
         purgeSnipe.length = 5
@@ -8859,7 +8855,7 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
         let cmds = after.split("/")
         let result = finalMessages.join("\n")
         let oldSend = m.channel.send
-        m.channel.send = async (data) => {
+        m.channel.send = async (_data) => {
             return m
         }
         for (let cmd of cmds) {
@@ -8905,7 +8901,10 @@ client.on("messageCreate", async (m: Message) => {
         await handleChatSearchCommandType(m, search)
     }
     if (content.slice(0, prefix.length) == prefix) {
-        await doCmd(m)
+        for(let cmd of content.split(`\n${prefix};\n`)){
+            m.content = `${cmd}`
+            await doCmd(m)
+        }
         writeCmdUse()
     }
     if (economy.canEarn(m.author.id)) {

@@ -226,7 +226,7 @@ function safeEval (code: string, context: {[key: string]: any}, opts: any) {
   if(!context){
       context = {}
   }
-  context = {yes: true, no: false, rgbToHex, escapeRegex, escapeShell, randomColor, choice, ...context}
+  context = {yes: true, no: false, rgbToHex, escapeRegex, escapeShell, randomColor, mulStr, choice, ...context}
   if (context) {
     Object.keys(context).forEach(function (key) {
         //@ts-ignore
@@ -368,7 +368,7 @@ async function handleSending(msg:  Message, rv: CommandReturn) {
     //delete files that were sent
     if (rv.files) {
         for (let file of rv.files) {
-            if (file.delete !== false && rv.deleteFiles)
+            if (file.delete !== false && rv.deleteFiles && fs.existsSync(file.attachment))
                 fs.rmSync(file.attachment)
         }
     }
