@@ -230,377 +230,413 @@ export const slashCommands = [
         type: 3
     }
 ]
-export const commands: { [command: string]: Command } = {
-    "ed": {
-        run: async(msg,  args) => {
-            if(globals.EDS[msg.author.id]){
-                return {content: "Ur already editing"}
-            }
-            let opts: Opts;
-            [opts, args] = getOpts(args)
-            let mode:  "normal" | "insert" = "normal"
-            let canEdit = String(opts['editors']).split(",")
-            canEdit.push(msg.author.id)
-            for(let i = 0; i < canEdit.length; i++){
-                canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
-                if(globals.EDS[canEdit[i]])
-                    //@ts-ignore
-                    canEdit[i] = undefined
-            }
-            canEdit = canEdit.filter(v => v)
-            for(let ed of canEdit){
-                globals.EDS[ed] = true
-            }
-            function parseNormalEdInput(input: string){
-                let cmds = "qnaipgsdg!"
-                let range = ""
-                let startArgs = false
-                let cmd = ""
-                let args = ""
-                for(let i = 0; i < input.length; i++){
-                    let ch = input[i]
-                    if(cmds.includes(ch) && !startArgs){
-                        range += cmd + args
-                        cmd = ch
-                        args = ""
-                    }
-                    else if(ch === " " && !startArgs){
-                        startArgs = true
-                    }
-                    else if(!cmd){
-                        range += ch
-                    }
-                    else if(cmd){
-                        args +=  ch
-                    }
-                }
-                return [range, cmd, args]
-            }
 
-            function getLinesFromRange(range: string){
-                let m
-                if(!range)
-                    return [currentLine]
-                if(Number(range)){
-                    return [Number(range)]
+function createHelpArgument(description: string, required?: boolean, requires?: string) {
+    return {
+        description: description,
+        required: required,
+        requires: requires
+    }
+}
+
+function createHelpOption(description: string, alternatives?: string[]) {
+    return {
+        description: description,
+        alternatives: alternatives
+    }
+}
+
+function createCommand(
+    cb: (msg: Message, args: ArgumentList) => Promise<CommandReturn>,
+    category: CommandCategory,
+    helpInfo?: string,
+    helpArguments?: CommandHelpArguments | null,
+    helpOptions?: CommandHelpOptions | null,
+    tags?: string[] | null,
+    permCheck?: (m: Message) => boolean): Command {
+    return {
+        run: cb,
+        help: {
+            info: helpInfo,
+            arguments: helpArguments ? helpArguments : undefined,
+            options: helpOptions ? helpOptions : undefined,
+            tags: tags ? tags : undefined
+        },
+        category: category,
+        permCheck: permCheck
+    }
+}
+
+export const commands: { [command: string]: Command } = {
+
+    "ed": createCommand(async (msg, args) => {
+        if (globals.EDS[msg.author.id]) {
+            return { content: "Ur already editing" }
+        }
+        let opts: Opts;
+        [opts, args] = getOpts(args)
+        let mode: "normal" | "insert" = "normal"
+        let canEdit = String(opts['editors']).split(",")
+        canEdit.push(msg.author.id)
+        for (let i = 0; i < canEdit.length; i++) {
+            canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
+            if (globals.EDS[canEdit[i]])
+                //@ts-ignore
+                canEdit[i] = undefined
+        }
+        canEdit = canEdit.filter(v => v)
+        for (let ed of canEdit) {
+            globals.EDS[ed] = true
+        }
+        function parseNormalEdInput(input: string) {
+            let cmds = "qnaipgsdg!"
+            let range = ""
+            let startArgs = false
+            let cmd = ""
+            let args = ""
+            for (let i = 0; i < input.length; i++) {
+                let ch = input[i]
+                if (cmds.includes(ch) && !startArgs) {
+                    range += cmd + args
+                    cmd = ch
+                    args = ""
                 }
-                else if(range === "$"){
-                    return [text.length]
+                else if (ch === " " && !startArgs) {
+                    startArgs = true
                 }
-                else if(range === ","){
-                    return text.map((_v, i) => i + 1)
+                else if (!cmd) {
+                    range += ch
                 }
-                else if(m = range.match(/^(\d*),(\d*)$/)){
-                    let start = Number(m[1]) || 0
-                    let end = undefined
-                    if(m[2]){
-                        end = Number(m[2])
+                else if (cmd) {
+                    args += ch
+                }
+            }
+            return [range, cmd, args]
+        }
+
+        function getLinesFromRange(range: string) {
+            let m
+            if (!range)
+                return [currentLine]
+            if (Number(range)) {
+                return [Number(range)]
+            }
+            else if (range === "$") {
+                return [text.length]
+            }
+            else if (range === ",") {
+                return text.map((_v, i) => i + 1)
+            }
+            else if (m = range.match(/^(\d*),(\d*)$/)) {
+                let start = Number(m[1]) || 0
+                let end = undefined
+                if (m[2]) {
+                    end = Number(m[2])
+                }
+                return text.slice(start - 1, end).map((_v, i) => i + start)
+            }
+            else {
+                let [search, _, __] = createSedRegex(range)
+                if (search) {
+                    let rgx
+                    try {
+                        rgx = new RegExp(search, "g")
+                        console.log(rgx)
                     }
-                    return text.slice(start - 1, end).map((_v, i) => i  + start)
-                }
-                else{
-                    let [search, _, __] = createSedRegex(range)
-                    if(search){
-                        let rgx
-                        try{
-                            rgx = new RegExp(search, "g")
-                            console.log(rgx)
-                        }
-                        catch(err){
-                            handleSending(msg, {content: "? Invalid regex'"})
-                            return [currentLine]
-                        }
-                        let validLines = []
-                        for(let i = 0; i < text.length; i++){
-                            if(text[i]?.match(rgx)){
-                                validLines.push(i + 1)
-                            }
-                        }
-                        if(validLines.length){
-                            return validLines
-                        }
+                    catch (err) {
+                        handleSending(msg, { content: "? Invalid regex'" })
                         return [currentLine]
                     }
-                }
-                return [currentLine]
-            }
-
-            function addTextAtPosition(text: string[], textToAdd: string, position: number){
-                let number = position
-                let dataAfter = text.slice(number)
-                text[number] = textToAdd
-                text = text.concat(dataAfter)
-                for(let i = 0; i < number; i++){
-                    if(text[i] === undefined)
-                        text[i] = ""
-                }
-                currentLine = position + 1
-                return text
-            }
-
-            function createSedRegex(str: string, buildReplace = false){
-                let searchRegex =  ""
-                let replaceWith = ""
-                let flags = ""
-                let delimiter = str[0]
-
-                let escape = false
-                let searchDone = false
-                let replaceDone = false
-
-                str = str.slice(1)
-                for(let char of str){
-                    if(char == "\\"){
-                        escape = true
-                        continue
-                    }
-                    else if(char === delimiter && searchRegex && !escape){
-                        if(!buildReplace)
-                            break
-                        searchDone = true
-                    }
-                    else if(char === delimiter && searchDone && !escape){
-                        replaceDone = true
-                    }
-                    else if(!searchDone){
-                        if(escape) searchRegex += "\\"
-                        searchRegex += char
-                    }
-                    else if(!replaceDone){
-                        if(escape) replaceWith += "\\"
-                        replaceWith += char
-                    }
-                    else if(replaceDone){
-                        if(escape) flags += "\\"
-                        flags += char
-                    }
-                    escape = false
-                }
-                return [searchRegex, replaceWith, flags]
-            }
-
-            async function handleTextInMode(textStr: string){
-                if(mode === "normal"){
-                    let [range, cmd, cmdArgs] = parseNormalEdInput(textStr)
-                    if(edCmds[cmd]){
-                        if(!(await edCmds[cmd](range, cmdArgs))){
-                            return false
+                    let validLines = []
+                    for (let i = 0; i < text.length; i++) {
+                        if (text[i]?.match(rgx)) {
+                            validLines.push(i + 1)
                         }
                     }
-                    else if(!isNaN(Number(range))){
-                        currentLine = Number(range)
+                    if (validLines.length) {
+                        return validLines
                     }
+                    return [currentLine]
+                }
+            }
+            return [currentLine]
+        }
 
-                    else if(!opts['exec']){
-                        await handleSending(msg, {content: "?"})
+        function addTextAtPosition(text: string[], textToAdd: string, position: number) {
+            let number = position
+            let dataAfter = text.slice(number)
+            text[number] = textToAdd
+            text = text.concat(dataAfter)
+            for (let i = 0; i < number; i++) {
+                if (text[i] === undefined)
+                    text[i] = ""
+            }
+            currentLine = position + 1
+            return text
+        }
+
+        function createSedRegex(str: string, buildReplace = false) {
+            let searchRegex = ""
+            let replaceWith = ""
+            let flags = ""
+            let delimiter = str[0]
+
+            let escape = false
+            let searchDone = false
+            let replaceDone = false
+
+            str = str.slice(1)
+            for (let char of str) {
+                if (char == "\\") {
+                    escape = true
+                    continue
+                }
+                else if (char === delimiter && searchRegex && !escape) {
+                    if (!buildReplace)
+                        break
+                    searchDone = true
+                }
+                else if (char === delimiter && searchDone && !escape) {
+                    replaceDone = true
+                }
+                else if (!searchDone) {
+                    if (escape) searchRegex += "\\"
+                    searchRegex += char
+                }
+                else if (!replaceDone) {
+                    if (escape) replaceWith += "\\"
+                    replaceWith += char
+                }
+                else if (replaceDone) {
+                    if (escape) flags += "\\"
+                    flags += char
+                }
+                escape = false
+            }
+            return [searchRegex, replaceWith, flags]
+        }
+
+        async function handleTextInMode(textStr: string) {
+            if (mode === "normal") {
+                let [range, cmd, cmdArgs] = parseNormalEdInput(textStr)
+                if (edCmds[cmd]) {
+                    if (!(await edCmds[cmd](range, cmdArgs))) {
+                        return false
                     }
                 }
-                else{
-                    if(textStr === '.'){
-                        mode = "normal"
-                    }
-                    else{
-                        text = addTextAtPosition(text, textStr, currentLine)
+                else if (!isNaN(Number(range))) {
+                    currentLine = Number(range)
+                }
+
+                else if (!opts['exec']) {
+                    await handleSending(msg, { content: "?" })
+                }
+            }
+            else {
+                if (textStr === '.') {
+                    mode = "normal"
+                }
+                else {
+                    text = addTextAtPosition(text, textStr, currentLine)
+                }
+            }
+            return true
+        }
+
+        let text: string[] = []
+        let currentLine = 0
+        if (opts['text-after']) {
+            let newArgs;
+            [newArgs, ...text] = args.join(" ").split(String(opts['text-after']))
+            args = newArgs.split(" ")
+            text = text.join(String(opts['text-after'])).split("\n").map(v => v.trim())
+            currentLine = text.length
+        }
+        let commandLines = [0]
+        let edCmds: { [key: string]: (range: string, args: string) => any } = {
+            i: async (range, args) => {
+                commandLines = getLinesFromRange(range)
+                if (args) {
+                    text = addTextAtPosition(text, args, commandLines[0])
+                }
+                else {
+                    mode = "insert"
+                }
+                return true
+            },
+            a: async (range, args) => {
+                commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
+                if (args) {
+                    text = addTextAtPosition(text, args, commandLines[0])
+                }
+                else {
+                    mode = "insert"
+                }
+                return true
+            },
+            d: async (range, _args) => {
+                commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
+                text = text.filter((_v, i) => !commandLines.includes(i))
+                if (text.length < currentLine)
+                    currentLine = text.length
+                return true
+            },
+            p: async (range, _args) => {
+                commandLines = getLinesFromRange(range).map(v => v - 1)
+                let textToSend = ""
+                for (let line of commandLines) {
+                    textToSend += text[line] + "\n"
+                }
+                await handleSending(msg, { content: textToSend })
+                return true
+            },
+            n: async (range, _args) => {
+                commandLines = getLinesFromRange(range).map(v => v - 1)
+                let textToSend = ""
+                for (let line of commandLines) {
+                    textToSend += `${String(line + 1)} ${text[line]}\n`
+                }
+                await handleSending(msg, { content: textToSend })
+                return true
+            },
+            s: async (range, args) => {
+                commandLines = getLinesFromRange(range).map(v => v - 1)
+                let [searchRegex, replaceWith, flags] = createSedRegex(args, true)
+                let rgx
+                try {
+                    rgx = new RegExp(searchRegex, flags)
+                }
+                catch (err) {
+                    await handleSending(msg, { content: "? Invalid regex'" })
+                    return true
+                }
+                for (let line of commandLines) {
+                    let newText = text[line].replace(rgx, replaceWith)
+                    text[line] = newText
+                }
+                return true
+            },
+            "!": async (range, args) => {
+                commandLines = getLinesFromRange(range).map(v => v - 1)
+                if (args) {
+                    for (let i = 0; i < commandLines.length; i++) {
+                        let textAtLine = text[commandLines[i]]
+                        let oldContent = msg.content
+                        setVar("__ed_line", textAtLine, msg.author.id)
+                        msg.content = `${prefix}${args}`
+                        let rv = await doCmd(msg, true)
+                        msg.content = oldContent
+                        let t = getContentFromResult(rv as CommandReturn).trim()
+                        delete vars[msg.author.id]["__ed_line"]
+                        text[commandLines[i]] = t
                     }
                 }
                 return true
+            },
+            q: async () => {
+                return false
             }
+        }
 
-            let text: string[] = []
-            let currentLine = 0
-            if(opts['text-after']){
-                let newArgs;
-                [newArgs, ...text] = args.join(" ").split(String(opts['text-after']))
-                args = newArgs.split(" ")
-                text = text.join(String(opts['text-after'])).split("\n").map(v => v.trim())
-                currentLine = text.length
-            }
-            let commandLines = [0]
-            let edCmds: {[key: string]: (range: string, args: string) => any} = {
-                i: async(range, args) => {
-                    commandLines = getLinesFromRange(range)
-                    if(args){
-                        text = addTextAtPosition(text, args, commandLines[0])
-                    }
-                    else{
-                        mode = "insert"
-                    }
-                    return true
-                },
-                a: async(range, args) => {
-                    commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
-                    if(args){
-                        text = addTextAtPosition(text, args, commandLines[0])
-                    }
-                    else{
-                        mode = "insert"
-                    }
-                    return true
-                },
-                d: async(range, _args)  => {
-                    commandLines = getLinesFromRange(range).map(v => v - 1 >= 0 ? v - 1 : 0)
-                    text = text.filter((_v, i) => !commandLines.includes(i))
-                    if(text.length < currentLine)
-                        currentLine = text.length
-                    return true
-                },
-                p: async(range,  _args) => {
-                    commandLines  = getLinesFromRange(range).map(v => v - 1)
-                    let textToSend = ""
-                    for(let line of commandLines){
-                        textToSend += text[line] + "\n"
-                    }
-                    await handleSending(msg, {content: textToSend})
-                    return true
-                },
-                n: async(range, _args) => {
-                    commandLines  = getLinesFromRange(range).map(v => v - 1)
-                    let textToSend = ""
-                    for(let line of commandLines){
-                        textToSend += `${String(line + 1)} ${text[line]}\n`
-                    }
-                    await handleSending(msg, {content: textToSend})
-                    return true
-                },
-                s: async(range, args) => {
-                    commandLines = getLinesFromRange(range).map(v => v - 1)
-                    let [searchRegex, replaceWith, flags] = createSedRegex(args, true)
-                    let rgx
-                    try{
-                        rgx = new RegExp(searchRegex, flags)
-                    }
-                    catch(err){
-                        await handleSending(msg, {content: "? Invalid regex'"})
-                        return true
-                    }
-                    for(let line of commandLines){
-                        let newText = text[line].replace(rgx, replaceWith)
-                        text[line] = newText
-                    }
-                    return true
-                },
-                "!": async(range, args) => {
-                    commandLines = getLinesFromRange(range).map(v => v - 1)
-                    if(args){
-                        for(let i = 0; i < commandLines.length; i++){
-                            let textAtLine = text[commandLines[i]]
-                            let oldContent = msg.content
-                            setVar("__ed_line", textAtLine, msg.author.id)
-                            msg.content = `${prefix}${args}`
-                            let rv = await doCmd(msg, true)
-                            msg.content = oldContent
-                            let t = getContentFromResult(rv as CommandReturn).trim()
-                            delete vars[msg.author.id]["__ed_line"]
-                            text[commandLines[i]] = t
-                        }
-                    }
-                    return true
-                },
-                q: async() => {
-                    return false
-                }
-            }
-
-            if(opts['exec']){
-                for(let line of args.join(" ").split("\n")){
-                    if(!(await handleTextInMode(line))){
-                        break
-                    }
-                }
-            }
-            else{
-                while(true){
-                    let m
-                    try{
-                        m = (await msg.channel.awaitMessages({filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"]})).at(0)
-                    }
-                    catch(err){
-                        return {content: "Timeout"}
-                    }
-                    if(!m)break
-                    if(!(await handleTextInMode(m.content))){
-                        break
-                    }
-                }
-            }
-            for(let ed in globals.EDS){
-                delete globals.EDS[ed]
-            }
-            if(opts['s']){
-                return {noSend: true}
-            }
-            return {content: text.join("\n")}
-        }, category: CommandCategory.UTIL
-    },
-    "help": {
-        run: async(_msg, args) => {
-            let opts
-            [opts, args] = getOpts(args)
-            if (opts["g"]) {
-                let text = fs.readFileSync("./help.txt", "utf-8")
-                return {
-                    content:text
-                }
-            }
-            if (opts['l']) {
-                let category = String(opts['l']) || "all"
-                let catNum = -1
-                switch (category.toLowerCase()) {
-                    case "meta":
-                        catNum = CommandCategory.META
-                        break;
-                    case "util":
-                        catNum = CommandCategory.UTIL
-                        break;
-                    case "game":
-                        catNum = CommandCategory.GAME; break;
-                    case "fun":
-                        catNum = CommandCategory.FUN; break;
-                    case "images": catNum = CommandCategory.IMAGES; break;
-                }
-                let rv = ""
-                for (let cmd in commands) {
-                    if (catNum == -1 || commands[cmd].category == catNum)
-                        rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
-                }
-                return { content: rv }
-            }
-            let commandsToUse = commands
-            if (args[0]) {
-                commandsToUse = {}
-                if (args[0] == "?") {
-                    commandsToUse = commands
-                }
-                else {
-                    for (let cmd of args) {
-                        if (!commands[cmd]) continue
-                        commandsToUse[cmd] = commands[cmd]
-                    }
-                }
-            }
-            if (opts['json']) {
-                return { content: JSON.stringify(commandsToUse) }
-            }
-            let text = ""
-            for(let command in commandsToUse){
-                text += generateTextFromCommandHelp(command, commandsToUse[command]) + "--------------------------------------\n"
-            }
-            return {content: text}
-        }, category: CommandCategory.UTIL,
-        help: {
-            info: "Get help with specific commands",
-            arguments: {
-                commands: {
-                    description: "The commands to get help on, seperated by a space<br>If command is ?, it will do all commands",
-                    required: false
+        if (opts['exec']) {
+            for (let line of args.join(" ").split("\n")) {
+                if (!(await handleTextInMode(line))) {
+                    break
                 }
             }
         }
-    },
+        else {
+            while (true) {
+                let m
+                try {
+                    m = (await msg.channel.awaitMessages({ filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"] })).at(0)
+                }
+                catch (err) {
+                    return { content: "Timeout" }
+                }
+                if (!m) break
+                if (!(await handleTextInMode(m.content))) {
+                    break
+                }
+            }
+        }
+        for (let ed in globals.EDS) {
+            delete globals.EDS[ed]
+        }
+        if (opts['s']) {
+            return { noSend: true }
+        }
+        return { content: text.join("\n") }
+    }, CommandCategory.UTIL
+    ),
+
+    "help": createCommand(async (_msg, args) => {
+        let opts
+        [opts, args] = getOpts(args)
+        if (opts["g"]) {
+            let text = fs.readFileSync("./help.txt", "utf-8")
+            return {
+                content: text
+            }
+        }
+        if (opts['l']) {
+            let category = String(opts['l']) || "all"
+            let catNum = -1
+            switch (category.toLowerCase()) {
+                case "meta":
+                    catNum = CommandCategory.META
+                    break;
+                case "util":
+                    catNum = CommandCategory.UTIL
+                    break;
+                case "game":
+                    catNum = CommandCategory.GAME; break;
+                case "fun":
+                    catNum = CommandCategory.FUN; break;
+                case "images": catNum = CommandCategory.IMAGES; break;
+            }
+            let rv = ""
+            for (let cmd in commands) {
+                if (catNum == -1 || commands[cmd].category == catNum)
+                    rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
+            }
+            return { content: rv }
+        }
+        let commandsToUse = commands
+        if (args[0]) {
+            commandsToUse = {}
+            if (args[0] == "?") {
+                commandsToUse = commands
+            }
+            else {
+                for (let cmd of args) {
+                    if (!commands[cmd]) continue
+                    commandsToUse[cmd] = commands[cmd]
+                }
+            }
+        }
+        if (opts['json']) {
+            return { content: JSON.stringify(commandsToUse) }
+        }
+        let text = ""
+        for (let command in commandsToUse) {
+            text += generateTextFromCommandHelp(command, commandsToUse[command]) + "--------------------------------------\n"
+        }
+        return { content: text }
+    }, CommandCategory.UTIL,
+        "Get help with specific commands",
+        {
+            commands: createHelpArgument("The commands to get help on, seperated by a space<br>If command is ?, it will do all commands", false)
+        },
+        {
+            "g": createHelpOption("List the bot syntax")
+        }
+    ),
+
     "clear-logs": {
         run: async (_msg, _args) => {
-            for(let file of fs.readdirSync("./command-results/")){
-                if(file.match(/log-\d+\.txt/)){
+            for (let file of fs.readdirSync("./command-results/")) {
+                if (file.match(/log-\d+\.txt/)) {
                     fs.rmSync(`./command-results/${file}`)
                 }
             }
@@ -610,59 +646,58 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.UTIL,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
-    "stk": {
-        run: async (msg, args) => {
-            https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on("end", async () => {
-                    let html = data.read().toString()
-                    let embed = new MessageEmbed()
-                    let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
-                    if (!stockData) {
-                        await msg.channel.send("No data found")
-                        return
-                    }
-                    stockData = stockData[0]
-                    let price = stockData.match(/>(\d+\.\d+)/)
-                    if (!price) {
-                        await msg.channel.send("No price found")
-                        return
-                    }
-                    price = price[1]
-                    let change = stockData.match(/(\+|-)(\d+\.\d+)/)
-                    if (!change) {
-                        await msg.channel.send("No change found")
-                        return
-                    }
-                    change = `${change[1]}${change[2]}`
-                    let numberchange = Number(change)
-                    let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
-                    if (!stockName) {
-                        await msg.channel.send("Could not get stock name")
-                        return
-                    }
-                    stockName = stockName[1]
-                    if (numberchange > 0) {
-                        embed.setColor("GREEN")
-                    }
-                    else {
-                        embed.setColor("RED")
-                    }
-                    embed.setTitle(stockName)
-                    embed.addField("Price", price)
-                    embed.addField("Price change", change, true)
-                    await msg.channel.send({ embeds: [embed] })
-                })
-            }).end()
-            return { content: "Getting data" }
-        }, category: CommandCategory.UTIL,
-        help: {
-            info: "Gets the stock symbol for a stock"
-        }
-    },
+
+    "stk": createCommand(async (msg, args) => {
+        https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
+            let data = new Stream.Transform()
+            resp.on("data", chunk => {
+                data.push(chunk)
+            })
+            resp.on("end", async () => {
+                let html = data.read().toString()
+                let embed = new MessageEmbed()
+                let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
+                if (!stockData) {
+                    await msg.channel.send("No data found")
+                    return
+                }
+                stockData = stockData[0]
+                let price = stockData.match(/>(\d+\.\d+)/)
+                if (!price) {
+                    await msg.channel.send("No price found")
+                    return
+                }
+                price = price[1]
+                let change = stockData.match(/(\+|-)(\d+\.\d+)/)
+                if (!change) {
+                    await msg.channel.send("No change found")
+                    return
+                }
+                change = `${change[1]}${change[2]}`
+                let numberchange = Number(change)
+                let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
+                if (!stockName) {
+                    await msg.channel.send("Could not get stock name")
+                    return
+                }
+                stockName = stockName[1]
+                if (numberchange > 0) {
+                    embed.setColor("GREEN")
+                }
+                else {
+                    embed.setColor("RED")
+                }
+                embed.setTitle(stockName)
+                embed.addField("Price", price)
+                embed.addField("Price change", change, true)
+                await msg.channel.send({ embeds: [embed] })
+            })
+        }).end()
+        return { content: "Getting data" }
+    }, CommandCategory.UTIL,
+        "Gets the stock symbol for a stock"
+    ),
+
     stock: {
         run: async (msg, args) => {
             let opts: Opts;
@@ -719,13 +754,14 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     'get-source': {
-        run: async(_msg, args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
-            if(opts['of-file']){
+            if (opts['of-file']) {
                 let file = opts['of-file']
-                if(fs.existsSync(`./${file}.ts`)){
+                if (fs.existsSync(`./${file}.ts`)) {
 
                     return {
                         files: [
@@ -737,17 +773,17 @@ export const commands: { [command: string]: Command } = {
                         ]
                     }
                 }
-                return {content: `./${file}.ts not found`}
+                return { content: `./${file}.ts not found` }
             }
             let cmd = args[0]
 
-            if(!cmd){
-                return {content: "No cmd  chosen"}
+            if (!cmd) {
+                return { content: "No cmd  chosen" }
             }
             let command = Object.keys(commands).filter(v => v.toLowerCase() === cmd.toLowerCase())
-            if(!command.length)
-                return {content: "no command found"}
-            return {content: String(commands[command[0]].run)}
+            if (!command.length)
+                return { content: "no command found" }
+            return { content: String(commands[command[0]].run) }
         }, category: CommandCategory.META,
         help: {
             info: "Get the source code of a file, or a command",
@@ -764,6 +800,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     buy: {
         run: async (msg, args) => {
             let allowedTypes = ["stock", "pet", "item"]
@@ -773,7 +810,7 @@ export const commands: { [command: string]: Command } = {
                 return { content: "No item specified" }
             }
             let amount = Number(args[args.length - 1])
-            if(!isNaN(amount)){
+            if (!isNaN(amount)) {
                 item = item.split(" ").slice(0, -1).join(" ")
             }
             if (!allowedTypes.includes(type)) {
@@ -881,6 +918,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     "heist-info": {
         run: async (_msg, args) => {
             let action = args[0] || 'list-types'
@@ -985,6 +1023,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     bstock: {
         run: async (msg, args) => {
             let stock = args[0]
@@ -1038,6 +1077,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     "ustock": {
         run: async (msg, args) => {
             let user = args[1] || msg.author.id
@@ -1059,6 +1099,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     "stocks": {
         run: async (msg, args) => {
             let user = args[0]
@@ -1093,6 +1134,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     loan: {
         run: async (msg, _args) => {
             if (!hasItem(msg.author.id, "loan")) {
@@ -1121,18 +1163,20 @@ export const commands: { [command: string]: Command } = {
 <br>A loan can only be used if you have payed off previous loans, and you are in debt`
         }
     },
+
     work: {
-        run: async(msg, _args) => {
-            if(economy.canWork(msg.author.id)){
+        run: async (msg, _args) => {
+            if (economy.canWork(msg.author.id)) {
                 let amount = economy.work(msg.author.id)
-                return {content: `You earned: ${amount}`}
+                return { content: `You earned: ${amount}` }
             }
-            return {content: "No working for you bubs"}
+            return { content: "No working for you bubs" }
         }, category: CommandCategory.UTIL,
         help: {
             info: `Earn money (.1% of the economy) if your net worth is below 0`
         }
     },
+
     "pay-loan": {
         run: async (msg, args) => {
             let amount = args[0] || "all!"
@@ -1149,6 +1193,7 @@ export const commands: { [command: string]: Command } = {
             return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left` }
         }, category: CommandCategory.ECONOMY
     },
+
     bitem: {
         run: async (msg, args) => {
             let opts;
@@ -1191,6 +1236,7 @@ export const commands: { [command: string]: Command } = {
             return { content: `You bought: ${item} for $${totalSpent}` }
         }, category: CommandCategory.ECONOMY
     },
+
     inventory: {
         run: async (msg, args) => {
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
@@ -1207,6 +1253,7 @@ export const commands: { [command: string]: Command } = {
             return { embeds: [e] }
         }, category: CommandCategory.ECONOMY
     },
+
     "pet-shop": {
         run: async (msg, _args) => {
             let embed = new MessageEmbed()
@@ -1223,6 +1270,7 @@ export const commands: { [command: string]: Command } = {
             return { embeds: [embed] }
         }, category: CommandCategory.ECONOMY
     },
+
     'bpet': {
         run: async (msg, args) => {
             let requested_pet = args[0]
@@ -1248,12 +1296,14 @@ export const commands: { [command: string]: Command } = {
             return { content: "You already have this pet" }
         }, category: CommandCategory.ECONOMY
     },
+
     "gapet": {
         run: async (msg, args) => {
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             return { content: String(pet.getActivePet(user.user.id)) }
         }, category: CommandCategory.UTIL
     },
+
     "sapet": {
         run: async (msg, args) => {
             let newActivePet = args[0]?.toLowerCase()
@@ -1266,6 +1316,7 @@ export const commands: { [command: string]: Command } = {
             return { content: "Failed to set active pet" }
         }, category: CommandCategory.UTIL
     },
+
     pets: {
         run: async (msg, args) => {
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
@@ -1288,6 +1339,7 @@ export const commands: { [command: string]: Command } = {
             return { embeds: [e] }
         }, category: CommandCategory.ECONOMY
     },
+
     "feed-pet": {
         run: async (msg, args) => {
             let petName = args[0]?.toLowerCase()
@@ -1309,6 +1361,7 @@ export const commands: { [command: string]: Command } = {
             info: "feed-peth <pet> <item>"
         }
     },
+
     shop: {
         run: async (msg, args) => {
             let opts;
@@ -1366,6 +1419,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     profits: {
         run: async (msg, args) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
@@ -1379,24 +1433,24 @@ export const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let fmt = args.join(" ") || "%i"
-            let ffmt =  opts['ffmt'] || "%i\n%f"
+            let ffmt = opts['ffmt'] || "%i\n%f"
             for (let stock in economy.getEconomy()[msg.author.id].stocks) {
                 stock = stock.replace(/\(.*/, "").toUpperCase().trim()
                 promises.push(economy.getStockInformation(stock))
             }
-            try{
+            try {
                 let rPromises = await Promise.all(promises)
-                for(let stockInfo of rPromises){
-                    if(!stockInfo) continue;
+                for (let stockInfo of rPromises) {
+                    if (!stockInfo) continue;
 
                     let userStockData = economy.userHasStockSymbol(msg.author.id, stockInfo.name)
-                    if(!userStockData)
+                    if (!userStockData)
                         continue
 
                     let stockName = userStockData.name
 
                     let userStockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
-                    if(!userStockInfo) continue;
+                    if (!userStockInfo) continue;
 
                     let profit = (stockInfo.price - userStockInfo.buyPrice) * userStockInfo.shares
                     totalProfit += profit
@@ -1407,7 +1461,7 @@ export const commands: { [command: string]: Command } = {
                     totalValue += stockInfo.price * userStockInfo.shares
 
                     text += format(fmt, {
-                        i:  `**${stockName}**\nPrice: ${stockInfo.price}\nChange: ${stockInfo.change}\nProfit: ${profit}\nTodays profit: ${todaysProfit}\n---------------------------\n`,
+                        i: `**${stockName}**\nPrice: ${stockInfo.price}\nChange: ${stockInfo.change}\nProfit: ${profit}\nTodays profit: ${todaysProfit}\n---------------------------\n`,
                         p: String(stockInfo.price),
                         c: String(stockInfo.change),
                         "+": String(profit),
@@ -1419,80 +1473,81 @@ export const commands: { [command: string]: Command } = {
                     })
                 }
             }
-            catch(err){
-                return {content: "Something went wrong"}
+            catch (err) {
+                return { content: "Something went wrong" }
             }
-            return {content: format(ffmt, {i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue)})}
+            return { content: format(ffmt, { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }) }
         }, category: CommandCategory.ECONOMY
     },
+
     "align-table": {
-        run: async(_msg, args)  => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let align = opts['align'] || "left"
             let raw = opts['raw'] || false
             let columnCounts = opts['cc'] || false
             let table = args.join(" ")
-            let columnLongestLengths: {[key: number]: number} = {}
+            let columnLongestLengths: { [key: number]: number } = {}
             let longestRow = 0
             let rows = table.split("\n")
             let finalColumns: string[][] = []
-            for(let row  of rows){
+            for (let row of rows) {
                 let columns = row.split("|")
                 let nextColumn = []
-                for(let i = 0; i < columns.length; i++){
+                for (let i = 0; i < columns.length; i++) {
                     nextColumn.push(columns[i])
-                    if(i > longestRow)
+                    if (i > longestRow)
                         longestRow = i
                 }
                 finalColumns.push(nextColumn)
             }
-            for(let row of finalColumns){
-                for(let i = row.length - 1; i < longestRow; i++){
+            for (let row of finalColumns) {
+                for (let i = row.length - 1; i < longestRow; i++) {
                     row.push("")
                 }
             }
-            if(raw){
-                return {content: `\\${JSON.stringify(finalColumns)}`}
+            if (raw) {
+                return { content: `\\${JSON.stringify(finalColumns)}` }
             }
-            for(let row of finalColumns){
-                for(let i = 0; i < row.length; i++){
-                    if(!columnLongestLengths[i]){
+            for (let row of finalColumns) {
+                for (let i = 0; i < row.length; i++) {
+                    if (!columnLongestLengths[i]) {
                         columnLongestLengths[i] = 0
                     }
-                    if(row[i].length > columnLongestLengths[i]){
+                    if (row[i].length > columnLongestLengths[i]) {
                         columnLongestLengths[i] = row[i].length
                     }
                 }
             }
-            if(columnCounts){
+            if (columnCounts) {
                 let text = ""
-                for(let i = 0; i < finalColumns[0].length; i++){
+                for (let i = 0; i < finalColumns[0].length; i++) {
                     text += `(col: ${i + 1}): ${columnLongestLengths[i]}\n`
                 }
-                return {content: text}
+                return { content: text }
             }
             let newText = "```"
-            for(let row of finalColumns){
-                for(let i = 0; i < row.length; i++){
+            for (let row of finalColumns) {
+                for (let i = 0; i < row.length; i++) {
                     let col = row[i].replace(/^\|/, "").replace(/\|$/, "")
-                    let maxLength  = columnLongestLengths[i]
-                    if(maxLength  == 0){
+                    let maxLength = columnLongestLengths[i]
+                    if (maxLength == 0) {
                         continue
                     }
-                    else{
+                    else {
                         newText += "|"
                     }
-                    if(col.length < maxLength){
-                        if(col.match(/^-+$/)){
+                    if (col.length < maxLength) {
+                        if (col.match(/^-+$/)) {
                             col = mulStr("-", maxLength)
                         }
-                        else{
-                            if(align == "left")
+                        else {
+                            if (align == "left")
                                 col = col + mulStr(" ", maxLength - col.length)
-                            else if(align == "right")
+                            else if (align == "right")
                                 col = mulStr(" ", maxLength - col.length) + col
-                            else if(align == "center")
+                            else if (align == "center")
                                 col = mulStr(" ", Math.floor((maxLength - col.length) / 2)) + col + mulStr(" ", Math.ceil((maxLength - col.length) / 2))
                         }
                     }
@@ -1500,8 +1555,8 @@ export const commands: { [command: string]: Command } = {
                 }
                 newText += '|\n'
             }
-            return {content: newText + "```"}
-        }, category:  CommandCategory.UTIL,
+            return { content: newText + "```" }
+        }, category: CommandCategory.UTIL,
         help: {
             info: "Align a table",
             arguments: {
@@ -1522,6 +1577,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     "profit": {
         run: async (msg, args) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
@@ -1529,27 +1585,27 @@ export const commands: { [command: string]: Command } = {
             }
             let stock = args[0]
             let fmt = args.slice(1).join(" ").trim() || "{embed}"
-            if(!stock){
-                return {content: "No stock given"}
+            if (!stock) {
+                return { content: "No stock given" }
             }
             let data = await economy.getStockInformation(stock)
-            if(!data){
-                return {content: "No stock data found"}
+            if (!data) {
+                return { content: "No stock data found" }
             }
             let embed = new MessageEmbed()
             let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
-            if(!stockInfo){
-                return {content: "You do not have this stock"}
+            if (!stockInfo) {
+                return { content: "You do not have this stock" }
             }
             let stockName = stockInfo.name
             let profit = (data.price - stockInfo.info.buyPrice) * stockInfo.info.shares
             let todaysProfit = (Number(data.change) * stockInfo.info.shares)
             embed.setTitle(stockName)
             embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
-            if(profit > 0){
+            if (profit > 0) {
                 embed.setColor("GREEN")
             }
-            else{
+            else {
                 embed.setColor("RED")
             }
             embed.addField("Price", String(data.price), true)
@@ -1558,21 +1614,24 @@ export const commands: { [command: string]: Command } = {
             embed.addField("Profit", String(profit), true)
             embed.addField("Today's Profit", String(todaysProfit), true)
             embed.addField("Value", String(data.price * stockInfo.info.shares))
-            if(fmt == "{embed}"){
+            if (fmt == "{embed}") {
                 return { embeds: [embed] }
             }
-            else{
-                return {content: format(fmt, {
-                    p: String(data.price),
-                    c: String(data.change),
-                    C: String(data["%change"]),
-                    P: String(profit),
-                    T: String(todaysProfit),
-                    v: String(data.price * stockInfo.info.shares)
-                })}
+            else {
+                return {
+                    content: format(fmt, {
+                        p: String(data.price),
+                        c: String(data.change),
+                        C: String(data["%change"]),
+                        P: String(profit),
+                        T: String(todaysProfit),
+                        v: String(data.price * stockInfo.info.shares)
+                    })
+                }
             }
         }, category: CommandCategory.ECONOMY
     },
+
     sell: {
         run: async (msg, args) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
@@ -1639,6 +1698,7 @@ export const commands: { [command: string]: Command } = {
             }
         }, category: CommandCategory.ECONOMY
     },
+
     battle: {
         run: async (msg, args) => {
             return battle.battle(msg, args)
@@ -1719,6 +1779,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     abattle: {
         run: async (msg, args) => {
             let opts;
@@ -1782,6 +1843,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     ticket: {
         run: async (msg, args) => {
             let opts;
@@ -1841,23 +1903,25 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     lottery: {
         run: async (msg, _args) => {
             return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}` }
         }, category: CommandCategory.FUN
     },
+
     calcet: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
             let reqAmount = args.join(" ") || "all!"
-            let {money, stocks, loan, total} = economy.economyLooseGrandTotal()
-            let  moneyAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, reqAmount)
-            let  stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
-            let  loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
-            let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money  + stocks - loan, reqAmount)
-            return {content: format(fmt, {m: moneyAmount, s: stockAmount, l: loanAmount, t: grandTotal})}
+            let { money, stocks, loan, total } = economy.economyLooseGrandTotal()
+            let moneyAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, reqAmount)
+            let stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
+            let loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
+            let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money + stocks - loan, reqAmount)
+            return { content: format(fmt, { m: moneyAmount, s: stockAmount, l: loanAmount, t: grandTotal }) }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Calculate the net worth of the economy",
@@ -1868,6 +1932,7 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     calcm: {
         run: async (msg, args) => {
             let opts;
@@ -1890,6 +1955,7 @@ export const commands: { [command: string]: Command } = {
             return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
+
     calcl: {
         run: async (msg, args) => {
             let opts;
@@ -1911,6 +1977,7 @@ export const commands: { [command: string]: Command } = {
             return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
+
     calcms: {
         run: async (msg, args) => {
             let opts;
@@ -1929,6 +1996,7 @@ export const commands: { [command: string]: Command } = {
             return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
+
     "calcam": {
         run: async (msg, args) => {
             let opts;
@@ -1948,63 +2016,51 @@ export const commands: { [command: string]: Command } = {
             return { content: `${dollarSign}${amount}` }
         }, category: CommandCategory.UTIL
     },
-    money: {
-        run: async (msg, args) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            let user = msg.member
-            if (args.join(" "))
-                user = await fetchUser(msg.guild, args.join(" "))
-            if (!user)
-                user = msg.member
-            if (!user) {
-                return { content: "How are you not a member?" }
-            }
-            let text = ""
-            if (economy.getEconomy()[user.id]) {
-                if (opts['m']) {
-                    text += `${economy.getEconomy()[user.id].money}\n`
-                }
-                if (opts['l']) {
-                    text += `${economy.getEconomy()[user.id].lastTalk}\n`
-                }
-                if (opts['t']) {
-                    text += `${economy.getEconomy()[user.id].lastTaxed}\n`
-                }
-                if (text) {
-                    return { content: text }
-                }
-                if (opts['no-round']) {
-                    return { content: `${user.user.username}\n$${economy.getEconomy()[user.id].money}` }
-                }
-                return { content: `${user.user.username}\n$${Math.round(economy.getEconomy()[user.id].money * 100) / 100}` }
-            }
-            return { content: "none" }
-        }, category: CommandCategory.ECONOMY,
-        help: {
-            info: "Get the money of a user",
-            arguments: {
-                "user": {
-                    required: false,
-                    description: "The user to get the money of"
-                }
-            },
-            options: {
-                "m": {
-                    description: "Show money only"
-                },
-                "l": {
-                    description: "Show the last time they got money from talking",
-                },
-                "t": {
-                    description: "Show the  last time they got taxed"
-                },
-                "no-round": {
-                    description: "No rounding"
-                }
-            }
+
+    money: createCommand(async (msg, args) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let user = msg.member
+        if (args.join(" "))
+            user = await fetchUser(msg.guild, args.join(" "))
+        if (!user)
+            user = msg.member
+        if (!user) {
+            return { content: "How are you not a member?" }
         }
-    },
+        let text = ""
+        if (economy.getEconomy()[user.id]) {
+            if (opts['m']) {
+                text += `${economy.getEconomy()[user.id].money}\n`
+            }
+            if (opts['l']) {
+                text += `${economy.getEconomy()[user.id].lastTalk}\n`
+            }
+            if (opts['t']) {
+                text += `${economy.getEconomy()[user.id].lastTaxed}\n`
+            }
+            if (text) {
+                return { content: text }
+            }
+            if (opts['no-round']) {
+                return { content: `${user.user.username}\n$${economy.getEconomy()[user.id].money}` }
+            }
+            return { content: `${user.user.username}\n$${Math.round(economy.getEconomy()[user.id].money * 100) / 100}` }
+        }
+        return { content: "none" }
+    }, CommandCategory.ECONOMY,
+        "Get the money of a user",
+        {
+            "user": createHelpArgument("The user to get the money of", false)
+        },
+        {
+            "m": createHelpOption("Show money only"),
+            "l": createHelpOption("Show the last time they got money from talking"),
+            "t": createHelpOption("Show the  last time they got taxed"),
+            "no-round": createHelpOption("No rounding"),
+        }
+    ),
+
     give: {
         run: async (msg, args) => {
             let [amount, ...user] = args
@@ -2031,711 +2087,662 @@ export const commands: { [command: string]: Command } = {
             }
         }, category: CommandCategory.ECONOMY
     },
-    "give-stock": {
-        run: async (msg, args) => {
-            let stock = args[0]
-            let a = args[1]
-            let sn = stock
-            let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
-            if (!userStockData) {
-                return { content: "You do not own that stock" }
-            }
-            let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
-            if (amount <= 0) {
-                return { content: `Invalid share count` }
-            }
-            if (amount > userStockData.info.shares) {
-                return { content: "You dont have that many shares" }
-            }
-            let player = args.slice(2).join(" ")
-            let member = await fetchUser(msg.guild, player)
-            if (!member) {
-                return { content: `Member: ${player} not found` }
-            }
-            if (!economy.getEconomy()[member.id]) {
-                return { content: "Cannot give stocks to this player" }
-            }
-            userStockData.info.shares -= amount
-            //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
-            let otherStockInfo = economy.userHasStockSymbol(member.id, sn)
-            if(!otherStockInfo){
-                otherStockInfo = {name: sn, info: {
+
+    "give-stock": createCommand(async (msg, args) => {
+        let stock = args[0]
+        let a = args[1]
+        let sn = stock
+        let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
+        if (!userStockData) {
+            return { content: "You do not own that stock" }
+        }
+        let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
+        if (amount <= 0) {
+            return { content: `Invalid share count` }
+        }
+        if (amount > userStockData.info.shares) {
+            return { content: "You dont have that many shares" }
+        }
+        let player = args.slice(2).join(" ")
+        let member = await fetchUser(msg.guild, player)
+        if (!member) {
+            return { content: `Member: ${player} not found` }
+        }
+        if (!economy.getEconomy()[member.id]) {
+            return { content: "Cannot give stocks to this player" }
+        }
+        userStockData.info.shares -= amount
+        //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
+        let otherStockInfo = economy.userHasStockSymbol(member.id, sn)
+        if (!otherStockInfo) {
+            otherStockInfo = {
+                name: sn, info: {
                     buyPrice: userStockData.info.buyPrice,
                     shares: amount
-                }}
-            }
-            else {
-                let oldShareCount = otherStockInfo.info.shares
-                let newShareCount = otherStockInfo.info.shares + amount
-                otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
-                otherStockInfo.info.shares += amount
-            }
-            //@ts-ignore
-            //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-            economy.setUserStockSymbol(msg.author.id, sn, userStockData)
-            economy.setUserStockSymbol(member.id, sn, otherStockInfo)
-            if (userStockData.info.shares == 0) {
-                economy.removeStock(msg.author.id, sn)
-            }
-            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: {parse: []}}
-        }, category: CommandCategory.ECONOMY,
-        help: {
-            info: "Give a stock to a user",
-            arguments: {
-                stock: {
-                    description: "The stock to give"
-                },
-                shares: {
-                    description: "The amount of shares to give"
-                },
-                user: {
-                    description: "The user to give the shares to"
                 }
             }
         }
-    },
+        else {
+            let oldShareCount = otherStockInfo.info.shares
+            let newShareCount = otherStockInfo.info.shares + amount
+            otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
+            otherStockInfo.info.shares += amount
+        }
+        //@ts-ignore
+        //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
+        economy.setUserStockSymbol(msg.author.id, sn, userStockData)
+        economy.setUserStockSymbol(member.id, sn, otherStockInfo)
+        if (userStockData.info.shares == 0) {
+            economy.removeStock(msg.author.id, sn)
+        }
+        return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] } }
+    }, CommandCategory.ECONOMY,
+        "Give a stock to a user",
+        {
+            stock: createHelpArgument("The stock to give"),
+            shares: createHelpArgument("The amount of shares to give"),
+            user: createHelpArgument("The user to give the shares to"),
+        }
+    ),
+
     "give-item": {
-        run: async(msg, args) => {
-            let [i, user] = args.join(" ").split("|").map( v => v.trim())
-            if(!user){
-                return {content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``}
+        run: async (msg, args) => {
+            let [i, user] = args.join(" ").split("|").map(v => v.trim())
+            if (!user) {
+                return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\`` }
             }
             let [count, ...item] = i.split(" ")
             let itemstr = item.join(" ")
-            if(!itemstr){
-                return {content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``}
+            if (!itemstr) {
+                return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\`` }
             }
             let member = await fetchUser(msg.guild, user)
-            if(!member){
-                return {content: `${user} not found`}
+            if (!member) {
+                return { content: `${user} not found` }
             }
             let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
-            if(!itemData){
-                return {content: `You do not have ${itemstr.toLowerCase()}`}
+            if (!itemData) {
+                return { content: `You do not have ${itemstr.toLowerCase()}` }
             }
             let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(msg.author.id, itemData, count))
-            if(countnum <= 0 || countnum > itemData.count){
-                return {content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}`}
+            if (countnum <= 0 || countnum > itemData.count) {
+                return { content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}` }
             }
             giveItem(member.id, itemstr.toLowerCase(), countnum)
             useItem(msg.author.id, itemstr.toLowerCase(), countnum)
-            return {content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: {parse: []}}
+            return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] } }
 
         }, category: CommandCategory.ECONOMY
     },
-    tax: {
-        run: async (msg, args) => {
-            if (msg.author.bot) {
-                return { content: "Bots cannot steal" }
+
+    tax: createCommand(async (msg, args) => {
+        if (msg.author.bot) {
+            return { content: "Bots cannot steal" }
+        }
+        let opts;
+        [opts, args] = getOpts(args)
+        if (!args.length) {
+            await msg.channel.send({ content: "No user specified, erasing balance" })
+            await new Promise(res => setTimeout(res, 1000))
+            return { content: "Balance erased" }
+        }
+        let user = await fetchUser(msg.guild, args.join(" "))
+        if (!user)
+            return { content: `${args.join(" ")} not found` }
+        let ct = economy.canTax(user.id)
+        if (hasItem(user.id, "tax evasion")) {
+            ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
+        }
+        let embed = new MessageEmbed()
+        if (ct) {
+            embed.setTitle("Taxation Time")
+            let userBeingTaxed = user.id
+            let userGainingMoney = msg.author.id
+            let taxAmount;
+            let reflected = false
+            let max = Infinity
+            if (hasItem(userBeingTaxed, "tax shield")) {
+                max = economy.getEconomy()[userBeingTaxed].money
             }
-            let opts;
-            [opts, args] = getOpts(args)
-            if (!args.length) {
-                await msg.channel.send({ content: "No user specified, erasing balance" })
-                await new Promise(res => setTimeout(res, 1000))
-                return { content: "Balance erased" }
+            taxAmount = economy.taxPlayer(userBeingTaxed, max)
+            if (taxAmount.amount == max) {
+                useItem(userBeingTaxed, "tax shield")
             }
-            let user = await fetchUser(msg.guild, args.join(" "))
-            if (!user)
-                return { content: `${args.join(" ")} not found` }
-            let ct = economy.canTax(user.id)
-            if (hasItem(user.id, "tax evasion")) {
-                ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
-            }
-            let embed = new MessageEmbed()
-            if (ct) {
-                embed.setTitle("Taxation Time")
-                let userBeingTaxed = user.id
-                let userGainingMoney = msg.author.id
-                let taxAmount;
-                let reflected = false
-                let max = Infinity
-                if (hasItem(userBeingTaxed, "tax shield")) {
-                    max = economy.getEconomy()[userBeingTaxed].money
-                }
-                taxAmount = economy.taxPlayer(userBeingTaxed, max)
-                if (taxAmount.amount == max) {
-                    useItem(userBeingTaxed, "tax shield")
-                }
-                economy.addMoney(userGainingMoney, taxAmount.amount)
-                if (opts['no-round'])
-                    embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
-                else
-                    embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
-                if (reflected) {
-                    return { content: "REFLECTED", embeds: [embed] }
-                }
-            }
-            else if(economy.playerEconomyLooseTotal(msg.author.id) - (economy.getEconomy()[msg.author.id]?.loanUsed || 0) > 0) {
-                embed.setTitle("REVERSE Taxation time")
-                let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
-                embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
-                economy.loseMoneyToPlayer(msg.author.id, amount, user.user.id)
-            }
-            else{
-                embed.setTitle("TAX FAILURE")
-                embed.setDescription(`<@${user.user.id}> cannot be taxed yet`)
-            }
-            return { embeds: [embed] }
-        }, category: CommandCategory.ECONOMY,
-        help: {
-            info: "Tax someone evily",
-            options: {
-                "no-round": {
-                    description: "Dont round numbers"
-                }
+            economy.addMoney(userGainingMoney, taxAmount.amount)
+            if (opts['no-round'])
+                embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
+            else
+                embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
+            if (reflected) {
+                return { content: "REFLECTED", embeds: [embed] }
             }
         }
-    },
-    aheist: {
-        run: async (msg, args) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            let text = args.join(" ")
-            let damageUsers = opts['lose'] || opts['l']
-            let healUsers = opts['gain'] || opts['g']
-            let amounts = ['none', 'normal', 'medium', 'large', "cents"]
-            let givenAmount = opts['amount'] || opts['a']
-            let stage = opts['stage'] || opts['s']
-            let substage = opts['sub-stage'] || opts['ss']
-            let isNeutral = Boolean(opts['neutral'])
-            let location = opts['location']
-            let set_location = opts['set-location']
-            let button_response = opts['button-response']
-            let condition = opts['if']
-            if (isNeutral) {
-                givenAmount = 'none'
-                healUsers = 'all'
-                //@ts-ignore
-                damageUsers = undefined
+        else if (economy.playerEconomyLooseTotal(msg.author.id) - (economy.getEconomy()[msg.author.id]?.loanUsed || 0) > 0) {
+            embed.setTitle("REVERSE Taxation time")
+            let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
+            embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
+            economy.loseMoneyToPlayer(msg.author.id, amount, user.user.id)
+        }
+        else {
+            embed.setTitle("TAX FAILURE")
+            embed.setDescription(`<@${user.user.id}> cannot be taxed yet`)
+        }
+        return { embeds: [embed] }
+    }, CommandCategory.ECONOMY,
+        "Tax someone evily",
+        {
+            "no-round": createHelpOption("Dont round numbers"),
+        }
+    ),
+
+    aheist: createCommand(async (msg, args) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let text = args.join(" ")
+        let damageUsers = opts['lose'] || opts['l']
+        let healUsers = opts['gain'] || opts['g']
+        let amounts = ['none', 'normal', 'medium', 'large', "cents"]
+        let givenAmount = opts['amount'] || opts['a']
+        let stage = opts['stage'] || opts['s']
+        let substage = opts['sub-stage'] || opts['ss']
+        let isNeutral = Boolean(opts['neutral'])
+        let location = opts['location']
+        let set_location = opts['set-location']
+        let button_response = opts['button-response']
+        let condition = opts['if']
+        if (isNeutral) {
+            givenAmount = 'none'
+            healUsers = 'all'
+            //@ts-ignore
+            damageUsers = undefined
+        }
+        let textOptions = ""
+        if (typeof stage !== 'string') {
+            return { content: `You did not provide a valid stage` }
+        }
+        if (typeof substage !== 'undefined' && typeof substage !== 'string') {
+            return { content: "You did not provide a valid substage" }
+        }
+        if (typeof givenAmount !== 'string') {
+            return { content: `You must provide an amount (${amounts.join(", ")})` }
+        }
+        if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
+            return { content: `You must provide a user to lose/gain` }
+        }
+        if (damageUsers !== undefined && typeof damageUsers !== 'string') {
+            return { content: "-lose must be a user number or all" }
+        }
+        if (healUsers !== undefined && typeof healUsers !== 'string') {
+            return { content: "-gain must be a user number or all" }
+        }
+        if (!amounts.includes(givenAmount)) {
+            return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
+        }
+        if (damageUsers && healUsers) {
+            return { content: "Only -lose or -gain can be given, not both" }
+        }
+        if (damageUsers) {
+            if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
+                return { content: "Users must be numbers seperated by ," }
             }
-            let textOptions = ""
-            if (typeof stage !== 'string') {
-                return { content: `You did not provide a valid stage` }
+            textOptions += ` LOSE=${damageUsers}`
+        }
+        if (healUsers) {
+            if (!healUsers.match(/(?:(\d+|all),?)+/)) {
+                return { content: "Users must be numbers seperated by ," }
             }
-            if (typeof substage !== 'undefined' && typeof substage !== 'string') {
-                return { content: "You did not provide a valid substage" }
-            }
-            if (typeof givenAmount !== 'string') {
-                return { content: `You must provide an amount (${amounts.join(", ")})` }
-            }
-            if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
-                return { content: `You must provide a user to lose/gain` }
-            }
-            if (damageUsers !== undefined && typeof damageUsers !== 'string') {
-                return { content: "-lose must be a user number or all" }
-            }
-            if (healUsers !== undefined && typeof healUsers !== 'string') {
-                return { content: "-gain must be a user number or all" }
-            }
-            if (!amounts.includes(givenAmount)) {
-                return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
-            }
-            if (damageUsers && healUsers) {
-                return { content: "Only -lose or -gain can be given, not both" }
-            }
-            if (damageUsers) {
-                if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
-                    return { content: "Users must be numbers seperated by ," }
-                }
-                textOptions += ` LOSE=${damageUsers}`
-            }
-            if (healUsers) {
-                if (!healUsers.match(/(?:(\d+|all),?)+/)) {
-                    return { content: "Users must be numbers seperated by ," }
-                }
-                textOptions += ` GAIN=${healUsers}`
-            }
-            textOptions += ` STAGE=${stage}`
-            if (substage) {
-                textOptions += ` SUBSTAGE=${substage}`
-            }
-            if (location && typeof location === 'string') {
-                textOptions += ` LOCATION=${location}`
-            }
-            if (set_location && typeof set_location === 'string') {
-                textOptions += ` SET_LOCATION=${set_location}`
-                if (button_response && typeof button_response === 'string') {
-                    textOptions += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
-                }
-            }
-            if (condition && typeof condition === 'string') {
-                textOptions += ` IF=${condition}`
-            }
-            fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
-            return { content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}` }
-        }, category: CommandCategory.UTIL,
-        help: {
-            info: "Add a heist prompt with a nice ui ™️",
-            arguments: {
-                "text": {
-                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc...<br>{userall} will be replaced with every user<br>{amount} will be replaced with the amount gained/losed<br>{+amount} will show amount with a + sign in front (even if it should  be negative), same thing with -<br>{=amount} will show amount with  no sign",
-                    required: true
-                }
-            },
-            options: {
-                "gain": {
-                    alternates: ['g'],
-                    description: "The user(s) to heal"
-                },
-                "lose": {
-                    alternates: ['l'],
-                    description: "The user(s) to damage"
-                },
-                "stage": {
-                    alternates: ['s'],
-                    description: "the stage of the game that the message is for (getting_in, robbing, escape)"
-                },
-                "amount": {
-                    alternates: ["a"],
-                    description: "The amount to gain/lose, (normal, medium, large)"
-                },
-                "location": {
-                    description: "Specify the location that the response takes place at"
-                },
-                "set-location": {
-                    description: "Specify the location that  the response takes you to<br>seperate locations with | for the user to choose where they want to go<br>(builtin locations: \\_\\_generic__, \\_\\_random\\_\\_)"
-                },
-                "button-response": {
-                    description: "Specify the message sent after the button is clicked, if the user can chose the location<br>{location} will be replaced with the location the user picked<br>{user} will be replaced with  the user who clicked the button<br>If this is not given, nothing will be sent"
-                },
-                "sub-stage": {
-                    description: "Specify the stage that happens after this response (builtin stages: getting_in, robbing, escape, end)"
-                },
-                "if": {
-                    description: "Specify a condition in the form of >x, <x or =x, where x is the total amount of money gained/lost from heist<br>This response will only happen if the total amount of money is >, <, or = to x"
-                }
+            textOptions += ` GAIN=${healUsers}`
+        }
+        textOptions += ` STAGE=${stage}`
+        if (substage) {
+            textOptions += ` SUBSTAGE=${substage}`
+        }
+        if (location && typeof location === 'string') {
+            textOptions += ` LOCATION=${location}`
+        }
+        if (set_location && typeof set_location === 'string') {
+            textOptions += ` SET_LOCATION=${set_location}`
+            if (button_response && typeof button_response === 'string') {
+                textOptions += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
             }
         }
-    },
-    heist: {
-        run: async (msg, args) => {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
-            if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
-                return { content: "U dingus u are already in the game" }
-            }
-            if ((economy.getEconomy()[msg.author.id]?.money || 0) <= 0) {
-                return { content: "U dont have money" }
-            }
-            if (globals.HEIST_STARTED) {
-                return { content: "The game  has already started" }
-            }
-            globals.HEIST_PLAYERS.push(msg.author.id)
-            let timeRemaining = 30000
-            if (globals.HEIST_TIMEOUT === null) {
-                let int = setInterval(async () => {
-                    timeRemaining -= 1000
-                    if (timeRemaining % 8000 == 0)
-                        await msg.channel.send({ content: `${timeRemaining / 1000} seconds until the heist commences!` })
-                }, 1000)
-                let data: { [key: string]: number } = {} //player_id: amount won
-                globals.HEIST_TIMEOUT = setTimeout(async () => {
-                    globals.HEIST_STARTED = true
-                    clearInterval(int)
-                    await msg.channel.send({ content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players` })
-                    for (let player of globals.HEIST_PLAYERS) {
-                        data[player] = 0
-                        setVar("__heist", 0, player)
-                    }
-                    let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
-                    //let fileResponses: string[] = []
-                    let legacyNextStages = { "getting_in": "robbing", "robbing": "escape", "escape": "end" }
-                    let lastLegacyStage = "getting_in"
-                    let responses: { [key: string]: string[] } = {
-                        getting_in_positive: [
-                            "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal IF=>10"
-                        ],
-                        getting_in_negative: [
-                            "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal IF=>10"
-                        ],
-                        getting_in_neutral: [
-                            "{userall} is going in"
-                        ],
-                        robbing_positive: [
-                            "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
-                        ],
-                        robbing_negative: [
-                            "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal  LOCATION=bank"
-                        ],
-                        robbing_neutral: [
-                            "{user1} found nothing"
-                        ],
-                        escape_positive: [
-                            "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
-                        ],
-                        escape_negative: [
-                            "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
-                        ],
-                        escape_neutral: [
-                            "{userall} finished the game"
-                        ]
-                    }
-                    let LOCATIONS = ["__generic__"]
-                    for (let resp of fileResponses) {
-                        let stage = resp.match(/STAGE=([^ ]+)/)
-                        if (!stage?.[1]) {
-                            continue
-                        }
-                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                        if (location?.[1]) {
-                            if (!LOCATIONS.includes(location[1])) {
-                                LOCATIONS.push(location[1])
-                            }
-                        }
-                        resp = resp.replace(/STAGE=[^ ]+/, "")
-                        let type = ""
-                        let gain = resp.match(/GAIN=([^ ]+)/)
-                        if (gain?.[1])
-                            type = "positive"
-                        let lose = resp.match(/LOSE=([^ ]+)/)
-                        if (lose?.[1]) {
-                            type = "negative"
-                        }
-                        let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
-                        if(neutral){
-                            type = "neutral"
-                        }
-                        let t = `${stage[1]}_${type}`
-                        if (responses[t]) {
-                            responses[t].push(resp)
-                        }
-                        else {
-                            responses[t] = [resp]
-                        }
-                    }
+        if (condition && typeof condition === 'string') {
+            textOptions += ` IF=${condition}`
+        }
+        fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
+        return { content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}` }
+    }, CommandCategory.UTIL,
+        "Add a heist prompt with a nice ui ™️",
+        {
+            "text": createHelpArgument("The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc...<br>{userall} will be replaced with every user<br>{amount} will be replaced with the amount gained/losed<br>{+amount} will show amount with a + sign in front (even if it should  be negative), same thing with -<br>{=amount} will show amount with  no sign", true),
+        },
+        {
+            "gain": createHelpOption("The user(s) to heal", ['g']),
+            "lose": createHelpOption("The user(s) to damage", ['l']),
+            "stage": createHelpOption("the stage of the game that the message is for (getting_in, robbing, escape)", ['s']),
+            "amount": createHelpOption("The amount to gain/lose, (normal, medium, large)", ['a']),
+            "location": createHelpOption("Specify the location that the response takes place at"),
+            "set-location": createHelpOption("Specify the location that  the response takes you to<br>seperate locations with | for the user to choose where they want to go<br>(builtin locations: \\_\\_generic__, \\_\\_random\\_\\_)"),
+            "button-response": createHelpOption("Specify the message sent after the button is clicked, if the user can chose the location<br>{location} will be replaced with the location the user picked<br>{user} will be replaced with  the user who clicked the button<br>If this is not given, nothing will be sent"),
+            "sub-stage": createHelpOption("Specify the stage that happens after this response (builtin stages: getting_in, robbing, escape, end)"),
+            "if": createHelpOption("Specify a condition in the form of >x, <x or =x, where x is the total amount of money gained/lost from heist<br>This response will only happen if the total amount of money is >, <, or = to x"),
+        }
+    ),
 
-                    let current_location = "__generic__"
-
-                    let stats: { locationsVisited: { [key: string]: { [key: string]: number } }, adventureOrder: [string, string][] } = { locationsVisited: {}, adventureOrder: [] }
-
-                    function addToLocationStat(location: string, user: string, amount: number) {
-                        if (!stats.locationsVisited[location][user]) {
-                            stats.locationsVisited[location][user] = amount
-                        }
-                        else {
-                            stats.locationsVisited[location][user] += amount
+    heist: createCommand(async (msg, args) => {
+        let opts: Opts;
+        [opts, args] = getOpts(args)
+        if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
+            return { content: "U dingus u are already in the game" }
+        }
+        if ((economy.getEconomy()[msg.author.id]?.money || 0) <= 0) {
+            return { content: "U dont have money" }
+        }
+        if (globals.HEIST_STARTED) {
+            return { content: "The game  has already started" }
+        }
+        globals.HEIST_PLAYERS.push(msg.author.id)
+        let timeRemaining = 30000
+        if (globals.HEIST_TIMEOUT === null) {
+            let int = setInterval(async () => {
+                timeRemaining -= 1000
+                if (timeRemaining % 8000 == 0)
+                    await msg.channel.send({ content: `${timeRemaining / 1000} seconds until the heist commences!` })
+            }, 1000)
+            let data: { [key: string]: number } = {} //player_id: amount won
+            globals.HEIST_TIMEOUT = setTimeout(async () => {
+                globals.HEIST_STARTED = true
+                clearInterval(int)
+                await msg.channel.send({ content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players` })
+                for (let player of globals.HEIST_PLAYERS) {
+                    data[player] = 0
+                    setVar("__heist", 0, player)
+                }
+                let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
+                //let fileResponses: string[] = []
+                let legacyNextStages = { "getting_in": "robbing", "robbing": "escape", "escape": "end" }
+                let lastLegacyStage = "getting_in"
+                let responses: { [key: string]: string[] } = {
+                    getting_in_positive: [
+                        "{userall} got into the building {+amount}, click the button to continue GAIN=all AMOUNT=normal IF=>10"
+                    ],
+                    getting_in_negative: [
+                        "{userall} spent {=amount} on a lock pick to get into the building, click the button to continue LOSE=all AMOUNT=normal IF=>10"
+                    ],
+                    getting_in_neutral: [
+                        "{userall} is going in"
+                    ],
+                    robbing_positive: [
+                        "{user1} successfuly stole the gold {amount} GAIN=1 AMOUNT=large  LOCATION=bank",
+                    ],
+                    robbing_negative: [
+                        "{user1} got destracted by the hot bank teller {amount} LOSE=1 AMOUNT=normal  LOCATION=bank"
+                    ],
+                    robbing_neutral: [
+                        "{user1} found nothing"
+                    ],
+                    escape_positive: [
+                        "{userall} escapes {amount}! GAIN=all AMOUNT=normal"
+                    ],
+                    escape_negative: [
+                        "{userall} did not escape {amount}! LOSE=all AMOUNT=normal"
+                    ],
+                    escape_neutral: [
+                        "{userall} finished the game"
+                    ]
+                }
+                let LOCATIONS = ["__generic__"]
+                for (let resp of fileResponses) {
+                    let stage = resp.match(/STAGE=([^ ]+)/)
+                    if (!stage?.[1]) {
+                        continue
+                    }
+                    let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                    if (location?.[1]) {
+                        if (!LOCATIONS.includes(location[1])) {
+                            LOCATIONS.push(location[1])
                         }
                     }
+                    resp = resp.replace(/STAGE=[^ ]+/, "")
+                    let type = ""
+                    let gain = resp.match(/GAIN=([^ ]+)/)
+                    if (gain?.[1])
+                        type = "positive"
+                    let lose = resp.match(/LOSE=([^ ]+)/)
+                    if (lose?.[1]) {
+                        type = "negative"
+                    }
+                    let neutral = resp.match(/(NEUTRAL=true|AMOUNT=none)/)
+                    if (neutral) {
+                        type = "neutral"
+                    }
+                    let t = `${stage[1]}_${type}`
+                    if (responses[t]) {
+                        responses[t].push(resp)
+                    }
+                    else {
+                        responses[t] = [resp]
+                    }
+                }
 
-                    async function handleStage(stage: string): Promise<boolean> {//{{{
-                        if (!stats.locationsVisited[current_location]) {
-                            stats.locationsVisited[current_location] = {}
-                        }
-                        stats.adventureOrder.push([current_location, stage])
-                        let shuffledPlayers = globals.HEIST_PLAYERS.sort(() => Math.random() - .5)
-                        let amount = Math.floor(Math.random() * 10)
-                        let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
-                        let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
-                        //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
-                        if (!responseList?.length && negpos === 'neutral') {
-                            let negpos = ["positive", "neutral"][Math.floor(Math.random() * 2)]
-                            responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
-                        }
-                        if(!responseList){
-                            return false
-                        }
-                        responseList = responseList.filter(v => {
-                            let enough_players = true
-                            let u = v.matchAll(/\{user(\d+|all)\}/g)
-                            if(!u)
-                                return true
-                            for (let match of u) {
-                                if (match?.[1]) {
-                                    if (match[1] === 'all') {
-                                        enough_players = true
-                                        continue
-                                    }
-                                    let number = Number(match[1])
-                                    if (number > globals.HEIST_PLAYERS.length)
-                                        return false
-                                    enough_players = true
-                                }
-                            }
-                            return enough_players
-                        })
-                        responseList = responseList.filter(v => {
-                            let location = v.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                            if (!location?.[1] && current_location == "__generic__") {
-                                return true
-                            }
-                            if (location?.[1].toLowerCase() == current_location.toLowerCase()) {
-                                return true
-                            }
-                            if(location?.[1].toLowerCase() === '__all__'){
-                                return true
-                            }
-                            return false
-                        })
-                        let sum = Object.values(data).reduce((a, b) => a + b, 0)
-                        responseList = responseList.filter(v => {
-                            let condition = v.match(/IF=(<|>|=)(\d+)/)
-                            if (!condition?.[1])
-                                return true;
-                            let conditional = condition[1]
-                            let conditionType = conditional[0]
-                            let number = Number(conditional.slice(1))
-                            if (isNaN(number))
-                                return true;
-                            switch (conditionType) {
-                                case "=": {
-                                    return sum == number
-                                }
-                                case ">": {
-                                    return sum > number
-                                }
-                                case "<": {
-                                    return sum < number
-                                }
-                            }
+                let current_location = "__generic__"
+
+                let stats: { locationsVisited: { [key: string]: { [key: string]: number } }, adventureOrder: [string, string][] } = { locationsVisited: {}, adventureOrder: [] }
+
+                function addToLocationStat(location: string, user: string, amount: number) {
+                    if (!stats.locationsVisited[location][user]) {
+                        stats.locationsVisited[location][user] = amount
+                    }
+                    else {
+                        stats.locationsVisited[location][user] += amount
+                    }
+                }
+
+                async function handleStage(stage: string): Promise<boolean> {//{{{
+                    if (!stats.locationsVisited[current_location]) {
+                        stats.locationsVisited[current_location] = {}
+                    }
+                    stats.adventureOrder.push([current_location, stage])
+                    let shuffledPlayers = globals.HEIST_PLAYERS.sort(() => Math.random() - .5)
+                    let amount = Math.floor(Math.random() * 10)
+                    let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
+                    let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+                    //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
+                    if (!responseList?.length && negpos === 'neutral') {
+                        let negpos = ["positive", "neutral"][Math.floor(Math.random() * 2)]
+                        responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
+                    }
+                    if (!responseList) {
+                        return false
+                    }
+                    responseList = responseList.filter(v => {
+                        let enough_players = true
+                        let u = v.matchAll(/\{user(\d+|all)\}/g)
+                        if (!u)
                             return true
-                        })
-                        if (responseList.length < 1) {
-                            return false
-                        }
-                        let response = choice(responseList)
-                        let amountType = response.match(/AMOUNT=([^ ]+)/)
-                        while (!amountType?.[1]) {
-                            response = choice(responseList)
-                            amountType = response.match(/AMOUNT=([^ ]+)/)
-                        }
-                        if (amountType[1] === 'cents') {
-                            amount = Math.random()
-                        }
-                        else {
-                            //@ts-ignore
-                            let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
-                            amount *= multiplier
-                        }
-
-                        response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
-                            if (capture === "all") {
-                                let text = []
-                                for (let player of shuffledPlayers) {
-                                    text.push(`<@${player}>`)
+                        for (let match of u) {
+                            if (match?.[1]) {
+                                if (match[1] === 'all') {
+                                    enough_players = true
+                                    continue
                                 }
-                                return text.join(', ')
-                            }
-                            let nUser = Number(capture) - 1
-                            return `<@${shuffledPlayers[nUser]}>`
-                        })
-                        let gainUsers = response.match(/GAIN=([^ ]+)/)
-                        if (gainUsers?.[1]) {
-                            for (let user of gainUsers[1].split(",")) {
-                                if (user == 'all') {
-                                    for (let player in data) {
-                                        addToLocationStat(current_location, player, amount)
-                                        data[player] += amount
-                                        let oldValue = Number(getVar(msg, `__heist`, player))
-                                        setVar("__heist", oldValue + amount, player)
-                                    }
-                                }
-                                else {
-                                    addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
-                                    data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                    setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
-                                }
+                                let number = Number(match[1])
+                                if (number > globals.HEIST_PLAYERS.length)
+                                    return false
+                                enough_players = true
                             }
                         }
-                        let loseUsers = response.match(/LOSE=([^ ]+)/)
-                        if (loseUsers?.[1]) {
-                            amount *= -1
-                            for (let user of loseUsers[1].split(",")) {
-                                if (user == 'all') {
-                                    for (let player in data) {
-                                        addToLocationStat(current_location, player, amount)
-                                        data[player] += amount
-                                        let oldValue = Number(getVar(msg, `__heist`, player))
-                                        setVar("__heist", oldValue + amount, player)
-                                    }
-                                }
-                                else {
-                                    addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
-                                    data[shuffledPlayers[Number(user) - 1]] += amount
-                                    let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                    setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
-                                }
-                            }
+                        return enough_players
+                    })
+                    responseList = responseList.filter(v => {
+                        let location = v.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        if (!location?.[1] && current_location == "__generic__") {
+                            return true
                         }
-                        let subStage = response.match(/SUBSTAGE=([^ ]+)/)
-                        if (subStage?.[1]) {
-                            response = response.replace(/SUBSTAGE=[^ ]+/, "")
+                        if (location?.[1].toLowerCase() == current_location.toLowerCase()) {
+                            return true
                         }
-                        let setLocation = response.match(/SET_LOCATION=([^ ]+)/)
-                        if (setLocation?.[1]) {
-                            response = response.replace(/SET_LOCATION=[^ ]+/, "")
-                            current_location = setLocation[1].toLowerCase()
+                        if (location?.[1].toLowerCase() === '__all__') {
+                            return true
                         }
-                        response = response.replace(/LOCATION=[^ ]+/, "")
-                        response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (_match: any, pm: any) => {
-                            if (pm && pm == "+") {
-                                return `+${Math.abs(amount)}`
+                        return false
+                    })
+                    let sum = Object.values(data).reduce((a, b) => a + b, 0)
+                    responseList = responseList.filter(v => {
+                        let condition = v.match(/IF=(<|>|=)(\d+)/)
+                        if (!condition?.[1])
+                            return true;
+                        let conditional = condition[1]
+                        let conditionType = conditional[0]
+                        let number = Number(conditional.slice(1))
+                        if (isNaN(number))
+                            return true;
+                        switch (conditionType) {
+                            case "=": {
+                                return sum == number
                             }
-                            else if (pm && pm == "-") {
-                                return `-${Math.abs(amount)}`
+                            case ">": {
+                                return sum > number
                             }
-                            else if (pm && (pm == "=" || pm == "!" || pm == "?")) {
-                                return `${Math.abs(amount)}`
+                            case "<": {
+                                return sum < number
                             }
-                            return amount >= 0 ? `+${amount}` : `${amount}`
-                        })
-                        response = response.replace(/GAIN=[^ ]+/, "")
-                        response = response.replace(/LOSE=[^ ]+/, "")
-                        response = response.replace(/AMOUNT=[^ ]+/, "")
-                        response = response.replace(/IF=(<|>|=)\d+/, "")
-                        let locationOptions = current_location.split("|").map(v => v.trim())
-                        if (locationOptions.length > 1) {
-                            let rows: MessageActionRow[] = []
-                            let buttonClickResponseInChoice = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
-                            let buttonResponse = ""
-                            if (buttonClickResponseInChoice?.[1]) {
-                                buttonResponse = buttonClickResponseInChoice[1]
-                                response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
-                            }
-                            let row = new MessageActionRow()
-                            for (let op of locationOptions) {
-                                if (!op) continue;
-                                if (op == "__random__") {
-                                    op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
-                                }
-                                let button = new MessageButton({ customId: `button.heist:${op}`, label: op, style: "PRIMARY" })
-                                row.addComponents(button)
-                                if (row.components.length > 2) {
-                                    rows.push(row)
-                                    row = new MessageActionRow()
-                                }
-                            }
-                            if (row.components.length > 0) {
-                                rows.push(row)
-                            }
-                            let m = await msg.channel.send({ content: response, components: rows })
-                            let choice = ""
-                            try {
-                                let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
-                                choice = interaction.customId.split(":")[1]
-                                buttonResponse = buttonResponse.replaceAll("{user}", `<@${interaction.user.id}>`)
-                            }
-                            catch (err) {
-                                choice = locationOptions[Math.floor(Math.random() * locationOptions.length)]
-                                buttonResponse = buttonResponse.replaceAll("{user}", ``)
-                            }
-                            if (buttonResponse) {
-                                await m.reply({ content: buttonResponse.replaceAll("{location}", choice) })
-                            }
-                            current_location = choice
-                        }
-                        else {
-                            await handleSending(msg, { content: response })
-                        }
-
-                        if (current_location == "__random__") {
-                            current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
-                        }
-
-                        await new Promise(res => setTimeout(res, 4000))
-                        if (subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]) {
-                            if (Object.keys(legacyNextStages).includes(subStage[1])) {
-                                lastLegacyStage = subStage[1]
-                            }
-                            stage = subStage[1]
-                            return await handleStage(subStage[1])
-                        }
-                        if (subStage?.[1] == 'end') {
-                            lastLegacyStage = 'end'
-                            stage = 'end'
                         }
                         return true
-                    }//}}}
-                    let stage: string = lastLegacyStage
-                    while (stage != 'end') {
-                        if (!await handleStage(stage)) {
-                            stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
-                            let oldStage = stage
-                            await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`)
-                            current_location = '__generic__'
+                    })
+                    if (responseList.length < 1) {
+                        return false
+                    }
+                    let response = choice(responseList)
+                    let amountType = response.match(/AMOUNT=([^ ]+)/)
+                    while (!amountType?.[1]) {
+                        response = choice(responseList)
+                        amountType = response.match(/AMOUNT=([^ ]+)/)
+                    }
+                    if (amountType[1] === 'cents') {
+                        amount = Math.random()
+                    }
+                    else {
+                        //@ts-ignore
+                        let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
+                        amount *= multiplier
+                    }
+
+                    response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
+                        if (capture === "all") {
+                            let text = []
+                            for (let player of shuffledPlayers) {
+                                text.push(`<@${player}>`)
+                            }
+                            return text.join(', ')
                         }
-                        else {
-                            console.log("fallback", lastLegacyStage, stage)
-                            //@ts-ignore
-                            if (legacyNextStages[lastLegacyStage]) {
-                                //@ts-ignore
-                                stage = legacyNextStages[lastLegacyStage]
-                                lastLegacyStage = stage
+                        let nUser = Number(capture) - 1
+                        return `<@${shuffledPlayers[nUser]}>`
+                    })
+                    let gainUsers = response.match(/GAIN=([^ ]+)/)
+                    if (gainUsers?.[1]) {
+                        for (let user of gainUsers[1].split(",")) {
+                            if (user == 'all') {
+                                for (let player in data) {
+                                    addToLocationStat(current_location, player, amount)
+                                    data[player] += amount
+                                    let oldValue = Number(getVar(msg, `__heist`, player))
+                                    setVar("__heist", oldValue + amount, player)
+                                }
                             }
                             else {
-                                stage = 'end'
+                                addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
+                                data[shuffledPlayers[Number(user) - 1]] += amount
+                                let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
                             }
                         }
                     }
-                    globals.HEIST_PLAYERS = []
-                    globals.HEIST_TIMEOUT = null
-                    globals.HEIST_STARTED = false
-                    if (Object.keys(data).length > 0) {
-                        let useEmbed = false
-                        let e = new MessageEmbed()
-                        let text = ''
-                        if (!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']) {
-                            text += 'STATS:\n---------------------\n'
-                            for (let location in stats.locationsVisited) {
-                                text += `${location}:\n`
-                                for (let player in stats.locationsVisited[location]) {
-                                    text += `<@${player}>: ${stats.locationsVisited[location][player]},  `
-                                }
-                                text += '\n'
-                            }
-                        }
-                        if (!opts['no-total'] && !opts['nt']) {
-                            e.setTitle("TOTALS")
-                            useEmbed = true
-                            for (let player in data) {
-                                if (!isNaN(data[player])) {
-                                    let member = msg.guild?.members.cache.get(player)
-                                    if (member) {
-                                        e.addField(String(member.nickname || member.user.username), `${data[player]}`)
-                                    }
-                                    else {
-                                        e.addField(String(data[player]), `<@${player}>`)
-                                    }
-                                    economy.addMoney(player, data[player])
+                    let loseUsers = response.match(/LOSE=([^ ]+)/)
+                    if (loseUsers?.[1]) {
+                        amount *= -1
+                        for (let user of loseUsers[1].split(",")) {
+                            if (user == 'all') {
+                                for (let player in data) {
+                                    addToLocationStat(current_location, player, amount)
+                                    data[player] += amount
+                                    let oldValue = Number(getVar(msg, `__heist`, player))
+                                    setVar("__heist", oldValue + amount, player)
                                 }
                             }
-                        }
-                        if (!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']) {
-                            text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
-                            for (let place of stats.adventureOrder) {
-                                text += `${place[0]} (${place[1]})\n`
+                            else {
+                                addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
+                                data[shuffledPlayers[Number(user) - 1]] += amount
+                                let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
                             }
                         }
-                        await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined })
                     }
-                }, timeRemaining)
-            }
-            return { content: `${msg.author} joined the heist` }
+                    let subStage = response.match(/SUBSTAGE=([^ ]+)/)
+                    if (subStage?.[1]) {
+                        response = response.replace(/SUBSTAGE=[^ ]+/, "")
+                    }
+                    let setLocation = response.match(/SET_LOCATION=([^ ]+)/)
+                    if (setLocation?.[1]) {
+                        response = response.replace(/SET_LOCATION=[^ ]+/, "")
+                        current_location = setLocation[1].toLowerCase()
+                    }
+                    response = response.replace(/LOCATION=[^ ]+/, "")
+                    response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (_match: any, pm: any) => {
+                        if (pm && pm == "+") {
+                            return `+${Math.abs(amount)}`
+                        }
+                        else if (pm && pm == "-") {
+                            return `-${Math.abs(amount)}`
+                        }
+                        else if (pm && (pm == "=" || pm == "!" || pm == "?")) {
+                            return `${Math.abs(amount)}`
+                        }
+                        return amount >= 0 ? `+${amount}` : `${amount}`
+                    })
+                    response = response.replace(/GAIN=[^ ]+/, "")
+                    response = response.replace(/LOSE=[^ ]+/, "")
+                    response = response.replace(/AMOUNT=[^ ]+/, "")
+                    response = response.replace(/IF=(<|>|=)\d+/, "")
+                    let locationOptions = current_location.split("|").map(v => v.trim())
+                    if (locationOptions.length > 1) {
+                        let rows: MessageActionRow[] = []
+                        let buttonClickResponseInChoice = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
+                        let buttonResponse = ""
+                        if (buttonClickResponseInChoice?.[1]) {
+                            buttonResponse = buttonClickResponseInChoice[1]
+                            response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
+                        }
+                        let row = new MessageActionRow()
+                        for (let op of locationOptions) {
+                            if (!op) continue;
+                            if (op == "__random__") {
+                                op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                            }
+                            let button = new MessageButton({ customId: `button.heist:${op}`, label: op, style: "PRIMARY" })
+                            row.addComponents(button)
+                            if (row.components.length > 2) {
+                                rows.push(row)
+                                row = new MessageActionRow()
+                            }
+                        }
+                        if (row.components.length > 0) {
+                            rows.push(row)
+                        }
+                        let m = await msg.channel.send({ content: response, components: rows })
+                        let choice = ""
+                        try {
+                            let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
+                            choice = interaction.customId.split(":")[1]
+                            buttonResponse = buttonResponse.replaceAll("{user}", `<@${interaction.user.id}>`)
+                        }
+                        catch (err) {
+                            choice = locationOptions[Math.floor(Math.random() * locationOptions.length)]
+                            buttonResponse = buttonResponse.replaceAll("{user}", ``)
+                        }
+                        if (buttonResponse) {
+                            await m.reply({ content: buttonResponse.replaceAll("{location}", choice) })
+                        }
+                        current_location = choice
+                    }
+                    else {
+                        await handleSending(msg, { content: response })
+                    }
 
-        }, category: CommandCategory.GAME,
-        help: {
-            info: "Go on a \"heist\"",
-            options: {
-                "no-stats": {
-                    description: "Display only the amount gained/lost from the heist",
-                    alternates: ["ns"]
-                },
-                "no-adventure-order": {
-                    description: "Do not display  the  adventure order",
-                    alternates: ["noa"]
-                },
-                "no-location-stats": {
-                    description: "Do not display amount gained/lost from each location",
-                    alternates: ["nls"]
-                },
-                "no-total": {
-                    description: "Do not display the amount gained/lost",
-                    alternates: ["nt"]
+                    if (current_location == "__random__") {
+                        current_location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
+                    }
+
+                    await new Promise(res => setTimeout(res, 4000))
+                    if (subStage?.[1] && responses[`${subStage[1]}_positive`] && responses[`${subStage[1]}_negative`]) {
+                        if (Object.keys(legacyNextStages).includes(subStage[1])) {
+                            lastLegacyStage = subStage[1]
+                        }
+                        stage = subStage[1]
+                        return await handleStage(subStage[1])
+                    }
+                    if (subStage?.[1] == 'end') {
+                        lastLegacyStage = 'end'
+                        stage = 'end'
+                    }
+                    return true
+                }//}}}
+                let stage: string = lastLegacyStage
+                while (stage != 'end') {
+                    if (!await handleStage(stage)) {
+                        stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
+                        let oldStage = stage
+                        await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`)
+                        current_location = '__generic__'
+                    }
+                    else {
+                        console.log("fallback", lastLegacyStage, stage)
+                        //@ts-ignore
+                        if (legacyNextStages[lastLegacyStage]) {
+                            //@ts-ignore
+                            stage = legacyNextStages[lastLegacyStage]
+                            lastLegacyStage = stage
+                        }
+                        else {
+                            stage = 'end'
+                        }
+                    }
                 }
-            }
+                globals.HEIST_PLAYERS = []
+                globals.HEIST_TIMEOUT = null
+                globals.HEIST_STARTED = false
+                if (Object.keys(data).length > 0) {
+                    let useEmbed = false
+                    let e = new MessageEmbed()
+                    let text = ''
+                    if (!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']) {
+                        text += 'STATS:\n---------------------\n'
+                        for (let location in stats.locationsVisited) {
+                            text += `${location}:\n`
+                            for (let player in stats.locationsVisited[location]) {
+                                text += `<@${player}>: ${stats.locationsVisited[location][player]},  `
+                            }
+                            text += '\n'
+                        }
+                    }
+                    if (!opts['no-total'] && !opts['nt']) {
+                        e.setTitle("TOTALS")
+                        useEmbed = true
+                        for (let player in data) {
+                            if (!isNaN(data[player])) {
+                                let member = msg.guild?.members.cache.get(player)
+                                if (member) {
+                                    e.addField(String(member.nickname || member.user.username), `${data[player]}`)
+                                }
+                                else {
+                                    e.addField(String(data[player]), `<@${player}>`)
+                                }
+                                economy.addMoney(player, data[player])
+                            }
+                        }
+                    }
+                    if (!opts['no-adventure-order'] && !opts['nao'] && !opts['no-stats'] && !opts['ns']) {
+                        text += '\n---------------------\nADVENTURE ORDER:\n---------------------\n'
+                        for (let place of stats.adventureOrder) {
+                            text += `${place[0]} (${place[1]})\n`
+                        }
+                    }
+                    await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined })
+                }
+            }, timeRemaining)
         }
-    },
+        return { content: `${msg.author} joined the heist` }
+
+    }, CommandCategory.GAME,
+        "Go on a \"heist\"",
+        {
+            "no-stats": createHelpOption("Display only the amount gained/lost from the heist", ['ns']),
+            "no-adventure-order": createHelpOption("Do not display  the  adventure order", ["noa"]),
+            "no-location-stats": createHelpOption("Do not display amount gained/lost from each location", ["nls"]),
+            "no-total": createHelpOption("Do not display the amount gained/lost", ["nt"]),
+        }
+    ),
+
     "egyption-war": {
         run: async (msg, args) => {
 
@@ -2854,261 +2861,253 @@ export const commands: { [command: string]: Command } = {
             }
         }, category: CommandCategory.GAME
     },
-    blackjack: {
-        run: async (msg, args) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            let hardMode = Boolean(opts['hard'])
-            let bet = economy.calculateAmountFromString(msg.author.id, args[0])
-            if (!bet) {
-                return { content: "no bet given" }
-            }
-            if (bet <= 0) {
-                return { content: "No reverse blackjack here" }
-            }
-            if (hardMode)
-                bet *= 2
 
-            if (!economy.canBetAmount(msg.author.id, bet)) {
-                return { content: "That bet is too high for you" }
-            }
-            if (globals.BLACKJACK_GAMES[msg.author.id]) {
-                return { content: "You idiot u already playing the game" }
-            }
-            globals.BLACKJACK_GAMES[msg.author.id] = true
-            let cards = []
-            for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
-                for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
-                    cards.push(`${num}`)
-                }
-            }
-            function calculateCardValue(card: string, total: number) {
-                if (card == "A") {
-                    if (total + 11 >= 22) {
-                        return { amount: 1, soft: false }
-                    }
-                    else {
-                        return { amount: 11, soft: true }
-                    }
-                }
-                else if (["10", "J", "Q", "K"].includes(card)) {
-                    return { amount: 10, soft: false }
-                }
-                else if (Number(card)) {
-                    return { amount: Number(card), soft: false }
-                }
-                return { amount: NaN, soft: false }
-            }
-            function calculateTotal(cards: string[]) {
-                let total = 0
-                let soft = false
-                for (let card of cards.filter(v => v.split(" of")[0] !== 'A')) {
-                    let val = calculateCardValue(card, total)
-                    if (!isNaN(val.amount)) {
-                        total += val.amount
-                    }
-                }
-                for (let card of cards.filter(v => v.split(" of")[0] === 'A')) {
-                    let val = calculateCardValue(card, total)
-                    if (!isNaN(val.amount)) {
-                        total += val.amount
-                    }
-                    if (val.soft) {
-                        soft = true
-                    }
-                }
-                return { total: total, soft: soft }
-            }
-            function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
-                let no = Math.floor(Math.random() * cardsToChooseFrom.length)
-                let c = cardsToChooseFrom[no]
-                cards = cardsToChooseFrom.filter((_v, i) => i != no)
-                deck.push(c)
-            }
-            let playersCards: string[] = []
-            let dealerCards: string[] = []
-            for (let i = 0; i < 2; i++) {
-                giveRandomCard(cards, playersCards)
-                giveRandomCard(cards, dealerCards)
-            }
-            if (calculateTotal(playersCards).total === 21) {
-                economy.addMoney(msg.author.id, bet * 3)
-                delete globals.BLACKJACK_GAMES[msg.author.id]
-                return { content: `**BLACKJACK!**\nYou got: **${bet * 3}**` }
-            }
-            if (calculateTotal(dealerCards).total === 21) {
-                economy.loseMoneyToBank(msg.author.id, bet)
-                delete globals.BLACKJACK_GAMES[msg.author.id]
-                return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
-            }
-            let total = 0
-            while ((total = calculateTotal(dealerCards).total) < 22) {
-                let awayFrom21 = 21 - total
-                let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
+    blackjack: createCommand(async (msg, args) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let hardMode = Boolean(opts['hard'])
+        let bet = economy.calculateAmountFromString(msg.author.id, args[0])
+        if (!bet) {
+            return { content: "no bet given" }
+        }
+        if (bet <= 0) {
+            return { content: "No reverse blackjack here" }
+        }
+        if (hardMode)
+            bet *= 2
 
-                let chance = countOfAwayInDeck / cards.length
-                if (Math.random() < chance || total < 17) {
-                    giveRandomCard(cards, dealerCards)
-                }
-                else {
-                    break
-                }
-            }
-            while (true) {
-                let embed = new MessageEmbed()
-                embed.setTitle("Blackjack")
-                if (msg.member?.user.avatarURL()) {
-                    //@ts-ignore
-                    embed.setThumbnail(msg.member.user.avatarURL().toString())
-                }
-                let playerTotal = calculateTotal(playersCards)
-                if (playerTotal.soft) {
-                    embed.addField("Your cards", `value: **${playerTotal.total}** (soft)`, true)
-                }
-                else embed.addField("Your cards", `value: **${playerTotal.total}**`, true)
-                //FIXME: edge case where dealerCards[0] is "A", this could be wrong
-                embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
-                embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
-                if (hasItem(msg.author.id, "reset")) {
-                    embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
-                }
-                else {
-                    embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
-                }
-                let _message = await msg.channel.send({ embeds: [embed] })
-                let response
-                while (!response) {
-                    let collectedMessages
-                    try {
-                        collectedMessages = await msg.channel.awaitMessages({
-                            filter: m => {
-                                if (m.author.id === msg.author.id) {
-                                    if (hasItem(msg.author.id, "reset") && (['hit', 'stand', 'double bet', 'reset'].includes(m.content.toLowerCase()))) {
-                                        return true
-                                    }
-                                    else if (['hit', 'stand', 'double bet'].includes(m.content.toLowerCase())) {
-                                        return true
-                                    }
-                                }
-                                return false
-                            }, max: 1, time: 30000, errors: ["time"]
-                        })
-                    }
-                    catch (err) {
-                        economy.loseMoneyToBank(msg.author.id, bet)
-                        delete globals.BLACKJACK_GAMES[msg.author.id]
-                        return { content: `Did not respond  in time, lost ${bet}` }
-                    }
-                    response = collectedMessages.at(0)
-                }
-                let choice = response.content.toLowerCase()
-                if (choice === 'double bet') {
-                    if (!economy.canBetAmount(msg.author.id, bet * 2)) {
-                        await msg.channel.send({ content: "That bet is too high for you" })
-                        continue
-                    }
-                    bet *= 2
-                    choice = "hit"
-                }
-                if (choice === 'hit') {
-                    giveRandomCard(cards, playersCards)
-                }
-                if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
-                    cards = []
-                    for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
-                        for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
-                            cards.push(`${num}`)
-                        }
-                    }
-                    playersCards = []
-                    dealerCards = []
-                    for (let i = 0; i < 2; i++) {
-                        giveRandomCard(cards, playersCards)
-                        giveRandomCard(cards, dealerCards)
-                    }
-                    if (calculateTotal(playersCards).total === 21) {
-                        economy.addMoney(msg.author.id, bet * 3)
-                        delete globals.BLACKJACK_GAMES[msg.author.id]
-                        useItem(msg.author.id, "reset")
-                        return { content: `**BLACKJACK!**\nYou got: **${bet * 3}**` }
-                    }
-                    let total = 0
-                    while ((total = calculateTotal(dealerCards).total) < 22) {
-                        let awayFrom21 = 21 - total
-                        let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
-
-                        let chance = countOfAwayInDeck / cards.length
-                        if (Math.random() < chance || total < 17) {
-                            giveRandomCard(cards, dealerCards)
-                        }
-                        else {
-                            break
-                        }
-                    }
-                    useItem(msg.author.id, "reset")
-                }
-                if ((choice === 'stand' && (hardMode == false || calculateTotal(playersCards).total >= 17)) || calculateTotal(playersCards).total > 21) {
-                    break
-                }
-            }
-            let playerTotal = calculateTotal(playersCards).total
-            let dealerTotal = calculateTotal(dealerCards).total
-            let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
-            let status = "You won"
-            if (playerTotal > 21) {
-                status = `You lost: $${bet} (over 21)`
-                economy.loseMoneyToBank(msg.author.id, bet)
-            }
-            else if (playerTotal === dealerTotal) {
-                status = "TIE"
-            }
-            else if (playerTotal < dealerTotal && dealerTotal < 22) {
-                status = `You lost: $${bet} (dealer won)`
-                economy.loseMoneyToBank(msg.author.id, bet)
-            }
-            else {
-                status = `You won: $${bet}`
-                economy.addMoney(msg.author.id, bet)
-            }
-            delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: `**${status}**\n${stats}` }
-        }, category: CommandCategory.GAME,
-        help: {
-            info: "Play a round of blackjack",
-            options: {
-                "hard": {
-                    description: "You can only stand if you have 17+"
-                }
-            },
-            arguments: {
-                "bet": {
-                    description: "The amount to bet"
-                }
+        if (!economy.canBetAmount(msg.author.id, bet)) {
+            return { content: "That bet is too high for you" }
+        }
+        if (globals.BLACKJACK_GAMES[msg.author.id]) {
+            return { content: "You idiot u already playing the game" }
+        }
+        globals.BLACKJACK_GAMES[msg.author.id] = true
+        let cards = []
+        for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
+            for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                cards.push(`${num}`)
             }
         }
-    },
+        function calculateCardValue(card: string, total: number) {
+            if (card == "A") {
+                if (total + 11 >= 22) {
+                    return { amount: 1, soft: false }
+                }
+                else {
+                    return { amount: 11, soft: true }
+                }
+            }
+            else if (["10", "J", "Q", "K"].includes(card)) {
+                return { amount: 10, soft: false }
+            }
+            else if (Number(card)) {
+                return { amount: Number(card), soft: false }
+            }
+            return { amount: NaN, soft: false }
+        }
+        function calculateTotal(cards: string[]) {
+            let total = 0
+            let soft = false
+            for (let card of cards.filter(v => v.split(" of")[0] !== 'A')) {
+                let val = calculateCardValue(card, total)
+                if (!isNaN(val.amount)) {
+                    total += val.amount
+                }
+            }
+            for (let card of cards.filter(v => v.split(" of")[0] === 'A')) {
+                let val = calculateCardValue(card, total)
+                if (!isNaN(val.amount)) {
+                    total += val.amount
+                }
+                if (val.soft) {
+                    soft = true
+                }
+            }
+            return { total: total, soft: soft }
+        }
+        function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
+            let no = Math.floor(Math.random() * cardsToChooseFrom.length)
+            let c = cardsToChooseFrom[no]
+            cards = cardsToChooseFrom.filter((_v, i) => i != no)
+            deck.push(c)
+        }
+        let playersCards: string[] = []
+        let dealerCards: string[] = []
+        for (let i = 0; i < 2; i++) {
+            giveRandomCard(cards, playersCards)
+            giveRandomCard(cards, dealerCards)
+        }
+        if (calculateTotal(playersCards).total === 21) {
+            economy.addMoney(msg.author.id, bet * 3)
+            delete globals.BLACKJACK_GAMES[msg.author.id]
+            return { content: `**BLACKJACK!**\nYou got: **${bet * 3}**` }
+        }
+        if (calculateTotal(dealerCards).total === 21) {
+            economy.loseMoneyToBank(msg.author.id, bet)
+            delete globals.BLACKJACK_GAMES[msg.author.id]
+            return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
+        }
+        let total = 0
+        while ((total = calculateTotal(dealerCards).total) < 22) {
+            let awayFrom21 = 21 - total
+            let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
+
+            let chance = countOfAwayInDeck / cards.length
+            if (Math.random() < chance || total < 17) {
+                giveRandomCard(cards, dealerCards)
+            }
+            else {
+                break
+            }
+        }
+        while (true) {
+            let embed = new MessageEmbed()
+            embed.setTitle("Blackjack")
+            if (msg.member?.user.avatarURL()) {
+                //@ts-ignore
+                embed.setThumbnail(msg.member.user.avatarURL().toString())
+            }
+            let playerTotal = calculateTotal(playersCards)
+            if (playerTotal.soft) {
+                embed.addField("Your cards", `value: **${playerTotal.total}** (soft)`, true)
+            }
+            else embed.addField("Your cards", `value: **${playerTotal.total}**`, true)
+            //FIXME: edge case where dealerCards[0] is "A", this could be wrong
+            embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
+            embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
+            if (hasItem(msg.author.id, "reset")) {
+                embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+            }
+            else {
+                embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+            }
+            let _message = await msg.channel.send({ embeds: [embed] })
+            let response
+            while (!response) {
+                let collectedMessages
+                try {
+                    collectedMessages = await msg.channel.awaitMessages({
+                        filter: m => {
+                            if (m.author.id === msg.author.id) {
+                                if (hasItem(msg.author.id, "reset") && (['hit', 'stand', 'double bet', 'reset'].includes(m.content.toLowerCase()))) {
+                                    return true
+                                }
+                                else if (['hit', 'stand', 'double bet'].includes(m.content.toLowerCase())) {
+                                    return true
+                                }
+                            }
+                            return false
+                        }, max: 1, time: 30000, errors: ["time"]
+                    })
+                }
+                catch (err) {
+                    economy.loseMoneyToBank(msg.author.id, bet)
+                    delete globals.BLACKJACK_GAMES[msg.author.id]
+                    return { content: `Did not respond  in time, lost ${bet}` }
+                }
+                response = collectedMessages.at(0)
+            }
+            let choice = response.content.toLowerCase()
+            if (choice === 'double bet') {
+                if (!economy.canBetAmount(msg.author.id, bet * 2)) {
+                    await msg.channel.send({ content: "That bet is too high for you" })
+                    continue
+                }
+                bet *= 2
+                choice = "hit"
+            }
+            if (choice === 'hit') {
+                giveRandomCard(cards, playersCards)
+            }
+            if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
+                cards = []
+                for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
+                    for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                        cards.push(`${num}`)
+                    }
+                }
+                playersCards = []
+                dealerCards = []
+                for (let i = 0; i < 2; i++) {
+                    giveRandomCard(cards, playersCards)
+                    giveRandomCard(cards, dealerCards)
+                }
+                if (calculateTotal(playersCards).total === 21) {
+                    economy.addMoney(msg.author.id, bet * 3)
+                    delete globals.BLACKJACK_GAMES[msg.author.id]
+                    useItem(msg.author.id, "reset")
+                    return { content: `**BLACKJACK!**\nYou got: **${bet * 3}**` }
+                }
+                let total = 0
+                while ((total = calculateTotal(dealerCards).total) < 22) {
+                    let awayFrom21 = 21 - total
+                    let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
+
+                    let chance = countOfAwayInDeck / cards.length
+                    if (Math.random() < chance || total < 17) {
+                        giveRandomCard(cards, dealerCards)
+                    }
+                    else {
+                        break
+                    }
+                }
+                useItem(msg.author.id, "reset")
+            }
+            if ((choice === 'stand' && (hardMode == false || calculateTotal(playersCards).total >= 17)) || calculateTotal(playersCards).total > 21) {
+                break
+            }
+        }
+        let playerTotal = calculateTotal(playersCards).total
+        let dealerTotal = calculateTotal(dealerCards).total
+        let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
+        let status = "You won"
+        if (playerTotal > 21) {
+            status = `You lost: $${bet} (over 21)`
+            economy.loseMoneyToBank(msg.author.id, bet)
+        }
+        else if (playerTotal === dealerTotal) {
+            status = "TIE"
+        }
+        else if (playerTotal < dealerTotal && dealerTotal < 22) {
+            status = `You lost: $${bet} (dealer won)`
+            economy.loseMoneyToBank(msg.author.id, bet)
+        }
+        else {
+            status = `You won: $${bet}`
+            economy.addMoney(msg.author.id, bet)
+        }
+        delete globals.BLACKJACK_GAMES[msg.author.id]
+        return { content: `**${status}**\n${stats}` }
+    }, CommandCategory.GAME,
+        "Play a round of blackjack",
+        {
+            "hard": createHelpOption("You can only stand if you have 17+"),
+        },
+    ),
+
     "periodic-table": {
-        run: async(_msg,  args) => {
+        run: async (_msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
 
 
             let reqElem = args.join(" ")
 
-            if(opts['an'] || opts['n']){
+            if (opts['an'] || opts['n']) {
                 reqElem += `AtomicNumber=${opts['n']}`
             }
 
-            if(!reqElem && !opts['r']){
-                return {content: "No element requesed"}
+            if (!reqElem && !opts['r']) {
+                return { content: "No element requesed" }
             }
 
-            if(opts['refresh']){
+            if (opts['refresh']) {
                 let data = await fetch.default("https://www.rsc.org/periodic-table/")
                 let text = await data.text()
                 let elementsData = text.match(/var elementsData = (.*);/)
-                if(!elementsData?.[1]){
-                    return {content: "Could not fetch data"}
+                if (!elementsData?.[1]) {
+                    return { content: "Could not fetch data" }
                 }
                 fs.writeFileSync("./data/elements.json", elementsData[1])
             }
@@ -3118,53 +3117,54 @@ export const commands: { [command: string]: Command } = {
 
             let [attr, value] = reqElem.split("=").map(v => v.trim())
             let reqElementData;
-            if(opts['r']){
+            if (opts['r']) {
                 let count = Number(opts['r']) || 1
                 reqElementData = []
-                for(let i = 0; i  < count; i++){
+                for (let i = 0; i < count; i++) {
                     reqElementData.push(choice(elementsJSON))
                 }
             }
-            else{
+            else {
                 reqElementData = elementsJSON.filter((v: any) => {
-                    if(v[attr] !== undefined && String(v[attr]).trim().toLowerCase() === value.trim().toLowerCase()){
+                    if (v[attr] !== undefined && String(v[attr]).trim().toLowerCase() === value.trim().toLowerCase()) {
                         return true
                     }
                     return v.Symbol.toLowerCase() === reqElem.toLowerCase() || v.Name.toLowerCase() === reqElem.toLowerCase()
                 })
             }
-            if(!reqElementData.length){
-                return {content: "No  element  found"}
+            if (!reqElementData.length) {
+                return { content: "No  element  found" }
             }
 
-            if(opts['list-attributes']){
+            if (opts['list-attributes']) {
                 let text = ""
-                for(let attr in reqElementData[0]){
+                for (let attr in reqElementData[0]) {
                     text += `**${attr}**: ${reqElementData[0][attr]}\n`
                 }
-                return {content: text}
+                return { content: text }
             }
 
 
             let embeds = []
             let elementsNamesList = []
-            for(let element  of reqElementData){
+            for (let element of reqElementData) {
                 let embed = new MessageEmbed()
                 elementsNamesList.push(`${element.Name} (${element.Symbol})`)
                 embed.setTitle(`${element.Name} (${element.Symbol})`)
                 embed.setDescription(`Discovered in ${element.DiscoveryYear == "0" ? "Unknown" : element.DiscoveryYear} by ${element.DiscoveredBy == "-" ? "Unknown" : element.DiscoveredBy}`)
-                embed.addField("Atomic Number",  String(element.AtomicNumber),)
+                embed.addField("Atomic Number", String(element.AtomicNumber),)
                 embed.addField("Atomic Mass", String(element.RelativeAtomicMass))
                 embed.addField("Melting Point C", String(element.MeltingPointC) || "N/A", true)
                 embed.addField("Boiling Point C", String(element.BoilingPointC) || "N/A", true)
                 embeds.push(embed)
             }
-            if(embeds.length > 10 || opts['list-names']){
-                return {content: elementsNamesList.join("\n")}
+            if (embeds.length > 10 || opts['list-names']) {
+                return { content: elementsNamesList.join("\n") }
             }
-            return {embeds: embeds}
+            return { embeds: embeds }
         }, category: CommandCategory.UTIL
     },
+
     economy: {
         run: async (_msg, _args) => {
             return {
@@ -3180,6 +3180,7 @@ export const commands: { [command: string]: Command } = {
         },
         category: CommandCategory.META
     },
+
     "inventory.json": {
         run: async (_msg, _args) => {
             return {
@@ -3194,6 +3195,7 @@ export const commands: { [command: string]: Command } = {
             }
         }, category: CommandCategory.META
     },
+
     leaderboard: {
         run: async (msg, args) => {
             let opts;
@@ -3212,29 +3214,29 @@ export const commands: { [command: string]: Command } = {
             let text = ""
             let sortedEconomy: [string, economy.EconomyData][] = []
             let econ = economy.getEconomy()
-            if(opts['nw']){
+            if (opts['nw']) {
                 sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => economy.playerLooseNetWorth(b[0]) - economy.playerLooseNetWorth(a[0]))
             }
-            else if(opts['loan']){
+            else if (opts['loan']) {
                 sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => (b[1].loanUsed || 0) - (a[1].loanUsed || 0))
             }
-            else{
+            else {
                 sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()
             }
             sortedEconomy = sortedEconomy.slice(0, place)
             let totalEconomy = 0
-            if(opts['nw']){
-                for(let id in econ){
+            if (opts['nw']) {
+                for (let id in econ) {
                     totalEconomy += economy.playerLooseNetWorth(id)
                 }
             }
-            else if(opts['loan']){
-                for(let id in econ){
+            else if (opts['loan']) {
+                for (let id in econ) {
                     let value = econ[id]
                     totalEconomy += value.loanUsed || 0
                 }
             }
-            else{
+            else {
                 for (let id in econ) {
                     let value = econ[id]
                     totalEconomy += value.money
@@ -3244,10 +3246,10 @@ export const commands: { [command: string]: Command } = {
             for (let user of sortedEconomy) {
                 let id = user[0]
                 let money = econ[id].money
-                if(opts['nw']){
+                if (opts['nw']) {
                     money = economy.playerLooseNetWorth(id)
                 }
-                else if(opts['loan']){
+                else if (opts['loan']) {
                     money = econ[id].loanUsed || 0
                 }
                 let percent = money / totalEconomy * 100
@@ -3294,23 +3296,24 @@ export const commands: { [command: string]: Command } = {
             },
         }
     },
+
     "del-var": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let prefix = String(opts['prefix'] || "__global__")
-            if(opts['u']){
+            if (opts['u']) {
                 prefix = msg.author.id
             }
             let names = args
             let deleted = []
-            for(let name of names){
-                if(vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function'){
+            for (let name of names) {
+                if (vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function') {
                     delete vars[prefix][name]
                     deleted.push(name)
                 }
             }
-            return {content: `Deleted: \`${deleted.join(", ")}\``}
+            return { content: `Deleted: \`${deleted.join(", ")}\`` }
         }, category: CommandCategory.META,
         help: {
             info: "Delete a variable",
@@ -3330,20 +3333,23 @@ export const commands: { [command: string]: Command } = {
             }
         }
     },
+
     "savev": {
-        run: async(_msg, _args) => {
+        run: async (_msg, _args) => {
             saveVars()
-            return {content: "Variables saved"}
+            return { content: "Variables saved" }
         }, category: CommandCategory.META
     },
+
     savee: {
-        run: async (_msg,_args) => {
+        run: async (_msg, _args) => {
             economy.saveEconomy()
             saveItems()
             pet.savePetData()
             return { content: "Economy saved" }
         }, category: CommandCategory.ECONOMY
     },
+
     coin: {
         run: async (msg, args) => {
             let opts;
@@ -3371,6 +3377,7 @@ export const commands: { [command: string]: Command } = {
             }
         }, category: CommandCategory.GAME
     },
+
     replace: {
         run: async (_msg, args) => {
             let opts: Opts;
@@ -3397,65 +3404,70 @@ export const commands: { [command: string]: Command } = {
             return { content: text.replaceAll(search, repl || "") }
         }, category: CommandCategory.UTIL
     },
-    "string": {
-        run: async(_msg, args) => {
-            let operation = args[0]
-            let validOperations = ["upper", "lower", "title"]
-            let string = args.slice(1).join(" ")
-            if(!string){
-                return {content: "No text to manipulate"}
-            }
-            if(!validOperations.includes(operation.toLowerCase())){
-                return {content: `${operation} is not one of: \`${validOperations.join(", ")}\``}
-            }
-            switch(operation){
-                case "upper":
-                    return {content: string.toUpperCase()}
-                case "lower":
-                    return {content: string.toLowerCase()}
-                case "title":
-                    return {content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ")}
-            }
-            return {content: "Invalid Operation"}
-        }, category: CommandCategory.UTIL,
-        help: {
-            info: "Do something to some text",
-            arguments: {
-                operation: {
-                    description: `The operation to do<ul>
+
+    "string": createCommand(async (_msg, args) => {
+        let operation = args[0]
+        let validOperations = ["upper", "lower", "title"]
+        let string = args.slice(1).join(" ")
+        if (!string) {
+            return { content: "No text to manipulate" }
+        }
+        if (!validOperations.includes(operation.toLowerCase())) {
+            return { content: `${operation} is not one of: \`${validOperations.join(", ")}\`` }
+        }
+        switch (operation) {
+            case "upper":
+                return { content: string.toUpperCase() }
+            case "lower":
+                return { content: string.toLowerCase() }
+            case "title":
+                return { content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ") }
+            case "lc":
+                return {content: String(string.split("\n").length)}
+            case "wc":
+                return {content: String(string.split(" ").length)}
+            case "bc":
+                return {content: String(string.split(" ").length)}
+        }
+        return { content: "Invalid Operation" }
+    },
+        CommandCategory.UTIL,
+        "Do something to some text",
+        {
+            operation: createHelpArgument(`The operation to do<ul>
     <li>upper: convert to upper case</li>
     <li>lower: convert to lowercase</li>
     <li>title: convert to title</li>
-</ul>`,
-                },
-                text: {
-                    description: "The text to operate on"
-                }
-
-            }
+    <li>lc:    get a line count</li>
+    <li>wc:    get a word count</li>
+    <li>bc:    get a byte count</li>
+</ul>`),
+            text: createHelpArgument("The text to operate on")
         }
-    },
+    ),
+
     map: {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let string = args[0]
             let functions = args.slice(1).join(" ").split(";EOL").map(v => `${prefix}${v.trim()}`)
-            if(!functions){
-                return {content: "nothing to  do"}
+            if (!functions) {
+                return { content: "nothing to  do" }
             }
-            for(let fn of functions){
+            for (let fn of functions) {
                 let replacedFn = fn.replaceAll("{string}", string)
-                if(replacedFn === fn){
+                if (replacedFn === fn) {
                     msg.content = `${fn} ${string}`
                 }
-                else{
+                else {
                     msg.content = `${replacedFn}`
                 }
                 string = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim()
             }
-            return {content: string}
+            return { content: string }
         },
         category: CommandCategory.UTIL
     },
+
     time: {
         run: async (_msg, args) => {
             let fmt = args.join(" ")
@@ -3492,6 +3504,7 @@ export const commands: { [command: string]: Command } = {
         },
         category: CommandCategory.UTIL
     },
+
     /*
     play: {
     run: async(msg, args) => {
@@ -3538,11 +3551,11 @@ export const commands: { [command: string]: Command } = {
         run: async (_msg, args) => {
             let search = args.join(" ")
             let regexp;
-            try{
+            try {
                 regexp = new RegExp(search)
             }
-            catch(err){
-                return {content: "Invalid regex"}
+            catch (err) {
+                return { content: "Invalid regex" }
             }
             let results = []
             for (let cmd in commands) {
@@ -3557,7 +3570,7 @@ export const commands: { [command: string]: Command } = {
                     if (help?.info?.match(search)) {
                         results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
                     }
-                    else if(help?.tags?.includes(search)){
+                    else if (help?.tags?.includes(search)) {
                         results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
                     }
                 }
@@ -3863,12 +3876,12 @@ export const commands: { [command: string]: Command } = {
                     let requirements = API.APICmds[fn].requirements
                     let optional = API.APICmds[fn].optional
                     text += `${fn}: `
-                    if(optional){
+                    if (optional) {
                         //@ts-ignore
                         requirements = requirements.filter(v => !optional.includes(v))
                     }
                     text += `${requirements.join(", ")} `
-                    if(optional){
+                    if (optional) {
                         text += `${optional.map(v => `[${v}]`).join(", ")}`
                     }
                     text += `\n--------------------\n`
@@ -3889,32 +3902,32 @@ export const commands: { [command: string]: Command } = {
                 }
             }
             let missing = []
-            for(let req of apiFn.requirements.filter(v => !(apiFn.optional || []).includes(v))){
-                if(argsForFn[req] === undefined){
+            for (let req of apiFn.requirements.filter(v => !(apiFn.optional || []).includes(v))) {
+                if (argsForFn[req] === undefined) {
                     missing.push(req)
                 }
             }
-            if(missing.length){
+            if (missing.length) {
                 return { content: `You are missing the following options: ${missing.join(", ")}` }
             }
-            if(apiFn.extra){
-                let extraArgs: {[key: string]: any} = {}
-                for(let arg of apiFn.extra){
-                    if(arg === "msg"){
+            if (apiFn.extra) {
+                let extraArgs: { [key: string]: any } = {}
+                for (let arg of apiFn.extra) {
+                    if (arg === "msg") {
                         extraArgs[arg] = msg
                     }
                 }
-                return {content: String(await apiFn.exec({...extraArgs, ...argsForFn}))}
+                return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })) }
             }
             return { content: String(await apiFn.exec(argsForFn)) }
         }, category: CommandCategory.META
     },
     "htmlq": {
-        run: async(_msg, args) => {
+        run: async (_msg, args) => {
             let [query, ...html] = args.join(" ").split("|")
             let realHTML = html.join("|")
             let $ = cheerio.load(realHTML)(query).text()
-            return {content: $}
+            return { content: $ }
         }, category: CommandCategory.UTIL
     },
     "get": {
@@ -3995,7 +4008,7 @@ export const commands: { [command: string]: Command } = {
             if (opts['s']) {
                 stringifyFn = String
             }
-            if(opts['python']){
+            if (opts['python']) {
                 let codeStr = `math = __import__("math")
 random = __import__("random")
 if(hasattr(random, "_os")):
@@ -4013,17 +4026,17 @@ u = VarHolder(${JSON.stringify(vars[msg.author.id]) || "{}"})
 print(eval("""${args.join(" ")}"""))`
                 let moreDat = spawnSync("python3", ["-c", codeStr])
                 let sendText = ""
-                if(moreDat.stderr.toString("utf-8")){
+                if (moreDat.stderr.toString("utf-8")) {
                     sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
                 }
-                if(moreDat.stdout.toString("utf-8")){
+                if (moreDat.stdout.toString("utf-8")) {
                     sendText += moreDat.stdout.toString("utf-8").trim()
                 }
-                return {content: sendText}
+                return { content: sendText }
             }
             let ret: any[] = []
             try {
-                ret.push(stringifyFn(safeEval(args.join(" "), {...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], ...vars["__global__"] }, { timeout: 3000 })))
+                ret.push(stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], ...vars["__global__"] }, { timeout: 3000 })))
             }
             catch (err) {
                 console.log(err)
@@ -5641,7 +5654,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     polygon: {
-        run: async (_msg: Message,_args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList) => {
             let _opts;
             return {
                 content: "Broken"
@@ -6479,7 +6492,7 @@ print(eval("""${args.join(" ")}"""))`
             if (opts['no-start'] === true) {
                 useStart = false
             }
-            if(opts['docs'] === true){
+            if (opts['docs'] === true) {
                 return {
                     files: [
                         {
@@ -6525,7 +6538,7 @@ print(eval("""${args.join(" ")}"""))`
                     description: "Remove the need for %start"
                 },
                 "docs": {
-                    description:  "Post the documentation"
+                    description: "Post the documentation"
                 }
             }
         }
@@ -6572,13 +6585,13 @@ print(eval("""${args.join(" ")}"""))`
             let varValRet
             let mainScope = "__global__"
             let secondaryScope = msg.author.id
-            if(opts['u']){
+            if (opts['u']) {
                 mainScope = msg.author.id
                 secondaryScope = "__global__"
             }
             let vardict = vars[mainScope]
             if (isNaN(parseFloat(vname))) {
-                let vvalue = getVar(msg,  vname, mainScope)
+                let vvalue = getVar(msg, vname, mainScope)
                 if (vvalue === false) {
                     vardict = vars[secondaryScope]
                     vvalue = getVar(msg, vname, secondaryScope)
@@ -6888,7 +6901,7 @@ print(eval("""${args.join(" ")}"""))`
                             return
                         }
                         let removal = data[num - 1]
-                        if(!removal)
+                        if (!removal)
                             return
                         let userCreated = removal.split(":")[0].trim()
                         if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
@@ -7014,8 +7027,8 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.META
     },
     'send-log': {
-        run: async(_msg, args) => {
-            return {content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8")}
+        run: async (_msg, args) => {
+            return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8") }
         }, category: CommandCategory.META
     },
     "list-files": {
@@ -7079,29 +7092,29 @@ ${fs.readdirSync("./command-results").join("\n")}
                 showArgs = false
             }
             let chain: string[] = [args[0]]
-            let  a = ""
-            if(aliases[args[0]]){
-                let result =  expandAlias(args[0], (alias: any, preArgs: any) => {
-                    if(expand){
+            let a = ""
+            if (aliases[args[0]]) {
+                let result = expandAlias(args[0], (alias: any, preArgs: any) => {
+                    if (expand) {
                         a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
                     }
-                    else{
+                    else {
                         a = preArgs.join(" ") + " " + a + " "
                     }
-                    if(showArgs){
+                    if (showArgs) {
                         chain.push(`${alias} ${a}`)
                     }
-                    else{
+                    else {
                         chain.push(alias)
                     }
                     return true
                 })
-                if(!result){
-                    return {content: "failed to expand alias"}
+                if (!result) {
+                    return { content: "failed to expand alias" }
                 }
-                return {content: `${chain.join(" -> ")}`}
+                return { content: `${chain.join(" -> ")}` }
             }
-            return {content: `${args[0].trim() || "No command given"}`}
+            return { content: `${args[0].trim() || "No command given"}` }
         },
         help: {
             info: "Shows which command the alias turns into when run",
@@ -8417,16 +8430,16 @@ export async function doCmd(msg: Message, returnJson = false) {
     //next expand aliases
     if (!commands[command] && aliases[command]) {
         //expand the alias to find the true command
-        let expansion = await expandAlias(command, (alias: any) =>  {
+        let expansion = await expandAlias(command, (alias: any) => {
             globals.addToCmdUse(alias) //for every expansion, add to cmd use
-            if(BLACKLIST[msg.author.id]?.includes(alias)){ //make sure they're not blacklisted from the alias
-                handleSending(msg, {content: `You are blacklisted from ${alias}`})
+            if (BLACKLIST[msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
+                handleSending(msg, { content: `You are blacklisted from ${alias}` })
                 return false
             }
             return true
         })
         //if it was able to expand (not blacklisted, and no misc errors)
-        if(expansion){
+        if (expansion) {
             //alias is actually the real command
             //aliasPreArgs are the arguments taht go after the commnad
             let [alias, aliasPreArgs] = expansion
@@ -8440,12 +8453,12 @@ export async function doCmd(msg: Message, returnJson = false) {
             command = alias
             //rv = await doCmd(msg, true) as CommandReturn
         }
-        else{
-            rv = {content: `failed to expand ${command}`}
+        else {
+            rv = { content: `failed to expand ${command}` }
             exists = false
         }
     }
-    if(!commands[command]){
+    if (!commands[command]) {
         rv = { content: `${command} does not exist` }
         exists = false
     }
@@ -8495,7 +8508,7 @@ export async function doCmd(msg: Message, returnJson = false) {
             canRun = false
         }
         if (canRun) {
-            if(typing)
+            if (typing)
                 await msg.channel.sendTyping()
             rv = await commands[command].run(msg, args)
             //if normal command, it counts as use
@@ -8528,14 +8541,14 @@ export async function doCmd(msg: Message, returnJson = false) {
     msg.channel.send = oldSend
 }
 
-export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false>{
+export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false> {
     let expansions = 0
     let aliasPreArgs = aliases[command].slice(1)
     command = aliases[command][0]
-    if(onExpand && !onExpand?.(command, aliasPreArgs)){
+    if (onExpand && !onExpand?.(command, aliasPreArgs)) {
         return false
     }
-    while(aliases[command]?.[0]){
+    while (aliases[command]?.[0]) {
         expansions++;
         if (expansions > 1000) {
             return false
@@ -8543,7 +8556,7 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
         let newPreArgs = aliases[command].slice(1)
         aliasPreArgs = newPreArgs.concat(aliasPreArgs)
         command = aliases[command][0]
-        if(onExpand && !onExpand?.(command, newPreArgs)){
+        if (onExpand && !onExpand?.(command, newPreArgs)) {
             return false
         }
     }

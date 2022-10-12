@@ -27,25 +27,28 @@ declare global{
     dm?: boolean
     }
 
+    interface CommandHelpArguments{
+        [key: string]: {
+            description: string,
+            required?: boolean,
+            requires?: string
+        }
+    }
+    interface CommandHelpOptions{
+        [key: string]: {
+            description: string,
+            alternates?: string[]
+        }
+    }
+
     interface CommandHelp{
         info?: string,
         /**
          * @deprecated Use /ccmd <alias name> <command> <text> instead, ie: no built in aliases
          */
         aliases?: string[],
-        arguments?: {
-            [key: string]: {
-            description: string,
-            required?: boolean,
-            requires?: string
-            }
-        },
-        options?: {
-            [key: string]: {
-                description: string,
-                alternates?: string[]
-            }
-        },
+        arguments?: CommandHelpArguments,
+        options?: CommandHelpOptions,
         tags?: string[]
     }
 
