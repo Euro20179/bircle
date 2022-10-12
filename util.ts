@@ -217,12 +217,9 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     context["Buffer"] = Buffer
     let clearContext = `
       Function = undefined;
-      const keys = Object.getOwnPropertyNames(this).concat(['constructor']);
-      for(let key of keys){
-        const item = this[key];
-        if (!item || typeof item.constructor !== 'function') break;
-        this[key].constructor = undefined;
-      }
+      require = undefined;
+      WebAssembly.constructor = undefined;
+      fetch = undefined;
   `
     //let clearContext = 'Function = undefined;'
     code = clearContext + resultKey + '=' + code
