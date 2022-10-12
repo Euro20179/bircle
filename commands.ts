@@ -7,8 +7,8 @@ import fetch = require("node-fetch")
 import cheerio = require('cheerio')
 
 import { spawnSync } from "child_process"
-import { MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji } from 'discord.js'
-const { execSync, exec } = require('child_process')
+import { MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User } from 'discord.js'
+import { execSync, exec } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
 import battle = require("./battle")
@@ -18,9 +18,9 @@ import pet = require("./pets")
 
 import { getVar } from "./common"
 
-const { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } = require('./common.js')
+import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } = require('./util.js')
+import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 
@@ -275,16 +275,21 @@ export const commands: { [command: string]: Command } = {
         let opts: Opts;
         [opts, args] = getOpts(args)
         let mode: "normal" | "insert" = "normal"
-        let canEdit = String(opts['editors']).split(",")
+        let canEdit: (string | undefined)[] = String(opts['editors']).split(",")
         canEdit.push(msg.author.id)
         for (let i = 0; i < canEdit.length; i++) {
+            //@ts-ignore
             canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
+            if(canEdit[i] === undefined)
+                continue
+            //@ts-ignore
             if (globals.EDS[canEdit[i]])
                 //@ts-ignore
                 canEdit[i] = undefined
         }
         canEdit = canEdit.filter(v => v)
         for (let ed of canEdit) {
+            //@ts-ignore
             globals.EDS[ed] = true
         }
         function parseNormalEdInput(input: string) {
@@ -1080,11 +1085,12 @@ export const commands: { [command: string]: Command } = {
     "ustock": {
         run: async (msg, args) => {
             let user = args[1] || msg.author.id
+            //@ts-ignore
             let member = await fetchUser(msg.guild, user)
             if (!member)
-                member = msg.member
+                member = msg.member || undefined
             let stockName = args[0]
-            return { content: JSON.stringify(economy.userHasStockSymbol(member.user.id, stockName)) }
+            return { content: JSON.stringify(economy.userHasStockSymbol(member?.user.id || "", stockName)) }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Check if a user has a stock",
@@ -1104,6 +1110,7 @@ export const commands: { [command: string]: Command } = {
             let user = args[0]
             let member = msg.member
             if (user) {
+                //@ts-ignore
                 member = await fetchUser(msg.guild, user)
                 if (!member) {
                     return { content: `${args[0]} not found` }
@@ -1238,6 +1245,7 @@ export const commands: { [command: string]: Command } = {
 
     inventory: {
         run: async (msg, args) => {
+            //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             if (!user)
                 return { content: `${args[0]}  not  found` }
@@ -1298,8 +1306,9 @@ export const commands: { [command: string]: Command } = {
 
     "gapet": {
         run: async (msg, args) => {
+            //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
-            return { content: String(pet.getActivePet(user.user.id)) }
+            return { content: String(pet.getActivePet(user?.user.id || "")) }
         }, category: CommandCategory.UTIL
     },
 
@@ -1318,6 +1327,7 @@ export const commands: { [command: string]: Command } = {
 
     pets: {
         run: async (msg, args) => {
+            //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             if (!user)
                 return { content: "User not found" }
@@ -1366,6 +1376,7 @@ export const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let items = fs.readFileSync("./shop.json", "utf-8")
+            //@ts-ignore
             let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
             if (!user) {
                 return { content: `${opts['as']} not found` }
@@ -1475,7 +1486,7 @@ export const commands: { [command: string]: Command } = {
             catch (err) {
                 return { content: "Something went wrong" }
             }
-            return { content: format(ffmt, { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }) }
+            return { content: format(String(ffmt), { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }) }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -1920,7 +1931,7 @@ export const commands: { [command: string]: Command } = {
             let stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
             let loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
             let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money + stocks - loan, reqAmount)
-            return { content: format(fmt, { m: moneyAmount, s: stockAmount, l: loanAmount, t: grandTotal }) }
+            return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }) }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Calculate the net worth of the economy",
@@ -1939,12 +1950,13 @@ export const commands: { [command: string]: Command } = {
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
             if (as && typeof as === 'string') {
-                as = (await fetchUser(msg.guild, as)).user.id
+                //@ts-ignore
+                as = (await fetchUser(msg.guild, as))?.user.id
             }
             if (!as)
                 as = msg.author.id
 
-            let amount = economy.calculateAmountFromString(as, args.join(" "), {
+            let amount = economy.calculateAmountFromString(String(as), args.join(" "), {
                 ticketmin: (total, _k, _data) => total * 0.005,
                 battlemin: (total, _k, _data) => total * 0.002
             })
@@ -1962,11 +1974,12 @@ export const commands: { [command: string]: Command } = {
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
             if (as && typeof as === 'string') {
-                as = (await fetchUser(msg.guild, as)).user.id
+                //@ts-ignore
+                as = (await fetchUser(msg.guild, as))?.user.id
             }
             if (!as)
                 as = msg.author.id
-            let amount = economy.calculateLoanAmountFromString(as, args.join(" "))
+            let amount = economy.calculateLoanAmountFromString(String(as), args.join(" "))
             if (!amount) {
                 return { content: "None" }
             }
@@ -1984,11 +1997,12 @@ export const commands: { [command: string]: Command } = {
             let dollarSign = opts['sign'] || ""
             let as = opts['as'] || msg.author.id
             if (as && typeof as === 'string') {
-                as = (await fetchUser(msg.guild, as)).user.id
+                //@ts-ignore
+                as = (await fetchUser(msg.guild, as))?.user.id
             }
             if (!as)
                 as = msg.author.id
-            let amount = economy.calculateAmountFromStringIncludingStocks(as, args.join(" ").trim())
+            let amount = economy.calculateAmountFromStringIncludingStocks(String(as), args.join(" ").trim())
             if (dollarSign === true) {
                 return { content: `${amount}` }
             }
@@ -2021,6 +2035,7 @@ export const commands: { [command: string]: Command } = {
         [opts, args] = getOpts(args)
         let user = msg.member
         if (args.join(" "))
+            //@ts-ignore
             user = await fetchUser(msg.guild, args.join(" "))
         if (!user)
             user = msg.member
@@ -2067,6 +2082,7 @@ export const commands: { [command: string]: Command } = {
             if (!userSearch) {
                 return { content: "No user to search for" }
             }
+        //@ts-ignore
             let member = await fetchUser(msg.guild, userSearch)
             if (!member)
                 return { content: `${userSearch} not found` }
@@ -2103,6 +2119,7 @@ export const commands: { [command: string]: Command } = {
             return { content: "You dont have that many shares" }
         }
         let player = args.slice(2).join(" ")
+        //@ts-ignore
         let member = await fetchUser(msg.guild, player)
         if (!member) {
             return { content: `Member: ${player} not found` }
@@ -2155,6 +2172,7 @@ export const commands: { [command: string]: Command } = {
             if (!itemstr) {
                 return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\`` }
             }
+            //@ts-ignore
             let member = await fetchUser(msg.guild, user)
             if (!member) {
                 return { content: `${user} not found` }
@@ -2185,6 +2203,7 @@ export const commands: { [command: string]: Command } = {
             await new Promise(res => setTimeout(res, 1000))
             return { content: "Balance erased" }
         }
+        //@ts-ignore
         let user = await fetchUser(msg.guild, args.join(" "))
         if (!user)
             return { content: `${args.join(" ")} not found` }
@@ -2355,7 +2374,7 @@ export const commands: { [command: string]: Command } = {
                 await msg.channel.send({ content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players` })
                 for (let player of globals.HEIST_PLAYERS) {
                     data[player] = 0
-                    setVar("__heist", 0, player)
+                    setVar("__heist", "0", player)
                 }
                 let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                 //let fileResponses: string[] = []
@@ -2546,14 +2565,14 @@ export const commands: { [command: string]: Command } = {
                                     addToLocationStat(current_location, player, amount)
                                     data[player] += amount
                                     let oldValue = Number(getVar(msg, `__heist`, player))
-                                    setVar("__heist", oldValue + amount, player)
+                                    setVar("__heist", String(oldValue + amount), player)
                                 }
                             }
                             else {
                                 addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                 data[shuffledPlayers[Number(user) - 1]] += amount
                                 let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
+                                setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                             }
                         }
                     }
@@ -2566,14 +2585,14 @@ export const commands: { [command: string]: Command } = {
                                     addToLocationStat(current_location, player, amount)
                                     data[player] += amount
                                     let oldValue = Number(getVar(msg, `__heist`, player))
-                                    setVar("__heist", oldValue + amount, player)
+                                    setVar("__heist", String(oldValue + amount), player)
                                 }
                             }
                             else {
                                 addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                 data[shuffledPlayers[Number(user) - 1]] += amount
                                 let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                setVar("__heist", oldValue + amount, shuffledPlayers[Number(user) - 1])
+                                setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                             }
                         }
                     }
@@ -2742,124 +2761,125 @@ export const commands: { [command: string]: Command } = {
         }
     ),
 
-    "egyption-war": {
-        run: async (msg, args) => {
-
-            function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
-                let no = Math.floor(Math.random() * cardsToChooseFrom.length)
-                let c = cardsToChooseFrom[no]
-                cards = cardsToChooseFrom.filter((_v, i) => i != no)
-                deck.push(c)
-            }
-            let cards = []
-            let stack: string[] = []
-            for (let suit of ["♦", "S", "♥️", "C"]) {
-                for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
-                    cards.push(`${num} of ${suit}`)
-                }
-            }
-            let totalCards = cards.length
-            let players: { [key: string]: string[] } = { [msg.author.id]: [] }
-            for (let arg of args) {
-                let user = await fetchUser(msg.guild, arg)
-                players[user.id] = []
-            }
-            let cardsPerPlayer = Math.floor(cards.length / Object.keys(players).length)
-            for (let player in players) {
-                for (let i = 0; i < cardsPerPlayer; i++) {
-                    giveRandomCard(cards, players[player])
-                }
-            }
-            if (cards.length) {
-                stack = JSON.parse(JSON.stringify(cards))
-            }
-            let collector = msg.channel.createMessageCollector({ filter: m => ['slap', 's'].includes(m.content) && !m.author.bot })
-            collector.on("collect", m => {
-                let lastCard = stack[stack.length - 1]?.split(" of")[0]
-                let secondLastCard = stack[stack.length - 2]?.split(" of")[0]
-                let thirdLastCard = stack[stack.length - 3]?.split(" of")[0]
-                if ((lastCard === secondLastCard || thirdLastCard === lastCard) && lastCard != undefined) {
-                    if (players[m.author.id]) {
-                        players[m.author.id] = [...players[m.author.id], ...stack]
-                    }
-                    else {
-                        players[m.author.id] = [...stack]
-                    }
-                    playerKeys.push(m.author.id)
-                    stack = []
-                    msg.channel.send(`${m.author} got the stack`)
-                }
-                else {
-                    msg.channel.send("No slap")
-                }
-            })
-            let attemptsDict = {
-                "A": 4,
-                "K": 3,
-                "Q": 2,
-                "J": 1
-            }
-            let playerKeys = Object.keys(players)
-            let attempts = 0
-            let lastPlayer;
-            for (let i = 0; true; i = ++i >= playerKeys.length ? 0 : i) {
-                let turn = playerKeys[i]
-                if (attempts && lastPlayer) {
-                    let gotFaceCard = false
-                    for (; attempts > 0; attempts--) {
-                        await msg.channel.send(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
-                        try {
-                            giveRandomCard(players[turn], stack)
-                            let recentCard = stack[stack.length - 1]
-                            let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
-                            await msg.channel.send(`${recentCard} (${stack.length})`)
-                            if (isFaceCard) {
-                                attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
-                                gotFaceCard = true
-                                break
-                            }
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
-                            delete players[turn]
-                            playerKeys = playerKeys.filter(v => v != turn)
-                        }
-                    }
-                    if (!gotFaceCard) {
-                        players[lastPlayer] = [...players[lastPlayer], ...stack]
-                        await msg.channel.send(`<@${lastPlayer}> got the stack (${stack.length} cards)`)
-                        stack = []
-                    }
-                }
-                else {
-                    await msg.channel.send(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
-                    try {
-                        giveRandomCard(players[turn], stack)
-                        let recentCard = stack[stack.length - 1]
-                        let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
-                        if (isFaceCard) {
-                            attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
-                        }
-                        await msg.channel.send(`${recentCard} (${stack.length})`)
-                    }
-                    catch (err) {
-                        await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
-                        delete players[turn]
-                        playerKeys = playerKeys.filter(v => v != turn)
-                    }
-                }
-                if (playerKeys.length <= 1) {
-                    return { content: "Everyone left" }
-                }
-                for (let player in players) {
-                    if (players[player].length == totalCards) {
-                        return { content: `<@${player}> WINS` }
-                    }
-                }
-                lastPlayer = turn
-            }
-        }, category: CommandCategory.GAME
-    },
+    // "egyption-war": {
+    //     run: async (msg, args) => {
+    //
+    //         function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
+    //             let no = Math.floor(Math.random() * cardsToChooseFrom.length)
+    //             let c = cardsToChooseFrom[no]
+    //             cards = cardsToChooseFrom.filter((_v, i) => i != no)
+    //             deck.push(c)
+    //         }
+    //         let cards = []
+    //         let stack: string[] = []
+    //         for (let suit of ["♦", "S", "♥️", "C"]) {
+    //             for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+    //                 cards.push(`${num} of ${suit}`)
+    //             }
+    //         }
+    //         let totalCards = cards.length
+    //         let players: { [key: string]: string[] } = { [msg.author.id]: [] }
+    //         for (let arg of args) {
+    //             //@ts-ignore
+    //             let user = await fetchUser(msg.guild, arg)
+    //             players[user?.id] = []
+    //         }
+    //         let cardsPerPlayer = Math.floor(cards.length / Object.keys(players).length)
+    //         for (let player in players) {
+    //             for (let i = 0; i < cardsPerPlayer; i++) {
+    //                 giveRandomCard(cards, players[player])
+    //             }
+    //         }
+    //         if (cards.length) {
+    //             stack = JSON.parse(JSON.stringify(cards))
+    //         }
+    //         let collector = msg.channel.createMessageCollector({ filter: m => ['slap', 's'].includes(m.content) && !m.author.bot })
+    //         collector.on("collect", m => {
+    //             let lastCard = stack[stack.length - 1]?.split(" of")[0]
+    //             let secondLastCard = stack[stack.length - 2]?.split(" of")[0]
+    //             let thirdLastCard = stack[stack.length - 3]?.split(" of")[0]
+    //             if ((lastCard === secondLastCard || thirdLastCard === lastCard) && lastCard != undefined) {
+    //                 if (players[m.author.id]) {
+    //                     players[m.author.id] = [...players[m.author.id], ...stack]
+    //                 }
+    //                 else {
+    //                     players[m.author.id] = [...stack]
+    //                 }
+    //                 playerKeys.push(m.author.id)
+    //                 stack = []
+    //                 msg.channel.send(`${m.author} got the stack`)
+    //             }
+    //             else {
+    //                 msg.channel.send("No slap")
+    //             }
+    //         })
+    //         let attemptsDict = {
+    //             "A": 4,
+    //             "K": 3,
+    //             "Q": 2,
+    //             "J": 1
+    //         }
+    //         let playerKeys = Object.keys(players)
+    //         let attempts = 0
+    //         let lastPlayer;
+    //         for (let i = 0; true; i = ++i >= playerKeys.length ? 0 : i) {
+    //             let turn = playerKeys[i]
+    //             if (attempts && lastPlayer) {
+    //                 let gotFaceCard = false
+    //                 for (; attempts > 0; attempts--) {
+    //                     await msg.channel.send(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
+    //                     try {
+    //                         giveRandomCard(players[turn], stack)
+    //                         let recentCard = stack[stack.length - 1]
+    //                         let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
+    //                         await msg.channel.send(`${recentCard} (${stack.length})`)
+    //                         if (isFaceCard) {
+    //                             attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
+    //                             gotFaceCard = true
+    //                             break
+    //                         }
+    //                     }
+    //                     catch (err) {
+    //                         await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
+    //                         delete players[turn]
+    //                         playerKeys = playerKeys.filter(v => v != turn)
+    //                     }
+    //                 }
+    //                 if (!gotFaceCard) {
+    //                     players[lastPlayer] = [...players[lastPlayer], ...stack]
+    //                     await msg.channel.send(`<@${lastPlayer}> got the stack (${stack.length} cards)`)
+    //                     stack = []
+    //                 }
+    //             }
+    //             else {
+    //                 await msg.channel.send(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
+    //                 try {
+    //                     giveRandomCard(players[turn], stack)
+    //                     let recentCard = stack[stack.length - 1]
+    //                     let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
+    //                     if (isFaceCard) {
+    //                         attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
+    //                     }
+    //                     await msg.channel.send(`${recentCard} (${stack.length})`)
+    //                 }
+    //                 catch (err) {
+    //                     await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
+    //                     delete players[turn]
+    //                     playerKeys = playerKeys.filter(v => v != turn)
+    //                 }
+    //             }
+    //             if (playerKeys.length <= 1) {
+    //                 return { content: "Everyone left" }
+    //             }
+    //             for (let player in players) {
+    //                 if (players[player].length == totalCards) {
+    //                     return { content: `<@${player}> WINS` }
+    //                 }
+    //             }
+    //             lastPlayer = turn
+    //         }
+    //     }, category: CommandCategory.GAME
+    // },
 
     blackjack: createCommand(async (msg, args) => {
         let opts;
@@ -3422,11 +3442,11 @@ export const commands: { [command: string]: Command } = {
             case "title":
                 return { content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ") }
             case "lc":
-                return {content: String(string.split("\n").length)}
+                return { content: String(string.split("\n").length) }
             case "wc":
-                return {content: String(string.split(" ").length)}
+                return { content: String(string.split(" ").length) }
             case "bc":
-                return {content: String(string.split(" ").length)}
+                return { content: String(string.split(" ").length) }
         }
         return { content: "Invalid Operation" }
     },
@@ -3542,7 +3562,7 @@ export const commands: { [command: string]: Command } = {
                 return { content: "Couldn't get random role" }
             }
             let fmt = args.join(" ") || "%n"
-            return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: role.color, C: role.createdAt, hc: role.hexColor, u: role.unicodeEmoji, p: role.position, I: role.icon }) }
+            return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: String(role.color), C: String(role.createdAt), hc: role.hexColor, u: String(role.unicodeEmoji), p: String(role.position), I: String(role.icon) }) }
         },
         category: CommandCategory.UTIL
     },
@@ -3617,12 +3637,16 @@ export const commands: { [command: string]: Command } = {
                     let member1, member2;
                     if (getRankMode) {
                         member1 = JSONData.players[Number(ruser1) - 1]
+                        //@ts-ignore
                         member1 = await fetchUser(msg.guild, member1.id)
                         member2 = JSONData.players[Number(ruser2) - 1]
+                        //@ts-ignore
                         member2 = await fetchUser(msg.guild, member2.id)
                     }
                     else {
+                        //@ts-ignore
                         member1 = await fetchUser(msg.guild, ruser1.trim())
+                        //@ts-ignore
                         member2 = await fetchUser(msg.guild, ruser2.trim())
                     }
                     if (!member1) {
@@ -3653,7 +3677,7 @@ export const commands: { [command: string]: Command } = {
                         greenness = 255
                     let hex = rgbToHex(redness, greenness, 0)
                     embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
-                    embed.setColor(hex)
+                    embed.setColor(hex as ColorResolvable)
                     embed.addField("Level", String(user1Data.level - user2Data.level), true)
                     embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
                     embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
@@ -3663,9 +3687,11 @@ export const commands: { [command: string]: Command } = {
                 let member: any;
                 if (getRankMode) {
                     member = JSONData.players[Number(requestedUser.trim()) - 1]
+                    //@ts-ignore
                     member = await fetchUser(msg.guild, member.id)
                 }
                 else
+                    //@ts-ignore
                     member = await fetchUser(msg.guild, requestedUser.trim())
                 if (!member) {
                     member = msg.author
@@ -4169,7 +4195,7 @@ print(eval("""${args.join(" ")}"""))`
                 }
                 else img = getImgFromMsgAndOpts(opts, msg)
                 if (img) {
-                    embed.setImage(img)
+                    embed.setImage(String(img))
                 }
                 let color
                 if (color = opts['color'] || opts['e-color'] || opts['embed-color']) {
@@ -4342,7 +4368,7 @@ print(eval("""${args.join(" ")}"""))`
             [opts, args] = getOpts(args)
             let link = args[0]
             if (!link) {
-                link = getImgFromMsgAndOpts(opts, msg)
+                link = String(getImgFromMsgAndOpts(opts, msg))
             }
             if (!link)
                 return { content: "no link given" }
@@ -4462,22 +4488,25 @@ print(eval("""${args.join(" ")}"""))`
         run: async (msg, args) => {
             let users = []
             for (let arg of args) {
+                //@ts-ignore
                 users.push(await fetchUser(msg.guild, arg))
             }
             if (users.length == 0) {
+                //@ts-ignore
                 users.push(await fetchUser(msg.guild, msg.author.id))
             }
             let embeds = []
             for (let user of users) {
-                let roles = user._roles
+                let roles = user?.roles
                 if (!roles) {
                     return {
                         contnet: "Could not find roles"
                     }
                 }
                 let embed = new MessageEmbed()
-                embed.setTitle(`Roles for: ${user.user.username}`)
+                embed.setTitle(`Roles for: ${user?.user.username}`)
                 let roleList = []
+                //@ts-ignore
                 for (let role of roles) {
                     roleList.push(await msg.guild?.roles.fetch(role))
                 }
@@ -4651,8 +4680,10 @@ print(eval("""${args.join(" ")}"""))`
             let opts;
             [opts, args] = getOpts(args)
             let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
+            //@ts-ignore
             let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
             for (let player of requestPlayers) {
+                //@ts-ignore
                 let p = await fetchUser(msg.guild, player)
                 if (!p) {
                     await msg.channel.send(`${player} not found`)
@@ -4680,6 +4711,7 @@ print(eval("""${args.join(" ")}"""))`
             let forcedDraw = 0
             let turns = cycle(order, (i: any) => {
                 let playerIds = Object.keys(playerData)
+                //@ts-ignore
                 fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
                     if (players.map(v => v.id).indexOf(going) < 0) {
                         going = turns.next().value
@@ -5161,6 +5193,7 @@ print(eval("""${args.join(" ")}"""))`
                     everyone = true
                     break
                 }
+                //@ts-ignore
                 opponent = await fetchUser(msg.guild, arg)
                 if (opponent) {
                     users.push(opponent)
@@ -5422,10 +5455,12 @@ print(eval("""${args.join(" ")}"""))`
             if (!user2) {
                 return { content: "2 users must be given" }
             }
+            //@ts-ignore
             let realUser1: GuildMember = await fetchUser(msg.guild, user1)
             if (!realUser1) {
                 return { content: `${user1} not found` }
             }
+            //@ts-ignore
             let realUser2: GuildMember = await fetchUser(msg.guild, user2)
             if (!realUser2) {
                 return { content: `${user2} not found` }
@@ -5762,6 +5797,7 @@ print(eval("""${args.join(" ")}"""))`
             }
             let intWidth = parseInt(width as string) || 50
             let intHeight = parseInt(height as string) || 50
+            //@ts-ignore
             https.request(img, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -6859,6 +6895,7 @@ print(eval("""${args.join(" ")}"""))`
     },
     remove: {
         run: async (msg: Message, args: ArgumentList) => {
+            //@ts-ignore
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
                 return {
@@ -6992,6 +7029,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 `
                 }
             }
+            //@ts-ignore
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
                 return {
@@ -7039,6 +7077,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     },
     add: {
         run: async (msg: Message, args: ArgumentList) => {
+            //@ts-ignore
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
                 return {
@@ -7204,7 +7243,9 @@ ${fs.readdirSync("./command-results").join("\n")}
             if (!to) {
                 return { content: "No second place given, fmt: `place 1 | place 2`" }
             }
+            //@ts-ignore
             let fromUser = await fetchUser(msg.guild, from)
+            //@ts-ignore
             let toUser = await fetchUser(msg.guild, to)
             if (fromUser && toUser) {
                 let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
@@ -7455,14 +7496,17 @@ ${styles}
                     content: "no cmd given"
                 }
             }
+            //@ts-ignore
             user = await fetchUser(msg.guild, user)
             if (addOrRemove == "a") {
+                //@ts-ignore
                 addToPermList(WHITELIST, "whitelists", user, cmds)
 
                 return {
                     content: `${user} has been whitelisted to use ${cmds.join(" ")}`
                 }
             } else {
+                //@ts-ignore
                 removeFromPermList(WHITELIST, "whitelists", user, cmds)
                 return {
                     content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`
@@ -7489,6 +7533,7 @@ ${styles}
     },
     RESET_PLAYER: {
         run: async (msg, args) => {
+            //@ts-ignore
             let player = await fetchUser(msg.guild, args[0])
             if (!player)
                 return { content: "No player found" }
@@ -7500,6 +7545,7 @@ ${styles}
     },
     RESET_PLAYER_ITEMS: {
         run: async (msg, args) => {
+            //@ts-ignore
             let player = await fetchUser(msg.guild, args[0])
             if (!player)
                 return { content: "No player found" }
@@ -7519,6 +7565,7 @@ ${styles}
     },
     SETMONEY: {
         run: async (msg, args) => {
+            //@ts-ignore
             let user = await fetchUser(msg.guild, args[0])
             if (!user) {
                 return { content: "user not found" }
@@ -7547,12 +7594,14 @@ ${styles}
                 }
             }
             if (addOrRemove == "a") {
+                //@ts-ignore
                 addToPermList(BLACKLIST, "blacklists", msg.member, cmds)
 
                 return {
                     content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`
                 }
             } else {
+                //@ts-ignore
                 removeFromPermList(BLACKLIST, "blacklists", msg.member, cmds)
                 return {
                     content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`
@@ -7580,14 +7629,17 @@ ${styles}
                     content: "no cmd given"
                 }
             }
+            //@ts-ignore
             user = await fetchUser(msg.guild, user)
             if (addOrRemove == "a") {
-                addToPermList(BLACKLIST, "blacklists", user, cmds)
+                //@ts-ignore
+                addToPermList(BLACKLIST, "blacklists", user as User, cmds)
 
                 return {
                     content: `${user} has been blacklisted from ${cmds.join(" ")}`
                 }
             } else {
+                //@ts-ignore
                 removeFromPermList(BLACKLIST, "blacklists", user, cmds)
                 return {
                     content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`
@@ -7651,7 +7703,7 @@ ${styles}
                 fmt += `\n{earnings}`
                 fs.writeFileSync("./command-results/last-run", String(Date.now()))
             }
-            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: diff, d: diff / (1000 * 60 * 60 * 24), h: diff / (1000 * 60 * 60), m: diff / (1000 * 60), s: diff / 1000, hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: diff, days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }) }
+            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }) }
         },
         help: {
             arguments: {
@@ -7751,13 +7803,16 @@ ${styles}
             let channel
             if (!args.join(" ").trim().length)
                 channel = msg.channel
+            //@ts-ignore
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
             if (!channel)
                 return { content: "Channel not found" }
+        //@ts-ignore
             let pinned = await channel?.messages?.fetchPinned()
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
-            embed.setTitle(channel.name)
+            //@ts-ignore
+            embed.setTitle(channel.name || "Unknown name")
             if (pinned) {
                 let pinCount = pinned.size
                 let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
@@ -7768,13 +7823,19 @@ ${styles}
             embed.addField("Days since Creation", String(daysSinceCreation), true)
             embed.addField("Id", channel.id.toString(), true)
             embed.addField("Type", channel.type, true)
+            //@ts-ignore
             if (channel.topic) {
+                //@ts-ignore
                 embed.addField("Topic", channel.topic, true)
             }
+            //@ts-ignore
             if (channel.nsfw) {
+                //@ts-ignore
                 embed.addField("NSFW?", channel.nsfw, true)
             }
+            //@ts-ignore
             if (channel.position) {
+                //@ts-ignore
                 embed.addField("Position", channel.position.toString(), true)
             }
             return { embeds: [embed] }
@@ -7813,6 +7874,7 @@ ${styles}
                     content: "no member given!"
                 }
             }
+            //@ts-ignore
             const member = await fetchUser(msg.guild, args[0])
             if (!member) {
                 return {
@@ -7830,7 +7892,7 @@ ${styles}
                         .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
                         .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
                         .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                        .replaceAll("{joined}", member.joinedAt.toString() || "#!N/A")
+                        .replaceAll("{joined}", member.joinedAt?.toString() || "#!N/A")
                         .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
                         {
                             i: user.id || "#!N/A",
@@ -7839,7 +7901,7 @@ ${styles}
                             X: member.displayHexColor.toString() || "#!N/A",
                             x: member.displayColor.toString() || "#!N/A",
                             c: user.createdAt.toString() || "#!N/A",
-                            j: member.joinedAt.toString() || "#!N/A",
+                            j: member.joinedAt?.toString() || "#!N/A",
                             b: member.premiumSince?.toString() || "#!N/A",
                             a: user.avatarURL() || "#!N/A"
                         }
@@ -7848,14 +7910,14 @@ ${styles}
             }
             let embed = new MessageEmbed()
             embed.setColor(member.displayColor)
-            embed.setThumbnail(user.avatarURL())
+            embed.setThumbnail(user.avatarURL() ||  "")
             embed.addField("Id", user.id || "#!N/A", true)
             embed.addField("Username", user.username || "#!N/A", true)
             embed.addField("Nickname", member.nickname || "#!N/A", true)
             embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
             embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
             embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
-            embed.addField("Joined at", member.joinedAt.toString() || "#!N/A", true)
+            embed.addField("Joined at", member.joinedAt?.toString() || "#!N/A", true)
             embed.addField("Boosting since", member.premiumSince?.toString() || "#!N/A", true)
             return {
                 embeds: [embed]
@@ -8086,23 +8148,23 @@ valid formats:<br>
             let data = args.slice(1).join(" ").trim()
             if (!data) {
                 if (msg.attachments?.at(0)) {
-                    data = downloadSync(msg.attachments?.at(0)?.attachment).toString()
+                    data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
                 }
                 else return { content: "no data given to search through" }
             }
             let match = data.matchAll(new RegExp(regex, "gm"))
             let finds = ""
             for (let find of match) {
-                if(opts['s']){
-                    if(find[1]){
+                if (opts['s']) {
+                    if (find[1]) {
                         finds += find.slice(1).join(", ")
                     }
-                    else{
+                    else {
                         finds += find[0]
                     }
                     finds += '\n'
                 }
-                else{
+                else {
                     if (find[1]) {
                         finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
                     }

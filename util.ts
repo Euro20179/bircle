@@ -290,7 +290,7 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
     return img
 }
 
-function getOpts(args: ArgumentList) {
+function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
     let newArgs = []
     let idxOfFirstRealArg = 0
