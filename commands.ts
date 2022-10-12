@@ -9,7 +9,6 @@ import cheerio = require('cheerio')
 import { spawnSync } from "child_process"
 import { MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji } from 'discord.js'
 const { execSync, exec } = require('child_process')
-
 import globals = require("./globals")
 import uno = require("./uno")
 import battle = require("./battle")
@@ -8076,6 +8075,8 @@ valid formats:<br>
     },
     grep: {
         run: async (msg: Message, args: ArgumentList) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
             let regex = args[0]
             if (!regex) {
                 return {
@@ -8092,11 +8093,22 @@ valid formats:<br>
             let match = data.matchAll(new RegExp(regex, "gm"))
             let finds = ""
             for (let find of match) {
-                if (find[1]) {
-                    finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
+                if(opts['s']){
+                    if(find[1]){
+                        finds += find.slice(1).join(", ")
+                    }
+                    else{
+                        finds += find[0]
+                    }
+                    finds += '\n'
                 }
-                else {
-                    finds += `Found \`${find[0]}\` at character ${(find?.index ?? 0) + 1}\n`
+                else{
+                    if (find[1]) {
+                        finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
+                    }
+                    else {
+                        finds += `Found \`${find[0]}\` at character ${(find?.index ?? 0) + 1}\n`
+                    }
                 }
             }
             return {
@@ -8114,6 +8126,9 @@ valid formats:<br>
                     description: "either a file, or text to search through",
                     required: true
                 }
+            },
+            options: {
+                "s": createHelpOption("dont give back the extra \"Foudn x at char...\" text")
             }
         },
         category: CommandCategory.UTIL
