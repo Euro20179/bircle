@@ -1,9 +1,11 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable }  from 'discord.js'
 import { getVar } from './common'
 
-const { vars, } = require( "./common.js")
+import { doCmd } from "./commands"
 
-type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
+const { vars, prefix } = require( "./common.js")
+
+type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed | CommandReturn
 type errType = {content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?:  boolean}
 
 async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc:  number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: number | string | Message | GuildMember | Function }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, SPAMS: {[key: string]: boolean}): Promise<stackTypes |  errType >{
@@ -508,6 +510,26 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 stack.push(JSON.parse(value))
                 break
             }
+            case "%run": {
+                let text = stack.pop()
+                if(typeof text !== 'string'){
+                    return {err: true, content: "Cannot run a non-string"}
+                }
+                let oldContent = msg.content
+                let oldSend = msg.channel.send
+                msg.channel.send = async() => msg
+                msg.content = text[0] === prefix ? text : `${prefix}${text}`
+                let data = await doCmd(msg, true)
+                if(data === undefined){
+                    stack.push(0)
+                }
+                else{
+                    stack.push(data)
+                }
+                msg.content = oldContent
+                msg.channel.send = oldSend
+                break
+            }
             case "%isnumeric": {
                 let val = stack.pop()
                 if (typeof val === 'number') {
@@ -780,7 +802,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (!(e instanceof MessageEmbed)) {
                     return { err: true, content: `${e} is not an embed` }
                 }
-                if (image) {
+                if (typeof image === 'string') {
                     e.setFooter({ text: footer, iconURL: image })
                 }
                 else {
@@ -828,7 +850,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (!(e instanceof MessageEmbed)) {
                     return { err: true, content: `${e} is not an embed` }
                 }
-                if (image) {
+                if (typeof image === 'string') {
                     e.setAuthor({ name: author, iconURL: image })
                 }
                 else {

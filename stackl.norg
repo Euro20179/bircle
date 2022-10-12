@@ -365,6 +365,10 @@
       - `<ms: number> %sleep`
       -- Sleep for `ms` milliseconds
 
+      - `<command: string> %run`
+      -- Run a bircle command, and return the raw data
+      -- Use `.content` after this to get the content from the result
+
 
 *** Objects
     An object  is any javascript object

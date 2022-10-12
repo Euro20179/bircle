@@ -14,7 +14,6 @@ import globals = require("./globals")
 import uno = require("./uno")
 import battle = require("./battle")
 import API = require("./api")
-import stackl = require("./stackl")
 import economy = require("./economy")
 import pet = require("./pets")
 
@@ -6529,6 +6528,7 @@ print(eval("""${args.join(" ")}"""))`
 
     'stackl': {
         run: async (msg, args) => {
+            const stackl = require("./stackl")
             let opts: Opts;
             [opts, args] = getOpts(args)
             let useStart = true

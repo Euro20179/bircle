@@ -179,8 +179,6 @@ function getVar(msg: Message, varName: string, prefix?: string){
 }
 
 
-
-
 export {
     prefix,
     vars,
