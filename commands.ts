@@ -24,6 +24,7 @@ const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require
 const { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } = require('./util.js')
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
+
 enum CommandCategory {
     UTIL,
     GAME,
@@ -251,10 +252,6 @@ export const commands: { [command: string]: Command } = {
                 globals.EDS[ed] = true
             }
             function parseNormalEdInput(input: string){
-                //TODO: implement,
-                //d, g, s
-                //also implement range based range eg: n,n2
-                //also add /regex/ range syntax
                 let cmds = "qnaipgsdg!"
                 let range = ""
                 let startArgs = false
@@ -540,63 +537,10 @@ export const commands: { [command: string]: Command } = {
             let opts
             [opts, args] = getOpts(args)
             if (opts["g"]) {
+                let text = fs.readFileSync("./help.txt", "utf-8")
                 return {
-                    content: `\`\`\`
-Anything may be prefixed with a \\ to prevent it from happening immediately
-
-[command [args...]
-
-do first:
-    $(command)
-    put %{-1}$(command) to replace $(command) with nothing
-    %{0}$(command) gets replaced with the first word of the result
-    %{do-first-index:} gets replaces with the result of a specific $(command)
-    %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
-end of statement:
-    putting a [; on its own line seperates commands.
-calc:
-    $[calculation]
-special commands:
-    [count]:<range>[cmd/...]
-    [t:cmd
-    [s:cmd
-escapes:
-    \\n: new line
-    \\t: tab
-    \\U{hex}: unicode
-    \\u{hex}: unicode
-    \\s: space
-    \\s{text}: all the text inside is treated as 1 argument
-    \\b{text}: bold
-    \\i{text}: italic
-    \\S{text}: strikethrough
-    \\d{date}: date
-    \\D{unix timestamp}: date from timestamp
-    \\v{(g:)variable name}: value of a variable (put g: to garantee global scope)
-    \\V{scope:variable name}: get a variable from a specific scope (. for global and % for user)
-    \\\\: backslash
-formats:
-    {ruser[|fmt]}: generate a user
-    {user}: mention yourself
-    {channel}: The current channel
-    {cmd}: the command
-    {fhex|number}: convert a number from a base
-    {hex|number}: convert a number to a base
-    {rev|string}: reverse a string
-    {c}: content used
-    {rand[|item1|item2...]}: random item
-    {time[|datetime format]}: time date format
-    {channel[|format]}: channel
-variables:
-    random: random number
-    rand: random number
-    prefix: bot's prefix
-    vcount: variable count
-    sender: mention yourself
-    you may also define custom variables like: [var x=y
-        or [var x=\\s{this is a long variable}
-\`\`\`
-`}
+                    content:text
+                }
             }
             if (opts['l']) {
                 let category = String(opts['l']) || "all"
