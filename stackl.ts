@@ -507,7 +507,12 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (typeof value !== 'string') {
                     value = JSON.stringify(value)
                 }
-                stack.push(JSON.parse(value))
+                try{
+                    stack.push(JSON.parse(value))
+                }
+                catch(err){
+                    stack.push(0)
+                }
                 break
             }
             case "%run": {

@@ -354,6 +354,7 @@
       - `<value: any> %obj -> string`
       -- Convert `value` to a javascript object
       -- If `value` is a string, it will be converted to a JSONified version of a string.
+      -- If `value` could not be JSONified, /0/ is pushed to the stack.
 
       - `<value: any> %isnumeric -> boolean`
       -- If `value` is a number this will push /1/ to the stack.
