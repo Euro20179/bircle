@@ -78,7 +78,8 @@ let defaultVars = {
     carson: () => "The all legendary Carson Williams",
     money: (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
     "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "__default_bj_bet": (msg: Message) => getOpt(msg.author.id, "default-bj-bet", "unset")
+    "__default_bj_bet": (msg: Message) => getOpt(msg.author.id, "default-bj-bet", "unset"),
+    "__bj_screen": (msg: Message) => getOpt(msg.author.id, "bj-screen", "unset")
 }
 
 let vars: { [key: string]: { [key: string]: Function | any } } = {
