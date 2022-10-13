@@ -1375,6 +1375,7 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
     let currScopes = ["__main__"]
     let stack = stacks["__main__"]
     let initialArgs: string[] = []
+    args = args.join(" ").split(/\s+/)
     if (useStart) {
         let curArg;
         while ((curArg = args.shift()) !== "%start") {

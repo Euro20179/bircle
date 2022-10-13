@@ -34,6 +34,8 @@ common.js
 commands.js
 user-options.js
 
+*.bircle
+
 vars
 
 !command-perms/holder
