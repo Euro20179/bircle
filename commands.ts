@@ -268,54 +268,54 @@ function createCommand(
 
 export const commands: { [command: string]: Command } = {
 
-    "option": createCommand(async(msg, args) => {
+    "option": createCommand(async (msg, args) => {
         let [optname, ...value] = args
-        if(!user_options.isValidOption(optname)){
-            return {content: `${optname} is not a valid option`}
+        if (!user_options.isValidOption(optname)) {
+            return { content: `${optname} is not a valid option` }
         }
-        if(value.length === 0){
+        if (value.length === 0) {
             user_options.unsetOpt(msg.author.id, optname)
             user_options.saveUserOptions()
-            return {content: `<@${msg.author.id}> unset ${optname}`}
+            return { content: `<@${msg.author.id}> unset ${optname}` }
         }
-        else{
+        else {
             let optVal = value.join(" ")
             user_options.setOpt(msg.author.id, optname, optVal)
             user_options.saveUserOptions()
-            return {content: `<@${msg.author.id}> set ${optname}=${optVal}`}
+            return { content: `<@${msg.author.id}> set ${optname}=${optVal}` }
         }
     }, CommandCategory.META,
-    "Sets a user option",
-    {
-        option: createHelpArgument("The option to set", true),
-        value: createHelpArgument("The value to set the option to, if not given, option will be unset", false)
-    },
-    null,
-    null,
-    (m) => !m.author.bot),
+        "Sets a user option",
+        {
+            option: createHelpArgument("The option to set", true),
+            value: createHelpArgument("The value to set the option to, if not given, option will be unset", false)
+        },
+        null,
+        null,
+        (m) => !m.author.bot),
 
-    "UNSET": createCommand(async(msg, args) => {
+    "UNSET": createCommand(async (msg, args) => {
         let [user, optname] = args
-        if(!user_options.isValidOption(optname)){
-            return {content: `${optname} is not a valid option`}
+        if (!user_options.isValidOption(optname)) {
+            return { content: `${optname} is not a valid option` }
         }
         //@ts-ignore
         let member = await fetchUser(msg.guild, user)
-        if(!member)
-            return {content: `${user} not found`}
+        if (!member)
+            return { content: `${user} not found` }
         user_options.unsetOpt(member.id, optname)
         user_options.saveUserOptions()
-        return {content: `<@${member.id}> unset ${optname}`}
+        return { content: `<@${member.id}> unset ${optname}` }
 
     }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
 
-    "options": createCommand(async(msg, _args) => {
+    "options": createCommand(async (msg, _args) => {
         let userOpts = user_options.getUserOptions()[msg.author.id]
         let text = ""
-        for(let opt of user_options.allowedOptions){
+        for (let opt of user_options.allowedOptions) {
             text += `**${opt}**: ${userOpts[opt] ?? "\\_\\_unset\\_\\_"}\n`
         }
-        return {content: text}
+        return { content: text }
     }, CommandCategory.META, "Prints the options for [option, and your values for them"),
 
     "ed": createCommand(async (msg, args) => {
@@ -330,7 +330,7 @@ export const commands: { [command: string]: Command } = {
         for (let i = 0; i < canEdit.length; i++) {
             //@ts-ignore
             canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
-            if(canEdit[i] === undefined)
+            if (canEdit[i] === undefined)
                 continue
             //@ts-ignore
             if (globals.EDS[canEdit[i]])
@@ -2080,22 +2080,22 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.UTIL
     },
 
-    nw: createCommand(async(msg, args) => {
+    nw: createCommand(async (msg, args) => {
         let user;
 
-        if(!args.join(" ")){
+        if (!args.join(" ")) {
             user = msg.member
         }
-        else{
+        else {
             //@ts-ignore
             user = await fetchUser(msg.guild, args.join(" "))
         }
         //@ts-ignore
-        if(!user) user = msg.member
-        if(!user) return {content: "No user found"}
+        if (!user) user = msg.member
+        if (!user) return { content: "No user found" }
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return {content: format(money_format, {user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100)})}
+        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }) }
     }, CommandCategory.ECONOMY),
 
     money: createCommand(async (msg, args) => {
@@ -2126,9 +2126,9 @@ export const commands: { [command: string]: Command } = {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, {user: user.user.username, amount: String(economy.getEconomy()[user.id].money)}) }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }) }
             }
-            return { content: format(money_format, {user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100)}) }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }) }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -2151,7 +2151,7 @@ export const commands: { [command: string]: Command } = {
             if (!userSearch) {
                 return { content: "No user to search for" }
             }
-        //@ts-ignore
+            //@ts-ignore
             let member = await fetchUser(msg.guild, userSearch)
             if (!member)
                 return { content: `${userSearch} not found` }
@@ -3030,7 +3030,7 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, {amount: String(bet * 3)})}
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }) }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -3126,7 +3126,7 @@ export const commands: { [command: string]: Command } = {
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, {amount: String(bet * 3)})}
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }) }
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
@@ -3157,6 +3157,44 @@ export const commands: { [command: string]: Command } = {
         }
         else if (playerTotal === dealerTotal) {
             status = "TIE"
+            if(Math.random() > 0.99){
+                let UserHp = 100;
+                let SpiderHp = 100;
+
+                await msg.channel.send("a spider jum pon tablew!121 You must defend honor!1 (attack/heal)");
+
+                let newmsg = await msg.channel.send(`UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`);
+                while (UserHp >= 0 && SpiderHp >= 0) {
+                    let action = await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1})
+                    let actionMessage = action.at(0)
+                    if(!actionMessage) continue
+                    if(actionMessage.deletable){
+                        await actionMessage.delete()
+                    }
+                    let UserInput = actionMessage.content
+                    if (UserInput == "attack") {
+                        SpiderHp = SpiderHp - Math.floor(Math.random() * 26);
+                    }
+                    else if (UserInput == "heal") {
+                        UserHp = UserHp + Math.floor(Math.random() * 11);
+                    }
+                    else {
+                        await newmsg.edit(`Thaat not right fuk\nUserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`)
+                        continue
+                    }
+                    await newmsg.edit(`spider attack u\nUserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`)
+                    UserHp = UserHp - Math.floor(Math.random() * 26);
+                }
+                if (UserHp > 0) {
+
+                    let amount = Math.random() * 2 + 1
+                    economy.addMoney(msg.author.id, bet * amount);
+                    return {content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}`};
+                } else {
+                    economy.loseMoneyToBank(msg.author.id, bet);
+                    return {content: "u r ez dead"};
+                }
+            }
         }
         else if (playerTotal < dealerTotal && dealerTotal < 22) {
             status = `You lost: $${bet} (dealer won)`
@@ -7877,7 +7915,7 @@ ${styles}
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
             if (!channel)
                 return { content: "Channel not found" }
-        //@ts-ignore
+            //@ts-ignore
             let pinned = await channel?.messages?.fetchPinned()
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
@@ -7980,7 +8018,7 @@ ${styles}
             }
             let embed = new MessageEmbed()
             embed.setColor(member.displayColor)
-            embed.setThumbnail(user.avatarURL() ||  "")
+            embed.setThumbnail(user.avatarURL() || "")
             embed.addField("Id", user.id || "#!N/A", true)
             embed.addField("Username", user.username || "#!N/A", true)
             embed.addField("Nickname", member.nickname || "#!N/A", true)
