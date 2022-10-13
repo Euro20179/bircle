@@ -8786,6 +8786,9 @@ export async function handleSending(msg: Message, rv: CommandReturn) {
             msg.content = rv.content
             rv = await doCmd(msg, true) as CommandReturn
             msg.content = oldContent
+            //it's better to just recursively do this, otherwise all the code above would be repeated
+            await handleSending(msg, rv)
+            return
         }
     }
     //if the content is > 2000 (discord limit), send a file instead
