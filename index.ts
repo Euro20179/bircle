@@ -11,7 +11,7 @@ import commands = require("./commands")
 
 const economy = require("./economy")
 
-const {generateFileName, handleSending} = require("./util")
+const {generateFileName} = require("./util")
 const { saveItems, hasItem } = require("./shop")
 const globals = require("./globals")
 
@@ -140,7 +140,7 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
         m.channel.send = oldSend
         finalMessages = [result]
     }
-    handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
+    commands.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
 }
 
 client.on("messageCreate", async (m: Message) => {
@@ -151,7 +151,7 @@ client.on("messageCreate", async (m: Message) => {
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
     if(m.content === `<@${client.user.id}>`){
-        await handleSending(m, {content: `The prefix is: ${local_prefix}`})
+        await commands.handleSending(m, {content: `The prefix is: ${local_prefix}`})
     }
 
     //saves economy stuff 45% of the time

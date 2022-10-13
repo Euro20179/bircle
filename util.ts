@@ -316,65 +316,6 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     return [opts, newArgs]
 }
 
-async function handleSending(msg: Message, rv: CommandReturn) {
-    if (!Object.keys(rv).length) {
-        return
-    }
-    //by default delete files that are being sent from local storage
-    if (rv.deleteFiles === undefined) {
-        rv.deleteFiles = true
-    }
-    if (rv.delete && msg.deletable) {
-        msg.delete().catch(_err => console.log("Message not deleted"))
-    }
-    if (rv.noSend) {
-        return
-    }
-    //if the content is > 2000 (discord limit), send a file instead
-    if ((rv.content?.length || 0) >= 2000) {
-        fs.writeFileSync("out", rv.content)
-        delete rv["content"]
-        if (rv.files) {
-            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
-        } else {
-            rv.files = [{
-                attachment: "out", name: "cmd.txt", description: "command output too long"
-            }]
-        }
-    }
-    if (!rv?.content) {
-        //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
-        delete rv['content']
-    }
-    else {
-        //if not empty, save in the _! variable
-        setVar("_!", rv.content, msg.author.id)
-        setVar("_!", rv.content)
-    }
-    //the place to send message to
-    let location = msg.channel
-    if (rv['dm']) {
-
-        //@ts-ignore
-        location = msg.author
-    }
-    try {
-        await location.send(rv)
-    }
-    catch (err) {
-        console.log(err)
-        //usually happens when there is nothing to send
-        await location.send("broken")
-    }
-    //delete files that were sent
-    if (rv.files) {
-        for (let file of rv.files) {
-            if (file.delete !== false && rv.deleteFiles && fs.existsSync(file.attachment))
-                fs.rmSync(file.attachment)
-        }
-    }
-}
-
 function getContentFromResult(result: CommandReturn) {
     let res = ""
     if (result.content)

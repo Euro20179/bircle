@@ -4,7 +4,7 @@ import pet = require('./pets')
 
 import fs = require("fs")
 
-const { getOpts, handleSending } = require("./util.js")
+const { getOpts } = require("./util.js")
 
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy = require("./economy")
@@ -38,6 +38,9 @@ async function handleDeath(id: string, players: {[key: string]: number}, winning
 }
 
 async function game(msg: Message, players: {[key: string]: number}, ogBets: {[key: string]: number}, cooldowns: {[key: string]: number}, usedSwap: string[], usedShell: string[], bets: {[key: string]: number}, betTotal: number, useItems: boolean, winningType: "wta" | "distribute", shields: {[key: string]: boolean}){
+
+    const { handleSending } = require("./commands")
+
     let midGameCollector = msg.channel.createMessageCollector({filter: m => !m.author.bot && m.content.toLowerCase() == 'join' && hasItem(m.author.id, "intrude")})
 
     let responseMultiplier = 1;

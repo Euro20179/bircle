@@ -21,7 +21,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } from './util'
+import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 enum CommandCategory {
@@ -2127,7 +2127,7 @@ export const commands: { [command: string]: Command } = {
             if (opts['no-round']) {
                 return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: true }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: 100 }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: true }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -4340,7 +4340,6 @@ print(eval("""${args.join(" ")}"""))`
             if (embed) {
                 rv["embeds"] = [embed]
             }
-            rv["recurse"] = true
             if (wait) {
                 await new Promise(res => setTimeout(res, wait * 1000))
             }
@@ -6548,7 +6547,7 @@ print(eval("""${args.join(" ")}"""))`
             await msg.channel.send(`starting ${id}`)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
-                await msg.channel.send(`${format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })}`)
+                await handleSending(msg, {content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), recurse: true})
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
@@ -8704,12 +8703,6 @@ export async function doCmd(msg: Message, returnJson = false) {
             rv = await commands[command].run(msg, args)
             //if normal command, it counts as use
             globals.addToCmdUse(command)
-            if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
-                let oldContent = msg.content
-                msg.content = rv.content
-                rv = await doCmd(msg, true) as CommandReturn
-                msg.content = oldContent
-            }
         }
         else rv = { content: "You do not have permissions to run this command" }
     }
@@ -8758,4 +8751,71 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
         }
     }
     return [command, aliasPreArgs]
+}
+
+export async function handleSending(msg: Message, rv: CommandReturn) {
+    if (!Object.keys(rv).length) {
+        return
+    }
+    let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
+    //by default delete files that are being sent from local storage
+    if (rv.deleteFiles === undefined) {
+        rv.deleteFiles = true
+    }
+    if (rv.delete && msg.deletable) {
+        msg.delete().catch(_err => console.log("Message not deleted"))
+    }
+    if (rv.noSend) {
+        return
+    }
+    if (!rv?.content) {
+        //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
+        delete rv['content']
+    }
+    else {
+        //if not empty, save in the _! variable
+        setVar("_!", rv.content, msg.author.id)
+        setVar("_!", rv.content)
+        if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
+            let oldContent = msg.content
+            msg.content = rv.content
+            rv = await doCmd(msg, true) as CommandReturn
+            msg.content = oldContent
+        }
+    }
+    //if the content is > 2000 (discord limit), send a file instead
+    if ((rv.content?.length || 0) >= 2000) {
+        //@ts-ignore
+        fs.writeFileSync("out", rv.content)
+        delete rv["content"]
+        if (rv.files) {
+            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
+        } else {
+            rv.files = [{
+                attachment: "out", name: "cmd.txt", description: "command output too long"
+            }]
+        }
+    }
+    //the place to send message to
+    let location = msg.channel
+    if (rv['dm']) {
+
+        //@ts-ignore
+        location = msg.author
+    }
+    try {
+        await location.send(rv)
+    }
+    catch (err) {
+        console.log(err)
+        //usually happens when there is nothing to send
+        await location.send("broken")
+    }
+    //delete files that were sent
+    if (rv.files) {
+        for (let file of rv.files) {
+            if (file.delete !== false && rv.deleteFiles && fs.existsSync(file.attachment))
+                fs.rmSync(file.attachment)
+        }
+    }
 }
