@@ -6968,7 +6968,7 @@ print(eval("""${args.join(" ")}"""))`
         run: async (msg: Message, args: ArgumentList) => {
             let opts;
             [opts, args] = getOpts(args)
-            let [name, ...value] = args.join(" ").split("=")
+            let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
             if (!value.length) {
                 return { content: "no value given, syntax `[var x=value" }
             }
