@@ -2080,6 +2080,18 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.UTIL
     },
 
+    nw: createCommand(async(msg, args) => {
+
+        //@ts-ignore
+        let user = await fetchUser(msg.guild, args.join(" "))
+        //@ts-ignore
+        if(!user) user = msg.member
+        if(!user) return {content: "No user found"}
+        let amount = economy.playerLooseNetWorth(user.id)
+        let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
+        return {content: format(money_format, {user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100)})}
+    }, CommandCategory.ECONOMY),
+
     money: createCommand(async (msg, args) => {
         let opts;
         [opts, args] = getOpts(args)
