@@ -24,7 +24,6 @@ const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require
 import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, handleSending, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
-
 enum CommandCategory {
     UTIL,
     GAME,
@@ -2954,7 +2953,11 @@ export const commands: { [command: string]: Command } = {
         let opts;
         [opts, args] = getOpts(args)
         let hardMode = Boolean(opts['hard'])
-        let bet = economy.calculateAmountFromString(msg.author.id, user_options.getOpt(msg.author.id, "default-bj-bet", args[0]))
+        let betStr = args[0]
+        if(!betStr){
+            betStr = user_options.getOpt(msg.author.id, "default-bj-bet", "0")
+        }
+        let bet = economy.calculateAmountFromString(msg.author.id, betStr)
         if (!bet) {
             return { content: "no bet given" }
         }
@@ -3030,7 +3033,7 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, { amount: String(bet * 3) }) }
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -3126,7 +3129,7 @@ export const commands: { [command: string]: Command } = {
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, { amount: String(bet * 3) }) }
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true }
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
@@ -4337,6 +4340,7 @@ print(eval("""${args.join(" ")}"""))`
             if (embed) {
                 rv["embeds"] = [embed]
             }
+            rv["recurse"] = true
             if (wait) {
                 await new Promise(res => setTimeout(res, wait * 1000))
             }
