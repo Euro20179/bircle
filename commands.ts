@@ -2092,6 +2092,7 @@ export const commands: { [command: string]: Command } = {
         if (!user) {
             return { content: "How are you not a member?" }
         }
+        let money_format = user_options.getOpt(user.id, "money-format", "{user}\n${amount}")
         let text = ""
         if (economy.getEconomy()[user.id]) {
             if (opts['m']) {
@@ -2107,9 +2108,9 @@ export const commands: { [command: string]: Command } = {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: `${user.user.username}\n$${economy.getEconomy()[user.id].money}` }
+                return { content: format(money_format, {user: user.user.username, amount: String(economy.getEconomy()[user.id].money)}) }
             }
-            return { content: `${user.user.username}\n$${Math.round(economy.getEconomy()[user.id].money * 100) / 100}` }
+            return { content: format(money_format, {user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100)}) }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
