@@ -2936,6 +2936,7 @@ export const commands: { [command: string]: Command } = {
         if (globals.BLACKJACK_GAMES[msg.author.id]) {
             return { content: "You idiot u already playing the game" }
         }
+        let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
         globals.BLACKJACK_GAMES[msg.author.id] = true
         let cards = []
         for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
@@ -2995,7 +2996,7 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: `**BLACKJACK!**\nYou got: **${bet * 3}**` }
+            return { content: format(blackjack_screen, {amount: String(bet * 3)})}
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -3091,7 +3092,7 @@ export const commands: { [command: string]: Command } = {
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: `**BLACKJACK!**\nYou got: **${bet * 3}**` }
+                    return { content: format(blackjack_screen, {amount: String(bet * 3)})}
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
