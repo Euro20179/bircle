@@ -150,6 +150,10 @@ client.on("messageCreate", async (m: Message) => {
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
+    if(m.content === `<@${client.user.id}>`){
+        await handleSending(m, {content: `The prefix is: ${local_prefix}`})
+    }
+
     //saves economy stuff 45% of the time
     if (Math.random() > .55) {
         economy.saveEconomy()
