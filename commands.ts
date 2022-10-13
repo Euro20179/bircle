@@ -4340,6 +4340,9 @@ print(eval("""${args.join(" ")}"""))`
             if (embed) {
                 rv["embeds"] = [embed]
             }
+            if(opts['recurse']){
+                rv.recurse = true
+            }
             if (wait) {
                 await new Promise(res => setTimeout(res, wait * 1000))
             }
@@ -4368,6 +4371,9 @@ print(eval("""${args.join(" ")}"""))`
                 },
                 "wait": {
                     description: "The seconds to wait before deleting and sending the message"
+                },
+                "recurse": {
+                    description: "If what's being echoed starts with your prefix, it will run it as a command instead of sending to chat"
                 }
             },
             arguments: {
@@ -6547,7 +6553,7 @@ print(eval("""${args.join(" ")}"""))`
             await msg.channel.send(`starting ${id}`)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
-                await handleSending(msg, {content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), recurse: true})
+                await handleSending(msg, {content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })})
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return {
