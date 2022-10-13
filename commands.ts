@@ -294,6 +294,21 @@ export const commands: { [command: string]: Command } = {
     null,
     (m) => !m.author.bot),
 
+    "UNSET": createCommand(async(msg, args) => {
+        let [user, optname] = args
+        if(!user_options.isValidOption(optname)){
+            return {content: `${optname} is not a valid option`}
+        }
+        //@ts-ignore
+        let member = await fetchUser(msg.guild, user)
+        if(!member)
+            return {content: `${user} not found`}
+        user_options.unsetOpt(member.id, optname)
+        user_options.saveUserOptions()
+        return {content: `<@${member.id}> unset ${optname}`}
+
+    }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
+
     "options": createCommand(async(msg, _args) => {
         let userOpts = user_options.getUserOptions()[msg.author.id]
         let text = ""
