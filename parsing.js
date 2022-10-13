@@ -1,3 +1,4 @@
+const { getOpt } = require("./user-options")
 const {prefix, vars, getVar} = require('./common.js')
 const {format, safeEval, getOpts, generateSafeEvalContextFromMessage} = require('./util.js')
 const  economy = require('./economy.js')
@@ -12,7 +13,7 @@ async function buildFormat(sequence, msg, curArg, customFormats){
     }
     switch(sequence){
 	case "cmd":
-	    return msg.content.split(" ")[0].slice(prefix.length)
+	    return msg.content.split(" ")[0].slice(getOpt(msg.author.id, "prefix", prefix).length)
 	case "fhex":
 	case "fbase":{
 	    let [num, base] = args
@@ -215,14 +216,14 @@ function buildEscape(letter, sequence, msg, curArg){
 }
 
 function getCommand(content){
-    return content.split(" ")[0].replace(prefix, "")
+    return content.split(" ")[0]
 }
 
 async function parseCmd({msg, content, command, customEscapes, customFormats}){
     if(!content) content = msg.content
     if(!command){
-        command = getCommand(content.slice(prefix.length))
-        content = content.slice(command.length + prefix.length)
+        command = getCommand(content.slice(getOpt(msg.author.id, "prefix", prefix).length))
+        content = content.slice(command.length + getOpt(msg.author.id, "prefix", prefix).length)
     }
     let args = []
     //it should be smth like: {3: "$(...)"}, where 3 represents the argNo
@@ -261,7 +262,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 }
                 else if(ch === "("){
                     if(!curArg.match(/(%\{\d*\}|%\{-1\})/g)) curArg += "%{}"
-                    let inside = prefix
+                    let inside = getOpt(msg.author.id, "prefix", prefix)
                     let parenCount = 1
                     for(i++; parenCount != 0; i++){
                         ch = content[i]

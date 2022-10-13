@@ -8462,9 +8462,10 @@ export async function doCmd(msg: Message, returnJson = false) {
     //The return  value from this function
     let rv: CommandReturn = {};
 
+    let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
 
     //Get the command (the first word in the message content)
-    command = msg.content.split(" ")[0].slice(prefix.length)
+    command = msg.content.split(" ")[0].slice(local_prefix.length)
     //Args are the rest of the words
     args = msg.content.split(" ").slice(1)
 
@@ -8550,10 +8551,10 @@ export async function doCmd(msg: Message, returnJson = false) {
             //alias is actually the real command
             //aliasPreArgs are the arguments taht go after the commnad
             let [alias, aliasPreArgs] = expansion
-            msg.content = `${prefix}${alias} ${aliasPreArgs.join(" ")}`
+            msg.content = `${local_prefix}${alias} ${aliasPreArgs.join(" ")}`
             let oldC = msg.content
             //aliasPreArgs.join is the command  content, args is what the user typed
-            msg.content = `${prefix}${alias} ${parseAliasReplacement(msg, aliasPreArgs.join(" "), args)}`
+            msg.content = `${local_prefix}${alias} ${parseAliasReplacement(msg, aliasPreArgs.join(" "), args)}`
             if (oldC == msg.content) {
                 msg.content = msg.content + ` ${args.join(" ")}`
             }
