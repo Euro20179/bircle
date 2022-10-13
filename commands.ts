@@ -2095,7 +2095,7 @@ export const commands: { [command: string]: Command } = {
         if (!user) return { content: "No user found" }
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }) }
+        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: true }
     }, CommandCategory.ECONOMY),
 
     money: createCommand(async (msg, args) => {
@@ -2126,9 +2126,9 @@ export const commands: { [command: string]: Command } = {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }) }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: true }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }) }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: 100 }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -8700,6 +8700,12 @@ export async function doCmd(msg: Message, returnJson = false) {
             rv = await commands[command].run(msg, args)
             //if normal command, it counts as use
             globals.addToCmdUse(command)
+            if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
+                let oldContent = msg.content
+                msg.content = rv.content
+                rv = await doCmd(msg, true) as CommandReturn
+                msg.content = oldContent
+            }
         }
         else rv = { content: "You do not have permissions to run this command" }
     }

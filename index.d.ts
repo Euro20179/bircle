@@ -24,7 +24,8 @@ declare global{
 	delete?: boolean
 	noSend?: boolean,
 	allowedMentions?: MessageMentionOptions,
-    dm?: boolean
+    dm?: boolean,
+    recurse?: boolean,
     }
 
     interface CommandHelpArguments{
