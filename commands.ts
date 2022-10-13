@@ -278,7 +278,18 @@ export const commands: { [command: string]: Command } = {
         user_options.saveUserOptions()
         return {content: `<@${msg.author.id}> set ${optname}=${optVal}`}
     }, CommandCategory.META,
-    "Sets a user option"),
+    "Sets a user option",
+    {
+        option: createHelpArgument("The option to set", true),
+        value: createHelpArgument("The value to set the option to", true)
+    },
+    null,
+    null,
+    (m) => !m.author.bot),
+
+    "options": createCommand(async(_msg, _args) => {
+        return {content: user_options.allowedOptions.join("\n")}
+    }, CommandCategory.META, "Prints the available options for [option"),
 
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
@@ -2897,7 +2908,7 @@ export const commands: { [command: string]: Command } = {
         let opts;
         [opts, args] = getOpts(args)
         let hardMode = Boolean(opts['hard'])
-        let bet = economy.calculateAmountFromString(msg.author.id, args[0])
+        let bet = economy.calculateAmountFromString(msg.author.id, user_options.getOpt(msg.author.id, "default-bj-bet", args[0]))
         if (!bet) {
             return { content: "no bet given" }
         }

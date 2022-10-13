@@ -1,6 +1,6 @@
 import fs = require("fs")
 
-export const allowedOptions = ["prefix", "yes"] as const
+export const allowedOptions = ["prefix", "default-bj-bet"] as const
 
 export type UserOption = typeof allowedOptions[number]
 
@@ -23,7 +23,7 @@ export function saveUserOptions(){
     fs.writeFileSync("./user-options.json", JSON.stringify(USER_OPTIONS))
 }
 
-export function getOpt(user: string, opt: string, fallback: string){
+export function getOpt(user: string, opt: UserOption, fallback: string){
     if(USER_OPTIONS[user]){
         return USER_OPTIONS[user][opt] || fallback
     }
