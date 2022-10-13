@@ -148,7 +148,7 @@ client.on("messageCreate", async (m: Message) => {
         economy.createPlayer(m.author.id)
     }
 
-    let local_prefix = user_options.USER_OPTIONS[m.author.id]?.["prefix"] || prefix
+    let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
     //saves economy stuff 45% of the time
     if (Math.random() > .55) {

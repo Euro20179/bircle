@@ -25,7 +25,7 @@ export function saveUserOptions(){
 
 export function getOpt(user: string, opt: UserOption, fallback: string){
     if(USER_OPTIONS[user]){
-        return USER_OPTIONS[user][opt] || fallback
+        return USER_OPTIONS[user][opt] ?? fallback
     }
     return fallback
 }
@@ -36,6 +36,12 @@ export function setOpt(user: string, opt: string, value: string){
     }
     else{
         USER_OPTIONS[user][opt] = value
+    }
+}
+
+export function unsetOpt(user: string, opt: string){
+    if(USER_OPTIONS[user]?.[opt] !== undefined){
+        delete USER_OPTIONS[user][opt]
     }
 }
 

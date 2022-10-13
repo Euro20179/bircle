@@ -270,18 +270,24 @@ export const commands: { [command: string]: Command } = {
 
     "option": createCommand(async(msg, args) => {
         let [optname, ...value] = args
-        let optVal = value.join(" ")
         if(!user_options.isValidOption(optname)){
-            return {content: `${optVal} is not a valid option`}
+            return {content: `${optname} is not a valid option`}
         }
-        user_options.setOpt(msg.author.id, optname, optVal)
-        user_options.saveUserOptions()
-        return {content: `<@${msg.author.id}> set ${optname}=${optVal}`}
+        if(value.length === 0){
+            user_options.unsetOpt(msg.author.id, optname)
+            return {content: `<@${msg.author.id}> unset ${optname}`}
+        }
+        else{
+            let optVal = value.join(" ")
+            user_options.setOpt(msg.author.id, optname, optVal)
+            user_options.saveUserOptions()
+            return {content: `<@${msg.author.id}> set ${optname}=${optVal}`}
+        }
     }, CommandCategory.META,
     "Sets a user option",
     {
         option: createHelpArgument("The option to set", true),
-        value: createHelpArgument("The value to set the option to", true)
+        value: createHelpArgument("The value to set the option to, if not given, option will be unset", false)
     },
     null,
     null,

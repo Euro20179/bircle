@@ -1,9 +1,11 @@
 import { Message, User } from "discord.js";
+import { getOpt } from "./user-options";
 
 const { readFileSync, writeFileSync, existsSync } = require("fs");
 const { Client, Intents } = require("discord.js")
 const economy = require("./economy");
 const prefix = readFileSync("./prefix", "utf-8").trim()
+
 
 const ADMINS = ["334538784043696130"]
 
@@ -75,7 +77,8 @@ let defaultVars = {
     sender: (msg: Message) => `<@${msg.author.id}>`,
     carson: () => "The all legendary Carson Williams",
     money: (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0
+    "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
+    "__default_bj_bet": (msg: Message) => getOpt(msg.author.id, "default-bj-bet", "unset")
 }
 
 let vars: { [key: string]: { [key: string]: Function | any } } = {
