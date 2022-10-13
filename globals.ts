@@ -17,6 +17,20 @@ export let HEIST_PLAYERS: string[] = []
 export let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 export let HEIST_STARTED = false
 
+export let USER_OPTIONS: {[user: string]: {[option: string]: string}} = {}
+
+export function loadUserOptions(){
+    if(fs.existsSync("./user-options.json")){
+        USER_OPTIONS = JSON.parse(fs.readFileSync("./user-options.json", "utf-8"))
+    }
+}
+
+loadUserOptions()
+
+export function saveUserOptions(){
+    fs.writeFileSync("./user-options.json", JSON.stringify(USER_OPTIONS))
+}
+
 export function generateCmdUseFile() {
     let data = ""
     for (let cmd in CMDUSE) {

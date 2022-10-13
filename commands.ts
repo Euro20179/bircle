@@ -15,6 +15,7 @@ import battle = require("./battle")
 import API = require("./api")
 import economy = require("./economy")
 import pet = require("./pets")
+import user_options = require("./user-options")
 
 import { getVar } from "./common"
 
@@ -64,7 +65,6 @@ function createChatCommand(name: string, description: string, options: any) {
         options: options
     }
 }
-
 const STRING = 3
 const INTEGER = 4
 const USER = 6
@@ -267,6 +267,18 @@ function createCommand(
 }
 
 export const commands: { [command: string]: Command } = {
+
+    "option": createCommand(async(msg, args) => {
+        let [optname, ...value] = args
+        let optVal = value.join(" ")
+        if(!user_options.isValidOption(optname)){
+            return {content: `${optVal} is not a valid option`}
+        }
+        user_options.setOpt(msg.author.id, optname, optVal)
+        user_options.saveUserOptions()
+        return {content: `<@${msg.author.id}> set ${optname}=${optVal}`}
+    }, CommandCategory.META,
+    "Sets a user option"),
 
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {

@@ -516,7 +516,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         e.setColor("YELLOW")
     }
     else if(winner[0] == 'mumbo'){
-        economy.addMoney(mumboUser, betTotal / 2)
+        economy.addMoney(mumboUser || "", betTotal / 2)
         e.setTitle("GAME OVER")
         e.setColor("DARK_GREEN")
         e.setDescription(`MUMBO WINS, <@${mumboUser}> SUMMONED MUMBO AND GETS HALF THE WINNINGS! ($${betTotal / 2})`)

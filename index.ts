@@ -6,7 +6,6 @@ import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, Gu
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 
-
 import pet = require("./pets")
 import commands = require("./commands")
 
@@ -15,6 +14,8 @@ const economy = require("./economy")
 const {generateFileName, handleSending} = require("./util")
 const { saveItems, hasItem } = require("./shop")
 const globals = require("./globals")
+
+const user_options = require("./user-options")
 
 let {client, purgeSnipe,  prefix, BLACKLIST} = require("./common")
 
@@ -146,6 +147,9 @@ client.on("messageCreate", async (m: Message) => {
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
     }
+
+    let local_prefix = user_options.USER_OPTIONS[m.author.id]?.["prefix"] || prefix
+
     //saves economy stuff 45% of the time
     if (Math.random() > .55) {
         economy.saveEconomy()
@@ -172,8 +176,8 @@ client.on("messageCreate", async (m: Message) => {
     if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
         await handleChatSearchCommandType(m, search)
     }
-    if (content.slice(0, prefix.length) == prefix) {
-        for(let cmd of content.split(`\n${prefix};\n`)){
+    if (content.slice(0, local_prefix.length) == local_prefix) {
+        for(let cmd of content.split(`\n${local_prefix};\n`)){
             m.content = `${cmd}`
             await commands.doCmd(m)
         }

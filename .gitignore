@@ -18,6 +18,7 @@ economy.json
 lottery.json
 inventory.json
 petinventory.json
+user-options.json
 
 index.js
 economy.js
@@ -31,6 +32,7 @@ api.js
 globals.js
 common.js
 commands.js
+user-options.js
 
 vars
 
