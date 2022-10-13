@@ -2081,9 +2081,15 @@ export const commands: { [command: string]: Command } = {
     },
 
     nw: createCommand(async(msg, args) => {
+        let user;
 
-        //@ts-ignore
-        let user = await fetchUser(msg.guild, args.join(" "))
+        if(!args.join(" ")){
+            user = msg.member
+        }
+        else{
+            //@ts-ignore
+            user = await fetchUser(msg.guild, args.join(" "))
+        }
         //@ts-ignore
         if(!user) user = msg.member
         if(!user) return {content: "No user found"}
