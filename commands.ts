@@ -83,8 +83,6 @@ function createChatCommandOption(type: number, name: string, description: string
     return obj
 }
 
-
-
 export const slashCommands = [
     createChatCommand("attack", "attacks chris, and no one else", [createChatCommandOption(USER, "user", "who to attack", { required: true })]),
     createChatCommand("ping", "Pings a user for some time", [
@@ -6555,6 +6553,7 @@ print(eval("""${args.join(" ")}"""))`
             while (globals.SPAMS[id] && times--) {
                 await handleSending(msg, {content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })})
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+
             }
             return {
                 content: "done"
