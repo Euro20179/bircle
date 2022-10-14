@@ -8632,6 +8632,10 @@ valid formats:<br>
 
 export let aliases = createAliases()
 
+export function isCmd(text: string, prefix: string){
+    return text.slice(0, prefix.length) === prefix
+}
+
 export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
     console.log(recursion)
     let command: string
@@ -8786,7 +8790,8 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         msg.content = cmd
         let rv = await doCmd(msg, true, recursion + 1) as CommandReturn
         msg.content = oldContent
-        if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix && recursion < 20){
+        //recursively evaluate msg.content as a command
+        if(rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20){
             let oldContent = msg.content
             msg.content = rv.content
             rv = await doCmd(msg, true, recursion + 1) as CommandReturn

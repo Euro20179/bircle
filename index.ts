@@ -150,6 +150,24 @@ client.on("messageCreate", async (m: Message) => {
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
+    if(!m.author.bot && (m.mentions.members?.size || 0) > 0){
+        //@ts-ignore
+        for(let i = 0; i < m.mentions.members.size; i++){
+            //@ts-ignore
+            let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
+            if(pingresponse){
+                if(commands.isCmd(pingresponse, local_prefix)){
+                    m.content = pingresponse
+                    await commands.doCmd(m) as CommandReturn
+                    return
+                }
+                else{
+                    await m.channel.send(pingresponse)
+                }
+            }
+        }
+    }
+
     if(m.content === `<@${client.user.id}>`){
         await commands.handleSending(m, {content: `The prefix is: ${local_prefix}`})
     }
