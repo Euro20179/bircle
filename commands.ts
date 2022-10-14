@@ -4667,29 +4667,11 @@ print(eval("""${args.join(" ")}"""))`
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
-            let guess = NaN
-            if (opts['guess']) {
-                guess = Number(opts['guess'])
-                opts['round'] = true
-            }
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 100
-            let bet = high - low
             let ans = Math.random() * (high - low) + low
             if (opts['round']) {
                 ans = Math.floor(ans)
-            }
-            if (!isNaN(guess) && high > low) {
-                if (economy.canBetAmount(msg.author.id, bet)) {
-                    if (guess === ans) {
-                        economy.addMoney(msg.author.id, bet)
-                        return { content: `<@${msg.author.id}> WON! THE ANSWER WAS ${ans}, CONGRATS ON YOUR $${bet}` }
-                    }
-                    else {
-                        economy.loseMoneyToBank(msg.author.id, bet)
-                        return { content: `<@${msg.author.id}> LOST! THE ANSWER WAS ${ans}, YOU LOST $${bet}` }
-                    }
-                }
             }
             return {
                 content: String(ans)
@@ -4705,15 +4687,12 @@ print(eval("""${args.join(" ")}"""))`
                 }
             },
             options: {
-                guess: {
-                    description: "The number to guess, if you win you will gain (max - min) dollars, if you  lose, you will lose (max - min) dollars<br>automatically enables -round"
-                },
                 round: {
                     description: "Round the number"
                 }
             }
         },
-        category: CommandCategory.GAME
+        category: CommandCategory.UTIL
     },
     roles: {
         run: async (msg, args, sendCallback) => {
