@@ -21,7 +21,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     },
     canTax: {
         requirements: ["id"],
-        exec: async({ id }: {id: string}) => economy.canTax(id)
+        exec: async({ id }: {id: string}) => economy.canTax(id, Number(shop.hasItem(id, "tax evasion") || 0) * 60)
     },
     playerEconomyLooseTotal: {
         requirements: ["id"],

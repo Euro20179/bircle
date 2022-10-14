@@ -35,7 +35,7 @@ function resetPlayerItems(id: string){
     }
 }
 
-function hasItem(user: string, item: string){
+export function hasItem(user: string, item: string){
     if(INVENTORY[user]?.[item]){
         return INVENTORY[user][item]
     }
