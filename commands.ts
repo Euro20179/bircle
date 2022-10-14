@@ -2119,6 +2119,9 @@ export const commands: { [command: string]: Command } = {
             if (opts['t']) {
                 text += `${economy.getEconomy()[user.id].lastTaxed}\n`
             }
+            if (opts['nw']){
+                text += `${economy.playerLooseNetWorth(user.id)}\n`
+            }
             if (text) {
                 return { content: text }
             }
@@ -2137,6 +2140,7 @@ export const commands: { [command: string]: Command } = {
             "m": createHelpOption("Show money only"),
             "l": createHelpOption("Show the last time they got money from talking"),
             "t": createHelpOption("Show the  last time they got taxed"),
+            "nw": createHelpOption("Get the raw networth of a player"),
             "no-round": createHelpOption("No rounding"),
         }
     ),
