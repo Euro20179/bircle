@@ -310,7 +310,7 @@ export const commands: { [command: string]: Command } = {
         let userOpts = user_options.getUserOptions()[msg.author.id]
         let text = ""
         for (let opt of user_options.allowedOptions) {
-            text += `**${opt}**: ${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}\n`
+            text += `**${opt}**\n${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}\n--------------------\n`
         }
         return { content: text }
     }, CommandCategory.META, "Prints the options for [option, and your values for them"),
