@@ -19,6 +19,10 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         requirements: ["id"],
         exec: async({ id }: {id: string}) => economy.getEconomy()[id]?.loanUsed || 0
     },
+    canTax: {
+        requirements: ["id"],
+        exec: async({ id }: {id: string}) => economy.canTax(id)
+    },
     playerEconomyLooseTotal: {
         requirements: ["id"],
         exec: async({ id }: {id: string}) => economy.playerEconomyLooseTotal(id)
