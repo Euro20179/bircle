@@ -24,7 +24,7 @@ const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require
 import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
-enum CommandCategory {
+export enum CommandCategory {
     UTIL,
     GAME,
     FUN,
@@ -2092,7 +2092,7 @@ export const commands: { [command: string]: Command } = {
         if (!user) return { content: "No user found" }
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: true }
+        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: { categories: [CommandCategory.GAME]} }
     }, CommandCategory.ECONOMY),
 
     money: createCommand(async (msg, args) => {
@@ -2126,9 +2126,9 @@ export const commands: { [command: string]: Command } = {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: true, allowedMentions: {parse: []} }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: {categories: [ CommandCategory.GAME ]}, allowedMentions: {parse: []} }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: true, allowedMentions: {parse: []} }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: {categories: [CommandCategory.GAME]}, allowedMentions: {parse: []} }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -2823,7 +2823,7 @@ export const commands: { [command: string]: Command } = {
             }, timeRemaining)
         }
         let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-        return {content: heistJoinFormat, recurse: true}
+        return {content: heistJoinFormat, recurse: {categories: [CommandCategory.GAME]}}
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
@@ -3039,7 +3039,7 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true }
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: {categories: [CommandCategory.GAME]} }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -3135,7 +3135,7 @@ export const commands: { [command: string]: Command } = {
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true }
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: {categories: [CommandCategory.GAME]} }
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
@@ -4713,8 +4713,7 @@ print(eval("""${args.join(" ")}"""))`
                 }
             }
         },
-        category: CommandCategory.UTIL
-
+        category: CommandCategory.GAME
     },
     roles: {
         run: async (msg, args, sendCallback) => {
@@ -8647,8 +8646,7 @@ export function isCmd(text: string, prefix: string){
     return text.slice(0, prefix.length) === prefix
 }
 
-export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
-    console.log(recursion)
+export async function doCmd(msg: Message, returnJson = false, recursion = 0, disable?: {categories?: CommandCategory[], commands?: string[]}) {
     let command: string
     let args: Array<string>
     let doFirsts: { [item: number]: string }
@@ -8799,13 +8797,13 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         let oldContent = msg.content
         //hack to run command as if message is cmd
         msg.content = cmd
-        let rv = await doCmd(msg, true, recursion + 1) as CommandReturn
+        let rv = await doCmd(msg, true, recursion + 1, disable) as CommandReturn
         msg.content = oldContent
         //recursively evaluate msg.content as a command
         if(rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20){
             let oldContent = msg.content
             msg.content = rv.content
-            rv = await doCmd(msg, true, recursion + 1) as CommandReturn
+            rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
             msg.content = oldContent
         }
         let data = getContentFromResult(rv as CommandReturn).trim()
@@ -8835,6 +8833,12 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         }
         //is blacklisted
         if (BLACKLIST[msg.author.id]?.includes(command)) {
+            canRun = false
+        }
+        if(disable?.commands && disable.commands.includes(command)){
+            canRun = false
+        }
+        if(disable?.categories && disable.categories.includes(commands[command].category)){
             canRun = false
         }
         if (canRun) {
@@ -8914,7 +8918,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
             let oldContent = msg.content
             msg.content = rv.content
-            rv = await doCmd(msg, true, recursion + 1) as CommandReturn
+            rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
             msg.content = oldContent
             //it's better to just recursively do this, otherwise all the code above would be repeated
             await handleSending(msg, rv, sendCallback, recursion + 1)

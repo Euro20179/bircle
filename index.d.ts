@@ -25,7 +25,7 @@ declare global{
 	noSend?: boolean,
 	allowedMentions?: MessageMentionOptions,
     dm?: boolean,
-    recurse?: boolean,
+    recurse?: boolean | {categories?: CommandCategory[], commands?: string[]},
     }
 
     interface CommandHelpArguments{
