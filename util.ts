@@ -70,8 +70,8 @@ async function fetchUser(guild: Guild, find: string) {
     }
     find = find.toLowerCase()
     let user = guild.members.cache.find((v, k) => {
-        return v.user.username.toLowerCase() === find ||
-            v.nickname?.toLowerCase() === find ||
+        return v.user.username.toLowerCase().startsWith(find) ||
+            v.nickname?.toLowerCase().startsWith(find) ||
             v.id === find ||
             `<@${v.id}>` === find || `<@!${v.id}>` === find
     })
