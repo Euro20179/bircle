@@ -159,7 +159,7 @@ client.on("messageCreate", async (m: Message) => {
                 if(commands.isCmd(pingresponse, local_prefix)){
                     let oldContent = m.content
                     m.content = pingresponse
-                    await commands.doCmd(m, false, 0, { categories: [commands.CommandCategory.GAME] }) as CommandReturn
+                    await commands.doCmd(m, false, 0, commands.generateDefaultRecurseBans()) as CommandReturn
                     m.content = oldContent
                 }
                 else{

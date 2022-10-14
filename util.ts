@@ -442,7 +442,6 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
     return `${html}</div><hr>`
 }
 
-
 export {
     fetchUser,
     fetchChannel,

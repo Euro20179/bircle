@@ -2092,7 +2092,7 @@ export const commands: { [command: string]: Command } = {
         if (!user) return { content: "No user found" }
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: { categories: [CommandCategory.GAME]} }
+        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: generateDefaultRecurseBans() }
     }, CommandCategory.ECONOMY),
 
     money: createCommand(async (msg, args) => {
@@ -2126,9 +2126,9 @@ export const commands: { [command: string]: Command } = {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: {categories: [ CommandCategory.GAME ]}, allowedMentions: {parse: []} }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: {parse: []} }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: {categories: [CommandCategory.GAME]}, allowedMentions: {parse: []} }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: {parse: []} }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -2823,7 +2823,7 @@ export const commands: { [command: string]: Command } = {
             }, timeRemaining)
         }
         let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-        return {content: heistJoinFormat, recurse: {categories: [CommandCategory.GAME]}}
+        return {content: heistJoinFormat, recurse: generateDefaultRecurseBans()}
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
@@ -3039,7 +3039,7 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: {categories: [CommandCategory.GAME]} }
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans() }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -3135,7 +3135,7 @@ export const commands: { [command: string]: Command } = {
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: {categories: [CommandCategory.GAME]} }
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans() }
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
@@ -8971,3 +8971,8 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         }
     }
 }
+
+export function generateDefaultRecurseBans(){
+    return  {categories: [ CommandCategory.GAME ], commands: ["sell"]}
+}
+
