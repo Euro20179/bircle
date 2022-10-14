@@ -2123,9 +2123,9 @@ export const commands: { [command: string]: Command } = {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: true }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: true, allowedMentions: {parse: []} }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: true }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: true, allowedMentions: {parse: []} }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -3183,9 +3183,10 @@ export const commands: { [command: string]: Command } = {
                         await newmsg.edit(`Thaat not right fuk\nUserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`)
                         continue
                     }
-                    await newmsg.edit(`spider attack u\nUserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`)
                     UserHp = UserHp - Math.floor(Math.random() * 26);
+                    await newmsg.edit(`spider attack u\nUserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`)
                 }
+                delete globals.BLACKJACK_GAMES[msg.author.id]
                 if (UserHp > 0) {
 
                     let amount = Math.random() * 2 + 1
@@ -4151,6 +4152,84 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.UTIL
 
     },
+    embed: createCommand(
+        async(msg, args) => {
+            let embed = new MessageEmbed()
+            for(let arg of args.join(" ").split("\n")){
+                let [type, ...typeArgs] = arg.split(" ")
+                switch(type){
+                    case "title": {
+                        embed.setTitle(typeArgs.join(" "))
+                        break
+                    }
+                    case "field": {
+                        let [name, value, inline] = typeArgs.join(" ").split("|").map(v => v.trim())
+                        let inlined = false
+                        if(!name){
+                            name = "field"
+                        }
+                        if(!value)
+                            value = "value"
+                        if(inline === 'true')
+                            inlined = true
+                        embed.addField(name, value, inlined)
+                        break
+                    }
+                    case "color": {
+                        try{
+                            embed.setColor(typeArgs.join(" ") as ColorResolvable)
+                        }
+                        catch(err){
+                            embed.setColor("RED")
+                        }
+                        break
+                    }
+                    case "author": {
+                        let [author, image] = typeArgs.join(" ").split("|").map(v => v.trim())
+                        if(image)
+                            embed.setAuthor({iconURL: image, name: author})
+                        else{
+                            embed.setAuthor({name: author})
+                        }
+                        break
+                    }
+                    case "image": {
+                        let image = typeArgs.join(" ")
+                        if(image)
+                            embed.setImage(image)
+                        break
+                    }
+                    case "thumbnail": {
+                        let thumbnail = typeArgs.join(" ")
+                        if(thumbnail)
+                            embed.setThumbnail(thumbnail)
+                        break
+                    }
+                    case "footer": {
+                        let [text, thumbnail] = typeArgs.join(" ").split("|").map(v => v.trim())
+                        if(thumbnail){
+                            embed.setFooter({text:  text, iconURL: thumbnail})
+                        }
+                        else{
+                            embed.setFooter({text:  text})
+                        }
+                        break
+                    }
+                    case "description": {
+                        let description = typeArgs.join(" ")
+                        if(description)
+                            embed.setDescription(description)
+                        break
+                    }
+                    default: {
+                        continue
+                    }
+                }
+            }
+            return {embeds: [embed]}
+        }, CommandCategory.UTIL,
+        "Create an embed"
+    ),
     calc: {
         run: async (msg, args) => {
             let opts;
