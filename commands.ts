@@ -8094,11 +8094,14 @@ ${styles}
                     content: "no member given!"
                 }
             }
-            //@ts-ignore
-            const member = await fetchUser(msg.guild, args[0])
-            if (!member) {
-                return {
-                    content: "member not found"
+            let member = msg.mentions.members?.at(0)
+            if(!member){
+                //@ts-ignore
+                member = await fetchUser(msg.guild, args[0])
+                if (!member) {
+                    return {
+                        content: "member not found"
+                    }
                 }
             }
             const user = member.user

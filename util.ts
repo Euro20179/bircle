@@ -68,18 +68,27 @@ async function fetchUser(guild: Guild, find: string) {
     if (res = find?.match(/<@!?(\d{18})>/)) {
         find = res[1]
     }
-    await guild.members.fetch()
-    let user = (await guild.members.search({ query: find }))?.at(0)
-    if (!user) {
-        try {
-            user = await guild.members.fetch({ user: find })
+    find = find.toLowerCase()
+    let user = guild.members.cache.find((v, k) => {
+        return v.user.username.toLowerCase() === find ||
+            v.nickname?.toLowerCase() === find ||
+            v.id === find ||
+            `<@${v.id}>` === find || `<@!${v.id}>` === find
+    })
+    if(!user){
+        await guild.members.fetch()
+        user = (await guild.members.search({ query: find }))?.at(0)
+        if (!user) {
+            try {
+                user = await guild.members.fetch({ user: find })
+            }
+            catch (DiscordAPIError) {
+                user = undefined
+            }
         }
-        catch (DiscordAPIError) {
-            user = undefined
+        if (!user) {
+            user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
         }
-    }
-    if (!user) {
-        user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
     }
     return user
 }
@@ -453,7 +462,6 @@ export {
     cmdCatToStr,
     getImgFromMsgAndOpts,
     getOpts,
-    handleSending,
     fetchUserFromClient,
     generateSafeEvalContextFromMessage,
     choice,
