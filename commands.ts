@@ -4786,10 +4786,11 @@ print(eval("""${args.join(" ")}"""))`
                 let button = new MessageButton({ customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
                 let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let start = Date.now()
-                globals.BUTTONS[msg.author.id] = () => {
-                    return `${Date.now() - start}ms`
-                }
-                await sendCallback({ components: [row] })
+                let message = await sendCallback({ components: [row] })
+                let collector = message.createMessageComponentCollector({filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id}`})
+                collector.on("collect", async(interaction) => {
+                    await interaction.reply({content: `${Date.now() - start}ms`})
+                })
             }
             return { noSend: true }
         },
