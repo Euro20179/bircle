@@ -3811,15 +3811,26 @@ export const commands: { [command: string]: Command } = {
                     return { content: `No data for ${member.user.username} found` }
                 }
                 const rank = JSONData.players.indexOf(userData)
+                const desired_rank = userData.level + 1
+                const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
+                const xp_needed = xp_to_desired_rank - userData.xp
+                const min_messages_for_next_level = Math.ceil(xp_needed / 26) //26 = max xp per minute
+                const max_messages_for_next_level = Math.ceil(xp_needed / 15) //15 = min xp per minute
+                const avg_messages_for_next_level = (min_messages_for_next_level + max_messages_for_next_level) / 2
                 const embed = new MessageEmbed()
                 embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
                 embed.setColor(member.displayColor)
                 embed.addField("Level", String(userData.level), true)
                 embed.addField("XP", String(userData.xp), true)
                 embed.addField("Message Count", String(userData.message_count), true)
+                embed.addField("XP for next level", String(xp_needed))
+                embed.addField("Minimum messages for next level", String(min_messages_for_next_level), true)
+                embed.addField("Maximum messages for next level", String(max_messages_for_next_level), true)
+                embed.addField("Average messages for next level", String(avg_messages_for_next_level), true)
                 embeds.push(embed)
             }
             return { embeds: embeds }
+
         },
         help: {
             info: "Get the mee6 rank of a user",
