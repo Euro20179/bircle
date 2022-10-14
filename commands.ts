@@ -8632,7 +8632,8 @@ valid formats:<br>
 
 export let aliases = createAliases()
 
-export async function doCmd(msg: Message, returnJson = false) {
+export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
+    console.log(recursion)
     let command: string
     let args: Array<string>
     let doFirsts: { [item: number]: string }
@@ -8731,7 +8732,7 @@ export async function doCmd(msg: Message, returnJson = false) {
         let expansion = await expandAlias(command, (alias: any) => {
             globals.addToCmdUse(alias) //for every expansion, add to cmd use
             if (BLACKLIST[msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                handleSending(msg, { content: `You are blacklisted from ${alias}` })
+                handleSending(msg, { content: `You are blacklisted from ${alias}` }, recursion + 1)
                 return false
             }
             return true
@@ -8776,12 +8777,12 @@ export async function doCmd(msg: Message, returnJson = false) {
         let oldContent = msg.content
         //hack to run command as if message is cmd
         msg.content = cmd
-        let rv = await doCmd(msg, true) as CommandReturn
+        let rv = await doCmd(msg, true, recursion + 1) as CommandReturn
         msg.content = oldContent
-        if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
+        if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix && recursion < 20){
             let oldContent = msg.content
             msg.content = rv.content
-            rv = await doCmd(msg, true) as CommandReturn
+            rv = await doCmd(msg, true, recursion + 1) as CommandReturn
             msg.content = oldContent
         }
         let data = getContentFromResult(rv as CommandReturn).trim()
@@ -8843,7 +8844,7 @@ export async function doCmd(msg: Message, returnJson = false) {
         return
     }
     //handles the rv protocol
-    handleSending(msg, rv)
+    handleSending(msg, rv, recursion + 1)
     msg.channel.send = oldSend
 }
 
@@ -8869,7 +8870,7 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     return [command, aliasPreArgs]
 }
 
-export async function handleSending(msg: Message, rv: CommandReturn) {
+export async function handleSending(msg: Message, rv: CommandReturn, recursion = 0) {
     if (!Object.keys(rv).length) {
         return
     }
@@ -8888,17 +8889,17 @@ export async function handleSending(msg: Message, rv: CommandReturn) {
         //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
         delete rv['content']
     }
-    else {
+    else if(recursion < 20){
         //if not empty, save in the _! variable
         setVar("_!", rv.content, msg.author.id)
         setVar("_!", rv.content)
         if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
             let oldContent = msg.content
             msg.content = rv.content
-            rv = await doCmd(msg, true) as CommandReturn
+            rv = await doCmd(msg, true, recursion + 1) as CommandReturn
             msg.content = oldContent
             //it's better to just recursively do this, otherwise all the code above would be repeated
-            await handleSending(msg, rv)
+            await handleSending(msg, rv, recursion + 1)
             return
         }
     }
