@@ -157,12 +157,13 @@ client.on("messageCreate", async (m: Message) => {
             let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null).replaceAll("{pinger}", `<@${m.author.id}>`)
             if(pingresponse){
                 if(commands.isCmd(pingresponse, local_prefix)){
+                    let oldContent = m.content
                     m.content = pingresponse
                     await commands.doCmd(m) as CommandReturn
-                    return
+                    m.content = oldContent
                 }
                 else{
-                    await m.channel.send(pingresponse)
+                    m.channel.send(pingresponse)
                 }
             }
         }

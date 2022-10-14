@@ -2822,7 +2822,8 @@ export const commands: { [command: string]: Command } = {
                 }
             }, timeRemaining)
         }
-        return { content: `${msg.author} joined the heist` }
+        let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
+        return {content: heistJoinFormat, recurse: true}
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
