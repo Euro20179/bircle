@@ -396,7 +396,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
         else if (interaction.commandName == 'img') {
             //@ts-ignore
-            let rv = await commands.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value])
+            let rv = await commands.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
             if (rv.files) {
                 for (let file of rv.files) {
@@ -423,7 +423,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 arglist = arglist.concat(args.split(" "))
             }
             //@ts-ignore
-            let rv = await commands.commands['alias'].run(interaction, arglist)
+            let rv = await commands.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
         else if (interaction.commandName == 'poll') {
@@ -437,7 +437,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             argList.push(options)
             //@ts-ignore
-            await commands.commands['poll'].run(interaction, argList)
+            await commands.commands['poll'].run(interaction, argList, interaction.channel.send.bind(interaction.channel))
         }
         else if (interaction.commandName == 'ccmd') {
             //@ts-ignore
@@ -448,14 +448,14 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 arglist = arglist.concat(args.split(" "))
             }
             //@ts-ignore
-            let rv = await commands.commands['alias'].run(interaction, arglist)
+            let rv = await commands.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
         else if (interaction.commandName == 'rccmd') {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
-            let rv = await commands.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value])
+            let rv = await commands.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
         else if (interaction.commandName == 'say') {
@@ -465,7 +465,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
-            let rv = await commands.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value])
+            let rv = await commands.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
         else if (interaction.commandName == "add-8") {
@@ -473,7 +473,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member?.user
             let resp = interaction.options.get("response")?.value as string
             //@ts-ignore
-            let rv = await commands.commands['add'].run(interaction, ["8", resp])
+            let rv = await commands.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
         else if (interaction.commandName == "add-wordle") {
@@ -485,7 +485,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             //@ts-ignore
-            let rv = await commands.commands['add'].run(interaction, ["wordle", resp])
+            let rv = await commands.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
         else if (interaction.commandName == 'rps') {
@@ -526,7 +526,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             //@ts-ignore
             interaction.author = interaction.member.user
             //@ts-ignore
-            let rv = await commands.commands['hangman'].run(interaction, cmdsArgs)
+            let rv = await commands.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv)
         }
     }

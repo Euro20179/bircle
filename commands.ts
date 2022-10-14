@@ -6,8 +6,8 @@ import sharp = require('sharp')
 import fetch = require("node-fetch")
 import cheerio = require('cheerio')
 
-import { spawnSync } from "child_process"
-import { MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User } from 'discord.js'
+import {spawnSync } from "child_process"
+import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload } from 'discord.js'
 import { execSync, exec } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
@@ -243,7 +243,7 @@ function createHelpOption(description: string, alternatives?: string[]) {
 }
 
 function createCommand(
-    cb: (msg: Message, args: ArgumentList) => Promise<CommandReturn>,
+    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -685,7 +685,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     "clear-logs": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             for (let file of fs.readdirSync("./command-results/")) {
                 if (file.match(/log-\d+\.txt/)) {
                     fs.rmSync(`./command-results/${file}`)
@@ -698,7 +698,7 @@ export const commands: { [command: string]: Command } = {
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
 
-    "stk": createCommand(async (msg, args) => {
+    "stk": createCommand(async (msg, args, sendCallback) => {
         https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
             let data = new Stream.Transform()
             resp.on("data", chunk => {
@@ -709,26 +709,26 @@ export const commands: { [command: string]: Command } = {
                 let embed = new MessageEmbed()
                 let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
                 if (!stockData) {
-                    await msg.channel.send("No data found")
+                    await sendCallback("No data found")
                     return
                 }
                 stockData = stockData[0]
                 let price = stockData.match(/>(\d+\.\d+)/)
                 if (!price) {
-                    await msg.channel.send("No price found")
+                    await sendCallback("No price found")
                     return
                 }
                 price = price[1]
                 let change = stockData.match(/(\+|-)(\d+\.\d+)/)
                 if (!change) {
-                    await msg.channel.send("No change found")
+                    await sendCallback("No change found")
                     return
                 }
                 change = `${change[1]}${change[2]}`
                 let numberchange = Number(change)
                 let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
                 if (!stockName) {
-                    await msg.channel.send("Could not get stock name")
+                    await sendCallback("Could not get stock name")
                     return
                 }
                 stockName = stockName[1]
@@ -741,7 +741,7 @@ export const commands: { [command: string]: Command } = {
                 embed.setTitle(stockName)
                 embed.addField("Price", price)
                 embed.addField("Price change", change, true)
-                await msg.channel.send({ embeds: [embed] })
+                await sendCallback({ embeds: [embed] })
             })
         }).end()
         return { content: "Getting data" }
@@ -750,7 +750,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     stock: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let fmt = String(opts['fmt'] || "{embed}")
@@ -762,7 +762,7 @@ export const commands: { [command: string]: Command } = {
             if (!data) {
                 return { content: "No  info found" }
             }
-            await msg.channel.send("Getting data")
+            await sendCallback("Getting data")
             if (fmt == "{embed}") {
                 let embed = new MessageEmbed()
                 let nChange = Number(data.change)
@@ -807,7 +807,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     'get-source': {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['of-file']) {
@@ -853,7 +853,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     buy: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let allowedTypes = ["stock", "pet", "item"]
             let type = args[0]
             let item = args.slice(1).join(" ")
@@ -867,8 +867,8 @@ export const commands: { [command: string]: Command } = {
             if (!allowedTypes.includes(type)) {
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
-                    await msg.channel.send(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
-                    return await commands['bstock'].run(msg, args)
+                    await sendCallback(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
+                    return await commands['bstock'].run(msg, args, sendCallback)
                 }
                 //else
                 return { content: `The shop of item must be one of: \`${allowedTypes.join(", ")}\`` }
@@ -971,7 +971,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "heist-info": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let action = args[0] || 'list-types'
             let text = ""
             let responses = fs.readFileSync("./command-results/heist", "utf-8").split("\n").map(v => v.split(":").slice(1).join(":").replace(/;END$/, "").trim())
@@ -1076,7 +1076,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     bstock: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let stock = args[0]
             if (!stock) {
                 return { content: "No stock given" }
@@ -1094,12 +1094,12 @@ export const commands: { [command: string]: Command } = {
             }
             economy.getStockInformation(stock, (data) => {
                 if (data === false) {
-                    msg.channel.send({ content: `${stock} does not exist` })
+                    sendCallback({ content: `${stock} does not exist` })
                     return
                 }
                 let realStock = economy.userHasStockSymbol(msg.author.id, stock)
                 if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
-                    msg.channel.send({ content: "You cannot afford this" })
+                    sendCallback({ content: "You cannot afford this" })
                     return
                 }
                 if (realStock) {
@@ -1108,9 +1108,9 @@ export const commands: { [command: string]: Command } = {
                 else {
                     economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
                 }
-                msg.channel.send({ content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}` })
+                sendCallback({ content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}` })
             }, () => {
-                msg.channel.send(`Failed to get stock data for: ${stock}`)
+                sendCallback(`Failed to get stock data for: ${stock}`)
             })
             return { noSend: true }
         }, category: CommandCategory.ECONOMY,
@@ -1130,7 +1130,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "ustock": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let user = args[1] || msg.author.id
             //@ts-ignore
             let member = await fetchUser(msg.guild, user)
@@ -1153,7 +1153,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "stocks": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let user = args[0]
             let member = msg.member
             if (user) {
@@ -1189,7 +1189,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     loan: {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             if (!hasItem(msg.author.id, "loan")) {
                 return { content: "You do not have a loan" }
             }
@@ -1218,7 +1218,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     work: {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             if (economy.canWork(msg.author.id)) {
                 let amount = economy.work(msg.author.id)
                 return { content: `You earned: ${amount}` }
@@ -1231,7 +1231,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "pay-loan": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let amount = args[0] || "all!"
             let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
             if (!economy.getEconomy()[msg.author.id].loanUsed) {
@@ -1248,7 +1248,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     bitem: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = Number(opts['count'] || opts['c'])
@@ -1291,7 +1291,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     inventory: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             if (!user)
@@ -1309,7 +1309,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "pet-shop": {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             let embed = new MessageEmbed()
             let shopData = pet.getPetShop()
             for (let pet in shopData) {
@@ -1326,7 +1326,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     'bpet': {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let requested_pet = args[0]
             if (!requested_pet) {
                 return { content: "You didnt specify a pet" }
@@ -1352,7 +1352,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "gapet": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             return { content: String(pet.getActivePet(user?.user.id || "")) }
@@ -1360,7 +1360,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "sapet": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let newActivePet = args[0]?.toLowerCase()
             if (!pet.hasPet(msg.author.id, newActivePet)) {
                 return { content: `You do not have a ${newActivePet}` }
@@ -1373,7 +1373,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     pets: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             if (!user)
@@ -1397,7 +1397,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "feed-pet": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let petName = args[0]?.toLowerCase()
             let item = args.slice(1).join(" ").toLowerCase()
             if (!pet.hasPet(msg.author.id, petName)) {
@@ -1419,7 +1419,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     shop: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let items = fs.readFileSync("./shop.json", "utf-8")
@@ -1478,7 +1478,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     profits: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
                 return { content: "You own no stocks" }
             }
@@ -1538,7 +1538,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "align-table": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let align = opts['align'] || "left"
@@ -1636,7 +1636,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "profit": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
                 return { content: "You own no stocks" }
             }
@@ -1690,7 +1690,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     sell: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
                 return { content: "You own no stocks" }
             }
@@ -1757,7 +1757,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     battle: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             return battle.battle(msg, args)
         }, category: CommandCategory.GAME,
         help: {
@@ -1838,7 +1838,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     abattle: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let text = args.join(" ")
@@ -1902,7 +1902,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     ticket: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let round = !opts['no-round']
@@ -1962,13 +1962,13 @@ export const commands: { [command: string]: Command } = {
     },
 
     lottery: {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}` }
         }, category: CommandCategory.FUN
     },
 
     calcet: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
@@ -1991,7 +1991,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     calcm: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
@@ -2015,7 +2015,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     calcl: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
@@ -2038,7 +2038,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     calcms: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
@@ -2058,7 +2058,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "calcam": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let [moneyStr, ...reqAmount] = args
@@ -2146,7 +2146,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     give: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let [amount, ...user] = args
             let userSearch = user.join(" ")
             if (!userSearch) {
@@ -2232,7 +2232,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     "give-item": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let [i, user] = args.join(" ").split("|").map(v => v.trim())
             if (!user) {
                 return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\`` }
@@ -2262,14 +2262,14 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.ECONOMY
     },
 
-    tax: createCommand(async (msg, args) => {
+    tax: createCommand(async (msg, args, sendCallback) => {
         if (msg.author.bot) {
             return { content: "Bots cannot steal" }
         }
         let opts;
         [opts, args] = getOpts(args)
         if (!args.length) {
-            await msg.channel.send({ content: "No user specified, erasing balance" })
+            await sendCallback({ content: "No user specified, erasing balance" })
             await new Promise(res => setTimeout(res, 1000))
             return { content: "Balance erased" }
         }
@@ -2326,7 +2326,7 @@ export const commands: { [command: string]: Command } = {
         }
     ),
 
-    aheist: createCommand(async (msg, args) => {
+    aheist: createCommand(async (msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
         let text = args.join(" ")
@@ -2420,7 +2420,7 @@ export const commands: { [command: string]: Command } = {
         }
     ),
 
-    heist: createCommand(async (msg, args) => {
+    heist: createCommand(async (msg, args, sendCallback) => {
         let opts: Opts;
         [opts, args] = getOpts(args)
         if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
@@ -2438,13 +2438,13 @@ export const commands: { [command: string]: Command } = {
             let int = setInterval(async () => {
                 timeRemaining -= 1000
                 if (timeRemaining % 8000 == 0)
-                    await msg.channel.send({ content: `${timeRemaining / 1000} seconds until the heist commences!` })
+                    await sendCallback({ content: `${timeRemaining / 1000} seconds until the heist commences!` })
             }, 1000)
             let data: { [key: string]: number } = {} //player_id: amount won
             globals.HEIST_TIMEOUT = setTimeout(async () => {
                 globals.HEIST_STARTED = true
                 clearInterval(int)
-                await msg.channel.send({ content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players` })
+                await sendCallback({ content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players` })
                 for (let player of globals.HEIST_PLAYERS) {
                     data[player] = 0
                     setVar("__heist", "0", player)
@@ -2720,7 +2720,7 @@ export const commands: { [command: string]: Command } = {
                         if (row.components.length > 0) {
                             rows.push(row)
                         }
-                        let m = await msg.channel.send({ content: response, components: rows })
+                        let m = await sendCallback({ content: response, components: rows })
                         let choice = ""
                         try {
                             let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
@@ -2763,7 +2763,7 @@ export const commands: { [command: string]: Command } = {
                     if (!await handleStage(stage)) {
                         stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
                         let oldStage = stage
-                        await msg.channel.send(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`)
+                        await sendCallback(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`)
                         current_location = '__generic__'
                     }
                     else {
@@ -2835,7 +2835,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     // "egyption-war": {
-    //     run: async (msg, args) => {
+    //     run: async (msg, args, sendCallback) => {
     //
     //         function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
     //             let no = Math.floor(Math.random() * cardsToChooseFrom.length)
@@ -2880,10 +2880,10 @@ export const commands: { [command: string]: Command } = {
     //                 }
     //                 playerKeys.push(m.author.id)
     //                 stack = []
-    //                 msg.channel.send(`${m.author} got the stack`)
+    //                 sendCallback(`${m.author} got the stack`)
     //             }
     //             else {
-    //                 msg.channel.send("No slap")
+    //                 sendCallback("No slap")
     //             }
     //         })
     //         let attemptsDict = {
@@ -2900,12 +2900,12 @@ export const commands: { [command: string]: Command } = {
     //             if (attempts && lastPlayer) {
     //                 let gotFaceCard = false
     //                 for (; attempts > 0; attempts--) {
-    //                     await msg.channel.send(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
+    //                     await sendCallback(`<@${turn}>: FACE CARD: ${attempts} attempts remaining`)
     //                     try {
     //                         giveRandomCard(players[turn], stack)
     //                         let recentCard = stack[stack.length - 1]
     //                         let isFaceCard = ['K', 'Q', "J", "A"].includes(recentCard.split(" of")[0])
-    //                         await msg.channel.send(`${recentCard} (${stack.length})`)
+    //                         await sendCallback(`${recentCard} (${stack.length})`)
     //                         if (isFaceCard) {
     //                             attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
     //                             gotFaceCard = true
@@ -2920,12 +2920,12 @@ export const commands: { [command: string]: Command } = {
     //                 }
     //                 if (!gotFaceCard) {
     //                     players[lastPlayer] = [...players[lastPlayer], ...stack]
-    //                     await msg.channel.send(`<@${lastPlayer}> got the stack (${stack.length} cards)`)
+    //                     await sendCallback(`<@${lastPlayer}> got the stack (${stack.length} cards)`)
     //                     stack = []
     //                 }
     //             }
     //             else {
-    //                 await msg.channel.send(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
+    //                 await sendCallback(`<@${turn}> (${players[turn].length} / ${totalCards} cards ): GO`)
     //                 try {
     //                     giveRandomCard(players[turn], stack)
     //                     let recentCard = stack[stack.length - 1]
@@ -2933,7 +2933,7 @@ export const commands: { [command: string]: Command } = {
     //                     if (isFaceCard) {
     //                         attempts = attemptsDict[recentCard.split(" of")[0] as 'A' | 'K' | 'Q' | 'J']
     //                     }
-    //                     await msg.channel.send(`${recentCard} (${stack.length})`)
+    //                     await sendCallback(`${recentCard} (${stack.length})`)
     //                 }
     //                 catch (err) {
     //                     await handleSending(msg, { content: `<@${turn}> didnt go in time they are out` })
@@ -2954,7 +2954,7 @@ export const commands: { [command: string]: Command } = {
     //     }, category: CommandCategory.GAME
     // },
 
-    blackjack: createCommand(async (msg, args) => {
+    blackjack: createCommand(async (msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
         let hardMode = Boolean(opts['hard'])
@@ -3079,7 +3079,7 @@ export const commands: { [command: string]: Command } = {
             else {
                 embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
             }
-            let _message = await msg.channel.send({ embeds: [embed] })
+            let _message = await sendCallback({ embeds: [embed] })
             let response
             while (!response) {
                 let collectedMessages
@@ -3108,7 +3108,7 @@ export const commands: { [command: string]: Command } = {
             let choice = response.content.toLowerCase()
             if (choice === 'double bet') {
                 if (!economy.canBetAmount(msg.author.id, bet * 2)) {
-                    await msg.channel.send({ content: "That bet is too high for you" })
+                    await sendCallback({ content: "That bet is too high for you" })
                     continue
                 }
                 bet *= 2
@@ -3169,9 +3169,9 @@ export const commands: { [command: string]: Command } = {
                 let UserHp = 100;
                 let SpiderHp = 100;
 
-                await msg.channel.send("a spider jum pon tablew!121 You must defend honor!1 (attack/heal)");
+                await sendCallback("a spider jum pon tablew!121 You must defend honor!1 (attack/heal)");
 
-                let newmsg = await msg.channel.send(`UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`);
+                let newmsg = await sendCallback(`UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`);
                 while (UserHp >= 0 && SpiderHp >= 0) {
                     let action = await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1})
                     let actionMessage = action.at(0)
@@ -3223,7 +3223,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     "periodic-table": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
 
@@ -3302,7 +3302,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     economy: {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             return {
                 files: [
                     {
@@ -3318,7 +3318,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "inventory.json": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             return {
                 files: [
                     {
@@ -3333,7 +3333,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     leaderboard: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let place = Number(args[0]) || 10
@@ -3434,7 +3434,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     "del-var": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let prefix = String(opts['prefix'] || "__global__")
@@ -3471,14 +3471,14 @@ export const commands: { [command: string]: Command } = {
     },
 
     "savev": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             saveVars()
             return { content: "Variables saved" }
         }, category: CommandCategory.META
     },
 
     savee: {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             economy.saveEconomy()
             saveItems()
             pet.savePetData()
@@ -3487,7 +3487,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     coin: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let guess = args[0]
@@ -3515,7 +3515,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     replace: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let search = args[0]
@@ -3583,7 +3583,7 @@ export const commands: { [command: string]: Command } = {
     ),
 
     map: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let string = args[0]
             let functions = args.slice(1).join(" ").split(";EOL").map(v => `${prefix}${v.trim()}`)
             if (!functions) {
@@ -3605,7 +3605,7 @@ export const commands: { [command: string]: Command } = {
     },
 
     time: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let fmt = args.join(" ")
 
             const date = new Date()
@@ -3643,7 +3643,7 @@ export const commands: { [command: string]: Command } = {
 
     /*
     play: {
-    run: async(msg, args) => {
+    run: async(msg, args, sendCallback) => {
         if(!args[0]){
         return {content: "no link"}
         }
@@ -3657,7 +3657,7 @@ export const commands: { [command: string]: Command } = {
         connection.subscribe(player)
         player.on(AudioPlayerStatus.Playing, async() => {
             //fs.rmSync(__dirname + "/" + fn + ".mp3")
-            await msg.channel.send("You are about to listen to some wonderful ***t u n e s***")
+            await sendCallback("You are about to listen to some wonderful ***t u n e s***")
         })
         player.play(resource)
         })
@@ -3666,13 +3666,13 @@ export const commands: { [command: string]: Command } = {
     },
     */
     nothappening: {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n") }
         },
         category: CommandCategory.META
     },
     "rand-role": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let roles = await msg.guild?.roles.fetch()
             let role = roles?.random()
             if (!role) {
@@ -3684,7 +3684,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.UTIL
     },
     "cmd-search": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let search = args.join(" ")
             let regexp;
             try {
@@ -3722,7 +3722,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.META
     },
     "6": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let getRankMode = opts['rank'] || false
@@ -3866,7 +3866,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.FUN
     },
     yt: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             const _fn = generateFileName("yt", msg.author.id)
             exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, _stderr: any) => {
                 if (excep) {
@@ -3878,7 +3878,7 @@ export const commands: { [command: string]: Command } = {
                     for (let item of JSONData) {
                         embed.addField(`title: ${item.title}`, `url: ${item.url}`)
                     }
-                    await msg.channel.send({ embeds: [embed] })
+                    await sendCallback({ embeds: [embed] })
                 }
             })
             return { noSend: true }
@@ -3889,7 +3889,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.FUN
     },
     ani: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             const _fn = generateFileName("ani", msg.author.id)
             exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, _stderr: any) => {
                 if (excep) {
@@ -3901,7 +3901,7 @@ export const commands: { [command: string]: Command } = {
                     for (let item of JSONData) {
                         embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
                     }
-                    await msg.channel.send({ embeds: [embed] })
+                    await sendCallback({ embeds: [embed] })
                 }
             })
             return { noSend: true }
@@ -3912,7 +3912,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.FUN
     },
     wiki: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let baseurl = "en.wikipedia.org"
@@ -3937,7 +3937,7 @@ export const commands: { [command: string]: Command } = {
                     req.on("end", async () => {
                         //@ts-ignore
                         let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
-                        await msg.channel.send(rv)
+                        await sendCallback(rv)
                     })
                 }).end()
                 return { content: "Generating random article" }
@@ -3952,7 +3952,7 @@ export const commands: { [command: string]: Command } = {
                     return { content: "not found" }
                 }
                 if (resp.headers.get("location")) {
-                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`])
+                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback)
                 }
                 else {
                     let respText = resp.body.read()
@@ -3984,7 +3984,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.FUN
     },
     piglatin: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let sep = opts['sep']
@@ -4030,7 +4030,7 @@ export const commands: { [command: string]: Command } = {
         category: CommandCategory.FUN
     },
     "api": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             if (opts['l']) {
@@ -4086,7 +4086,7 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.META
     },
     "htmlq": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let [query, ...html] = args.join(" ").split("|")
             let realHTML = html.join("|")
             let $ = cheerio.load(realHTML)(query).text()
@@ -4094,7 +4094,7 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.UTIL
     },
     "get": {
-        run: async (msg, opts) => {
+        run: async (msg, opts, sendCallback) => {
             let operator = opts[0]
             let object = opts[1]
             switch (operator) {
@@ -4238,7 +4238,7 @@ export const commands: { [command: string]: Command } = {
         "Create an embed"
     ),
     calc: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let sep = opts['sep']
@@ -4304,7 +4304,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     d: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             msg.content = `${prefix}${args.join(" ")}`
             await doCmd(msg, false)
             return { noSend: true, delete: true }
@@ -4312,7 +4312,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     del: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (!opts['N']) return { noSend: true, delete: true }
@@ -4335,7 +4335,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "if": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let [condition, cmd] = args.join(" ").split(";")
             cmd = cmd.split(";end")[0]
             if (safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
@@ -4352,7 +4352,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     getimg: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
@@ -4369,7 +4369,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "argc": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             return { content: String(args.length) }
         },
         help: {
@@ -4378,7 +4378,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     opts: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let disp = ""
@@ -4393,7 +4393,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     echo: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts
             [opts, args] = getOpts(args)
             let wait = parseFloat(String(opts['wait'])) || 0
@@ -4491,7 +4491,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     button: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts
             [opts, args] = getOpts(args)
             let content = opts['content']
@@ -4504,7 +4504,7 @@ print(eval("""${args.join(" ")}"""))`
             let text = args.join(" ") || "hi"
             let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
-            let m = await msg.channel.send({ components: [row], content: content })
+            let m = await sendCallback({ components: [row], content: content })
             if (opts['say'])
                 globals.BUTTONS[msg.author.id] = String(opts['say'])
             else globals.BUTTONS[msg.author.id] = text
@@ -4531,7 +4531,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     "pcount": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let id = args[0]
             if (!id) {
                 return { content: "no id given" }
@@ -4552,7 +4552,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     poll: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let actionRow = new MessageActionRow()
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -4585,7 +4585,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     pfp: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts
             [opts, args] = getOpts(args)
             let link = args[0]
@@ -4613,7 +4613,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     uptime: {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let uptime = client.uptime
             if (!uptime) {
                 return {
@@ -4654,7 +4654,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     rand: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let guess = NaN
@@ -4707,7 +4707,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     roles: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let users = []
             for (let arg of args) {
                 //@ts-ignore
@@ -4743,7 +4743,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     "create-file": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let file = args[0]
             if (!file) {
                 return { content: "No file specified" }
@@ -4755,16 +4755,16 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "rt": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             if (opts['t']) {
-                msg.channel.send("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(_m => {
+                sendCallback("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(_m => {
                     try {
                         let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                         let start = Date.now()
                         collector.on("collect", async (_m) => {
-                            await msg.channel.send(`${Date.now() - start}ms`)
+                            await sendCallback(`${Date.now() - start}ms`)
                             collector.stop()
                         })
                     }
@@ -4779,7 +4779,7 @@ print(eval("""${args.join(" ")}"""))`
                 globals.BUTTONS[msg.author.id] = () => {
                     return `${Date.now() - start}ms`
                 }
-                await msg.channel.send({ components: [row] })
+                await sendCallback({ components: [row] })
             }
             return { noSend: true }
         },
@@ -4789,7 +4789,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     "search-cmd-file": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let file = args[0]
@@ -4830,7 +4830,7 @@ print(eval("""${args.join(" ")}"""))`
         }, category: CommandCategory.UTIL
     },
     "rand-line": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let file = args[0]
             if (!file) {
                 return { content: "No file specified" }
@@ -4854,7 +4854,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     todo: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['list']) {
@@ -4863,13 +4863,13 @@ print(eval("""${args.join(" ")}"""))`
                 return { content: strdata }
             }
             let item = args.join(" ")
-            return await commands['add'].run(msg, ["todo", item])
+            return await commands['add'].run(msg, ["todo", item], sendCallback)
         },
         category: CommandCategory.META
 
     },
     "todo-list": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
             let strdata = data.slice(0, data.length - 1).join("\n")
             return { content: strdata }
@@ -4879,7 +4879,7 @@ print(eval("""${args.join(" ")}"""))`
     },
     nick: {
         //@ts-ignore
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             try {
@@ -4898,7 +4898,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     uno: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
@@ -4908,7 +4908,7 @@ print(eval("""${args.join(" ")}"""))`
                 //@ts-ignore
                 let p = await fetchUser(msg.guild, player)
                 if (!p) {
-                    await msg.channel.send(`${player} not found`)
+                    await sendCallback(`${player} not found`)
                     continue
                 }
                 players.push(p)
@@ -4918,7 +4918,7 @@ print(eval("""${args.join(" ")}"""))`
             }
             let max = parseInt(String(opts["max"])) || 9
             if (max > 1000) {
-                await msg.channel.send("The maximum is to high, defaulting to 1000")
+                await sendCallback("The maximum is to high, defaulting to 1000")
                 max = 1000
             }
             let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
@@ -4940,11 +4940,11 @@ print(eval("""${args.join(" ")}"""))`
                         return
                     }
                     if (forcedDraw) {
-                        msg.channel.send(`<@${going}> is forced to draw ${forcedDraw} cards`)
+                        sendCallback(`<@${going}> is forced to draw ${forcedDraw} cards`)
                         for (let i = 0; i < forcedDraw; i++) {
                             let rv = playerData[going].draw(deck)
                             if (!rv) {
-                                msg.channel.send("Deck empty, shuffling pile into deck")
+                                sendCallback("Deck empty, shuffling pile into deck")
                                 pile.shuffle()
                                 deck = new uno.Stack(pile.cards)
                                 pile = new uno.Stack([])
@@ -4961,10 +4961,10 @@ print(eval("""${args.join(" ")}"""))`
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                     }
                     if (pile.cards.length) {
-                        msg.channel.send({ content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                        sendCallback({ content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}` })
                     }
                     else {
-                        msg.channel.send({ content: `${u}, it's your turn` })
+                        sendCallback({ content: `${u}, it's your turn` })
                     }
                 })
             })
@@ -4991,16 +4991,16 @@ print(eval("""${args.join(" ")}"""))`
                     if (m.content.toLowerCase() == "stop") {
                         players = players.filter(v => v.id != m.author.id)
                         if (players.length == 0) {
-                            await msg.channel.send("game over")
+                            await sendCallback("game over")
                         }
                         collection?.stop()
                         if (m.author.id == client.user?.id) return
-                        await msg.channel.send(`${m.author} quit`)
+                        await sendCallback(`${m.author} quit`)
                         going = turns.next().value
                         return
                     }
                     if (playerData[player.id].cards.length <= 0) {
-                        await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                        await sendCallback(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -5027,17 +5027,17 @@ print(eval("""${args.join(" ")}"""))`
                         let rv = playerData[player.id].draw(deck)
                         cardsDrawn++
                         if (!rv) {
-                            await msg.channel.send("Deck empty, shuffling pile into deck")
+                            await sendCallback("Deck empty, shuffling pile into deck")
                             pile.shuffle()
                             deck = new uno.Stack(pile.cards)
                             pile = new uno.Stack([])
                             playerData[player.id].draw(deck)
                         }
-                        await msg.channel.send(`${player} drew a card`)
+                        await sendCallback(`${player} drew a card`)
                         let send = displayStack(playerData[player.id])
                         send += "\n-------------------------"
                         await m.channel.send(send)
-                        await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                        await sendCallback(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
                         if (pile.cards.length)
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                         return
@@ -5062,7 +5062,7 @@ print(eval("""${args.join(" ")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             playerData[player.id].remove(Number(m.content) - 1)
-                            await msg.channel.send("**stack was shuffled**")
+                            await sendCallback("**stack was shuffled**")
                             pile.add(selectedCard)
                             pile.shuffle()
                             going = turns.next().value
@@ -5114,7 +5114,7 @@ print(eval("""${args.join(" ")}"""))`
                             playerData[player.id].remove(Number(m.content) - 1)
                             pile.add(selectedCard)
                             let randomPlayer = choice(players.filter(v => v.id != player.id)).id
-                            await msg.channel.send(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
+                            await sendCallback(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
                             let newTopCard = playerData[randomPlayer].cards[0]
                             playerData[randomPlayer].remove(0)
                             pile.add(newTopCard)
@@ -5127,20 +5127,20 @@ print(eval("""${args.join(" ")}"""))`
                         try {
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             if (!colorM) {
-                                await msg.channel.send("User picked incorrect color, using red")
+                                await sendCallback("User picked incorrect color, using red")
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await msg.channel.send("User picked incorrect color, using red")
+                                await sendCallback("User picked incorrect color, using red")
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await msg.channel.send("Something went wrong, defaulting to red")
+                            await sendCallback("Something went wrong, defaulting to red")
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -5154,20 +5154,20 @@ print(eval("""${args.join(" ")}"""))`
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             console.log(colorM?.content)
                             if (!colorM) {
-                                await msg.channel.send("User picked incorrect color, using red")
+                                await sendCallback("User picked incorrect color, using red")
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await msg.channel.send("User picked incorrect color, using red")
+                                await sendCallback("User picked incorrect color, using red")
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await msg.channel.send("Something went wrong, defaulting to red")
+                            await sendCallback("Something went wrong, defaulting to red")
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -5179,7 +5179,7 @@ print(eval("""${args.join(" ")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             let skipped = turns.next().value
-                            await msg.channel.send(`<@${skipped}> was skipped`)
+                            await sendCallback(`<@${skipped}> was skipped`)
                             going = turns.next().value
                             await new Promise(res => {
                                 pile.add(selectedCard)
@@ -5208,9 +5208,9 @@ print(eval("""${args.join(" ")}"""))`
                             await m.channel.send("You cannot play that card")
                         }
                     }
-                    await msg.channel.send(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                    await sendCallback(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
                     if (playerData[player.id].cards.length <= 0) {
-                        await msg.channel.send(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                        await sendCallback(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -5246,7 +5246,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     sport: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -5265,7 +5265,7 @@ print(eval("""${args.join(" ")}"""))`
                             });
                     }
                     catch (err) {
-                        await msg.channel.send("No results")
+                        await sendCallback("No results")
                         return
                     }
                     homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
@@ -5275,7 +5275,7 @@ print(eval("""${args.join(" ")}"""))`
                         [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
                     }
                     catch (err) {
-                        await msg.channel.send("Failed to get data")
+                        await sendCallback("Failed to get data")
                         return
                     }
                     homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
@@ -5294,7 +5294,7 @@ print(eval("""${args.join(" ")}"""))`
                     embed.addField("Time", inning)
                     embed.addField(`${homeTeam}`, String(homeScore))
                     embed.addField(`${awayTeam}`, String(awayScore))
-                    await msg.channel.send({ embeds: [embed] })
+                    await sendCallback({ embeds: [embed] })
                 })
             }).end()
             return {
@@ -5312,7 +5312,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     wordle: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts
             [opts, args] = getOpts(args)
             let min = parseInt(opts["min"] as string) || 5
@@ -5329,12 +5329,12 @@ print(eval("""${args.join(" ")}"""))`
             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
             let guessCount = parseInt(opts["lives"] as string) || 6
             let display: string[] = []
-            await msg.channel.send("key: **correct**, *wrong place*, `wrong`")
-            await msg.channel.send(`The word is ${word.length} characters long`)
+            await sendCallback("key: **correct**, *wrong place*, `wrong`")
+            await sendCallback(`The word is ${word.length} characters long`)
             for (let i = 0; i < guessCount; i++) {
                 display.push(mulStr("⬛ ", word.length))
             }
-            await msg.channel.send(display.join("\n"))
+            await sendCallback(display.join("\n"))
             let letterCount: { [k: string]: number } = {}
             for (let letter of word) {
                 if (letterCount[letter] === undefined) {
@@ -5347,7 +5347,7 @@ print(eval("""${args.join(" ")}"""))`
             collector.on("collect", async (m) => {
                 if (m.content == "STOP") {
                     collector.stop()
-                    await msg.channel.send("stopped")
+                    await sendCallback("stopped")
                     return
                 }
                 guesses.push(m.content)
@@ -5369,14 +5369,14 @@ print(eval("""${args.join(" ")}"""))`
                 }
                 display[6 - guessCount] = nextInDisplay
                 guessCount--
-                await msg.channel.send(display.join("\n"))
+                await sendCallback(display.join("\n"))
                 if (m.content == word) {
-                    await msg.channel.send(`You win`)
+                    await sendCallback(`You win`)
                     collector.stop()
                     return
                 }
                 if (guessCount == 0) {
-                    await msg.channel.send(`You lose, it was ${word}`)
+                    await sendCallback(`You lose, it was ${word}`)
                     collector.stop()
                     return
                 }
@@ -5401,7 +5401,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     hangman: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opponent = msg.author
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -5465,7 +5465,7 @@ print(eval("""${args.join(" ")}"""))`
                     if (m.content == '\\n' || m.content == "<enter>")
                         m.content = '\n'
                     if (m.content == "STOP") {
-                        await msg.channel.send("STOPPED")
+                        await sendCallback("STOPPED")
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -5477,7 +5477,7 @@ print(eval("""${args.join(" ")}"""))`
                         participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
-                        await msg.channel.send(`You've already guessed ${m.content}`)
+                        await sendCallback(`You've already guessed ${m.content}`)
                         return
                     }
                     else if (m.content == wordstr) {
@@ -5596,14 +5596,14 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.GAME
     },
     "edit": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['d'] && msg.deletable) await msg.delete()
             let edits = args.join(" ").split("|")
             let message
             try {
-                message = await msg.channel.send(edits[0])
+                message = await sendCallback(edits[0])
             }
             catch (err) {
                 return { content: "message too big" }
@@ -5636,7 +5636,7 @@ print(eval("""${args.join(" ")}"""))`
                 }
                 else if (edit[0] == ";") {
                     try {
-                        message = await msg.channel.send(edit.slice(1))
+                        message = await sendCallback(edit.slice(1))
                     }
                     catch (err) {
                         return { content: "message too big" }
@@ -5650,7 +5650,7 @@ print(eval("""${args.join(" ")}"""))`
                     if (!message.deletable) {
                         return { noSend: true }
                     }
-                    await msg.channel.send(`Could not edit message with: ${edit}`)
+                    await sendCallback(`Could not edit message with: ${edit}`)
                 }
                 await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
                 lastEdit = message.content
@@ -5667,7 +5667,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     "comp-roles": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let [user1, user2] = args.join(" ").split("|")
             user1 = user1.trim()
             user2 = user2.trim()
@@ -5717,7 +5717,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     "most-roles": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let times = parseInt(args[0]) || 10
@@ -5765,7 +5765,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     whohas: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let role = args.join(" ")
             if (!role) {
                 return { content: "No role given" }
@@ -5813,7 +5813,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     img: {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let opts
             [opts, args] = getOpts(args)
             let gradOpt = opts['gradient']
@@ -5911,7 +5911,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     polygon: {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             let _opts;
             return {
                 content: "Broken"
@@ -5974,7 +5974,7 @@ print(eval("""${args.join(" ")}"""))`
                         ctx.fill()
                         const buffer = canv.toBuffer("image/png")
                         fs.writeFileSync(fn, buffer)
-                        msg.channel.send({files: [{attachment: fn, name: fn}]}).then(res => {
+                        sendCallback({files: [{attachment: fn, name: fn}]}).then(res => {
                             fs.rmSync(fn)
                         }).catch(err => {
                         })
@@ -5988,7 +5988,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     rect: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let color: string = <string>opts['color'] || "white"
@@ -6069,7 +6069,7 @@ print(eval("""${args.join(" ")}"""))`
                             }
                     */
                     fs.writeFileSync(fn, composedImg)
-                    msg.channel.send({ files: [{ attachment: fn, name: fn }] }).then(_res => {
+                    sendCallback({ files: [{ attachment: fn, name: fn }] }).then(_res => {
                         fs.rmSync(fn)
                     }).catch(_err => {
                     })
@@ -6147,7 +6147,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     scale: {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             /*
                 let opts;
                 [opts, args] = getOpts(args)
@@ -6177,11 +6177,11 @@ print(eval("""${args.join(" ")}"""))`
                             buffer = canv.toBuffer("image/png")
                         }
                         catch(err){
-                            await msg.channel.send("Could not generate image")
+                            await sendCallback("Could not generate image")
                             return
                         }
                         fs.writeFileSync(fn, buffer)
-                        msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
                             fs.rmSync(fn)
                         }).catch(err => {
                         })
@@ -6205,7 +6205,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     filter: {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             /*
                 let opts;
                 [opts, args] = getOpts(args)
@@ -6237,7 +6237,7 @@ print(eval("""${args.join(" ")}"""))`
                         }
                         buffer = await jimpImg.getBufferAsync("image/png")
                         fs.writeFileSync(fn, buffer)
-                        msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
                             fs.rmSync(fn)
                         }).catch(err => {
                         })
@@ -6259,7 +6259,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     text: {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             /*
                     let opts
                     [opts, args] = getOpts(args)
@@ -6293,7 +6293,7 @@ print(eval("""${args.join(" ")}"""))`
                     fs.writeFileSync('foo.png', buf)
                     img.composite([{input: 'foo.png'}]).png().toBuffer().then(buf => {
                         fs.writeFileSync(fn, buf)
-                        msg.channel.send({files: [{attachment: fn, name: fn,}]}).then(res => {
+                        sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
                         fs.rmSync(fn)
                         }).catch(err => {
                         })
@@ -6351,7 +6351,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     choose: {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let times = 1
@@ -6373,7 +6373,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     weather: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let url = "https://www.wttr.in"
             let town = args.join(" ") || "tokyo"
 
@@ -6392,7 +6392,7 @@ print(eval("""${args.join(" ")}"""))`
                         [condition, temp, unit] = tempData.slice(1, 4)
                     }
                     catch (err) {
-                        await msg.channel.send({ content: "Could not find weather :(" })
+                        await sendCallback({ content: "Could not find weather :(" })
                         return
                     }
                     temp = Number(temp)
@@ -6425,7 +6425,7 @@ print(eval("""${args.join(" ")}"""))`
                     embed.addField("Temp F", `${tempF}F`, true)
                     embed.addField("Temp C", `${tempC}C`, true)
                     embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
-                    await msg.channel.send({ embeds: [embed] })
+                    await sendCallback({ embeds: [embed] })
                 })
             }).end()
             return {
@@ -6443,13 +6443,13 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     rotate: {
-        run: async (msg: Message, args: ArgumentList) => {
-            return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`])
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+            return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`], sendCallback)
         },
         category: CommandCategory.IMAGES
     },
     color: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let stringArgs = args.join(" ")
@@ -6537,7 +6537,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "l-bl": {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             return {
                 content: fs.readFileSync("command-perms/blacklists", "utf-8")
             }
@@ -6546,7 +6546,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "l-wl": {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             return {
                 content: fs.readFileSync("command-perms/whitelists", "utf-8")
             }
@@ -6554,7 +6554,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     ship: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (args.length < 2) {
@@ -6575,8 +6575,8 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     aship: {
-        run: async (msg, args) => {
-            return await commands['add'].run(msg, ["ship", args.join(" ")])
+        run: async (msg, args, sendCallback) => {
+            return await commands['add'].run(msg, ["ship", args.join(" ")], sendCallback)
         },
         help: {
             info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
@@ -6584,7 +6584,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.FUN
     },
     timeit: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             msg.content = `${prefix}${args.join(" ").trim()}`
             let start = new Date().getTime()
             await doCmd(msg)
@@ -6593,7 +6593,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "do": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -6606,7 +6606,7 @@ print(eval("""${args.join(" ")}"""))`
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await msg.channel.send(`starting ${id}`)
+            await sendCallback(`starting ${id}`)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
                 msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
@@ -6620,7 +6620,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     spasm: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let [times, ...text] = args
             let sendText = text.join(" ")
             let timesToGo = 10
@@ -6631,19 +6631,19 @@ print(eval("""${args.join(" ")}"""))`
                 sendText = [times, ...text].join(" ")
             }
             let id = String(Math.floor(Math.random() * 100000000))
-            await msg.channel.send(`starting ${id}`)
+            await sendCallback(`starting ${id}`)
             globals.SPAMS[id] = true
-            let message = await msg.channel.send(sendText)
+            let message = await sendCallback(sendText)
             while (globals.SPAMS[id] && timesToGo--) {
                 if (message.deletable) await message.delete()
-                message = await msg.channel.send(sendText)
+                message = await sendCallback(sendText)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             return { content: "done" }
         }, category: CommandCategory.FUN
     },
     spam: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -6655,7 +6655,7 @@ print(eval("""${args.join(" ")}"""))`
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await msg.channel.send(`starting ${id}`)
+            await sendCallback(`starting ${id}`)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
                 await handleSending(msg, {content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })})
@@ -6672,7 +6672,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     stop: {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             if (!Object.keys(globals.SPAMS).length) {
                 return { content: "no spams to stop" }
             }
@@ -6698,11 +6698,11 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "pollify": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             if (msg.deletable && opts['d']) await msg.delete()
-            let message = await msg.channel.send(args.join(" ") || "poll")
+            let message = await sendCallback(args.join(" ") || "poll")
             await message.react("<:Blue_check:608847324269248512>")
             await message.react("<:neutral:716078457880051734>")
             await message.react("❌")
@@ -6713,7 +6713,7 @@ print(eval("""${args.join(" ")}"""))`
         }
     },
     "udict": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             //@ts-ignore
             try {
                 //@ts-ignore
@@ -6728,7 +6728,7 @@ print(eval("""${args.join(" ")}"""))`
         }, category: CommandCategory.FUN
     },
     "vars": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             let rv = ""
             for (let prefix in vars) {
                 rv += `${prefix}:\n`
@@ -6743,7 +6743,7 @@ print(eval("""${args.join(" ")}"""))`
     },
 
     'stackl': {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             const stackl = require("./stackl")
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -6804,7 +6804,7 @@ print(eval("""${args.join(" ")}"""))`
     },
 
     "reddit": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let subreddit = args[0]
             //@ts-ignore
             let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
@@ -6837,7 +6837,7 @@ print(eval("""${args.join(" ")}"""))`
     },
 
     "expr": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let vname = args[0]
@@ -6950,7 +6950,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "run": {
-        run: async (msg: Message, args) => {
+        run: async (msg: Message, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let file = msg.attachments.at(0)
@@ -6976,7 +6976,7 @@ print(eval("""${args.join(" ")}"""))`
             let id = Math.floor(Math.random() * 10000000)
             globals.SPAMS[id] = true
             if (!opts['s']) {
-                await msg.channel.send(`Starting id: ${id}`)
+                await sendCallback(`Starting id: ${id}`)
             }
             function handleRunFn(fn: string, contents: string) {
                 switch (fn) {
@@ -7049,7 +7049,7 @@ print(eval("""${args.join(" ")}"""))`
         }
     },
     "gvar": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let [scope, ...nameList] = args.join(" ").split(":")
             let name = nameList.join(":")
             if (scope == "%") {
@@ -7068,7 +7068,7 @@ print(eval("""${args.join(" ")}"""))`
         }, category: CommandCategory.META
     },
     "var": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
@@ -7113,7 +7113,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     remove: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             //@ts-ignore
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
@@ -7135,7 +7135,7 @@ print(eval("""${args.join(" ")}"""))`
             let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
             let fn = generateFileName("remove", msg.author.id)
             fs.writeFileSync(fn, options.join("\n"))
-            await msg.channel.send({
+            await sendCallback({
                 files: [{
                     attachment: fn,
                     name: "remove.txt"
@@ -7153,7 +7153,7 @@ print(eval("""${args.join(" ")}"""))`
                     for (let numStr of m.content.split(" ")) {
                         let num = parseInt(numStr || "0")
                         if (!num) {
-                            await msg.channel.send(`${num} is not a valid number`)
+                            await sendCallback(`${num} is not a valid number`)
                             return
                         }
                         let removal = data[num - 1]
@@ -7161,7 +7161,7 @@ print(eval("""${args.join(" ")}"""))`
                             return
                         let userCreated = removal.split(":")[0].trim()
                         if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                            await msg.channel.send({
+                            await sendCallback({
                                 content: "You did not create that message, and are not a bot admin"
                             })
                             continue
@@ -7171,7 +7171,7 @@ print(eval("""${args.join(" ")}"""))`
                     }
                     data = data.filter(v => typeof v != 'undefined')
                     fs.writeFileSync(`command-results/${file}`, data.join(";END"))
-                    await msg.channel.send({
+                    await sendCallback({
                         content: `removed ${removedList.join("\n")} from ${file}`
                     })
                     collector.stop()
@@ -7196,7 +7196,7 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "file": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let fn = generateFileName("file", msg.author.id)
             fs.writeFileSync(fn, args.join(" "))
             return {
@@ -7213,19 +7213,19 @@ print(eval("""${args.join(" ")}"""))`
 
     },
     "b64": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
             return { content: Buffer.from(text).toString("base64") }
         }, category: CommandCategory.UTIL
     },
     "b64d": {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
             return { content: Buffer.from(text, "base64").toString("utf8") }
         }, category: CommandCategory.UTIL
     },
     "rfile": {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             let att = msg.attachments.at(0)
             if (att) {
                 //@ts-ignore
@@ -7237,7 +7237,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.UTIL
     },
     "command-file": {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let opts
             [opts, args] = getOpts(args)
             if (opts["l"]) {
@@ -7284,18 +7284,18 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.META
     },
     'send-log': {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8") }
         }, category: CommandCategory.META
     },
     "list-files": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             return { content: fs.readdirSync('./command-results').join("\n") }
         },
         category: CommandCategory.META
     },
     add: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             //@ts-ignore
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
@@ -7341,7 +7341,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.META
     },
     "cmd-chain": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let showArgs = true
@@ -7395,7 +7395,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     },
     rccmd: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let name = args[0]
             if (!name) {
                 return {
@@ -7413,7 +7413,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                     let [user, _] = line.trim().split(":")
                     user = user.trim()
                     if (user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                        await msg.channel.send(`Cannot remove ${command}`)
+                        await sendCallback(`Cannot remove ${command}`)
                     }
                     else {
                         successfullyRemoved.push(command)
@@ -7431,7 +7431,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     },
     "8": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let content = args.join(" ")
             let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
             return {
@@ -7453,7 +7453,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     },
     distance: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let speed = parseInt(opts['speed'] as string) || 1
@@ -7542,7 +7542,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         category: CommandCategory.FUN
     },
     "list-cmds": {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             let values = ''
             let typeConv = { 1: "chat", 2: "user", 3: "message" }
             for (let cmd in commands) {
@@ -7564,7 +7564,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     },
     ht: {
         //help command
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts
             [opts, args] = getOpts(args)
             let files = []
@@ -7590,7 +7590,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
             if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
-                await msg.channel.send("generating new help file")
+                await sendCallback("generating new help file")
                 delete opts['n']
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
@@ -7687,7 +7687,7 @@ ${styles}
 
     },
     code: {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             return {
                 content: "https://github.com/euro20179/bircle"
             }
@@ -7696,7 +7696,7 @@ ${styles}
 
     },
     WHITELIST: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let user = args[0]
             if (!user) {
                 return {
@@ -7742,7 +7742,7 @@ ${styles}
 
     },
     RESET_ECONOMY: {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             economy.resetEconomy()
 
             return { content: "Economy reset" }
@@ -7751,7 +7751,7 @@ ${styles}
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     RESET_PLAYER: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let player = await fetchUser(msg.guild, args[0])
             if (!player)
@@ -7763,7 +7763,7 @@ ${styles}
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_PLAYER_ITEMS: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let player = await fetchUser(msg.guild, args[0])
             if (!player)
@@ -7775,7 +7775,7 @@ ${styles}
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_ITEMS: {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             resetItems()
             return { content: "Items reset" }
         },
@@ -7783,7 +7783,7 @@ ${styles}
         category: CommandCategory.META
     },
     SETMONEY: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0])
             if (!user) {
@@ -7799,7 +7799,7 @@ ${styles}
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     'blacklist': {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let addOrRemove = args[0]
             if (!["a", "r"].includes(addOrRemove)) {
                 return {
@@ -7829,7 +7829,7 @@ ${styles}
         }, category: CommandCategory.UTIL
     },
     BLACKLIST: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let user = args[0]
             if (!user) {
                 return {
@@ -7875,8 +7875,8 @@ ${styles}
 
     },
     END: {
-        run: async (msg: Message, _args: ArgumentList) => {
-            await msg.channel.send("STOPPING")
+        run: async (msg: Message, _args: ArgumentList, sendCallback) => {
+            await sendCallback("STOPPING")
             economy.saveEconomy()
             saveItems()
             saveVars()
@@ -7893,7 +7893,7 @@ ${styles}
 
     },
     "last-run": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let lastRun;
             let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
             if (fs.existsSync("./command-results/last-run")) {
@@ -7936,7 +7936,7 @@ ${styles}
 
     },
     "rand-user": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let member
@@ -7987,7 +7987,7 @@ ${styles}
         category: CommandCategory.UTIL
     },
     "role-info": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let search = args.join(" ").toLowerCase()
             let roles = await msg.guild?.roles.fetch()
             if (!roles) {
@@ -8018,7 +8018,7 @@ ${styles}
         category: CommandCategory.UTIL
     },
     "channel-info": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let channel
             if (!args.join(" ").trim().length)
                 channel = msg.channel
@@ -8062,7 +8062,7 @@ ${styles}
         category: CommandCategory.UTIL
     },
     "emote-info": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let emote = args[0].split(":")[2].slice(0, -1)
             let e
             try {
@@ -8087,7 +8087,7 @@ ${styles}
         }, category: CommandCategory.UTIL
     },
     "user-info": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             if (!args[0]) {
                 return {
                     content: "no member given!"
@@ -8176,7 +8176,7 @@ valid formats:<br>
 
     },
     "rand-emote": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let amount = parseInt(String(opts['count'] || opts['c'])) || 1
@@ -8229,7 +8229,7 @@ valid formats:<br>
 
     },
     "emote-use": {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let serverOnly = opts['S'] ? false : true
@@ -8272,7 +8272,7 @@ valid formats:<br>
 
     },
     "cmd-use": {
-        run: async (_msg: Message, _args: ArgumentList) => {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             let data = globals.generateCmdUseFile()
                 .split("\n")
                 .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
@@ -8290,7 +8290,7 @@ valid formats:<br>
 
     },
     invite: {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             let invites = await msg.guild?.invites.fetch()
             if (invites?.at(0)?.url) {
                 return { content: invites.at(0)?.url }
@@ -8300,7 +8300,7 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     "non-assigned-roles": {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             await msg.guild?.members.fetch()
             let roles = await msg.guild?.roles.fetch()
             let rolesNonAssigned: any[] = []
@@ -8313,7 +8313,7 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     tail: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
@@ -8322,7 +8322,7 @@ valid formats:<br>
         }, category: CommandCategory.UTIL
     },
     head: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
@@ -8345,7 +8345,7 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     nl: {
-        run: async (msg, args) => {
+        run: async (msg, args, sendCallback) => {
             let text = args.join(" ").split('\n')
             let rv = ""
             for (let i = 1; i < text.length + 1; i++) {
@@ -8355,7 +8355,7 @@ valid formats:<br>
         }, category: CommandCategory.UTIL
     },
     grep: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
             let regex = args[0]
@@ -8415,7 +8415,7 @@ valid formats:<br>
         category: CommandCategory.UTIL
     },
     alias: {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let cmd
             [cmd, ...args] = args
             let realCmd = args[0]
@@ -8445,7 +8445,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "!!": {
-        run: async (msg: Message, args: ArgumentList) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['check'] || opts['print'] || opts['see'])
@@ -8467,7 +8467,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "psnipe": {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             if (!purgeSnipe) {
                 return { content: "Nothing has been purged yet" }
             }
@@ -8494,7 +8494,7 @@ valid formats:<br>
         category: CommandCategory.FUN
     },
     snipe: {
-        run: async (_msg: Message, args: ArgumentList) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let snipeC = ((parseInt(args[0]) - 1) || 0)
             if (snipeC >= 5) {
                 return { content: "it only goes back 5" }
@@ -8530,13 +8530,13 @@ valid formats:<br>
         category: CommandCategory.FUN
     },
     ping: {
-        run: async (msg, _args) => {
+        run: async (msg, _args, sendCallback) => {
             return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms` }
         },
         category: CommandCategory.META
     },
     version: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['l']) {
@@ -8578,7 +8578,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     changelog: {
-        run: async (_msg, args) => {
+        run: async (_msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['l']) {
@@ -8619,7 +8619,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     spams: {
-        run: async (_msg, _args) => {
+        run: async (_msg, _args, sendCallback) => {
             let data = ""
             for (let id in globals.SPAMS) {
                 data += `${id}\n`
@@ -8660,37 +8660,44 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
     //Args are the rest of the words
     args = msg.content.split(" ").slice(1)
 
-
     //first check for modifiers
+
+    let sendCallback = msg.channel.send.bind(msg.channel)
 
     //This variable keeps  track of how long the modifier is before the command
     let skipLength = 0
     //the s: and redir: modifiers change this function to accomplish their goals
-    let oldSend = msg.channel.send
 
     let m; //variable to keep track of the match
     if (m = command.match(/^s:/)) { //s: (silent) modifier
         //change this function to essentially do nothing, it just returns the orriginal message as it must return a message
-        msg.channel.send = async (_data) => msg
+        //msg.channel.send = async (_data) => msg
         skipLength = 2
+        sendCallback = async(_data) => msg
     }
     //this regex matches: /redir!?\((prefix)?:variable\)
     else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) { //the redir: modifier
         //whether or not to redirect *all* message sends to the variable, or just the return value from the command
         let all = m[1] //this matches the ! after redir
-        //length of: redir(:)
         let skip = 9 //the base length of redir(:):
         if (all) {
             //add 1 for the !
             skip++
             //change this function to redirect into the variable requested
-            msg.channel.send = async (_data) => {
+            sendCallback = async (_data) => {
                 //@ts-ignore
                 if (_data.content) {
                     if (typeof redir === 'object') {
                         let [place, name] = redir
                         //@ts-ignore
                         place[name] = place[name] + "\n" + _data.content
+                    }
+                }
+                else if(typeof _data === 'string'){
+                    if (typeof redir === 'object') {
+                        let [place, name] = redir
+                        //@ts-ignore
+                        place[name] = place[name] + "\n" + _data
                     }
                 }
                 return msg
@@ -8732,7 +8739,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         let expansion = await expandAlias(command, (alias: any) => {
             globals.addToCmdUse(alias) //for every expansion, add to cmd use
             if (BLACKLIST[msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                handleSending(msg, { content: `You are blacklisted from ${alias}` }, recursion + 1)
+                handleSending(msg, { content: `You are blacklisted from ${alias}` }, sendCallback, recursion + 1)
                 return false
             }
             return true
@@ -8817,7 +8824,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         if (canRun) {
             if (typing)
                 await msg.channel.sendTyping()
-            rv = await commands[command].run(msg, args)
+            rv = await commands[command].run(msg, args, sendCallback)
             //if normal command, it counts as use
             globals.addToCmdUse(command)
         }
@@ -8830,8 +8837,6 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         lastCommand[msg.author.id] = msg.content
     }
     if (returnJson) {
-        //set back to old send so s: and redir: are not persistent
-        msg.channel.send = oldSend
         return rv;
     }
     if (redir) {
@@ -8839,13 +8844,10 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0) {
         //set the variable to the response
         //@ts-ignore
         place[name] = () => getContentFromResult(rv)
-        msg.channel.send = oldSend
-        //set back to old send so s: and redir: are not persistent
         return
     }
     //handles the rv protocol
-    handleSending(msg, rv, recursion + 1)
-    msg.channel.send = oldSend
+    handleSending(msg, rv, sendCallback, recursion + 1)
 }
 
 export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false> {
@@ -8870,7 +8872,7 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     return [command, aliasPreArgs]
 }
 
-export async function handleSending(msg: Message, rv: CommandReturn, recursion = 0) {
+export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0){
     if (!Object.keys(rv).length) {
         return
     }
@@ -8899,7 +8901,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, recursion =
             rv = await doCmd(msg, true, recursion + 1) as CommandReturn
             msg.content = oldContent
             //it's better to just recursively do this, otherwise all the code above would be repeated
-            await handleSending(msg, rv, recursion + 1)
+            await handleSending(msg, rv, sendCallback, recursion + 1)
             return
         }
     }
@@ -8924,12 +8926,22 @@ export async function handleSending(msg: Message, rv: CommandReturn, recursion =
         location = msg.author
     }
     try {
-        await location.send(rv)
+        if(sendCallback){
+            await sendCallback(rv)
+        }
+        else{
+            await location.send(rv)
+        }
     }
     catch (err) {
-        console.log(err)
         //usually happens when there is nothing to send
-        await location.send("broken")
+        console.log(err)
+        if(sendCallback){
+            await sendCallback(rv)
+        }
+        else{
+            await location.send(rv)
+        }
     }
     //delete files that were sent
     if (rv.files) {

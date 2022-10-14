@@ -1,4 +1,4 @@
-import {MessageEmbed, Message, MessageMentionOptions} from "discord.js"
+import {MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload} from "discord.js"
 
 declare global{
     type ArgumentList = Array<string>
@@ -24,7 +24,8 @@ declare global{
 	delete?: boolean
 	noSend?: boolean,
 	allowedMentions?: MessageMentionOptions,
-    dm?: boolean
+    dm?: boolean,
+    recurse?: boolean,
     }
 
     interface CommandHelpArguments{
@@ -53,7 +54,7 @@ declare global{
     }
 
     interface Command{
-        run: (msg: Message, args: ArgumentList) => Promise<CommandReturn>;
+        run: (msg: Message, args: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>) => Promise<CommandReturn>;
         permCheck?: (msg: Message) => boolean;
         help?: CommandHelp
         category: CommandCategory
