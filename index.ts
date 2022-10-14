@@ -233,22 +233,6 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         return
     }
     if (interaction.isButton() && !interaction.replied) {
-        if (interaction.customId == `button:${interaction.member?.user.id}`) {
-            //@ts-ignore
-            if (globals.BUTTONS[interaction.member?.user.id] !== undefined) {
-                //@ts-ignore
-                if (typeof globals.BUTTONS[interaction.member?.user.id] === "string") {
-                    //@ts-ignore
-                    interaction.reply(String(globals.BUTTONS[interaction.member?.user.id]))
-                }
-                else {
-                    //@ts-ignore
-                    interaction.reply(String(globals.BUTTONS[interaction.member?.user.id]()))
-                }
-                //@ts-ignore
-                delete globals.BUTTONS[interaction.member?.user.id]
-            }
-        }
         if (interaction.customId.match(/button\.(rock|paper|scissors)/)) {
             let intendedUser = interaction.customId.split(":")[1]
             let table: { [k: string]: string } = { "rock": "paper", "paper": "scissors", "scissors": "rock" }

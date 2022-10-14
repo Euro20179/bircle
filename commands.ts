@@ -4506,9 +4506,18 @@ print(eval("""${args.join(" ")}"""))`
             let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
             let m = await sendCallback({ components: [row], content: content })
-            if (opts['say'])
-                globals.BUTTONS[msg.author.id] = String(opts['say'])
-            else globals.BUTTONS[msg.author.id] = text
+            let collector = m.createMessageComponentCollector({filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id, time: 30000})
+            collector.on("collect", async(interaction) => {
+                if(interaction.user.id !== msg.author.id){
+                    return
+                }
+                if(opts['say']){
+                    await interaction.reply({content: String(opts['say'])})
+                }
+                else{
+                    await interaction.reply({content: text})
+                }
+            })
             if (!isNaN(delAfter)) {
                 setTimeout(async () => await m.delete(), delAfter * 1000)
             }
