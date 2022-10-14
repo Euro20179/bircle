@@ -154,8 +154,9 @@ client.on("messageCreate", async (m: Message) => {
         //@ts-ignore
         for(let i = 0; i < m.mentions.members.size; i++){
             //@ts-ignore
-            let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null).replaceAll("{pinger}", `<@${m.author.id}>`)
+            let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
             if(pingresponse){
+                pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if(commands.isCmd(pingresponse, local_prefix)){
                     let oldContent = m.content
                     m.content = pingresponse
