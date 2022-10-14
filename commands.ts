@@ -3738,6 +3738,15 @@ export const commands: { [command: string]: Command } = {
                 return { content: "No data found" }
             }
             const JSONData = JSON.parse(text)
+            function getAmountUntil(userData: any){
+                const desired_rank = userData.level + 1
+                const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
+                const xp_needed = xp_to_desired_rank - userData.xp
+                const min_messages_for_next_level = Math.ceil(xp_needed / 26) //26 = max xp per minute
+                const max_messages_for_next_level = Math.ceil(xp_needed / 15) //15 = min xp per minute
+                const avg_messages_for_next_level = (min_messages_for_next_level + max_messages_for_next_level) / 2
+                return [xp_needed, min_messages_for_next_level, max_messages_for_next_level, avg_messages_for_next_level]
+            }
             for (let requestedUser of requestedUsers) {
                 if (!requestedUser) continue
                 let [ruser1, ruser2] = requestedUser.split("-")
@@ -3776,6 +3785,8 @@ export const commands: { [command: string]: Command } = {
                     }
                     const rank1 = JSONData.players.indexOf(user1Data)
                     const rank2 = JSONData.players.indexOf(user2Data)
+                    let [xp_needed1, min_messages_for_next_level1, max_messages_for_next_level1, avg_messages_for_next_level1] = getAmountUntil(user1Data)
+                    let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
                     const embed = new MessageEmbed()
                     embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
                     let redness = Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255))
@@ -3790,6 +3801,10 @@ export const commands: { [command: string]: Command } = {
                     embed.addField("Level", String(user1Data.level - user2Data.level), true)
                     embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
                     embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
+                embed.addField("XP for next level", String(xp_needed1 - xp_needed2))
+                embed.addField("Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true)
+                embed.addField("Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true)
+                embed.addField("Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true)
                     embeds.push(embed)
                     continue
                 }
@@ -3811,12 +3826,7 @@ export const commands: { [command: string]: Command } = {
                     return { content: `No data for ${member.user.username} found` }
                 }
                 const rank = JSONData.players.indexOf(userData)
-                const desired_rank = userData.level + 1
-                const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
-                const xp_needed = xp_to_desired_rank - userData.xp
-                const min_messages_for_next_level = Math.ceil(xp_needed / 26) //26 = max xp per minute
-                const max_messages_for_next_level = Math.ceil(xp_needed / 15) //15 = min xp per minute
-                const avg_messages_for_next_level = (min_messages_for_next_level + max_messages_for_next_level) / 2
+                let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
                 const embed = new MessageEmbed()
                 embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
                 embed.setColor(member.displayColor)
