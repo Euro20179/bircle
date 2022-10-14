@@ -6783,18 +6783,14 @@ print(eval("""${args.join(" ")}"""))`
             let op = args[1]
             let expr = args[2]
             if (expr && isNaN(parseFloat(expr))) {
-                let vvalue = getVar(msg, vname, mainScope)
-                if (vvalue === false) {
-                    vvalue = getVar(msg, vname, secondaryScope)
-                }
-                if (vvalue === undefined) {
+                expr = getVar(msg, expr, mainScope)
+                if (expr === undefined) {
                     setVar(vname, "0", mainScope)
-                    vvalue = getVar(msg, vname, mainScope)
+                    expr = getVar(msg, expr, mainScope)
                 }
-                if (vvalue === undefined) {
+                if (expr === undefined) {
                     return { content: `var: **${expr}** does not exist` }
                 }
-                expr = vvalue(msg)
             }
             let ans: any
             switch (op) {
