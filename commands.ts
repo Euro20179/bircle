@@ -2273,6 +2273,9 @@ export const commands: { [command: string]: Command } = {
         let user = await fetchUser(msg.guild, args.join(" "))
         if (!user)
             return { content: `${args.join(" ")} not found` }
+        if(user.user.bot){
+            return {content: "Looks like ur taxing a fake person"}
+        }
         let ct = economy.canTax(user.id)
         if (hasItem(user.id, "tax evasion")) {
             ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
