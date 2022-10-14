@@ -8772,7 +8772,15 @@ export async function doCmd(msg: Message, returnJson = false) {
         let oldContent = msg.content
         //hack to run command as if message is cmd
         msg.content = cmd
-        let data = getContentFromResult((await doCmd(msg, true) as CommandReturn)).trim()
+        let rv = await doCmd(msg, true) as CommandReturn
+        msg.content = oldContent
+        if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
+            let oldContent = msg.content
+            msg.content = rv.content
+            rv = await doCmd(msg, true) as CommandReturn
+            msg.content = oldContent
+        }
+        let data = getContentFromResult(rv as CommandReturn).trim()
         msg.content = oldContent
         //end hack
         doFirstData[idx] = data
