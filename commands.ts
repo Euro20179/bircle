@@ -4506,9 +4506,9 @@ print(eval("""${args.join(" ")}"""))`
             let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
             let m = await sendCallback({ components: [row], content: content })
-            let collector = m.createMessageComponentCollector({filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id, time: 30000})
+            let collector = m.createMessageComponentCollector({filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000})
             collector.on("collect", async(interaction) => {
-                if(interaction.user.id !== msg.author.id){
+                if(interaction.user.id !== msg.author.id && opts['anyone'] !== true){
                     return
                 }
                 if(opts['say']){
@@ -4535,6 +4535,9 @@ print(eval("""${args.join(" ")}"""))`
                 },
                 "say": {
                     description: "The text on the button"
+                },
+                "anyone": {
+                    description: "Allow anyone to click the button"
                 }
             }
         },
