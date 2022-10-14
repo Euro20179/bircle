@@ -7274,6 +7274,9 @@ ${fs.readdirSync("./command-results").join("\n")}
     },
     'send-log': {
         run: async (_msg, args, sendCallback) => {
+            if(!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)){
+                return {content: "File does not exist"}
+            }
             return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8") }
         }, category: CommandCategory.META
     },
