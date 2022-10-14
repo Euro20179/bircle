@@ -8939,10 +8939,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //usually happens when there is nothing to send
         console.log(err)
         if(sendCallback){
-            await sendCallback(rv)
+            await sendCallback({content: "Something went wrong"})
         }
         else{
-            await location.send(rv)
+            await location.send({content: "Something went wrong"})
         }
     }
     //delete files that were sent
