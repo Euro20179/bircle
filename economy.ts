@@ -333,6 +333,13 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         if (isNaN(toNextMultipleOf)) {
             return NaN
         }
+        return toNextMultipleOf - (money % toNextMultipleOf)
+    }
+    else if(amount.endsWith("#")){
+        let toNextMultipleOf = Number(amount.slice(0, -1))
+        if(isNaN(toNextMultipleOf)){
+            return NaN
+        }
         return money % toNextMultipleOf
     }
     else if (amount.startsWith("needed(") && amount.endsWith(")")) {
