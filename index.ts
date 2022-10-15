@@ -56,7 +56,7 @@ client.on('ready', async () => {
     client.guilds.fetch("427567510611820544").then((guild: any) => {
         guild.members.fetch("334538784043696130").then((user: any) => {
             user.createDM().then((dmChannel: any) => {
-                dmChannel.send("ONLINE").then(console.log).catch(console.log)
+                dmChannel.send("ONLINE").catch(console.log)
             }).catch(console.log)
         }).catch(console.log)
     }).catch(console.log)

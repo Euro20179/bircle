@@ -4762,6 +4762,20 @@ print(eval("""${args.join(" ")}"""))`
         permCheck: m => ADMINS.includes(m.author.id),
         category: CommandCategory.META
     },
+    "remove-file": {
+        run: async(msg, args, sendCallback) => {
+            let file = args[0]
+            if(!file){
+                return {content: "No file specified"}
+            }
+            if(!fs.existsSync(`./command-results/${file}`)){
+                return {content: `${file} does not exist`}
+            }
+            fs.rmSync(`./command-results/${file}`)
+            return {content: `${file} removed`}
+        }, category: CommandCategory.META,
+        permCheck: m => ADMINS.includes(m.author.id)
+    },
     "rt": {
         run: async (msg, args, sendCallback) => {
             let opts: Opts;
