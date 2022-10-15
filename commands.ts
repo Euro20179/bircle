@@ -306,14 +306,22 @@ export const commands: { [command: string]: Command } = {
 
     }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
 
-    "options": createCommand(async (msg, _args) => {
+    "options": createCommand(async (msg, args) => {
         let userOpts = user_options.getUserOptions()[msg.author.id]
+        let optionToCheck = args.join(" ").toLowerCase()
+        if(optionToCheck){
+            //@ts-ignore
+            return {content: `**${optionToCheck}**\n${user_options.getOpt(msg.author.id, optionToCheck, "\\_\\_unset\\_\\_")}`}
+        }
         let text = ""
         for (let opt of user_options.allowedOptions) {
             text += `**${opt}**\n${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}\n--------------------\n`
         }
         return { content: text }
-    }, CommandCategory.META, "Prints the options for [option, and your values for them"),
+    }, CommandCategory.META, "Prints the options for [option, and your values for them",
+    {
+        "option": createHelpArgument("The option to check the value of", false)
+    }),
 
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
@@ -4236,7 +4244,21 @@ export const commands: { [command: string]: Command } = {
             }
             return {embeds: [embed]}
         }, CommandCategory.UTIL,
-        "Create an embed"
+        "Create an embed",
+        {
+            "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:
+<pre>
+${prefix}embed title this is the title
+description the description
+field name | value | (optional true or false)
+image https://....
+thumbnail https://...
+color #00ffe2
+footer this is the footer | (optional link to image)
+author this is the author | (optional link to image)
+</pre>
+The order these are given does not matter, excpet for field, which will be added in the order you gave`)
+        }
     ),
     calc: {
         run: async (msg, args, sendCallback) => {

@@ -8,11 +8,11 @@ const { Routes } = require("discord-api-types/v9")
 
 import pet = require("./pets")
 import commands = require("./commands")
+import globals = require("./globals")
 
 const economy = require("./economy")
 const {generateFileName} = require("./util")
 const { saveItems, hasItem } = require("./shop")
-const globals = require("./globals")
 
 const user_options = require("./user-options")
 
