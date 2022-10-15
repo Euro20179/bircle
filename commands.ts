@@ -4862,30 +4862,6 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
 
     },
-    todo: {
-        run: async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            if (opts['list']) {
-                let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
-                let strdata = data.slice(0, data.length - 1).join("\n")
-                return { content: strdata }
-            }
-            let item = args.join(" ")
-            return await commands['add'].run(msg, ["todo", item], sendCallback)
-        },
-        category: CommandCategory.META
-
-    },
-    "todo-list": {
-        run: async (_msg, _args, sendCallback) => {
-            let data = fs.readFileSync('./command-results/todo', "utf-8").split(";END").map((v) => `* ${v.split(" ").slice(1).join(" ")}`)
-            let strdata = data.slice(0, data.length - 1).join("\n")
-            return { content: strdata }
-        },
-        category: CommandCategory.META
-
-    },
     nick: {
         //@ts-ignore
         run: async (msg, args, sendCallback) => {
