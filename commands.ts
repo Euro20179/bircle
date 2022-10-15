@@ -4326,14 +4326,6 @@ print(eval("""${args.join(" ")}"""))`
         },
         category: CommandCategory.UTIL
     },
-    d: {
-        run: async (msg, args, sendCallback) => {
-            msg.content = `${prefix}${args.join(" ")}`
-            await doCmd(msg, false)
-            return { noSend: true, delete: true }
-        },
-        category: CommandCategory.META
-    },
     del: {
         run: async (msg, args, sendCallback) => {
             let opts;
