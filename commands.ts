@@ -871,7 +871,7 @@ export const commands: { [command: string]: Command } = {
                     return await commands['bstock'].run(msg, args, sendCallback)
                 }
                 //else
-                return { content: `The shop of item must be one of: \`${allowedTypes.join(", ")}\`` }
+                return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\`` }
             }
             switch (type) {
                 case "stock": {

@@ -10,7 +10,6 @@ import pet = require("./pets")
 import commands = require("./commands")
 
 const economy = require("./economy")
-
 const {generateFileName} = require("./util")
 const { saveItems, hasItem } = require("./shop")
 const globals = require("./globals")
