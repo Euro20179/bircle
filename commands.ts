@@ -4338,6 +4338,9 @@ print(eval("""${args.join(" ")}"""))`
     "if": {
         run: async (msg, args, sendCallback) => {
             let [condition, cmd] = args.join(" ").split(";")
+            if(!cmd){
+                return {content: "You are missing a ; after the condition"}
+            }
             cmd = cmd.split(";end")[0]
             if (safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
                 msg.content = `${prefix}${cmd.trim()}`
