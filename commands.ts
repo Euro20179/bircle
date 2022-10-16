@@ -3093,7 +3093,6 @@ export const commands: { [command: string]: Command } = {
                 break
             }
         }
-        let usedReset = false
         while (true) {
             let embed = new MessageEmbed()
             embed.setTitle("Blackjack")
@@ -3109,7 +3108,7 @@ export const commands: { [command: string]: Command } = {
             //FIXME: edge case where dealerCards[0] is "A", this could be wrong
             embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
             embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
-            if (hasItem(msg.author.id, "reset") && !usedReset) {
+            if (hasItem(msg.author.id, "reset")) {
                 embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
             }
             else {
@@ -3153,8 +3152,7 @@ export const commands: { [command: string]: Command } = {
             if (choice === 'hit') {
                 giveRandomCard(cards, playersCards)
             }
-            if (choice === 'reset' && hasItem(msg.author.id, "reset") && !usedReset) {
-                usedReset = true
+            if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
                 cards = []
                 for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                     for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
@@ -3172,6 +3170,11 @@ export const commands: { [command: string]: Command } = {
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
                     return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans() }
+                }
+                if (calculateTotal(dealerCards).total === 21) {
+                    economy.loseMoneyToBank(msg.author.id, bet)
+                    delete globals.BLACKJACK_GAMES[msg.author.id]
+                    return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
