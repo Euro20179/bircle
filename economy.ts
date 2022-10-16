@@ -342,6 +342,9 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         }
         return money % toNextMultipleOf
     }
+    else if(amount.endsWith("k")){
+        return Number(amount.slice(0, -1)) * 1000
+    }
     else if (amount.startsWith("needed(") && amount.endsWith(")")) {
         let wantedAmount = parseFloat(amount.slice("needed(".length))
         return wantedAmount - money
