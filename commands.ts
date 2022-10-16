@@ -3093,6 +3093,7 @@ export const commands: { [command: string]: Command } = {
                 break
             }
         }
+        let usedReset = false
         while (true) {
             let embed = new MessageEmbed()
             embed.setTitle("Blackjack")
@@ -3108,7 +3109,7 @@ export const commands: { [command: string]: Command } = {
             //FIXME: edge case where dealerCards[0] is "A", this could be wrong
             embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
             embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
-            if (hasItem(msg.author.id, "reset")) {
+            if (hasItem(msg.author.id, "reset") && usedReset) {
                 embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
             }
             else {
@@ -3152,7 +3153,8 @@ export const commands: { [command: string]: Command } = {
             if (choice === 'hit') {
                 giveRandomCard(cards, playersCards)
             }
-            if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
+            if (choice === 'reset' && hasItem(msg.author.id, "reset") && !usedReset) {
+                usedReset = true
                 cards = []
                 for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                     for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
