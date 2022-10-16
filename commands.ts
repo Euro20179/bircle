@@ -2567,7 +2567,7 @@ export const commands: { [command: string]: Command } = {
                     }
                     stats.adventureOrder.push([current_location, stage])
                     let shuffledPlayers = globals.HEIST_PLAYERS.sort(() => Math.random() - .5)
-                    let amount = Math.floor(Math.random() * 10)
+                    let amount = Math.random() * 0.5
                     let negpos = ["negative", "positive", "neutral"][Math.floor(Math.random() * 3)]
                     let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                     //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
@@ -2643,13 +2643,13 @@ export const commands: { [command: string]: Command } = {
                         amountType = response.match(/AMOUNT=([^ ]+)/)
                     }
                     if (amountType[1] === 'cents') {
-                        amount = Math.random()
+                        amount = Math.random() / 100
                     }
-                    else {
-                        //@ts-ignore
-                        let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
-                        amount *= multiplier
-                    }
+                    // else {
+                    //     //@ts-ignore
+                    //     let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
+                    //     amount *= multiplier
+                    // }
 
                     response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
                         if (capture === "all") {
@@ -2713,15 +2713,15 @@ export const commands: { [command: string]: Command } = {
                     response = response.replace(/LOCATION=[^ ]+/, "")
                     response = response.replaceAll(/\{(\+|-|=|!|\?)?amount\}/g, (_match: any, pm: any) => {
                         if (pm && pm == "+") {
-                            return `+${Math.abs(amount)}`
+                            return `+${Math.abs(amount)}%`
                         }
                         else if (pm && pm == "-") {
-                            return `-${Math.abs(amount)}`
+                            return `-${Math.abs(amount)}%`
                         }
                         else if (pm && (pm == "=" || pm == "!" || pm == "?")) {
-                            return `${Math.abs(amount)}`
+                            return `${Math.abs(amount)}%`
                         }
-                        return amount >= 0 ? `+${amount}` : `${amount}`
+                        return amount >= 0 ? `+${amount}%` : `${amount}%`
                     })
                     response = response.replace(/GAIN=[^ ]+/, "")
                     response = response.replace(/LOSE=[^ ]+/, "")
@@ -2834,8 +2834,10 @@ export const commands: { [command: string]: Command } = {
                         for (let player in data) {
                             if (!isNaN(data[player])) {
                                 let member = msg.guild?.members.cache.get(player)
+                                let netWorth = economy.playerLooseNetWorth(player)
+                                let gain = netWorth * (data[player] / 100)
                                 if (member) {
-                                    e.addField(String(member.nickname || member.user.username), `${data[player]}`)
+                                    e.addField(String(member.nickname || member.user.username), `$${gain} (${data[player]}%)`)
                                 }
                                 else {
                                     e.addField(String(data[player]), `<@${player}>`)
