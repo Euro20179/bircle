@@ -1545,6 +1545,30 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.ECONOMY
     },
 
+    "surround-text": createCommand(async(msg, args, sendCB) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let maxWidth = Number(opts['max-width']) || 50
+        let vertChar = String(opts['vert-char'] || "|")
+        let horChar = String(opts['hor-char'] || "-")
+        let text = args.join(" ")
+        let lines = [horChar.repeat(maxWidth + 2)]
+        let currLine = ""
+        for(let i = 1; i <= text.length; i++){
+            let ch = text[i - 1]
+            currLine += ch
+            if(i % maxWidth === 0){
+                lines.push(vertChar + currLine + vertChar)
+                currLine = ""
+            }
+        }
+        if(currLine){
+            lines.push(`${vertChar}${" ".repeat((maxWidth - currLine.length) / 2)}${currLine}${" ".repeat((maxWidth - currLine.length) / 2)}${vertChar}`)
+        }
+        lines.push(horChar.repeat(maxWidth + 2))
+        return {content: `\`\`\`\n${lines.join("\n")}\n\`\`\``}
+    }, CommandCategory.UTIL, "Surrounds text with a character"),
+
     "align-table": {
         run: async (_msg, args, sendCallback) => {
             let opts;
