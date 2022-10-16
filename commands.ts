@@ -2572,7 +2572,7 @@ export const commands: { [command: string]: Command } = {
                     let responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                     //neutral should be an optional list for a location, pick a new one if there's no neutral responses for the location
                     if (!responseList?.length && negpos === 'neutral') {
-                        let negpos = ["positive", "neutral"][Math.floor(Math.random() * 2)]
+                        let negpos = ["positive", "negative"][Math.floor(Math.random() * 2)]
                         responseList = responses[stage.replaceAll(" ", "_") + `_${negpos}`]
                     }
                     if (!responseList) {
