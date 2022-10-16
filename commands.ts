@@ -3109,7 +3109,7 @@ export const commands: { [command: string]: Command } = {
             //FIXME: edge case where dealerCards[0] is "A", this could be wrong
             embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
             embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
-            if (hasItem(msg.author.id, "reset") && usedReset) {
+            if (hasItem(msg.author.id, "reset") && !usedReset) {
                 embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
             }
             else {
