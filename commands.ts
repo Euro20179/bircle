@@ -3563,19 +3563,75 @@ export const commands: { [command: string]: Command } = {
     },
 
     "bowser": createCommand(async(msg, args, sendCB) => {
+        let totalEconomy = 0
+        for (let id in economy.getEconomy()) {
+            totalEconomy += economy.playerLooseNetWorth(id)
+        }
+        let userNetWorth = economy.playerLooseNetWorth(msg.author.id)
+        if(userNetWorth / totalEconomy < .001){
+            return {content: "You must have at least .1% of the economy to run this command"}
+        }
+        if(economy.getEconomy()[msg.author.id]?.usedBowser && Date.now() / 1000 - economy.getEconomy()[msg.author.id]?.usedBowser / 1000 < 3600){
+            return {content: "You cannot use bowser"}
+        }
+        economy.useBowser(msg.author.id)
+
+        let cost = userNetWorth * .1
+        economy.loseMoneyToBank(msg.author.id, cost)
+        let options = {
+            //lose 10%
+            "lava pit": () => {
+                economy.loseMoneyToBank(msg.author.id, userNetWorth * .1)
+                return "lmao you lost 10% in a lava pit"
+            },
+            //gain $0.01
+            "LUCKY WINNER!!!": () => {
+                economy.addMoney(msg.author.id, 0.01)
+                return "YOU WON A TON  OF MONEY"
+            },
+            //forced to go through an interaction where bowser forces you to buy a useless item.
+            // "bowser shop": () => {
+            //
+            // },
+            // //force bj 10% (nw)
+            // "lucky blackjack time": () => {
+            // },
+            //divide everyone's net worth by 2
+            "deflation time": () => {
+                for(let user in economy.getEconomy()){
+                    let nw = economy.playerLooseNetWorth(user)
+                    economy.loseMoneyToBank(user, nw / 2)
+                    return "i love division"
+                }
+            },
+            //steal 10% from 1st place
+            "yoink": () => {
+                let sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => economy.playerLooseNetWorth(b[0]) - economy.playerLooseNetWorth(a[0]))
+                let firstPlaceTotal = economy.playerLooseNetWorth(sortedEconomy[0][0])
+                economy.loseMoneyToPlayer(sortedEconomy[0][0], firstPlaceTotal * .1, msg.author.id)
+                return "yoinky doinky 10%"
+            },
+            //double balance
+            "2": () => {
+                economy.addMoney(msg.author.id, economy.getEconomy()[msg.author.id].money)
+                return "DOUBLE BALANCE"
+            }
+        }
+        let option_choices = Object.keys(options)
+        let choice = option_choices[Math.floor(Math.random() * option_choices.length)]
+        let e = new MessageEmbed()
+        e.setTitle(choice)
+        //@ts-ignore
+        e.setDescription(options[choice]?.())
+        e.setFooter({text: `cost: ${cost}`})
+        return {embeds: [e]}
+
         //TOOD: add things
-        //lose 10%
-        //gain $0.01
-        //forced to go through an interaction where bowser forces you to buy a useless item.
-        //force bj 10%
+        //can be used every hour
         //force battle with everyone in chat
-        //steal 10% from 1st place
-        //divide everyone's money by 2
-        //double balance
         //3 free items
         
-        return {noSend: true}
-    }, CommandCategory.ECONOMY),
+    }, CommandCategory.ECONOMY, "The bowser command"),
 
     replace: {
         run: async (_msg, args, sendCallback) => {

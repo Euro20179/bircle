@@ -14,7 +14,7 @@ type TradeType = {type: "money" | "stock", item: number | {name: string, data: S
 
 type Stock = {buyPrice:  number, shares: number}
 
-export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, isResetting?: boolean }
+export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number,  usedBowser: number}
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -541,6 +541,10 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     return data
 }
 
+function useBowser(id: string){
+    ECONOMY[id].usedBowser = Date.now()
+}
+
 export {
     loadEconomy,
     saveEconomy,
@@ -580,6 +584,7 @@ export {
     economyLooseGrandTotal,
     playerLooseNetWorth,
     canWork,
-    setUserStockSymbol
+    setUserStockSymbol,
+    useBowser
     // tradeItems
 }
