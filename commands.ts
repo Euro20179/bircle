@@ -3178,6 +3178,10 @@ export const commands: { [command: string]: Command } = {
                 if (calculateTotal(dealerCards).total === 21) {
                     economy.loseMoneyToBank(msg.author.id, bet)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
+                    if(Math.random() > .999){
+                        await msg.channel.send("Bowser was actually the dealer and forrces you to pay 3x what you bet")
+                        economy.loseMoneyToBank(msg.author.id, bet * 2)
+                    }
                     return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
                 }
                 let total = 0
