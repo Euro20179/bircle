@@ -143,10 +143,10 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
 }
 
 client.on("messageCreate", async (m: Message) => {
-    if(m.member?.roles.cache.find(v => v.id == '483320646361677825')){
+    if(m.member?.roles.cache.find(v => v.id == '1031064812995760233')){
         return
     }
-    if(m.guild?.id !== globals.GUILD_ID)
+    if(m.guild && m.guild?.id !== globals.GUILD_ID)
         return
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
