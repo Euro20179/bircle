@@ -3078,6 +3078,10 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
             delete globals.BLACKJACK_GAMES[msg.author.id]
+            if(Math.random() > .999){
+                await msg.channel.send("Bowser was actually the dealer and forrces you to pay 3x what you bet")
+                economy.loseMoneyToBank(msg.author.id, bet * 2)
+            }
             return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
         }
         let total = 0
@@ -3553,6 +3557,21 @@ export const commands: { [command: string]: Command } = {
             }
         }, category: CommandCategory.GAME
     },
+
+    "bowser": createCommand(async(msg, args, sendCB) => {
+        //TOOD: add things
+        //lose 10%
+        //gain $0.01
+        //forced to go through an interaction where bowser forces you to buy a useless item.
+        //force bj 10%
+        //force battle with everyone in chat
+        //steal 10% from 1st place
+        //divide everyone's money by 2
+        //double balance
+        //3 free items
+        
+        return {noSend: true}
+    }, CommandCategory.ECONOMY),
 
     replace: {
         run: async (_msg, args, sendCallback) => {
@@ -7925,6 +7944,7 @@ ${styles}
         category: CommandCategory.META
 
     },
+
     "last-run": {
         run: async (msg, args, sendCallback) => {
             let lastRun;
