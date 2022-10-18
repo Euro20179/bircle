@@ -227,6 +227,43 @@ export const slashCommands = [
     }
 ]
 
+type ArgumentType = "str" | "num" | string
+
+function getTypeOfArg(arg: string): ArgumentType{
+    if(!isNaN(Number(arg))){
+        return "num"
+    }
+    return "str"
+}
+
+function expectArgs(args: string[], argumentList: ArgumentType[]){
+    let newArgs = []
+    let currArg = ""
+    let currArgTypeIdx = 0
+    for(let i = 0; i < args.length; i++){
+        let currArgType = argumentList[currArgTypeIdx]
+        let argType = getTypeOfArg(args[i])
+        if(argType !== currArgType && argType !== argumentList[currArgTypeIdx + 1] && argumentList[currArgTypeIdx + 1] !== undefined){
+            return {content: `${args[i]} is not of type ${argumentList[currArgTypeIdx + 1]}`}
+        }
+        else if(argType === currArgType){
+            currArg += args[i]
+        }
+        else if(argType === argumentList[currArgTypeIdx + 1]){
+            newArgs.push(currArg)
+            currArg = ""
+            currArgTypeIdx++
+        }
+        else{
+            return {content: `${args[i]} is not of type ${currArgType}`}
+        }
+    }
+    if(currArg){
+        newArgs.push(currArg)
+    }
+    return newArgs
+}
+
 function createHelpArgument(description: string, required?: boolean, requires?: string) {
     return {
         description: description,
@@ -1260,8 +1297,15 @@ export const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let count = Number(opts['count'] || opts['c'])
-            if (!count)
-                count = 1
+            if (!count){
+                count = Number(args[args.length -1])
+                if(count){
+                    args = args.slice(0, -1)
+                }
+                else{
+                    count = 1
+                }
+            }
             let item = args.join(" ")
             if (!item) {
                 return { content: "no item" }
