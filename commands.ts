@@ -1977,10 +1977,10 @@ export const commands: { [command: string]: Command } = {
             if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
                 let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
                 let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")
+                economy.addMoney(msg.author.id, winningAmount)
                 if(userFormat !== "__default__"){
                     return {content: format(userFormat, {numbers:  ticket.join(" "), amount: String(winningAmount)}), recurse: generateDefaultRecurseBans()}
                 }
-                economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
