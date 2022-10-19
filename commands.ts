@@ -3997,52 +3997,6 @@ export const commands: { [command: string]: Command } = {
         },
         category: CommandCategory.FUN
     },
-    yt: {
-        run: async (msg, args, sendCallback) => {
-            const _fn = generateFileName("yt", msg.author.id)
-            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, _stderr: any) => {
-                if (excep) {
-                    console.log(excep)
-                }
-                else {
-                    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-                    let embed = new MessageEmbed()
-                    for (let item of JSONData) {
-                        embed.addField(`title: ${item.title}`, `url: ${item.url}`)
-                    }
-                    await sendCallback({ embeds: [embed] })
-                }
-            })
-            return { noSend: true }
-        },
-        help: {
-            info: "https://github.com/pystardust/ytfzf/wiki"
-        },
-        category: CommandCategory.FUN
-    },
-    ani: {
-        run: async (msg, args, sendCallback) => {
-            const _fn = generateFileName("ani", msg.author.id)
-            exec(`YTFZF_CONFIG_FILE="" ytfzf -A -IJ -cani ${escapeShell(args.join(" "))}`, async (excep: any, stdout: any, _stderr: any) => {
-                if (excep) {
-                    console.log(excep)
-                }
-                else {
-                    const JSONData = JSON.parse(stdout.replaceAll("[]", "").replaceAll(/\]\s+\[/g, ","))
-                    let embed = new MessageEmbed()
-                    for (let item of JSONData) {
-                        embed.addField(`tiitle: ${item.title}`, `url: ${item.url}`)
-                    }
-                    await sendCallback({ embeds: [embed] })
-                }
-            })
-            return { noSend: true }
-        },
-        help: {
-            info: "get anime :)))))))))"
-        },
-        category: CommandCategory.FUN
-    },
     wiki: {
         run: async (msg, args, sendCallback) => {
             let opts;
