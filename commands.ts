@@ -7,7 +7,7 @@ import fetch = require("node-fetch")
 import cheerio = require('cheerio')
 
 import {spawnSync } from "child_process"
-import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload } from 'discord.js'
+import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild } from 'discord.js'
 import { execSync, exec } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
@@ -309,11 +309,17 @@ export const commands: { [command: string]: Command } = {
     }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
 
     "options": createCommand(async (msg, args) => {
-        let userOpts = user_options.getUserOptions()[msg.author.id]
+        let opts: Opts
+        [opts, args] = getOpts(args)
+        let user = msg.author.id
+        if(opts['of']){
+            user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
+        }
+        let userOpts = user_options.getUserOptions()[user]
         let optionToCheck = args.join(" ").toLowerCase()
         if(optionToCheck){
             //@ts-ignore
-            return {content: `**${optionToCheck}**\n${user_options.getOpt(msg.author.id, optionToCheck, "\\_\\_unset\\_\\_")}`}
+            return {content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`}
         }
         let text = ""
         for (let opt of user_options.allowedOptions) {
