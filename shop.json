@@ -1,6 +1,6 @@
 {
     "tax evasion": {
-        "description": "Increase the time before you can be taxed again by 1 minute (used immediately on purchase)",
+        "description": "Increase the time before you can be taxed again by 30 seconds (used immediately on purchase)",
         "uses": 1,
         "cost": ["8%", "22"]
     },

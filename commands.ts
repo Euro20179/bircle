@@ -2327,7 +2327,7 @@ export const commands: { [command: string]: Command } = {
         }
         let ct = economy.canTax(user.id)
         if (hasItem(user.id, "tax evasion")) {
-            ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
+            ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 30)
         }
         let embed = new MessageEmbed()
         if (ct) {
