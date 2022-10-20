@@ -1,7 +1,6 @@
 import fs = require("fs")
 import https = require('https')
 import Stream = require('stream')
-
 import sharp = require('sharp')
 import fetch = require("node-fetch")
 import cheerio = require('cheerio')

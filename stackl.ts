@@ -1298,11 +1298,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 break
             }
             default: {
-                if (arg.match(/^"([^"]*)"$/)) {
-                    //strings
-                    stack.push(arg.replace(/^"/, "").replace(/"$/, ""))
-                }
-                else if (arg.match(/^\.[^ ]+$/)) {
+                if (arg.match(/^\.[^ ]+$/)) {
                     let data = stack.pop()
                     if (typeof data === 'undefined') {
                         return { err: true, content: `${data} is undefined` }
@@ -1359,6 +1355,9 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                         value = getVar(msg, arg)
                     if (typeof value === 'undefined') {
                         value = getVar(msg, arg, msg.author.id)
+                    }
+                    if(arg.startsWith('"') && arg.endsWith('"')){
+                        value = arg.slice(1, -1)
                     }
                     if (typeof value === 'undefined') {
                         return { content: `var: **${arg}** does not exist`, err: true }
@@ -1424,13 +1423,21 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
     let text = args.join(" ")
     let word = ""
     let inStr = false
+    let escapeStr = false
     for (let i = 0; i < text.length; i++) {
-        if (text[i] == '"') {
+        if(text[i] == "\\" && inStr){
+            escapeStr = true
+            continue
+        }
+        else if(inStr && escapeStr){
+            escapeStr = false
+        }
+        else if (text[i] == '"' && !escapeStr) {
             word += '"'
             inStr = !inStr
             continue
         }
-        if (text[i].match(/\s/) && !inStr) {
+        else if (text[i].match(/\s/) && !inStr) {
             stacklArgs.push(word)
             word = ""
             continue
@@ -1440,6 +1447,7 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
     if (word)
         stacklArgs.push(word)
     args = stacklArgs.filter(a => a ? true : false)
+    console.log(args)
     let recursionC = 0
 
     for (let i = 0; i < args.length; i++) {
