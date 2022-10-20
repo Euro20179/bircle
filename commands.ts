@@ -266,6 +266,42 @@ function createCommand(
 
 export const commands: { [command: string]: Command } = {
 
+    "count": createCommand(async(msg, args) => {
+        if(msg.channel.id !== '468874244021813258'){
+            return {content: "You are not in the counting channel"}
+        }
+        let latestMessage = msg.channel.messages.cache.at(-2)
+        if(!latestMessage){
+            return {noSend: true, delete: true}
+        }
+        let number = latestMessage.content.split(".")[1]
+        if(!number){
+            return {noSend: true, delete: true}
+        }
+        let numeric = Number(number) + 1
+        if(!numeric){
+            return {noSend: true, delete: true}
+        }
+        let count_text = args.join(" ").trim()
+        if(!count_text){
+            count_text = user_options.getOpt(msg.author.id, "count-text", "{count}")
+        }
+        if(!count_text.match("{count}")){
+            count_text = "{count}"
+        }
+        count_text = count_text.replaceAll("{count}", `.${numeric}.`)
+        if(count_text.startsWith(user_options.getOpt(msg.author.id, "prefix", prefix))){
+            msg.content = count_text
+            let rv = await doCmd(msg, true)
+            if(!rv){
+                return {delete: true, noSend: true}
+            }
+            rv['delete'] = true
+            return rv
+        }
+        return {content: count_text, delete: true}
+    }, CommandCategory.FUN),
+
     "option": createCommand(async (msg, args) => {
         let [optname, ...value] = args
         if (!user_options.isValidOption(optname)) {
