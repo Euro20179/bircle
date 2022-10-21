@@ -1,8 +1,9 @@
 ///<reference path="index.d.ts" />
 import fs = require("fs")
 
+import http from 'http'
 
-import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember } from "discord.js"
+import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager } from "discord.js"
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
@@ -10,6 +11,7 @@ const { Routes } = require("discord-api-types/v9")
 import pet = require("./pets")
 import commands = require("./commands")
 import globals = require("./globals")
+import { URLSearchParams } from "url"
 
 const economy = require("./economy")
 const {generateFileName} = require("./util")
@@ -17,7 +19,7 @@ const { saveItems, hasItem } = require("./shop")
 
 const user_options = require("./user-options")
 
-let {client, purgeSnipe,  prefix, BLACKLIST} = require("./common")
+let {client, purgeSnipe,  prefix, BLACKLIST, saveVars} = require("./common")
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
 
@@ -40,7 +42,6 @@ const rest = new REST({ version: "9" }).setToken(globals.token);
 //as the name implies this  function does  a command based on the contents of a  message
 //TODO: Eventually I would  like to make it so that all that is necessary here, is to pass a command
 
-
 client.on("guildMemberAdd", async (m: Message) => {
     try {
         let role = await m.guild?.roles.fetch("427570287232417793")
@@ -57,10 +58,10 @@ client.on('ready', async () => {
     client.guilds.fetch("427567510611820544").then((guild: any) => {
         guild.members.fetch("334538784043696130").then((user: any) => {
             user.createDM().then((dmChannel: any) => {
-                dmChannel.send("ONLINE").catch(console.log)
-            }).catch(console.log)
-        }).catch(console.log)
-    }).catch(console.log)
+                dmChannel.send("ONLINE").catch(() => {})
+            }).catch(() => {})
+        }).catch(() => {})
+    }).catch(() => {})
     console.log("ONLINE")
 })
 
@@ -206,6 +207,9 @@ client.on("messageCreate", async (m: Message) => {
         await handleChatSearchCommandType(m, search)
     }
     if (content.slice(0, local_prefix.length) == local_prefix) {
+        if(m.content === `${local_prefix}END` && m.author.id === "334538784043696130"){
+            server.close()
+        }
         for(let cmd of content.split(`\n${local_prefix};\n`)){
             m.content = `${cmd}`
             await commands.doCmd(m)
@@ -576,3 +580,168 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 })
 
 client.login(globals.token)
+
+const server = http.createServer()
+server.listen(8222)
+
+server.on("request", (req, res) => {
+    let url = req.url
+    if(!url){
+        res.writeHead(404)
+        res.end(JSON.stringify({err: "Page not found"}))
+        return
+    }
+    let paramsStart = url.indexOf("?")
+    let path = url.slice(0, paramsStart > -1 ? paramsStart : undefined)
+    let urlParams: URLSearchParams | null = new URLSearchParams(url.slice(paramsStart))
+    if(paramsStart == -1){
+        urlParams = null
+    }
+    switch(path){
+        case "/economy": {
+            let userId = urlParams?.get("user-id")
+            let econData = economy.getEconomy()
+            let rv;
+            if(userId){
+                if(econData[userId])
+                    rv = econData[userId]
+                else{
+                    rv = {error: "Cannot find data for user"}
+                }
+            }
+            else{
+                rv = econData
+            }
+            res.writeHead(200)
+            res.end(JSON.stringify(rv))
+            break
+        }
+        case "/end": {
+            economy.saveEconomy()
+            saveItems()
+            saveVars()
+            pet.savePetData()
+            client.destroy()
+            res.writeHead(200)
+            res.end(JSON.stringify({success: "Successfully ended bot"}))
+            server.close()
+            break;
+        }
+        case "/send": {
+            let text = urlParams?.get("text")
+            if(!text){
+                res.writeHead(400)
+                res.end(JSON.stringify({error: "No text given"}))
+                break
+            }
+            let inChannel = urlParams?.get("channel-id")
+            client.channels.fetch(inChannel).then((channel: TextChannel) => {
+                channel.send({content: text}).then((msg) => {
+                    res.writeHead(200)
+                    res.end(JSON.stringify(msg.toJSON()))
+                })
+            }).catch((_err: any) => {
+                res.writeHead(444)
+                res.end(JSON.stringify({error: "Channel not found"}))
+            })
+            break
+        }
+        case "/run": {
+            let command = urlParams?.get("cmd")
+            if(!command){
+                res.writeHead(400)
+                res.end(JSON.stringify({error: "No text given"}))
+                break
+            }
+            if(!command.startsWith(prefix)){
+                command = `${prefix}${command}`
+            }
+            let inChannel = urlParams?.get("channel-id")
+            client.channels.fetch(inChannel).then((channel: TextChannel) => {
+                let msg: Message = {
+                    activity: null,
+                    applicationId: client.id,
+                    id: "_1033110249244213260",
+                    attachments: new Collection(),
+                    author: client.user,
+                    channel: channel,
+                    channelId: channel.id,
+                    cleanContent: command as string,
+                    client: client,
+                    components: [],
+                    content: command as string,
+                    createdAt: new Date(Date.now()),
+                    createdTimestamp: Date.now(),
+                    crosspostable: false,
+                    deletable: false,
+                    editable: false,
+                    editedAt: null,
+                    editedTimestamp: null,
+                    embeds: [],
+                    flags: new MessageFlags(),
+                    groupActivityApplication: null,
+                    guild: channel.guild,
+                    guildId: channel.guild.id,
+                    hasThread: false,
+                    interaction: null,
+                    member: null,
+                    //@ts-ignore
+                    mentions: {
+                        channels: new Collection(),
+                        crosspostedChannels: new Collection(),
+                        everyone: false,
+                        members: null,
+                        repliedUser: null,
+                        roles: new Collection(),
+                        users: new Collection(),
+                        has: (data, options) => false,
+                        _channels: null,
+                        _content: command as string,
+                        _members: null,
+                        client: client,
+                        guild: channel.guild,
+                        toJSON: () => {
+                            return {}
+                        }
+                    },
+                    nonce: null,
+                    partial: false,
+                    pinnable: false,
+                    pinned: false,
+                    position: null,
+                    //@ts-ignore
+                    reactions: null,
+                    reference: null,
+                    stockers: new Collection(),
+                    system: false,
+                    thread: null,
+                    tts: false,
+                    type: "DEFAULT",
+                    url: "http://localhost:8222/",
+                    webhookId: null,
+                    _cacheType: false,
+                    _patch: (_data) => {}
+                }
+                commands.doCmd(msg, true).then(rv => {
+                    commands.handleSending(msg, rv as CommandReturn).then(_done => {
+                        res.writeHead(200)
+                        res.end(JSON.stringify(rv))
+                    }).catch(_err => {
+                        res.writeHead(500)
+                        res.end(JSON.stringify({error: "Soething went wrong sending message"}))
+                    })
+                }).catch(_err => {
+                        res.writeHead(500)
+                        res.end(JSON.stringify({error: "Soething went wrong executing command"}))
+                })
+            }).catch((_err: any) => {
+                res.writeHead(444)
+                res.end(JSON.stringify({error: "Channel not found"}))
+            })
+            break
+        }
+        default:
+            res.writeHead(404)
+            res.end(JSON.stringify({error: "Route not found"}))
+    }
+})
