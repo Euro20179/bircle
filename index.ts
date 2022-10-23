@@ -616,6 +616,21 @@ server.on("request", (req, res) => {
             res.end(JSON.stringify(rv))
             break
         }
+        case "/files": {
+            let files = urlParams?.get("file")?.split(" ")
+            if(!files){
+                files = fs.readdirSync(`./command-results/`)
+            }
+            let data: {[file: string]: string} = {}
+            for(let file of files){
+                if(fs.existsSync(`./command-results/${file}`)){
+                    data[file] = fs.readFileSync(`./command-results/${file}`, "utf-8")
+                }
+            }
+            res.writeHead(200)
+            res.end(JSON.stringify(data))
+            break
+        }
         case "/end": {
             economy.saveEconomy()
             saveItems()
