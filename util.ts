@@ -10,6 +10,49 @@ import globals = require("./globals")
 const { execFileSync } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST } = require("./common.js")
 
+class Pipe{
+    data: any[]
+    fn: Function
+    default_data: any
+    #can_set_default: boolean
+    #failed: boolean
+    constructor(...data: any[]){
+        this.data = data.filter(v => v !== undefined)
+        this.fn = (() => this.data)
+        this.#can_set_default = false;
+        this.#failed = false;
+    }
+    static start(...data: any[]){
+        let pipe = new Pipe(...data)
+        return pipe
+    }
+    next(fn: Function): any{
+        this.fn = fn
+        if(this.data.length && !this.#failed){
+            this.#can_set_default = true
+            this.data = this.fn.bind(this)(...this.data)
+        }
+        else{
+            this.data = this.default_data
+            this.#can_set_default = false
+            this.#failed = true;
+        }
+        return this
+    }
+    default(data: any){
+        if(this.#can_set_default || this.data.length == 0){
+            this.default_data = data
+        }
+        return this
+    }
+    done(){
+        if(this.data === undefined){
+            return this.default_data
+        }
+        return this.data
+    }
+}
+
 class UTF8String {
     text: string[]
     constructor(text: string) {
@@ -467,5 +510,6 @@ export {
     getContentFromResult,
     generateHTMLFromCommandHelp,
     generateTextFromCommandHelp,
+    Pipe
 }
 

@@ -20,7 +20,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp } from './util'
+import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 export enum CommandCategory {
@@ -8066,31 +8066,39 @@ ${styles}
             if (!member)
                 member = (await (msg.channel as TextChannel).guild.members.fetch()).random()
             let fmt = args.join(" ") || "%u (%n)"
-            if (!member) return { content: "No member found" }
-            let user = member?.user
-            if (!user) return { content: "No user found" }
-            return {
-                content: format(fmt,
-                    {
-                        id: user.id || "#!N/A",
-                        username: user.username || "#!N/A",
-                        nickname: member.nickname || "#!N/A",
-                        "0xcolor": member.displayHexColor.toString() || "#!N/A",
-                        color: member.displayColor.toString() || "#!N/A",
-                        created: user.createdAt.toString() || "#!N/A",
-                        joined: member.joinedAt?.toString() || "#!N/A",
-                        boost: member.premiumSince?.toString() || "#!N/A",
-                        i: user.id || "#!N/A",
-                        u: user.username || "#!N/A",
-                        n: member.nickname || "#!N/A",
-                        X: member.displayHexColor.toString() || "#!N/A",
-                        x: member.displayColor.toString() || "#!N/A",
-                        c: user.createdAt.toString() || "#!N/A",
-                        j: member.joinedAt?.toString() || "#!N/A",
-                        b: member.premiumSince?.toString() || "#!N/A"
+            return Pipe.start(member)
+                .default({ content: "No member found" })
+                .next(function(member: any) {
+                    if(!member?.user){
+                        return
                     }
-                )
-            }
+                    return [member, member.user]
+                })
+                .default({ content: "No user found" })
+                .next(function(member: GuildMember, user: User){
+                    return {
+                        content: format(fmt,
+                            {
+                                id: user.id || "#!N/A",
+                                username: user.username || "#!N/A",
+                                nickname: member.nickname || "#!N/A",
+                                "0xcolor": member.displayHexColor.toString() || "#!N/A",
+                                color: member.displayColor.toString() || "#!N/A",
+                                created: user.createdAt.toString() || "#!N/A",
+                                joined: member.joinedAt?.toString() || "#!N/A",
+                                boost: member.premiumSince?.toString() || "#!N/A",
+                                i: user.id || "#!N/A",
+                                u: user.username || "#!N/A",
+                                n: member.nickname || "#!N/A",
+                                X: member.displayHexColor.toString() || "#!N/A",
+                                x: member.displayColor.toString() || "#!N/A",
+                                c: user.createdAt.toString() || "#!N/A",
+                                j: member.joinedAt?.toString() || "#!N/A",
+                                b: member.premiumSince?.toString() || "#!N/A"
+                            }
+                        )
+                    }
+                }).done()
         },
         help: {
             info: "Gives a random server member",
@@ -8216,52 +8224,57 @@ ${styles}
             }
             //@ts-ignore
             let member = await fetchUser(msg.guild, args[0])
-            if (!member) {
-                return {
-                    content: "member not found"
-                }
-            }
-            const user = member.user
-            if (args[1]) {
-                const fmt = args.slice(1).join(" ")
-                return {
-                    content: format(fmt
-                        .replaceAll("{id}", user.id || "#!N/A")
-                        .replaceAll("{username}", user.username || "#!N/A")
-                        .replaceAll("{nickname}", member.nickname || "#!N/A")
-                        .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                        .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                        .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                        .replaceAll("{joined}", member.joinedAt?.toString() || "#!N/A")
-                        .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
-                        {
-                            i: user.id || "#!N/A",
-                            u: user.username || "#!N/A",
-                            n: member.nickname || "#!N/A",
-                            X: member.displayHexColor.toString() || "#!N/A",
-                            x: member.displayColor.toString() || "#!N/A",
-                            c: user.createdAt.toString() || "#!N/A",
-                            j: member.joinedAt?.toString() || "#!N/A",
-                            b: member.premiumSince?.toString() || "#!N/A",
-                            a: user.avatarURL() || "#!N/A"
+            return Pipe.start(member)
+                .default({content: "member not found"})
+                .next((member: GuildMember) => {
+                    if(!member.user){
+                        return
+                    }
+                    return [member, member.user]
+                })
+                .default({content: "user not found"})
+                .next((member: GuildMember, user: User) => {
+                    if(args[1]){
+                        const fmt = args.slice(1).join(" ")
+                        return {
+                            content: format(fmt
+                                .replaceAll("{id}", user.id || "#!N/A")
+                                .replaceAll("{username}", user.username || "#!N/A")
+                                .replaceAll("{nickname}", member.nickname || "#!N/A")
+                                .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
+                                .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
+                                .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
+                                .replaceAll("{joined}", member.joinedAt?.toString() || "#!N/A")
+                                .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                                {
+                                    i: user.id || "#!N/A",
+                                    u: user.username || "#!N/A",
+                                    n: member.nickname || "#!N/A",
+                                    X: member.displayHexColor.toString() || "#!N/A",
+                                    x: member.displayColor.toString() || "#!N/A",
+                                    c: user.createdAt.toString() || "#!N/A",
+                                    j: member.joinedAt?.toString() || "#!N/A",
+                                    b: member.premiumSince?.toString() || "#!N/A",
+                                    a: user.avatarURL() || "#!N/A"
+                                }
+                            )
                         }
-                    )
-                }
-            }
-            let embed = new MessageEmbed()
-            embed.setColor(member.displayColor)
-            embed.setThumbnail(user.avatarURL() || "")
-            embed.addField("Id", user.id || "#!N/A", true)
-            embed.addField("Username", user.username || "#!N/A", true)
-            embed.addField("Nickname", member.nickname || "#!N/A", true)
-            embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
-            embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
-            embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
-            embed.addField("Joined at", member.joinedAt?.toString() || "#!N/A", true)
-            embed.addField("Boosting since", member.premiumSince?.toString() || "#!N/A", true)
-            return {
-                embeds: [embed]
-            }
+                    }
+                    let embed = new MessageEmbed()
+                    embed.setColor(member.displayColor)
+                    embed.setThumbnail(user.avatarURL() || "")
+                    embed.addField("Id", user.id || "#!N/A", true)
+                    embed.addField("Username", user.username || "#!N/A", true)
+                    embed.addField("Nickname", member.nickname || "#!N/A", true)
+                    embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
+                    embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
+                    embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
+                    embed.addField("Joined at", member.joinedAt?.toString() || "#!N/A", true)
+                    embed.addField("Boosting since", member.premiumSince?.toString() || "#!N/A", true)
+                    return {
+                        embeds: [embed]
+                    }
+                }).done()
         },
         help: {
             info: `[user-info &lt;user&gt; [format]<br>
