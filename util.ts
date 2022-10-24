@@ -335,7 +335,7 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
         //@ts-ignore
         img = msg.embeds?.at(0)?.image?.url
     }
-    else if (!img) {
+    else if (!img || img == true) {
         //@ts-ignore
         img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }

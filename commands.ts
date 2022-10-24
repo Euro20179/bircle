@@ -6364,6 +6364,79 @@ print(eval("""${args.join(" ")}"""))`
     },
     text: {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+
+            let img;
+            if(opts['img']){
+                img = getImgFromMsgAndOpts(opts, msg)
+            }
+
+            let width = Number(opts['w'])
+            let height = Number(opts['h'])
+            if(width * height > 4000000){
+                return {content: "Too large"}
+            }
+
+            let canv, ctx;
+            if(img){
+                let image = await canvas.loadImage(img as string)
+                width = width || image.width
+                height = height || image.height
+                canv = new canvas.Canvas(width, height, "image")
+                ctx = canv.getContext("2d")
+                ctx.drawImage(image, 0, 0)
+            }
+            else{
+                width = width || 100
+                height = height || 100
+                canv = new canvas.Canvas(width, height, "image")
+                ctx = canv.getContext("2d")
+            }
+
+            let text = args.join(" ")
+            if(!text){
+                return {content: "No text"}
+            }
+
+            let font_size = String(opts['font-size'] || "10") + "px"
+            let font = String(opts['font'] || "serif")
+            ctx.font = `${font_size} ${font}`
+
+            let textInfo = ctx.measureText(text)
+
+            console.log(textInfo)
+
+
+            ctx.textBaseline = "top"
+
+            let req_x = String(opts['x'] || 0)
+            let x = parsePosition(req_x, width, textInfo.width)
+            let req_y = String(opts['y'] || 0)
+            let y = parsePosition(req_y, width, textInfo.width)
+
+            let bg_color = String(opts['bg'] || "transparent")
+            if(bg_color !== 'transparent'){
+                ctx.fillStyle = bg_color
+                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+            }
+
+            ctx.fillStyle = String(opts['color'] || "red")
+
+            ctx.fillText(text, x, y, width)
+
+            let fn = `${generateFileName("text", msg.author.id)}.png`
+            fs.writeFileSync(fn, canv.toBuffer("image/png"))
+
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ]
+            }
             /*
                     let opts
                     [opts, args] = getOpts(args)
