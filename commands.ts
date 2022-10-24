@@ -3270,8 +3270,8 @@ export const commands: { [command: string]: Command } = {
         else if (playerTotal === dealerTotal) {
             status = "TIE"
             if (Math.random() > 0.99) {
-                let UserHp = 100;
-                let SpiderHp = 100;
+                let UserHp = 60;
+                let SpiderHp = 50;
 
                 await sendCallback("a spider jum pon tablew!121 You must defend honor!1 (attack/heal)");
 
@@ -6366,7 +6366,19 @@ print(eval("""${args.join(" ")}"""))`
         },
         category: CommandCategory.IMAGES
     },
+    "img-info": createCommand(async(msg, args, sendCallback) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let img = getImgFromMsgAndOpts(opts, msg)
+        if(!img || img === true){
+            return {content: "No image given"}
+        }
+        let image = await canvas.loadImage(img)
+
+        return {content: `width: ${image.width}\nheight: ${image.height}`}
+    }, CommandCategory.IMAGES),
     text: {
+        //text command
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -6408,6 +6420,14 @@ print(eval("""${args.join(" ")}"""))`
             ctx.font = `${font_size} ${font}`
 
             let textInfo = ctx.measureText(text)
+
+            if(opts['measure']){
+                if(opts['measure'] !== true){
+                    //@ts-ignore
+                    return {content: String(textInfo[opts['measure']])}
+                }
+                return {content: JSON.stringify(textInfo)}
+            }
 
             ctx.textBaseline = Pipe.start(opts['baseline']).default("top").next((v: string) => String(v)).done()
 
@@ -6471,6 +6491,22 @@ print(eval("""${args.join(" ")}"""))`
                 },
                 bg: {
                     description: "The color behind the text"
+                },
+                measure: {
+                    description: `Sends information about the text size
+            <br>
+            Possible values for this option:
+            <ul>
+                <li>None</li>
+                <li>width</li>
+                <li>actualBoundingBoxLeft</li>
+                <li>actualBoundingBoxRight</li>
+                <li>actualBoundingBoxAscent</li>
+                <li>actualBoundingBoxDescent</li>
+                <li>emHeightAscent</li>
+                <li>emHeightDescent</li>
+                <li>alphabeticBaseline</li>
+            </ul>`
                 }
             }
         },
