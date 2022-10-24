@@ -4,7 +4,7 @@ import pet = require('./pets')
 import shop = require("./shop")
 import fetch = require('node-fetch')
 
-const { fetchUser } = require("./util.js")
+const { fetchUser, getFonts } = require("./util.js")
 
 export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>, optional?: string[], extra?: "msg"[]}} = {
     userHasStockSymbol:  {
@@ -64,6 +64,12 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
                     return total
             }
         }
+    },
+    "getFonts": {
+        exec: async() => {
+            return getFonts()
+        },
+        requirements: []
     },
     "input": {
         exec: async ({msg, prompt, who, timeout}: {msg: Message, prompt?: string, who?: boolean | string | number, timeout?: number}) => {

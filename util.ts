@@ -1,4 +1,5 @@
 import cheerio = require("cheerio")
+import { spawnSync } from "child_process"
 
 const vm = require('vm')
 const fs = require('fs')
@@ -7,7 +8,7 @@ import { Client, Guild, Message, MessageEmbed } from "discord.js"
 
 import globals = require("./globals")
 
-const { execFileSync } = require('child_process')
+const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST } = require("./common.js")
 
 class Pipe{
@@ -51,6 +52,20 @@ class Pipe{
         }
         return this.data
     }
+}
+
+function getFonts(){
+    const stdout = spawnSync(`which`, ["fc-list"])
+    let fcBin;
+    if(stdout.stdout.toString("utf-8").length){
+        fcBin = 'fc-list' 
+    }
+    else{
+        fcBin = 'fc-list2'
+    }
+    let  fontsStdout  = spawnSync(fcBin, ["-f", "%{family[0]}\n"])
+    let fonts = fontsStdout.stdout.toString("utf-8").split("\n")
+    return Array.from(new Set(fonts))
 }
 
 class UTF8String {
@@ -510,6 +525,7 @@ export {
     getContentFromResult,
     generateHTMLFromCommandHelp,
     generateTextFromCommandHelp,
-    Pipe
+    Pipe,
+    getFonts
 }
 

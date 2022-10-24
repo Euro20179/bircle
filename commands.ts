@@ -22,7 +22,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe } from './util'
+import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 export enum CommandCategory {
@@ -6368,7 +6368,7 @@ print(eval("""${args.join(" ")}"""))`
             [opts, args] = getOpts(args)
 
             let img;
-            if(opts['img']){
+            if(opts['img'] || msg.attachments.at(0)){
                 img = getImgFromMsgAndOpts(opts, msg)
             }
 
@@ -6399,16 +6399,13 @@ print(eval("""${args.join(" ")}"""))`
                 return {content: "No text"}
             }
 
-            let font_size = String(opts['font-size'] || "10") + "px"
+            let font_size = String(opts['size'] || "10") + "px"
             let font = String(opts['font'] || "serif")
             ctx.font = `${font_size} ${font}`
 
             let textInfo = ctx.measureText(text)
 
-            console.log(textInfo)
-
-
-            ctx.textBaseline = "top"
+            ctx.textBaseline = Pipe.start(opts['baseline']).default("top").next((v: string) => String(v)).done()
 
             let req_x = String(opts['x'] || 0)
             let x = parsePosition(req_x, width, textInfo.width)
@@ -6421,7 +6418,10 @@ print(eval("""${args.join(" ")}"""))`
                 ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
             }
 
-            ctx.fillStyle = String(opts['color'] || "red")
+            ctx.fillStyle = Pipe.start(opts['color'])
+                .default("red")
+                .next((v: string | true) => String(v))
+                .done()
 
             ctx.fillText(text, x, y, width)
 
@@ -6437,61 +6437,6 @@ print(eval("""${args.join(" ")}"""))`
                     }
                 ]
             }
-            /*
-                    let opts
-                    [opts, args] = getOpts(args)
-                    let img = getImgFromMsgAndOpts(opts, msg)
-                    if(!img){
-                        return {content: "no img found"}
-                    }
-                    let size = opts["size"] || "20"
-                    let font = opts["font"] || "Arial"
-                    let color = opts["color"] || "red"
-                    let rotation = opts['rotate'] || opts['angle'] || "0.0"
-                    rotation = parseFloat(rotation)
-                    let x = opts["x"] || "0"
-                    let y = opts["y"] || "0"
-    
-                    let fn = `${generateFileName("text", msg.author.id)}.png`
-    
-                    https.request(img, resp => {
-                        let data = new Stream.Transform()
-                        resp.on("data", chunk => {
-                            data.push(chunk)
-                        })
-                        resp.on("end", async() => {
-                    let d = data.read()
-                    let img = sharp(d)
-                    let imgMeta = await img.metadata()
-                    let [width, height] = [imgMeta.width, imgMeta.height]
-                    let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"> <text x="0" y="0" font-size="${size}" style="font-family: ${font}" fill="${color}">${args.join(" ").trim() || "?"}</text></svg>`
-                    svg2img(svg, (err, buf) => {
-                    console.log(err, buf)
-                    fs.writeFileSync('foo.png', buf)
-                    img.composite([{input: 'foo.png'}]).png().toBuffer().then(buf => {
-                        fs.writeFileSync(fn, buf)
-                        sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
-                        fs.rmSync(fn)
-                        }).catch(err => {
-                        })
-                    })
-                    })
-                    /*
-                    let textMeta = await newText.metadata()
-                    let [textW, textH] = [textMeta.width, textMeta.height]
-                            ctx.drawImage(img, 0, 0, img.width, img.height)
-                            ctx.font = `${size} ${font}`
-                            ctx.fillStyle = color
-                            let textInfo = ctx.measureText(args.join(" ").trim() || "?")
-                            let [textW, textH] = [textInfo.width, textInfo.emHeightAscent]
-                            x = parsePosition(x, width, textW)
-                            y = parsePosition(y, height, textH)
-                        })
-                    }).end()
-                */
-            return {
-                content: "generating img"
-            }
         },
         help: {
             info: "Put text on an image",
@@ -6499,14 +6444,11 @@ print(eval("""${args.join(" ")}"""))`
                 text: {
                     description: "The text to put",
                     required: true
-                },
-                img: {
-                    description: "Image file to use"
                 }
             },
             options: {
                 img: {
-                    description: "Link to image to use"
+                    description: "Whether or not to use an existing image, either pulled from chat, or the message sent"
                 },
                 size: {
                     description: "Size of the text"
@@ -6522,6 +6464,9 @@ print(eval("""${args.join(" ")}"""))`
                 },
                 y: {
                     description: "y of the text"
+                },
+                bg: {
+                    description: "The color behind the text"
                 }
             }
         },
