@@ -368,14 +368,309 @@ export const commands: { [command: string]: Command } = {
             "option": createHelpArgument("The option to check the value of", false)
         }),
 
-    draw: createCommand(async(msg, args) => {
+    draw: createCommand(async(msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
         let width = Pipe.start(opts['w']).default(500).next((v: any) => String(v)).done()
         let height = Pipe.start(opts['h']).default(500).next((v: any) => String(v)).done()
         let canv = new canvas.Canvas(width, height, "image")
         let ctx = canv.getContext('2d')
-        return {noSend: true}
+        ctx.textBaseline = 'top'
+        function createColor(type: string, data: string[], m: Message){
+            switch(type){
+                // case "pattern": {
+                //     let opts: {[key: string]: string} = {};
+                //     if(data.join(" ").trim()){
+                //         opts['img'] = data.join(" ").trim()
+                //     }
+                //     let img_url = getImgFromMsgAndOpts(opts, m)
+                //     console.log(img_url)
+                //     return {color: ctx.createPattern(img_url, "repeat")}
+                // }
+                case 'lgrad':
+                case 'lgradient':
+                case 'linear': {
+                    let info = data.join(" ")
+                    let coords = info.split("|")[0].split(" ").map((v: string) => v.trim())
+                    let x1 = parsePosition(coords[0], canv.width)
+                    let y1 = parsePosition(coords[1], canv.height)
+                    let x2 = parsePosition(coords[2], canv.width)
+                    let y2 = parsePosition(coords[3], canv.height)
+                    const grad = ctx.createLinearGradient(x1, y1, x2, y2)
+                    let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
+                    for(let color of colors){
+                        let [stop, ...c] = color.split(" ")
+                        console.log(stop, c)
+                        color = c.join(" ")
+                        try{
+                            grad.addColorStop(parseFloat(stop), color)
+                        }
+                        catch(err){
+                            return {err:  `Could not add ${color} at stop point ${stop}`}
+                        }
+                    }
+                    return {color: grad}
+                }
+                case 'rgrad':
+                case 'rgradient':
+                case 'radial': {
+                    let info = data.join(" ")
+                    let coords = info.split("|")[0].split(" ").map((v: string) => v.trim())
+                    let x1 = parsePosition(coords[0], canv.width)
+                    let y1 = parsePosition(coords[1], canv.height)
+                    let r1 = parsePosition(coords[2], canv.width)
+                    let x2 = parsePosition(coords[3], canv.width)
+                    let y2 = parsePosition(coords[4], canv.height)
+                    let r2 = parsePosition(coords[5], canv.width)
+                    const grad = ctx.createRadialGradient(x1, y1, r1, x2, y2, r2)
+                    let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
+                    for(let color of colors){
+                        let [stop, ...c] = color.split(" ")
+                        color = c.join(" ")
+                        try{
+                            grad.addColorStop(parseFloat(stop), color)
+                        }
+                        catch(err){
+                            return {err:  `Could not add ${color} at stop point ${stop}`}
+                        }
+                    }
+                    return {color: grad}
+                }
+                case 'solid':{
+                    return {color: data.join(" ")}
+                }
+                default:{
+                    if(data.length){
+                        return {color: type + data.join(" ")}
+                    }
+                    return {color: type}
+                }
+            }
+        }
+        draw_loop: while(true){
+            let m;
+            try{
+                m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 1, time: 120000})
+            }
+            catch(err){
+                let fn = `${generateFileName("draw", msg.author.id)}.png`
+                fs.writeFileSync(fn, canv.toBuffer())
+                return {files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ]}
+            }
+            let actionMessage = m.at(0)
+            if(!actionMessage){
+                break
+            }
+            let action = actionMessage.content.split(" ")[0]
+            let args = actionMessage.content.split(" ").slice(1)
+            switch(action){
+                case "done": {
+                    break draw_loop
+                }
+                case "no": {
+                    let type = args[0]
+                    switch(type){
+                        case "shadow-color":
+                        case "shadow":{
+                            ctx.shadowColor = "transparent"
+                            break
+                        }
+                        case "color": {
+                            ctx.fillStyle = "transparent"
+                            break
+                        }
+                        case "text-baseline":
+                        case "baseline": {
+                            ctx.textBaseline = "top"
+                            break
+                        }
+                        case "outline": {
+                            ctx.strokeStyle = "transparent"
+                            break;
+                        }
+                    }
+                }
+                case "image": {
+                    let [args_str, image] = args.join(" ").split("|")
+                    args = args_str.split(" ")
+                    let [str_dx, str_dy, str_dw, str_dh, str_sx, str_sy, str_sw, str_sh] = args
+                    let opts: any = {};
+                    if(image?.trim()){
+                        opts['img'] = image.trim()
+                    }
+                    image = getImgFromMsgAndOpts(opts, actionMessage) as string
+                    let canv_img = await canvas.loadImage(image as string)
+                    let dx = parsePosition(str_dx || "0", canv.width)
+                    let dy = parsePosition(str_dy || "0", canv.height)
+                    let dw = parsePosition(str_dw || `${canv.width}`, canv.width)
+                    let dh = parsePosition(str_dh  || `${canv.height}`, canv.height)
+                    let sx = parsePosition(str_sx || "0", canv_img.width)
+                    let sy = parsePosition(str_sy || "0", canv_img.height)
+                    let sw = parsePosition(str_sw || `${canv_img.width}`, canv_img.width)
+                    let sh = parsePosition(str_sh || `${canv_img.height}`, canv_img.height)
+                    ctx.drawImage(canv_img, sx, sy, sw, sh, dx, dy, dw, dh)
+                    break
+
+                }
+                case "shadow-color": {
+                    ctx.shadowColor = args.join(" ").trim()
+                    continue
+                }
+                case "shadow-blur": {
+                    ctx.shadowBlur = parseFloat(args.join(" "))
+                    continue
+                }
+                case "shadow-x": {
+                    ctx.shadowOffsetX = parseFloat(args.join(" "))
+                    continue
+                }
+                case "shadow-y": {
+                    ctx.shadowOffsetY = parseFloat(args.join(" "))
+                    continue
+                }
+                case "stroke":
+                case "outline": {
+                    let type = args[0]
+                    let {color, err} = createColor(type, args.slice(1), actionMessage)
+                    if(err){
+                        await sendCallback({content: err})
+                    }
+                    ctx.strokeStyle = color ?? "red"
+                    continue
+                }
+                case "outline-width":
+                case "line-width":
+                case "stroke-width": {
+                    ctx.lineWidth = parseFloat(args.join(" "))
+                    continue
+                }
+                case "outline-type":
+                case "line-type":
+                case "stroke-type": {
+                    ctx.lineJoin = args.join(" ")  as CanvasLineJoin
+                    continue
+                }
+                case "color": {
+                    let type = args[0]
+                    let {color, err} = createColor(type, args.slice(1), actionMessage)
+                    if(err){
+                        await sendCallback({content: err})
+                        continue
+                    }
+                    ctx.fillStyle = color ?? "red"
+                    continue
+                }
+                case 'font': {
+                    let [size, ...font] = args
+                    let font_name = font.join(" ")
+                    let trueSize = parseFloat(size)
+                    if (!trueSize){
+                        font_name = size + font_name
+                        trueSize = 50
+                    }
+                    ctx.font = `${trueSize}px ${font_name}`
+                    continue
+                }
+                case 'text-baseline': {
+                    try{
+                        //@ts-ignore
+                        ctx.textBaseline = args.join(" ")
+                    }
+                    catch(err){
+                        ctx.textBaseline = 'top'
+                    }
+                    continue
+                }
+                case 'text': {
+                    let [strx, stry, ...text] = args
+                    let textInfo = ctx.measureText(text.join(" "))
+                    let font_size = parseFloat(ctx.font)
+                    let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72/96) + textInfo.actualBoundingBoxDescent)]
+                    ctx.fillText(text.join(" ").replaceAll("\\n", "\n"), x, y )
+                    break;
+                }
+                case 'stroke-rect':
+                case 'srect': {
+                    let [str_x, str_y, str_w, str_h] = args
+                    if(!str_x) str_x = "0";
+                    if(!str_y) str_y = "0";
+                    if(!str_w) str_w = String(canv.width);
+                    if(!str_h) str_h = String(canv.height);
+                    let x, y, w, h
+                    w = parsePosition(str_w, canv.width - ctx.lineWidth)
+                    h = parsePosition(str_h, canv.width - ctx.lineWidth)
+                    x = parsePosition(str_x, canv.width, w - ctx.lineWidth / 2)
+                    y = parsePosition(str_y, canv.height, h - ctx.lineWidth / 2)
+                    ctx.strokeRect(x, y, w, h)
+                    break
+                }
+                case "fill": {
+                    ctx.fillRect(0, 0, canv.width, canv.height)
+                    break
+                }
+                case "rect": {
+                    let [str_x, str_y, str_w, str_h] = args
+                    if(!str_x) str_x = "0";
+                    if(!str_y) str_y = "0";
+                    if(!str_w) str_w = String(canv.width);
+                    if(!str_h) str_h = String(canv.height);
+                    let x, y, w, h
+                    w = parsePosition(str_w, canv.width)
+                    h = parsePosition(str_h, canv.width)
+                    x = parsePosition(str_x, canv.width, w)
+                    y = parsePosition(str_y, canv.height, h)
+
+                    ctx.fillRect(x, y, w, h)
+                    break;
+                }
+                case "orect": {
+                    let [str_x, str_y, str_w, str_h] = args
+                    if(!str_x) str_x = "0";
+                    if(!str_y) str_y = "0";
+                    if(!str_w) str_w = String(canv.width);
+                    if(!str_h) str_h = String(canv.height);
+                    let x, y, w, h
+                    w = parsePosition(str_w, canv.width - ctx.lineWidth)
+                    h = parsePosition(str_h, canv.width - ctx.lineWidth)
+                    x = parsePosition(str_x, canv.width, w - ctx.lineWidth / 2)
+                    y = parsePosition(str_y, canv.height, h - ctx.lineWidth / 2)
+                    ctx.strokeRect(x, y, w, h)
+                    ctx.fillRect(x + ctx.lineWidth / 2, y + ctx.lineWidth / 2, w - ctx.lineWidth, h - ctx.lineWidth)
+                    break
+                }
+                case 'rotate': {
+                    let angle = parseFloat(args.join(" "))
+                    ctx.rotate(angle)
+                    break
+                }
+                default: continue
+            }
+            let fn = `${generateFileName("draw", msg.author.id)}.png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            await sendCallback({files: [
+                {
+                    attachment: fn,
+                    name: fn,
+                }
+            ]})
+
+                    
+        }
+        let fn = `${generateFileName("draw", msg.author.id)}.png`
+        fs.writeFileSync(fn, canv.toBuffer())
+        return {files: [
+            {
+                attachment: fn,
+                name: fn,
+                delete: true
+            }
+        ]}
     }, CommandCategory.IMAGES),
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
