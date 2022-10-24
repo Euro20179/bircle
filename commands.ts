@@ -4288,10 +4288,12 @@ export const commands: { [command: string]: Command } = {
     },
     embed: createCommand(
         async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
             let embed = new MessageEmbed()
             for(let arg of args.join(" ").split("\n")){
                 let [type, ...typeArgs] = arg.split(" ")
-                switch(type){
+                switch(type.trim()){
                     case "title": {
                         embed.setTitle(typeArgs.join(" "))
                         break
@@ -4360,6 +4362,9 @@ export const commands: { [command: string]: Command } = {
                     }
                 }
             }
+            if (opts['json']){
+                return {content: JSON.stringify(embed.toJSON())}
+            }
             return {embeds: [embed]}
         }, CommandCategory.UTIL,
         "Create an embed",
@@ -4376,6 +4381,9 @@ footer this is the footer | (optional link to image)
 author this is the author | (optional link to image)
 </pre>
 The order these are given does not matter, excpet for field, which will be added in the order you gave`)
+        },
+        {
+            "json": createHelpOption("Return the json that makes up the embed")
         }
     ),
     calc: {
@@ -6561,7 +6569,32 @@ print(eval("""${args.join(" ")}"""))`
     },
     rotate: {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
-            return commands['filter'].run(msg, [`rotate:${args[0]},${args[1]}`], sendCallback)
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let img = getImgFromMsgAndOpts(opts, msg)
+            if(!img || img === true){
+                return {content: "No image found"}
+            }
+            let amount = Number(args[0]) || 90
+            let color = args[1] || "#00000000"
+            let img_data = await fetch.default(img)
+            let buf = await img_data.buffer()
+            let fn = `${generateFileName("rotate", msg.author.id)}.png`
+            try{
+                await sharp(buf)
+                    .rotate(amount, {background: color})
+                    .toFile(fn)
+                return {files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ]}
+            }
+            catch{
+                return {content: "Something went wrong rotating image"}
+            }
         },
         category: CommandCategory.IMAGES
     },
