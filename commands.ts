@@ -5,7 +5,9 @@ import sharp = require('sharp')
 import fetch = require("node-fetch")
 import cheerio = require('cheerio')
 
-import {spawnSync } from "child_process"
+import canvas = require("canvas")
+
+import { spawnSync } from "child_process"
 import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild } from 'discord.js'
 import { execSync, exec } from 'child_process'
 import globals = require("./globals")
@@ -266,40 +268,40 @@ function createCommand(
 
 export const commands: { [command: string]: Command } = {
 
-    "count": createCommand(async(msg, args) => {
-        if(msg.channel.id !== '468874244021813258'){
-            return {content: "You are not in the counting channel"}
+    "count": createCommand(async (msg, args) => {
+        if (msg.channel.id !== '468874244021813258') {
+            return { content: "You are not in the counting channel" }
         }
         let latestMessage = msg.channel.messages.cache.at(-2)
-        if(!latestMessage){
-            return {noSend: true, delete: true}
+        if (!latestMessage) {
+            return { noSend: true, delete: true }
         }
         let number = latestMessage.content.split(".")[1]
-        if(!number){
-            return {noSend: true, delete: true}
+        if (!number) {
+            return { noSend: true, delete: true }
         }
         let numeric = Number(number) + 1
-        if(!numeric){
-            return {noSend: true, delete: true}
+        if (!numeric) {
+            return { noSend: true, delete: true }
         }
         let count_text = args.join(" ").trim()
-        if(!count_text){
+        if (!count_text) {
             count_text = user_options.getOpt(msg.author.id, "count-text", "{count}")
         }
-        if(!count_text.match("{count}")){
+        if (!count_text.match("{count}")) {
             count_text = "{count}"
         }
         count_text = count_text.replaceAll("{count}", `.${numeric}.`)
-        if(count_text.startsWith(user_options.getOpt(msg.author.id, "prefix", prefix))){
+        if (count_text.startsWith(user_options.getOpt(msg.author.id, "prefix", prefix))) {
             msg.content = count_text
             let rv = await doCmd(msg, true)
-            if(!rv){
-                return {delete: true, noSend: true}
+            if (!rv) {
+                return { delete: true, noSend: true }
             }
             rv['delete'] = true
             return rv
         }
-        return {content: count_text, delete: true}
+        return { content: count_text, delete: true }
     }, CommandCategory.FUN),
 
     "option": createCommand(async (msg, args) => {
@@ -347,14 +349,14 @@ export const commands: { [command: string]: Command } = {
         let opts: Opts
         [opts, args] = getOpts(args)
         let user = msg.author.id
-        if(opts['of']){
+        if (opts['of']) {
             user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
         }
         let userOpts = user_options.getUserOptions()[user]
         let optionToCheck = args.join(" ").toLowerCase()
-        if(optionToCheck){
+        if (optionToCheck) {
             //@ts-ignore
-            return {content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`}
+            return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}` }
         }
         let text = ""
         for (let opt of user_options.allowedOptions) {
@@ -362,9 +364,9 @@ export const commands: { [command: string]: Command } = {
         }
         return { content: text }
     }, CommandCategory.META, "Prints the options for [option, and your values for them",
-    {
-        "option": createHelpArgument("The option to check the value of", false)
-    }),
+        {
+            "option": createHelpArgument("The option to check the value of", false)
+        }),
 
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
@@ -1303,12 +1305,12 @@ export const commands: { [command: string]: Command } = {
             let opts;
             [opts, args] = getOpts(args)
             let count = Number(opts['count'] || opts['c'])
-            if (!count){
-                count = Number(args[args.length -1])
-                if(count){
+            if (!count) {
+                count = Number(args[args.length - 1])
+                if (count) {
                     args = args.slice(0, -1)
                 }
-                else{
+                else {
                     count = 1
                 }
             }
@@ -1595,7 +1597,7 @@ export const commands: { [command: string]: Command } = {
         }, category: CommandCategory.ECONOMY
     },
 
-    "surround-text": createCommand(async(msg, args, sendCB) => {
+    "surround-text": createCommand(async (msg, args, sendCB) => {
         let opts;
         [opts, args] = getOpts(args)
         let maxWidth = Number(opts['max-width']) || 50
@@ -1604,19 +1606,19 @@ export const commands: { [command: string]: Command } = {
         let text = args.join(" ")
         let lines = [horChar.repeat(maxWidth + 2)]
         let currLine = ""
-        for(let i = 1; i <= text.length; i++){
+        for (let i = 1; i <= text.length; i++) {
             let ch = text[i - 1]
             currLine += ch
-            if(i % maxWidth === 0){
+            if (i % maxWidth === 0) {
                 lines.push(vertChar + currLine + vertChar)
                 currLine = ""
             }
         }
-        if(currLine){
+        if (currLine) {
             lines.push(`${vertChar}${" ".repeat((maxWidth - currLine.length) / 2)}${currLine}${" ".repeat((maxWidth - currLine.length) / 2)}${vertChar}`)
         }
         lines.push(horChar.repeat(maxWidth + 2))
-        return {content: `\`\`\`\n${lines.join("\n")}\n\`\`\``}
+        return { content: `\`\`\`\n${lines.join("\n")}\n\`\`\`` }
     }, CommandCategory.UTIL, "Surrounds text with a character"),
 
     "align-table": {
@@ -2020,8 +2022,8 @@ export const commands: { [command: string]: Command } = {
                 let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")
                 economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
-                if(userFormat !== "__default__"){
-                    return {content: format(userFormat, {numbers:  ticket.join(" "), amount: String(winningAmount)}), recurse: generateDefaultRecurseBans()}
+                if (userFormat !== "__default__") {
+                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: generateDefaultRecurseBans() }
                 }
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
@@ -2205,16 +2207,16 @@ export const commands: { [command: string]: Command } = {
             if (opts['t']) {
                 text += `${economy.getEconomy()[user.id].lastTaxed}\n`
             }
-            if (opts['nw']){
+            if (opts['nw']) {
                 text += `${economy.playerLooseNetWorth(user.id)}\n`
             }
             if (text) {
                 return { content: text }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: {parse: []} }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] } }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: {parse: []} }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] } }
         }
         return { content: "none" }
     }, CommandCategory.ECONOMY,
@@ -2363,8 +2365,8 @@ export const commands: { [command: string]: Command } = {
         let user = await fetchUser(msg.guild, args.join(" "))
         if (!user)
             return { content: `${args.join(" ")} not found` }
-        if(user.user.bot){
-            return {content: "Looks like ur taxing a fake person"}
+        if (user.user.bot) {
+            return { content: "Looks like ur taxing a fake person" }
         }
         let ct = economy.canTax(user.id)
         if (hasItem(user.id, "tax evasion")) {
@@ -2911,7 +2913,7 @@ export const commands: { [command: string]: Command } = {
             }, timeRemaining)
         }
         let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-        return {content: heistJoinFormat, recurse: generateDefaultRecurseBans()}
+        return { content: heistJoinFormat, recurse: generateDefaultRecurseBans() }
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
@@ -3048,7 +3050,7 @@ export const commands: { [command: string]: Command } = {
         [opts, args] = getOpts(args)
         let hardMode = Boolean(opts['hard'])
         let betStr = args[0]
-        if(!betStr){
+        if (!betStr) {
             betStr = user_options.getOpt(msg.author.id, "default-bj-bet", "0")
         }
         let bet = economy.calculateAmountFromString(msg.author.id, betStr)
@@ -3132,7 +3134,7 @@ export const commands: { [command: string]: Command } = {
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            if(Math.random() > .999){
+            if (Math.random() > .999) {
                 await msg.channel.send("Bowser was actually the dealer and forrces you to pay 3x what you bet")
                 economy.loseMoneyToBank(msg.author.id, bet * 2)
             }
@@ -3232,7 +3234,7 @@ export const commands: { [command: string]: Command } = {
                 if (calculateTotal(dealerCards).total === 21) {
                     economy.loseMoneyToBank(msg.author.id, bet)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
-                    if(Math.random() > .999){
+                    if (Math.random() > .999) {
                         await msg.channel.send("Bowser was actually the dealer and forrces you to pay 3x what you bet")
                         economy.loseMoneyToBank(msg.author.id, bet * 2)
                     }
@@ -3267,7 +3269,7 @@ export const commands: { [command: string]: Command } = {
         }
         else if (playerTotal === dealerTotal) {
             status = "TIE"
-            if(Math.random() > 0.99){
+            if (Math.random() > 0.99) {
                 let UserHp = 100;
                 let SpiderHp = 100;
 
@@ -3275,10 +3277,10 @@ export const commands: { [command: string]: Command } = {
 
                 let newmsg = await sendCallback(`UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`);
                 while (UserHp >= 0 && SpiderHp >= 0) {
-                    let action = await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, max: 1})
+                    let action = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, max: 1 })
                     let actionMessage = action.at(0)
-                    if(!actionMessage) continue
-                    if(actionMessage.deletable){
+                    if (!actionMessage) continue
+                    if (actionMessage.deletable) {
                         await actionMessage.delete()
                     }
                     let UserInput = actionMessage.content
@@ -3300,10 +3302,10 @@ export const commands: { [command: string]: Command } = {
 
                     let amount = Math.random() * 2 + 1
                     economy.addMoney(msg.author.id, bet * amount);
-                    return {content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}`};
+                    return { content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}` };
                 } else {
                     economy.loseMoneyToBank(msg.author.id, bet);
-                    return {content: "u r ez dead"};
+                    return { content: "u r ez dead" };
                 }
             }
         }
@@ -3919,7 +3921,7 @@ export const commands: { [command: string]: Command } = {
                 return { content: "No data found" }
             }
             const JSONData = JSON.parse(text)
-            function getAmountUntil(userData: any){
+            function getAmountUntil(userData: any) {
                 const desired_rank = userData.level + 1
                 const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
                 const xp_needed = xp_to_desired_rank - userData.xp
@@ -3982,10 +3984,10 @@ export const commands: { [command: string]: Command } = {
                     embed.addField("Level", String(user1Data.level - user2Data.level), true)
                     embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
                     embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
-                embed.addField("XP for next level", String(xp_needed1 - xp_needed2))
-                embed.addField("Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true)
-                embed.addField("Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true)
-                embed.addField("Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true)
+                    embed.addField("XP for next level", String(xp_needed1 - xp_needed2))
+                    embed.addField("Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true)
+                    embed.addField("Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true)
+                    embed.addField("Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true)
                     embeds.push(embed)
                     continue
                 }
@@ -4287,13 +4289,13 @@ export const commands: { [command: string]: Command } = {
 
     },
     embed: createCommand(
-        async(msg, args) => {
+        async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let embed = new MessageEmbed()
-            for(let arg of args.join(" ").split("\n")){
+            for (let arg of args.join(" ").split("\n")) {
                 let [type, ...typeArgs] = arg.split(" ")
-                switch(type.trim()){
+                switch (type.trim()) {
                     case "title": {
                         embed.setTitle(typeArgs.join(" "))
                         break
@@ -4301,59 +4303,59 @@ export const commands: { [command: string]: Command } = {
                     case "field": {
                         let [name, value, inline] = typeArgs.join(" ").split("|").map(v => v.trim())
                         let inlined = false
-                        if(!name){
+                        if (!name) {
                             name = "field"
                         }
-                        if(!value)
+                        if (!value)
                             value = "value"
-                        if(inline === 'true')
+                        if (inline === 'true')
                             inlined = true
                         embed.addField(name, value, inlined)
                         break
                     }
                     case "color": {
-                        try{
+                        try {
                             embed.setColor(typeArgs.join(" ") as ColorResolvable)
                         }
-                        catch(err){
+                        catch (err) {
                             embed.setColor("RED")
                         }
                         break
                     }
                     case "author": {
                         let [author, image] = typeArgs.join(" ").split("|").map(v => v.trim())
-                        if(image)
-                            embed.setAuthor({iconURL: image, name: author})
-                        else{
-                            embed.setAuthor({name: author})
+                        if (image)
+                            embed.setAuthor({ iconURL: image, name: author })
+                        else {
+                            embed.setAuthor({ name: author })
                         }
                         break
                     }
                     case "image": {
                         let image = typeArgs.join(" ")
-                        if(image)
+                        if (image)
                             embed.setImage(image)
                         break
                     }
                     case "thumbnail": {
                         let thumbnail = typeArgs.join(" ")
-                        if(thumbnail)
+                        if (thumbnail)
                             embed.setThumbnail(thumbnail)
                         break
                     }
                     case "footer": {
                         let [text, thumbnail] = typeArgs.join(" ").split("|").map(v => v.trim())
-                        if(thumbnail){
-                            embed.setFooter({text:  text, iconURL: thumbnail})
+                        if (thumbnail) {
+                            embed.setFooter({ text: text, iconURL: thumbnail })
                         }
-                        else{
-                            embed.setFooter({text:  text})
+                        else {
+                            embed.setFooter({ text: text })
                         }
                         break
                     }
                     case "description": {
                         let description = typeArgs.join(" ")
-                        if(description)
+                        if (description)
                             embed.setDescription(description)
                         break
                     }
@@ -4362,10 +4364,10 @@ export const commands: { [command: string]: Command } = {
                     }
                 }
             }
-            if (opts['json']){
-                return {content: JSON.stringify(embed.toJSON())}
+            if (opts['json']) {
+                return { content: JSON.stringify(embed.toJSON()) }
             }
-            return {embeds: [embed]}
+            return { embeds: [embed] }
         }, CommandCategory.UTIL,
         "Create an embed",
         {
@@ -4478,8 +4480,8 @@ print(eval("""${args.join(" ")}"""))`
     "if": {
         run: async (msg, args, sendCallback) => {
             let [condition, cmd] = args.join(" ").split(";")
-            if(!cmd){
-                return {content: "You are missing a ; after the condition"}
+            if (!cmd) {
+                return { content: "You are missing a ; after the condition" }
             }
             cmd = cmd.split(";end")[0]
             if (safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
@@ -4589,7 +4591,7 @@ print(eval("""${args.join(" ")}"""))`
             if (embed) {
                 rv["embeds"] = [embed]
             }
-            if(opts['recurse']){
+            if (opts['recurse']) {
                 rv.recurse = true
             }
             if (wait) {
@@ -4649,16 +4651,16 @@ print(eval("""${args.join(" ")}"""))`
             let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
             let m = await sendCallback({ components: [row], content: content })
-            let collector = m.createMessageComponentCollector({filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000})
-            collector.on("collect", async(interaction) => {
-                if(interaction.user.id !== msg.author.id && opts['anyone'] !== true){
+            let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
+            collector.on("collect", async (interaction) => {
+                if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
                     return
                 }
-                if(opts['say']){
-                    await interaction.reply({content: String(opts['say'])})
+                if (opts['say']) {
+                    await interaction.reply({ content: String(opts['say']) })
                 }
-                else{
-                    await interaction.reply({content: text})
+                else {
+                    await interaction.reply({ content: text })
                 }
             })
             if (!isNaN(delAfter)) {
@@ -4889,16 +4891,16 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.META
     },
     "remove-file": {
-        run: async(msg, args, sendCallback) => {
+        run: async (msg, args, sendCallback) => {
             let file = args[0]
-            if(!file){
-                return {content: "No file specified"}
+            if (!file) {
+                return { content: "No file specified" }
             }
-            if(!fs.existsSync(`./command-results/${file}`)){
-                return {content: `${file} does not exist`}
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                return { content: `${file} does not exist` }
             }
             fs.rmSync(`./command-results/${file}`)
-            return {content: `${file} removed`}
+            return { content: `${file} removed` }
         }, category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
     },
@@ -4925,9 +4927,9 @@ print(eval("""${args.join(" ")}"""))`
                 let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let start = Date.now()
                 let message = await sendCallback({ components: [row] })
-                let collector = message.createMessageComponentCollector({filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id}`})
-                collector.on("collect", async(interaction) => {
-                    await interaction.reply({content: `${Date.now() - start}ms`})
+                let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id}` })
+                collector.on("collect", async (interaction) => {
+                    await interaction.reply({ content: `${Date.now() - start}ms` })
                 })
             }
             return { noSend: true }
@@ -6036,79 +6038,56 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     polygon: {
-        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-            let _opts;
-            return {
-                content: "Broken"
-            }
-            /*
-                [opts, args] = getOpts(args)
-                let gradient = opts['gradient']?.split(">")
-                let color = opts['color'] || "white"
-                let img = getImgFromMsgAndOpts(opts, msg)
-                if(!img){
-                    return {
-                        content: "no img found"
-                    }
-                }
-                args = args.join(" ")
-                let positions = []
-                for(let pos of args.split('|')){
-                    let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
-                    positions.push([x, y])
-                }
-                https.request(img, resp => {
-                    let data = new Stream.Transform()
-                    resp.on("data", chunk => {
-                        data.push(chunk)
-                    })
-                    resp.on("end", async() => {
-                        let fn = `${generateFileName("polygon", msg.author.id)}.png`
-                        fs.writeFileSync(fn, data.read())
-                        let img = await canvas.loadImage(fn)
-                        fs.rmSync(fn)
-                        let canv = new canvas.Canvas(img.width, img.height)
-                        let ctx = canv.getContext("2d")
-                        ctx.drawImage(img, 0, 0, img.width, img.height)
-                        ctx.beginPath()
-
-                        let startX = parsePosition(positions[0][0], img.width)
-                        let startY = parsePosition(positions[0][1], img.height)
-                        ctx.moveTo(startX, startY)
-                        let minX = startX, minY = startY
-                        let maxX = startX, maxY = startY
-                        for(let pos of positions.slice(1)){
-                            let x = parsePosition(pos[0], img.width)
-                            let y = parsePosition(pos[1], img.width)
-                            if(x < minX) minX = x;
-                            if(x > maxX) maxX = x;
-                            if(y < minY) minY = y;
-                            if(y > maxY) maxY = y
-                            ctx.lineTo(x, y)
-                        }
-                        let width = maxX - minX
-                        let height = maxY - minY
-                        if(gradient){
-                            let [lastGrad, grad_angle] = gradient.slice(-1)[0].split(":")
-                            grad_angle = parseFloat(grad_angle) * Math.PI / 180
-                            if(!grad_angle) grad_angle = (opts['grad-angle'] || 0.0) * Math.PI / 180
-                            else gradient[gradient.length - 1] = lastGrad
-                            ctx.fillStyle = await createGradient(gradient, grad_angle, startX, startY, width, height, msg, ctx)
-                        }
-                        else ctx.fillStyle = color
-                        ctx.fill()
-                        const buffer = canv.toBuffer("image/png")
-                        fs.writeFileSync(fn, buffer)
-                        sendCallback({files: [{attachment: fn, name: fn}]}).then(res => {
-                            fs.rmSync(fn)
-                        }).catch(err => {
-                        })
-                    })
-                }).end()
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let color = opts['color'] || "white"
+            let img_link = getImgFromMsgAndOpts(opts, msg)
+            if (!img_link) {
                 return {
-                    content: "generating img"
+                    content: "no img found"
                 }
-            */
+            }
+            let coords = args.join(" ")
+            let positions: [string, string][] = []
+            for (let pos of coords.split('|')) {
+                let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
+                positions.push([x, y])
+            }
+            let img_data = await fetch.default(String(img_link))
+            let fn = `${generateFileName("polygon", msg.author.id)}.png`
+            fs.writeFileSync(fn, await img_data.buffer())
+            let img = await canvas.loadImage(fn)
+            fs.rmSync(fn)
+            let canv = new canvas.Canvas(img.width, img.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(img, 0, 0, img.width, img.height)
+            ctx.beginPath()
+
+            let startX = parsePosition(positions[0][0], img.width)
+            let startY = parsePosition(positions[0][1], img.height)
+            ctx.moveTo(startX, startY)
+            let minX = startX, minY = startY
+            let maxX = startX, maxY = startY
+            for (let pos of positions.slice(1)) {
+                let x = parsePosition(pos[0], img.width)
+                let y = parsePosition(pos[1], img.width)
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y
+                ctx.lineTo(x, y)
+            }
+            ctx.fillStyle = String(color)
+            ctx.fill()
+            const buffer = canv.toBuffer("image/png")
+            fs.writeFileSync(fn, buffer)
+            sendCallback({ files: [{ attachment: fn, name: fn }] }).then(res => {
+                fs.rmSync(fn)
+            })
+            return {
+                content: "generating img"
+            }
         },
         category: CommandCategory.IMAGES
     },
@@ -6384,7 +6363,7 @@ print(eval("""${args.join(" ")}"""))`
         category: CommandCategory.IMAGES
     },
     text: {
-        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
             /*
                     let opts
                     [opts, args] = getOpts(args)
@@ -6399,9 +6378,9 @@ print(eval("""${args.join(" ")}"""))`
                     rotation = parseFloat(rotation)
                     let x = opts["x"] || "0"
                     let y = opts["y"] || "0"
-
+    
                     let fn = `${generateFileName("text", msg.author.id)}.png`
-
+    
                     https.request(img, resp => {
                         let data = new Stream.Transform()
                         resp.on("data", chunk => {
@@ -6572,28 +6551,30 @@ print(eval("""${args.join(" ")}"""))`
             let opts: Opts;
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
-            if(!img || img === true){
-                return {content: "No image found"}
+            if (!img || img === true) {
+                return { content: "No image found" }
             }
             let amount = Number(args[0]) || 90
             let color = args[1] || "#00000000"
             let img_data = await fetch.default(img)
             let buf = await img_data.buffer()
             let fn = `${generateFileName("rotate", msg.author.id)}.png`
-            try{
+            try {
                 await sharp(buf)
-                    .rotate(amount, {background: color})
+                    .rotate(amount, { background: color })
                     .toFile(fn)
-                return {files: [
-                    {
-                        attachment: fn,
-                        name: fn,
-                        delete: true
-                    }
-                ]}
+                return {
+                    files: [
+                        {
+                            attachment: fn,
+                            name: fn,
+                            delete: true
+                        }
+                    ]
+                }
             }
-            catch{
-                return {content: "Something went wrong rotating image"}
+            catch {
+                return { content: "Something went wrong rotating image" }
             }
         },
         category: CommandCategory.IMAGES
@@ -6808,7 +6789,7 @@ print(eval("""${args.join(" ")}"""))`
             await sendCallback(`starting ${id}`)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
-                await handleSending(msg, {content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) })})
+                await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }) })
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
 
             }
@@ -7435,8 +7416,8 @@ ${fs.readdirSync("./command-results").join("\n")}
     },
     'send-log': {
         run: async (_msg, args, sendCallback) => {
-            if(!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)){
-                return {content: "File does not exist"}
+            if (!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)) {
+                return { content: "File does not exist" }
             }
             return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8") }
         }, category: CommandCategory.META
@@ -8102,13 +8083,13 @@ ${styles}
             return Pipe.start(member)
                 .default({ content: "No member found" })
                 .next(function(member: any) {
-                    if(!member?.user){
+                    if (!member?.user) {
                         return
                     }
                     return [member, member.user]
                 })
                 .default({ content: "No user found" })
-                .next(function(member: GuildMember, user: User){
+                .next(function(member: GuildMember, user: User) {
                     return {
                         content: format(fmt,
                             {
@@ -8258,16 +8239,16 @@ ${styles}
             //@ts-ignore
             let member = await fetchUser(msg.guild, args[0])
             return Pipe.start(member)
-                .default({content: "member not found"})
+                .default({ content: "member not found" })
                 .next((member: GuildMember) => {
-                    if(!member.user){
+                    if (!member.user) {
                         return
                     }
                     return [member, member.user]
                 })
-                .default({content: "user not found"})
+                .default({ content: "user not found" })
                 .next((member: GuildMember, user: User) => {
-                    if(args[1]){
+                    if (args[1]) {
                         const fmt = args.slice(1).join(" ")
                         return {
                             content: format(fmt
@@ -8799,11 +8780,11 @@ valid formats:<br>
 
 export let aliases = createAliases()
 
-export function isCmd(text: string, prefix: string){
+export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
-export async function doCmd(msg: Message, returnJson = false, recursion = 0, disable?: {categories?: CommandCategory[], commands?: string[]}) {
+export async function doCmd(msg: Message, returnJson = false, recursion = 0, disable?: { categories?: CommandCategory[], commands?: string[] }) {
     let command: string
     let args: Array<string>
     let doFirsts: { [item: number]: string }
@@ -8843,7 +8824,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         //change this function to essentially do nothing, it just returns the orriginal message as it must return a message
         //msg.channel.send = async (_data) => msg
         skipLength = 2
-        sendCallback = async(_data) => msg
+        sendCallback = async (_data) => msg
     }
     //this regex matches: /redir!?\((prefix)?:variable\)
     else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) { //the redir: modifier
@@ -8863,7 +8844,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
                         place[name] = place[name] + "\n" + _data.content
                     }
                 }
-                else if(typeof _data === 'string'){
+                else if (typeof _data === 'string') {
                     if (typeof redir === 'object') {
                         let [place, name] = redir
                         //@ts-ignore
@@ -8957,7 +8938,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         let rv = await doCmd(msg, true, recursion + 1, disable) as CommandReturn
         msg.content = oldContent
         //recursively evaluate msg.content as a command
-        if(rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20){
+        if (rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20) {
             let oldContent = msg.content
             msg.content = rv.content
             rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
@@ -8992,10 +8973,10 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         if (BLACKLIST[msg.author.id]?.includes(command)) {
             canRun = false
         }
-        if(disable?.commands && disable.commands.includes(command)){
+        if (disable?.commands && disable.commands.includes(command)) {
             canRun = false
         }
-        if(disable?.categories && disable.categories.includes(commands[command].category)){
+        if (disable?.categories && disable.categories.includes(commands[command].category)) {
             canRun = false
         }
         if (canRun) {
@@ -9049,7 +9030,7 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     return [command, aliasPreArgs]
 }
 
-export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0){
+export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0) {
     if (!Object.keys(rv).length) {
         return
     }
@@ -9068,11 +9049,11 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
         delete rv['content']
     }
-    else if(recursion < 20){
+    else if (recursion < 20) {
         //if not empty, save in the _! variable
         setVar("_!", rv.content, msg.author.id)
         setVar("_!", rv.content)
-        if(rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix){
+        if (rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix) {
             let oldContent = msg.content
             msg.content = rv.content
             rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
@@ -9103,21 +9084,21 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         location = msg.author
     }
     try {
-        if(sendCallback){
+        if (sendCallback) {
             await sendCallback(rv)
         }
-        else{
+        else {
             await location.send(rv)
         }
     }
     catch (err) {
         //usually happens when there is nothing to send
         console.log(err)
-        if(sendCallback){
-            await sendCallback({content: "Something went wrong"})
+        if (sendCallback) {
+            await sendCallback({ content: "Something went wrong" })
         }
-        else{
-            await location.send({content: "Something went wrong"})
+        else {
+            await location.send({ content: "Something went wrong" })
         }
     }
     //delete files that were sent
@@ -9129,7 +9110,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
 }
 
-export function generateDefaultRecurseBans(){
-    return  {categories: [ CommandCategory.GAME ], commands: ["sell"]}
+export function generateDefaultRecurseBans() {
+    return { categories: [CommandCategory.GAME], commands: ["sell"] }
 }
 
