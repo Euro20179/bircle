@@ -406,6 +406,59 @@ export const commands: { [command: string]: Command } = {
             ]}
         }, category: CommandCategory.IMAGES
     },
+    'invert': {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let channel = args.map(v => v.toLowerCase())
+            let above = parseInt(opts['above'] as string) || 0
+            let below = parseInt(opts['below'] as string) || 255
+            if(!channel.length){
+                channel = ["red", "green", "blue"]
+            }
+            let img = getImgFromMsgAndOpts(opts, msg)
+            let image = await canvas.loadImage(img as string)
+            let canv = new canvas.Canvas(image.width, image.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(image, 0, 0)
+            let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
+            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
+                let cur_channel = rgba_cycle.next().value
+                if(idx % 4 === 3)
+                    return v
+                if(channel.includes(cur_channel) && (v >= above && v <= below)){
+                    return 255 - v
+                }
+                return v
+            })
+            ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
+            let fn = `${generateFileName("img-channel", msg.author.id)}.png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            return  {files: [
+                {
+                    attachment: fn,
+                    name: fn,
+                    delete: true
+                }
+            ]}
+        }, category: CommandCategory.IMAGES,
+        help: {
+            arguments: {
+                channel: {
+                    description: "The channel to invert, defaults to all",
+                    required: false
+                }
+            },
+            options: {
+                "above": {
+                    description: "Above what value to invert for the channel"
+                },
+                below: {
+                    description: "Below what value to invert for the channel"
+                }
+            }
+        }
+    },
     "img-channel": {
         run: async(msg, args) => {
             let opts;
