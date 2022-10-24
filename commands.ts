@@ -368,6 +368,45 @@ export const commands: { [command: string]: Command } = {
             "option": createHelpArgument("The option to check the value of", false)
         }),
 
+    "img-diff": {
+        run: async(msg, args) => {
+            let [img1, img2] = args
+            if(!img1 || !img2){
+                return {content: "Must provide 2 image links"}
+            }
+            let image1 = await canvas.loadImage(img1 as string)
+            let canv = new canvas.Canvas(image1.width, image1.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(image1, 0, 0)
+            let data1 = ctx.getImageData(0, 0, canv.width, canv.height)
+
+            let image2 = await canvas.loadImage(img2 as string)
+            canv = new canvas.Canvas(image1.width, image1.height)
+            ctx = canv.getContext("2d")
+            ctx.scale(image1.width / image2.width, image1.height / image2.height)
+            ctx.drawImage(image2, 0, 0)
+            let data2 = ctx.getImageData(0, 0, canv.width, canv.height)
+
+            let diffData = data1.data.map((v, idx) =>{
+                let mod = idx % 4 == 3
+                //@ts-ignore
+                return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod^1))
+            })
+
+            //console.log(diffData)
+            ctx.putImageData(new canvas.ImageData(diffData, data1.width, data1.height), 0, 0)
+            let fn = `${generateFileName("img-diff", msg.author.id)}.png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            return {files: [
+                {
+                    attachment: fn,
+                    name: fn,
+                    delete: true
+                }
+            ]}
+        }, category: CommandCategory.IMAGES
+    },
+
     draw: createCommand(async(msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
