@@ -22,7 +22,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList } from './util'
+import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 export enum CommandCategory {
@@ -398,6 +398,41 @@ export const commands: { [command: string]: Command } = {
             let fn = `${generateFileName("img-diff", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer())
             return {files: [
+                {
+                    attachment: fn,
+                    name: fn,
+                    delete: true
+                }
+            ]}
+        }, category: CommandCategory.IMAGES
+    },
+    "img-channel": {
+        run: async(msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let channel = args.map(v => v.toLowerCase())
+            if(!channel.length){
+                return {content: "No channel"}
+            }
+            let img = getImgFromMsgAndOpts(opts, msg)
+            let image = await canvas.loadImage(img as string)
+            let canv = new canvas.Canvas(image.width, image.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(image, 0, 0)
+            let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
+            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
+                let cur_channel = rgba_cycle.next().value
+                if(idx % 4 === 3 && !channel.includes("alpha"))
+                    return v
+                if(channel.includes(cur_channel)){
+                    return v
+                }
+                return 0
+            })
+            ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
+            let fn = `${generateFileName("img-channel", msg.author.id)}.png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            return  {files: [
                 {
                     attachment: fn,
                     name: fn,

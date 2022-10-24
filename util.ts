@@ -81,9 +81,10 @@ class UTF8String {
     }
 }
 
-function* cycle(iter: any, onNext: Function) {
+function* cycle(iter: any, onNext?: Function) {
     for (let i = 0; true; i++) {
-        onNext(i)
+        if(onNext)
+            onNext(i)
         yield iter[i % iter.length]
     }
 }
