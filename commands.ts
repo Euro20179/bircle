@@ -22,7 +22,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts } from './util'
+import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 export enum CommandCategory {
@@ -368,6 +368,15 @@ export const commands: { [command: string]: Command } = {
             "option": createHelpArgument("The option to check the value of", false)
         }),
 
+    draw: createCommand(async(msg, args) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let width = Pipe.start(opts['w']).default(500).next((v: any) => String(v)).done()
+        let height = Pipe.start(opts['h']).default(500).next((v: any) => String(v)).done()
+        let canv = new canvas.Canvas(width, height, "image")
+        let ctx = canv.getContext('2d')
+        return {noSend: true}
+    }, CommandCategory.IMAGES),
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
             return { content: "Ur already editing" }
@@ -6436,16 +6445,38 @@ print(eval("""${args.join(" ")}"""))`
             let req_y = String(opts['y'] || 0)
             let y = parsePosition(req_y, width, textInfo.width)
 
-            let bg_color = String(opts['bg'] || "transparent")
-            if(bg_color !== 'transparent'){
-                ctx.fillStyle = bg_color
+            let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
+            if(bg_colors.length == 1){
+                if(bg_colors[0] !== 'transparent'){
+                    ctx.fillStyle = bg_colors[0]
+                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+                }
+            }
+            else{
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+                let interval = 1 /(bg_colors.length - 1)
+                for(let i = 0; i < bg_colors.length; i++){
+                    console.log(bg_colors[i])
+                    grad.addColorStop(interval * i, bg_colors[i])
+                }
+                ctx.fillStyle = grad
                 ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
             }
 
-            ctx.fillStyle = Pipe.start(opts['color'])
-                .default("red")
-                .next((v: string | true) => String(v))
-                .done()
+            let colors = intoColorList(String(opts['color'] || "red"))
+            if(colors.length == 1){
+                ctx.fillStyle = colors[0]
+            }
+            else{
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+                let interval = 1 /(colors.length - 1)
+                for(let i = 0; i < colors.length; i++){
+                    console.log(colors[i])
+                    grad.addColorStop(interval * i, colors[i])
+                }
+                ctx.fillStyle = grad
+            }
+
 
             ctx.fillText(text, x, y, width)
 

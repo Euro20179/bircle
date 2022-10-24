@@ -96,6 +96,11 @@ function randomColor() {
     return colors
 }
 
+function intoColorList(color: string){
+    return String(color).replaceAll("|", ">").split(">").map(v => v.trim())
+        .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2)).join("")}`)
+}
+
 function choice(list: Array<any> | string) {
     return list[Math.floor(Math.random() * list.length)]
 }
@@ -526,6 +531,7 @@ export {
     generateHTMLFromCommandHelp,
     generateTextFromCommandHelp,
     Pipe,
-    getFonts
+    getFonts,
+    intoColorList
 }
 
