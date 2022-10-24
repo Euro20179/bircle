@@ -3991,7 +3991,7 @@ export const commands: { [command: string]: Command } = {
                     embeds.push(embed)
                     continue
                 }
-                let member: any;
+                let member: GuildMember;
                 if (getRankMode) {
                     member = JSONData.players[Number(requestedUser.trim()) - 1]
                     //@ts-ignore
@@ -4001,7 +4001,7 @@ export const commands: { [command: string]: Command } = {
                     //@ts-ignore
                     member = await fetchUser(msg.guild, requestedUser.trim())
                 if (!member) {
-                    member = msg.author
+                    member = msg.member as GuildMember
                 }
                 //@ts-ignore
                 const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
@@ -4011,6 +4011,10 @@ export const commands: { [command: string]: Command } = {
                 const rank = JSONData.players.indexOf(userData)
                 let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
                 const embed = new MessageEmbed()
+                let aurl = member.user.avatarURL()
+                if(aurl){
+                    embed.setThumbnail(aurl)
+                }
                 embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
                 embed.setColor(member.displayColor)
                 embed.addField("Level", String(userData.level), true)
