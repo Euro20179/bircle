@@ -400,7 +400,6 @@ export const commands: { [command: string]: Command } = {
                     let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
                     for(let color of colors){
                         let [stop, ...c] = color.split(" ")
-                        console.log(stop, c)
                         color = c.join(" ")
                         try{
                             grad.addColorStop(parseFloat(stop), color)
@@ -485,6 +484,10 @@ export const commands: { [command: string]: Command } = {
                             ctx.fillStyle = "transparent"
                             break
                         }
+                        case "text-align":{
+                            ctx.textAlign = "start"
+                            break
+                        }
                         case "text-baseline":
                         case "baseline": {
                             ctx.textBaseline = "top"
@@ -495,6 +498,50 @@ export const commands: { [command: string]: Command } = {
                             break;
                         }
                     }
+                    continue
+                }
+                case "start-path":
+                case "path":
+                case "begin-path":
+                case "begin-stroke":{
+                    ctx.beginPath()
+                    continue
+                }
+                case "end-path":
+                case "stroke":
+                case "end-stroke":{
+                    ctx.stroke()
+                    break
+                }
+                case "fill":
+                case "fill-stroke": {
+                    ctx.fill()
+                    break
+                }
+                case "line-to": {
+                    let [str_x, str_y] = args
+                    let x = parsePosition(str_x, canv.width)
+                    let y = parsePosition(str_y, canv.height)
+                    ctx.lineTo(x, y)
+                    continue
+                }
+                case "goto":
+                case "move-to": {
+                    let [str_x, str_y] = args
+                    let x = parsePosition(str_x, canv.width)
+                    let y = parsePosition(str_y, canv.height)
+                    ctx.moveTo(x, y)
+                    continue
+                }
+                case "arc": {
+                    let [str_x, str_y, str_r, str_sa, str_ea] = args
+                    let r = parsePosition(str_r, canv.width / 2)
+                    let x = parsePosition(str_x, canv.width, r)
+                    let y = parsePosition(str_y, canv.height, r)
+                    let start_angle = parseFloat(str_sa) || 0
+                    let end_angle = parseFloat(str_ea) || 2 * Math.PI
+                    ctx.arc(x, y, r, start_angle * (Math.PI / 180), end_angle)
+                    continue
                 }
                 case "image": {
                     let [args_str, image] = args.join(" ").split("|")
@@ -517,6 +564,14 @@ export const commands: { [command: string]: Command } = {
                     ctx.drawImage(canv_img, sx, sy, sw, sh, dx, dy, dw, dh)
                     break
 
+                }
+                case "shadow": {
+                    let [str_xo, str_yo, str_blur, color] = args
+                    ctx.shadowOffsetX = parseFloat(str_xo) || 0
+                    ctx.shadowOffsetY = parseFloat(str_yo) || 0
+                    ctx.shadowBlur = parseFloat(str_blur) || 0
+                    ctx.shadowColor = color || "red"
+                    continue
                 }
                 case "shadow-color": {
                     ctx.shadowColor = args.join(" ").trim()
@@ -568,13 +623,17 @@ export const commands: { [command: string]: Command } = {
                 }
                 case 'font': {
                     let [size, ...font] = args
-                    let font_name = font.join(" ")
+                    let font_name = font.join(" ") || ctx.font.split(" ")[1].trim() || "serif"
                     let trueSize = parseFloat(size)
                     if (!trueSize){
                         font_name = size + font_name
                         trueSize = 50
                     }
                     ctx.font = `${trueSize}px ${font_name}`
+                    continue
+                }
+                case 'text-align': {
+                    ctx.textAlign = args.join(" ") as CanvasTextAlign
                     continue
                 }
                 case 'text-baseline': {
@@ -587,6 +646,15 @@ export const commands: { [command: string]: Command } = {
                     }
                     continue
                 }
+                case 'stroke-text':
+                case 'stext': {
+                    let [strx, stry, ...text] = args
+                    let textInfo = ctx.measureText(text.join(" "))
+                    let font_size = parseFloat(ctx.font)
+                    let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72/96) + textInfo.actualBoundingBoxDescent)]
+                    ctx.strokeText(text.join(" ").replaceAll("\\n", "\n"), x, y )
+                    break;
+                }
                 case 'text': {
                     let [strx, stry, ...text] = args
                     let textInfo = ctx.measureText(text.join(" "))
@@ -595,8 +663,7 @@ export const commands: { [command: string]: Command } = {
                     ctx.fillText(text.join(" ").replaceAll("\\n", "\n"), x, y )
                     break;
                 }
-                case 'stroke-rect':
-                case 'srect': {
+                case 'box':{
                     let [str_x, str_y, str_w, str_h] = args
                     if(!str_x) str_x = "0";
                     if(!str_y) str_y = "0";
@@ -610,7 +677,16 @@ export const commands: { [command: string]: Command } = {
                     ctx.strokeRect(x, y, w, h)
                     break
                 }
-                case "fill": {
+                case "fill-screen": {
+                    let type = args[0]
+                    if(type){
+                        let {color, err} = createColor(type, args.slice(1), actionMessage)
+                        if(err){
+                            await sendCallback({content: err})
+                            continue
+                        }
+                        ctx.fillStyle = color ?? "red"
+                    }
                     ctx.fillRect(0, 0, canv.width, canv.height)
                     break
                 }
