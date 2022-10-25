@@ -5179,7 +5179,126 @@ print(eval("""${args.join(" ")}"""))`
                 return { content: "You are missing a ; after the condition" }
             }
             cmd = cmd.split(";end")[0]
-            if (safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 })) {
+            let success;
+            if(condition.trim().startsWith(`(${prefix}`)){
+                let command_to_run = ""
+                let check = ""
+                let expected = ""
+                let parenCount = 1
+
+                let end_of_command = 0;
+                let end_of_check = 0;
+
+                for(let i = condition.indexOf("(") + 1; i < condition.length; i++){
+                    let ch = condition[i]
+                    if(ch === "("){
+                        parenCount++;
+                    }
+                    else if(ch === ")"){
+                        parenCount--;
+                    }
+                    if(parenCount === 0){
+                        end_of_command = i + 1;
+                        break;
+                    }
+                    command_to_run += ch
+                }
+                for(let i = end_of_command; i < condition.length; i++){
+                    if(condition[i] === "("){
+                        end_of_check = i + 1;
+                        break;
+                    }
+                    check += condition[i];
+                }
+                parenCount = 1;
+                for(let i = end_of_check; i < condition.length; i++){
+                    let ch = condition[i]
+                    if(ch === "("){
+                        parenCount++;
+                    }
+                    else if(ch === ")"){
+                        parenCount--;
+                    }
+                    if(parenCount === 0){
+                        end_of_command = i + 1;
+                        break;
+                    }
+                    expected += ch;
+                }
+                let oldContent = msg.content;
+                msg.content = command_to_run;
+                let content = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim();
+                expected = expected.trim()
+                msg.content = oldContent;
+                switch(check.trim().toLowerCase()){
+                    case "==": {
+                        success = content === expected;
+                        break;
+                    }
+                    case ">": {
+                        success = Number(content) > Number(expected);
+                        break;
+                    }
+                    case "f>": {
+                        success = parseFloat(content) > parseFloat(expected);
+                        break;
+                    }
+                    case "i>": {
+                        success = parseInt(content) > parseInt(expected);
+                        break;
+                    }
+                    case "<": {
+                        success = Number(content) < Number(expected);
+                        break;
+                    }
+                    case "f<": {
+                        success = parseFloat(content) < parseFloat(expected);
+                        break;
+                    }
+                    case "i<": {
+                        success = parseInt(content) < parseInt(expected);
+                        break;
+                    }
+                    case ">=": {
+                        success = Number(content) >= Number(expected);
+                        break;
+                    }
+                    case "f>=": {
+                        success = parseFloat(content) >= parseFloat(expected);
+                        break;
+                    }
+                    case "i>=": {
+                        success = parseInt(content) >= parseInt(expected);
+                        break;
+                    }
+                    case "<=": {
+                        success = Number(content) <= Number(expected);
+                        break;
+                    }
+                    case "f<=": {
+                        success = parseFloat(content) <= parseFloat(expected);
+                        break;
+                    }
+                    case "i<=": {
+                        success = parseInt(content) <= parseInt(expected);
+                        break;
+                    }
+                    case ":": {
+                        try{
+                            success = !!content.match(expected);
+                        }
+                        catch(err){
+                            success = false;
+                        }
+                        break;
+                    }
+                    case "includes": {
+                        success = content.includes(expected)
+                        break;
+                    }
+                }
+            }
+            if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                 msg.content = `${prefix}${cmd.trim()}`
                 return await doCmd(msg, true) as CommandReturn
             }
