@@ -5521,18 +5521,23 @@ print(eval("""${args.join(" ")}"""))`
                 let roles = user?.roles
                 if (!roles) {
                     return {
-                        contnet: "Could not find roles"
+                        content: "Could not find roles"
                     }
                 }
                 let embed = new MessageEmbed()
                 embed.setTitle(`Roles for: ${user?.user.username}`)
-                let roleList = []
-                //@ts-ignore
-                for (let role of roles) {
-                    roleList.push(await msg.guild?.roles.fetch(role))
+                embed.addField("Role count", String(roles.cache.size))
+                let text = roles.cache.toJSON().join(" ")
+                let backup_text = roles.cache.map(v => v.name).join(" ")
+                if(text.length <= 1024){
+                    embed.addField("Roles", roles.cache.toJSON().join(" "))
                 }
-                embed.addField("Role count", String(roleList.length))
-                embed.addField("Roles", roleList.join(" "))
+                else if(backup_text.length <= 1024){
+                    embed.addField("Roles", backup_text)
+                }
+                else{
+                    embed.addField("Roles", "Too many to list")
+                }
                 embeds.push(embed)
             }
             return {

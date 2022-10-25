@@ -216,6 +216,7 @@ client.on("messageCreate", async (m: Message) => {
                 await commands.doCmd(m)
             }
             catch(err){
+                console.error(err)
                 await m.channel.send({content: `Command failure: **${cmd}**`})
             }
         }
