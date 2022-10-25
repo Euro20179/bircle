@@ -6743,7 +6743,21 @@ print(eval("""${args.join(" ")}"""))`
                 content: "generating img"
             }
         },
-        category: CommandCategory.IMAGES
+        category: CommandCategory.IMAGES,
+        help: {
+            info: "Create a polygon",
+            arguments: {
+                "positions": {
+                    description: "a list of <x> <y> positions seperated by |",
+                    required: true
+                }
+            },
+            options: {
+                color: {
+                    description: "The color of the polygon"
+                }
+            }
+        }
     },
     rect: {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
