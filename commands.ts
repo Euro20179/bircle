@@ -8325,12 +8325,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }, category: CommandCategory.UTIL
     },
     "rfile": {
-        run: async (msg, _args, sendCallback) => {
+        run: async (msg, args, sendCallback) => {
             let att = msg.attachments.at(0)
             if (att) {
-                //@ts-ignore
-                let data: string = await fetch.default(att.attachment).text()
-                return { content: data }
+                let data = await fetch.default(att.attachment.toString())
+                let text = await data.buffer()
+                return { content: text.toString(args[0] || "utf-8") }
             }
             return { noSend: true }
         },
