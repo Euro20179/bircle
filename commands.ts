@@ -313,12 +313,16 @@ export const commands: { [command: string]: Command } = {
         if(!search){
             return {content: "No role given"}
         }
-        let foundRoles = msg.guild?.roles.cache.filter(r => r.name.toLowerCase() == search ? true : false)
-        if (!foundRoles) {
-            foundRoles = msg.guild?.roles.cache.filter(r => r.name.toLowerCase().match(search) ? true : false)
+        let roles = await msg.guild?.roles.fetch()
+        if(!roles){
+            return {content: "No roles"}
         }
-        if (!foundRoles) {
-            foundRoles = msg.guild?.roles.cache.filter(r => r.id == search ? true : false)
+        let foundRoles = roles.filter(r => r.name.toLowerCase() == search.toLowerCase() ? true : false)
+        if (!foundRoles.size) {
+            foundRoles = roles.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) ? true : false)
+        }
+        if (!foundRoles.size) {
+            foundRoles = roles.filter(r => r.id == search ? true : false)
         }
 
         let role = foundRoles?.at(0)
@@ -8923,10 +8927,10 @@ ${styles}
                 return { content: "No roles found" }
             }
             let foundRoles = roles.filter(r => r.name.toLowerCase() == search ? true : false)
-            if (!foundRoles) {
+            if (!foundRoles.size) {
                 foundRoles = roles.filter(r => r.name.toLowerCase().match(search) ? true : false)
             }
-            if (!foundRoles) {
+            if (!foundRoles.size) {
                 foundRoles = roles.filter(r => r.id == search ? true : false)
             }
 
