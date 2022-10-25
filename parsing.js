@@ -452,15 +452,14 @@ function parseDoFirstInnerBracketData(data) {
     if(data == "")
         return [undefined, undefined]
     let [doFirstIndex, slice] = data.split(":")
-    console.log(doFirstIndex, slice, doFirstIndex ==  data)
     if(doFirstIndex == data){
-        slice = Number(doFirstIndex)
+        slice = doFirstIndex
         doFirstIndex = undefined
     }
     else{
         doFirstIndex = Number(doFirstIndex)
         if(slice)
-            slice = Number(slice)
+            slice = slice
         else
             slice = undefined
     }
@@ -486,30 +485,64 @@ function parseDoFirst(cmdData, doFirstCountNoToArgNo, args){
                         data += ch
                     }
                     let [doFirstIndex, slice] = parseDoFirstInnerBracketData(data)
+                    console.log(doFirstIndex, slice)
                     if(doFirstIndex !== undefined && slice === undefined){
                         finalArg += `${cmdData[doFirstCountNoToArgNo[doFirstIndex]]}`
                     }
                     else if(doFirstIndex === undefined && slice !== undefined){
-                        if(slice == -1){
-                            finalArg += "__BIRCLE__UNDEFINED__"
+                        if(slice === "..."){
+                            let splitData = cmdData[argIdx]?.split(" ")
+                            if(splitData === undefined){
+                                finalArg += `%{${data}}`
+                            }
+                            else{
+                                finalArg += splitData[0]
+                                finalArgs.push(finalArg)
+                                finalArg = ""
+                                for(let splitIdx = 1; splitIdx < splitData.length; splitIdx++){
+                                    finalArgs.push(splitData[splitIdx])
+                                }
+                            }
                         }
                         else{
-                            if(cmdData[doFirstCountNoToArgNo[argIdx]]){
-                                let splitData = cmdData[doFirstCountNoToArgNo[argIdx]].split(" ")
-                                finalArg += splitData[slice]
+                            slice = Number(slice)
+                            if(slice == -1){
+                                finalArg += "__BIRCLE__UNDEFINED__"
+                            }
+                            else{
+                                let splitData = cmdData[argIdx]?.split(" ")
+                                if(splitData?.[slice] !== undefined){
+                                    finalArg += splitData?.[slice]
+                                }
+                                else{
+                                    finalArg += `%{${data}}`
+                                }
+                            }
+                        }
+                    }
+                    else if(doFirstIndex !== argIdx && slice !== undefined){
+                        if(slice === "..."){
+                            if(cmdData[doFirstCountNoToArgNo[doFirstIndex]]){
+                                let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
+                                finalArg += splitData[0]
+                                finalArgs.push(finalArg)
+                                for(let splitIdx = 1; splitIdx < splitData.length; splitIdx++){
+                                    finalArgs.push(splitData[splitIdx])
+                                }
                             }
                             else{
                                 finalArg += `%{${data}}`
                             }
                         }
-                    }
-                    else if(doFirstIndex !== argIdx && slice !== undefined){
-                        if(cmdData[doFirstCountNoToArgNo[doFirstIndex]]){
-                            let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
-                            finalArg += `${splitData[slice]}`
-                        }
                         else{
-                            finalArg += `%{${data}}`
+                            slice = Number(slice)
+                            if(cmdData[doFirstCountNoToArgNo[doFirstIndex]]){
+                                let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
+                                finalArg += `${splitData[slice]}`
+                            }
+                            else{
+                                finalArg += `%{${data}}`
+                            }
                         }
                     }
                     else if(isNaN(doFirstIndex)){

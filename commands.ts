@@ -304,6 +304,19 @@ export const commands: { [command: string]: Command } = {
         return { content: count_text, delete: true }
     }, CommandCategory.FUN),
 
+    "is-alias": createCommand(async(msg, args) => {
+        let res = []
+        for(let cmd of args){
+            if(commands[cmd] === undefined){
+                res.push(true)
+            }
+            else{
+                res.push(false)
+            }
+        }
+        return {content: res.join(",")}
+    }, CommandCategory.META, "Checks if a command is an alias"),
+
     "has-role": createCommand(async(msg, args) => {
         let user = args[0]
         let search = args.slice(1).join(" ")
@@ -9376,7 +9389,9 @@ valid formats:<br>
 
     },
     "cmd-use": {
-        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
+            let opts;
+            [opts, args] = getOpts(args)
             let data = globals.generateCmdUseFile()
                 .split("\n")
                 .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
@@ -9385,7 +9400,7 @@ valid formats:<br>
                 .sort((a, b) => a[1] - b[1]) // sort from least to greatest
                 .reverse() //sort from greatest to least
                 .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
-                .join("\n")
+                .join(String(opts['s'] ?? "\n"))
             return {
                 content: data
             }
