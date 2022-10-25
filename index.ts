@@ -212,7 +212,12 @@ client.on("messageCreate", async (m: Message) => {
         }
         for(let cmd of content.split(`\n${local_prefix};\n`)){
             m.content = `${cmd}`
-            await commands.doCmd(m)
+            try{
+                await commands.doCmd(m)
+            }
+            catch(err){
+                await m.channel.send({content: `Command failure: **${cmd}**`})
+            }
         }
         globals.writeCmdUse()
     }

@@ -528,6 +528,9 @@ export const commands: { [command: string]: Command } = {
                     for(let color of colors){
                         let [stop, ...c] = color.split(" ")
                         color = c.join(" ")
+                        if(color === "rand"){
+                            color = `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2))}`
+                        }
                         try{
                             grad.addColorStop(parseFloat(stop), color)
                         }
@@ -553,6 +556,9 @@ export const commands: { [command: string]: Command } = {
                     for(let color of colors){
                         let [stop, ...c] = color.split(" ")
                         color = c.join(" ")
+                        if(color === "rand"){
+                            color = `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2))}`
+                        }
                         try{
                             grad.addColorStop(parseFloat(stop), color)
                         }
