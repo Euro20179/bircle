@@ -8,7 +8,7 @@ import cheerio = require('cheerio')
 import canvas = require("canvas")
 
 import { spawnSync } from "child_process"
-import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild } from 'discord.js'
+import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager } from 'discord.js'
 import { execSync, exec } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
@@ -307,11 +307,11 @@ export const commands: { [command: string]: Command } = {
     "has-role": createCommand(async(msg, args) => {
         let user = args[0]
         let search = args.slice(1).join(" ")
-        if(!user){
-            return {content: "No user given"}
-        }
         if(!search){
             return {content: "No role given"}
+        }
+        if(!user){
+            return {content: "No user given"}
         }
         let roles = await msg.guild?.roles.fetch()
         if(!roles){
@@ -5664,12 +5664,20 @@ print(eval("""${args.join(" ")}"""))`
             [opts, args] = getOpts(args)
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 100
-            let ans = Math.random() * (high - low) + low
-            if (opts['round']) {
-                ans = Math.floor(ans)
+            const count = parseInt(args[2]) || 1
+            if(count > 50000){
+                return {content: "Too many numbers"}
+            }
+            let answers = []
+            for(let i  = 0; i < count; i++){
+                let ans = Math.random() * (high - low) + low
+                if (opts['round']) {
+                    ans = Math.floor(ans)
+                }
+                answers.push(ans)
             }
             return {
-                content: String(ans)
+                content: answers.join(String(opts['s'] || ", "))
             }
         },
         help: {
@@ -5679,11 +5687,17 @@ print(eval("""${args.join(" ")}"""))`
                 },
                 high: {
                     "description": "the highest number (default: 100)"
+                },
+                count: {
+                    description: "The amount of nubers to generate"
                 }
             },
             options: {
                 round: {
                     description: "Round the number"
+                },
+                s: {
+                    description: "What to seperate each number by"
                 }
             }
         },
