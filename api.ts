@@ -136,6 +136,7 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
         }
         case "timeout":
             return parseFloat(argument)
+        case "role":
         case "url":
         case "prompt":
         case "data":

@@ -304,6 +304,34 @@ export const commands: { [command: string]: Command } = {
         return { content: count_text, delete: true }
     }, CommandCategory.FUN),
 
+    "has-role": createCommand(async(msg, args) => {
+        let user = args[0]
+        let search = args.slice(1).join(" ")
+        if(!user){
+            return {content: "No user given"}
+        }
+        if(!search){
+            return {content: "No role given"}
+        }
+        let foundRoles = msg.guild?.roles.cache.filter(r => r.name.toLowerCase() == search ? true : false)
+        if (!foundRoles) {
+            foundRoles = msg.guild?.roles.cache.filter(r => r.name.toLowerCase().match(search) ? true : false)
+        }
+        if (!foundRoles) {
+            foundRoles = msg.guild?.roles.cache.filter(r => r.id == search ? true : false)
+        }
+
+        let role = foundRoles?.at(0)
+        if (!role) {
+            return { content: "Could not find role" }
+        }
+        let member: GuildMember | undefined = await fetchUser(msg.guild as Guild, user)
+        if(!member){
+            return {content: "No member found"}
+        }
+        return {content: String(member.roles.cache.has(role.id))}
+    }, CommandCategory.UTIL),
+
     "option": createCommand(async (msg, args) => {
         let [optname, ...value] = args
         if (!user_options.isValidOption(optname)) {
