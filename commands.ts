@@ -22,7 +22,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { cycle, downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle } from './util'
+import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 export enum CommandCategory {
@@ -444,6 +444,39 @@ export const commands: { [command: string]: Command } = {
             ]}
         }, category: CommandCategory.IMAGES
     },
+    "picsum.photos": createCommand(async(msg, args) => {
+        let opts;
+        [opts, args] = getOpts(args)
+        let width = parseInt(args[0]) || 100;
+        let height = parseInt(args[1]) || 100;
+        let data = await fetch.default(`https://picsum.photos/${width}/${height}`);
+        if(data.status !== 200){
+            return {content: `picsum returned a ${data.status} error`}
+        }
+        if(opts['url']){
+            return {content: data.url}
+        }
+        let png_fetch = await fetch.default(data.url)
+        let png = await png_fetch.buffer()
+        let fn = `${generateFileName("picsum.photos", msg.author.id)}.png`
+        fs.writeFileSync(fn, png)
+        return {files: [
+            {
+                attachment: fn,
+                name: `Image(${width}x${height}).png`,
+                description: `A random image with a width of ${width} and height of ${height}`,
+                delete: true
+            }
+        ]}
+    }, CommandCategory.IMAGES,
+        "Gets an image from picsum.photos",
+        {
+            "width": createHelpArgument("The width of the image", false),
+            "height": createHelpArgument("The height of the image", false, "width")
+        },
+        {
+            "url": createHelpOption("Print the image url instead of giving back the image")
+        }),
     'invert': {
         run: async(msg, args) => {
             let opts;
