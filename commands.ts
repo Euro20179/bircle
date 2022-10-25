@@ -5157,7 +5157,7 @@ class VarHolder:
 null = None
 g = VarHolder(${JSON.stringify(vars['__global__'])})
 u = VarHolder(${JSON.stringify(vars[msg.author.id]) || "{}"})
-print(eval("""${args.join(" ")}"""))`
+print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let moreDat = spawnSync("python3", ["-c", codeStr])
                 let sendText = ""
                 if (moreDat.stderr.toString("utf-8")) {
