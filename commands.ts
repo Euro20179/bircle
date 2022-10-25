@@ -375,6 +375,9 @@ export const commands: { [command: string]: Command } = {
                 return {content: "Must provide 2 image links"}
             }
             let image1 = await canvas.loadImage(img1 as string)
+            if(image1.width * image1.height > 1000000){
+                return {content: "Image 1 is too large"}
+            }
             let canv = new canvas.Canvas(image1.width, image1.height)
             let ctx = canv.getContext("2d")
             ctx.drawImage(image1, 0, 0)
@@ -386,6 +389,9 @@ export const commands: { [command: string]: Command } = {
             ctx.scale(image1.width / image2.width, image1.height / image2.height)
             ctx.drawImage(image2, 0, 0)
             let data2 = ctx.getImageData(0, 0, canv.width, canv.height)
+            if(image2.width * image2.height > 1000000){
+                return {content: "Image 1 is too large"}
+            }
 
             let diffData = data1.data.map((v, idx) =>{
                 let mod = idx % 4 == 3
@@ -418,6 +424,9 @@ export const commands: { [command: string]: Command } = {
             }
             let img = getImgFromMsgAndOpts(opts, msg)
             let image = await canvas.loadImage(img as string)
+            if(image.width * image.height > 1000000){
+                return {content: "Image is too large"}
+            }
             let canv = new canvas.Canvas(image.width, image.height)
             let ctx = canv.getContext("2d")
             ctx.drawImage(image, 0, 0)
