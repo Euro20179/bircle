@@ -602,10 +602,147 @@ export const commands: { [command: string]: Command } = {
             let action = actionMessage.content.split(" ")[0]
             let args = actionMessage.content.split(" ").slice(1)
             switch(action){
-                case "done": {
-                    break draw_loop
+                case "help": {
+                    await handleSending(msg, {content: `
+COLOR TYPES:
+    #rgb
+    #rrggbb
+    #rrggbbaa
+    rgb(r, g, b)
+    rgba(r, g, b, a)
+    hsl(h, s, l)
+    hsla(h, s, l, a)
+    <html color name>
+    lgradient <x1> <y1> <x2> <y2> | <stop1> <css-color> > <stop2> <css-color2> > ...
+        (<x1>, <y1>) is the start of the gradient, (<x2>, <y2>) is the end
+        the stops must be a percentage 0-1
+        css-color must be a basic css-color as listed above
+    rgradient <x1> <y1> <r1> <x2> <y2> <r2> | <stop1> <css-color> > <stop2> <css-color2> > ...
+        I honestly could not tell you how radial gradients work
+
+COMMANDS:
+
+**done**: end drawing
+**no** <type>:
+    set <type> back to default
+    values for type:
+        shadow
+        color
+        text-align
+        text-baseline
+        outline
+
+**start-path** | **path** | **begin-path** | **begin-stroke** :
+    begin a path
+
+**end-path** | **stroke** | **end-stroke**:
+    end a path
+
+**fill** | **fill-stroke**:
+    end a path and fill it
+
+**goto** | **move-to** <x> <y>:
+    change the current position to (<x>, <y>)
+**image** <dx> <dy> [dw [dh [sx [sy [sw [sh]]]]]] | <image>:
+    put the area: (<sx>, <sy>) through (<sx + sw>, <sy + sh>) <image> on the canvas at (<dx>, <dy>) with a width of (<dw>, <dh>)
+
+**shadow** [xo [yo [blur [color]]]]:
+    set shadowOffsetX to <xo> or 0
+    set shadowOffsetY to <yo> or 0
+    set shadowBlur to <blur> or 0
+    set shadowColor to <color> or red
+
+**shadow-color** <color>:
+    set shadowColor to a basic css color
+
+**shadow-x** <x>:
+    set shadowOffsetY to <x>
+
+**shadow-y** <y>:
+    set shadowOffsetY to <y>
+
+**shadow-blur** <blur>:
+    set shadowBlur to <blur>
+
+**outline** | **stroke** [color]:
+    set the stroke style (outline color) to [color] or red
+    see COLOR TYPES for types of colors
+
+**outline-width** | **line-width** | **stroke-width** <width>:
+    set the outline width to <width>
+
+**outline-type** | **line-type** | **stroke-type** <style>:
+    set the line type to <style>
+    style can be:
+        round
+        bevel
+        miter
+
+**color** <color>:
+    set the fill color to <color>
+    see COLOR TYPES for types of colors
+
+**font** [size]:
+**font** [font]:
+**font** [size] [font]:
+    sets the font size to [size], and the font to [font]
+    for a list of fonts, run ${prefix}api getFonts
+
+**text-align** <alignment>:
+    alignment can be:
+        left
+        right
+        center
+        start
+        end
+
+**text-baseline** [baseline]:
+    sets the text baseline to [baseline] or top
+    baseline can be:
+        top
+        hanging
+        middle
+        alphabet
+        ideographic
+        bottom
+
+**stroke-text** | **stext** <x> <y> <text>:
+    Put an outline of <text> at <x> <y>
+
+**text** <x> <y> <text>:
+    Put <text> at (<x>, <y>)
+
+**box** <x> <y> <w> <h>:
+    draw an outline of a box at (<x>, <y>) with a width of <w> and height of <h>
+
+**rect** <x> <y> <w> <h>:
+    put a rectangle at (<x>, <y>) with a width of <w> and height of <h>
+
+**fill-screen** [color]:
+    fill the screen with color
+    see COLOR TYPES for types of colors
+
+**orect** <x> <y> <w> <h>:
+    put an outlined rectangle at (<x>, <y>) with a width of <w> and height of <h>
+
+**rotate** <angle (degrees)>:
+    rotate the canvas by <angle>
+
+The commands below, only work after **path** has been run:
+
+    **line-to** <x> <y>:
+        draw a line starting from the current position, and going to (<x>, <y>)
+
+    **arc** <x> <y> <r> [start-angle [end-angle]]:
+        create an arc at (<x>, <y>) with radius <r>
+
+`}, sendCallback)
+                    continue;
                 }
-                case "no": {
+                case "done": {//{{{
+                    break draw_loop
+                }//}}}
+                case "no": {//{{{
                     let type = args[0]
                     switch(type){
                         case "shadow-color":
@@ -632,41 +769,41 @@ export const commands: { [command: string]: Command } = {
                         }
                     }
                     continue
-                }
-                case "start-path":
+                }//}}}
+                case "start-path"://{{{
                 case "path":
                 case "begin-path":
                 case "begin-stroke":{
                     ctx.beginPath()
                     continue
-                }
-                case "end-path":
+                }//}}}
+                case "end-path"://{{{
                 case "stroke":
                 case "end-stroke":{
                     ctx.stroke()
                     break
-                }
-                case "fill":
+                }//}}}
+                case "fill"://{{{
                 case "fill-stroke": {
                     ctx.fill()
                     break
-                }
-                case "line-to": {
+                }//}}}
+                case "line-to": {//{{{
                     let [str_x, str_y] = args
                     let x = parsePosition(str_x, canv.width)
                     let y = parsePosition(str_y, canv.height)
                     ctx.lineTo(x, y)
                     continue
-                }
-                case "goto":
+                }//}}}
+                case "goto"://{{{
                 case "move-to": {
                     let [str_x, str_y] = args
                     let x = parsePosition(str_x, canv.width)
                     let y = parsePosition(str_y, canv.height)
                     ctx.moveTo(x, y)
                     continue
-                }
-                case "arc": {
+                }//}}}
+                case "arc": {//{{{
                     let [str_x, str_y, str_r, str_sa, str_ea] = args
                     let r = parsePosition(str_r, canv.width / 2)
                     let x = parsePosition(str_x, canv.width, r)
@@ -675,8 +812,8 @@ export const commands: { [command: string]: Command } = {
                     let end_angle = parseFloat(str_ea) || 2 * Math.PI
                     ctx.arc(x, y, r, start_angle * (Math.PI / 180), end_angle)
                     continue
-                }
-                case "image": {
+                }//}}}
+                case "image": {//{{{{{{
                     let [args_str, image] = args.join(" ").split("|")
                     args = args_str.split(" ")
                     let [str_dx, str_dy, str_dw, str_dh, str_sx, str_sy, str_sw, str_sh] = args
@@ -697,32 +834,32 @@ export const commands: { [command: string]: Command } = {
                     ctx.drawImage(canv_img, sx, sy, sw, sh, dx, dy, dw, dh)
                     break
 
-                }
-                case "shadow": {
+                }//}}}}}}
+                case "shadow": {//{{{
                     let [str_xo, str_yo, str_blur, color] = args
                     ctx.shadowOffsetX = parseFloat(str_xo) || 0
                     ctx.shadowOffsetY = parseFloat(str_yo) || 0
                     ctx.shadowBlur = parseFloat(str_blur) || 0
                     ctx.shadowColor = color || "red"
                     continue
-                }
-                case "shadow-color": {
+                }//}}}
+                case "shadow-color": {//{{{
                     ctx.shadowColor = args.join(" ").trim()
                     continue
-                }
-                case "shadow-blur": {
+                }//}}}
+                case "shadow-blur": {//{{{
                     ctx.shadowBlur = parseFloat(args.join(" "))
                     continue
-                }
-                case "shadow-x": {
+                }//}}}
+                case "shadow-x": {//{{{
                     ctx.shadowOffsetX = parseFloat(args.join(" "))
                     continue
                 }
                 case "shadow-y": {
                     ctx.shadowOffsetY = parseFloat(args.join(" "))
                     continue
-                }
-                case "stroke":
+                }//}}}
+                case "stroke"://{{{
                 case "outline": {
                     let type = args[0]
                     let {color, err} = createColor(type, args.slice(1), actionMessage)
@@ -731,20 +868,20 @@ export const commands: { [command: string]: Command } = {
                     }
                     ctx.strokeStyle = color ?? "red"
                     continue
-                }
-                case "outline-width":
+                }//}}}
+                case "outline-width"://{{{
                 case "line-width":
                 case "stroke-width": {
                     ctx.lineWidth = parseFloat(args.join(" "))
                     continue
-                }
-                case "outline-type":
+                }//}}}
+                case "outline-type"://{{{
                 case "line-type":
                 case "stroke-type": {
                     ctx.lineJoin = args.join(" ")  as CanvasLineJoin
                     continue
-                }
-                case "color": {
+                }//}}}
+                case "color": {//{{{
                     let type = args[0]
                     let {color, err} = createColor(type, args.slice(1), actionMessage)
                     if(err){
@@ -753,8 +890,8 @@ export const commands: { [command: string]: Command } = {
                     }
                     ctx.fillStyle = color ?? "red"
                     continue
-                }
-                case 'font': {
+                }//}}}
+                case 'font': {//{{{
                     let [size, ...font] = args
                     let font_name = font.join(" ") || ctx.font.split(" ")[1].trim() || "serif"
                     let trueSize = parseFloat(size)
@@ -764,12 +901,12 @@ export const commands: { [command: string]: Command } = {
                     }
                     ctx.font = `${trueSize}px ${font_name}`
                     continue
-                }
-                case 'text-align': {
+                }//}}}
+                case 'text-align': {//{{{
                     ctx.textAlign = args.join(" ") as CanvasTextAlign
                     continue
-                }
-                case 'text-baseline': {
+                }//}}}
+                case 'text-baseline': {//{{{
                     try{
                         //@ts-ignore
                         ctx.textBaseline = args.join(" ")
@@ -778,8 +915,8 @@ export const commands: { [command: string]: Command } = {
                         ctx.textBaseline = 'top'
                     }
                     continue
-                }
-                case 'stroke-text':
+                }//}}}
+                case 'stroke-text'://{{{
                 case 'stext': {
                     let [strx, stry, ...text] = args
                     let textInfo = ctx.measureText(text.join(" "))
@@ -787,16 +924,16 @@ export const commands: { [command: string]: Command } = {
                     let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72/96) + textInfo.actualBoundingBoxDescent)]
                     ctx.strokeText(text.join(" ").replaceAll("\\n", "\n"), x, y )
                     break;
-                }
-                case 'text': {
+                }//}}}
+                case 'text': {//{{{
                     let [strx, stry, ...text] = args
                     let textInfo = ctx.measureText(text.join(" "))
                     let font_size = parseFloat(ctx.font)
                     let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72/96) + textInfo.actualBoundingBoxDescent)]
                     ctx.fillText(text.join(" ").replaceAll("\\n", "\n"), x, y )
                     break;
-                }
-                case 'box':{
+                }//}}}
+                case 'box':{//{{{
                     let [str_x, str_y, str_w, str_h] = args
                     if(!str_x) str_x = "0";
                     if(!str_y) str_y = "0";
@@ -809,8 +946,8 @@ export const commands: { [command: string]: Command } = {
                     y = parsePosition(str_y, canv.height, h - ctx.lineWidth / 2)
                     ctx.strokeRect(x, y, w, h)
                     break
-                }
-                case "fill-screen": {
+                }//}}}
+                case "fill-screen": {//{{{
                     let type = args[0]
                     if(type){
                         let {color, err} = createColor(type, args.slice(1), actionMessage)
@@ -822,8 +959,8 @@ export const commands: { [command: string]: Command } = {
                     }
                     ctx.fillRect(0, 0, canv.width, canv.height)
                     break
-                }
-                case "rect": {
+                }//}}}
+                case "rect": {//{{{
                     let [str_x, str_y, str_w, str_h] = args
                     if(!str_x) str_x = "0";
                     if(!str_y) str_y = "0";
@@ -837,8 +974,8 @@ export const commands: { [command: string]: Command } = {
 
                     ctx.fillRect(x, y, w, h)
                     break;
-                }
-                case "orect": {
+                }//}}}
+                case "orect": {//{{{
                     let [str_x, str_y, str_w, str_h] = args
                     if(!str_x) str_x = "0";
                     if(!str_y) str_y = "0";
@@ -852,12 +989,12 @@ export const commands: { [command: string]: Command } = {
                     ctx.strokeRect(x, y, w, h)
                     ctx.fillRect(x + ctx.lineWidth / 2, y + ctx.lineWidth / 2, w - ctx.lineWidth, h - ctx.lineWidth)
                     break
-                }
-                case 'rotate': {
+                }//}}}
+                case 'rotate': {//{{{
                     let angle = parseFloat(args.join(" "))
                     ctx.rotate(angle)
                     break
-                }
+                }//}}}
                 default: continue
             }
             let fn = `${generateFileName("draw", msg.author.id)}.png`
