@@ -7113,18 +7113,18 @@ print(eval("""${args.join(" ")}"""))`
             if(bg_colors.length == 1){
                 if(bg_colors[0] !== 'transparent'){
                     ctx.fillStyle = bg_colors[0]
-                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent)
                 }
             }
             else{
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.emHeightDescent)
                 let interval = 1 /(bg_colors.length - 1)
                 for(let i = 0; i < bg_colors.length; i++){
                     console.log(bg_colors[i])
                     grad.addColorStop(interval * i, bg_colors[i])
                 }
                 ctx.fillStyle = grad
-                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent)
+                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent)
             }
 
             let colors = intoColorList(String(opts['color'] || "red"))
