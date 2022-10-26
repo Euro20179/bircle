@@ -5,10 +5,15 @@ import sharp = require('sharp')
 import fetch = require("node-fetch")
 import cheerio = require('cheerio')
 
+import ytdl = require("ytdl-core")
+
 import canvas = require("canvas")
 
+import { Worker, isMainThread, workerData } from "node:worker_threads"
 import { spawnSync } from "child_process"
 import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager } from 'discord.js'
+
+import { AudioPlayer, AudioPlayerStatus, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
 import { execSync, exec } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
@@ -24,6 +29,7 @@ import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermLi
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
+import { parentPort } from "worker_threads"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 export enum CommandCategory {
     UTIL,
@@ -31,7 +37,8 @@ export enum CommandCategory {
     FUN,
     META,
     IMAGES,
-    ECONOMY
+    ECONOMY,
+    VOICE
 }
 
 export let lastCommand: { [key: string]: string } = {};
@@ -246,7 +253,7 @@ function createHelpOption(description: string, alternatives?: string[]) {
 }
 
 function createCommand(
-    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>) => Promise<CommandReturn>,
+    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -265,8 +272,146 @@ function createCommand(
         permCheck: permCheck
     }
 }
+let currently_playing: {link: string, filename: string} | undefined;
+let connection: VoiceConnection | undefined;
+let vc_queue: {link: string, filename: string}[] = []
+const player = createAudioPlayer({
+    behaviors: {
+        noSubscriber: NoSubscriberBehavior.Pause
+    }
+})
+async function play_link({link, filename}: {link: string, filename: string}){
+    currently_playing = {link: link, filename: filename}
+    let is_valid_url
+    let fn = filename
+    try{
+        is_valid_url = ytdl.validateURL(link)
+    }
+    catch(err){
+        let new_link = vc_queue.shift()
+        if(new_link){
+            play_link(new_link)
+        }
+        else{
+            vc_queue = []
+            connection?.destroy()
+        }
+        return
+    }
+    if(is_valid_url){
+        let info = await ytdl.getInfo(link)
+        if(parseFloat(info.videoDetails.lengthSeconds) > 60 * 30){
+            return {content: "too long"}
+        }
+        ytdl(link, {filter: "audioonly"}).pipe(fs.createWriteStream(fn)).on("close", () => {
+            let resource = createAudioResource(fn)
+
+            player.play(resource)
+            connection?.subscribe(player)
+        })
+    }
+    else{
+        fetch.default(link).then(data => {
+            data.buffer().then(value => {
+                if(value.byteLength >= 1024 * 1024 * 20){
+                    let new_link = vc_queue.shift()
+                    if(new_link){
+                        play_link(new_link)
+                    }
+                    else{
+                        vc_queue = []
+                        connection?.destroy()
+                    }
+                    return
+                }
+                fs.writeFile(fn, value, () => {
+                    let resource = createAudioResource(fn)
+                    player.play(resource)
+                    connection?.subscribe(player)
+                })
+            })
+        })
+    }
+}
+player.on(AudioPlayerStatus.Idle, (err) => {
+    fs.rmSync(currently_playing?.filename as string)
+    let new_link = vc_queue.shift()
+    if(new_link){
+        play_link(new_link)
+    }
+    else{
+        vc_queue = []
+        connection?.destroy()
+    }
+
+})
+
 
 export const commands: { [command: string]: Command } = {
+
+    'play': createCommand(async(msg, args) => {
+        let link = args.join(" ")
+        let attachment = msg.attachments.at(0)
+        if(attachment){
+            link = attachment.url
+        }
+        let voice_state = msg.member?.voice
+        if(!voice_state?.channelId){
+            return {content: "No voice"}
+        }
+        connection = joinVoiceChannel({
+            channelId: voice_state.channelId,
+            guildId: msg.guildId as string,
+            //dont unleash the beast that is this massive error message that doesn't even do anything
+            //@ts-ignore
+            adapterCreator: voice_state.guild.voiceAdapterCreator
+        })
+
+        vc_queue.push({link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}`})
+        if(player.state.status === AudioPlayerStatus.Playing){
+            return {content: `${link} added to queue`}
+        }
+        play_link(vc_queue.shift() as {link: string, filename: string})
+        return {content: `loading: ${link}`}
+    }, CommandCategory.VOICE),
+    'queue': createCommand(async(msg, args) => {
+        let embed = new MessageEmbed()
+        embed.setTitle("queue")
+        embed.setDescription(String(currently_playing?.link) || "None")
+        return {content: vc_queue.map(v => v.link).join("\n"), embeds: [embed]}
+    }, CommandCategory.VOICE),
+    'next': createCommand(async(msg, args) =>  {
+        let voice_state = msg.member?.voice
+        if(!voice_state?.channelId){
+            return {content: "No voice"}
+        }
+        fs.rmSync(currently_playing?.filename as string)
+        let new_link = vc_queue.shift()
+        if(new_link){
+            play_link(new_link)
+        }
+        else{
+            vc_queue = []
+            connection?.destroy()
+        }
+        return {content: "next"}
+    }, CommandCategory.VOICE),
+    'leave': createCommand(async(msg, args) => {
+        vc_queue = []
+        let voice_state = msg.member?.voice
+        if(!voice_state?.channelId){
+            return {content: "No voice"}
+        }
+        let con = getVoiceConnection(voice_state.guild.id)
+        if(con){
+            vc_queue = []
+            con.destroy()
+            return {content: "Left vc"}
+        }
+        else{
+            return {content: "Not in vc"}
+        }
+    }, CommandCategory.VOICE),
 
     "count": createCommand(async (msg, args) => {
         if (msg.channel.id !== '468874244021813258') {
@@ -390,9 +535,7 @@ export const commands: { [command: string]: Command } = {
 
     }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
 
-    "options": createCommand(async (msg, args) => {
-        let opts: Opts
-        [opts, args] = getOpts(args)
+    "options": createCommand(async (msg, _, __, opts, args) => {
         let user = msg.author.id
         if (opts['of']) {
             user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
@@ -1435,6 +1578,8 @@ The commands below, only work after **path** has been run:
                 case "fun":
                     catNum = CommandCategory.FUN; break;
                 case "images": catNum = CommandCategory.IMAGES; break;
+                case "economy": catNum = CommandCategory.ECONOMY; break;
+                case "voice": catNum = CommandCategory.VOICE; break;
             }
             let rv = ""
             for (let cmd in commands) {
@@ -1658,7 +1803,7 @@ The commands below, only work after **path** has been run:
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
                     await sendCallback(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
-                    return await commands['bstock'].run(msg, args, sendCallback)
+                    return await commands['bstock'].run(msg, args, sendCallback, {}, args)
                 }
                 //else
                 return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\`` }
@@ -3084,7 +3229,7 @@ The commands below, only work after **path** has been run:
             useItem(msg.author.id, itemstr.toLowerCase(), countnum)
             return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] } }
 
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
     },
 
     tax: createCommand(async (msg, args, sendCallback) => {
@@ -4822,7 +4967,7 @@ The commands below, only work after **path** has been run:
                     return { content: "not found" }
                 }
                 if (resp.headers.get("location")) {
-                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback)
+                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args)
                 }
                 else {
                     let respText = resp.body.read()
@@ -5168,6 +5313,50 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 return { content: sendText }
             }
+            if(opts['f']){
+                //TODO: TESTING
+                //FIXME: this should work when node-canvas updates and is able to be installed normally
+    //             if(isMainThread){
+    //                 return new Promise((res, rej) => {
+    //                     const worker = new Worker(__filename, {
+    //                         workerData: [args, generateSafeEvalContextFromMessage(msg)]
+    //                     })
+    //                     worker.on("message", (m) => res(m))
+    //                     worker.on("error", (r) => rej(r))
+    //                     worker.on("exit", code => {
+    //                         if(code !== 0){
+    //                             rej(new Error(`Exit with code: ${code}`))
+    //                         }
+    //                     })
+    //                 })
+    //             }
+    //             else{
+    //                 let ret = ""
+    //                 let str = `
+    // "use strict";
+    // // const g = arguments[0]; 
+    // // const u = arguments[1];
+    // const args = arguments[0]
+    // // const { uid, uavatar, ubannable, ucolor, uhex, udispname, ujoinedAt, ujoinedTimeStamp, unick, ubot } = arguments[3]
+    // return (${args.join(" ")})`
+    //                 let func =  Function(str)
+    //                 ret = func(...workerData)
+    //                 parentPort?.postMessage(ret)
+    //             }
+//                 try{
+//                     let ans = await new Promise((res, rej) => {
+//                         const timer = setTimeout(() => rej(new Error("timeout")), 3000)
+//                         setInterval(() => console.log(timer), 3000)
+//                         callFunc(vars["__global__"], vars[msg.author.id] || {}, args, generateSafeEvalContextFromMessage(msg))
+//                             .then(data => res(data))
+//                             .finally(() => clearTimeout(timer))
+//                     })
+//                     return {content: stringifyFn(ans)}
+//                 }
+//                 catch(err){
+//                     return {content: String(err) }
+//                 }
+            }
             let ret: string = ""
             try {
                 ret = stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
@@ -5399,9 +5588,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     echo: {
-        run: async (msg: Message, args: ArgumentList, sendCallback) => {
-            let opts
-            [opts, args] = getOpts(args)
+        run: async (msg: Message, _, __, opts, args) => {
             let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)
             let embedText = opts['e'] || opts['embed']
@@ -5497,9 +5684,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.FUN
     },
     button: {
-        run: async (msg, args, sendCallback) => {
-            let opts: Opts
-            [opts, args] = getOpts(args)
+        run: async (msg, _, sendCallback, opts, args) => {
             let content = opts['content']
             let delAfter = NaN
             if (opts['timealive'])
@@ -5570,10 +5755,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.UTIL
     },
     poll: {
-        run: async (_msg, args, sendCallback) => {
+        run: async (_msg, _, sendCallback, opts, args) => {
             let actionRow = new MessageActionRow()
-            let opts: Opts;
-            [opts, args] = getOpts(args)
             let id = String(Math.floor(Math.random() * 100000000))
             args = args.join(" ").split("|")
             let choices = []
@@ -5603,9 +5786,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.FUN
     },
     pfp: {
-        run: async (msg, args, sendCallback) => {
-            let opts: Opts
-            [opts, args] = getOpts(args)
+        run: async (msg, _, sendCallback, opts, args) => {
             let link = args[0]
             if (!link) {
                 link = String(getImgFromMsgAndOpts(opts, msg))
@@ -5672,9 +5853,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     rand: {
-        run: async (msg: Message, args: ArgumentList, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 100
             const count = parseInt(args[2]) || 1
@@ -5784,9 +5963,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         permCheck: m => ADMINS.includes(m.author.id)
     },
     "rt": {
-        run: async (msg, args, sendCallback) => {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
+        run: async (msg, _, sendCallback, opts, args) => {
             if (opts['t']) {
                 sendCallback("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(_m => {
                     try {
@@ -5819,9 +5996,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.FUN
     },
     "search-cmd-file": {
-        run: async (_msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        run: async (_msg, _, sendCallback, opts, args) => {
             let file = args[0]
             let search = args.slice(1).join(" ")
             if (!file) {
@@ -5885,9 +6060,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },
     nick: {
         //@ts-ignore
-        run: async (msg, args, sendCallback) => {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
+        run: async (msg, _, sendCallback, opts, args) => {
             try {
                 (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
             }
@@ -5904,9 +6077,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     },
     uno: {
-        run: async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        run: async (msg, _, sendCallback, opts, args) => {
             let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
             //@ts-ignore
             let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
@@ -7676,7 +7847,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },
     aship: {
         run: async (msg, args, sendCallback) => {
-            return await commands['add'].run(msg, ["ship", args.join(" ")], sendCallback)
+            return await commands['add'].run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")])
         },
         help: {
             info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
@@ -8979,6 +9150,12 @@ ${styles}
     },
     END: {
         run: async (msg: Message, _args: ArgumentList, sendCallback) => {
+            if(fs.existsSync(String(currently_playing?.filename))){
+                try{
+                    fs.rmSync(String(currently_playing?.filename))
+                }
+                catch(err){}
+            }
             await sendCallback("STOPPING")
             economy.saveEconomy()
             saveItems()
@@ -9953,8 +10130,9 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         if (canRun) {
             if (typing)
                 await msg.channel.sendTyping()
-            rv = await commands[command].run(msg, args, sendCallback)
-            //if normal command, it counts as use
+            let [opts, args2] = getOpts(args)
+            rv = await commands[command].run(msg, args, sendCallback, opts, args2)
+                //if normal command, it counts as use
             globals.addToCmdUse(command)
         }
         else rv = { content: "You do not have permissions to run this command" }

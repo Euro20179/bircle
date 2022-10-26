@@ -338,6 +338,10 @@ function cmdCatToStr(cat: number) {
             return "meta"
         case 4:
             return "images"
+        case 5:
+            return "economy"
+        case 6:
+            return "voice"
     }
 }
 

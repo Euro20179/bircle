@@ -13,6 +13,8 @@ log.txt
 make-changelog
 *.txt
 *.png
+*.mp3
+*.mp4
 out
 economy.json
 lottery.json
