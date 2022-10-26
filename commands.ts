@@ -300,8 +300,15 @@ async function play_link({link, filename}: {link: string, filename: string}){
     }
     if(is_valid_url){
         let info = await ytdl.getInfo(link)
-        if(parseFloat(info.videoDetails.lengthSeconds) > 60 * 30){
-            return {content: "too long"}
+        if(info.videoDetails.isLiveContent || parseFloat(info.videoDetails.lengthSeconds) > 60 * 30){
+            let new_link = vc_queue.shift()
+            if(new_link){
+                play_link(new_link)
+            }
+            else{
+                vc_queue = []
+                connection?.destroy()
+            }
         }
         ytdl(link, {filter: "audioonly"}).pipe(fs.createWriteStream(fn)).on("close", () => {
             let resource = createAudioResource(fn)
