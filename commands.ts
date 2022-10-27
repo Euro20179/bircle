@@ -337,6 +337,15 @@ async function play_link({link, filename}: {link: string, filename: string}){
                     connection?.subscribe(player)
                 })
             })
+        }).catch(err => {
+            let new_link = vc_queue.shift()
+            if(new_link){
+                play_link(new_link)
+            }
+            else{
+                vc_queue = []
+                connection?.destroy()
+            }
         })
     }
 }
