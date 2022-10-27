@@ -4628,10 +4628,10 @@ The commands below, only work after **path** has been run:
             action_row.addComponents(last_page, next_page, embeds[current_page].button)
             let m = await sc({components: [action_row], embeds: [embeds[current_page].embed]})
             let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
-            let to = setTimeout(collector.stop, 60000)
+            let to = setTimeout(collector.stop.bind(collector), 60000)
             collector.on("collect", async(int) => {
                 clearTimeout(to)
-                to = setTimeout(collector.stop, 60000)
+                to = setTimeout(collector.stop.bind(collector), 60000)
                 if(int.customId.startsWith('yt.next')){
                     current_page++;
                     if(current_page >= pages){
