@@ -10071,6 +10071,9 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         }
     }
     if (!commands[command]) {
+        if(command.startsWith(prefix)){
+            command = `\\${command}`
+        }
         rv = { content: `${command} does not exist` }
         exists = false
     }
