@@ -5111,7 +5111,32 @@ middle
         },
         category: CommandCategory.FUN
     },
-    wiki: {
+    "wiki": createCommand(async(msg, _,  sb, opts, args) => {
+        let search = args.join(" ").toLowerCase()
+        for(let  file of fs.readdirSync("./wiki")){
+            if(file.toLowerCase().includes(search)){
+                return {
+                    content: fs.readFileSync(`./wiki/${file}`, "utf-8")
+                }
+            }
+        }
+        return {content: "No results"}
+    }, CommandCategory.FUN),
+    "awiki": createCommand(async(msg, args) => {
+        let [title, ...txt] = args.join(" ").split("|")
+        let text = txt.join("|")
+        fs.writeFileSync(`./wiki/${title.trim()}.txt`, text)
+        return {content: `created a page called: ${title}`}
+
+    }, CommandCategory.FUN),
+    "dwiki": createCommand(async(msg, args) => {
+        if(fs.existsSync(`./wiki/${args.join(" ")}.txt`)){
+            fs.rmSync(`./wiki/${args.join(" ")}.txt`)
+            return {content: `removed: ${args.join(" ")}`}
+        }
+        return {content: `${args.join(" ")} not found`}
+    }, CommandCategory.META, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
+    wikipedia: {
         run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -5753,7 +5778,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     "argc": {
-        run: async (_msg, args, sendCallback) => {
+        run: async (_msg, args) => {
             return { content: String(args.length) }
         },
         help: {
@@ -5762,7 +5787,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     opts: {
-        run: async (_msg, args, sendCallback, opts) => {
+        run: async (_msg, _args, _sendCallback, opts) => {
             let disp = ""
             for (let key in opts) {
                 disp += `**${key}**: \`${opts[key]}\`\n`
@@ -5921,7 +5946,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.FUN
     },
     "pcount": {
-        run: async (_msg, args, sendCallback) => {
+        run: async (_msg, args) => {
             let id = args[0]
             if (!id) {
                 return { content: "no id given" }
@@ -5942,7 +5967,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.UTIL
     },
     poll: {
-        run: async (_msg, _, sendCallback, opts, args) => {
+        run: async (_msg, _, _sendCallback, opts, args) => {
             let actionRow = new MessageActionRow()
             let id = String(Math.floor(Math.random() * 100000000))
             args = args.join(" ").split("|")
@@ -5973,7 +5998,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.FUN
     },
     pfp: {
-        run: async (msg, _, sendCallback, opts, args) => {
+        run: async (msg, _, _sendCallback, opts, args) => {
             let link = args[0]
             if (!link) {
                 link = String(getImgFromMsgAndOpts(opts, msg))
@@ -5999,7 +6024,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.FUN
     },
     uptime: {
-        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
+        run: async (_msg: Message, args: ArgumentList) => {
             let uptime = client.uptime
             if (!uptime) {
                 return {
@@ -6040,7 +6065,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     rand: {
-        run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
+        run: async (_msg: Message, _: ArgumentList, _sendCallback, opts, args) => {
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 100
             const count = parseInt(args[2]) || 1
@@ -6083,7 +6108,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.UTIL
     },
     roles: {
-        run: async (msg, args, sendCallback) => {
+        run: async (msg, args) => {
             let users = []
             for (let arg of args) {
                 //@ts-ignore

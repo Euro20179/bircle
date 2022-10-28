@@ -41,3 +41,8 @@ user-options.js
 vars
 
 !command-perms/holder
+
+
+wiki/*
+
+!wiki/index.txt
