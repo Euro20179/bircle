@@ -5130,11 +5130,13 @@ middle
             file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
             let accuracy = 0
             let sequence = 1
-            for(let i = 0; i < file.length; i++){
+            let lastMatch = 0;
+            for(let i = 0; i < search.length; i++){
                 let foundMatch = false
-                for(let j = 0; j < search.length; j++){
-                    if(file[i] === search[j]){
-                        accuracy += (file.length - ((j - i))) * sequence
+                for(let j = lastMatch; j < file.length; j++){
+                    if(file[j] === search[i]){
+                        lastMatch = j
+                        accuracy += (file.length - ((i - j))) * sequence
                         sequence += 1
                         foundMatch = true
                         break
