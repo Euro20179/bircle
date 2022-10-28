@@ -7903,64 +7903,56 @@ If an image is not provided it will be pulled from chat, or an image you gave it
         category: CommandCategory.FUN
     },
     weather: {
-        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+        run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
             let url = "https://www.wttr.in"
             let town = args.join(" ") || "tokyo"
 
-            https.request(`${url}/${encodeURI(town)}?format=1`, resp => {
-                let data = new Stream.Transform()
-                resp.on("data", chunk => {
-                    data.push(chunk)
-                })
-                resp.on('end', async () => {
-                    //@ts-ignore
-                    data = data.read().toString() as string
-                    //@ts-ignore
-                    let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
-                    let condition, temp, unit
-                    try {
-                        [condition, temp, unit] = tempData.slice(1, 4)
-                    }
-                    catch (err) {
-                        await sendCallback({ content: "Could not find weather :(" })
-                        return
-                    }
-                    temp = Number(temp)
-                    let tempC, tempF
-                    if (unit == "C") {
-                        tempF = temp * 9 / 5 + 32
-                        tempC = temp
-                    } else if (unit == "F") {
-                        tempC = (temp - 32) * 5 / 9
-                        tempF = temp
-                    }
-                    else {
-                        tempC = 843902438
-                        tempF = tempC * 9 / 5 + 32
-                    }
-                    let color = "DARK_BUT_NOT_BLACK"
-                    if (tempF >= 110) color = "#aa0000"
-                    if (tempF < 110) color = "#ff0000"
-                    if (tempF < 100) color = "#ff412e"
-                    if (tempF < 90) color = "ORANGE"
-                    if (tempF < 75) color = "YELLOW"
-                    if (tempF < 60) color = "GREEN"
-                    if (tempF < 45) color = "BLUE"
-                    if (tempF < 32) color = "#5be6ff"
-                    if (tempF < 0) color = "PURPLE"
-                    let embed = new MessageEmbed()
-                    embed.setTitle(town)
-                    embed.setColor(color as ColorResolvable)
-                    embed.addField("condition", condition, false)
-                    embed.addField("Temp F", `${tempF}F`, true)
-                    embed.addField("Temp C", `${tempC}C`, true)
-                    embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
-                    await sendCallback({ embeds: [embed] })
-                })
-            }).end()
-            return {
-                content: 'getting weather'
+            let  data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
+            let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
+            if(!tempData){
+                return {content: "Could not find weather"}
             }
+            let condition, temp, unit
+            try {
+                [condition, temp, unit] = tempData.slice(1, 4)
+            }
+            catch (err) {
+                return { content: "Could not find weather :(" }
+            }
+            temp = Number(temp)
+            let tempC, tempF
+            if (unit == "C") {
+                tempF = temp * 9 / 5 + 32
+                tempC = temp
+            } else if (unit == "F") {
+                tempC = (temp - 32) * 5 / 9
+                tempF = temp
+            }
+            else {
+                tempC = 843902438
+                tempF = tempC * 9 / 5 + 32
+            }
+            let color = "DARK_BUT_NOT_BLACK"
+            if (tempF >= 110) color = "#aa0000"
+            if (tempF < 110) color = "#ff0000"
+            if (tempF < 100) color = "#ff412e"
+            if (tempF < 90) color = "ORANGE"
+            if (tempF < 75) color = "YELLOW"
+            if (tempF < 60) color = "GREEN"
+            if (tempF < 45) color = "BLUE"
+            if (tempF < 32) color = "#5be6ff"
+            if (tempF < 0) color = "PURPLE"
+            let embed = new MessageEmbed()
+            embed.setTitle(town)
+            embed.setColor(color as ColorResolvable)
+            embed.addField("condition", condition, false)
+            embed.addField("Temp F", `${tempF}F`, true)
+            embed.addField("Temp C", `${tempC}C`, true)
+            embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
+            if(opts['fmt']){
+                return {content: format(String(opts['fmt']), {f: String(tempF), c: String(tempC), g: color, s: condition, l: town})}
+            }
+            return {embeds: [embed]}
         },
         help: {
             info: "Get weather for a specific place, default: tokyo",
@@ -7968,7 +7960,19 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 "location": {
                     description: "Where do you want the weather for"
                 }
+            },
+            options: {
+                fmt: createHelpOption(`The format to use instead of an embed
+<br>
+Valid formats:
+    %f: temp in F
+    %c: temp in C
+    %g: color
+    %s: condition
+    %l: town
+`)
             }
+
         },
         category: CommandCategory.FUN
     },
