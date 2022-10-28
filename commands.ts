@@ -5134,7 +5134,7 @@ middle
             let matchIndicies: number[] = []
             for(let i = 0; i < search.length; i++){
                 // let foundMatch = false
-                for(let j = lastMatch; j < file.length; j++){
+                for(let j = lastMatch + 1; j < file.length; j++){
                     if(file[j] === search[i]){
                         matchIndicies.push(j)
                         lastMatch = j
