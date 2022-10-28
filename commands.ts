@@ -5131,14 +5131,20 @@ middle
             let accuracy = 0
             let sequence = 1
             for(let i = 0; i < file.length; i++){
+                let foundMatch = false
                 for(let j = 0; j < search.length; j++){
                     if(file[i] === search[j]){
                         accuracy += (file.length - ((j - i))) * sequence
+                        sequence += 1
+                        foundMatch = true
                         break
                     }
                     else if(i === j)
                         sequence = 1
                     accuracy -= 1
+                }
+                if(!foundMatch){
+                    sequence = 1
                 }
             }
             results[file] = accuracy
@@ -6303,6 +6309,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     nick: {
         //@ts-ignore
         run: async (msg, _, sendCallback, opts, args) => {
+            if(args.join(" ").length > 31){
+                return {content: "Too long"}
+            }
             try {
                 (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
             }
