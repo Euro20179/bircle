@@ -13,7 +13,7 @@ import { Worker, isMainThread, workerData } from "node:worker_threads"
 import { execFile, execFileSync, spawnSync } from "child_process"
 import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager } from 'discord.js'
 
-import { AudioPlayer, AudioPlayerStatus, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
+import { AudioPlayer, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
 import { execSync, exec } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
@@ -8200,7 +8200,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
         }, category: CommandCategory.FUN
     },
     spam: {
-        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+        run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -8214,9 +8214,13 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let id = String(Math.floor(Math.random() * 100000000))
             await sendCallback(`starting ${id}`)
             globals.SPAMS[id] = true
+            let delay: number | null = parseFloat(String(opts['delay'])) * 1000 || 0
+            if(delay < 700 || delay > 0x7FFFFFFF){
+                delay = null
+            }
             while (globals.SPAMS[id] && times--) {
                 await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }) })
-                await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+                await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
 
             }
             return {
@@ -8224,7 +8228,22 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             }
         },
         help: {
-            info: "This technically runs the echo command with the -D option in the background, so any special syntax such as $() should work (if preceded with a \\)"
+            info: "This technically runs the echo command with the -D option in the background, so any special syntax such as $() should work (if preceded with a \\)",
+            arguments: {
+                count: {
+                    description: "The amount of times to send a message",
+                    required: false
+                },
+                text: {
+                    description: "TThe text to send",
+                    required: true
+                }
+            },
+            options: {
+                delay: {
+                    description: "The time between each time a mesage is sent"
+                }
+            }
         },
         category: CommandCategory.META
     },
