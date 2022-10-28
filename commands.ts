@@ -4743,7 +4743,19 @@ middle
             }
         }
     },
-
+    'fetch-time': {
+        run: async(msg, args) => {
+            let url = args.join(" ") || "https://www.duckduckgo.com"
+            try{
+                let start = Date.now()
+                await fetch.default(url)
+                return {content: `${Date.now() - start}ms`}
+            }
+            catch(err){
+                return {content: "Problem fetching ".concat(url)}
+            }
+        }, category: CommandCategory.UTIL
+    },
     replace: {
         run: async (_msg, args, sendCallback) => {
             let opts: Opts;
