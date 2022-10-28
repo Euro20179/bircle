@@ -5762,9 +5762,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     opts: {
-        run: async (_msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        run: async (_msg, args, sendCallback, opts) => {
             let disp = ""
             for (let key in opts) {
                 disp += `**${key}**: \`${opts[key]}\`\n`
