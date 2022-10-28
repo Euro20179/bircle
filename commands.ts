@@ -5129,12 +5129,15 @@ middle
         for(let  file of fs.readdirSync("./wiki")){
             file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
             let accuracy = 0
+            let sequence = 1
             for(let i = 0; i < file.length; i++){
                 for(let j = 0; j < search.length; j++){
                     if(file[i] === search[j]){
-                        accuracy += file.length - (j - i)
+                        accuracy += (file.length - ((j - i))) * sequence
                         break
                     }
+                    else if(i === j)
+                        sequence = 1
                     accuracy -= 1
                 }
             }
