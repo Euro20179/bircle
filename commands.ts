@@ -5160,7 +5160,7 @@ middle
         if(opts['all']){
             return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
         }
-        return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > -1).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
+        return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
     }, CommandCategory.FUN),
     "awiki": createCommand(async(msg, args) => {
         let [title, ...txt] = args.join(" ").split("|")
