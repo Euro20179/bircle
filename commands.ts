@@ -4724,7 +4724,7 @@ The commands below, only work after **path** has been run:
     map: {
         run: async (msg, args, sendCallback) => {
             let string = args[0]
-            let functions = args.slice(1).join(" ").split(";EOL").map(v => `${prefix}${v.trim()}`)
+            let functions = args.slice(1).join(" ").split(">map>").map(v => `${prefix}${v.trim()}`)
             if (!functions) {
                 return { content: "nothing to  do" }
             }
