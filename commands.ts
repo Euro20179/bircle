@@ -7633,10 +7633,27 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 img = getImgFromMsgAndOpts(opts, msg)
             }
 
-            let width = Number(opts['w'])
-            let height = Number(opts['h'])
+            let width = Number(opts['w']) || 0
+            let height = Number(opts['h']) || 0
             if(width * height > 4000000){
                 return {content: "Too large"}
+            }
+
+            let text = args.join(" ")
+            if(!text){
+                return {content: "No text"}
+            }
+
+            let font_size = String(opts['size'] || "10") + "px"
+            let font = String(opts['font'] || "serif")
+
+            if(width === 0 || height === 0){
+                let c = new canvas.Canvas(1000, 1000)
+                let ctx = c.getContext("2d")
+                ctx.font = `${font_size} ${font}`
+                let textInfo = ctx.measureText(text)
+                width ||= textInfo.width
+                height ||= parseFloat(font_size) * (72/96) + textInfo.emHeightDescent
             }
 
             let canv, ctx;
@@ -7655,15 +7672,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ctx = canv.getContext("2d")
             }
 
-            let text = args.join(" ")
-            if(!text){
-                return {content: "No text"}
-            }
 
-            let font_size = String(opts['size'] || "10") + "px"
-            let font = String(opts['font'] || "serif")
             ctx.font = `${font_size} ${font}`
-
             let textInfo = ctx.measureText(text)
 
             if(opts['measure']){
