@@ -5113,8 +5113,10 @@ middle
     },
     "wiki": createCommand(async(msg, _,  sb, opts, args) => {
         let search = args.join(" ").toLowerCase()
+        let results = []
         for(let  file of fs.readdirSync("./wiki")){
-            if(file.toLowerCase().includes(search)){
+            let name = file.toLowerCase()
+            if(name.replace(".txt", "") === search){
                 return {
                     content: fs.readFileSync(`./wiki/${file}`, "utf-8")
                 }
@@ -5122,8 +5124,31 @@ middle
         }
         return {content: "No results"}
     }, CommandCategory.FUN),
+    "search-wiki": createCommand(async(msg, _, sb, opts, args) => {
+        let search = args.join(" ")
+        let results: {[key: string]: number} = {}
+        for(let  file of fs.readdirSync("./wiki")){
+            file = file.replaceAll("%2f", "/").slice(0, -4)
+            let accuracy = 0
+            for(let i = 0; i < file.length; i++){
+                for(let j = 0; j < search.length; j++){
+                    if(file[i] === search[j]){
+                        accuracy += file.length - (j - i)
+                        break
+                    }
+                    accuracy -= 1
+                }
+            }
+            results[file] = accuracy
+        }
+        if(opts['all']){
+            return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
+        }
+        return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > -1).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
+    }, CommandCategory.FUN),
     "awiki": createCommand(async(msg, args) => {
         let [title, ...txt] = args.join(" ").split("|")
+        title = title.trim().replaceAll("/", "%2f")
         let text = txt.join("|")
         fs.writeFileSync(`./wiki/${title.trim()}.txt`, text)
         return {content: `created a page called: ${title}`}
