@@ -5732,10 +5732,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.META
     },
     getimg: {
-        run: async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        run: async (msg, _, sendCallback, opts, args) => {
             let img = getImgFromMsgAndOpts(opts, msg)
+            if(opts['pop'] && msg.attachments.at(0)){
+                msg.attachments.delete(msg.attachments.keyAt(0) as string)
+            }
             return { content: String(img) }
         },
         help: {
@@ -5743,6 +5744,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             options: {
                 img: {
                     description: "The image link to use"
+                },
+                pop: {
+                    description: "If given, remove the attachment from message"
                 }
             }
         },
