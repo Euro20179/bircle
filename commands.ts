@@ -7714,7 +7714,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ctx.fillStyle = colors[0]
             }
             else{
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent + textinfo.emHeightDescent)
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent + textInfo.emHeightDescent)
                 let interval = 1 /(colors.length - 1)
                 for(let i = 0; i < colors.length; i++){
                     console.log(colors[i])
@@ -7722,7 +7722,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 ctx.fillStyle = grad
             }
-
 
             ctx.fillText(text, x, y, width)
 
