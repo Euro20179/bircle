@@ -7624,14 +7624,34 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     }, CommandCategory.IMAGES),
     overlay: createCommand(async(msg, _, sc, opts, args) => {
         let [img1, img2] = args.join(" ").split("|")
-        if(!img1){
+        img1 = img1.trim()
+        img2 = img2.trim()
+        if(img1 && !img1.startsWith("http")){
+            let new_img1 = getVar(msg, img1, msg.author.id)
+            if(!new_img1){
+                new_img1 = getVar(msg, img1, "__global__")
+            }
+            img1 = String(new_img1)
+        }
+        if(!img1 || !img1.startsWith("http")){
             img1 = getImgFromMsgAndOpts(opts, msg) as  string
             if(msg.attachments.keyAt(0)){
                 msg.attachments.delete(msg.attachments.keyAt(0) as string)
             }
         }
-        if(!img2){
+        if(img2 && !img2.startsWith("http")){
+            let  new_img2 = getVar(msg, img2, msg.author.id)
+            if(!new_img2){
+                new_img2 = getVar(msg, img2, "__global__")
+            }
+            img2 = String(new_img2)
+        }
+        if(!img2 || !img2.startsWith("http")){
             img2 = getImgFromMsgAndOpts(opts, msg) as string
+        }
+        console.log(img1, img2)
+        if(!img2 || !img1){
+            return {content: `Must provide 2 images\nimg1: ${img1}\nimg2: ${img2}`}
         }
         let image1 = await canvas.loadImage(img1)
         let image2 = await canvas.loadImage(img2)
