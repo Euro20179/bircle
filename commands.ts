@@ -7611,6 +7611,35 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
         category: CommandCategory.IMAGES
     },
+    runas: createCommand(async(msg, _, sc, opts, args) => {
+        let user = await fetchUser(msg.guild as Guild, args[0])
+        if(!user){
+            return {content: `${args[0]}: user not found`}
+        }
+        let command = args[1]
+        let canRun = true
+        if(commands[command]?.permCheck?.(msg) === false){
+            canRun = false
+        }
+        if (WHITELIST[msg.author.id]?.includes(command)) {
+            canRun = true
+        }
+        //is blacklisted
+        if (BLACKLIST[msg.author.id]?.includes(command)) {
+            canRun = false
+        }
+        if(!canRun){
+            return {content: `You do not have permission to run ${command}, so you cannot run as ${user.user.id}`}
+        }
+        let text = args.slice(1).join(" ")
+        if(!text.startsWith(prefix)){
+            text = `${prefix}${text}`
+        }
+        msg.author = user.user
+        msg.content = text
+        let rv = await doCmd(msg, true, 0, generateDefaultRecurseBans())
+        return rv as CommandReturn
+    }, CommandCategory.META),
     "img-info": createCommand(async(msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
@@ -10520,6 +10549,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME], commands: ["sell"] }
+    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!"] }
 }
 
