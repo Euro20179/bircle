@@ -8170,6 +8170,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 await doCmd(msg)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
+            delete globals.SPAMS[id]
             return {
                 content: "done"
             }
@@ -8196,6 +8197,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 message = await sendCallback(sendText)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
+            delete globals.SPAMS[id]
             return { content: "done" }
         }, category: CommandCategory.FUN
     },
@@ -8223,6 +8225,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
 
             }
+            delete globals.SPAMS[id]
             return {
                 content: "done"
             }
@@ -8618,6 +8621,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 console.log(msg.content)
                 await doCmd(msg, false)
             }
+            delete globals.SPAMS[id]
             return { noSend: true }
         }, category: CommandCategory.META,
         help: {
