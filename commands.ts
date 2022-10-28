@@ -5125,10 +5125,10 @@ middle
         return {content: "No results"}
     }, CommandCategory.FUN),
     "search-wiki": createCommand(async(msg, _, sb, opts, args) => {
-        let search = args.join(" ")
+        let search = args.join(" ").toLowerCase()
         let results: {[key: string]: number} = {}
         for(let  file of fs.readdirSync("./wiki")){
-            file = file.replaceAll("%2f", "/").slice(0, -4)
+            file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
             let accuracy = 0
             for(let i = 0; i < file.length; i++){
                 for(let j = 0; j < search.length; j++){
