@@ -5128,28 +5128,34 @@ middle
         let results: {[key: string]: number} = {}
         for(let  file of fs.readdirSync("./wiki")){
             file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
-            let accuracy = 0
-            let sequence = 1
+            // let accuracy = 0
+            // let sequence = 1
             let lastMatch = 0;
+            let matchIndicies: number[] = []
             for(let i = 0; i < search.length; i++){
-                let foundMatch = false
+                // let foundMatch = false
                 for(let j = lastMatch; j < file.length; j++){
                     if(file[j] === search[i]){
+                        matchIndicies.push(j)
                         lastMatch = j
-                        accuracy += (file.length - ((i - j))) * sequence
-                        sequence += 1
-                        foundMatch = true
-                        break
+                        // accuracy += (j - i) * sequence * (file.length - j)
+                        // sequence += 1
+                        // foundMatch = true
+                        // break
                     }
-                    else if(i === j)
-                        sequence = 1
-                    accuracy -= 1
+                    // else if(i === j)
+                    //     sequence = 1
                 }
-                if(!foundMatch){
-                    sequence = 1
-                }
+                // if(!foundMatch){
+                //     accuracy -= file.length
+                //     sequence = 1
+                // }
             }
-            results[file] = accuracy
+            let total = 0
+            for(let i = 1; i < matchIndicies.length; i++){
+                total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
+            }
+            results[file] = total
         }
         if(opts['all']){
             return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
