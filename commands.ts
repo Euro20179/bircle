@@ -7622,6 +7622,49 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
         return {content: `width: ${image.width}\nheight: ${image.height}`}
     }, CommandCategory.IMAGES),
+    overlay: createCommand(async(msg, _, sc, opts, args) => {
+        let [img1, img2] = args.join(" ").split("|")
+        if(!img1){
+            img1 = getImgFromMsgAndOpts(opts, msg) as  string
+            if(msg.attachments.keyAt(0)){
+                msg.attachments.delete(msg.attachments.keyAt(0) as string)
+            }
+        }
+        if(!img2){
+            img2 = getImgFromMsgAndOpts(opts, msg) as string
+        }
+        let image1 = await canvas.loadImage(img1)
+        let image2 = await canvas.loadImage(img2)
+        let canv = new canvas.Canvas(image2.width, image2.height)
+        let ctx = canv.getContext("2d")
+        ctx.drawImage(image2, 0, 0)
+        ctx.globalAlpha = parseFloat(String(opts['alpha'])) || 0.5
+        ctx.drawImage(image1, 0, 0, canv.width, canv.height)
+
+        let fn = `${generateFileName("overlay", msg.author.id)}.png`
+        fs.writeFileSync(fn, canv.toBuffer("image/png"))
+
+        return {
+            files: [
+                {
+                    attachment: fn,
+                    name: fn,
+                    delete: true
+                }
+            ]
+        }
+
+    }, CommandCategory.IMAGES,
+                          `overlay image 1 onto image 2 seperated by |
+<br>
+If an image is not provided it will be pulled from chat, or an image you gave it`,
+                          {
+                              img1: createHelpArgument("The first image, put a | if you just want to use an image from chat"),
+                              img2: createHelpArgument("A link to image, an image you  gave as attachment, or an image from chat")
+                          },
+                          {
+                              alpha: createHelpOption("The alpha to use, defaults to 0.5")
+                          }),
     text: {
         //text command
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
