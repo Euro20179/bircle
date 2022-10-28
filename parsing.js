@@ -187,6 +187,13 @@ function buildEscape(letter, sequence, msg, curArg){
                     return v
                 else return `\\V{${sequence}}`
             }
+            else if(!name){
+                name = scope
+                let v = getVar(msg, name)
+                if(v !== false)
+                    return v
+                return `\\V{${sequence}}`
+            }
             let v = getVar(msg, name, scope)
             if(v !== false)
                 return v
