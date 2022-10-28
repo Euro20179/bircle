@@ -5112,8 +5112,7 @@ middle
         category: CommandCategory.FUN
     },
     "wiki": createCommand(async(msg, _,  sb, opts, args) => {
-        let search = args.join(" ").toLowerCase()
-        let results = []
+        let search = args.join(" ").toLowerCase().replaceAll("/", "%2f")
         for(let  file of fs.readdirSync("./wiki")){
             let name = file.toLowerCase()
             if(name.replace(".txt", "") === search){
@@ -5150,6 +5149,9 @@ middle
         let [title, ...txt] = args.join(" ").split("|")
         title = title.trim().replaceAll("/", "%2f")
         let text = txt.join("|")
+        if(fs.existsSync(`./wiki/${title.trim()}.txt`)){
+            return {content: `${title} already exists`}
+        }
         fs.writeFileSync(`./wiki/${title.trim()}.txt`, text)
         return {content: `created a page called: ${title}`}
 
