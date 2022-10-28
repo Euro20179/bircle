@@ -5153,6 +5153,9 @@ middle
             }
             let total = 0
             for(let i = 1; i < matchIndicies.length; i++){
+                if(matchIndicies[i] - matchIndicies[i - 1] === 0){
+                    continue
+                }
                 total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
             }
             results[file] = total
