@@ -10,7 +10,7 @@ import ytdl = require("ytdl-core")
 import canvas = require("canvas")
 
 import { Worker, isMainThread, workerData } from "node:worker_threads"
-import { execFileSync, spawnSync } from "child_process"
+import { execFile, execFileSync, spawnSync } from "child_process"
 import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager } from 'discord.js'
 
 import { AudioPlayer, AudioPlayerStatus, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
@@ -4589,64 +4589,65 @@ The commands below, only work after **path** has been run:
     //
     yt: {
         run: async(msg, _, sc, opts, args) => {
-            let data = execFileSync(`ytfzf`, ['-IJ', '-a', '--', args.join(" ")])
-            let embeds: {embed: MessageEmbed, button: MessageButton}[] = []
-            let current_page = 0
-            let results = data.toString('utf-8').replaceAll("[]", "").replaceAll("]\n[", ",")
-            let jsonData = JSON.parse(results)
-            if(opts['list']){
-                let fmt = opts['list']
-                if(fmt == true){
-                    fmt = "%l\n"
+            execFile('ytfzf', ['-IJ', '-a', '--', args.join(" ")], async function(err, stdout, stderr){
+                let embeds: {embed: MessageEmbed, button: MessageButton}[] = []
+                let current_page = 0
+                let results = stdout.replaceAll("[]", "").replaceAll("]\n[", ",")
+                let jsonData = JSON.parse(results)
+                if(opts['list']){
+                    let fmt = opts['list']
+                    if(fmt == true){
+                        fmt = "%l\n"
+                    }
+                    let string = ""
+                    for(let res of jsonData){
+                        string += format(fmt, {l: res.url || "N/A", t: res.title || "N/A", c: res.channel || "N/A", d: res.duration || "N/A", v: res.views || "N/A", u: res.date || "N/A"})
+                    }
+                    return {content: string}
                 }
-                let string = ""
+                let pages = jsonData.length
+                let i = 0
                 for(let res of jsonData){
-                    string += format(fmt, {l: res.url || "N/A", t: res.title || "N/A", c: res.channel || "N/A", d: res.duration || "N/A", v: res.views || "N/A", u: res.date || "N/A"})
-                }
-                return {content: string}
-            }
-            let pages = jsonData.length
-            let i = 0
-            for(let res of jsonData){
-                i++;
-                let e = new MessageEmbed()
-                e.setTitle(String(res['title']))
-                if(res.description){
-                    console.log(res.description)
-                    e.setDescription(res.description)
-                }
-                e.setFooter({text: `${res.url}\t${i}/${pages}`})
-                if(res.thumbs){
-                    e.setImage(res.thumbs)
-                }
-                let button = new MessageButton({label: "OPEN", style: "LINK", url: res.url})
-                embeds.push({embed: e, button: button})
-            }
-            let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY"})
-            let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY"})
-            let action_row = new MessageActionRow()
-            action_row.addComponents(last_page, next_page, embeds[current_page].button)
-            let m = await sc({components: [action_row], embeds: [embeds[current_page].embed]})
-            let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
-            let to = setTimeout(collector.stop.bind(collector), 60000)
-            collector.on("collect", async(int) => {
-                clearTimeout(to)
-                to = setTimeout(collector.stop.bind(collector), 60000)
-                if(int.customId.startsWith('yt.next')){
-                    current_page++;
-                    if(current_page >= pages){
-                        current_page = 0
+                    i++;
+                    let e = new MessageEmbed()
+                    e.setTitle(String(res['title']))
+                    if(res.description){
+                        console.log(res.description)
+                        e.setDescription(res.description)
                     }
-                }
-                else if(int.customId.startsWith('yt.back')){
-                    current_page--;
-                    if(current_page < 0){
-                        current_page = 0
+                    e.setFooter({text: `${res.url}\t${i}/${pages}`})
+                    if(res.thumbs){
+                        e.setImage(res.thumbs)
                     }
+                    let button = new MessageButton({label: "OPEN", style: "LINK", url: res.url})
+                    embeds.push({embed: e, button: button})
                 }
-                action_row.setComponents(last_page, next_page, embeds[current_page].button)
-                await m.edit({components: [action_row], embeds: [embeds[current_page].embed]})
-                await int.deferUpdate()
+                let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY"})
+                let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY"})
+                let action_row = new MessageActionRow()
+                action_row.addComponents(last_page, next_page, embeds[current_page].button)
+                let m = await sc({components: [action_row], embeds: [embeds[current_page].embed]})
+                let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
+                let to = setTimeout(collector.stop.bind(collector), 60000)
+                collector.on("collect", async(int) => {
+                    clearTimeout(to)
+                    to = setTimeout(collector.stop.bind(collector), 60000)
+                    if(int.customId.startsWith('yt.next')){
+                        current_page++;
+                        if(current_page >= pages){
+                            current_page = 0
+                        }
+                    }
+                    else if(int.customId.startsWith('yt.back')){
+                        current_page--;
+                        if(current_page < 0){
+                            current_page = 0
+                        }
+                    }
+                    action_row.setComponents(last_page, next_page, embeds[current_page].button)
+                    await m.edit({components: [action_row], embeds: [embeds[current_page].embed]})
+                    await int.deferUpdate()
+                })
             })
             return {content: "Loading..."}
         },
