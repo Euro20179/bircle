@@ -4589,69 +4589,159 @@ The commands below, only work after **path** has been run:
     //
     yt: {
         run: async(msg, _, sc, opts, args) => {
-            execFile('ytfzf', ['-IJ', '-a', '--', args.join(" ")], async function(err, stdout, stderr){
-                let embeds: {embed: MessageEmbed, button: MessageButton}[] = []
-                let current_page = 0
-                let results = stdout.replaceAll("[]", "").replaceAll("]\n[", ",")
-                let jsonData = JSON.parse(results)
-                if(opts['list']){
-                    let fmt = opts['list']
-                    if(fmt == true){
-                        fmt = "%l\n"
-                    }
-                    let string = ""
-                    for(let res of jsonData){
-                        string += format(fmt, {l: res.url || "N/A", t: res.title || "N/A", c: res.channel || "N/A", d: res.duration || "N/A", v: res.views || "N/A", u: res.date || "N/A"})
-                    }
-                    return {content: string}
+            let instance = 'https://vid.puffyan.us'
+
+            let pageNo = Number(opts['page'] as string) || 1
+
+            let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}`)
+            let jsonData = await res.json()
+
+            let embeds: {embed: MessageEmbed, button: MessageButton, jsonButton: MessageButton}[] = []
+            let current_page = 0
+
+            let valid_thumbnail_qualities = [
+                "maxres",
+                "maxresdefault",
+                "sddefault",
+                "high",
+                "medium",
+                "default",
+                "start",
+                "middle",
+                "end"
+            ]
+            let thumbnail_quality = valid_thumbnail_qualities.filter(v => v === opts['thumb-quality'])[0] || "high"
+
+
+            if(opts['list']){
+                let fmt = opts['list']
+                if(fmt == true){
+                    fmt = "%l\n"
                 }
-                let pages = jsonData.length
-                let i = 0
+
+                let string = ""
                 for(let res of jsonData){
-                    i++;
-                    let e = new MessageEmbed()
-                    e.setTitle(String(res['title']))
-                    if(res.description){
-                        console.log(res.description)
-                        e.setDescription(res.description)
-                    }
-                    e.setFooter({text: `${res.url}\t${i}/${pages}`})
-                    if(res.thumbs){
-                        e.setImage(res.thumbs)
-                    }
-                    let button = new MessageButton({label: "OPEN", style: "LINK", url: res.url})
-                    embeds.push({embed: e, button: button})
+                    string += format(fmt, {l: `https://www.youtube.com/video?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A"})
                 }
-                let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY"})
-                let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY"})
-                let action_row = new MessageActionRow()
-                action_row.addComponents(last_page, next_page, embeds[current_page].button)
-                let m = await sc({components: [action_row], embeds: [embeds[current_page].embed]})
-                let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
-                let to = setTimeout(collector.stop.bind(collector), 60000)
-                collector.on("collect", async(int) => {
-                    clearTimeout(to)
-                    to = setTimeout(collector.stop.bind(collector), 60000)
-                    if(int.customId.startsWith('yt.next')){
-                        current_page++;
-                        if(current_page >= pages){
-                            current_page = 0
-                        }
+
+                return {content: string}
+            }
+
+            let pages = jsonData.length
+            let i = 0
+
+            for(let res of jsonData){
+                i++;
+
+                let e = new MessageEmbed()
+                e.setTitle(String(res['title']))
+
+                if(res.description){
+                    console.log(res.description)
+                    e.setDescription(res.description)
+                }
+
+                e.setFooter({text: `https://www.youtube.com/video?v=${res.videoId}\n${i}/${pages}`})
+
+                //@ts-ignore
+                e.setImage(res.videoThumbnails.filter(v => v.quality == thumbnail_quality)[0].url)
+
+                let button = new MessageButton({label: "OPEN", style: "LINK", url: `https://www.youtube.com/video?v=${res.videoId}`})
+
+                let json_button = new MessageButton({label: "JSON", style: "SECONDARY", customId: `yt.json:${res.videoId}`})
+
+                embeds.push({embed: e, button: button, jsonButton: json_button})
+            }
+
+            let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY"})
+            let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY"})
+
+            let action_row = new MessageActionRow()
+            action_row.addComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
+
+            let m = await sc({components: [action_row], embeds: [embeds[current_page].embed]})
+            let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
+
+            let to = setTimeout(collector.stop.bind(collector), 60000)
+            collector.on("collect", async(int) => {
+                clearTimeout(to)
+                to = setTimeout(collector.stop.bind(collector), 60000)
+
+                if(int.customId.startsWith('yt.next')){
+                    current_page++;
+                    if(current_page >= pages){
+                        current_page = 0
                     }
-                    else if(int.customId.startsWith('yt.back')){
-                        current_page--;
-                        if(current_page < 0){
-                            current_page = 0
-                        }
+                }
+
+                else if(int.customId.startsWith('yt.back')){
+                    current_page--;
+                    if(current_page < 0){
+                        current_page = 0
                     }
-                    action_row.setComponents(last_page, next_page, embeds[current_page].button)
-                    await m.edit({components: [action_row], embeds: [embeds[current_page].embed]})
-                    await int.deferUpdate()
-                })
+                }
+
+                else if(int.customId.startsWith("yt.json")){
+                    let yt_id = int.customId.split(":")[1]
+                    //@ts-ignore
+                    let json_data = jsonData.filter(v => v.videoId == yt_id)[0]
+                    let fn = `${generateFileName("yt", msg.author.id)}.json`
+                    fs.writeFileSync(fn, JSON.stringify(json_data))
+                    await int.reply({
+                        files: [
+                            {
+                                attachment: fn,
+                                name: fn,
+                            }
+                        ]
+                    })
+                    fs.rmSync(fn)
+                    return
+                }
+
+                action_row.setComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
+
+                await m.edit({components: [action_row], embeds: [embeds[current_page].embed]})
+                await int.deferUpdate()
             })
-            return {content: "Loading..."}
+            if(opts['json']){
+                return {content: Buffer.from(JSON.stringify(jsonData)).toString("base64")}
+            }
+            return {noSend: true}
         },
         category: CommandCategory.UTIL,
+        help: {
+            arguments: {
+                "search": createHelpArgument("The search query", true)
+            },
+            options: {
+                page: createHelpOption("The page to search"),
+                "list": createHelpOption(`List the results
+<br>
+this can be set equal to a format which will be "%l\\n" by default
+%l: link
+%t: title
+%c: author
+%d: length in seconds
+%v: view count
+%u: upload date
+`),
+                "json": createHelpOption("Send the resulting json result"),
+                "thumb-quality": createHelpOption(`The quality of the thumbnail,
+<br>
+Valid options:
+maxres
+maxresdefault
+sddefault
+high
+medium
+default
+start
+middle
+`)
+
+            }
+        }
     },
 
     replace: {
