@@ -2940,7 +2940,7 @@ The commands below, only work after **path** has been run:
                 economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
                 if (userFormat !== "__default__") {
-                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
+                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN }
                 }
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
@@ -3830,7 +3830,7 @@ The commands below, only work after **path** has been run:
             }, timeRemaining)
         }
         let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-        return { content: heistJoinFormat, recurse: generateDefaultRecurseBans(), status: StatusCode.INFO }
+        return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO }
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
@@ -4046,7 +4046,7 @@ The commands below, only work after **path** has been run:
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -4146,7 +4146,7 @@ The commands below, only work after **path** has been run:
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN }
                 }
                 if (calculateTotal(dealerCards).total === 21) {
                     economy.loseMoneyToBank(msg.author.id, bet)
@@ -10720,7 +10720,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             rv.content = opt
             if(rv.recurse && rv.recurse !== true){
                 //if rv specified different bans, we want those to take priority
-                rv.recurse = {...generateDefaultRecurseBans(), ...rv.recurse}
+                rv.recurse = {...rv.recurse}
             }
             else{
                 rv.recurse = generateDefaultRecurseBans()
@@ -10798,6 +10798,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr"] }
+    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run"] }
 }
 
