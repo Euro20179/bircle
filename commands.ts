@@ -10366,26 +10366,26 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
 
     //Get the command (the first word in the message content)
     command = msg.content.split(" ")[0].slice(local_prefix.length)
-    //Args are the rest of the words
+
+    //the rest of the stuff are the arguments
     args = msg.content.split(" ").slice(1)
 
     //first check for modifiers
 
     let sendCallback = msg.channel.send.bind(msg.channel)
 
-    //This variable keeps  track of how long the modifier is before the command
-    let skipLength = 0
-    //the s: and redir: modifiers change this function to accomplish their goals
 
-    let m; //variable to keep track of the match
-    if (m = command.match(/^s:/)) { //s: (silent) modifier
+    let skipParsing = false
+
+    if (command.startsWith("s:")) { //s: (silent) modifier
         //change this function to essentially do nothing, it just returns the orriginal message as it must return a message
         //msg.channel.send = async (_data) => msg
-        skipLength = 2
+        command = command.slice(2)
         sendCallback = async (_data) => msg
     }
+    let m; //variable to keep track of the match
     //this regex matches: /redir!?\((prefix)?:variable\)
-    else if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) { //the redir: modifier
+    if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) { //the redir: modifier
         //whether or not to redirect *all* message sends to the variable, or just the return value from the command
         let all = m[1] //this matches the ! after redir
         let skip = 9 //the base length of redir(:):
@@ -10429,18 +10429,20 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             redir = [vars[prefix], name]
         }
         skip += name.length
-        skipLength = skip
+        command = command.slice(skip)
     }
-    else if (m = command.match(/^t:/)) {
+    if (command.startsWith("t:")) {
         typing = true
-        skipLength = 2
+        command = command.slice(2)
     }
-    else if (m = command.match(/^d:/)) {
+    if (command.startsWith("d:")) {
         if (msg.deletable) await msg.delete()
-        skipLength = 2
+        command = command.slice(2)
     }
-
-    command = command.slice(skipLength)
+    if (command.startsWith("n:")){
+        skipParsing = true
+        command = command.slice(2)
+    }
 
     //next expand aliases
     if (!commands[command] && aliases[command]) {
@@ -10472,8 +10474,12 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             rv = { content: `failed to expand ${command}` }
             exists = false
         }
+        //set the args again as alias expansion can change it
+        args = msg.content.split(" ").slice(1)
     }
     if (!commands[command]) {
+        //We dont want to keep running commands if the command doens't exist
+        //fixes the [[[[[[[[[[[[[[[[[ exploit
         if(command.startsWith(prefix)){
             command = `\\${command}`
         }
@@ -10481,43 +10487,46 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         exists = false
     }
 
-    //Then parse cmd to get the cmd, arguments, and dofirsts
-    let _
-    [_, args, doFirsts] = await parseCmd({ msg: msg })
+    if(skipParsing === false){
+        //Then parse cmd to get the cmd, arguments, and dofirsts
+        let _
+        //get the new parsed args
+        [_, args, doFirsts] = await parseCmd({ msg: msg })
 
-    let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
-    let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
+        let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
+        let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
 
-    //idxNo is the doFirst count (the number  of dofirst)
-    let idxNo = 0
-    //idx is the position in the args variable, not the doFirst count
-    for (let idx in doFirsts) {
-        let cmd = doFirsts[idx]
-        let oldContent = msg.content
-        //hack to run command as if message is cmd
-        msg.content = cmd
-        let rv = await doCmd(msg, true, recursion + 1, disable) as CommandReturn
-        msg.content = oldContent
-        //recursively evaluate msg.content as a command
-        if (rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20) {
+        //idxNo is the doFirst count (the number  of dofirst)
+        let idxNo = 0
+        //idx is the position in the args variable, not the doFirst count
+        for (let idx in doFirsts) {
+            let cmd = doFirsts[idx]
             let oldContent = msg.content
-            msg.content = rv.content
-            rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
+            //hack to run command as if message is cmd
+            msg.content = cmd
+            let rv = await doCmd(msg, true, recursion + 1, disable) as CommandReturn
             msg.content = oldContent
+            //recursively evaluate msg.content as a command
+            if (rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20) {
+                let oldContent = msg.content
+                msg.content = rv.content
+                rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
+                msg.content = oldContent
+            }
+            let data = getContentFromResult(rv as CommandReturn).trim()
+            msg.content = oldContent
+            //end hack
+            doFirstData[idx] = data
+            doFirstCountNoToArgNo[idxNo] = idx
+            idxNo++
         }
-        let data = getContentFromResult(rv as CommandReturn).trim()
-        msg.content = oldContent
-        //end hack
-        doFirstData[idx] = data
-        doFirstCountNoToArgNo[idxNo] = idx
-        idxNo++
-    }
 
-    //If there is a dofirst, parse the %{...} stuff
-    if (Object.keys(doFirstData).length > 0) {
-        args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
-        //%{-1} expands to __BIRCLE__UNDEFINED__, replace with nothing
-        args = args.map(v => v.replaceAll("__BIRCLE__UNDEFINED__", ""))
+        //If there is a dofirst, parse the %{...} stuff
+        if (Object.keys(doFirstData).length > 0) {
+            args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
+            //%{-1} expands to __BIRCLE__UNDEFINED__, replace with nothing
+            args = args.map(v => v.replaceAll("__BIRCLE__UNDEFINED__", ""))
+        }
     }
 
 

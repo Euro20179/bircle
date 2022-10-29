@@ -143,7 +143,7 @@ async function buildFormat(sequence, msg, curArg, customFormats){
     return `{${sequence}}`
 }
 
-function buildEscape(letter, sequence, msg, curArg){
+async function buildEscape(letter, sequence, msg, curArg){
     switch(letter){
         case "n":
             return "\n";
@@ -339,7 +339,7 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                     //We only want to go back a character, if there is no sequence, otherwise } will be tacked on
                     i--
                 }
-                curArg += buildEscape(prefixLetter, sequence, msg, curArg, customEscapes)
+                curArg += await buildEscape(prefixLetter, sequence, msg, curArg, customEscapes)
                 break;
             }
             case "{":
