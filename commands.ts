@@ -582,6 +582,35 @@ export const commands: { [command: string]: Command } = {
             "option": createHelpArgument("The option to check the value of", false)
         }),
 
+    runas: createCommand(async(msg, _, sc, opts, args) => {
+        let user = await fetchUser(msg.guild as Guild, args[0])
+        if(!user){
+            return {content: `${args[0]}: user not found`, status: StatusCode.ERR}
+        }
+        let command = args[1]
+        let canRun = true
+        if(commands[command]?.permCheck?.(msg) === false){
+            canRun = false
+        }
+        if (WHITELIST[msg.author.id]?.includes(command)) {
+            canRun = true
+        }
+        //is blacklisted
+        if (BLACKLIST[msg.author.id]?.includes(command)) {
+            canRun = false
+        }
+        if(!canRun){
+            return {content: `You do not have permission to run ${command}, so you cannot run as ${user.user.id}`, status: StatusCode.ERR}
+        }
+        let text = args.slice(1).join(" ")
+        if(!text.startsWith(prefix)){
+            text = `${prefix}${text}`
+        }
+        msg.author = user.user
+        msg.content = text
+        let rv = await doCmd(msg, true, 0, generateDefaultRecurseBans())
+        return rv as CommandReturn
+    }, CommandCategory.META),
     "img-diff": {
         run: async(msg, args) => {
             let [img1, img2] = args
@@ -10798,6 +10827,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run"] }
+    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run", "do"] }
 }
 
