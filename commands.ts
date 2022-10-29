@@ -10467,6 +10467,9 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             if (oldC == msg.content) {
                 msg.content = msg.content + ` ${args.join(" ")}`
             }
+            //set the args again as alias expansion can change it
+            args = msg.content.split(" ").slice(1)
+            //set the command to the new alias
             command = alias
             //rv = await doCmd(msg, true) as CommandReturn
         }
@@ -10474,8 +10477,6 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             rv = { content: `failed to expand ${command}` }
             exists = false
         }
-        //set the args again as alias expansion can change it
-        args = msg.content.split(" ").slice(1)
     }
     if (!commands[command]) {
         //We dont want to keep running commands if the command doens't exist
