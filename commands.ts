@@ -5238,7 +5238,6 @@ middle
             else {
                 let resp
                 try {
-                    //@ts-ignore
                     resp = await fetch.default(`https://${baseurl}${path}`)
                 }
                 catch (err) {
@@ -5248,7 +5247,7 @@ middle
                     await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args)
                 }
                 else {
-                    let respText = resp.body.read()
+                    let respText = await resp.text()
                     let $ = cheerio.load(respText)
                     let text = $("p").text().trim().split("\n")
                     if (!text.length) {
