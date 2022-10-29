@@ -16,7 +16,7 @@ declare global{
 
     type FileArray = Array<CommandFile>
 
-    interface CommandReturn {
+    interface CommandReturn extends MessageOptions{
 	content?: string,
 	embeds?: Array<MessageEmbed>
 	files?: FileArray,

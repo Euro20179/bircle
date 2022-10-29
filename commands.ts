@@ -1110,7 +1110,7 @@ The commands below, only work after **path** has been run:
                     let type = args[0]
                     let {color, err} = createColor(type, args.slice(1), actionMessage)
                     if(err){
-                        await sendCallback({content: err})
+                        await handleSending(msg, {content: err}, sendCallback)
                     }
                     ctx.strokeStyle = color ?? "red"
                     continue
@@ -1131,7 +1131,7 @@ The commands below, only work after **path** has been run:
                     let type = args[0]
                     let {color, err} = createColor(type, args.slice(1), actionMessage)
                     if(err){
-                        await sendCallback({content: err})
+                        await handleSending(msg, {content: err}, sendCallback)
                         continue
                     }
                     ctx.fillStyle = color ?? "red"
@@ -1198,7 +1198,7 @@ The commands below, only work after **path** has been run:
                     if(type){
                         let {color, err} = createColor(type, args.slice(1), actionMessage)
                         if(err){
-                            await sendCallback({content: err})
+                            await handleSending(msg, {content: err}, sendCallback)
                             continue
                         }
                         ctx.fillStyle = color ?? "red"
@@ -1245,12 +1245,12 @@ The commands below, only work after **path** has been run:
             }
             let fn = `${generateFileName("draw", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer())
-            await sendCallback({files: [
+            await handleSending(msg, {files: [
                 {
                     attachment: fn,
                     name: fn,
                 }
-            ]})
+            ]}, sendCallback)
 
                     
         }
@@ -1660,26 +1660,26 @@ The commands below, only work after **path** has been run:
                 let embed = new MessageEmbed()
                 let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
                 if (!stockData) {
-                    await sendCallback("No data found")
+                    await handleSending(msg, {content: "No data found"}, sendCallback)
                     return
                 }
                 stockData = stockData[0]
                 let price = stockData.match(/>(\d+\.\d+)/)
                 if (!price) {
-                    await sendCallback("No price found")
+                    await handleSending(msg, {content: "No price found"}, sendCallback)
                     return
                 }
                 price = price[1]
                 let change = stockData.match(/(\+|-)(\d+\.\d+)/)
                 if (!change) {
-                    await sendCallback("No change found")
+                    await handleSending(msg, {content: "No change found"}, sendCallback)
                     return
                 }
                 change = `${change[1]}${change[2]}`
                 let numberchange = Number(change)
                 let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
                 if (!stockName) {
-                    await sendCallback("Could not get stock name")
+                    await handleSending(msg, {content: "Could not get stock name"}, sendCallback)
                     return
                 }
                 stockName = stockName[1]
@@ -1692,7 +1692,7 @@ The commands below, only work after **path** has been run:
                 embed.setTitle(stockName)
                 embed.addField("Price", price)
                 embed.addField("Price change", change, true)
-                await sendCallback({ embeds: [embed] })
+                await handleSending(msg, { embeds: [embed] }, sendCallback)
             })
         }).end()
         return { content: "Getting data" }
@@ -1713,7 +1713,7 @@ The commands below, only work after **path** has been run:
             if (!data) {
                 return { content: "No  info found" }
             }
-            await sendCallback("Getting data")
+            await handleSending(msg, {content: "Getting data"}, sendCallback)
             if (fmt == "{embed}") {
                 let embed = new MessageEmbed()
                 let nChange = Number(data.change)
@@ -1818,7 +1818,7 @@ The commands below, only work after **path** has been run:
             if (!allowedTypes.includes(type)) {
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
-                    await sendCallback(`WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`)
+                    await handleSending(msg, {content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`}, sendCallback)
                     return await commands['bstock'].run(msg, args, sendCallback, {}, args)
                 }
                 //else
@@ -2045,12 +2045,12 @@ The commands below, only work after **path** has been run:
             }
             economy.getStockInformation(stock, (data) => {
                 if (data === false) {
-                    sendCallback({ content: `${stock} does not exist` })
+                    handleSending(msg, { content: `${stock} does not exist` }, sendCallback)
                     return
                 }
                 let realStock = economy.userHasStockSymbol(msg.author.id, stock)
                 if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
-                    sendCallback({ content: "You cannot afford this" })
+                    handleSending(msg, { content: "You cannot afford this" }, sendCallback)
                     return
                 }
                 if (realStock) {
@@ -2059,9 +2059,9 @@ The commands below, only work after **path** has been run:
                 else {
                     economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
                 }
-                sendCallback({ content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}` })
+                handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}` }, sendCallback)
             }, () => {
-                sendCallback(`Failed to get stock data for: ${stock}`)
+                handleSending(msg, {content: `Failed to get stock data for: ${stock}`}, sendCallback)
             })
             return { noSend: true }
         }, category: CommandCategory.ECONOMY,
@@ -4171,9 +4171,9 @@ The commands below, only work after **path** has been run:
                 let UserHp = 60;
                 let SpiderHp = 50;
 
-                await sendCallback("a spider jum pon tablew!121 You must defend honor!1 (attack/heal)");
+                await handleSending(msg, {content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)"}, sendCallback);
 
-                let newmsg = await sendCallback(`UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`);
+                let newmsg = await handleSending(msg, {content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`}, sendCallback);
                 while (UserHp >= 0 && SpiderHp >= 0) {
                     let action = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, max: 1 })
                     let actionMessage = action.at(0)
@@ -5974,7 +5974,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let text = args.join(" ") || "hi"
             let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
-            let m = await sendCallback({ components: [row], content: content })
+            let m = await handleSending(msg, { components: [row], content: content }, sendCallback)
             let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
             collector.on("collect", async (interaction) => {
                 if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
@@ -6244,12 +6244,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     "rt": {
         run: async (msg, _, sendCallback, opts, args) => {
             if (opts['t']) {
-                sendCallback("SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW").then(_m => {
+                handleSending(msg, {content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW"}, sendCallback).then(_m => {
                     try {
                         let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                         let start = Date.now()
                         collector.on("collect", async (_m) => {
-                            await sendCallback(`${Date.now() - start}ms`)
+                            await handleSending(msg, {content: `${Date.now() - start}ms`}, sendCallback)
                             collector.stop()
                         })
                     }
@@ -6261,7 +6261,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let button = new MessageButton({ customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
                 let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let start = Date.now()
-                let message = await sendCallback({ components: [row] })
+                let message = await handleSending(msg, { components: [row] }, sendCallback)
                 let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id}` })
                 collector.on("collect", async (interaction) => {
                     await interaction.reply({ content: `${Date.now() - start}ms` })
@@ -6367,7 +6367,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 //@ts-ignore
                 let p = await fetchUser(msg.guild, player)
                 if (!p) {
-                    await sendCallback(`${player} not found`)
+                    await handleSending(msg, {content: `${player} not found`}, sendCallback)
                     continue
                 }
                 players.push(p)
@@ -6377,7 +6377,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             let max = parseInt(String(opts["max"])) || 9
             if (max > 1000) {
-                await sendCallback("The maximum is to high, defaulting to 1000")
+                await handleSending(msg, {content: "The maximum is to high, defaulting to 1000"}, sendCallback)
                 max = 1000
             }
             let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
@@ -6399,11 +6399,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         return
                     }
                     if (forcedDraw) {
-                        sendCallback(`<@${going}> is forced to draw ${forcedDraw} cards`)
+                        handleSending(msg, {content: `<@${going}> is forced to draw ${forcedDraw} cards`}, sendCallback)
                         for (let i = 0; i < forcedDraw; i++) {
                             let rv = playerData[going].draw(deck)
                             if (!rv) {
-                                sendCallback("Deck empty, shuffling pile into deck")
+                                handleSending(msg, {content: "Deck empty, shuffling pile into deck"}, sendCallback)
                                 pile.shuffle()
                                 deck = new uno.Stack(pile.cards)
                                 pile = new uno.Stack([])
@@ -6420,10 +6420,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                     }
                     if (pile.cards.length) {
-                        sendCallback({ content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                        handleSending(msg, { content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}` }, sendCallback)
                     }
                     else {
-                        sendCallback({ content: `${u}, it's your turn` })
+                        handleSending(msg, { content: `${u}, it's your turn` }, sendCallback)
                     }
                 })
             })
@@ -6450,16 +6450,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (m.content.toLowerCase() == "stop") {
                         players = players.filter(v => v.id != m.author.id)
                         if (players.length == 0) {
-                            await sendCallback("game over")
+                            await handleSending(msg, {content: "game over"}, sendCallback)
                         }
                         collection?.stop()
                         if (m.author.id == client.user?.id) return
-                        await sendCallback(`${m.author} quit`)
+                        await handleSending(msg, {content: `${m.author} quit`}, sendCallback)
                         going = turns.next().value
                         return
                     }
                     if (playerData[player.id].cards.length <= 0) {
-                        await sendCallback(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`}, sendCallback)
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -6486,17 +6486,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         let rv = playerData[player.id].draw(deck)
                         cardsDrawn++
                         if (!rv) {
-                            await sendCallback("Deck empty, shuffling pile into deck")
+                            await handleSending(msg, {content: "Deck empty, shuffling pile into deck"}, sendCallback)
                             pile.shuffle()
                             deck = new uno.Stack(pile.cards)
                             pile = new uno.Stack([])
                             playerData[player.id].draw(deck)
                         }
-                        await sendCallback(`${player} drew a card`)
+                        await handleSending(msg, {content: `${player} drew a card`}, sendCallback)
                         let send = displayStack(playerData[player.id])
                         send += "\n-------------------------"
                         await m.channel.send(send)
-                        await sendCallback(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                        await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`}, sendCallback)
                         if (pile.cards.length)
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                         return
@@ -6521,7 +6521,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             playerData[player.id].remove(Number(m.content) - 1)
-                            await sendCallback("**stack was shuffled**")
+                            await handleSending(msg, {content: "**stack was shuffled**"}, sendCallback)
                             pile.add(selectedCard)
                             pile.shuffle()
                             going = turns.next().value
@@ -6573,7 +6573,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             playerData[player.id].remove(Number(m.content) - 1)
                             pile.add(selectedCard)
                             let randomPlayer = choice(players.filter(v => v.id != player.id)).id
-                            await sendCallback(`**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`)
+                            await handleSending(msg, {content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`}, sendCallback)
                             let newTopCard = playerData[randomPlayer].cards[0]
                             playerData[randomPlayer].remove(0)
                             pile.add(newTopCard)
@@ -6586,20 +6586,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         try {
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             if (!colorM) {
-                                await sendCallback("User picked incorrect color, using red")
+                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await sendCallback("User picked incorrect color, using red")
+                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await sendCallback("Something went wrong, defaulting to red")
+                            await handleSending(msg, {content: "Something went wrong, defaulting to red"}, sendCallback)
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -6613,20 +6613,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             console.log(colorM?.content)
                             if (!colorM) {
-                                await sendCallback("User picked incorrect color, using red")
+                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await sendCallback("User picked incorrect color, using red")
+                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await sendCallback("Something went wrong, defaulting to red")
+                            await handleSending(msg, {content: "Something went wrong, defaulting to red"}, sendCallback)
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -6638,7 +6638,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             let skipped = turns.next().value
-                            await sendCallback(`<@${skipped}> was skipped`)
+                            await handleSending(msg, {content: `<@${skipped}> was skipped`}, sendCallback)
                             going = turns.next().value
                             await new Promise(res => {
                                 pile.add(selectedCard)
@@ -6667,9 +6667,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             await m.channel.send("You cannot play that card")
                         }
                     }
-                    await sendCallback(`**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`)
+                    await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`}, sendCallback)
                     if (playerData[player.id].cards.length <= 0) {
-                        await sendCallback(`${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`)
+                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`}, sendCallback)
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -6724,7 +6724,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             });
                     }
                     catch (err) {
-                        await sendCallback("No results")
+                        await handleSending(msg, {content: "No results"}, sendCallback)
                         return
                     }
                     homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
@@ -6734,7 +6734,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
                     }
                     catch (err) {
-                        await sendCallback("Failed to get data")
+                        await handleSending(msg, {content: "Failed to get data"}, sendCallback)
                         return
                     }
                     homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
@@ -6753,7 +6753,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     embed.addField("Time", inning)
                     embed.addField(`${homeTeam}`, String(homeScore))
                     embed.addField(`${awayTeam}`, String(awayScore))
-                    await sendCallback({ embeds: [embed] })
+                    await handleSending(msg, { embeds: [embed] }, sendCallback)
                 })
             }).end()
             return {
@@ -6788,12 +6788,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
             let guessCount = parseInt(opts["lives"] as string) || 6
             let display: string[] = []
-            await sendCallback("key: **correct**, *wrong place*, `wrong`")
-            await sendCallback(`The word is ${word.length} characters long`)
+            await handleSending(msg, {content: "key: **correct**, *wrong place*, `wrong`"}, sendCallback)
+            await handleSending(msg, {content: `The word is ${word.length} characters long`}, sendCallback)
             for (let i = 0; i < guessCount; i++) {
                 display.push(mulStr("⬛ ", word.length))
             }
-            await sendCallback(display.join("\n"))
+            await handleSending(msg, {content: display.join("\n")}, sendCallback)
             let letterCount: { [k: string]: number } = {}
             for (let letter of word) {
                 if (letterCount[letter] === undefined) {
@@ -6806,7 +6806,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             collector.on("collect", async (m) => {
                 if (m.content == "STOP") {
                     collector.stop()
-                    await sendCallback("stopped")
+                    await handleSending(msg, {content: "stopped"}, sendCallback)
                     return
                 }
                 guesses.push(m.content)
@@ -6828,14 +6828,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 display[6 - guessCount] = nextInDisplay
                 guessCount--
-                await sendCallback(display.join("\n"))
+                await handleSending(msg, {content: display.join("\n")}, sendCallback)
                 if (m.content == word) {
-                    await sendCallback(`You win`)
+                    await handleSending(msg, {content: `You win`}, sendCallback)
                     collector.stop()
                     return
                 }
                 if (guessCount == 0) {
-                    await sendCallback(`You lose, it was ${word}`)
+                    await handleSending(msg, {content: `You lose, it was ${word}`}, sendCallback)
                     collector.stop()
                     return
                 }
@@ -6924,7 +6924,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (m.content == '\\n' || m.content == "<enter>")
                         m.content = '\n'
                     if (m.content == "STOP") {
-                        await sendCallback("STOPPED")
+                        await handleSending(msg, {content: "STOPPED"}, sendCallback)
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -6936,7 +6936,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
-                        await sendCallback(`You've already guessed ${m.content}`)
+                        await handleSending(msg, {content: `You've already guessed ${m.content}`}, sendCallback)
                         return
                     }
                     else if (m.content == wordstr) {
@@ -7062,7 +7062,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let edits = args.join(" ").split("|")
             let message
             try {
-                message = await sendCallback(edits[0])
+                message = await handleSending(msg, {content: edits[0]}, sendCallback)
             }
             catch (err) {
                 return { content: "message too big" }
@@ -7095,7 +7095,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 else if (edit[0] == ";") {
                     try {
-                        message = await sendCallback(edit.slice(1))
+                        message = await handleSending(msg, {content: edit.slice(1)}, sendCallback)
                     }
                     catch (err) {
                         return { content: "message too big" }
@@ -7109,7 +7109,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (!message.deletable) {
                         return { noSend: true }
                     }
-                    await sendCallback(`Could not edit message with: ${edit}`)
+                    await handleSending(msg, {content: `Could not edit message with: ${edit}`}, sendCallback)
                 }
                 await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
                 lastEdit = message.content
@@ -7414,7 +7414,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             ctx.fill()
             const buffer = canv.toBuffer("image/png")
             fs.writeFileSync(fn, buffer)
-            sendCallback({ files: [{ attachment: fn, name: fn }] }).then(res => {
+            handleSending(msg, { files: [{ attachment: fn, name: fn }] }).then(res => , sendCallback{
                 fs.rmSync(fn)
             })
             return {
@@ -7519,7 +7519,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             }
                     */
                     fs.writeFileSync(fn, composedImg)
-                    sendCallback({ files: [{ attachment: fn, name: fn }] }).then(_res => {
+                    handleSending(msg, { files: [{ attachment: fn, name: fn }] }, sendCallback).then(_res => {
                         fs.rmSync(fn)
                     }).catch(_err => {
                     })
@@ -8264,7 +8264,7 @@ Valid formats:
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await sendCallback(`starting ${id}`)
+            await handleSending(msg, {content: `starting ${id}`}, sendCallback)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
                 msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
@@ -8290,12 +8290,12 @@ Valid formats:
                 sendText = [times, ...text].join(" ")
             }
             let id = String(Math.floor(Math.random() * 100000000))
-            await sendCallback(`starting ${id}`)
+            await handleSending(msg, {content: `starting ${id}`}, sendCallback)
             globals.SPAMS[id] = true
-            let message = await sendCallback(sendText)
+            let message = await handleSending(msg, {content: sendText}, sendCallback)
             while (globals.SPAMS[id] && timesToGo--) {
                 if (message.deletable) await message.delete()
-                message = await sendCallback(sendText)
+                message = await handleSending(msg, {content: sendText}, sendCallback)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             delete globals.SPAMS[id]
@@ -8315,7 +8315,7 @@ Valid formats:
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await sendCallback(`starting ${id}`)
+            await handleSending(msg, {content: `starting ${id}`}, sendCallback)
             globals.SPAMS[id] = true
             let delay: number | null = parseFloat(String(opts['delay'])) * 1000 || 0
             if(delay < 700 || delay > 0x7FFFFFFF){
@@ -8656,7 +8656,7 @@ Valid formats:
             let id = Math.floor(Math.random() * 10000000)
             globals.SPAMS[id] = true
             if (!opts['s']) {
-                await sendCallback(`Starting id: ${id}`)
+                await handleSending(msg, {content: `Starting id: ${id}`}, sendCallback)
             }
             function handleRunFn(fn: string, contents: string) {
                 switch (fn) {
@@ -8816,12 +8816,12 @@ Valid formats:
             let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
             let fn = generateFileName("remove", msg.author.id)
             fs.writeFileSync(fn, options.join("\n"))
-            await sendCallback({
+            await handleSending(msg, {
                 files: [{
                     attachment: fn,
                     name: "remove.txt"
                 }]
-            })
+            }, sendCallback)
             fs.rmSync(fn)
             try {
                 let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 30000 })
@@ -8834,7 +8834,7 @@ Valid formats:
                     for (let numStr of m.content.split(" ")) {
                         let num = parseInt(numStr || "0")
                         if (!num) {
-                            await sendCallback(`${num} is not a valid number`)
+                            await handleSending(msg, {content: `${num} is not a valid number`}, sendCallback)
                             return
                         }
                         let removal = data[num - 1]
@@ -8842,9 +8842,9 @@ Valid formats:
                             return
                         let userCreated = removal.split(":")[0].trim()
                         if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                            await sendCallback({
+                            await handleSending(msg, {
                                 content: "You did not create that message, and are not a bot admin"
-                            })
+                            }, sendCallback)
                             continue
                         }
                         removedList.push(data[num - 1])
@@ -8852,9 +8852,9 @@ Valid formats:
                     }
                     data = data.filter(v => typeof v != 'undefined')
                     fs.writeFileSync(`command-results/${file}`, data.join(";END"))
-                    await sendCallback({
+                    await handleSending(msg, {
                         content: `removed ${removedList.join("\n")} from ${file}`
-                    })
+                    }, sendCallback)
                     collector.stop()
                 })
             }
@@ -9727,7 +9727,7 @@ ${styles}
                 return { content: "Channel not found" }
             //@ts-ignore
             let pinned = await channel?.messages?.fetchPinned()
-            let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)
+            let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
             let embed = new MessageEmbed()
             //@ts-ignore
             embed.setTitle(channel.name || "Unknown name")
@@ -9737,7 +9737,7 @@ ${styles}
                 embed.addField("Pin Count", String(pinCount), true)
                 embed.addField("Days till full", String(daysTillFull), true)
             }
-            embed.addField("Created", channel.createdAt.toString(), true)
+            embed.addField("Created", channel.createdAt?.toString() || "N/A", true)
             embed.addField("Days since Creation", String(daysSinceCreation), true)
             embed.addField("Id", channel.id.toString(), true)
             embed.addField("Type", channel.type, true)
@@ -10602,9 +10602,9 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     return [command, aliasPreArgs]
 }
 
-export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0) {
+export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
     if (!Object.keys(rv).length) {
-        return
+        return msg
     }
     let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
     //by default delete files that are being sent from local storage
@@ -10615,7 +10615,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
     if (rv.noSend) {
-        return
+        return msg
+    }
+    if(user_options.getOpt(msg.author.id, "change-cmd-text", "") !== "" && rv.content){
+        rv.content = format(user_options.getOpt(msg.author.id, "change-cmd-text", ""), {result: rv.content})
     }
     if (!rv?.content) {
         //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
@@ -10631,8 +10634,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
             msg.content = oldContent
             //it's better to just recursively do this, otherwise all the code above would be repeated
-            await handleSending(msg, rv, sendCallback, recursion + 1)
-            return
+            return await handleSending(msg, rv, sendCallback, recursion + 1)
         }
     }
     //if the content is > 2000 (discord limit), send a file instead
@@ -10655,22 +10657,23 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //@ts-ignore
         location = msg.author
     }
+    let newMsg;
     try {
         if (sendCallback) {
-            await sendCallback(rv)
+            newMsg = await sendCallback(rv)
         }
         else {
-            await location.send(rv)
+            newMsg = await location.send(rv)
         }
     }
     catch (err) {
         //usually happens when there is nothing to send
         console.log(err)
         if (sendCallback) {
-            await sendCallback({ content: "Something went wrong" })
+            newMsg = await sendCallback({ content: "Something went wrong" })
         }
         else {
-            await location.send({ content: "Something went wrong" })
+            newMsg = await location.send({ content: "Something went wrong" })
         }
     }
     //delete files that were sent
@@ -10680,6 +10683,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
                 fs.rmSync(file.attachment)
         }
     }
+    return newMsg
 }
 
 export function generateDefaultRecurseBans() {

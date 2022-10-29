@@ -1,6 +1,6 @@
 import fs = require("fs")
 
-export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text"] as const
+export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "change-cmd-text"] as const
 
 export type UserOption = typeof allowedOptions[number]
 
