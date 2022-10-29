@@ -8,6 +8,7 @@ const { getOpts } = require("./util.js")
 
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy = require("./economy")
+import { StatusCode } from './commands'
 const { hasItem } = require("./shop.js")
 
 let BATTLEGAME: boolean = false;
@@ -564,7 +565,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
 async function battle(msg: Message, args: ArgumentList){
     if(BATTLEGAME)
-        return {content: "A game is already happening"}
+        return {content: "A game is already happening", status: StatusCode.ERR}
     let opts;
     [opts, args] = getOpts(args)
     let useItems = !opts['no-items']
@@ -572,7 +573,7 @@ async function battle(msg: Message, args: ArgumentList){
     let wt = args[1]
     let winningType = wt || "distribute"
     if(!["wta", "distribute", "dist", "winnertakesall", "winnertakeall"].includes(winningType)){
-        return {content: "Betting type must be wta (winner takes all) or distribute"}
+        return {content: "Betting type must be wta (winner takes all) or distribute", status: StatusCode.ERR}
     }
     if (winningType == 'dist')
         winningType = 'distribute'
@@ -580,10 +581,10 @@ async function battle(msg: Message, args: ArgumentList){
     let nBet = economy.calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
     if(!nBet || !economy.canBetAmount(msg.author.id, nBet) || nBet < 0){
-        return {content: "Not a valid bet"}
+        return {content: "Not a valid bet", status: StatusCode.ERR}
     }
     if(nBet / economy.getEconomy()[msg.author.id].money < 0.002){
-        return {content: "You must bet at least 0.2%"}
+        return {content: "You must bet at least 0.2%", status: StatusCode.ERR}
     }
 
     let players: {[key: string]: number} = {[msg.author.id]: pet.getActivePet(msg.author.id) == 'dog' ? pet.PETACTIONS['dog'](100) : 100}
@@ -647,7 +648,7 @@ async function battle(msg: Message, args: ArgumentList){
     })
     let e = new MessageEmbed()
     e.setTitle("TYPE `join <BET AMOUNT>` TO JOIN THE BATTLE")
-    return {embeds: [e]}
+    return {embeds: [e], status: StatusCode.RETURN}
 }
 
 export{

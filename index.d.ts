@@ -17,6 +17,7 @@ declare global{
     type FileArray = Array<CommandFile>
 
     interface CommandReturn extends MessageOptions{
+    status: StatusCode
 	content?: string,
 	embeds?: Array<MessageEmbed>
 	files?: FileArray,
@@ -26,6 +27,7 @@ declare global{
 	allowedMentions?: MessageMentionOptions,
     dm?: boolean,
     recurse?: boolean | {categories?: CommandCategory[], commands?: string[]},
+    do_user_option_expansion?: boolean
     }
 
     interface CommandHelpArguments{

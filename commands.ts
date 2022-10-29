@@ -31,6 +31,16 @@ import { downloadSync, fetchUser, fetchChannel, format, generateFileName, create
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 import { parentPort } from "worker_threads"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
+
+export enum StatusCode{
+    PROMPT = -2,
+    INFO = -1,
+    RETURN = 0,
+    WARNING = 1,
+    ERR = 2,
+}
+
+
 export enum CommandCategory {
     UTIL,
     GAME,
@@ -373,7 +383,7 @@ export const commands: { [command: string]: Command } = {
         }
         let voice_state = msg.member?.voice
         if(!voice_state?.channelId){
-            return {content: "No voice"}
+            return {content: "No voice", status: StatusCode.ERR}
         }
         connection = joinVoiceChannel({
             channelId: voice_state.channelId,
@@ -385,21 +395,21 @@ export const commands: { [command: string]: Command } = {
 
         vc_queue.push({link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}`})
         if(player.state.status === AudioPlayerStatus.Playing){
-            return {content: `${link} added to queue`}
+            return {content: `${link} added to queue`, status: StatusCode.RETURN}
         }
         play_link(vc_queue.shift() as {link: string, filename: string})
-        return {content: `loading: ${link}`}
+        return {content: `loading: ${link}`, status: StatusCode.RETURN}
     }, CommandCategory.VOICE),
     'queue': createCommand(async(msg, args) => {
         let embed = new MessageEmbed()
         embed.setTitle("queue")
         embed.setDescription(String(currently_playing?.link) || "None")
-        return {content: vc_queue.map(v => v.link).join("\n"), embeds: [embed]}
+        return {content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN}
     }, CommandCategory.VOICE),
     'next': createCommand(async(msg, args) =>  {
         let voice_state = msg.member?.voice
         if(!voice_state?.channelId){
-            return {content: "No voice"}
+            return {content: "No voice", status: StatusCode.ERR}
         }
         fs.rmSync(currently_playing?.filename as string)
         let new_link = vc_queue.shift()
@@ -410,40 +420,40 @@ export const commands: { [command: string]: Command } = {
             vc_queue = []
             connection?.destroy()
         }
-        return {content: "next"}
+        return {content: "next", status: StatusCode.RETURN}
     }, CommandCategory.VOICE),
     'leave': createCommand(async(msg, args) => {
         vc_queue = []
         let voice_state = msg.member?.voice
         if(!voice_state?.channelId){
-            return {content: "No voice"}
+            return {content: "No voice", status: StatusCode.ERR}
         }
         let con = getVoiceConnection(voice_state.guild.id)
         if(con){
             vc_queue = []
             con.destroy()
-            return {content: "Left vc"}
+            return {content: "Left vc", status: StatusCode.RETURN}
         }
         else{
-            return {content: "Not in vc"}
+            return {content: "Not in vc", status: StatusCode.ERR}
         }
     }, CommandCategory.VOICE),
 
     "count": createCommand(async (msg, args) => {
         if (msg.channel.id !== '468874244021813258') {
-            return { content: "You are not in the counting channel" }
+            return { content: "You are not in the counting channel", status: StatusCode.ERR}
         }
         let latestMessage = msg.channel.messages.cache.at(-2)
         if (!latestMessage) {
-            return { noSend: true, delete: true }
+            return { noSend: true, delete: true, status: StatusCode.ERR }
         }
         let number = latestMessage.content.split(".")[1]
         if (!number) {
-            return { noSend: true, delete: true }
+            return { noSend: true, delete: true, status: StatusCode.ERR }
         }
         let numeric = Number(number) + 1
         if (!numeric) {
-            return { noSend: true, delete: true }
+            return { noSend: true, delete: true, status: StatusCode.ERR }
         }
         let count_text = args.join(" ").trim()
         if (!count_text) {
@@ -457,12 +467,12 @@ export const commands: { [command: string]: Command } = {
             msg.content = count_text
             let rv = await doCmd(msg, true)
             if (!rv) {
-                return { delete: true, noSend: true }
+                return { delete: true, noSend: true, status: StatusCode.RETURN }
             }
             rv['delete'] = true
             return rv
         }
-        return { content: count_text, delete: true }
+        return { content: count_text, delete: true, status: StatusCode.RETURN }
     }, CommandCategory.FUN),
 
     "is-alias": createCommand(async(msg, args) => {
@@ -475,21 +485,21 @@ export const commands: { [command: string]: Command } = {
                 res.push(false)
             }
         }
-        return {content: res.join(",")}
+        return {content: res.join(","), status: StatusCode.RETURN}
     }, CommandCategory.META, "Checks if a command is an alias"),
 
     "has-role": createCommand(async(msg, args) => {
         let user = args[0]
         let search = args.slice(1).join(" ")
         if(!search){
-            return {content: "No role given"}
+            return {content: "No role given",  status: StatusCode.ERR}
         }
         if(!user){
-            return {content: "No user given"}
+            return {content: "No user given",  status: StatusCode.ERR}
         }
         let roles = await msg.guild?.roles.fetch()
         if(!roles){
-            return {content: "No roles"}
+            return {content: "No roles",  status: StatusCode.ERR}
         }
         let foundRoles = roles.filter(r => r.name.toLowerCase() == search.toLowerCase() ? true : false)
         if (!foundRoles.size) {
@@ -501,30 +511,30 @@ export const commands: { [command: string]: Command } = {
 
         let role = foundRoles?.at(0)
         if (!role) {
-            return { content: "Could not find role" }
+            return { content: "Could not find role",  status: StatusCode.ERR }
         }
         let member: GuildMember | undefined = await fetchUser(msg.guild as Guild, user)
         if(!member){
-            return {content: "No member found"}
+            return {content: "No member found",  status: StatusCode.ERR}
         }
-        return {content: String(member.roles.cache.has(role.id))}
+        return {content: String(member.roles.cache.has(role.id)),  status: StatusCode.RETURN}
     }, CommandCategory.UTIL),
 
     "option": createCommand(async (msg, args) => {
         let [optname, ...value] = args
         if (!user_options.isValidOption(optname)) {
-            return { content: `${optname} is not a valid option` }
+            return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
         }
         if (value.length === 0) {
             user_options.unsetOpt(msg.author.id, optname)
             user_options.saveUserOptions()
-            return { content: `<@${msg.author.id}> unset ${optname}` }
+            return { content: `<@${msg.author.id}> unset ${optname}`, status: StatusCode.RETURN}
         }
         else {
             let optVal = value.join(" ")
             user_options.setOpt(msg.author.id, optname, optVal)
             user_options.saveUserOptions()
-            return { content: `<@${msg.author.id}> set ${optname}=${optVal}` }
+            return { content: `<@${msg.author.id}> set ${optname}=${optVal}`, status: StatusCode.RETURN }
         }
     }, CommandCategory.META,
         "Sets a user option",
@@ -539,15 +549,15 @@ export const commands: { [command: string]: Command } = {
     "UNSET": createCommand(async (msg, args) => {
         let [user, optname] = args
         if (!user_options.isValidOption(optname)) {
-            return { content: `${optname} is not a valid option` }
+            return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
         }
         //@ts-ignore
         let member = await fetchUser(msg.guild, user)
         if (!member)
-            return { content: `${user} not found` }
+            return { content: `${user} not found`, status: StatusCode.ERR }
         user_options.unsetOpt(member.id, optname)
         user_options.saveUserOptions()
-        return { content: `<@${member.id}> unset ${optname}` }
+        return { content: `<@${member.id}> unset ${optname}`, status:  StatusCode.RETURN }
 
     }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
 
@@ -560,13 +570,13 @@ export const commands: { [command: string]: Command } = {
         let optionToCheck = args.join(" ").toLowerCase()
         if (optionToCheck) {
             //@ts-ignore
-            return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}` }
+            return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN }
         }
         let text = ""
         for (let opt of user_options.allowedOptions) {
             text += `**${opt}**\n${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}\n--------------------\n`
         }
-        return { content: text }
+        return { content: text, status: StatusCode.RETURN }
     }, CommandCategory.META, "Prints the options for [option, and your values for them",
         {
             "option": createHelpArgument("The option to check the value of", false)
@@ -576,11 +586,11 @@ export const commands: { [command: string]: Command } = {
         run: async(msg, args) => {
             let [img1, img2] = args
             if(!img1 || !img2){
-                return {content: "Must provide 2 image links"}
+                return {content: "Must provide 2 image links", status: StatusCode.ERR}
             }
             let image1 = await canvas.loadImage(img1 as string)
             if(image1.width * image1.height > 1000000){
-                return {content: "Image 1 is too large"}
+                return {content: "Image 1 is too large", status: StatusCode.ERR}
             }
             let canv = new canvas.Canvas(image1.width, image1.height)
             let ctx = canv.getContext("2d")
@@ -594,7 +604,7 @@ export const commands: { [command: string]: Command } = {
             ctx.drawImage(image2, 0, 0)
             let data2 = ctx.getImageData(0, 0, canv.width, canv.height)
             if(image2.width * image2.height > 1000000){
-                return {content: "Image 1 is too large"}
+                return {content: "Image 2 is too large", status: StatusCode.ERR}
             }
 
             let diffData = data1.data.map((v, idx) =>{
@@ -613,7 +623,8 @@ export const commands: { [command: string]: Command } = {
                     name: fn,
                     delete: true
                 }
-            ]}
+            ],
+            status: StatusCode.RETURN}
         }, category: CommandCategory.IMAGES
     },
     "picsum.photos": createCommand(async(msg, args) => {
@@ -623,10 +634,10 @@ export const commands: { [command: string]: Command } = {
         let height = parseInt(args[1]) || 100;
         let data = await fetch.default(`https://picsum.photos/${width}/${height}`);
         if(data.status !== 200){
-            return {content: `picsum returned a ${data.status} error`}
+            return {content: `picsum returned a ${data.status} error`, status: StatusCode.ERR}
         }
         if(opts['url']){
-            return {content: data.url}
+            return {content: data.url, status: StatusCode.RETURN}
         }
         let png_fetch = await fetch.default(data.url)
         let png = await png_fetch.buffer()
@@ -639,7 +650,8 @@ export const commands: { [command: string]: Command } = {
                 description: `A random image with a width of ${width} and height of ${height}`,
                 delete: true
             }
-        ]}
+        ],
+        status: StatusCode.RETURN}
     }, CommandCategory.IMAGES,
         "Gets an image from picsum.photos",
         {
@@ -662,7 +674,7 @@ export const commands: { [command: string]: Command } = {
             let img = getImgFromMsgAndOpts(opts, msg)
             let image = await canvas.loadImage(img as string)
             if(image.width * image.height > 1000000){
-                return {content: "Image is too large"}
+                return {content: "Image is too large", status: StatusCode.ERR}
             }
             let canv = new canvas.Canvas(image.width, image.height)
             let ctx = canv.getContext("2d")
@@ -686,7 +698,8 @@ export const commands: { [command: string]: Command } = {
                     name: fn,
                     delete: true
                 }
-            ]}
+            ],
+            status: StatusCode.RETURN}
         }, category: CommandCategory.IMAGES,
         help: {
             arguments: {
@@ -711,7 +724,7 @@ export const commands: { [command: string]: Command } = {
             [opts, args] = getOpts(args)
             let channel = args.map(v => v.toLowerCase())
             if(!channel.length){
-                return {content: "No channel"}
+                return {content: "No channel", status: StatusCode.ERR}
             }
             let img = getImgFromMsgAndOpts(opts, msg)
             let image = await canvas.loadImage(img as string)
@@ -737,7 +750,7 @@ export const commands: { [command: string]: Command } = {
                     name: fn,
                     delete: true
                 }
-            ]}
+            ], status: StatusCode.RETURN}
         }, category: CommandCategory.IMAGES
     },
 
@@ -839,7 +852,8 @@ export const commands: { [command: string]: Command } = {
                         name: fn,
                         delete: true
                     }
-                ]}
+                ],
+                status: StatusCode.RETURN}
             }
             let actionMessage = m.at(0)
             if(!actionMessage){
@@ -849,7 +863,7 @@ export const commands: { [command: string]: Command } = {
             let args = actionMessage.content.split(" ").slice(1)
             switch(action){
                 case "help": {
-                    await handleSending(msg, {content: `
+                    await handleSending(msg, {status: StatusCode.INFO, content: `
 COLOR TYPES:
     #rgb
     #rrggbb
@@ -1110,7 +1124,7 @@ The commands below, only work after **path** has been run:
                     let type = args[0]
                     let {color, err} = createColor(type, args.slice(1), actionMessage)
                     if(err){
-                        await handleSending(msg, {content: err}, sendCallback)
+                        await handleSending(msg, {status: StatusCode.ERR, content: err}, sendCallback)
                     }
                     ctx.strokeStyle = color ?? "red"
                     continue
@@ -1131,7 +1145,7 @@ The commands below, only work after **path** has been run:
                     let type = args[0]
                     let {color, err} = createColor(type, args.slice(1), actionMessage)
                     if(err){
-                        await handleSending(msg, {content: err}, sendCallback)
+                        await handleSending(msg, {content: err, status: StatusCode.ERR}, sendCallback)
                         continue
                     }
                     ctx.fillStyle = color ?? "red"
@@ -1198,7 +1212,7 @@ The commands below, only work after **path** has been run:
                     if(type){
                         let {color, err} = createColor(type, args.slice(1), actionMessage)
                         if(err){
-                            await handleSending(msg, {content: err}, sendCallback)
+                            await handleSending(msg, {content: err, status: StatusCode.ERR}, sendCallback)
                             continue
                         }
                         ctx.fillStyle = color ?? "red"
@@ -1250,7 +1264,7 @@ The commands below, only work after **path** has been run:
                     attachment: fn,
                     name: fn,
                 }
-            ]}, sendCallback)
+            ], status: StatusCode.INFO}, sendCallback)
 
                     
         }
@@ -1262,11 +1276,11 @@ The commands below, only work after **path** has been run:
                 name: fn,
                 delete: true
             }
-        ]}
+        ], status: StatusCode.RETURN}
     }, CommandCategory.IMAGES),
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
-            return { content: "Ur already editing" }
+            return { content: "Ur already editing", status: StatusCode.ERR }
         }
         let opts: Opts;
         [opts, args] = getOpts(args)
@@ -1344,7 +1358,7 @@ The commands below, only work after **path** has been run:
                         console.log(rgx)
                     }
                     catch (err) {
-                        handleSending(msg, { content: "? Invalid regex'" })
+                        handleSending(msg, {status: StatusCode.ERR, content: "? Invalid regex'" })
                         return [currentLine]
                     }
                     let validLines = []
@@ -1429,7 +1443,7 @@ The commands below, only work after **path** has been run:
                 }
 
                 else if (!opts['exec']) {
-                    await handleSending(msg, { content: "?" })
+                    await handleSending(msg, {status: StatusCode.ERR, content: "?" })
                 }
             }
             else {
@@ -1487,7 +1501,7 @@ The commands below, only work after **path** has been run:
                 for (let line of commandLines) {
                     textToSend += text[line] + "\n"
                 }
-                await handleSending(msg, { content: textToSend })
+                await handleSending(msg, {status: StatusCode.INFO, content: textToSend })
                 return true
             },
             n: async (range, _args) => {
@@ -1496,7 +1510,7 @@ The commands below, only work after **path** has been run:
                 for (let line of commandLines) {
                     textToSend += `${String(line + 1)} ${text[line]}\n`
                 }
-                await handleSending(msg, { content: textToSend })
+                await handleSending(msg, {status: StatusCode.INFO, content: textToSend })
                 return true
             },
             s: async (range, args) => {
@@ -1507,7 +1521,7 @@ The commands below, only work after **path** has been run:
                     rgx = new RegExp(searchRegex, flags)
                 }
                 catch (err) {
-                    await handleSending(msg, { content: "? Invalid regex'" })
+                    await handleSending(msg, {status: StatusCode.INFO, content: "? Invalid regex'" })
                     return true
                 }
                 for (let line of commandLines) {
@@ -1552,7 +1566,7 @@ The commands below, only work after **path** has been run:
                     m = (await msg.channel.awaitMessages({ filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"] })).at(0)
                 }
                 catch (err) {
-                    return { content: "Timeout" }
+                    return { content: "Timeout", status: StatusCode.ERR }
                 }
                 if (!m) break
                 if (!(await handleTextInMode(m.content))) {
@@ -1564,9 +1578,9 @@ The commands below, only work after **path** has been run:
             delete globals.EDS[ed]
         }
         if (opts['s']) {
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.RETURN }
         }
-        return { content: text.join("\n") }
+        return { content: text.join("\n"), status: StatusCode.RETURN }
     }, CommandCategory.UTIL
     ),
 
@@ -1576,6 +1590,7 @@ The commands below, only work after **path** has been run:
         if (opts["g"]) {
             let text = fs.readFileSync("./help.txt", "utf-8")
             return {
+                status: StatusCode.RETURN,
                 content: text
             }
         }
@@ -1602,7 +1617,7 @@ The commands below, only work after **path** has been run:
                 if (catNum == -1 || commands[cmd].category == catNum)
                     rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
             }
-            return { content: rv }
+            return { content: rv, status: StatusCode.RETURN }
         }
         let commandsToUse = commands
         if (args[0]) {
@@ -1618,13 +1633,13 @@ The commands below, only work after **path** has been run:
             }
         }
         if (opts['json']) {
-            return { content: JSON.stringify(commandsToUse) }
+            return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
         }
         let text = ""
         for (let command in commandsToUse) {
             text += generateTextFromCommandHelp(command, commandsToUse[command]) + "--------------------------------------\n"
         }
-        return { content: text }
+        return { content: text, status: StatusCode.RETURN }
     }, CommandCategory.UTIL,
         "Get help with specific commands",
         {
@@ -1643,7 +1658,8 @@ The commands below, only work after **path** has been run:
                 }
             }
             return {
-                content: "Cleared Logs"
+                content: "Cleared Logs",
+                status: StatusCode.RETURN
             }
         }, category: CommandCategory.UTIL,
         permCheck: (m) => ADMINS.includes(m.author.id)
@@ -1660,26 +1676,26 @@ The commands below, only work after **path** has been run:
                 let embed = new MessageEmbed()
                 let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
                 if (!stockData) {
-                    await handleSending(msg, {content: "No data found"}, sendCallback)
+                    await handleSending(msg, {status: StatusCode.ERR, content: "No data found"}, sendCallback)
                     return
                 }
                 stockData = stockData[0]
                 let price = stockData.match(/>(\d+\.\d+)/)
                 if (!price) {
-                    await handleSending(msg, {content: "No price found"}, sendCallback)
+                    await handleSending(msg, {status: StatusCode.ERR, content: "No price found"}, sendCallback)
                     return
                 }
                 price = price[1]
                 let change = stockData.match(/(\+|-)(\d+\.\d+)/)
                 if (!change) {
-                    await handleSending(msg, {content: "No change found"}, sendCallback)
+                    await handleSending(msg, {status: StatusCode.ERR, content: "No change found"}, sendCallback)
                     return
                 }
                 change = `${change[1]}${change[2]}`
                 let numberchange = Number(change)
                 let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
                 if (!stockName) {
-                    await handleSending(msg, {content: "Could not get stock name"}, sendCallback)
+                    await handleSending(msg, {status: StatusCode.ERR, content: "Could not get stock name"}, sendCallback)
                     return
                 }
                 stockName = stockName[1]
@@ -1692,10 +1708,10 @@ The commands below, only work after **path** has been run:
                 embed.setTitle(stockName)
                 embed.addField("Price", price)
                 embed.addField("Price change", change, true)
-                await handleSending(msg, { embeds: [embed] }, sendCallback)
+                await handleSending(msg, {status: StatusCode.RETURN,  embeds: [embed] }, sendCallback)
             })
         }).end()
-        return { content: "Getting data" }
+        return { content: "Getting data", status: StatusCode.INFO }
     }, CommandCategory.UTIL,
         "Gets the stock symbol for a stock"
     ),
@@ -1707,13 +1723,13 @@ The commands below, only work after **path** has been run:
             let fmt = String(opts['fmt'] || "{embed}")
             let stock = args.join(" ")
             if (!stock) {
-                return { content: "Looks like u pulled a cam" }
+                return { content: "Looks like u pulled a cam", status: StatusCode.ERR }
             }
             let data = await economy.getStockInformation(stock)
             if (!data) {
-                return { content: "No  info found" }
+                return { content: "No  info found", status: StatusCode.ERR }
             }
-            await handleSending(msg, {content: "Getting data"}, sendCallback)
+            await handleSending(msg, {content: "Getting data", status: StatusCode.INFO}, sendCallback)
             if (fmt == "{embed}") {
                 let embed = new MessageEmbed()
                 let nChange = Number(data.change)
@@ -1732,7 +1748,7 @@ The commands below, only work after **path** has been run:
                 else {
                     embed.setColor("#ffff00")
                 }
-                return { embeds: [embed] }
+                return { embeds: [embed], status: StatusCode.RETURN }
             }
             else {
                 return {
@@ -1742,7 +1758,8 @@ The commands below, only work after **path** has been run:
                         c: String(data.change).trim() || "0",
                         C: String(data["%change"]).trim() || "0",
                         v: String(data.volume?.trim()) || "N/A"
-                    })
+                    }),
+                    status: StatusCode.RETURN
                 }
             }
         },
@@ -1772,20 +1789,21 @@ The commands below, only work after **path** has been run:
                                 delete: false,
                                 name: `${file}.ts`,
                             }
-                        ]
+                        ],
+                        status: StatusCode.RETURN
                     }
                 }
-                return { content: `./${file}.ts not found` }
+                return { content: `./${file}.ts not found`, status: StatusCode.ERR }
             }
             let cmd = args[0]
 
             if (!cmd) {
-                return { content: "No cmd  chosen" }
+                return { content: "No cmd  chosen", status: StatusCode.ERR }
             }
             let command = Object.keys(commands).filter(v => v.toLowerCase() === cmd.toLowerCase())
             if (!command.length)
-                return { content: "no command found" }
-            return { content: String(commands[command[0]].run) }
+                return { content: "no command found", status: StatusCode.ERR }
+            return { content: String(commands[command[0]].run), status: StatusCode.RETURN }
         }, category: CommandCategory.META,
         help: {
             info: "Get the source code of a file, or a command",
@@ -1809,7 +1827,7 @@ The commands below, only work after **path** has been run:
             let type = args[0]
             let item = args.slice(1).join(" ")
             if (!item) {
-                return { content: "No item specified" }
+                return { content: "No item specified", status: StatusCode.ERR }
             }
             let amount = Number(args[args.length - 1])
             if (!isNaN(amount)) {
@@ -1818,24 +1836,24 @@ The commands below, only work after **path** has been run:
             if (!allowedTypes.includes(type)) {
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
-                    await handleSending(msg, {content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`}, sendCallback)
+                    await handleSending(msg, {content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING}, sendCallback)
                     return await commands['bstock'].run(msg, args, sendCallback, {}, args)
                 }
                 //else
-                return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\`` }
+                return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
             }
             switch (type) {
                 case "stock": {
                     if (!amount || amount < 0) {
-                        return { content: `${amount} is an invalid amount` }
+                        return { content: `${amount} is an invalid amount`, status: StatusCode.ERR }
                     }
                     let data = await economy.getStockInformation(item)
                     if (data === false) {
-                        return { content: `${item} does not exist` }
+                        return { content: `${item} does not exist`, status: StatusCode.ERR }
                     }
                     let realStock = economy.userHasStockSymbol(msg.author.id, item)
                     if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
-                        return { content: "You cannot afford this" }
+                        return { content: "You cannot afford this", status: StatusCode.ERR }
                     }
                     if (realStock) {
                         economy.buyStock(msg.author.id, realStock.name, amount, data.price)
@@ -1843,16 +1861,16 @@ The commands below, only work after **path** has been run:
                     else {
                         economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
                     }
-                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}` }
+                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for $${data.price * amount}`, status: StatusCode.RETURN }
                 }
                 case "pet": {
                     if (!item) {
-                        return { content: "You didnt specify a pet" }
+                        return { content: "You didnt specify a pet", status: StatusCode.ERR }
                     }
                     let shopData = pet.getPetShop()
                     item = item.toLowerCase()
                     if (!shopData[item]) {
-                        return { content: `${item}: not a valid pet` }
+                        return { content: `${item}: not a valid pet`, status: StatusCode.ERR }
                     }
                     let petData = shopData[item]
                     let totalCost = 0
@@ -1860,21 +1878,21 @@ The commands below, only work after **path** has been run:
                         totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                     }
                     if (!economy.canBetAmount(msg.author.id, totalCost)) {
-                        return { content: "You do not have enough money to buy this pet" }
+                        return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
                     }
                     if (pet.buyPet(msg.author.id, item)) {
-                        return { content: `You have successfuly bought: ${item} for: $${totalCost}\nTo activate it run ${prefix}sapet ${item}` }
+                        return { content: `You have successfuly bought: ${item} for: $${totalCost}\nTo activate it run ${prefix}sapet ${item}`, status: StatusCode.RETURN }
                     }
-                    return { content: "You already have this pet" }
+                    return { content: "You already have this pet", status: StatusCode.ERR }
                 }
                 case "item": {
                     if (!amount)
                         amount = 1
                     if (msg.author.bot) {
-                        return { content: "Bots cannot buy items" }
+                        return { content: "Bots cannot buy items", status: StatusCode.ERR }
                     }
                     if (!ITEMS()[item]) {
-                        return { content: `${item} does not exist` }
+                        return { content: `${item} does not exist`, status: StatusCode.ERR }
                     }
                     let itemData = ITEMS()[item]
                     let totalSpent = 0
@@ -1889,20 +1907,20 @@ The commands below, only work after **path** has been run:
                                 totalSpent += totalCost
                             }
                             else {
-                                return { content: `You already have the maximum of ${item}` }
+                                return { content: `You already have the maximum of ${item}`, status: StatusCode.ERR }
                             }
                         }
                         else {
                             if (i > 0) {
-                                return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}` }
+                                return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`, status: StatusCode.RETURN }
                             }
-                            return { content: `This item is too expensive for u` }
+                            return { content: `This item is too expensive for u`, status: StatusCode.ERR  }
                         }
                     }
-                    return { content: `You bought: ${amount} ${item}(s) for $${totalSpent}` }
+                    return { content: `You bought: ${amount} ${item}(s) for $${totalSpent}`, status: StatusCode.RETURN }
                 }
             }
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "Buy stuff!",
@@ -1992,7 +2010,7 @@ The commands below, only work after **path** has been run:
                             }
                         }
                         catch (err) {
-                            return { content: `${query} is an invalid regular expression` }
+                            return { content: `${query} is an invalid regular expression`, status: StatusCode.ERR }
                         }
                     }
                     text = `RESULTS\n-------------------------\n${results.map(v => `${v[0]}: ${v[1]}`).join("\n")}`
@@ -2003,7 +2021,7 @@ The commands below, only work after **path** has been run:
                     break
                 }
             }
-            return { content: text.replaceAll(/__/g, "\\_") || "nothing" }
+            return { content: text.replaceAll(/__/g, "\\_") || "nothing", status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Get information about heist responses",
@@ -2030,27 +2048,27 @@ The commands below, only work after **path** has been run:
         run: async (msg, args, sendCallback) => {
             let stock = args[0]
             if (!stock) {
-                return { content: "No stock given" }
+                return { content: "No stock given", status: StatusCode.ERR }
             }
             if (stock == prefix) {
-                return { content: "nah ah ah" }
+                return { content: "nah ah ah", status: StatusCode.ERR }
             }
             stock = stock.toUpperCase()
             let amount = Number(args[1])
             if (!amount) {
-                return { content: "No share count given" }
+                return { content: "No share count given", status: StatusCode.ERR }
             }
             if (amount < .1) {
-                return { content: "You must buy at least 1/10 of a share" }
+                return { content: "You must buy at least 1/10 of a share", status: StatusCode.ERR }
             }
             economy.getStockInformation(stock, (data) => {
                 if (data === false) {
-                    handleSending(msg, { content: `${stock} does not exist` }, sendCallback)
+                    handleSending(msg, { content: `${stock} does not exist`, status: StatusCode.ERR }, sendCallback)
                     return
                 }
                 let realStock = economy.userHasStockSymbol(msg.author.id, stock)
                 if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
-                    handleSending(msg, { content: "You cannot afford this" }, sendCallback)
+                    handleSending(msg, { content: "You cannot afford this", status: StatusCode.ERR }, sendCallback)
                     return
                 }
                 if (realStock) {
@@ -2059,11 +2077,11 @@ The commands below, only work after **path** has been run:
                 else {
                     economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
                 }
-                handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}` }, sendCallback)
+                handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}`, status: StatusCode.RETURN }, sendCallback)
             }, () => {
-                handleSending(msg, {content: `Failed to get stock data for: ${stock}`}, sendCallback)
+                handleSending(msg, {content: `Failed to get stock data for: ${stock}`, status: StatusCode.ERR}, sendCallback)
             })
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: `Buy a stock, this is the same as ${prefix}buy stock <symbol> <amount>`,
@@ -2088,7 +2106,7 @@ The commands below, only work after **path** has been run:
             if (!member)
                 member = msg.member || undefined
             let stockName = args[0]
-            return { content: JSON.stringify(economy.userHasStockSymbol(member?.user.id || "", stockName)) }
+            return { content: JSON.stringify(economy.userHasStockSymbol(member?.user.id || "", stockName)), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Check if a user has a stock",
@@ -2111,14 +2129,14 @@ The commands below, only work after **path** has been run:
                 //@ts-ignore
                 member = await fetchUser(msg.guild, user)
                 if (!member) {
-                    return { content: `${args[0]} not found` }
+                    return { content: `${args[0]} not found`, status: StatusCode.ERR }
                 }
             }
             if (!member) {
-                return { content: ":weary:" }
+                return { content: ":weary:", status: StatusCode.ERR }
             }
             if (!economy.getEconomy()[member.id] || !economy.getEconomy()[member.id].stocks) {
-                return { content: "You own no stocks" }
+                return { content: "You own no stocks", status: StatusCode.ERR }
             }
             let text = `<@${member.id}>\n`
             for (let stock in economy.getEconomy()[member.id].stocks) {
@@ -2126,7 +2144,7 @@ The commands below, only work after **path** has been run:
                 let stockInfo = economy.getEconomy()[member.id].stocks[stock]
                 text += `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})\n-------------------------\n`
             }
-            return { content: text || "No stocks", allowedMentions: { parse: [] } }
+            return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "Get the stocks of a user",
@@ -2142,13 +2160,13 @@ The commands below, only work after **path** has been run:
     loan: {
         run: async (msg, _args, sendCallback) => {
             if (!hasItem(msg.author.id, "loan")) {
-                return { content: "You do not have a loan" }
+                return { content: "You do not have a loan", status: StatusCode.ERR }
             }
             if (economy.getEconomy()[msg.author.id].loanUsed) {
-                return { content: "U have not payed off your loan" }
+                return { content: "U have not payed off your loan", status: StatusCode.ERR }
             }
             if (economy.getEconomy()[msg.author.id].money >= 0) {
-                return { content: "Ur not in debt" }
+                return { content: "Ur not in debt", status: StatusCode.ERR }
             }
             let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
             //@ts-ignore
@@ -2160,7 +2178,7 @@ The commands below, only work after **path** has been run:
             economy.addMoney(msg.author.id, needed)
             economy.useLoan(msg.author.id, needed)
             useItem(msg.author.id, "loan")
-            return { content: `<@${msg.author.id}> Used a loan and got ${needed}` }
+            return { content: `<@${msg.author.id}> Used a loan and got ${needed}`, status: StatusCode.ERR }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: `Use a loan
@@ -2172,9 +2190,9 @@ The commands below, only work after **path** has been run:
         run: async (msg, _args, sendCallback) => {
             if (economy.canWork(msg.author.id)) {
                 let amount = economy.work(msg.author.id)
-                return { content: `You earned: ${amount}` }
+                return { content: `You earned: ${amount}`, status: StatusCode.ERR }
             }
-            return { content: "No working for you bubs" }
+            return { content: "No working for you bubs", status: StatusCode.ERR }
         }, category: CommandCategory.UTIL,
         help: {
             info: `Earn money (.1% of the economy) if your net worth is below 0`
@@ -2186,15 +2204,15 @@ The commands below, only work after **path** has been run:
             let amount = args[0] || "all!"
             let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
             if (!economy.getEconomy()[msg.author.id].loanUsed) {
-                return { content: "You have no loans to pay off" }
+                return { content: "You have no loans to pay off", status: StatusCode.ERR }
             }
             if (!economy.canBetAmount(msg.author.id, nAmount)) {
-                return { content: "U do not have enough money to pay that back" }
+                return { content: "U do not have enough money to pay that back", status: StatusCode.ERR }
             }
             if (economy.payLoan(msg.author.id, nAmount)) {
-                return { content: "You have fully payed off your loan" }
+                return { content: "You have fully payed off your loan", status: StatusCode.RETURN }
             }
-            return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left` }
+            return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left`, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2214,13 +2232,13 @@ The commands below, only work after **path** has been run:
             }
             let item = args.join(" ")
             if (!item) {
-                return { content: "no item" }
+                return { content: "no item", status: StatusCode.ERR }
             }
             if (msg.author.bot) {
-                return { content: "Bots cannot buy items" }
+                return { content: "Bots cannot buy items", status: StatusCode.ERR }
             }
             if (!ITEMS()[item]) {
-                return { content: `${item} does not exist` }
+                return { content: `${item} does not exist`, status: StatusCode.ERR }
             }
             let totalSpent = 0
             for (let i = 0; i < count; i++) {
@@ -2234,17 +2252,17 @@ The commands below, only work after **path** has been run:
                         totalSpent += totalCost
                     }
                     else {
-                        return { content: `You already have the maximum of ${item}` }
+                        return { content: `You already have the maximum of ${item}`, status: StatusCode.ERR }
                     }
                 }
                 else {
                     if (i > 0) {
-                        return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}` }
+                        return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`, status: StatusCode.RETURN }
                     }
-                    return { content: `This item is too expensive for u` }
+                    return { content: `This item is too expensive for u`, status: StatusCode.ERR }
                 }
             }
-            return { content: `You bought: ${item} for $${totalSpent}` }
+            return { content: `You bought: ${item} for $${totalSpent}`, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2253,7 +2271,7 @@ The commands below, only work after **path** has been run:
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             if (!user)
-                return { content: `${args[0]}  not  found` }
+                return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
             let e = new MessageEmbed()
             e.setTitle("ITEMS")
             let au = user.user.avatarURL()
@@ -2262,7 +2280,7 @@ The commands below, only work after **path** has been run:
             for (let item in INVENTORY()[user.id]) {
                 e.addField(item, `${INVENTORY()[user.id][item]}`)
             }
-            return { embeds: [e] }
+            return { embeds: [e], status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2279,7 +2297,7 @@ The commands below, only work after **path** has been run:
                 embed.addField(`${pet}\n$${totalCost}`, `${data.description}`, true)
             }
             embed.setFooter({ text: `To buy a pet, do ${prefix}bpet <pet name>` })
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2287,12 +2305,12 @@ The commands below, only work after **path** has been run:
         run: async (msg, args, sendCallback) => {
             let requested_pet = args[0]
             if (!requested_pet) {
-                return { content: "You didnt specify a pet" }
+                return { content: "You didnt specify a pet", status: StatusCode.ERR }
             }
             let shopData = pet.getPetShop()
             requested_pet = requested_pet.toLowerCase()
             if (!shopData[requested_pet]) {
-                return { content: `${requested_pet}: not a valid pet` }
+                return { content: `${requested_pet}: not a valid pet`, status: StatusCode.ERR }
             }
             let petData = shopData[requested_pet]
             let totalCost = 0
@@ -2300,12 +2318,12 @@ The commands below, only work after **path** has been run:
                 totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
             }
             if (!economy.canBetAmount(msg.author.id, totalCost)) {
-                return { content: "You do not have enough money to buy this pet" }
+                return { content: "You do not have enough money to buy this pet", status:  StatusCode.ERR }
             }
             if (pet.buyPet(msg.author.id, requested_pet)) {
-                return { content: `You have successfuly bought: ${requested_pet} for: $${totalCost}` }
+                return { content: `You have successfuly bought: ${requested_pet} for: $${totalCost}`, status: StatusCode.RETURN }
             }
-            return { content: "You already have this pet" }
+            return { content: "You already have this pet", status: StatusCode.ERR }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2313,7 +2331,7 @@ The commands below, only work after **path** has been run:
         run: async (msg, args, sendCallback) => {
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
-            return { content: String(pet.getActivePet(user?.user.id || "")) }
+            return { content: String(pet.getActivePet(user?.user.id || "")), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
@@ -2321,12 +2339,12 @@ The commands below, only work after **path** has been run:
         run: async (msg, args, sendCallback) => {
             let newActivePet = args[0]?.toLowerCase()
             if (!pet.hasPet(msg.author.id, newActivePet)) {
-                return { content: `You do not have a ${newActivePet}` }
+                return { content: `You do not have a ${newActivePet}`, status: StatusCode.ERR }
             }
             if (pet.setActivePet(msg.author.id, newActivePet)) {
-                return { content: `Your new active pet is ${newActivePet}` }
+                return { content: `Your new active pet is ${newActivePet}`, status: StatusCode.RETURN }
             }
-            return { content: "Failed to set active pet" }
+            return { content: "Failed to set active pet", status: StatusCode.ERR }
         }, category: CommandCategory.UTIL
     },
 
@@ -2335,10 +2353,10 @@ The commands below, only work after **path** has been run:
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             if (!user)
-                return { content: "User not found" }
+                return { content: "User not found", status: StatusCode.ERR }
             let pets = pet.getUserPets(user.user.id)
             if (!pets) {
-                return { content: `<@${user.user.id}> does not have pets`, allowedMentions: { parse: [] } }
+                return { content: `<@${user.user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
             }
             let e = new MessageEmbed()
             e.setTitle(`${user.user.username}'s pets`)
@@ -2350,7 +2368,7 @@ The commands below, only work after **path** has been run:
             if (!activePet) {
                 e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
             }
-            return { embeds: [e] }
+            return { embeds: [e], status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2359,17 +2377,17 @@ The commands below, only work after **path** has been run:
             let petName = args[0]?.toLowerCase()
             let item = args.slice(1).join(" ").toLowerCase()
             if (!pet.hasPet(msg.author.id, petName)) {
-                return { content: `You do not  have a ${petName}` }
+                return { content: `You do not  have a ${petName}`, status: StatusCode.ERR }
             }
             if (!hasItem(msg.author.id, item)) {
-                return { content: `You do not have the item: ${item}` }
+                return { content: `You do not have the item: ${item}`, status: StatusCode.ERR }
             }
             useItem(msg.author.id, item)
             let feedAmount = pet.feedPet(msg.author.id, petName, item)
             if (feedAmount) {
-                return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back` }
+                return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`, status: StatusCode.RETURN }
             }
-            return { contnet: "The feeding was unsuccessful" }
+            return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
         }, category: CommandCategory.FUN,
         help: {
             info: "feed-peth <pet> <item>"
@@ -2384,7 +2402,7 @@ The commands below, only work after **path** has been run:
             //@ts-ignore
             let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
             if (!user) {
-                return { content: `${opts['as']} not found` }
+                return { content: `${opts['as']} not found`,  status: StatusCode.ERR }
             }
             let userCheckingShop = user.user
             let itemJ = JSON.parse(items)
@@ -2423,7 +2441,7 @@ The commands below, only work after **path** has been run:
             if (e.fields.length > 0) {
                 pages.push(e)
             }
-            return { embeds: pages }
+            return { embeds: pages, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "List items in the shop",
@@ -2438,7 +2456,7 @@ The commands below, only work after **path** has been run:
     profits: {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
-                return { content: "You own no stocks" }
+                return { content: "You own no stocks", status: StatusCode.ERR }
             }
             let totalProfit = 0
             let totalDailiyProfit = 0
@@ -2489,9 +2507,9 @@ The commands below, only work after **path** has been run:
                 }
             }
             catch (err) {
-                return { content: "Something went wrong" }
+                return { content: "Something went wrong", status: StatusCode.ERR }
             }
-            return { content: format(String(ffmt), { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }) }
+            return { content: format(String(ffmt), { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }), status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -2516,7 +2534,7 @@ The commands below, only work after **path** has been run:
             lines.push(`${vertChar}${" ".repeat((maxWidth - currLine.length) / 2)}${currLine}${" ".repeat((maxWidth - currLine.length) / 2)}${vertChar}`)
         }
         lines.push(horChar.repeat(maxWidth + 2))
-        return { content: `\`\`\`\n${lines.join("\n")}\n\`\`\`` }
+        return { content: `\`\`\`\n${lines.join("\n")}\n\`\`\``, status: StatusCode.RETURN }
     }, CommandCategory.UTIL, "Surrounds text with a character"),
 
     "align-table": {
@@ -2547,7 +2565,7 @@ The commands below, only work after **path** has been run:
                 }
             }
             if (raw) {
-                return { content: `\\${JSON.stringify(finalColumns)}` }
+                return { content: `\\${JSON.stringify(finalColumns)}`, status:  StatusCode.RETURN }
             }
             for (let row of finalColumns) {
                 for (let i = 0; i < row.length; i++) {
@@ -2564,7 +2582,7 @@ The commands below, only work after **path** has been run:
                 for (let i = 0; i < finalColumns[0].length; i++) {
                     text += `(col: ${i + 1}): ${columnLongestLengths[i]}\n`
                 }
-                return { content: text }
+                return { content: text, status:  StatusCode.RETURN }
             }
             let newText = "```"
             for (let row of finalColumns) {
@@ -2594,7 +2612,7 @@ The commands below, only work after **path** has been run:
                 }
                 newText += '|\n'
             }
-            return { content: newText + "```" }
+            return { content: newText + "```", status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Align a table",
@@ -2620,21 +2638,21 @@ The commands below, only work after **path** has been run:
     "profit": {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
-                return { content: "You own no stocks" }
+                return { content: "You own no stocks", status: StatusCode.ERR }
             }
             let stock = args[0]
             let fmt = args.slice(1).join(" ").trim() || "{embed}"
             if (!stock) {
-                return { content: "No stock given" }
+                return { content: "No stock given", status: StatusCode.ERR }
             }
             let data = await economy.getStockInformation(stock)
             if (!data) {
-                return { content: "No stock data found" }
+                return { content: "No stock data found", status: StatusCode.ERR }
             }
             let embed = new MessageEmbed()
             let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
             if (!stockInfo) {
-                return { content: "You do not have this stock" }
+                return { content: "You do not have this stock", status: StatusCode.ERR }
             }
             let stockName = stockInfo.name
             let profit = (data.price - stockInfo.info.buyPrice) * stockInfo.info.shares
@@ -2654,7 +2672,7 @@ The commands below, only work after **path** has been run:
             embed.addField("Today's Profit", String(todaysProfit), true)
             embed.addField("Value", String(data.price * stockInfo.info.shares))
             if (fmt == "{embed}") {
-                return { embeds: [embed] }
+                return { embeds: [embed], status: StatusCode.ERR }
             }
             else {
                 return {
@@ -2665,7 +2683,8 @@ The commands below, only work after **path** has been run:
                         P: String(profit),
                         T: String(todaysProfit),
                         v: String(data.price * stockInfo.info.shares)
-                    })
+                    }),
+                    status: StatusCode.RETURN
                 }
             }
         }, category: CommandCategory.ECONOMY
@@ -2674,13 +2693,13 @@ The commands below, only work after **path** has been run:
     sell: {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
-                return { content: "You own no stocks" }
+                return { content: "You own no stocks", status: StatusCode.ERR }
             }
             let stock = args[0]
             if (!stock)
-                return { content: "no stock given" }
+                return { content: "no stock given", status: StatusCode.ERR }
             if (stock == prefix) {
-                return { "content": "Looks like ur pulling a tool" }
+                return { "content": "Looks like ur pulling a tool", status: StatusCode.ERR }
             }
             stock = stock.toUpperCase()
             let amount = args[1]
@@ -2690,11 +2709,11 @@ The commands below, only work after **path** has been run:
                 data = await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
             }
             catch (err) {
-                return { content: "Could not fetch data" }
+                return { content: "Could not fetch data", status: StatusCode.ERR }
             }
             let text = await data.text()
             if (!text) {
-                return { content: "No data found" }
+                return { content: "No data found", status: StatusCode.ERR }
             }
             let stockData = text.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
             let jsonStockInfo: { [key: string]: string } = {}
@@ -2707,7 +2726,7 @@ The commands below, only work after **path** has been run:
                 jsonStockInfo[field[1]] = value[1]
             }
             if (Object.keys(jsonStockInfo).length < 1) {
-                return { content: "This does not appear to be a stock" }
+                return { content: "This does not appear to be a stock", status: StatusCode.ERR }
             }
             let nPrice = Number(jsonStockInfo["regularMarketPrice"])
             let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
@@ -2715,25 +2734,25 @@ The commands below, only work after **path** has been run:
             if (realStockInfo)
                 stockName = realStockInfo.name
             if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
-                return { content: "You do not own this stock" }
+                return { content: "You do not own this stock", status: StatusCode.ERR }
             }
             else {
                 //@ts-ignore
                 let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
                 let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
                 if (!sellAmount || sellAmount <= 0) {
-                    return { content: "You must sell a number of shares of your stock" }
+                    return { content: "You must sell a number of shares of your stock", status: StatusCode.ERR }
                 }
                 if (sellAmount > stockInfo.shares) {
-                    return { content: "YOu do not own that many shares" }
+                    return { content: "YOu do not own that many shares", status: StatusCode.ERR }
                 }
                 if (sellAmount <= 0) {
-                    return { content: "Must sell more than 0" }
+                    return { content: "Must sell more than 0", status: StatusCode.ERR }
                 }
                 let profit = (nPrice - stockInfo.buyPrice) * sellAmount
                 economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
                 economy.addMoney(msg.author.id, profit)
-                return { content: `You sold: ${stockName} and made $${profit} in total` }
+                return { content: `You sold: ${stockName} and made $${profit} in total`, status: StatusCode.RETURN }
             }
         }, category: CommandCategory.ECONOMY
     },
@@ -2829,35 +2848,35 @@ The commands below, only work after **path** has been run:
             let amounts = ['huge', 'big', 'medium', 'small', 'tiny']
             let givenAmount = opts['amount'] || opts['a']
             if (typeof givenAmount !== 'string') {
-                return { content: `You must provide an amount (${amounts.join(", ")})` }
+                return { content: `You must provide an amount (${amounts.join(", ")})`, status: StatusCode.ERR }
             }
             if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
-                return { content: `You must provide a user to damage/heal` }
+                return { content: `You must provide a user to damage/heal`, status: StatusCode.ERR }
             }
             if (damageUsers !== undefined && typeof damageUsers !== 'string') {
-                return { content: "-damage must be a user number or all" }
+                return { content: "-damage must be a user number or all", status: StatusCode.ERR }
             }
             if (healUsers !== undefined && typeof healUsers !== 'string') {
-                return { content: "-heal must be a user number or all" }
+                return { content: "-heal must be a user number or all", status: StatusCode.ERR }
             }
             if (!amounts.includes(givenAmount)) {
-                return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
+                return { content: `You did not provide a valid amount (${amounts.join(", ")})`, status: StatusCode.ERR }
             }
             let damageHealText = ""
             if (damageUsers) {
                 if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
-                    return { content: "Users must be numbers seperated by ," }
+                    return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
                 }
                 damageHealText += ` DAMAGE=${damageUsers}`
             }
             if (healUsers) {
                 if (!healUsers.match(/(?:(\d+|all),?)+/)) {
-                    return { content: "Users must be numbers seperated by ," }
+                    return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
                 }
                 damageHealText += ` HEAL=${healUsers}`
             }
             fs.appendFileSync("./command-results/battle", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText};END\n`)
-            return { content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}` }
+            return { content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}`, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Add a battle command with a nice ui ™️",
@@ -2891,17 +2910,17 @@ The commands below, only work after **path** has been run:
             let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
             let numbers = args.slice(1, 4)
             if (!amount) {
-                return { content: "No amount given" }
+                return { content: "No amount given", status: StatusCode.ERR }
             }
             if (!economy.canBetAmount(msg.author.id, amount)) {
-                return { content: "You do not have enough money for this" }
+                return { content: "You do not have enough money for this", status: StatusCode.ERR }
             }
             if (amount / economy.getEconomy()[msg.author.id].money < 0.005) {
-                return { content: "You must bet at least 0.5%" }
+                return { content: "You must bet at least 0.5%", status: StatusCode.ERR }
             }
             let ticket = economy.buyLotteryTicket(msg.author.id, amount)
             if (!ticket) {
-                return { content: "Could not buy ticket" }
+                return { content: "Could not buy ticket", status: StatusCode.ERR }
             }
             if (numbers && numbers.length == 1) {
                 ticket = numbers[0].split("").map(v => Number(v))
@@ -2921,7 +2940,7 @@ The commands below, only work after **path** has been run:
                 economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
                 if (userFormat !== "__default__") {
-                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: generateDefaultRecurseBans() }
+                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
                 }
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
@@ -2932,7 +2951,7 @@ The commands below, only work after **path** has been run:
                 e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
                 e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
             }
-            return { embeds: [e] }
+            return { embeds: [e], status: StatusCode.RETURN }
         }, category: CommandCategory.GAME,
         help: {
             info: "Buy a lottery ticket",
@@ -2949,7 +2968,7 @@ The commands below, only work after **path** has been run:
 
     lottery: {
         run: async (msg, _args, sendCallback) => {
-            return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}` }
+            return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
         }, category: CommandCategory.FUN
     },
 
@@ -2964,7 +2983,7 @@ The commands below, only work after **path** has been run:
             let stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
             let loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
             let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money + stocks - loan, reqAmount)
-            return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }) }
+            return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Calculate the net worth of the economy",
@@ -2994,9 +3013,9 @@ The commands below, only work after **path** has been run:
                 battlemin: (total, _k, _data) => total * 0.002
             })
             if (dollarSign === true) {
-                return { content: `${amount}` }
+                return { content: `${amount}`, status: StatusCode.RETURN }
             }
-            return { content: `${dollarSign}${amount}` }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
@@ -3014,12 +3033,12 @@ The commands below, only work after **path** has been run:
                 as = msg.author.id
             let amount = economy.calculateLoanAmountFromString(String(as), args.join(" "))
             if (!amount) {
-                return { content: "None" }
+                return { content: "None", status: StatusCode.RETURN }
             }
             if (dollarSign === true) {
-                return { content: `${amount}` }
+                return { content: `${amount}`, status: StatusCode.RETURN }
             }
-            return { content: `${dollarSign}${amount}` }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
@@ -3037,9 +3056,9 @@ The commands below, only work after **path** has been run:
                 as = msg.author.id
             let amount = economy.calculateAmountFromStringIncludingStocks(String(as), args.join(" ").trim())
             if (dollarSign === true) {
-                return { content: `${amount}` }
+                return { content: `${amount}`, status: StatusCode.RETURN }
             }
-            return { content: `${dollarSign}${amount}` }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
@@ -3051,15 +3070,15 @@ The commands below, only work after **path** has been run:
             let amountStr = reqAmount.join(" ")
             let money = Number(moneyStr)
             if (isNaN(money)) {
-                return { content: `${moneyStr} is not a number` }
+                return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
             }
             let dollarSign = opts['sign'] || ""
             //the id here doesn't really matter since we're basing this off a predetermined number
             let amount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, amountStr)
             if (dollarSign === true) {
-                return { content: `${amount}` }
+                return { content: `${amount}`, status: StatusCode.RETURN }
             }
-            return { content: `${dollarSign}${amount}` }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
@@ -3075,10 +3094,10 @@ The commands below, only work after **path** has been run:
         }
         //@ts-ignore
         if (!user) user = msg.member
-        if (!user) return { content: "No user found" }
+        if (!user) return { content: "No user found", status: StatusCode.ERR }
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: generateDefaultRecurseBans() }
+        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
     }, CommandCategory.ECONOMY),
 
     money: createCommand(async (msg, args) => {
@@ -3091,7 +3110,7 @@ The commands below, only work after **path** has been run:
         if (!user)
             user = msg.member
         if (!user) {
-            return { content: "How are you not a member?" }
+            return { content: "How are you not a member?", status: StatusCode.ERR }
         }
         let money_format = user_options.getOpt(user.id, "money-format", "{user}\n${amount}")
         let text = ""
@@ -3109,14 +3128,14 @@ The commands below, only work after **path** has been run:
                 text += `${economy.playerLooseNetWorth(user.id)}\n`
             }
             if (text) {
-                return { content: text }
+                return { content: text, status: StatusCode.RETURN }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] } }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] } }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
         }
-        return { content: "none" }
+        return { content: "none", status: StatusCode.RETURN }
     }, CommandCategory.ECONOMY,
         "Get the money of a user",
         {
@@ -3136,25 +3155,25 @@ The commands below, only work after **path** has been run:
             let [amount, ...user] = args
             let userSearch = user.join(" ")
             if (!userSearch) {
-                return { content: "No user to search for" }
+                return { content: "No user to search for", status: StatusCode.ERR }
             }
             //@ts-ignore
             let member = await fetchUser(msg.guild, userSearch)
             if (!member)
-                return { content: `${userSearch} not found` }
+                return { content: `${userSearch} not found`, status: StatusCode.ERR }
             let realAmount = economy.calculateAmountFromString(msg.author.id, amount)
             if (!realAmount) {
-                return { content: "Nothing to give" }
+                return { content: "Nothing to give", status: StatusCode.ERR }
             }
             if (realAmount < 0) {
-                return { content: "What are you trying to pull <:Watching1:697677860336304178>" }
+                return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
             }
             if (economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot) {
                 economy.loseMoneyToPlayer(msg.author.id, realAmount, member.id)
-                return { content: `You gave ${realAmount} to ${member.user.username}` }
+                return { content: `You gave ${realAmount} to ${member.user.username}`, status: StatusCode.RETURN }
             }
             else {
-                return { content: `You cannot give away ${realAmount}` }
+                return { content: `You cannot give away ${realAmount}`, status: StatusCode.ERR }
             }
         }, category: CommandCategory.ECONOMY
     },
@@ -3165,23 +3184,23 @@ The commands below, only work after **path** has been run:
         let sn = stock
         let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
         if (!userStockData) {
-            return { content: "You do not own that stock" }
+            return { content: "You do not own that stock", status: StatusCode.ERR }
         }
         let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
         if (amount <= 0) {
-            return { content: `Invalid share count` }
+            return { content: `Invalid share count`, status: StatusCode.ERR }
         }
         if (amount > userStockData.info.shares) {
-            return { content: "You dont have that many shares" }
+            return { content: "You dont have that many shares", status: StatusCode.ERR }
         }
         let player = args.slice(2).join(" ")
         //@ts-ignore
         let member = await fetchUser(msg.guild, player)
         if (!member) {
-            return { content: `Member: ${player} not found` }
+            return { content: `Member: ${player} not found`, status: StatusCode.ERR }
         }
         if (!economy.getEconomy()[member.id]) {
-            return { content: "Cannot give stocks to this player" }
+            return { content: "Cannot give stocks to this player" , status: StatusCode.ERR}
         }
         userStockData.info.shares -= amount
         //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
@@ -3207,7 +3226,7 @@ The commands below, only work after **path** has been run:
         if (userStockData.info.shares == 0) {
             economy.removeStock(msg.author.id, sn)
         }
-        return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] } }
+        return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] } , status: StatusCode.RETURN}
     }, CommandCategory.ECONOMY,
         "Give a stock to a user",
         {
@@ -3221,50 +3240,50 @@ The commands below, only work after **path** has been run:
         run: async (msg, args, sendCallback) => {
             let [i, user] = args.join(" ").split("|").map(v => v.trim())
             if (!user) {
-                return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\`` }
+                return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``, status: StatusCode.ERR }
             }
             let [count, ...item] = i.split(" ")
             let itemstr = item.join(" ")
             if (!itemstr) {
-                return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\`` }
+                return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``, status: StatusCode.ERR }
             }
             //@ts-ignore
             let member = await fetchUser(msg.guild, user)
             if (!member) {
-                return { content: `${user} not found` }
+                return { content: `${user} not found`, status: StatusCode.ERR }
             }
             let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
             if (!itemData) {
-                return { content: `You do not have ${itemstr.toLowerCase()}` }
+                return { content: `You do not have ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
             }
             let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(msg.author.id, itemData, count))
             if (countnum <= 0 || countnum > itemData.count) {
-                return { content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}` }
+                return { content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
             }
             giveItem(member.id, itemstr.toLowerCase(), countnum)
             useItem(msg.author.id, itemstr.toLowerCase(), countnum)
-            return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] } }
+            return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
         }, category: CommandCategory.ECONOMY,
     },
 
     tax: createCommand(async (msg, args, sendCallback) => {
         if (msg.author.bot) {
-            return { content: "Bots cannot steal" }
+            return { content: "Bots cannot steal", status: StatusCode.ERR }
         }
         let opts;
         [opts, args] = getOpts(args)
         if (!args.length) {
-            await sendCallback({ content: "No user specified, erasing balance" })
+            await handleSending(msg, { content: "No user specified, erasing balance", status: StatusCode.INFO }, sendCallback)
             await new Promise(res => setTimeout(res, 1000))
-            return { content: "Balance erased" }
+            return { content: "Balance erased", status: StatusCode.RETURN }
         }
         //@ts-ignore
         let user = await fetchUser(msg.guild, args.join(" "))
         if (!user)
-            return { content: `${args.join(" ")} not found` }
+            return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
         if (user.user.bot) {
-            return { content: "Looks like ur taxing a fake person" }
+            return { content: "Looks like ur taxing a fake person", status: StatusCode.ERR }
         }
         let ct = economy.canTax(user.id)
         if (hasItem(user.id, "tax evasion")) {
@@ -3291,7 +3310,7 @@ The commands below, only work after **path** has been run:
             else
                 embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
             if (reflected) {
-                return { content: "REFLECTED", embeds: [embed] }
+                return { content: "REFLECTED", embeds: [embed], status: StatusCode.RETURN }
             }
         }
         else if (economy.playerEconomyLooseTotal(msg.author.id) - (economy.getEconomy()[msg.author.id]?.loanUsed || 0) > 0) {
@@ -3304,7 +3323,7 @@ The commands below, only work after **path** has been run:
             embed.setTitle("TAX FAILURE")
             embed.setDescription(`<@${user.user.id}> cannot be taxed yet`)
         }
-        return { embeds: [embed] }
+        return { embeds: [embed], status: StatusCode.RETURN }
     }, CommandCategory.ECONOMY,
         "Tax someone evily",
         {
@@ -3335,38 +3354,38 @@ The commands below, only work after **path** has been run:
         }
         let textOptions = ""
         if (typeof stage !== 'string') {
-            return { content: `You did not provide a valid stage` }
+            return { content: `You did not provide a valid stage`, status: StatusCode.ERR }
         }
         if (typeof substage !== 'undefined' && typeof substage !== 'string') {
-            return { content: "You did not provide a valid substage" }
+            return { content: "You did not provide a valid substage", status: StatusCode.ERR }
         }
         if (typeof givenAmount !== 'string') {
-            return { content: `You must provide an amount (${amounts.join(", ")})` }
+            return { content: `You must provide an amount (${amounts.join(", ")})`, status: StatusCode.ERR }
         }
         if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
-            return { content: `You must provide a user to lose/gain` }
+            return { content: `You must provide a user to lose/gain`, status: StatusCode.ERR }
         }
         if (damageUsers !== undefined && typeof damageUsers !== 'string') {
-            return { content: "-lose must be a user number or all" }
+            return { content: "-lose must be a user number or all", status: StatusCode.ERR }
         }
         if (healUsers !== undefined && typeof healUsers !== 'string') {
-            return { content: "-gain must be a user number or all" }
+            return { content: "-gain must be a user number or all", status: StatusCode.ERR }
         }
         if (!amounts.includes(givenAmount)) {
-            return { content: `You did not provide a valid amount (${amounts.join(", ")})` }
+            return { content: `You did not provide a valid amount (${amounts.join(", ")})`, status: StatusCode.ERR }
         }
         if (damageUsers && healUsers) {
-            return { content: "Only -lose or -gain can be given, not both" }
+            return { content: "Only -lose or -gain can be given, not both", status: StatusCode.ERR }
         }
         if (damageUsers) {
             if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
-                return { content: "Users must be numbers seperated by ," }
+                return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
             }
             textOptions += ` LOSE=${damageUsers}`
         }
         if (healUsers) {
             if (!healUsers.match(/(?:(\d+|all),?)+/)) {
-                return { content: "Users must be numbers seperated by ," }
+                return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
             }
             textOptions += ` GAIN=${healUsers}`
         }
@@ -3387,7 +3406,7 @@ The commands below, only work after **path** has been run:
             textOptions += ` IF=${condition}`
         }
         fs.appendFileSync("./command-results/heist", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${textOptions};END\n`)
-        return { content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}` }
+        return { content: `Added\n${text} AMOUNT=${givenAmount} ${textOptions}`, status: StatusCode.RETURN }
     }, CommandCategory.UTIL,
         "Add a heist prompt with a nice ui ™️",
         {
@@ -3410,13 +3429,13 @@ The commands below, only work after **path** has been run:
         let opts: Opts;
         [opts, args] = getOpts(args)
         if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
-            return { content: "U dingus u are already in the game" }
+            return { content: "U dingus u are already in the game", status: StatusCode.ERR }
         }
         if ((economy.getEconomy()[msg.author.id]?.money || 0) <= 0) {
-            return { content: "U dont have money" }
+            return { content: "U dont have money", status: StatusCode.ERR }
         }
         if (globals.HEIST_STARTED) {
-            return { content: "The game  has already started" }
+            return { content: "The game  has already started", status: StatusCode.ERR }
         }
         globals.HEIST_PLAYERS.push(msg.author.id)
         let timeRemaining = 30000
@@ -3424,13 +3443,13 @@ The commands below, only work after **path** has been run:
             let int = setInterval(async () => {
                 timeRemaining -= 1000
                 if (timeRemaining % 8000 == 0)
-                    await sendCallback({ content: `${timeRemaining / 1000} seconds until the heist commences!` })
+                    await handleSending(msg, { content: `${timeRemaining / 1000} seconds until the heist commences!`, status: StatusCode.INFO }, sendCallback)
             }, 1000)
             let data: { [key: string]: number } = {} //player_id: amount won
             globals.HEIST_TIMEOUT = setTimeout(async () => {
                 globals.HEIST_STARTED = true
                 clearInterval(int)
-                await sendCallback({ content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players` })
+                await handleSending(msg, { content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
                 for (let player of globals.HEIST_PLAYERS) {
                     data[player] = 0
                     setVar("__heist", "0", player)
@@ -3723,7 +3742,7 @@ The commands below, only work after **path** has been run:
                         current_location = choice
                     }
                     else {
-                        await handleSending(msg, { content: response })
+                        await handleSending(msg, { content: response, status: StatusCode.INFO })
                     }
 
                     if (current_location == "__random__") {
@@ -3806,12 +3825,12 @@ The commands below, only work after **path** has been run:
                             text += `${place[0]} (${place[1]})\n`
                         }
                     }
-                    await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined })
+                    await handleSending(msg, { content: text || "The end!", embeds: useEmbed ? [e] : undefined, status: StatusCode.RETURN })
                 }
             }, timeRemaining)
         }
         let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-        return { content: heistJoinFormat, recurse: generateDefaultRecurseBans() }
+        return { content: heistJoinFormat, recurse: generateDefaultRecurseBans(), status: StatusCode.INFO }
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
@@ -3953,19 +3972,19 @@ The commands below, only work after **path** has been run:
         }
         let bet = economy.calculateAmountFromString(msg.author.id, betStr)
         if (!bet) {
-            return { content: "no bet given" }
+            return { content: "no bet given", status: StatusCode.ERR }
         }
         if (bet <= 0) {
-            return { content: "No reverse blackjack here" }
+            return { content: "No reverse blackjack here", status: StatusCode.ERR }
         }
         if (hardMode)
             bet *= 2
 
         if (!economy.canBetAmount(msg.author.id, bet)) {
-            return { content: "That bet is too high for you" }
+            return { content: "That bet is too high for you", status: StatusCode.ERR }
         }
         if (globals.BLACKJACK_GAMES[msg.author.id]) {
-            return { content: "You idiot u already playing the game" }
+            return { content: "You idiot u already playing the game", status: StatusCode.ERR }
         }
         let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
         globals.BLACKJACK_GAMES[msg.author.id] = true
@@ -4027,16 +4046,16 @@ The commands below, only work after **path** has been run:
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans() }
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
             delete globals.BLACKJACK_GAMES[msg.author.id]
             if (Math.random() > .999) {
-                await msg.channel.send("Bowser was actually the dealer and forrces you to pay 3x what you bet")
                 economy.loseMoneyToBank(msg.author.id, bet * 2)
+                return {content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN}
             }
-            return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
+            return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**`, status: StatusCode.RETURN }
         }
         let total = 0
         while ((total = calculateTotal(dealerCards).total) < 22) {
@@ -4094,7 +4113,7 @@ The commands below, only work after **path** has been run:
                 catch (err) {
                     economy.loseMoneyToBank(msg.author.id, bet)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
-                    return { content: `Did not respond  in time, lost ${bet}` }
+                    return { content: `Did not respond  in time, lost ${bet}`, status: StatusCode.ERR }
                 }
                 response = collectedMessages.at(0)
             }
@@ -4127,16 +4146,16 @@ The commands below, only work after **path** has been run:
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans() }
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
                 }
                 if (calculateTotal(dealerCards).total === 21) {
                     economy.loseMoneyToBank(msg.author.id, bet)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     if (Math.random() > .999) {
-                        await msg.channel.send("Bowser was actually the dealer and forrces you to pay 3x what you bet")
                         economy.loseMoneyToBank(msg.author.id, bet * 2)
+                        return {content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN}
                     }
-                    return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**` }
+                    return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**`, status: StatusCode.RETURN }
                 }
                 let total = 0
                 while ((total = calculateTotal(dealerCards).total) < 22) {
@@ -4167,13 +4186,13 @@ The commands below, only work after **path** has been run:
         }
         else if (playerTotal === dealerTotal) {
             status = "TIE"
-            if (Math.random() > 0.99) {
+            if (Math.random() > 0.999) {
                 let UserHp = 60;
                 let SpiderHp = 50;
 
-                await handleSending(msg, {content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)"}, sendCallback);
+                await handleSending(msg, {status: StatusCode.INFO, content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)"}, sendCallback);
 
-                let newmsg = await handleSending(msg, {content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`}, sendCallback);
+                let newmsg = await handleSending(msg, {status: StatusCode.INFO, content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`}, sendCallback);
                 while (UserHp >= 0 && SpiderHp >= 0) {
                     let action = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, max: 1 })
                     let actionMessage = action.at(0)
@@ -4200,10 +4219,10 @@ The commands below, only work after **path** has been run:
 
                     let amount = Math.random() * 2 + 1
                     economy.addMoney(msg.author.id, bet * amount);
-                    return { content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}` };
+                    return { content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}`, status: StatusCode.RETURN };
                 } else {
                     economy.loseMoneyToBank(msg.author.id, bet);
-                    return { content: "u r ez dead" };
+                    return { content: "u r ez dead", status: StatusCode.RETURN };
                 }
             }
         }
@@ -4216,7 +4235,7 @@ The commands below, only work after **path** has been run:
             economy.addMoney(msg.author.id, bet)
         }
         delete globals.BLACKJACK_GAMES[msg.author.id]
-        return { content: `**${status}**\n${stats}` }
+        return { content: `**${status}**\n${stats}` , status: StatusCode.RETURN}
     }, CommandCategory.GAME,
         "Play a round of blackjack",
         {
@@ -4237,7 +4256,7 @@ The commands below, only work after **path** has been run:
             }
 
             if (!reqElem && !opts['r']) {
-                return { content: "No element requesed" }
+                return { content: "No element requesed" , status: StatusCode.ERR}
             }
 
             if (opts['refresh']) {
@@ -4245,7 +4264,7 @@ The commands below, only work after **path** has been run:
                 let text = await data.text()
                 let elementsData = text.match(/var elementsData = (.*);/)
                 if (!elementsData?.[1]) {
-                    return { content: "Could not fetch data" }
+                    return { content: "Could not fetch data", status: StatusCode.ERR }
                 }
                 fs.writeFileSync("./data/elements.json", elementsData[1])
             }
@@ -4271,7 +4290,7 @@ The commands below, only work after **path** has been run:
                 })
             }
             if (!reqElementData.length) {
-                return { content: "No  element  found" }
+                return { content: "No  element  found", status: StatusCode.ERR }
             }
 
             if (opts['list-attributes']) {
@@ -4279,7 +4298,7 @@ The commands below, only work after **path** has been run:
                 for (let attr in reqElementData[0]) {
                     text += `**${attr}**: ${reqElementData[0][attr]}\n`
                 }
-                return { content: text }
+                return { content: text, status: StatusCode.RETURN }
             }
 
 
@@ -4297,9 +4316,9 @@ The commands below, only work after **path** has been run:
                 embeds.push(embed)
             }
             if (embeds.length > 10 || opts['list-names']) {
-                return { content: elementsNamesList.join("\n") }
+                return { content: elementsNamesList.join("\n"), status: StatusCode.RETURN }
             }
-            return { embeds: embeds }
+            return { embeds: embeds, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
@@ -4313,7 +4332,8 @@ The commands below, only work after **path** has been run:
                         description: "This is the economy",
                         delete: false
                     }
-                ]
+                ],
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -4329,7 +4349,8 @@ The commands below, only work after **path** has been run:
                         description: "Everyone's inventory",
                         delete: false
                     }
-                ]
+                ],
+                status: StatusCode.RETURN
             }
         }, category: CommandCategory.META
     },
@@ -4346,7 +4367,7 @@ The commands below, only work after **path** has been run:
                 }
             }
             if (!msg.guild) {
-                return { content: "No guild" }
+                return { content: "No guild", status: StatusCode.ERR }
             }
             let embed = new MessageEmbed()
             let text = ""
@@ -4404,13 +4425,13 @@ The commands below, only work after **path** has been run:
                 place++
             }
             if (opts['text'])
-                return { content: text, allowedMentions: { parse: [] } }
+                return { content: text, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
             embed.setTitle(`Leaderboard`)
             if (opts['no-round'])
                 embed.setDescription(`Total wealth: ${totalEconomy}`)
             else
                 embed.setDescription(`Total wealth: ${Math.round(totalEconomy * 100) / 100}`)
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
 
         }, category: CommandCategory.ECONOMY,
         help: {
@@ -4451,7 +4472,7 @@ The commands below, only work after **path** has been run:
                     deleted.push(name)
                 }
             }
-            return { content: `Deleted: \`${deleted.join(", ")}\`` }
+            return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
         }, category: CommandCategory.META,
         help: {
             info: "Delete a variable",
@@ -4475,7 +4496,7 @@ The commands below, only work after **path** has been run:
     "savev": {
         run: async (_msg, _args, sendCallback) => {
             saveVars()
-            return { content: "Variables saved" }
+            return { content: "Variables saved", status: StatusCode.RETURN }
         }, category: CommandCategory.META
     },
 
@@ -4484,7 +4505,7 @@ The commands below, only work after **path** has been run:
             economy.saveEconomy()
             saveItems()
             pet.savePetData()
-            return { content: "Economy saved" }
+            return { content: "Economy saved", status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY
     },
 
@@ -4495,23 +4516,23 @@ The commands below, only work after **path** has been run:
             let guess = args[0]
             let bet = economy.calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
             if (bet && !guess) {
-                return { content: "You cannot bet, but not have a guess" }
+                return { content: "You cannot bet, but not have a guess", status: StatusCode.ERR }
             }
             let side = Math.random() > .5 ? "heads" : "tails"
             if (!bet || bet < 0) {
-                return { content: side }
+                return { content: side, status: StatusCode.RETURN }
             }
             if (!economy.canBetAmount(msg.author.id, bet)) {
-                return { content: "You dont have enough money for this bet" }
+                return { content: "You dont have enough money for this bet", status: StatusCode.ERR }
             }
             guess = guess.toLowerCase()
             if (side == guess) {
                 economy.addMoney(msg.author.id, bet)
-                return { content: `The side was: ${side}\nYou won: ${bet}` }
+                return { content: `The side was: ${side}\nYou won: ${bet}`, status: StatusCode.RETURN }
             }
             else {
                 economy.loseMoneyToBank(msg.author.id, bet)
-                return { content: `The side was: ${side}\nYou lost: ${bet}` }
+                return { content: `The side was: ${side}\nYou lost: ${bet}`, status: StatusCode.RETURN }
             }
         }, category: CommandCategory.GAME
     },
@@ -4621,10 +4642,10 @@ The commands below, only work after **path** has been run:
 
                 let string = ""
                 for(let res of jsonData){
-                    string += format(fmt, {l: `https://www.youtube.com/video?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A"})
+                    string += format(fmt, {l: `https://www.youtube.com/watch?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A"})
                 }
 
-                return {content: string}
+                return {content: string, status: StatusCode.RETURN}
             }
 
             let pages = jsonData.length
@@ -4641,12 +4662,12 @@ The commands below, only work after **path** has been run:
                     e.setDescription(res.description)
                 }
 
-                e.setFooter({text: `https://www.youtube.com/video?v=${res.videoId}\n${i}/${pages}`})
+                e.setFooter({text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}`})
 
                 //@ts-ignore
                 e.setImage(res.videoThumbnails.filter(v => v.quality == thumbnail_quality)[0].url)
 
-                let button = new MessageButton({label: "OPEN", style: "LINK", url: `https://www.youtube.com/video?v=${res.videoId}`})
+                let button = new MessageButton({label: "OPEN", style: "LINK", url: `https://www.youtube.com/watch?v=${res.videoId}`})
 
                 let json_button = new MessageButton({label: "JSON", style: "SECONDARY", customId: `yt.json:${res.videoId}`})
 
@@ -4659,7 +4680,7 @@ The commands below, only work after **path** has been run:
             let action_row = new MessageActionRow()
             action_row.addComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
 
-            let m = await sc({components: [action_row], embeds: [embeds[current_page].embed]})
+            let m = await handleSending(msg, {components: [action_row], embeds: [embeds[current_page].embed], status: StatusCode.PROMPT}, sc)
             let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
 
             let to = setTimeout(collector.stop.bind(collector), 60000)
@@ -4705,9 +4726,9 @@ The commands below, only work after **path** has been run:
                 await int.deferUpdate()
             })
             if(opts['json']){
-                return {content: Buffer.from(JSON.stringify(jsonData)).toString("base64")}
+                return {content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN}
             }
-            return {noSend: true}
+            return {noSend: true, status: StatusCode.RETURN}
         },
         category: CommandCategory.UTIL,
         help: {
@@ -4749,10 +4770,10 @@ middle
             try{
                 let start = Date.now()
                 await fetch.default(url)
-                return {content: `${Date.now() - start}ms`}
+                return {content: `${Date.now() - start}ms`, status: StatusCode.RETURN}
             }
             catch(err){
-                return {content: "Problem fetching ".concat(url)}
+                return {content: "Problem fetching ".concat(url), status: StatusCode.ERR}
             }
         }, category: CommandCategory.UTIL
     },
@@ -4766,48 +4787,48 @@ middle
             if (opts['n']) {
                 text = args.slice(1).join(" ")
                 if (!search) {
-                    return { content: "no search" }
+                    return { content: "no search", status: StatusCode.ERR }
                 }
-                return { content: text.replaceAll(search, "") }
+                return { content: text.replaceAll(search, ""), status: StatusCode.RETURN }
             }
             else if (!repl) {
-                return { content: "No replacement" }
+                return { content: "No replacement", status: StatusCode.ERR }
             }
             if (!search) {
-                return { content: "no search" }
+                return { content: "no search", status: StatusCode.ERR }
             }
             if (!text) {
-                return { content: "no text to search through" }
+                return { content: "no text to search through", status: StatusCode.ERR }
             }
-            return { content: text.replaceAll(search, repl || "") }
+            return { content: text.replaceAll(search, repl || ""), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
 
     "string": createCommand(async (_msg, args) => {
         let operation = args[0]
-        let validOperations = ["upper", "lower", "title"]
+        let validOperations = ["upper", "lower", "title", "lc", "wc", "bc"]
         let string = args.slice(1).join(" ")
         if (!string) {
-            return { content: "No text to manipulate" }
+            return { content: "No text to manipulate", status: StatusCode.ERR }
         }
         if (!validOperations.includes(operation.toLowerCase())) {
-            return { content: `${operation} is not one of: \`${validOperations.join(", ")}\`` }
+            return { content: `${operation} is not one of: \`${validOperations.join(", ")}\``, status: StatusCode.ERR }
         }
         switch (operation) {
             case "upper":
-                return { content: string.toUpperCase() }
+                return { content: string.toUpperCase(), status: StatusCode.RETURN }
             case "lower":
-                return { content: string.toLowerCase() }
+                return { content: string.toLowerCase(), status: StatusCode.RETURN }
             case "title":
-                return { content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ") }
+                return { content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" "), status: StatusCode.RETURN }
             case "lc":
-                return { content: String(string.split("\n").length) }
+                return { content: String(string.split("\n").length), status: StatusCode.RETURN }
             case "wc":
-                return { content: String(string.split(" ").length) }
+                return { content: String(string.split(" ").length), status: StatusCode.RETURN }
             case "bc":
-                return { content: String(string.split(" ").length) }
+                return { content: String(string.split(" ").length), status: StatusCode.RETURN }
         }
-        return { content: "Invalid Operation" }
+        return { content: "Invalid Operation", status: StatusCode.ERR }
     },
         CommandCategory.UTIL,
         "Do something to some text",
@@ -4829,7 +4850,7 @@ middle
             let string = args[0]
             let functions = args.slice(1).join(" ").split(">map>").map(v => `${prefix}${v.trim()}`)
             if (!functions) {
-                return { content: "nothing to  do" }
+                return { content: "nothing to  do", status: StatusCode.ERR }
             }
             for (let fn of functions) {
                 let replacedFn = fn.replaceAll("{string}", string)
@@ -4841,7 +4862,7 @@ middle
                 }
                 string = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim()
             }
-            return { content: string }
+            return { content: string, status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL
     },
@@ -4870,7 +4891,8 @@ middle
                     .replaceAll("ampm", AMPM)
                     .replaceAll("month", `${date.getMonth() + 1}`)
                     .replaceAll("year", `${date.getFullYear()}`)
-                    .replaceAll("day", `${date.getDay()}`)
+                    .replaceAll("day", `${date.getDay()}`),
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -4909,7 +4931,7 @@ middle
     */
     nothappening: {
         run: async (_msg, _args, sendCallback) => {
-            return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n") }
+            return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n"), status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     },
@@ -4918,10 +4940,10 @@ middle
             let roles = await msg.guild?.roles.fetch()
             let role = roles?.random()
             if (!role) {
-                return { content: "Couldn't get random role" }
+                return { content: "Couldn't get random role", status: StatusCode.ERR }
             }
             let fmt = args.join(" ") || "%n"
-            return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: String(role.color), C: String(role.createdAt), hc: role.hexColor, u: String(role.unicodeEmoji), p: String(role.position), I: String(role.icon) }) }
+            return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: String(role.color), C: String(role.createdAt), hc: role.hexColor, u: String(role.unicodeEmoji), p: String(role.position), I: String(role.icon) }), status: StatusCode.ERR }
         },
         category: CommandCategory.UTIL
     },
@@ -4933,7 +4955,7 @@ middle
                 regexp = new RegExp(search)
             }
             catch (err) {
-                return { content: "Invalid regex" }
+                return { content: "Invalid regex", status: StatusCode.ERR }
             }
             let results = []
             for (let cmd in commands) {
@@ -4954,9 +4976,9 @@ middle
                 }
             }
             if (results.length == 0) {
-                return { content: "No results" }
+                return { content: "No results", status: StatusCode.ERR }
             }
-            return { content: results.join("\n") }
+            return { content: results.join("\n"), status: StatusCode.RETURN }
         },
         help: {
             info: "Search for commands with a search query"
@@ -4981,11 +5003,11 @@ middle
                 data = await fetch.default(url)
             }
             catch (err) {
-                return { content: "Could not fetch data" }
+                return { content: "Could not fetch data", status: StatusCode.ERR }
             }
             let text = await data.text()
             if (!text) {
-                return { content: "No data found" }
+                return { content: "No data found", status: StatusCode.ERR }
             }
             const JSONData = JSON.parse(text)
             function getAmountUntil(userData: any) {
@@ -5018,20 +5040,20 @@ middle
                         member2 = await fetchUser(msg.guild, ruser2.trim())
                     }
                     if (!member1) {
-                        return { content: `Could not find ${ruser1}` }
+                        return { content: `Could not find ${ruser1}`, status: StatusCode.ERR }
                     }
                     if (!member2) {
-                        return { content: `Could not find ${ruser1}` }
+                        return { content: `Could not find ${ruser2}`, status: StatusCode.ERR }
                     }
                     //@ts-ignore
                     const user1Data = JSONData.players.filter(v => v.id == member1.id)?.[0]
                     //@ts-ignore
                     const user2Data = JSONData.players.filter(v => v.id == member2.id)?.[0]
                     if (!user1Data) {
-                        return { content: `No data for ${member1.user.username} found` }
+                        return { content: `No data for ${member1.user.username} found`, status: StatusCode.ERR }
                     }
                     if (!user2Data) {
-                        return { content: `No data for ${member2.user.username} found` }
+                        return { content: `No data for ${member2.user.username} found`, status: StatusCode.ERR }
                     }
                     const rank1 = JSONData.players.indexOf(user1Data)
                     const rank2 = JSONData.players.indexOf(user2Data)
@@ -5073,7 +5095,7 @@ middle
                 //@ts-ignore
                 const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
                 if (!userData) {
-                    return { content: `No data for ${member.user.username} found` }
+                    return { content: `No data for ${member.user.username} found`, status: StatusCode.ERR }
                 }
                 const rank = JSONData.players.indexOf(userData)
                 let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
@@ -5093,7 +5115,7 @@ middle
                 embed.addField("Average messages for next level", String(avg_messages_for_next_level), true)
                 embeds.push(embed)
             }
-            return { embeds: embeds }
+            return { embeds: embeds, status: StatusCode.RETURN }
 
         },
         help: {
@@ -5117,11 +5139,12 @@ middle
             let name = file.toLowerCase()
             if(name.replace(".txt", "") === search){
                 return {
-                    content: fs.readFileSync(`./wiki/${file}`, "utf-8")
+                    content: fs.readFileSync(`./wiki/${file}`, "utf-8"),
+                    status: StatusCode.RETURN
                 }
             }
         }
-        return {content: "No results"}
+        return {content: "No results", status: StatusCode.ERR}
     }, CommandCategory.FUN),
     "search-wiki": createCommand(async(msg, _, sb, opts, args) => {
         let search = args.join(" ").toLowerCase()
@@ -5161,19 +5184,19 @@ middle
             results[file] = total
         }
         if(opts['all']){
-            return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
+            return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN}
         }
-        return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n")}
+        return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN}
     }, CommandCategory.FUN),
     "awiki": createCommand(async(msg, args) => {
         let [title, ...txt] = args.join(" ").split("|")
         title = title.trim().replaceAll("/", "%2f")
         let text = txt.join("|")
         if(fs.existsSync(`./wiki/${title.trim()}.txt`)){
-            return {content: `${title} already exists`}
+            return {content: `${title} already exists`, status: StatusCode.ERR}
         }
         fs.writeFileSync(`./wiki/${title.trim()}.txt`, text)
-        return {content: `created a page called: ${title}`}
+        return {content: `created a page called: ${title}`, status: StatusCode.RETURN}
 
     }, CommandCategory.FUN),
     "ewiki": createCommand(async(msg, _, cb, opts, args) => {
@@ -5181,28 +5204,28 @@ middle
         let valid_types = ["new", "n", "append", "a"]
         type = type.toLowerCase()
         if(!valid_types.includes(type)){
-            return {content: `type must be one of new, append`}
+            return {content: `type must be one of new, append`, status: StatusCode.ERR}
         }
         if(!fs.existsSync(`./wiki/${page}.txt`)){
-            return {content: `${page} does not exist`}
+            return {content: `${page} does not exist`, status: StatusCode.ERR}
         }
         if(type === "n" || type === "new"){
             fs.writeFileSync(`./wiki/${page}.txt`, text.join(" "))
-            return {content: `${page} rewritten`}
+            return {content: `${page} rewritten`, status: StatusCode.ERR}
         }
         else if(type === "a" || type === "append"){
             let oldData = fs.readFileSync(`./wiki/${page}.txt`, "utf-8")
             fs.writeFileSync(`./wiki/${page}.txt`, oldData + "\n" + args.join(" "))
-            return {content: `${page} appended to`}
+            return {content: `${page} appended to`, status: StatusCode.ERR}
         }
-        return {content: "How did we get here (ewiki)"}
+        return {content: "How did we get here (ewiki)", status: StatusCode.ERR}
     }, CommandCategory.FUN),
     "dwiki": createCommand(async(msg, args) => {
         if(fs.existsSync(`./wiki/${args.join(" ")}.txt`)){
             fs.rmSync(`./wiki/${args.join(" ")}.txt`)
-            return {content: `removed: ${args.join(" ")}`}
+            return {content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN}
         }
-        return {content: `${args.join(" ")} not found`}
+        return {content: `${args.join(" ")} not found`, status: StatusCode.ERR}
     }, CommandCategory.META, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
     wikipedia: {
         run: async (msg, args, sendCallback) => {
@@ -5233,7 +5256,7 @@ middle
                         await sendCallback(rv)
                     })
                 }).end()
-                return { content: "Generating random article" }
+                return { content: "Generating random article", status: StatusCode.INFO }
             }
             else {
                 let resp
@@ -5241,7 +5264,7 @@ middle
                     resp = await fetch.default(`https://${baseurl}${path}`)
                 }
                 catch (err) {
-                    return { content: "not found" }
+                    return { content: "not found", status: StatusCode.ERR }
                 }
                 if (resp.headers.get("location")) {
                     await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args)
@@ -5251,13 +5274,13 @@ middle
                     let $ = cheerio.load(respText)
                     let text = $("p").text().trim().split("\n")
                     if (!text.length) {
-                        return { content: "nothing" }
+                        return { content: "nothing", status: StatusCode.ERR }
                     }
                     let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
-                    return { content: rv }
+                    return { content: rv, status: StatusCode.ERR }
                 }
             }
-            return { content: "how did we get here (wikipedia)" }
+            return { content: "how did we get here (wikipedia)", status: StatusCode.ERR }
         },
         help: {
             info: "Get information about something, defaults to random",
@@ -5304,7 +5327,7 @@ middle
                     }
                 }
             }
-            return { content: words.join(sep) }
+            return { content: words.join(sep), status: StatusCode.RETURN }
         },
         help: {
             info: "igpay atinlay",
@@ -5341,11 +5364,11 @@ middle
                     }
                     text += `\n--------------------\n`
                 }
-                return { content: text }
+                return { content: text, status: StatusCode.RETURN }
             }
             let fn = args.join(" ")
             if (!Object.keys(API.APICmds).includes(fn)) {
-                return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands` }
+                return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`, status: StatusCode.ERR }
             }
             let apiFn = API.APICmds[fn]
             let argsForFn: { [key: string]: any } = {}
@@ -5363,7 +5386,7 @@ middle
                 }
             }
             if (missing.length) {
-                return { content: `You are missing the following options: ${missing.join(", ")}` }
+                return { content: `You are missing the following options: ${missing.join(", ")}`, status: StatusCode.ERR }
             }
             if (apiFn.extra) {
                 let extraArgs: { [key: string]: any } = {}
@@ -5372,9 +5395,9 @@ middle
                         extraArgs[arg] = msg
                     }
                 }
-                return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })) }
+                return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })), status: StatusCode.RETURN }
             }
-            return { content: String(await apiFn.exec(argsForFn)) }
+            return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
         }, category: CommandCategory.META
     },
     "htmlq": {
@@ -5382,7 +5405,7 @@ middle
             let [query, ...html] = args.join(" ").split("|")
             let realHTML = html.join("|")
             let $ = cheerio.load(realHTML)(query).text()
-            return { content: $ }
+            return { content: $, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     "get": {
@@ -5417,36 +5440,36 @@ middle
                         }
                     }
                     if (!data) {
-                        return { content: `${object} is invalid` }
+                        return { content: `${object} is invalid`, status: StatusCode.ERR }
                     }
                     if (typeof data === 'number') {
-                        return { content: String(data) }
+                        return { content: String(data), status: StatusCode.RETURN }
                     }
                     if (number) {
-                        return { content: String(data.at(number)), allowedMentions: { parse: [] } }
+                        return { content: String(data.at(number)), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
                     }
                     else {
-                        return { content: String(data.size), allowedMentions: { parse: [] } }
+                        return { content: String(data.size), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
                     }
                 }
                 case "rand": {
                     switch (object) {
                         case "channel": {
                             let channels = await msg.guild?.channels.fetch()
-                            return { content: channels?.random()?.toString() }
+                            return { content: channels?.random()?.toString(), status: StatusCode.RETURN }
                         }
                         case "role": {
                             let roles = await msg.guild?.roles.fetch()
-                            return { content: String(roles?.random()), allowedMentions: { parse: [] } }
+                            return { content: String(roles?.random()), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
                         }
                         case "member": {
                             let members = await msg.guild?.members.fetch()
-                            return { content: String(members?.random()), allowedMentions: { parse: [] } }
+                            return { content: String(members?.random()), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
                         }
                     }
                 }
             }
-            return { content: "Not a valid option" }
+            return { content: "Not a valid option", status: StatusCode.ERR }
         },
         category: CommandCategory.UTIL
 
@@ -5528,9 +5551,9 @@ middle
                 }
             }
             if (opts['json']) {
-                return { content: JSON.stringify(embed.toJSON()) }
+                return { content: JSON.stringify(embed.toJSON()), status: StatusCode.RETURN }
             }
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         }, CommandCategory.UTIL,
         "Create an embed",
         {
@@ -5588,7 +5611,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 if (moreDat.stdout.toString("utf-8")) {
                     sendText += moreDat.stdout.toString("utf-8").trim()
                 }
-                return { content: sendText }
+                return { content: sendText, status: StatusCode.RETURN }
             }
             if(opts['f']){
                 //TODO: TESTING
@@ -5644,7 +5667,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (ret && ret.length) {
                 setVar("__calc", ret, msg.author.id)
             }
-            return { content: ret }
+            return { content: ret, status: StatusCode.RETURN }
         },
         help: {
             info: "Run a calculation",
@@ -5665,10 +5688,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
-            if (!opts['N']) return { noSend: true, delete: true }
+            if (!opts['N']) return { noSend: true, delete: true, status: StatusCode.RETURN}
             msg.content = `${prefix}${args.join(" ")}`
             await doCmd(msg, false)
-            return { noSend: true, delete: true }
+            return { noSend: true, delete: true, status: StatusCode.RETURN }
         },
         help: {
             arguments: {
@@ -5688,7 +5711,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (msg, args, sendCallback) => {
             let [condition, cmd] = args.join(" ").split(";")
             if (!cmd) {
-                return { content: "You are missing a ; after the condition" }
+                return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
             }
             cmd = cmd.split(";end")[0]
             let success;
@@ -5819,7 +5842,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 msg.content = `${prefix}${elseCmd.trim()}`
                 return await doCmd(msg, true) as CommandReturn
             }
-            return { content: "?" }
+            return { content: "?", status: StatusCode.ERR }
         },
         category: CommandCategory.META
     },
@@ -5829,7 +5852,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if(opts['pop'] && msg.attachments.at(0)){
                 msg.attachments.delete(msg.attachments.keyAt(0) as string)
             }
-            return { content: String(img) }
+            return { content: String(img), status: StatusCode.RETURN }
         },
         help: {
             info: "find the link to the image that would be used if you gave the same options to an image command",
@@ -5846,7 +5869,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },
     "argc": {
         run: async (_msg, args) => {
-            return { content: String(args.length) }
+            return { content: String(args.length), status: StatusCode.RETURN }
         },
         help: {
             info: "Prints the number of arguments given to this command"
@@ -5859,7 +5882,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             for (let key in opts) {
                 disp += `**${key}**: \`${opts[key]}\`\n`
             }
-            return { content: disp || "#!N/A" }
+            return { content: disp || "#!N/A", status: StatusCode.RETURN }
         },
         help: {
             info: "Print the opts given"
@@ -5898,13 +5921,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let files = msg.attachments?.toJSON()
             if (!stringArgs && !embed && !files.length) {
                 return {
-                    content: "cannot send nothing"
+                    content: "cannot send nothing",
+                    status: StatusCode.ERR
                 }
             }
             if (wait) {
                 await new Promise((res) => setTimeout(res, wait * 1000))
             }
-            let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false }
+            let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false, status: StatusCode.RETURN }
             if (dm) {
                 rv['dm'] = true
             }
@@ -5974,7 +5998,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let text = args.join(" ") || "hi"
             let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
-            let m = await handleSending(msg, { components: [row], content: content }, sendCallback)
+            let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
             let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
             collector.on("collect", async (interaction) => {
                 if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
@@ -5990,7 +6014,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!isNaN(delAfter)) {
                 setTimeout(async () => await m.delete(), delAfter * 1000)
             }
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.RETURN }
         },
         help: {
             arguments: {
@@ -6016,13 +6040,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (_msg, args) => {
             let id = args[0]
             if (!id) {
-                return { content: "no id given" }
+                return {status: StatusCode.ERR, content: "no id given" }
             }
             let str = ""
             for (let key in globals.POLLS[`poll:${id}`]) {
                 str += `${key}: ${globals.POLLS[`poll:${id}`]["votes"][key].length}\n`
             }
-            return { content: str }
+            return { content: str, status: StatusCode.RETURN}
         },
         help: {
             arguments: {
@@ -6046,12 +6070,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 choices.push({ label: arg, value: arg })
             }
             if (choices.length < 1) {
-                return { content: "no options given" }
+                return {status: StatusCode.ERR, content: "no options given" }
             }
             let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
             globals.POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
-            return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}` }
+            return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.PROMPT }
         },
         help: {
             info: "create a poll",
@@ -6071,15 +6095,15 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 link = String(getImgFromMsgAndOpts(opts, msg))
             }
             if (!link)
-                return { content: "no link given" }
+                return { content: "no link given", status:  StatusCode.ERR }
             try {
                 await client.user?.setAvatar(link)
             }
             catch (err) {
                 console.log(err)
-                return { content: "could not set pfp" }
+                return { content: "could not set pfp", status:  StatusCode.ERR }
             }
-            return { content: 'set pfp', delete: Boolean(opts['d'] || opts['delete']) }
+            return { content: 'set pfp', delete: Boolean(opts['d'] || opts['delete']), status: StatusCode.RETURN }
         },
         help: {
             arguments: {
@@ -6095,7 +6119,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let uptime = client.uptime
             if (!uptime) {
                 return {
-                    content: "No uptime found"
+                    content: "No uptime found",
+                    status: StatusCode.ERR
                 }
             }
             let fmt = args[0] || "%d:%h:%m:%s.%M"
@@ -6118,7 +6143,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 days += 1
             }
             return {
-                content: format(fmt, { "d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}` })
+                content: format(fmt, { "d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}` }),
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -6137,7 +6163,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             const high = parseFloat(args[1]) || 100
             const count = parseInt(args[2]) || 1
             if(count > 50000){
-                return {content: "Too many numbers"}
+                return {content: "Too many numbers", status: StatusCode.ERR}
             }
             let answers = []
             for(let i  = 0; i < count; i++){
@@ -6148,7 +6174,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 answers.push(ans)
             }
             return {
-                content: answers.join(String(opts['s'] || ", "))
+                content: answers.join(String(opts['s'] || ", ")),
+                status: StatusCode.ERR
             }
         },
         help: {
@@ -6190,7 +6217,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let roles = user?.roles
                 if (!roles) {
                     return {
-                        content: "Could not find roles"
+                        content: "Could not find roles",
+                        status: StatusCode.ERR
                     }
                 }
                 let embed = new MessageEmbed()
@@ -6210,7 +6238,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 embeds.push(embed)
             }
             return {
-                embeds: embeds
+                embeds: embeds,
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.UTIL
@@ -6219,10 +6248,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (_msg, args, sendCallback) => {
             let file = args[0]
             if (!file) {
-                return { content: "No file specified" }
+                return { content: "No file specified", status: StatusCode.ERR }
             }
             fs.writeFileSync(`./command-results/${file}`, "")
-            return { content: `${file} created` }
+            return { content: `${file} created`, status: StatusCode.RETURN }
         },
         permCheck: m => ADMINS.includes(m.author.id),
         category: CommandCategory.META
@@ -6231,25 +6260,25 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (msg, args, sendCallback) => {
             let file = args[0]
             if (!file) {
-                return { content: "No file specified" }
+                return { content: "No file specified", status: StatusCode.ERR }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
-                return { content: `${file} does not exist` }
+                return { content: `${file} does not exist`, status: StatusCode.ERR }
             }
             fs.rmSync(`./command-results/${file}`)
-            return { content: `${file} removed` }
+            return { content: `${file} removed`, status: StatusCode.ERR }
         }, category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
     },
     "rt": {
         run: async (msg, _, sendCallback, opts, args) => {
             if (opts['t']) {
-                handleSending(msg, {content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW"}, sendCallback).then(_m => {
+                handleSending(msg, {content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1}, sendCallback).then(_m => {
                     try {
                         let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                         let start = Date.now()
                         collector.on("collect", async (_m) => {
-                            await handleSending(msg, {content: `${Date.now() - start}ms`}, sendCallback)
+                            await handleSending(msg, {content: `${Date.now() - start}ms`, status: StatusCode.RETURN}, sendCallback)
                             collector.stop()
                         })
                     }
@@ -6261,13 +6290,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let button = new MessageButton({ customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
                 let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let start = Date.now()
-                let message = await handleSending(msg, { components: [row] }, sendCallback)
+                let message = await handleSending(msg, { components: [row], status: StatusCode.PROMPT }, sendCallback)
                 let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id}` })
                 collector.on("collect", async (interaction) => {
                     await interaction.reply({ content: `${Date.now() - start}ms` })
                 })
             }
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.RETURN }
         },
         help: {
             info: "Gets your truely 100% accurate reaction time"
@@ -6279,14 +6308,15 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let file = args[0]
             let search = args.slice(1).join(" ")
             if (!file) {
-                return { content: "No file specified" }
+                return { content: "No file specified", status: StatusCode.ERR }
             }
             if (file.match(/\./)) {
-                return { content: "<:Watching1:697677860336304178>" }
+                return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
-                    content: "file does not exist"
+                    content: "file does not exist",
+                    status: StatusCode.ERR
                 }
             }
             const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
@@ -6307,29 +6337,30 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }
                 }
                 catch (err) {
-                    return { content: "Invalid regex" }
+                    return { content: "Invalid regex", status: StatusCode.ERR }
                 }
             }
-            return { content: final.join("\n") }
+            return { content: final.join("\n"), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     "rand-line": {
         run: async (_msg, args, sendCallback) => {
             let file = args[0]
             if (!file) {
-                return { content: "No file specified" }
+                return { content: "No file specified", status: StatusCode.ERR }
             }
             if (file.match(/\./)) {
-                return { content: "<:Watching1:697677860336304178>" }
+                return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
-                    content: "file does not exist"
+                    content: "file does not exist",
+                    status: StatusCode.ERR
                 }
             }
             const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
             const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
-            return { content: choice(lines) }
+            return { content: choice(lines), status: StatusCode.RETURN }
         },
         help: {
             info: "Gets a random line from a file"
@@ -6341,18 +6372,19 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         //@ts-ignore
         run: async (msg, _, sendCallback, opts, args) => {
             if(args.join(" ").length > 31){
-                return {content: "Too long"}
+                return {content: "Too long", status: StatusCode.ERR}
             }
             try {
                 (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
             }
             catch (err) {
-                return { content: "Could not set name" }
+                return { content: "Could not set name", statu: StatusCode.ERR }
             }
             return {
                 content: `Changed name to \`${args.join(" ")}\``,
                 //@ts-ignore
-                delete: opts['d'] || opts['delete']
+                delete: opts['d'] || opts['delete'],
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.FUN
@@ -6367,17 +6399,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 //@ts-ignore
                 let p = await fetchUser(msg.guild, player)
                 if (!p) {
-                    await handleSending(msg, {content: `${player} not found`}, sendCallback)
+                    await handleSending(msg, {content: `${player} not found`, status: StatusCode.ERR}, sendCallback)
                     continue
                 }
                 players.push(p)
             }
             if (players.length == 1) {
-                return { content: "No one to play with :(" }
+                return { content: "No one to play with :(", status: StatusCode.ERR }
             }
             let max = parseInt(String(opts["max"])) || 9
             if (max > 1000) {
-                await handleSending(msg, {content: "The maximum is to high, defaulting to 1000"}, sendCallback)
+                await handleSending(msg, {content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING})
                 max = 1000
             }
             let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
@@ -6399,11 +6431,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         return
                     }
                     if (forcedDraw) {
-                        handleSending(msg, {content: `<@${going}> is forced to draw ${forcedDraw} cards`}, sendCallback)
+                        handleSending(msg, {content: `<@${going}> is forced to draw ${forcedDraw} cards`, status: StatusCode.INFO},)
                         for (let i = 0; i < forcedDraw; i++) {
                             let rv = playerData[going].draw(deck)
                             if (!rv) {
-                                handleSending(msg, {content: "Deck empty, shuffling pile into deck"}, sendCallback)
+                                handleSending(msg, {content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO},)
                                 pile.shuffle()
                                 deck = new uno.Stack(pile.cards)
                                 pile = new uno.Stack([])
@@ -6420,10 +6452,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                     }
                     if (pile.cards.length) {
-                        handleSending(msg, { content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}` }, sendCallback)
+                        handleSending(msg, { content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`, status: StatusCode.INFO },)
                     }
                     else {
-                        handleSending(msg, { content: `${u}, it's your turn` }, sendCallback)
+                        handleSending(msg, { content: `${u}, it's your turn`, status: StatusCode.INFO },)
                     }
                 })
             })
@@ -6444,22 +6476,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 await player.user.createDM()
                 let collection = player.user.dmChannel?.createMessageCollector({ filter: (m) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false })
                 if (!collection) {
-                    return { content: `Couldnt listen in ${player}'s dms` }
+                    return { content: `Couldnt listen in ${player}'s dms`, status: StatusCode.ERR }
                 }
                 collection.on("collect", async (m) => {
                     if (m.content.toLowerCase() == "stop") {
                         players = players.filter(v => v.id != m.author.id)
                         if (players.length == 0) {
-                            await handleSending(msg, {content: "game over"}, sendCallback)
+                            await handleSending(msg, {content: "game over", status: StatusCode.RETURN},)
                         }
                         collection?.stop()
                         if (m.author.id == client.user?.id) return
-                        await handleSending(msg, {content: `${m.author} quit`}, sendCallback)
+                        await handleSending(msg, {content: `${m.author} quit`, status: StatusCode.RETURN},)
                         going = turns.next().value
                         return
                     }
                     if (playerData[player.id].cards.length <= 0) {
-                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`}, sendCallback)
+                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN})
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -6486,17 +6518,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         let rv = playerData[player.id].draw(deck)
                         cardsDrawn++
                         if (!rv) {
-                            await handleSending(msg, {content: "Deck empty, shuffling pile into deck"}, sendCallback)
+                            await handleSending(msg, {content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO})
                             pile.shuffle()
                             deck = new uno.Stack(pile.cards)
                             pile = new uno.Stack([])
                             playerData[player.id].draw(deck)
                         }
-                        await handleSending(msg, {content: `${player} drew a card`}, sendCallback)
+                        await handleSending(msg, {content: `${player} drew a card`, status: StatusCode.INFO})
                         let send = displayStack(playerData[player.id])
                         send += "\n-------------------------"
                         await m.channel.send(send)
-                        await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`}, sendCallback)
+                        await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO})
                         if (pile.cards.length)
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                         return
@@ -6521,13 +6553,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             playerData[player.id].remove(Number(m.content) - 1)
-                            await handleSending(msg, {content: "**stack was shuffled**"}, sendCallback)
+                            await handleSending(msg, {content: "**stack was shuffled**", status: StatusCode.INFO},)
                             pile.add(selectedCard)
                             pile.shuffle()
                             going = turns.next().value
                         }
                         else {
-                            await m.channel.send("You cannot play that card")
+                            await handleSending(msg, {content: "You cannot play that card", status: StatusCode.ERR})
                         }
                     }
                     else if (selectedCard.type == 'give') {
@@ -6573,7 +6605,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             playerData[player.id].remove(Number(m.content) - 1)
                             pile.add(selectedCard)
                             let randomPlayer = choice(players.filter(v => v.id != player.id)).id
-                            await handleSending(msg, {content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`}, sendCallback)
+                            await handleSending(msg, {content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`, status: StatusCode.INFO})
                             let newTopCard = playerData[randomPlayer].cards[0]
                             playerData[randomPlayer].remove(0)
                             pile.add(newTopCard)
@@ -6586,20 +6618,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         try {
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             if (!colorM) {
-                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
+                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
+                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await handleSending(msg, {content: "Something went wrong, defaulting to red"}, sendCallback)
+                            await handleSending(msg, {content: "Something went wrong, defaulting to red", status: StatusCode.ERR})
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -6613,20 +6645,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             console.log(colorM?.content)
                             if (!colorM) {
-                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
+                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await handleSending(msg, {content: "User picked incorrect color, using red"}, sendCallback)
+                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await handleSending(msg, {content: "Something went wrong, defaulting to red"}, sendCallback)
+                            await handleSending(msg, {content: "Something went wrong, defaulting to red", status: StatusCode.ERR})
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -6638,7 +6670,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             let skipped = turns.next().value
-                            await handleSending(msg, {content: `<@${skipped}> was skipped`}, sendCallback)
+                            await handleSending(msg, {content: `<@${skipped}> was skipped`, status: StatusCode.INFO})
                             going = turns.next().value
                             await new Promise(res => {
                                 pile.add(selectedCard)
@@ -6667,9 +6699,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             await m.channel.send("You cannot play that card")
                         }
                     }
-                    await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`}, sendCallback)
+                    await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status:  StatusCode.INFO})
                     if (playerData[player.id].cards.length <= 0) {
-                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`}, sendCallback)
+                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN})
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -6677,7 +6709,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }
                 })
             }
-            return { content: "Starting game" }
+            return { content: "Starting game", status: StatusCode.INFO }
         },
         help: {
             info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
@@ -6724,7 +6756,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             });
                     }
                     catch (err) {
-                        await handleSending(msg, {content: "No results"}, sendCallback)
+                        await handleSending(msg, {content: "No results", status: StatusCode.ERR}, sendCallback)
                         return
                     }
                     homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
@@ -6734,7 +6766,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
                     }
                     catch (err) {
-                        await handleSending(msg, {content: "Failed to get data"}, sendCallback)
+                        await handleSending(msg, {content: "Failed to get data", status: StatusCode.ERR}, sendCallback)
                         return
                     }
                     homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
@@ -6753,11 +6785,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     embed.addField("Time", inning)
                     embed.addField(`${homeTeam}`, String(homeScore))
                     embed.addField(`${awayTeam}`, String(awayScore))
-                    await handleSending(msg, { embeds: [embed] }, sendCallback)
+                    await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN}, sendCallback)
                 })
             }).end()
             return {
-                content: "getting data"
+                content: "getting data",
+                status: StatusCode.INFO
             }
         }, help: {
             info: "Print information about a sport game",
@@ -6781,19 +6814,19 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
             if (words.length == 0) {
-                return { content: "no words found" }
+                return { content: "no words found", status: StatusCode.ERR }
             }
             let word = choice(words)
             let guesses = []
             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
             let guessCount = parseInt(opts["lives"] as string) || 6
             let display: string[] = []
-            await handleSending(msg, {content: "key: **correct**, *wrong place*, `wrong`"}, sendCallback)
-            await handleSending(msg, {content: `The word is ${word.length} characters long`}, sendCallback)
+            await handleSending(msg, {content: "key: **correct**, *wrong place*, `wrong`", status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, {content: `The word is ${word.length} characters long`, status: StatusCode.INFO}, sendCallback)
             for (let i = 0; i < guessCount; i++) {
                 display.push(mulStr("⬛ ", word.length))
             }
-            await handleSending(msg, {content: display.join("\n")}, sendCallback)
+            await handleSending(msg, {content: display.join("\n"), status: StatusCode.INFO}, sendCallback)
             let letterCount: { [k: string]: number } = {}
             for (let letter of word) {
                 if (letterCount[letter] === undefined) {
@@ -6806,7 +6839,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             collector.on("collect", async (m) => {
                 if (m.content == "STOP") {
                     collector.stop()
-                    await handleSending(msg, {content: "stopped"}, sendCallback)
+                    await handleSending(msg, {content: "stopped", status: StatusCode.RETURN}, sendCallback)
                     return
                 }
                 guesses.push(m.content)
@@ -6828,19 +6861,19 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 display[6 - guessCount] = nextInDisplay
                 guessCount--
-                await handleSending(msg, {content: display.join("\n")}, sendCallback)
+                await handleSending(msg, {content: display.join("\n"), status: StatusCode.INFO}, sendCallback)
                 if (m.content == word) {
-                    await handleSending(msg, {content: `You win`}, sendCallback)
+                    await handleSending(msg, {content: `You win`, status: StatusCode.RETURN}, sendCallback)
                     collector.stop()
                     return
                 }
                 if (guessCount == 0) {
-                    await handleSending(msg, {content: `You lose, it was ${word}`}, sendCallback)
+                    await handleSending(msg, {content: `You lose, it was ${word}`, status: StatusCode.RETURN}, sendCallback)
                     collector.stop()
                     return
                 }
             })
-            return { content: "starting wordle" }
+            return { content: "starting wordle", status: StatusCode.INFO }
         },
         help: {
             info: "wordle",
@@ -6887,7 +6920,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 await msg.author.createDM()
             }
             catch (err) {
-                return { content: "Could not dm you" }
+                return { content: "Could not dm you", status: StatusCode.ERR }
             }
             let points = 0
             let losingStreak = 0
@@ -6912,10 +6945,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }
                 }
                 try {
-                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess` })
+                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess` , status: StatusCode.PROMPT})
                 }
                 catch (err) {
-                    return { content: "2K char limit reached" }
+                    return { content: "2K char limit reached", status: StatusCode.ERR }
                 }
                 let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
                 let gameIsGoing = true
@@ -6924,7 +6957,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (m.content == '\\n' || m.content == "<enter>")
                         m.content = '\n'
                     if (m.content == "STOP") {
-                        await handleSending(msg, {content: "STOPPED"}, sendCallback)
+                        await handleSending(msg, {content: "STOPPED", status: StatusCode.RETURN}, sendCallback)
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -6936,11 +6969,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
-                        await handleSending(msg, {content: `You've already guessed ${m.content}`}, sendCallback)
+                        await handleSending(msg, {content: `You've already guessed ${m.content}`, status: StatusCode.ERR}, sendCallback)
                         return
                     }
                     else if (m.content == wordstr) {
-                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}` })
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`,status: StatusCode.RETURN })
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -6960,7 +6993,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         points += winningStreak ** 2
                     }
                     if (lives < 1) {
-                        await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] } })
+                        await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -6991,18 +7024,18 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         }
                     }
                     if (disp.replaceAll("   ", " ") == wordstr) {
-                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] } })
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
                         collection.stop()
                         gameIsGoing = false
                         return
                     }
-                    await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)` })
+                    await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)`, status: StatusCode.INFO })
                 })
             }
             if (opts["random"]) {
                 let channels = (await msg.guild?.channels.fetch())?.toJSON()
                 if (!channels) {
-                    return { content: "no channels found" }
+                    return { content: "no channels found", status: StatusCode.ERR }
                 }
                 let channel = choice(channels)
                 while (!channel.isText())
@@ -7031,7 +7064,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 })
             }
             return {
-                content: "STARTING HANGMAN, WOOOOOO"
+                content: "STARTING HANGMAN, WOOOOOO",
+                status: StatusCode.INFO
             }
         },
         help: {
@@ -7062,10 +7096,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let edits = args.join(" ").split("|")
             let message
             try {
-                message = await handleSending(msg, {content: edits[0]}, sendCallback)
+                message = await handleSending(msg, {content: edits[0], status: StatusCode.INFO}, sendCallback)
             }
             catch (err) {
-                return { content: "message too big" }
+                return { content: "message too big", status: StatusCode.ERR }
             }
             edits = edits.slice(1)
             let lastEdit = message.content
@@ -7095,10 +7129,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 else if (edit[0] == ";") {
                     try {
-                        message = await handleSending(msg, {content: edit.slice(1)}, sendCallback)
+                        message = await handleSending(msg, {content: edit.slice(1), status: StatusCode.INFO}, sendCallback)
                     }
                     catch (err) {
-                        return { content: "message too big" }
+                        return { content: "message too big", status: StatusCode.ERR }
                     }
                     continue
                 }
@@ -7107,14 +7141,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 catch (err) {
                     if (!message.deletable) {
-                        return { noSend: true }
+                        return { noSend: true,status: StatusCode.ERR }
                     }
-                    await handleSending(msg, {content: `Could not edit message with: ${edit}`}, sendCallback)
+                    await handleSending(msg, {content: `Could not edit message with: ${edit}`, status: StatusCode.ERR}, sendCallback)
                 }
                 await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
                 lastEdit = message.content
             }
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.INFO }
         },
         help: {
             arguments: {
@@ -7131,20 +7165,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             user1 = user1.trim()
             user2 = user2.trim()
             if (!user1) {
-                return { content: "No users given" }
+                return { content: "No users given", status: StatusCode.ERR }
             }
             if (!user2) {
-                return { content: "2 users must be given" }
+                return { content: "2 users must be given", status: StatusCode.ERR }
             }
             //@ts-ignore
             let realUser1: GuildMember = await fetchUser(msg.guild, user1)
             if (!realUser1) {
-                return { content: `${user1} not found` }
+                return { content: `${user1} not found`, status: StatusCode.ERR }
             }
             //@ts-ignore
             let realUser2: GuildMember = await fetchUser(msg.guild, user2)
             if (!realUser2) {
-                return { content: `${user2} not found` }
+                return { content: `${user2} not found`, status: StatusCode.ERR }
             }
             let user1Roles = realUser1.roles.cache.toJSON()
             let user2Roles = realUser2.roles.cache.toJSON()
@@ -7171,7 +7205,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addField("Same Roles", same || "No same")
             embed.addField(`${realUser1.displayName} unique roles`, user1U || "No unique roles")
             embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL
     },
@@ -7193,7 +7227,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
                 embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
             }
-            let rv: CommandReturn = { allowedMentions: { parse: [] } }
+            let rv: CommandReturn = { allowedMentions: { parse: [] }, status: StatusCode.RETURN }
             if (!opts['E'] && !opts['c!'])
                 rv.embeds = [embed]
             if (opts['c'] || opts['c!']) {
@@ -7227,12 +7261,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (msg, args, sendCallback) => {
             let role = args.join(" ")
             if (!role) {
-                return { content: "No role given" }
+                return { content: "No role given", status: StatusCode.ERR }
             }
             await msg.guild?.members.fetch()
             let roleRef = await msg.guild?.roles.fetch()
             if (!roleRef) {
-                return { content: "no roles found somehow" }
+                return { content: "no roles found somehow", status: StatusCode.ERR }
             }
             let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase())?.at(0)
             if (!realRole) {
@@ -7243,7 +7277,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             if (!realRole) {
                 return {
-                    content: "Could not find role"
+                    content: "Could not find role",
+                    status: StatusCode.ERR
                 }
             }
             let memberTexts = [""]
@@ -7261,13 +7296,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
             if (!memberTexts[0].length) {
-                return { content: "No one" }
+                return { content: "No one", status: StatusCode.RETURN }
             }
             if (embed.fields.length < 1) {
                 embed.addField(`members: ${i}`, memberTexts[i])
             }
             embed.addField("Member count", String(memberCount))
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL
     },
@@ -7286,12 +7321,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             const height = Math.min(parseFloat(args[1]) || parseFloat(opts['h'] as string) || parseFloat(opts['height'] as string) || parseFloat(opts['size'] as string) || width || 100, 2000)
             if (width < 0) {
                 return {
-                    content: "Width must be > 0"
+                    content: "Width must be > 0",
+                    status: StatusCode.ERR
                 }
             }
             if (height < 0) {
                 return {
-                    content: "Height must be > 0"
+                    content: "Height must be > 0",
+                    status: StatusCode.ERR
                 }
             }
             let img;
@@ -7322,7 +7359,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         description: "why can i describe this"
                     }
                 ],
-                content: "Your image, sir"
+                content: "Your image, sir",
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -7377,7 +7415,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let img_link = getImgFromMsgAndOpts(opts, msg)
             if (!img_link) {
                 return {
-                    content: "no img found"
+                    content: "no img found",
+                    status: StatusCode.ERR
                 }
             }
             let coords = args.join(" ")
@@ -7414,11 +7453,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             ctx.fill()
             const buffer = canv.toBuffer("image/png")
             fs.writeFileSync(fn, buffer)
-            handleSending(msg, { files: [{ attachment: fn, name: fn }] }).then(res => , sendCallback{
+            handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(res => {
                 fs.rmSync(fn)
             })
             return {
-                content: "generating img"
+                content: "generating img",
+                status: StatusCode.INFO
             }
         },
         category: CommandCategory.IMAGES,
@@ -7446,7 +7486,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
                 return {
-                    content: "no img found"
+                    content: "no img found",
+                    status: StatusCode.ERR
                 }
             }
             let gradient: Array<string> | undefined
@@ -7519,14 +7560,15 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             }
                     */
                     fs.writeFileSync(fn, composedImg)
-                    handleSending(msg, { files: [{ attachment: fn, name: fn }] }, sendCallback).then(_res => {
+                    handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(_res => {
                         fs.rmSync(fn)
                     }).catch(_err => {
                     })
                 })
             }).end()
             return {
-                content: "generating img"
+                content: "generating img",
+                status: StatusCode.INFO
             }
         },
         help: {
@@ -7639,7 +7681,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }).end()
             */
             return {
-                content: "generating img"
+                content: "generating img",
+                status: StatusCode.INFO
             }
         },
         help: {
@@ -7695,7 +7738,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }).end()
             */
             return {
-                content: "generating img"
+                content: "generating img",
+                status: StatusCode.INFO
             }
         },
         help: {
@@ -7711,7 +7755,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     runas: createCommand(async(msg, _, sc, opts, args) => {
         let user = await fetchUser(msg.guild as Guild, args[0])
         if(!user){
-            return {content: `${args[0]}: user not found`}
+            return {content: `${args[0]}: user not found`, status: StatusCode.ERR}
         }
         let command = args[1]
         let canRun = true
@@ -7726,7 +7770,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             canRun = false
         }
         if(!canRun){
-            return {content: `You do not have permission to run ${command}, so you cannot run as ${user.user.id}`}
+            return {content: `You do not have permission to run ${command}, so you cannot run as ${user.user.id}`, status: StatusCode.ERR}
         }
         let text = args.slice(1).join(" ")
         if(!text.startsWith(prefix)){
@@ -7742,11 +7786,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         [opts, args] = getOpts(args)
         let img = getImgFromMsgAndOpts(opts, msg)
         if(!img || img === true){
-            return {content: "No image given"}
+            return {content: "No image given", status: StatusCode.ERR}
         }
         let image = await canvas.loadImage(img)
 
-        return {content: `width: ${image.width}\nheight: ${image.height}`}
+        return {content: `width: ${image.width}\nheight: ${image.height}`, status: StatusCode.RETURN}
     }, CommandCategory.IMAGES),
     overlay: createCommand(async(msg, _, sc, opts, args) => {
         let [img1, img2] = args.join(" ").split("|")
@@ -7777,7 +7821,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         console.log(img1, img2)
         if(!img2 || !img1){
-            return {content: `Must provide 2 images\nimg1: ${img1}\nimg2: ${img2}`}
+            return {content: `Must provide 2 images\nimg1: ${img1}\nimg2: ${img2}`, status: StatusCode.ERR}
         }
         let image1 = await canvas.loadImage(img1)
         let image2 = await canvas.loadImage(img2)
@@ -7797,7 +7841,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     name: fn,
                     delete: true
                 }
-            ]
+            ],
+            status: StatusCode.RETURN
         }
 
     }, CommandCategory.IMAGES,
@@ -7825,12 +7870,12 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let width = Number(opts['w']) || 0
             let height = Number(opts['h']) || 0
             if(width * height > 4000000){
-                return {content: "Too large"}
+                return {content: "Too large", status: StatusCode.ERR}
             }
 
             let text = args.join(" ")
             if(!text){
-                return {content: "No text"}
+                return {content: "No text", status: StatusCode.ERR}
             }
 
             let font_size = String(opts['size'] || "10") + "px"
@@ -7842,6 +7887,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ctx.font = `${font_size} ${font}`
                 let textInfo = ctx.measureText(text)
                 width ||= textInfo.width
+                //@ts-ignore
                 height ||= parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent
             }
 
@@ -7868,9 +7914,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             if(opts['measure']){
                 if(opts['measure'] !== true){
                     //@ts-ignore
-                    return {content: String(textInfo[opts['measure']])}
+                    return {content: String(textInfo[opts['measure']]), status: StatusCode.RETURN}
                 }
-                return {content: JSON.stringify(textInfo)}
+                return {content: JSON.stringify(textInfo), status: StatusCode.RETURN}
             }
 
             ctx.textBaseline = Pipe.start(opts['baseline']).default("top").next((v: string) => String(v)).done()
@@ -7878,16 +7924,19 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let req_x = String(opts['x'] || 0)
             let x = parsePosition(req_x, width, textInfo.width)
             let req_y = String(opts['y'] || 0)
+            //@ts-ignore
             let y = parsePosition(req_y, width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
 
             let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
             if(bg_colors.length == 1){
                 if(bg_colors[0] !== 'transparent'){
                     ctx.fillStyle = bg_colors[0]
+                    //@ts-ignore
                     ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
                 }
             }
             else{
+                //@ts-ignore
                 let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
                 let interval = 1 /(bg_colors.length - 1)
                 for(let i = 0; i < bg_colors.length; i++){
@@ -7895,6 +7944,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                     grad.addColorStop(interval * i, bg_colors[i])
                 }
                 ctx.fillStyle = grad
+                //@ts-ignore
                 ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
             }
 
@@ -7903,6 +7953,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ctx.fillStyle = colors[0]
             }
             else{
+                //@ts-ignore
                 let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent + textInfo.emHeightDescent)
                 let interval = 1 /(colors.length - 1)
                 for(let i = 0; i < colors.length; i++){
@@ -7924,7 +7975,8 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                         name: fn,
                         delete: true
                     }
-                ]
+                ],
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -7994,7 +8046,8 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ans.push(choice(args).trim())
             }
             return {
-                content: ans.join(sep) || "```invalid message```"
+                content: ans.join(sep) || "```invalid message```",
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.FUN
@@ -8007,14 +8060,14 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let  data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
             let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
             if(!tempData){
-                return {content: "Could not find weather"}
+                return {content: "Could not find weather", status: StatusCode.ERR}
             }
             let condition, temp, unit
             try {
                 [condition, temp, unit] = tempData.slice(1, 4)
             }
             catch (err) {
-                return { content: "Could not find weather :(" }
+                return { content: "Could not find weather :(" , status: StatusCode.ERR}
             }
             temp = Number(temp)
             let tempC, tempF
@@ -8047,9 +8100,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             embed.addField("Temp C", `${tempC}C`, true)
             embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
             if(opts['fmt']){
-                return {content: format(String(opts['fmt']), {f: String(tempF), c: String(tempC), g: color, s: condition, l: town})}
+                return {content: format(String(opts['fmt']), {f: String(tempF), c: String(tempC), g: color, s: condition, l: town}), status: StatusCode.RETURN}
             }
-            return {embeds: [embed]}
+            return {embeds: [embed], status: StatusCode.RETURN}
         },
         help: {
             info: "Get weather for a specific place, default: tokyo",
@@ -8079,7 +8132,7 @@ Valid formats:
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img || img === true) {
-                return { content: "No image found" }
+                return { content: "No image found", status: StatusCode.ERR }
             }
             let amount = Number(args[0]) || 90
             let color = args[1] || "#00000000"
@@ -8097,11 +8150,12 @@ Valid formats:
                             name: fn,
                             delete: true
                         }
-                    ]
+                    ],
+                    status: StatusCode.RETURN
                 }
             }
             catch {
-                return { content: "Something went wrong rotating image" }
+                return { content: "Something went wrong rotating image", status: StatusCode.ERR }
             }
         },
         category: CommandCategory.IMAGES
@@ -8139,7 +8193,7 @@ Valid formats:
                     buffer = await sharp(await createGradient(gradient, width, height)).png().toBuffer()
                 }
                 catch (err) {
-                    return { content: "error making color" }
+                    return { content: "error making color", status: StatusCode.ERR }
                 }
                 content = colorStrings.join(" > ")
             }
@@ -8160,7 +8214,7 @@ Valid formats:
                     }).png().toBuffer()
                 }
                 catch (err) {
-                    return { content: "error making color" }
+                    return { content: "error making color", status: StatusCode.ERR }
                 }
             }
             fs.writeFileSync(fn, buffer)
@@ -8172,7 +8226,8 @@ Valid formats:
                         description: "why can i describe this"
                     }
                 ],
-                content: content
+                content: content,
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -8197,7 +8252,8 @@ Valid formats:
     "l-bl": {
         run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             return {
-                content: fs.readFileSync("command-perms/blacklists", "utf-8")
+                content: fs.readFileSync("command-perms/blacklists", "utf-8"),
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -8206,7 +8262,8 @@ Valid formats:
     "l-wl": {
         run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             return {
-                content: fs.readFileSync("command-perms/whitelists", "utf-8")
+                content: fs.readFileSync("command-perms/whitelists", "utf-8"),
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -8216,16 +8273,16 @@ Valid formats:
             let opts;
             [opts, args] = getOpts(args)
             if (args.length < 2) {
-                return { content: "2 users must be given", delete: opts['d'] as boolean }
+                return { content: "2 users must be given", delete: opts['d'] as boolean, status: StatusCode.ERR }
             }
             let [user1Full, user2Full] = args.join(" ").split("|")
             if (!user1Full || !user2Full) {
-                return { content: "2 users not given" }
+                return { content: "2 users not given", status: StatusCode.ERR }
             }
             let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
             let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
             let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-            return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean }
+            return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
         },
         help: {
             info: "Create your favorite fantacies!!!!"
@@ -8246,7 +8303,7 @@ Valid formats:
             msg.content = `${prefix}${args.join(" ").trim()}`
             let start = new Date().getTime()
             await doCmd(msg)
-            return { content: `${new Date().getTime() - start} ms` }
+            return { content: `${new Date().getTime() - start} ms`, status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     },
@@ -8264,7 +8321,7 @@ Valid formats:
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, {content: `starting ${id}`}, sendCallback)
+            await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
                 msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
@@ -8273,7 +8330,8 @@ Valid formats:
             }
             delete globals.SPAMS[id]
             return {
-                content: "done"
+                content: "done",
+                status: StatusCode.INFO
             }
         },
         category: CommandCategory.META
@@ -8290,16 +8348,16 @@ Valid formats:
                 sendText = [times, ...text].join(" ")
             }
             let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, {content: `starting ${id}`}, sendCallback)
+            await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
             globals.SPAMS[id] = true
-            let message = await handleSending(msg, {content: sendText}, sendCallback)
+            let message = await handleSending(msg, {content: sendText, status: StatusCode.RETURN}, sendCallback)
             while (globals.SPAMS[id] && timesToGo--) {
                 if (message.deletable) await message.delete()
-                message = await handleSending(msg, {content: sendText}, sendCallback)
+                message = await handleSending(msg, {content: sendText, status: StatusCode.RETURN}, sendCallback)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             delete globals.SPAMS[id]
-            return { content: "done" }
+            return { content: "done",status: StatusCode.INFO }
         }, category: CommandCategory.FUN
     },
     spam: {
@@ -8315,20 +8373,21 @@ Valid formats:
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, {content: `starting ${id}`}, sendCallback)
+            await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
             globals.SPAMS[id] = true
             let delay: number | null = parseFloat(String(opts['delay'])) * 1000 || 0
             if(delay < 700 || delay > 0x7FFFFFFF){
                 delay = null
             }
             while (globals.SPAMS[id] && times--) {
-                await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }) })
+                await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN })
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
 
             }
             delete globals.SPAMS[id]
             return {
-                content: "done"
+                content: "done",
+                status: StatusCode.INFO
             }
         },
         help: {
@@ -8354,17 +8413,19 @@ Valid formats:
     stop: {
         run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             if (!Object.keys(globals.SPAMS).length) {
-                return { content: "no spams to stop" }
+                return { content: "no spams to stop", status: StatusCode.ERR }
             }
             if (args[0]) {
                 if (globals.SPAMS[args[0]]) {
                     delete globals.SPAMS[args[0]]
                     return {
-                        content: `stopping ${args[0]}`
+                        content: `stopping ${args[0]}`,
+                        status: StatusCode.RETURN
                     }
                 }
                 return {
-                    content: `${args[0]} is not a spam id`
+                    content: `${args[0]} is not a spam id`,
+                    status: StatusCode.ERR
                 }
             }
             globals.SPAM_ALLOWED = false;
@@ -8372,7 +8433,8 @@ Valid formats:
                 delete globals.SPAMS[spam]
             }
             return {
-                content: "stopping all"
+                content: "stopping all",
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -8382,11 +8444,11 @@ Valid formats:
             let opts: Opts;
             [opts, args] = getOpts(args)
             if (msg.deletable && opts['d']) await msg.delete()
-            let message = await sendCallback(args.join(" ") || "poll")
+            let message = await handleSending(msg, {content: args.join(" ") || "poll", status: StatusCode.RETURN}, sendCallback)
             await message.react("<:Blue_check:608847324269248512>")
             await message.react("<:neutral:716078457880051734>")
             await message.react("❌")
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.INFO }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Idk it pollifies what do you want"
@@ -8400,10 +8462,10 @@ Valid formats:
                 let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
                 let text = await data.text()
                 let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                return { content: match?.[1] || "Nothing found :(" }
+                return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
             }
             catch (err) {
-                return { content: "An error occured" }
+                return { content: "An error occured", status: StatusCode.ERR }
             }
         }, category: CommandCategory.FUN
     },
@@ -8417,7 +8479,7 @@ Valid formats:
                 }
                 rv += '-------------------------\n'
             }
-            return { content: rv }
+            return { content: rv, status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     },
@@ -8440,7 +8502,8 @@ Valid formats:
                             delete: false,
                             attachment: "stackl.norg"
                         }
-                    ]
+                    ],
+                    status: StatusCode.RETURN
                 }
             }
 
@@ -8448,7 +8511,7 @@ Valid formats:
             //@ts-ignore
             if (stack?.err) {
                 //@ts-ignore
-                return { content: stack.content }
+                return { content: stack.content, status: StatusCode.RETURN }
             }
 
             let embeds = []
@@ -8463,7 +8526,7 @@ Valid formats:
                     texts.push(item)
                 }
             }
-            return { content: texts.join(" "), embeds: embeds, noSend: (<Array<stackTypes>>stack).length > 0 ? false : true }
+            return { content: texts.join(" "), embeds: embeds, noSend: (<Array<stackTypes>>stack).length > 0 ? false : true, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL,
         help: {
             info: "Welcome to stackl",
@@ -8490,7 +8553,7 @@ Valid formats:
             let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
             let text = await data.text()
             if (!text) {
-                return { content: "nothing found" }
+                return { content: "nothing found", status: StatusCode.ERR }
             }
             const $ = cheerio.load(text)
             type data = { text?: string, link?: string }
@@ -8512,7 +8575,7 @@ Valid formats:
             let embed = new MessageEmbed()
             embed.setTitle(post.text || "None")
             embed.setFooter({ text: post.link || "None" })
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         }, category: CommandCategory.FUN
     },
 
@@ -8555,7 +8618,7 @@ Valid formats:
                     expr = getVar(msg, expr, mainScope)
                 }
                 if (expr === undefined) {
-                    return { content: `var: **${expr}** does not exist` }
+                    return { content: `var: **${expr}** does not exist`, status: StatusCode.ERR }
                 }
             }
             let ans: any
@@ -8610,7 +8673,7 @@ Valid formats:
                     break;
             }
             vardict[vname] = ans
-            return { content: String(ans) }
+            return { content: String(ans), status: StatusCode.RETURN }
         },
         help: {
             info: "Modify a variable",
@@ -8646,17 +8709,17 @@ Valid formats:
                 text = await data.text()
                 let bluecHeader = "%bluecircle37%\n"
                 if (text.slice(0, bluecHeader.length) !== bluecHeader) {
-                    return { content: "Does not appear to be a bluec script" }
+                    return { content: "Does not appear to be a bluec script", status: StatusCode.ERR }
                 }
                 text = text.slice(bluecHeader.length).split(";EOL")
             }
             if (!text) {
-                return { content: "No script" }
+                return { content: "No script", status: StatusCode.ERR }
             }
             let id = Math.floor(Math.random() * 10000000)
             globals.SPAMS[id] = true
             if (!opts['s']) {
-                await handleSending(msg, {content: `Starting id: ${id}`}, sendCallback)
+                await handleSending(msg, {content: `Starting id: ${id}`, status: StatusCode.INFO}, sendCallback)
             }
             function handleRunFn(fn: string, contents: string) {
                 switch (fn) {
@@ -8723,7 +8786,7 @@ Valid formats:
                 await doCmd(msg, false)
             }
             delete globals.SPAMS[id]
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.INFO }
         }, category: CommandCategory.META,
         help: {
             info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
@@ -8739,13 +8802,13 @@ Valid formats:
             else if (scope == ".") {
                 let v = getVar(msg, name)
                 if (v)
-                    return { content: String(v) }
-                else return { content: `\\v{${args.join(" ")}}` }
+                    return { content: String(v), status: StatusCode.RETURN }
+                else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
             }
             let v = getVar(msg, name, scope)
             if (v)
-                return { content: String(v) }
-            else return { content: `\\v{${args.join(" ")}}` }
+                return { content: String(v), status: StatusCode.RETURN}
+            else return { content: `\\v{${args.join(" ")}}` , status: StatusCode.RETURN}
         }, category: CommandCategory.META
     },
     "var": {
@@ -8754,23 +8817,24 @@ Valid formats:
             [opts, args] = getOpts(args)
             let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
             if (!value.length) {
-                return { content: "no value given, syntax `[var x=value" }
+                return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
             }
             let realVal = value.join(" ")
             if (opts['prefix']) {
                 let prefix = String(opts['prefix'])
                 if (prefix.match(/^\d{18}/)) {
-                    return { content: "No ids allowed" }
+                    return { content: "No ids allowed", status: StatusCode.ERR}
                 }
                 setVar(name, realVal, prefix)
                 if (!opts['silent'])
-                    return { content: getVar(msg, name, prefix) }
+                    return { content: getVar(msg, name, prefix), status: StatusCode.RETURN }
             }
             else if (opts['u']) {
                 setVar(name, realVal, msg.author.id)
                 if (!opts['silent'])
                     return {
-                        content: getVar(msg, name, msg.author.id)
+                        content: getVar(msg, name, msg.author.id),
+                        status: StatusCode.RETURN
                     }
             }
             else {
@@ -8778,10 +8842,11 @@ Valid formats:
                 console.log(getVar(msg, name))
                 if (!opts['silent'])
                     return {
-                        content: getVar(msg, name)
+                        content: getVar(msg, name),
+                        status: StatusCode.RETURN
                     }
             }
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.RETURN }
         },
         help: {
             arguments: {
@@ -8799,17 +8864,20 @@ Valid formats:
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
                 return {
-                    content: "Nothing given to add to"
+                    content: "Nothing given to add to",
+                    status: StatusCode.ERR
                 }
             }
             if (file.match(/[\.]/)) {
                 return {
-                    content: "invalid command"
+                    content: "invalid command",
+                    status: StatusCode.ERR
                 }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
-                    content: "file does not exist"
+                    content: "file does not exist",
+                    status: StatusCode.ERR
                 }
             }
             let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
@@ -8820,7 +8888,8 @@ Valid formats:
                 files: [{
                     attachment: fn,
                     name: "remove.txt"
-                }]
+                }],
+                status: StatusCode.PROMPT
             }, sendCallback)
             fs.rmSync(fn)
             try {
@@ -8834,7 +8903,7 @@ Valid formats:
                     for (let numStr of m.content.split(" ")) {
                         let num = parseInt(numStr || "0")
                         if (!num) {
-                            await handleSending(msg, {content: `${num} is not a valid number`}, sendCallback)
+                            await handleSending(msg, {content: `${num} is not a valid number`, status: StatusCode.ERR}, sendCallback)
                             return
                         }
                         let removal = data[num - 1]
@@ -8843,7 +8912,8 @@ Valid formats:
                         let userCreated = removal.split(":")[0].trim()
                         if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
                             await handleSending(msg, {
-                                content: "You did not create that message, and are not a bot admin"
+                                content: "You did not create that message, and are not a bot admin",
+                                status: StatusCode.ERR
                             }, sendCallback)
                             continue
                         }
@@ -8853,6 +8923,7 @@ Valid formats:
                     data = data.filter(v => typeof v != 'undefined')
                     fs.writeFileSync(`command-results/${file}`, data.join(";END"))
                     await handleSending(msg, {
+                        status: StatusCode.RETURN,
                         content: `removed ${removedList.join("\n")} from ${file}`
                     }, sendCallback)
                     collector.stop()
@@ -8860,10 +8931,11 @@ Valid formats:
             }
             catch (err) {
                 return {
-                    content: "didnt respond in time"
+                    content: "didnt respond in time",
+                    status: StatusCode.ERR
                 }
             }
-            return { content: 'Say the number of what you want to remove or type cancel' }
+            return { content: 'Say the number of what you want to remove or type cancel', status: StatusCode.PROMPT }
         },
         help: {
             arguments: {
@@ -8887,7 +8959,8 @@ Valid formats:
                         name: `${fn}.txt`,
                         description: `data`,
                     }
-                ]
+                ],
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.UTIL
@@ -8896,13 +8969,13 @@ Valid formats:
     "b64": {
         run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
-            return { content: Buffer.from(text).toString("base64") }
+            return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     "b64d": {
         run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
-            return { content: Buffer.from(text, "base64").toString("utf8") }
+            return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     "rfile": {
@@ -8911,9 +8984,9 @@ Valid formats:
             if (att) {
                 let data = await fetch.default(att.attachment.toString())
                 let text = await data.buffer()
-                return { content: text.toString(args[0] || "utf-8") }
+                return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
             }
-            return { noSend: true }
+            return { noSend: true, status: StatusCode.ERR }
         },
         category: CommandCategory.UTIL
     },
@@ -8926,22 +8999,25 @@ Valid formats:
                     content: `\`\`\`
 ${fs.readdirSync("./command-results").join("\n")}
 \`\`\`
-`
+`,
+                    status: StatusCode.RETURN
                 }
             }
             //@ts-ignore
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
                 return {
-                    content: "Nothing given to add to"
+                    content: "Nothing given to add to",
+                    status: StatusCode.ERR
                 }
             }
             if (file.match(/\./)) {
-                return { content: "<:Watching1:697677860336304178>" }
+                return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 return {
-                    content: "file does not exist"
+                    content: "file does not exist",
+                    status: StatusCode.ERR
                 }
             }
             return {
@@ -8952,7 +9028,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                         description: `data for ${file}`,
                         delete: false
                     }
-                ]
+                ],
+                status: StatusCode.ERR
             }
         },
         help: {
@@ -8967,14 +9044,14 @@ ${fs.readdirSync("./command-results").join("\n")}
     'send-log': {
         run: async (_msg, args, sendCallback) => {
             if (!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)) {
-                return { content: "File does not exist" }
+                return { content: "File does not exist", status: StatusCode.ERR }
             }
-            return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8") }
+            return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.ERR }
         }, category: CommandCategory.META
     },
     "list-files": {
         run: async (_msg, _args, sendCallback) => {
-            return { content: fs.readdirSync('./command-results').join("\n") }
+            return { content: fs.readdirSync('./command-results').join("\n"), status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     },
@@ -8984,29 +9061,33 @@ ${fs.readdirSync("./command-results").join("\n")}
             const file = FILE_SHORTCUTS[args[0]] || args[0]
             if (!file) {
                 return {
-                    content: "Nothing given to add to"
+                    content: "Nothing given to add to",
+                    status: StatusCode.ERR
                 }
             }
             if (file.match(/[\.]/)) {
                 return {
-                    content: "invalid command"
+                    content: "invalid command",
+                    status: StatusCode.ERR
                 }
             }
             if (!fs.existsSync(`./command-results/${file}`)) {
                 if (file === "wordle")
                     fs.writeFileSync(`./command-results/${file}`, "")
-                else return { content: `${file} does not exist` }
+                else return { content: `${file} does not exist`, status: StatusCode.ERR }
             }
             args = args.slice(1)
             const data = args?.join(" ")
             if (!data) {
                 return {
-                    content: "No data given"
+                    content: "No data given",
+                    status: StatusCode.ERR
                 }
             }
             fs.appendFileSync(`./command-results/${file}`, `${msg.author.id}: ${data};END\n`)
             return {
-                content: `appended \`${data}\` to \`${file}\``
+                content: `appended \`${data}\` to \`${file}\``,
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -9052,11 +9133,11 @@ ${fs.readdirSync("./command-results").join("\n")}
                     return true
                 })
                 if (!result) {
-                    return { content: "failed to expand alias" }
+                    return { content: "failed to expand alias", status: StatusCode.ERR }
                 }
-                return { content: `${chain.join(" -> ")}` }
+                return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
             }
-            return { content: `${args[0].trim() || "No command given"}` }
+            return { content: `${args[0].trim() || "No command given"}`, status: StatusCode.ERR }
         },
         help: {
             info: "Shows which command the alias turns into when run",
@@ -9083,7 +9164,8 @@ ${fs.readdirSync("./command-results").join("\n")}
             let name = args[0]
             if (!name) {
                 return {
-                    content: "No command name given"
+                    content: "No command name given",
+                    status: StatusCode.ERR
                 }
             }
             let commands = args.map(v => v.trim())
@@ -9108,7 +9190,8 @@ ${fs.readdirSync("./command-results").join("\n")}
             fs.writeFileSync("command-results/alias", data.join(";END"))
             aliases = createAliases()
             return {
-                content: `Removed: ${successfullyRemoved.join(", ")}`
+                content: `Removed: ${successfullyRemoved.join(", ")}`,
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -9122,7 +9205,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                 content: choice(options)
                     .slice(20)
                     .replaceAll("{content}", content)
-                    .replaceAll("{u}", `${msg.author}`)
+                    .replaceAll("{u}", `${msg.author}`),
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -9144,7 +9228,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             let joinedArgs = args.join(" ")
             let [from, to] = joinedArgs.split("|")
             if (!to) {
-                return { content: "No second place given, fmt: `place 1 | place 2`" }
+                return { content: "No second place given, fmt: `place 1 | place 2`", status: StatusCode.ERR }
             }
             //@ts-ignore
             let fromUser = await fetchUser(msg.guild, from)
@@ -9159,7 +9243,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                         .replaceAll("{to}", toUser.id)
                         .replaceAll("{f}", `${fromUser}`)
                         .replaceAll("{t}", `${toUser}`)
-                        .trim()
+                        .trim(),
+                    status: StatusCode.RETURN
                 }
             }
             from = encodeURI(from.trim())
@@ -9204,11 +9289,13 @@ ${fs.readdirSync("./command-results").join("\n")}
                         .replaceAll("{to}", to)
                         .replaceAll("{f}", decodeURI(from))
                         .replaceAll("{t}", decodeURI(to))
-                        .trim()
+                        .trim(),
+                    status: StatusCode.RETURN
                 }
             }
             return {
-                embeds: [embed]
+                embeds: [embed],
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -9241,7 +9328,8 @@ ${fs.readdirSync("./command-results").join("\n")}
                 else values += `/${cmd["name"]}\n`
             }
             return {
-                content: values
+                content: values,
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.FUN
@@ -9266,11 +9354,12 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
             if (opts['json']) {
-                return { content: JSON.stringify(commandsToUse) }
+                return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
             }
             if (Object.keys(commandsToUse).length < 1) {
                 return {
-                    content: "No help can be given :("
+                    content: "No help can be given :(",
+                    status: StatusCode.ERR
                 }
             }
             if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
@@ -9330,16 +9419,19 @@ ${styles}
                 let content = fs.readFileSync("output.txt", "utf-8")
                 fs.rmSync('output.txt')
                 return {
-                    content: `\`\`\`\n${content}\n\`\`\``
+                    content: `\`\`\`\n${content}\n\`\`\``,
+                    status: StatusCode.RETURN
                 }
             }
             if (files.length > 0) {
                 return {
-                    files: files
+                    files: files,
+                    status: StatusCode.RETURN
                 }
             }
             return {
-                content: "cannot send an empty file"
+                content: "cannot send an empty file",
+                status: StatusCode.ERR
             }
         },
         help: {
@@ -9373,7 +9465,8 @@ ${styles}
     code: {
         run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
             return {
-                content: "https://github.com/euro20179/bircle"
+                content: "https://github.com/euro20179/bircle",
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -9384,19 +9477,22 @@ ${styles}
             let user = args[0]
             if (!user) {
                 return {
-                    content: "no user given"
+                    content: "no user given",
+                    status: StatusCode.ERR
                 }
             }
             let addOrRemove = args[1]
             if (!["a", "r"].includes(addOrRemove)) {
                 return {
-                    content: "did not specify, (a)dd or (r)emove"
+                    content: "did not specify, (a)dd or (r)emove",
+                    status: StatusCode.ERR
                 }
             }
             let cmds = args.slice(2)
             if (!cmds.length) {
                 return {
-                    content: "no cmd given"
+                    content: "no cmd given",
+                    status: StatusCode.ERR
                 }
             }
             //@ts-ignore
@@ -9406,13 +9502,15 @@ ${styles}
                 addToPermList(WHITELIST, "whitelists", user, cmds)
 
                 return {
-                    content: `${user} has been whitelisted to use ${cmds.join(" ")}`
+                    content: `${user} has been whitelisted to use ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
             } else {
                 //@ts-ignore
                 removeFromPermList(WHITELIST, "whitelists", user, cmds)
                 return {
-                    content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`
+                    content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
             }
         },
@@ -9429,7 +9527,7 @@ ${styles}
         run: async (_msg, _args, sendCallback) => {
             economy.resetEconomy()
 
-            return { content: "Economy reset" }
+            return { content: "Economy reset", status: StatusCode.RETURN }
 
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
@@ -9439,9 +9537,9 @@ ${styles}
             //@ts-ignore
             let player = await fetchUser(msg.guild, args[0])
             if (!player)
-                return { content: "No player found" }
+                return { content: "No player found", status: StatusCode.ERR }
             economy.resetPlayer(player.user.id)
-            return { content: `Reset: <@${player.user.id}>` }
+            return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
         },
         category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
@@ -9451,9 +9549,9 @@ ${styles}
             //@ts-ignore
             let player = await fetchUser(msg.guild, args[0])
             if (!player)
-                return { content: "No player found" }
+                return { content: "No player found", status: StatusCode.ERR }
             resetPlayerItems(player.user.id)
-            return { content: `Reset: <@${player.user.id}>` }
+            return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
         },
         category: CommandCategory.META,
         permCheck: m => ADMINS.includes(m.author.id)
@@ -9461,7 +9559,7 @@ ${styles}
     RESET_ITEMS: {
         run: async (_msg, _args, sendCallback) => {
             resetItems()
-            return { content: "Items reset" }
+            return { content: "Items reset", status: StatusCode.RETURN }
         },
         permCheck: (m) => ADMINS.includes(m.author.id),
         category: CommandCategory.META
@@ -9471,14 +9569,14 @@ ${styles}
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0])
             if (!user) {
-                return { content: "user not found" }
+                return { content: "user not found", status: StatusCode.ERR }
             }
             let amount = economy.calculateAmountFromString(msg.author.id, args[1])
             if (amount) {
                 economy.setMoney(user.id, amount)
-                return { content: `${user.id} now has ${amount}` }
+                return { content: `${user.id} now has ${amount}`, status: StatusCode.RETURN }
             }
-            return { content: "nothign happened" }
+            return { content: "nothing happened", status: StatusCode.ERR }
         }, category: CommandCategory.META,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
@@ -9487,13 +9585,15 @@ ${styles}
             let addOrRemove = args[0]
             if (!["a", "r"].includes(addOrRemove)) {
                 return {
-                    content: "did not specify, (a)dd or (r)emove"
+                    content: "did not specify, (a)dd or (r)emove",
+                    status: StatusCode.ERR
                 }
             }
             let cmds = args.slice(1)
             if (!cmds.length) {
                 return {
-                    content: "no cmd given"
+                    content: "no cmd given",
+                    status: StatusCode.ERR
                 }
             }
             if (addOrRemove == "a") {
@@ -9501,13 +9601,15 @@ ${styles}
                 addToPermList(BLACKLIST, "blacklists", msg.member, cmds)
 
                 return {
-                    content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`
+                    content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
             } else {
                 //@ts-ignore
                 removeFromPermList(BLACKLIST, "blacklists", msg.member, cmds)
                 return {
-                    content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`
+                    content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
             }
         }, category: CommandCategory.UTIL
@@ -9517,19 +9619,22 @@ ${styles}
             let user = args[0]
             if (!user) {
                 return {
-                    content: "no user given"
+                    content: "no user given",
+                    status: StatusCode.ERR
                 }
             }
             let addOrRemove = args[1]
             if (!["a", "r"].includes(addOrRemove)) {
                 return {
-                    content: "did not specify, (a)dd or (r)emove"
+                    content: "did not specify, (a)dd or (r)emove",
+                    status: StatusCode.ERR
                 }
             }
             let cmds = args.slice(2)
             if (!cmds.length) {
                 return {
-                    content: "no cmd given"
+                    content: "no cmd given",
+                    status: StatusCode.ERR
                 }
             }
             //@ts-ignore
@@ -9539,13 +9644,15 @@ ${styles}
                 addToPermList(BLACKLIST, "blacklists", user as User, cmds)
 
                 return {
-                    content: `${user} has been blacklisted from ${cmds.join(" ")}`
+                    content: `${user} has been blacklisted from ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
             } else {
                 //@ts-ignore
                 removeFromPermList(BLACKLIST, "blacklists", user, cmds)
                 return {
-                    content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`
+                    content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
             }
         },
@@ -9573,7 +9680,8 @@ ${styles}
             pet.savePetData()
             client.destroy()
             return {
-                content: "STOPPING"
+                content: "STOPPING",
+                status: StatusCode.RETURN
             }
         },
         permCheck: (msg) => {
@@ -9613,7 +9721,7 @@ ${styles}
                 fmt += `\n{earnings}`
                 fs.writeFileSync("./command-results/last-run", String(Date.now()))
             }
-            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }) }
+            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }), status: StatusCode.RETURN }
         },
         help: {
             arguments: {
@@ -9690,7 +9798,7 @@ ${styles}
             let search = args.join(" ").toLowerCase()
             let roles = await msg.guild?.roles.fetch()
             if (!roles) {
-                return { content: "No roles found" }
+                return { content: "No roles found", status: StatusCode.ERR}
             }
             let foundRoles = roles.filter(r => r.name.toLowerCase() == search ? true : false)
             if (!foundRoles.size) {
@@ -9702,7 +9810,7 @@ ${styles}
 
             let role = foundRoles.at(0)
             if (!role) {
-                return { content: "Could not find role" }
+                return { content: "Could not find role", status: StatusCode.ERR }
             }
             let embed = new MessageEmbed()
             embed.setTitle(role.name)
@@ -9712,7 +9820,7 @@ ${styles}
             embed.addField("emoji", role.unicodeEmoji || "None", true)
             embed.addField("created", role.createdAt.toTimeString(), true)
             embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
-            return { embeds: [embed] || "none" }
+            return { embeds: [embed] || "none", status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL
     },
@@ -9724,7 +9832,7 @@ ${styles}
             //@ts-ignore
             else channel = await fetchChannel(msg.guild, args.join(" ").trim())
             if (!channel)
-                return { content: "Channel not found" }
+                return { content: "Channel not found", status: StatusCode.ERR }
             //@ts-ignore
             let pinned = await channel?.messages?.fetchPinned()
             let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
@@ -9756,7 +9864,7 @@ ${styles}
                 //@ts-ignore
                 embed.addField("Position", channel.position.toString(), true)
             }
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL
     },
@@ -9768,10 +9876,10 @@ ${styles}
                 e = await msg.guild?.emojis.fetch(emote)
             }
             catch (err) {
-                return { content: "No emoji found" }
+                return { content: "No emoji found", status: StatusCode.ERR }
             }
             if (!e) {
-                return { content: "No emoji foudn" }
+                return { content: "No emoji foudn", status: StatusCode.ERR }
             }
             let embed = new MessageEmbed()
             embed.setTitle(String(e.name))
@@ -9782,7 +9890,7 @@ ${styles}
             if (e.url)
                 embed.setThumbnail(e.url)
             embed.addField("URL", e?.url, true)
-            return { embeds: [embed] }
+            return { embeds: [embed], status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     "user-info": {
@@ -9889,7 +9997,7 @@ valid formats:<br>
             let send = ""
             let emojis = await msg.guild?.emojis.fetch()
             if (!emojis) {
-                return { content: "Could not find emojis" }
+                return { content: "Could not find emojis", status: StatusCode.ERR }
             }
             if (Boolean(opts['a'])) {
                 emojis = emojis.filter(e => e.animated ? true : false)
@@ -9905,7 +10013,7 @@ valid formats:<br>
                 send += String(emojis.random())
                 send += sep
             }
-            return { content: send }
+            return { content: send, status: StatusCode.RETURN }
         },
         help: {
             info: "Gives a random server emoji",
@@ -9963,7 +10071,7 @@ valid formats:<br>
                 .reverse()
                 .map(v => `${v[0]}: ${v[1]}`)
                 .join("\n")
-            return { content: finalData }
+            return { content: finalData, status: StatusCode.RETURN }
         },
         help: {
             options: {
@@ -9989,7 +10097,8 @@ valid formats:<br>
                 .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
                 .join(String(opts['s'] ?? "\n"))
             return {
-                content: data
+                content: data,
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -9999,9 +10108,9 @@ valid formats:<br>
         run: async (msg, _args, sendCallback) => {
             let invites = await msg.guild?.invites.fetch()
             if (invites?.at(0)?.url) {
-                return { content: invites.at(0)?.url }
+                return { content: invites.at(0)?.url, status: StatusCode.RETURN }
             }
-            return { content: "No invite found" }
+            return { content: "No invite found", status: StatusCode.ERR }
         },
         category: CommandCategory.UTIL
     },
@@ -10014,7 +10123,7 @@ valid formats:<br>
                 if (r.members.size < 1)
                     rolesNonAssigned.push(r.name)
             })
-            return { content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members` }
+            return { content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members`, status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL
     },
@@ -10024,7 +10133,7 @@ valid formats:<br>
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
             let argText = args.join(" ")
-            return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n") }
+            return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n"), status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     head: {
@@ -10033,7 +10142,7 @@ valid formats:<br>
             [opts, args] = getOpts(args)
             let count = parseInt(String(opts['count'])) || 10
             let argText = args.join(" ")
-            return { content: argText.split("\n").slice(0, count).join("\n") }
+            return { content: argText.split("\n").slice(0, count).join("\n"), status: StatusCode.RETURN }
         },
         help: {
             info: "Say the first 10 lines of some text",
@@ -10057,7 +10166,7 @@ valid formats:<br>
             for (let i = 1; i < text.length + 1; i++) {
                 rv += `${i}: ${text[i - 1]}\n`
             }
-            return { content: rv }
+            return { content: rv, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
     grep: {
@@ -10067,7 +10176,8 @@ valid formats:<br>
             let regex = args[0]
             if (!regex) {
                 return {
-                    content: "no search given"
+                    content: "no search given",
+                    status: StatusCode.ERR
                 }
             }
             let data = args.slice(1).join(" ").trim()
@@ -10075,7 +10185,7 @@ valid formats:<br>
                 if (msg.attachments?.at(0)) {
                     data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
                 }
-                else return { content: "no data given to search through" }
+                else return { content: "no data given to search through", status: StatusCode.ERR }
             }
             let match = data.matchAll(new RegExp(regex, "gm"))
             let finds = ""
@@ -10099,7 +10209,8 @@ valid formats:<br>
                 }
             }
             return {
-                content: finds
+                content: finds,
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -10126,26 +10237,27 @@ valid formats:<br>
             [cmd, ...args] = args
             let realCmd = args[0]
             if (!realCmd) {
-                return { content: "No  alias name given" }
+                return { content: "No  alias name given", status: StatusCode.ERR }
             }
             realCmd = realCmd.trim()
             if (realCmd.includes(" ")) {
-                return { content: "Name cannot have space" }
+                return { content: "Name cannot have space", status: StatusCode.ERR }
             }
             args = args.slice(1)
             if (!args) {
-                return { content: "No command given" }
+                return { content: "No command given", status: StatusCode.ERR }
             }
             if (aliases[cmd]) {
-                return { content: `Failed to add "${cmd}", it already exists` }
+                return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
             }
             if (commands[cmd]) {
-                return { content: `Failed to add "${cmd}", it is a builtin` }
+                return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
             }
             fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
             aliases = createAliases()
             return {
-                content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``
+                content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``,
+                status: StatusCode.RETURN
             }
         },
         category: CommandCategory.META
@@ -10155,9 +10267,9 @@ valid formats:<br>
             let opts;
             [opts, args] = getOpts(args)
             if (opts['check'] || opts['print'] || opts['see'])
-                return { content: `\`${lastCommand[msg.author.id]}\`` }
+                return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
             if (!lastCommand[msg.author.id]) {
-                return { content: "You ignorance species, there have not been any commands run." }
+                return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
             msg.content = lastCommand[msg.author.id]
             return await doCmd(msg, true) as CommandReturn
@@ -10175,7 +10287,7 @@ valid formats:<br>
     "psnipe": {
         run: async (_msg, _args, sendCallback) => {
             if (!purgeSnipe) {
-                return { content: "Nothing has been purged yet" }
+                return { content: "Nothing has been purged yet", status: StatusCode.ERR }
             }
             let content = ""
             let files: CommandFile[] = []
@@ -10192,7 +10304,7 @@ valid formats:<br>
                     embeds = embeds.concat(m.embeds)
                 }
             }
-            return { content: content ? content : undefined, files: files, embeds: embeds }
+            return { content: content ? content : undefined, files: files, embeds: embeds, status: StatusCode.RETURN }
         },
         help: {
             info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
@@ -10203,19 +10315,19 @@ valid formats:<br>
         run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let snipeC = ((parseInt(args[0]) - 1) || 0)
             if (snipeC >= 5) {
-                return { content: "it only goes back 5" }
+                return { content: "it only goes back 5", status: StatusCode.ERR }
             }
             if (snipeC > snipes.length) {
-                return { content: "Not that many messages have been deleted yet" }
+                return { content: "Not that many messages have been deleted yet", status: StatusCode.ERR }
             }
             if (!snipes.length) {
-                return { content: "Nothing has been deleted" }
+                return { content: "Nothing has been deleted", status: StatusCode.ERR }
             }
             let snipe = snipes[snipeC]
             if (!snipe) {
-                return { content: "no snipe" }
+                return { content: "no snipe", status: StatusCode.ERR }
             }
-            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\`` }
+            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
             let files = snipe.attachments?.toJSON()
             if (files) {
                 rv["files"] = files as CommandFile[]
@@ -10237,7 +10349,7 @@ valid formats:<br>
     },
     ping: {
         run: async (msg, _args, sendCallback) => {
-            return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms` }
+            return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`, status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     },
@@ -10246,7 +10358,7 @@ valid formats:<br>
             let opts;
             [opts, args] = getOpts(args)
             if (opts['l']) {
-                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n") }
+                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
             }
             let fmt = args[0] || "%v"
             console.log(VERSION)
@@ -10270,7 +10382,8 @@ valid formats:<br>
                     p: part,
                     A: String(alpha),
                     B: String(beta)
-                })
+                }),
+                status: StatusCode.RETURN
             }
         },
         help: {
@@ -10288,7 +10401,7 @@ valid formats:<br>
             let opts;
             [opts, args] = getOpts(args)
             if (opts['l']) {
-                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n") }
+                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
             }
             let version = args[0]
             if (!args[0]) {
@@ -10304,12 +10417,12 @@ valid formats:<br>
                 })()
             }
             if (!fs.existsSync(`changelog/${version}.md`)) {
-                return { content: `${version} does not exist` }
+                return { content: `${version} does not exist`, status: StatusCode.ERR }
             }
             if (opts['f']) {
-                return { files: [{ attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}` }], deleteFiles: false }
+                return { files: [{ attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}` }], deleteFiles: false, status: StatusCode.RETURN }
             }
-            return { content: fs.readFileSync(`changelog/${version}.md`, "utf-8") }
+            return { content: fs.readFileSync(`changelog/${version}.md`, "utf-8"), status: StatusCode.RETURN }
         },
         help: {
             info: "Get changelog for a version",
@@ -10330,7 +10443,7 @@ valid formats:<br>
             for (let id in globals.SPAMS) {
                 data += `${id}\n`
             }
-            return { content: data || "No spams" }
+            return { content: data || "No spams", status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     }
@@ -10360,7 +10473,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
     let redir: boolean | [Object, string] = false //Object is the object in which the variable is stored, string is the variable name
 
     //The return  value from this function
-    let rv: CommandReturn = {};
+    let rv: CommandReturn = {status: StatusCode.RETURN};
 
     let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
 
@@ -10450,7 +10563,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         let expansion = await expandAlias(command, (alias: any) => {
             globals.addToCmdUse(alias) //for every expansion, add to cmd use
             if (BLACKLIST[msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                handleSending(msg, { content: `You are blacklisted from ${alias}` }, sendCallback, recursion + 1)
+                handleSending(msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, sendCallback, recursion + 1)
                 return false
             }
             return true
@@ -10474,7 +10587,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             //rv = await doCmd(msg, true) as CommandReturn
         }
         else {
-            rv = { content: `failed to expand ${command}` }
+            rv = { content: `failed to expand ${command}`, status: StatusCode.ERR }
             exists = false
         }
     }
@@ -10484,7 +10597,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         if(command.startsWith(prefix)){
             command = `\\${command}`
         }
-        rv = { content: `${command} does not exist` }
+        rv = { content: `${command} does not exist`, status: StatusCode.ERR }
         exists = false
     }
 
@@ -10558,7 +10671,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
                 //if normal command, it counts as use
             globals.addToCmdUse(command)
         }
-        else rv = { content: "You do not have permissions to run this command" }
+        else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
     }
 
     //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
@@ -10617,21 +10730,49 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (rv.noSend) {
         return msg
     }
-    if(user_options.getOpt(msg.author.id, "change-cmd-text", "") !== "" && rv.content){
-        rv.content = format(user_options.getOpt(msg.author.id, "change-cmd-text", ""), {result: rv.content})
+    if(rv.content && rv.do_user_option_expansion !== false){
+        //if not empty, save in the _! variable
+        setVar("_!", rv.content, msg.author.id)
+        setVar("_!", rv.content)
+        
+        //@ts-ignore
+        let optionToGet: user_options.UserOption = {
+            [StatusCode.ERR]: "change-cmd-error",
+            [StatusCode.INFO]: "change-cmd-info",
+            [StatusCode.PROMPT]: "change-cmd-prompt",
+            [StatusCode.RETURN]: "change-cmd-return",
+            [StatusCode.WARNING]: "change-cmd-warning"
+        }[rv.status] as user_options.UserOption
+
+        let opt = user_options.getOpt(msg.author.id, optionToGet, "")
+        if(opt !== ""){
+            rv.content = opt
+            if(rv.recurse && rv.recurse !== true){
+                //if rv specified different bans, we want those to take priority
+                rv.recurse = {...generateDefaultRecurseBans(), ...rv.recurse}
+            }
+            else{
+                rv.recurse = generateDefaultRecurseBans()
+            }
+            rv.do_user_option_expansion = false
+        }
     }
+
     if (!rv?.content) {
         //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
         delete rv['content']
     }
     else if (recursion < 20) {
-        //if not empty, save in the _! variable
-        setVar("_!", rv.content, msg.author.id)
-        setVar("_!", rv.content)
         if (rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix) {
             let oldContent = msg.content
             msg.content = rv.content
+            let do_user_option_expansion = rv.do_user_option_expansion
             rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
+            //we only want to override it if the command doens't explicitly want to do it
+            if(rv.do_user_option_expansion !== true && do_user_option_expansion === false){
+                rv.do_user_option_expansion = do_user_option_expansion
+            }
+                
             msg.content = oldContent
             //it's better to just recursively do this, otherwise all the code above would be repeated
             return await handleSending(msg, rv, sendCallback, recursion + 1)
