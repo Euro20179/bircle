@@ -10682,6 +10682,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!"] }
+    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd"] }
 }
 
