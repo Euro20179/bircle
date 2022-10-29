@@ -5176,6 +5176,27 @@ middle
         return {content: `created a page called: ${title}`}
 
     }, CommandCategory.FUN),
+    "ewiki": createCommand(async(msg, _, cb, opts, args) => {
+        let [page, type, ...text] = args
+        let valid_types = ["new", "n", "append", "a"]
+        type = type.toLowerCase()
+        if(!valid_types.includes(type)){
+            return {content: `type must be one of new, append`}
+        }
+        if(!fs.existsSync(`./wiki/${page}.txt`)){
+            return {content: `${page} does not exist`}
+        }
+        if(type === "n" || type === "new"){
+            fs.writeFileSync(`./wiki/${page}.txt`, text.join(" "))
+            return {content: `${page} rewritten`}
+        }
+        else if(type === "a" || type === "append"){
+            let oldData = fs.readFileSync(`./wiki/${page}.txt`, "utf-8")
+            fs.writeFileSync(`./wiki/${page}.txt`, oldData + "\n" + args.join(" "))
+            return {content: `${page} appended to`}
+        }
+        return {content: "How did we get here (ewiki)"}
+    }, CommandCategory.FUN),
     "dwiki": createCommand(async(msg, args) => {
         if(fs.existsSync(`./wiki/${args.join(" ")}.txt`)){
             fs.rmSync(`./wiki/${args.join(" ")}.txt`)
@@ -5237,7 +5258,7 @@ middle
                     return { content: rv }
                 }
             }
-            return { content: "how did we get here" }
+            return { content: "how did we get here (wikipedia)" }
         },
         help: {
             info: "Get information about something, defaults to random",
