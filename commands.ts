@@ -10762,21 +10762,20 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //if content is empty string, delete it so it shows up as undefined to discord, so it wont bother trying to send an empty string
         delete rv['content']
     }
-    else if (recursion < 20) {
-        if (rv.recurse && rv.content && rv.content.slice(0, local_prefix.length) === local_prefix) {
-            let oldContent = msg.content
-            msg.content = rv.content
-            let do_user_option_expansion = rv.do_user_option_expansion
-            rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
-            //we only want to override it if the command doens't explicitly want to do it
-            if(rv.do_user_option_expansion !== true && do_user_option_expansion === false){
-                rv.do_user_option_expansion = do_user_option_expansion
-            }
-                
-            msg.content = oldContent
-            //it's better to just recursively do this, otherwise all the code above would be repeated
-            return await handleSending(msg, rv, sendCallback, recursion + 1)
+    //only do this if content
+    else if (recursion < 20 && rv.recurse && rv.content.slice(0, local_prefix.length) === local_prefix) {
+        let oldContent = msg.content
+        msg.content = rv.content
+        let do_user_option_expansion = rv.do_user_option_expansion
+        rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
+        //we only want to override it if the command doens't explicitly want to do it
+        if(rv.do_user_option_expansion !== true && do_user_option_expansion === false){
+            rv.do_user_option_expansion = do_user_option_expansion
         }
+            
+        msg.content = oldContent
+        //it's better to just recursively do this, otherwise all the code above would be repeated
+        return await handleSending(msg, rv, sendCallback, recursion + 1)
     }
     //if the content is > 2000 (discord limit), send a file instead
     if ((rv.content?.length || 0) >= 2000) {
