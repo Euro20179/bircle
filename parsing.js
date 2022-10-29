@@ -172,8 +172,23 @@ function buildEscape(letter, sequence, msg, curArg){
         case "S":
             return `~~${sequence}~~`
         case "d":
-            return (new Date(sequence)).toString()
+            let date = new Date(sequence)
+            if(date.toString() === "Invalid Date"){
+                if(sequence){
+                    return `\\d{${sequence}}`
+                }
+                else{
+                    return `\\d`
+                }
+            }
+            return date.toString()
         case "D":
+            if(isNaN(parseInt(sequence))){
+                if(sequence){
+                    return `\\D{${sequence}}`
+                }
+                return `\\D`
+            }
             return (new Date(parseInt(sequence))).toString()
         case "V": {
             let [scope, ...name] = sequence.split(":")
