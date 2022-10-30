@@ -600,6 +600,16 @@ export const commands: { [command: string]: Command } = {
         if (BLACKLIST[msg.author.id]?.includes(command)) {
             canRun = false
         }
+        let expansion = await expandAlias(command, (alias) => {
+            console.log(alias)
+            if(alias === "do" || alias === "spam" || alias === "run"){
+                return false
+            }
+            return true
+        })
+        if(!expansion){
+            canRun = false
+        }
         if(!canRun){
             return {content: `You do not have permission to run ${command}, so you cannot run as ${user.user.id}`, status: StatusCode.ERR}
         }
@@ -1928,8 +1938,9 @@ The commands below, only work after **path** has been run:
                     let totalSpent = 0
                     for (let i = 0; i < amount; i++) {
                         let totalCost = 0
-                        for (let cost of itemData.cost) {
-                            totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                        let { total } = economy.economyLooseGrandTotal()
+                        for (let cost of ITEMS()[item].cost) {
+                            totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, total, `${cost}`)
                         }
                         if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
                             if (buyItem(msg.author.id, item)) {
@@ -2273,8 +2284,9 @@ The commands below, only work after **path** has been run:
             let totalSpent = 0
             for (let i = 0; i < count; i++) {
                 let totalCost = 0
+                let { total } = economy.economyLooseGrandTotal()
                 for (let cost of ITEMS()[item].cost) {
-                    totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, total, `${cost}`)
                 }
                 if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
                     if (buyItem(msg.author.id, item)) {
@@ -2453,8 +2465,9 @@ The commands below, only work after **path** has been run:
             for (let item in itemJ) {
                 i++;
                 let totalCost = 0
+                let { total } = economy.economyLooseGrandTotal()
                 for (let cost of itemJ[item].cost) {
-                    totalCost += economy.calculateAmountFromStringIncludingStocks(userCheckingShop.id, cost)
+                    totalCost += economy.calculateAmountOfMoneyFromString(userCheckingShop.id, total, cost)
                 }
                 if (round) {
                     totalCost = Math.floor(totalCost * 100) / 100
@@ -10846,6 +10859,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run", "do"] }
+    return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run", "do", "runas"] }
 }
 
