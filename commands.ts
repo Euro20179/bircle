@@ -8322,6 +8322,17 @@ Valid formats:
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
             await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
+            let cmd = cmdArgs.split(" ")[0]
+            let expansion = await expandAlias(cmd, (alias) => {
+                console.log(alias)
+                if(alias === "do" || alias === "spam" || alias === "run"){
+                    return false
+                }
+                return true
+            })
+            if(!expansion){
+                return {content: "Cannot run do, spam, or run", status: StatusCode.ERR}
+            }
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
                 msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
