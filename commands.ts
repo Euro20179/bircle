@@ -48,7 +48,8 @@ export enum CommandCategory {
     META,
     IMAGES,
     ECONOMY,
-    VOICE
+    VOICE,
+    ADMIN
 }
 
 export let lastCommand: { [key: string]: string } = {};
@@ -9540,7 +9541,7 @@ ${styles}
 
             return { content: "Economy reset", status: StatusCode.RETURN }
 
-        }, category: CommandCategory.META,
+        }, category: CommandCategory.ADMIN,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     RESET_PLAYER: {
@@ -9552,7 +9553,7 @@ ${styles}
             economy.resetPlayer(player.user.id)
             return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
         },
-        category: CommandCategory.META,
+        category: CommandCategory.ADMIN,
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_PLAYER_ITEMS: {
@@ -9564,7 +9565,7 @@ ${styles}
             resetPlayerItems(player.user.id)
             return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
         },
-        category: CommandCategory.META,
+        category: CommandCategory.ADMIN,
         permCheck: m => ADMINS.includes(m.author.id)
     },
     RESET_ITEMS: {
@@ -9573,7 +9574,7 @@ ${styles}
             return { content: "Items reset", status: StatusCode.RETURN }
         },
         permCheck: (m) => ADMINS.includes(m.author.id),
-        category: CommandCategory.META
+        category: CommandCategory.ADMIN
     },
     SETMONEY: {
         run: async (msg, args, sendCallback) => {
@@ -9588,7 +9589,7 @@ ${styles}
                 return { content: `${user.id} now has ${amount}`, status: StatusCode.RETURN }
             }
             return { content: "nothing happened", status: StatusCode.ERR }
-        }, category: CommandCategory.META,
+        }, category: CommandCategory.ADMIN,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
     'blacklist': {
@@ -9673,7 +9674,7 @@ ${styles}
         help: {
             info: "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd"
         },
-        category: CommandCategory.META
+        category: CommandCategory.ADMIN
 
     },
     END: {
@@ -9698,7 +9699,7 @@ ${styles}
         permCheck: (msg) => {
             return ADMINS.includes(msg.author.id)
         },
-        category: CommandCategory.META
+        category: CommandCategory.ADMIN
 
     },
 
@@ -10838,6 +10839,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run", "do"] }
+    return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "run", "do"] }
 }
 
