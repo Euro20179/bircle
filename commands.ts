@@ -9544,6 +9544,13 @@ ${styles}
         }, category: CommandCategory.ADMIN,
         permCheck: (m) => ADMINS.includes(m.author.id)
     },
+    RESET_LOTTERY: {
+        run: async(msg, args, sb) => {
+            economy.newLottery()
+            return {content: "Lottery reset", status: StatusCode.RETURN}
+        },
+        category: CommandCategory.ADMIN
+    },
     RESET_PLAYER: {
         run: async (msg, args, sendCallback) => {
             //@ts-ignore
