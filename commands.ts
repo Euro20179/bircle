@@ -8283,7 +8283,10 @@ Valid formats:
         category: CommandCategory.META
     },
     "do": {
-        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback, opts, deopedArgs, recursion) => {
+            if(recursion >= globals.RECURSION_LIMIT){
+                return {content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR}
+            }
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -8311,7 +8314,7 @@ Valid formats:
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
                 msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
-                await doCmd(msg)
+                await doCmd(msg, false, globals.RECURSION_LIMIT)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             delete globals.SPAMS[id]
@@ -8679,7 +8682,10 @@ Valid formats:
 
     },
     "run": {
-        run: async (msg: Message, args, sendCallback) => {
+        run: async (msg: Message, args, sendCallback, _, _2, recursion) => {
+            if(recursion >= globals.RECURSION_LIMIT){
+                return {content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR}
+            }
             let opts: Opts;
             [opts, args] = getOpts(args)
             let file = msg.attachments.at(0)
@@ -8769,7 +8775,7 @@ Valid formats:
                 }
                 msg.content = `${prefix}${parseRunLine(line)}`
                 console.log(msg.content)
-                await doCmd(msg, false)
+                await doCmd(msg, false, (globals.RECURSION_LIMIT - 1) + recursion)
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.INFO }
@@ -10660,7 +10666,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             if (typing)
                 await msg.channel.sendTyping()
             let [opts, args2] = getOpts(args)
-            rv = await commands[command].run(msg, args, sendCallback, opts, args2)
+            rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion)
                 //if normal command, it counts as use
             globals.addToCmdUse(command)
         }
@@ -10756,7 +10762,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         delete rv['content']
     }
     //only do this if content
-    else if (recursion < 20 && rv.recurse && rv.content.slice(0, local_prefix.length) === local_prefix) {
+    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, local_prefix.length) === local_prefix) {
         let oldContent = msg.content
         msg.content = rv.content
         let do_user_option_expansion = rv.do_user_option_expansion

@@ -17,6 +17,8 @@ export let HEIST_PLAYERS: string[] = []
 export let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 export let HEIST_STARTED = false
 
+export const RECURSION_LIMIT = 20
+
 
 export function generateCmdUseFile() {
     let data = ""
