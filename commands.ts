@@ -9032,7 +9032,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             if (!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)) {
                 return { content: "File does not exist", status: StatusCode.ERR }
             }
-            return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.ERR }
+            return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.RETURN }
         }, category: CommandCategory.META
     },
     "list-files": {
