@@ -7852,6 +7852,8 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 return {content: "No text", status: StatusCode.ERR}
             }
 
+            let lineCount = text.split("\n").length
+
             let font_size = String(opts['size'] || "10") + "px"
             let font = String(opts['font'] || "serif")
 
@@ -7862,7 +7864,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 let textInfo = ctx.measureText(text)
                 width ||= textInfo.width
                 //@ts-ignore
-                height ||= parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent
+                height ||= parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
             }
 
             let canv, ctx;
@@ -7899,19 +7901,19 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let x = parsePosition(req_x, width, textInfo.width)
             let req_y = String(opts['y'] || 0)
             //@ts-ignore
-            let y = parsePosition(req_y, width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
+            let y = parsePosition(req_y, width, parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
 
             let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
             if(bg_colors.length == 1){
                 if(bg_colors[0] !== 'transparent'){
                     ctx.fillStyle = bg_colors[0]
                     //@ts-ignore
-                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
+                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 }
             }
             else{
                 //@ts-ignore
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 let interval = 1 /(bg_colors.length - 1)
                 for(let i = 0; i < bg_colors.length; i++){
                     console.log(bg_colors[i])
@@ -7919,7 +7921,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 }
                 ctx.fillStyle = grad
                 //@ts-ignore
-                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + textInfo.emHeightDescent + textInfo.actualBoundingBoxDescent)
+                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
             }
 
             let colors = intoColorList(String(opts['color'] || "red"))
@@ -7928,7 +7930,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             }
             else{
                 //@ts-ignore
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent + textInfo.emHeightDescent)
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent + (textInfo.emHeightDescent / lineCount))
                 let interval = 1 /(colors.length - 1)
                 for(let i = 0; i < colors.length; i++){
                     console.log(colors[i])
