@@ -27,7 +27,7 @@ let PETACTIONS: {[key: string]: Function} = {
     },
     puffle: async(m: Message) => {
         let stuff: {money: number, items: string[]} = {money: 0, items: []}
-        if(Math.random() <= .025){ // 1% chance
+        if(Math.random() <= .01){ // 1% chance
             if(Math.random() >= .30){ //70% for money
                 let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
                 economy.addMoney(m.author.id, amount)
