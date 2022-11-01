@@ -8812,7 +8812,7 @@ Valid formats:
             if (!value.length) {
                 return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
             }
-            let realVal = value.join(" ")
+            let realVal = value.join("=")
             if (opts['prefix']) {
                 let prefix = String(opts['prefix'])
                 if (prefix.match(/^\d{18}/)) {
