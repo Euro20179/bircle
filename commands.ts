@@ -10669,6 +10669,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             if (typing)
                 await msg.channel.sendTyping()
             let [opts, args2] = getOpts(args)
+            setVar("_!!!", command, msg.author.id)
             rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 //if normal command, it counts as use
             globals.addToCmdUse(command)
