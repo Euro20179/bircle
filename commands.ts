@@ -10480,6 +10480,8 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
     //Get the command (the first word in the message content)
     command = msg.content.split(" ")[0].slice(local_prefix.length)
 
+    setVar("_!!", command, msg.author.id)
+
     //the rest of the stuff are the arguments
     args = msg.content.split(" ").slice(1)
 
