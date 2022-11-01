@@ -473,7 +473,7 @@ export const commands: { [command: string]: Command } = {
             rv['delete'] = true
             return rv
         }
-        return { content: count_text, delete: true, status: StatusCode.RETURN }
+        return { content: count_text, delete: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
     }, CommandCategory.FUN),
 
     "is-alias": createCommand(async(msg, args) => {
@@ -571,7 +571,7 @@ export const commands: { [command: string]: Command } = {
         let optionToCheck = args.join(" ").toLowerCase()
         if (optionToCheck) {
             //@ts-ignore
-            return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN }
+            return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
         }
         let text = ""
         for (let opt of user_options.allowedOptions) {
@@ -2943,7 +2943,7 @@ The commands below, only work after **path** has been run:
                 economy.addMoney(msg.author.id, winningAmount)
                 economy.newLottery()
                 if (userFormat !== "__default__") {
-                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN }
+                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                 }
                 e.setTitle("WINNER!!!")
                 e.setColor("GREEN")
@@ -3100,7 +3100,7 @@ The commands below, only work after **path** has been run:
         if (!user) return { content: "No user found", status: StatusCode.ERR }
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN }
+        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
     }, CommandCategory.ECONOMY),
 
     money: createCommand(async (msg, args) => {
@@ -3134,9 +3134,9 @@ The commands below, only work after **path** has been run:
                 return { content: text, status: StatusCode.RETURN }
             }
             if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
         }
         return { content: "none", status: StatusCode.RETURN }
     }, CommandCategory.ECONOMY,
@@ -3833,7 +3833,7 @@ The commands below, only work after **path** has been run:
             }, timeRemaining)
         }
         let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
-        return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO }
+        return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO, do_change_cmd_user_expansion: false }
 
     }, CommandCategory.GAME,
         "Go on a \"heist\"",
@@ -4049,7 +4049,7 @@ The commands below, only work after **path** has been run:
         if (calculateTotal(playersCards).total === 21) {
             economy.addMoney(msg.author.id, bet * 3)
             delete globals.BLACKJACK_GAMES[msg.author.id]
-            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN }
+            return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
         }
         if (calculateTotal(dealerCards).total === 21) {
             economy.loseMoneyToBank(msg.author.id, bet)
@@ -4149,7 +4149,7 @@ The commands below, only work after **path** has been run:
                     economy.addMoney(msg.author.id, bet * 3)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     useItem(msg.author.id, "reset")
-                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN }
+                    return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                 }
                 if (calculateTotal(dealerCards).total === 21) {
                     economy.loseMoneyToBank(msg.author.id, bet)
@@ -4222,7 +4222,7 @@ The commands below, only work after **path** has been run:
 
                     let amount = Math.random() * 2 + 1
                     economy.addMoney(msg.author.id, bet * amount);
-                    return { content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}`, status: StatusCode.RETURN };
+                    return { content: `congratulation u win the spid\n${format(blackjack_screen, { amount: String(bet * amount) })}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false };
                 } else {
                     economy.loseMoneyToBank(msg.author.id, bet);
                     return { content: "u r ez dead", status: StatusCode.RETURN };
@@ -10728,7 +10728,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (rv.noSend) {
         return msg
     }
-    if(rv.content && rv.do_user_option_expansion !== false){
+    if(rv.content && rv.do_change_cmd_user_expansion !== false){
         //if not empty, save in the _! variable
         setVar("_!", rv.content, msg.author.id)
         setVar("_!", rv.content)
@@ -10752,7 +10752,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             else{
                 rv.recurse = generateDefaultRecurseBans()
             }
-            rv.do_user_option_expansion = false
+            rv.do_change_cmd_user_expansion = false
         }
     }
 
@@ -10764,11 +10764,11 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, local_prefix.length) === local_prefix) {
         let oldContent = msg.content
         msg.content = rv.content
-        let do_user_option_expansion = rv.do_user_option_expansion
+        let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
         rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
         //we only want to override it if the command doens't explicitly want to do it
-        if(rv.do_user_option_expansion !== true && do_user_option_expansion === false){
-            rv.do_user_option_expansion = do_user_option_expansion
+        if(rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false){
+            rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion
         }
             
         msg.content = oldContent
