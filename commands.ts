@@ -1823,7 +1823,7 @@ The commands below, only work after **path** has been run:
     },
 
     buy: {
-        run: async (msg, args, sendCallback) => {
+        run: async (msg, args, sendCallback, _, _2, recursion) => {
             let allowedTypes = ["stock", "pet", "item"]
             let type = args[0]
             let item = args.slice(1).join(" ")
@@ -1838,7 +1838,7 @@ The commands below, only work after **path** has been run:
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
                     await handleSending(msg, {content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING}, sendCallback)
-                    return await commands['bstock'].run(msg, args, sendCallback, {}, args)
+                    return await commands['bstock'].run(msg, args, sendCallback, {}, args, recursion)
                 }
                 //else
                 return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
@@ -2161,9 +2161,6 @@ The commands below, only work after **path** has been run:
 
     loan: {
         run: async (msg, _args, sendCallback) => {
-            if (!hasItem(msg.author.id, "loan")) {
-                return { content: "You do not have a loan", status: StatusCode.ERR }
-            }
             if (economy.getEconomy()[msg.author.id].loanUsed) {
                 return { content: "U have not payed off your loan", status: StatusCode.ERR }
             }
@@ -2179,7 +2176,9 @@ The commands below, only work after **path** has been run:
             }
             economy.addMoney(msg.author.id, needed)
             economy.useLoan(msg.author.id, needed)
-            useItem(msg.author.id, "loan")
+            if (hasItem(msg.author.id, "loan")) {
+                useItem(msg.author.id, "loan")
+            }
             return { content: `<@${msg.author.id}> Used a loan and got ${needed}`, status: StatusCode.ERR }
         }, category: CommandCategory.ECONOMY,
         help: {

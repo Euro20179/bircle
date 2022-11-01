@@ -17,7 +17,7 @@
     "loan": {
         "description": "Gives you enough money to get to $1, with a maximum of however much money first place has",
         "uses": 1,
-        "cost": ["0"],
+        "cost": ["Infinity"],
         "max": 1
     },
     "tax shield": {
