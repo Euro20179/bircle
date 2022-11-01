@@ -8681,7 +8681,7 @@ Valid formats:
 
     },
     "run": {
-        run: async (msg: Message, args, sendCallback, _, _2, recursion) => {
+        run: async (msg: Message, args, sendCallback, _, _2, recursion, bans) => {
             if(recursion >= globals.RECURSION_LIMIT){
                 return {content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR}
             }
@@ -8774,7 +8774,7 @@ Valid formats:
                 }
                 msg.content = `${prefix}${parseRunLine(line)}`
                 console.log(msg.content)
-                await doCmd(msg, false, (globals.RECURSION_LIMIT - 1) + recursion)
+                await doCmd(msg, false, (globals.RECURSION_LIMIT - 1) + recursion, bans)
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.INFO }
@@ -10665,7 +10665,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             if (typing)
                 await msg.channel.sendTyping()
             let [opts, args2] = getOpts(args)
-            rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion)
+            rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 //if normal command, it counts as use
             globals.addToCmdUse(command)
         }

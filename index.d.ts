@@ -60,7 +60,7 @@ declare global{
     }
 
     interface Command{
-        run: (msg: Message, args: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArguentList, recursion_count: number) => Promise<CommandReturn>;
+        run: (msg: Message, args: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArguentList, recursion_count: number, command_bans?: {categories?: CommandCategory[], commands?: string[]}) => Promise<CommandReturn>;
         permCheck?: (msg: Message) => boolean;
         help?: CommandHelp
         category: CommandCategory,
