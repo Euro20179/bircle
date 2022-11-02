@@ -2271,7 +2271,7 @@ The commands below, only work after **path** has been run:
             if (hasItem(msg.author.id, "loan")) {
                 useItem(msg.author.id, "loan")
             }
-            return { content: `<@${msg.author.id}> Used a loan and got ${needed}`, status: StatusCode.ERR }
+            return { content: `<@${msg.author.id}> Used a loan and got ${needed}`, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: `Use a loan
@@ -2283,7 +2283,7 @@ The commands below, only work after **path** has been run:
         run: async (msg, _args, sendCallback) => {
             if (economy.canWork(msg.author.id)) {
                 let amount = economy.work(msg.author.id)
-                return { content: `You earned: ${amount}`, status: StatusCode.ERR }
+                return { content: `You earned: ${amount}`, status: StatusCode.RETURN }
             }
             return { content: "No working for you bubs", status: StatusCode.ERR }
         }, category: CommandCategory.UTIL,
@@ -8908,8 +8908,7 @@ Valid formats:
                     line = line.slice(prefix.length)
                 }
                 msg.content = `${prefix}${parseRunLine(line)}`
-                console.log(msg.content)
-                await doCmd(msg, false, (globals.RECURSION_LIMIT - 1) + recursion, bans)
+                await doCmd(msg, false, recursion + 1, bans)
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.INFO }
