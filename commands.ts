@@ -3920,7 +3920,7 @@ The commands below, only work after **path** has been run:
                                 else {
                                     e.addField(String(data[player]), `<@${player}>`)
                                 }
-                                economy.addMoney(player, data[player])
+                                economy.addMoney(player, gain)
                             }
                         }
                     }
