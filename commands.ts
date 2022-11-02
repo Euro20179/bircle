@@ -11,7 +11,7 @@ import canvas = require("canvas")
 
 import { Worker, isMainThread, workerData } from "node:worker_threads"
 import { execFile, execFileSync, spawnSync } from "child_process"
-import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager } from 'discord.js'
+import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager, EmbedFieldData } from 'discord.js'
 
 import { AudioPlayer, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
 import { execSync, exec } from 'child_process'
@@ -375,6 +375,89 @@ player.on(AudioPlayerStatus.Idle, (err) => {
 
 
 export const commands: { [command: string]: Command } = {
+
+    'scorigami': createCommand(async(msg, _, sc, opts, args) => {
+        let data
+        try{
+            data = await fetch.default('https://nflscorigami.com/data')
+        }
+        catch(err){
+            return {content:  "Unable to fetch  scorigami", status: StatusCode.ERR}
+        }
+        let json = await data.json()
+        let scores = json.matrix
+
+        if(!isNaN(Number(opts['count']))){
+            let count = Number(opts['count'])
+            let results: {data: any, score: [number, number]}[] = []
+            for(let i = 0; i < scores.length; i++){
+                let range = scores[i]
+                for(let j = 0; j < range.length; j++){
+                    if(scores[i][j].count === count){
+                        results.push({data: scores[i][j], score: [i, j]})
+                    }
+                }
+            }
+            let text = ""
+            for(let i = 0; i < (parseInt(opts['result-count']) || 1) && i < results.length; i++){
+                text +=  results[Math.floor(Math.random() * results.length)].score.join(" to ") + '\n'
+            }
+            return {content: text, status:  StatusCode.RETURN}
+        }
+
+        let [score1_str, score2_str] = args
+        let score1 = Number(score1_str)
+        let score2 = Number(score2_str)
+        if (score1 > score2){
+            [score1, score2] = [score2, score1]
+        }
+
+        let score = scores[score1]?.[score2]
+        if(!score){
+            return {content: "Invalid score", status: StatusCode.ERR}
+        }
+        if(score.count === 0){
+            let closestDistance = 10000
+            let closestScore = ""
+            for(let i = 0; i < scores.length; i++){
+                let range = scores[i]
+                for(let j = 0; j < range.length; j++){
+                    if(scores[i][j].count === 0) continue;
+                    let win_diff = Math.abs(scores[i][j].pts_win - score2)
+                    let lose_diff = Math.abs(scores[i][j].pts_lose - score1)
+                    if(win_diff + lose_diff < closestDistance){
+                        closestDistance = win_diff + lose_diff
+                        closestScore = `${scores[i][j].pts_win} - ${scores[i][j].pts_lose}`
+                    }
+                }
+            }
+            return {content: `SCORIGAMI!\nNearest score: ${closestScore} (${closestDistance} difference)`,  status: StatusCode.RETURN}
+        }
+        let first_time_embed = new MessageEmbed()
+        first_time_embed.setTitle(`${score.first_team_away} @ ${score.first_team_home}`)
+        first_time_embed.setDescription(`First time during ${(new Date(score.first_date)).toDateString()}`)
+        first_time_embed.setFooter({text: score.first_link})
+        let last_time_embed = new MessageEmbed()
+        last_time_embed.setTitle(`${score.last_team_away} @ ${score.last_team_home}`)
+        last_time_embed.setDescription(`Most recent during ${(new Date(score.last_date)).toDateString()}`)
+        last_time_embed.setFooter({text: score.last_link})
+        let info_embed =  new MessageEmbed()
+        info_embed.setTitle(`Count:  ${score.count}`)
+        let nfl_years  = (new Date()).getFullYear() - 1922
+        let years_since_first = (new Date()).getFullYear() - (new Date(score.first_date)).getFullYear()
+        let scores_per_year = score.count / nfl_years
+        let scores_per_year_since_first = score.count / years_since_first
+        let drought = new Date(Date.now() - (new Date(score.last_date)).getTime())
+        let years = drought.getFullYear() - 1970
+        console.log(drought)
+        info_embed.addFields([
+            {inline: true, name: "Times per year", value: String(scores_per_year)},
+            {inline: true, name: "Times per year since first occurance", value: String(scores_per_year_since_first)},
+            {inline: false,  name: "Drought", value: `${years} years`},
+        ])
+
+        return {embeds: [info_embed, first_time_embed, last_time_embed], status: StatusCode.RETURN}
+    }, CommandCategory.FUN),
 
     'play': createCommand(async(msg, args) => {
         let link = args.join(" ")
