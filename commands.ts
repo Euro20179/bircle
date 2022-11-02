@@ -387,19 +387,28 @@ export const commands: { [command: string]: Command } = {
         let json = await data.json()
         let scores = json.matrix
 
+        let less_than = 100000000000
+        let greater_than = -1
+        if(opts['total-lt']){
+            less_than = Number(opts['total-lt'])
+        }
+        if(opts['total-gt']){
+            greater_than = Number(opts['total-gt'])
+        }
+
         if(!isNaN(Number(opts['count']))){
             let count = Number(opts['count'])
             let results: {data: any, score: [number, number]}[] = []
             for(let i = 0; i < scores.length; i++){
                 let range = scores[i]
                 for(let j = 0; j < range.length; j++){
-                    if(scores[i][j].count === count){
+                    if(scores[i][j].count === count && i + j < less_than && i + j > greater_than){
                         results.push({data: scores[i][j], score: [i, j]})
                     }
                 }
             }
             let text = ""
-            for(let i = 0; i < (parseInt(opts['result-count']) || 1) && i < results.length; i++){
+            for(let i = 0; i < (parseInt(String(opts['result-count'])) || 1) && i < results.length; i++){
                 text +=  results[Math.floor(Math.random() * results.length)].score.join(" to ") + '\n'
             }
             return {content: text, status:  StatusCode.RETURN}
@@ -3253,6 +3262,9 @@ The commands below, only work after **path** has been run:
             }
             if (realAmount < 0) {
                 return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
+            }
+            if(economy.getEconomy()[member.id] ===  undefined){
+                return {content: `${member.id} is not in the economy`, status: StatusCode.ERR}
             }
             if (economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot) {
                 economy.loseMoneyToPlayer(msg.author.id, realAmount, member.id)
