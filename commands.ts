@@ -6037,6 +6037,19 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (opts['recurse']) {
                 rv.recurse = true
             }
+            if(opts['status']){
+                let status = {
+                    "return": StatusCode.RETURN,
+                    "err": StatusCode.ERR,
+                    "error": StatusCode.ERR,
+                    "prompt": StatusCode.PROMPT,
+                    "info": StatusCode.INFO,
+                    "warning": StatusCode.WARNING
+                }[String(opts['status']).toString()]
+                if(status){
+                    rv.status = status
+                }
+            }
             if (wait) {
                 await new Promise(res => setTimeout(res, wait * 1000))
             }
@@ -6066,8 +6079,26 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 "wait": {
                     description: "The seconds to wait before deleting and sending the message"
                 },
-                "recurse": {
-                    description: "If what's being echoed starts with your prefix, it will run it as a command instead of sending to chat"
+                "status": {
+                    description: `The status  code of the  command, can be:
+<ul>
+    <li>
+    return
+    </li>
+    <li>
+    err
+    </li>
+    <li>
+    info
+    </li>
+    <li>
+    prompt
+    </li>
+    <li>
+    warning
+    </li>
+</ul>
+`
                 }
             },
             arguments: {
