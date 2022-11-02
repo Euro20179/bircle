@@ -3532,12 +3532,14 @@ The commands below, only work after **path** has been run:
                     await handleSending(msg, { content: `${timeRemaining / 1000} seconds until the heist commences!`, status: StatusCode.INFO }, sendCallback)
             }, 1000)
             let data: { [key: string]: number } = {} //player_id: amount won
+            let data_floor: {[key: string]: number} = {} // player_id: amount won (non-percentage based)
             globals.HEIST_TIMEOUT = setTimeout(async () => {
                 globals.HEIST_STARTED = true
                 clearInterval(int)
                 await handleSending(msg, { content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
                 for (let player of globals.HEIST_PLAYERS) {
                     data[player] = 0
+                    data_floor[player] = 0 
                     setVar("__heist", "0", player)
                 }
                 let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
@@ -3728,6 +3730,7 @@ The commands below, only work after **path** has been run:
                                 for (let player in data) {
                                     addToLocationStat(current_location, player, amount)
                                     data[player] += amount
+                                    data_floor[player] += 1
                                     let oldValue = Number(getVar(msg, `__heist`, player))
                                     setVar("__heist", String(oldValue + amount), player)
                                 }
@@ -3735,6 +3738,7 @@ The commands below, only work after **path** has been run:
                             else {
                                 addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                 data[shuffledPlayers[Number(user) - 1]] += amount
+                                data_floor[shuffledPlayers[Number(user) - 1]] += 1
                                 let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
                                 setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                             }
@@ -3748,6 +3752,7 @@ The commands below, only work after **path** has been run:
                                 for (let player in data) {
                                     addToLocationStat(current_location, player, amount)
                                     data[player] += amount
+                                    data_floor[player] -= 1
                                     let oldValue = Number(getVar(msg, `__heist`, player))
                                     setVar("__heist", String(oldValue + amount), player)
                                 }
@@ -3755,6 +3760,7 @@ The commands below, only work after **path** has been run:
                             else {
                                 addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                 data[shuffledPlayers[Number(user) - 1]] += amount
+                                data_floor[shuffledPlayers[Number(user) - 1]] -= 1
                                 let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
                                 setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                             }
@@ -3895,6 +3901,7 @@ The commands below, only work after **path** has been run:
                                 let member = msg.guild?.members.cache.get(player)
                                 let netWorth = economy.playerLooseNetWorth(player)
                                 let gain = netWorth * (data[player] / 100)
+                                gain += data_floor[player] ? data_floor[player] : 0
                                 if (member) {
                                     e.addField(String(member.nickname || member.user.username), `$${gain} (${data[player]}%)`)
                                 }
