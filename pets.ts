@@ -39,6 +39,10 @@ let PETACTIONS: {[key: string]: Function} = {
                     let itemJ = JSON.parse(items)
                     let itemNames = Object.keys(itemJ)
                     let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                    if(itemJ[randItemName]['puffle-banned']){
+                        i--;
+                        continue
+                    }
                     buyItem(m.author.id,  randItemName, undefined, true)
                     stuff.items.push(randItemName)
                 }

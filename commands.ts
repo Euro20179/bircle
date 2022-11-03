@@ -2524,7 +2524,11 @@ The commands below, only work after **path** has been run:
                 if (round) {
                     totalCost = Math.floor(totalCost * 100) / 100
                 }
-                e.addField(item.toUpperCase(), `**${totalCost == Infinity ? "puffle only" : `$${totalCost}`}**\n${itemJ[item].description}`, true)
+                let text = `**${totalCost == Infinity ? "puffle only" : `$${totalCost}`}**\n${itemJ[item].description}`
+                if(itemJ[item]['puffle-banned']){
+                    text += '\n**buy only**'
+                }
+                e.addField(item.toUpperCase(), text , true)
                 if (i % 25 == 0) {
                     pages.push(e)
                     e = new MessageEmbed()
@@ -9649,13 +9653,17 @@ ${styles}
 
     },
     RESET_ECONOMY: {
-        run: async (_msg, _args, sendCallback) => {
+        run: async (msg, _args, sendCallback) => {
+
+            if(hasItem(msg.author.id, "reset economy")){
+                useItem(msg.author.id, "reset economy")
+            }
             economy.resetEconomy()
 
             return { content: "Economy reset", status: StatusCode.RETURN }
 
         }, category: CommandCategory.ADMIN,
-        permCheck: (m) => ADMINS.includes(m.author.id)
+        permCheck: (m) => ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy")
     },
     RESET_LOTTERY: {
         run: async(msg, args, sb) => {

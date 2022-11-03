@@ -35,5 +35,11 @@
         "description": "get an extra .01% every minute talking",
         "uses": 1,
         "cost": ["Infinity"]
+    },
+    "reset economy": {
+        "description": "Allows you to run RESET_ECONOMY",
+        "uses": 1,
+        "cost": ["99%"],
+        "puffle-banned": true
     }
 }
