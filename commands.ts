@@ -3406,6 +3406,16 @@ The commands below, only work after **path** has been run:
             if (taxAmount.amount == max) {
                 useItem(userBeingTaxed, "tax shield")
             }
+            if(pet.getActivePet(userBeingTaxed) === 'frog' && userBeingTaxed !== userGainingMoney){
+                let text = `<@${userBeingTaxed}> has a frog!\n`
+                let playersToFrog = Object.entries(economy.getEconomy()).filter((a) => economy.playerLooseNetWorth(a[0]) > economy.playerLooseNetWorth(userBeingTaxed))
+                for(let player of playersToFrog){
+                    let amount = economy.playerLooseNetWorth(player[0]) * 0.001
+                    economy.loseMoneyToPlayer(player[0], amount, userBeingTaxed)
+                    text += `<@${player[0]}> has  been frogged for ${amount}\n`
+                }
+                await handleSending(msg, {content: text, allowedMentions: {parse: []}, status: StatusCode.INFO}, sendCallback)
+            }
             economy.addMoney(userGainingMoney, taxAmount.amount)
             if (opts['no-round'])
                 embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
