@@ -9870,14 +9870,14 @@ ${styles}
                 if (hours == minutes && minutes == seconds) {
                     amount *= 1.5
                 }
-                if(pet.hasPet(msg.author.id, "bird")){
+                if(pet.getActivePet(msg.author.id) == "bird"){
                     amount *= 2
                 }
                 economy.addMoney(msg.author.id, amount)
                 fmt += `\n{earnings}`
                 fs.writeFileSync("./command-results/last-run", String(Date.now()))
             }
-            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${diff / (1000 * 60 * 60)}` }), status: StatusCode.RETURN }
+            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${amount}` }), status: StatusCode.RETURN }
         },
         help: {
             arguments: {
