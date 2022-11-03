@@ -77,7 +77,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
             if(pet.getActivePet(id) === "cat"){
                 base_amount += pet.PETACTIONS['cat']()
             }
-            let puffle_chat = shop.hasItem(id, "puffle  chat")
+            let puffle_chat = shop.hasItem(id, "puffle chat")
             if(puffle_chat){
                 base_amount += .0001 * puffle_chat
             }
