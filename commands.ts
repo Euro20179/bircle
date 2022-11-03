@@ -9859,8 +9859,9 @@ ${styles}
             let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
             let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
             let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
+            let amount = 0
             if (economy.canEarn(msg.author.id)) {
-                let amount = diff / (1000 * 60 * 60)
+                amount = diff / (1000 * 60 * 60)
                 if (hours == minutes) {
                     amount *= 1.1
                 }
