@@ -22,5 +22,11 @@
         "max-hunger": 200,
         "cost": ["5", "1%"],
         "favorite-food": "bone"
+    },
+    "bird": {
+        "description": "Last run is worth twice as much",
+        "max-hunger": 50,
+        "cost": ["3"],
+        "favorite-food": "worm"
     }
 }

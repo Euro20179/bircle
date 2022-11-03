@@ -9852,10 +9852,16 @@ ${styles}
             if (economy.canEarn(msg.author.id)) {
                 let amount = diff / (1000 * 60 * 60)
                 if (hours == minutes) {
-                    amount *= 1.001
+                    amount *= 1.1
+                }
+                if(minutes == seconds){
+                    amount *= 1.1
                 }
                 if (hours == minutes && minutes == seconds) {
                     amount *= 1.5
+                }
+                if(pet.hasPet(msg.author.id, "bird")){
+                    amount *= 2
                 }
                 economy.addMoney(msg.author.id, amount)
                 fmt += `\n{earnings}`
