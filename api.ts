@@ -71,6 +71,20 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         },
         requirements: []
     },
+    percentPerMinute: {
+        exec: async({id}: {id: string}) => {
+            let base_amount = 1.001
+            if(pet.getActivePet(id) === "cat"){
+                base_amount += pet.PETACTIONS['cat']()
+            }
+            let puffle_chat = shop.hasItem(id, "puffle  chat")
+            if(puffle_chat){
+                base_amount += .0001 * puffle_chat
+            }
+            return String(base_amount)
+        },
+        requirements: ["id"]
+    },
     "input": {
         exec: async ({msg, prompt, who, timeout}: {msg: Message, prompt?: string, who?: boolean | string | number, timeout?: number}) => {
             if (prompt && typeof prompt === 'string') {
