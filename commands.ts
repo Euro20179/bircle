@@ -9059,7 +9059,7 @@ Valid formats:
         let encoded = ""
         let binnumber = ""
         for(let char of args.join(" ")){
-            let n = `${char.codePointAt(0).toString(2)}`
+            let n = `${char.codePointAt(0)?.toString(2)}`
             if(n.length < 8){
                 n = mulStr("0", 8 - n.length) + n
             }
