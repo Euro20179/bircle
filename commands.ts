@@ -5735,58 +5735,41 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if(opts['f']){
                 //TODO: TESTING
                 //FIXME: this should work when node-canvas updates and is able to be installed normally
-    //             if(isMainThread){
-    //                 return new Promise((res, rej) => {
-    //                     const worker = new Worker(__filename, {
-    //                         workerData: [args, generateSafeEvalContextFromMessage(msg)]
-    //                     })
-    //                     worker.on("message", (m) => res(m))
-    //                     worker.on("error", (r) => rej(r))
-    //                     worker.on("exit", code => {
-    //                         if(code !== 0){
-    //                             rej(new Error(`Exit with code: ${code}`))
-    //                         }
-    //                     })
-    //                 })
-    //             }
-    //             else{
-    //                 let ret = ""
-    //                 let str = `
-    // "use strict";
-    // // const g = arguments[0]; 
-    // // const u = arguments[1];
-    // const args = arguments[0]
-    // // const { uid, uavatar, ubannable, ucolor, uhex, udispname, ujoinedAt, ujoinedTimeStamp, unick, ubot } = arguments[3]
-    // return (${args.join(" ")})`
-    //                 let func =  Function(str)
-    //                 ret = func(...workerData)
-    //                 parentPort?.postMessage(ret)
-    //             }
-//                 try{
-//                     let ans = await new Promise((res, rej) => {
-//                         const timer = setTimeout(() => rej(new Error("timeout")), 3000)
-//                         setInterval(() => console.log(timer), 3000)
-//                         callFunc(vars["__global__"], vars[msg.author.id] || {}, args, generateSafeEvalContextFromMessage(msg))
-//                             .then(data => res(data))
-//                             .finally(() => clearTimeout(timer))
-//                     })
-//                     return {content: stringifyFn(ans)}
-//                 }
-//                 catch(err){
-//                     return {content: String(err) }
-//                 }
+                let ret = ""
+                let str = `
+ const g = arguments[0]; 
+ const u = arguments[1];
+const args = arguments[2]
+// const { uid, uavatar, ubannable, ucolor, uhex, udispname, ujoinedAt, ujoinedTimeStamp, unick, ubot } = arguments[3]
+require = undefined
+eval = undefined
+console.log(${args.join(" ")})`
+                let fn = generateFileName("calc-f", msg.author.id)
+                fs.writeFileSync(fn, str)
+                let moreDat = spawnSync("node", [fn], {timeout: 3000})
+                let sendText = ""
+                if (moreDat.stderr.toString("utf-8")) {
+                    sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
+                }
+                if (moreDat.stdout.toString("utf-8")) {
+                    sendText += moreDat.stdout.toString("utf-8").trim()
+                }
+                fs.rmSync(fn)
+                return { content: sendText, status: StatusCode.RETURN }
             }
-            let ret: string = ""
-            try {
-                ret = stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
+            else{
+                let ret: string = ""
+                try {
+                    ret = stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
+                }
+                catch (err) {
+                    console.log(err)
+                }
+                if (ret && ret.length) {
+                    setVar("__calc", ret, msg.author.id)
+                }
+                return { content: ret, status: StatusCode.RETURN }
             }
-            catch (err) {
-                console.log(err)
-            }
-            if (ret && ret.length) {
-                setVar("__calc", ret, msg.author.id)
-            }
-            return { content: ret, status: StatusCode.RETURN }
         },
         help: {
             info: "Run a calculation",
@@ -6010,6 +5993,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },
     echo: {
         run: async (msg: Message, _, __, opts, args) => {
+            msg.guild?.members.cache.toJSON().reduce((v) => v.id, "")
             let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)
             let embedText = opts['e'] || opts['embed']
