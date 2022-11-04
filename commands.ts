@@ -247,8 +247,6 @@ export const slashCommands = [
     }
 ]
 
-type ArgumentType = "str" | "num" | string
-
 function createHelpArgument(description: string, required?: boolean, requires?: string) {
     return {
         description: description,
