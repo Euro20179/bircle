@@ -22,6 +22,7 @@ import API = require("./api")
 import economy = require("./economy")
 import pet = require("./pets")
 import user_options = require("./user-options")
+import timer from './timer'
 
 import { getVar } from "./common"
 
@@ -9107,6 +9108,53 @@ Valid formats:
         },
         category: CommandCategory.UTIL
     },
+    "timer": createCommand(async(msg, _, sc, opts, args) => {
+        let action = args[0]?.toLowerCase()
+        let actions = ["create", "delete", "get", "list", "lap"]
+        if(!actions.includes(action)){
+            return {content: `${action} is not a valid action\ncommand use: \`[timer <create | delete | get | list | lap> ...\``, status: StatusCode.ERR}
+        }
+        switch(action){
+            case "create": {
+                let name = String(args.slice(1).join(" ")).trim()
+                if(timer.getTimer(msg.author.id, name)){
+                    return {content: `You already have a timer called: ${name}`, status: StatusCode.ERR}
+                }
+                timer.createTimer(msg.author.id, name)
+                return {content: `${name} created`, status: StatusCode.RETURN}
+            }
+            case "delete": {
+                let name = String(args.slice(1).join(" ")).trim()
+                if(!timer.getTimer(msg.author.id, name)){
+                    return {content: `You do not have a timer called ${name}`, status: StatusCode.ERR}
+                }
+                timer.deleteTimer(msg.author.id, name)
+                return {content: `${name} deleted`, status: StatusCode.RETURN}
+            }
+            case "get": {
+                return {content: String(timer.getTimer(msg.author.id, args.slice(1).join(" "))), status: StatusCode.RETURN}
+            }
+            case "list": {
+                let timers = timer.getTimersOfUser(msg.author.id)
+                if(!timers){
+                    return {content: "You do not have any timers", status: StatusCode.ERR}
+                }
+                return {content: Object.entries(timers).map((v) => `${v[0]}: ${Date.now() - v[1]}`).join("\n"), status: StatusCode.RETURN}
+            }
+            case "lap": {
+                let name = args.slice(1).join(" ").trim()
+                let t = timer.getTimer(msg.author.id, name)
+                if(!t){
+                    return {content: `You do not have a timer called ${name}`, status: StatusCode.ERR}
+                }
+                return {content: `${Date.now() - t}ms`, status: StatusCode.RETURN}
+            }
+            default:{
+                return {content: "How did we get here", status: StatusCode.ERR}
+            }
+
+        }
+    }, CommandCategory.UTIL),
     "command-file": {
         run: async (_msg: Message, args: ArgumentList, sendCallback) => {
             let opts
@@ -9805,6 +9853,7 @@ ${styles}
             economy.saveEconomy()
             saveItems()
             saveVars()
+            timer.saveTimers()
             pet.savePetData()
             client.destroy()
             return {

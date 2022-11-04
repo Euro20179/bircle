@@ -2,6 +2,7 @@ const { getOpt } = require("./user-options")
 const {prefix, vars, getVar} = require('./common.js')
 const {format, safeEval, getOpts, generateSafeEvalContextFromMessage} = require('./util.js')
 const  economy = require('./economy.js')
+const timer = require("./timer.js")
 
 async function buildFormat(sequence, msg, curArg, customFormats){
     let args
@@ -47,6 +48,13 @@ async function buildFormat(sequence, msg, curArg, customFormats){
     }
     case '$n': {
         return economy.calculateAmountFromStringIncludingStocks(msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(msg.author.id, "100%")
+    }
+    case "timer": {
+        let name = args.join(" ").trim()
+        if(name[0] === '-'){
+            return String(timer.default.do_lap(msg.author.id, name.slice(1)))
+        }
+        return String(timer.default.getTimer(msg.author.id, args.join(" ").trim()))
     }
     case "user":{
         let fmt = args.join(" ") || "<@%i>"

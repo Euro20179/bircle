@@ -11,6 +11,7 @@ const { Routes } = require("discord-api-types/v9")
 import pet = require("./pets")
 import commands = require("./commands")
 import globals = require("./globals")
+import timer from "./timer"
 import { URLSearchParams } from "url"
 
 const economy = require("./economy")
