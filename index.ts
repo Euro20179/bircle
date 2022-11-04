@@ -3,7 +3,7 @@ import fs = require("fs")
 
 import http from 'http'
 
-import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager } from "discord.js"
+import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions } from "discord.js"
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
@@ -143,7 +143,7 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
         m.channel.send = oldSend
         finalMessages = [result]
     }
-    commands.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] } })
+    commands.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: 0 })
 }
 
 client.on("messageCreate", async (m: Message) => {
@@ -179,7 +179,7 @@ client.on("messageCreate", async (m: Message) => {
     }
 
     if(m.content === `<@${client.user.id}>`){
-        await commands.handleSending(m, {content: `The prefix is: ${local_prefix}`})
+        await commands.handleSending(m, {content: `The prefix is: ${local_prefix}`, status: 0})
     }
 
     //saves economy stuff 45% of the time
@@ -418,7 +418,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         else if (interaction.commandName == 'img') {
             //@ts-ignore
             let rv = await commands.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
             if (rv.files) {
                 for (let file of rv.files) {
                     fs.rmSync(file.attachment)
@@ -445,7 +445,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await commands.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'poll') {
             //@ts-ignore
@@ -470,14 +470,14 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await commands.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'rccmd') {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
             let rv = await commands.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'say') {
             await interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here")
@@ -487,7 +487,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member?.user
             //@ts-ignore
             let rv = await commands.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == "add-8") {
             //@ts-ignore
@@ -495,7 +495,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let resp = interaction.options.get("response")?.value as string
             //@ts-ignore
             let rv = await commands.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == "add-wordle") {
             //@ts-ignore
@@ -507,7 +507,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await commands.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'rps') {
             let opponent = interaction.options.get("opponent")?.value
@@ -548,7 +548,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member.user
             //@ts-ignore
             let rv = await commands.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv)
+            await interaction.reply(rv as InteractionReplyOptions)
         }
     }
     else if (interaction.isUserContextMenu() && !interaction.replied) {
