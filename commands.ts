@@ -5732,44 +5732,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 return { content: sendText, status: StatusCode.RETURN }
             }
-            if(opts['f']){
-                //TODO: TESTING
-                //FIXME: this should work when node-canvas updates and is able to be installed normally
-                let ret = ""
-                let str = `
- const g = arguments[0]; 
- const u = arguments[1];
-const args = arguments[2]
-// const { uid, uavatar, ubannable, ucolor, uhex, udispname, ujoinedAt, ujoinedTimeStamp, unick, ubot } = arguments[3]
-require = undefined
-eval = undefined
-console.log(${args.join(" ")})`
-                let fn = generateFileName("calc-f", msg.author.id)
-                fs.writeFileSync(fn, str)
-                let moreDat = spawnSync("node", [fn], {timeout: 3000})
-                let sendText = ""
-                if (moreDat.stderr.toString("utf-8")) {
-                    sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
-                }
-                if (moreDat.stdout.toString("utf-8")) {
-                    sendText += moreDat.stdout.toString("utf-8").trim()
-                }
-                fs.rmSync(fn)
-                return { content: sendText, status: StatusCode.RETURN }
-            }
-            else{
-                let ret: string = ""
-                try {
-                    ret = stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
-                }
-                catch (err) {
-                    console.log(err)
-                }
-                if (ret && ret.length) {
-                    setVar("__calc", ret, msg.author.id)
-                }
-                return { content: ret, status: StatusCode.RETURN }
-            }
         },
         help: {
             info: "Run a calculation",
@@ -9088,6 +9050,39 @@ Valid formats:
         category: CommandCategory.UTIL
 
     },
+    "b64m": createCommand(async(msg, _, sc, opts, args) => {
+        let table: {[key: number]: string} = {}
+        let j = 0;
+        for(let char of "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"){
+            table[j++] = char;
+        }
+        let encoded = ""
+        let binnumber = ""
+        for(let char of args.join(" ")){
+            let n = `${char.codePointAt(0).toString(2)}`
+            if(n.length < 8){
+                n = mulStr("0", 8 - n.length) + n
+            }
+            binnumber += n
+        }
+        let i;
+        for(i = 0; i < binnumber.length - 6; i+= 6){
+            let binrep = binnumber.slice(i, i + 6)
+            encoded += String(table[Number(`0b${binrep}`)])
+        }
+        let lastBits = binnumber.slice(i)
+        lastBits += (() => {
+            let x = ""
+            for(let i = 0; i < 6 - lastBits.length; i++){
+                x += "0"
+            }
+            return x
+        })()
+        encoded += String(table[Number(`0b${lastBits}`)])
+
+
+        return {content: encoded, status: StatusCode.RETURN}
+    }, CommandCategory.UTIL),
     "b64": {
         run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
