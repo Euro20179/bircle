@@ -55,14 +55,15 @@ client.on("guildMemberAdd", async (m: Message) => {
 })
 
 client.on('ready', async () => {
-
-    client.guilds.fetch("427567510611820544").then((guild: any) => {
-        guild.members.fetch("334538784043696130").then((user: any) => {
-            user.createDM().then((dmChannel: any) => {
-                dmChannel.send("ONLINE").catch(() => {})
-            }).catch(() => {})
-        }).catch(() => {})
-    }).catch(() => {})
+    Object.keys(user_options.USER_OPTIONS).forEach((v) => {
+        if(user_options.getOpt(v, "dm-when-online", "false") !== "false"){
+            client.users.fetch(v).then((u: any) => {
+                u.createDM().then((channel: any) => {
+                    channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
+                })
+            }).catch(console.log)
+        }
+    })
     console.log("ONLINE")
 })
 
