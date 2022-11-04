@@ -5733,6 +5733,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 return { content: sendText, status: StatusCode.RETURN }
             }
+            let ret: string = ""
+            try {
+                ret = stringifyFn(safeEval(args.join(" "), { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
+            }
+            catch (err) {
+                console.log(err)
+            }
+            if (ret && ret.length) {
+                setVar("__calc", ret, msg.author.id)
+            }
+            return { content: ret, status: StatusCode.RETURN }
         },
         help: {
             info: "Run a calculation",
