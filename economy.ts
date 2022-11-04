@@ -200,10 +200,11 @@ function canWork(id: string){
     if(!ECONOMY[id]){
         return false
     }
-    if(playerEconomyLooseTotal(id) >= 0)
-        return 0;
     let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
-    if(secondsDiff > 3600){
+    let total = playerEconomyLooseTotal(id)
+    if(total >= 0 && secondsDiff > 3600)
+        return 0;
+    if(total < 0 && secondsDiff > 3600){
         return true
     }
     return false
