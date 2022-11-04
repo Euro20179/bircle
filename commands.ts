@@ -5993,7 +5993,6 @@ console.log(${args.join(" ")})`
     },
     echo: {
         run: async (msg: Message, _, __, opts, args) => {
-            msg.guild?.members.cache.toJSON().reduce((v) => v.id, "")
             let wait = parseFloat(String(opts['wait'])) || 0
             let dm = Boolean(opts['dm'] || false)
             let embedText = opts['e'] || opts['embed']
