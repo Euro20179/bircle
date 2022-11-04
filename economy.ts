@@ -201,7 +201,7 @@ function canWork(id: string){
         return false
     }
     if(playerEconomyLooseTotal(id) >= 0)
-        return false;
+        return 0;
     let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
     if(secondsDiff > 3600){
         return true

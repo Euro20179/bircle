@@ -2280,7 +2280,16 @@ The commands below, only work after **path** has been run:
 
     work: {
         run: async (msg, _args, sendCallback) => {
-            if (economy.canWork(msg.author.id)) {
+            let canWork = economy.canWork(msg.author.id)
+            if(canWork === 0 && msg.member?.roles.cache.has("College")){
+                let amount = economy.work(msg.author.id)
+                if(Math.random() > .99 && amount){
+                    amount *= -1
+                    return {content: `Looks like you got fired, the boss took ${amount}`, status: StatusCode.RETURN}
+                }
+                return {content: `Congrats, you grad student, here's ${amount} from your job`, status: StatusCode.RETURN}
+            }
+            if (canWork) {
                 let amount = economy.work(msg.author.id)
                 return { content: `You earned: ${amount}`, status: StatusCode.RETURN }
             }
