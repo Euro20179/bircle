@@ -10317,6 +10317,7 @@ ${styles}
                     status: StatusCode.ERR
                 }
             }
+            cmds = cmds.filter(v => !commands[v])
             if (addOrRemove == "a") {
                 //@ts-ignore
                 addToPermList(BLACKLIST, "blacklists", msg.member, cmds)
