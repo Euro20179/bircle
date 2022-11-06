@@ -6549,7 +6549,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 content = `button:${msg.author.id}`
             }
             let text = args.join(" ") || "hi"
-            let button = new MessageButton({ customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
+            let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
+            let button = new MessageButton({ emoji: emoji, customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
             let row = new MessageActionRow({ type: "BUTTON", components: [button] })
             let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
             let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
@@ -6564,6 +6565,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     await interaction.reply({ content: text })
                 }
             })
+            setTimeout(() => {
+                button.setDisabled(true)
+                collector.stop()
+            }, Number(opts['stop-button-after']) * 1000 || 5000)
             if (!isNaN(delAfter)) {
                 setTimeout(async () => await m.delete(), delAfter * 1000)
             }
@@ -6584,6 +6589,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 },
                 "anyone": {
                     description: "Allow anyone to click the button"
+                },
+                "emoji": {
+                    description: "The emoji on the button",
+                },
+                "stop-button-after": {
+                    description: "Disable the button after x seconds"
                 }
             }
         },
