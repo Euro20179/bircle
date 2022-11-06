@@ -203,10 +203,14 @@ client.on("messageCreate", async (m: Message) => {
         m.content = '[stop'
         content = m.content
     }
+    if(content.startsWith('u!eval')){
+        m.content = `${prefix}calc -python ` + content.slice('u!eval'.length)
+        content = m.content
+    }
     if(content.startsWith("s!") && local_prefix !== prefix){
         user_options.unsetOpt(m.author.id, 'prefix')
-        local_prefix = '['
-        m.content = m.content.replace("s!", "[")
+        local_prefix = prefix
+        m.content = m.content.replace("s!",prefix)
         content = m.content
     }
 

@@ -2342,15 +2342,18 @@ The commands below, only work after **path** has been run:
             sixes: number | undefined
             three_of_a_kind: number | undefined
             four_of_a_kind: number | undefined
-            full_house: number | undefined
-            small_straight: number | undefined
-            large_straight: number | undefined
+            full_house: number[]
+            small_straight: number[]
+            large_straight: number[]
             chance: number | undefined
 
             yahtzee: number[]
 
             constructor() {
                 this.yahtzee = []
+                this.full_house = []
+                this.small_straight = []
+                this.large_straight = []
             }
 
             #is_x_of_a_kind(dice: number[], size: number) {
@@ -2387,7 +2390,7 @@ The commands below, only work after **path** has been run:
                         continue
                     }
                     if (item !== last + 1) {
-                        inARow = 0
+                        inARow = 1
                     }
                     else {
                         inARow++;
@@ -2403,11 +2406,12 @@ The commands below, only work after **path** has been run:
             }
 
             is_applied(type: string) {
-                if(type === "yahtzee" && !this.yahtzee.includes(0)){
+                //@ts-ignore
+                let val = this[type.replaceAll(" ", "_")]
+                if((val?.length && !val?.includes(0)) || val?.length === 0){
                     return false
                 }
-                //@ts-ignore
-                return this[type.replaceAll(" ", "_")] !== undefined
+                return val !== undefined
             }
 
             apply(type: string, dice: number[]) {
@@ -2457,7 +2461,7 @@ The commands below, only work after **path** has been run:
                 let diceSet = new Set(dice)
                 //Only 2 numbers can be in a full house
                 if (diceSet.size !== 2) {
-                    this.full_house = 0
+                    this.full_house.push(0)
                     return
                 }
                 let fullHouseNumbs: { 2: number, 3: number } = { 2: 0, 3: 0 }
@@ -2473,28 +2477,41 @@ The commands below, only work after **path** has been run:
                     fullHouseNumbs[count as 2 | 3] = 1
                 }
                 if (fullHouseNumbs[2] && fullHouseNumbs[3]) {
-                    this.full_house = 25
+                    this.full_house.push(25)
                 }
                 else {
-                    this.full_house = 0
+                    this.full_house.push(0)
                 }
             }
             apply_small_straight(dice: number[]) {
-                console.log(dice, this.#is_a_straight(dice, 4))
+                let val = 0
                 if (this.#is_a_straight(dice, 4)) {
-                    this.small_straight = 30
+                    if(this.small_straight?.includes(0)){
+                        val = 0
+                    }
+                    else{
+                        val = 30
+                    }
                 }
                 else{
-                    this.small_straight = 0
+                    val = 0
                 }
+                this.small_straight.push(val)
             }
             apply_large_straight(dice: number[]) {
+                let val = 0
                 if (this.#is_a_straight(dice, 5)) {
-                    this.large_straight = 40
+                    if(this.large_straight?.includes(0)){
+                        val = 0
+                    }
+                    else{
+                        val = 40
+                    }
                 }
                 else{
-                    this.large_straight = 0
+                    val = 0
                 }
+                this.large_straight.push(val)
             }
             apply_yahtzee(dice: number[]) {
                 let s = new Set(dice)
@@ -2516,7 +2533,7 @@ The commands below, only work after **path** has been run:
                 }
                 for(let item of Object.keys(this)){
                     //@ts-ignore
-                    if(this[item] === undefined){
+                    if(this[item] === undefined && (this[item]?.length === 0 || this[item]?.length === undefined)){
                         return false
                     }
                 }
@@ -2547,17 +2564,32 @@ The commands below, only work after **path** has been run:
 
         const aliases = {
             "5": "fives",
+            "five": "fives",
             "4": "fours",
+            "four": "fours",
             "3": "threes",
+            "three": "threes",
             "2": "twos",
+            "two": "twos",
             "1": "ones",
+            "one": "ones",
             "6": "sixes",
+            "six": "sixes",
             "fh": "full house",
             "sm": "small straight",
+            "ss": "small straight",
             "lg": "large straight",
+            "ls": "large straight",
             "3k": "three of a kind",
+            "tk": "three of a kind",
+            "tok": "three of a kind",
+            "toak": "three of a kind",
             "4k": "four of a kind",
+            "fk": "four of a kind",
+            "fok": "four of a kind",
+            "foak": "four of a kind",
             "c": "chance",
+            "ch": "chance",
             "y!": "yahtzee"
         }
         let options = ["ones", "twos", "threes", "fours", "fives", "sixes", "three of a kind", "four of a kind", "full house", "small straight", "large straight", "chance", "yahtzee"]
@@ -10311,6 +10343,7 @@ ${styles}
         category: CommandCategory.ADMIN
 
     },
+    //TODO: timer command where to star the timer you react, and  to end the timer you unreact
     END: {
         run: async (msg: Message, _args: ArgumentList, sendCallback) => {
             if (fs.existsSync(String(currently_playing?.filename))) {
@@ -10326,6 +10359,7 @@ ${styles}
             timer.saveTimers()
             pet.savePetData()
             client.destroy()
+            user_options.saveUserOptions()
             return {
                 content: "STOPPING",
                 status: StatusCode.RETURN
