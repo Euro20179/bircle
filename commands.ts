@@ -2533,7 +2533,7 @@ The commands below, only work after **path** has been run:
                 }
                 for(let item of Object.keys(this)){
                     //@ts-ignore
-                    if(this[item] === undefined && (this[item]?.length === 0 || this[item]?.length === undefined)){
+                    if(this[item] === undefined || this[item]?.length === 0){
                         return false
                     }
                 }
@@ -2542,16 +2542,83 @@ The commands below, only work after **path** has been run:
             score(){
                 return Object.values(this).reduce((p, c) => {
                     let final = p
-                    if(c.length){
-                        for(let i of c){
-                            final += i
-                        }
+                    if(c?.length){
+                        final += c.reduce((p: number, c: number) => p + c, 0)
                     }
                     else{
-                        final += c
+                        final += c ?? 0
                     }
                     return final
                 }, 0)
+            }
+            async go(id: string, rollCount: number, diceRolls: number[]): Promise<any>{
+                this.score()
+
+                let embed = new MessageEmbed()
+                    .setTitle("Rolls")
+
+                let fields = []
+                for(let i = 0; i < diceRolls.length; i++){
+                    fields.push({value: `${i+1}`, name: `${diceRolls[i]}`, inline: true})
+                }
+                embed.addFields(fields)
+
+                await handleSending(msg, { content: `<@${id}>  YOUR UP:\n${this.toString()}`, embeds: [embed], status: StatusCode.INFO })
+
+                let filter = (function(m: Message) {
+                    if(m.author.id !== id){
+                        return false
+                    }
+                    let choiceArgs = m.content.split(/\s+/)
+
+                    if(!(options.includes(choiceArgs[0].toLowerCase()) || Object.keys(aliases).includes(choiceArgs[0].toLowerCase()))){
+                        return false
+                    }
+                    //@ts-ignore
+                    let choice: string = aliases[choiceArgs[0].toLowerCase()] as (undefined | string) ?? choiceArgs[0].toLowerCase()
+
+                    if(choice == "reroll"){
+                        if(rollCount >= 3){
+                            m.reply("You have already rerolled twice")
+                            return false
+                        }
+                    }
+                    //@ts-ignore
+                    if(this.is_applied(choice)){
+                        m.reply("U did that already")
+                        return false
+                    }
+                    return true
+                }).bind(this)
+
+                let choiceMessageCollection = await msg.channel.awaitMessages({ filter: filter, max: 1 })
+                let choiceMessage = choiceMessageCollection.at(0)
+
+                if (!choiceMessage) {
+                    return { noSend: true, status: StatusCode.RETURN }
+                }
+
+                let choiceArgs = choiceMessage.content.split(/\s+/)
+
+                //@ts-ignore
+                let choice: string = aliases[choiceArgs[0].toLowerCase()] as (undefined | string) ?? choiceArgs[0].toLowerCase()
+
+                if(choice == "reroll"){
+                    let diceToReRoll = new Set()
+                    for(let arg of choiceArgs.slice(1)){
+                        for(let n of arg){
+                            diceToReRoll.add(Number(n))
+                        }
+                    }
+                    for(let val of diceToReRoll){
+                        if((val as number) > diceRolls.length){
+                            continue
+                        }
+                        diceRolls[(val as number) - 1] = Math.floor(Math.random() *  (7 - 1) + 1)
+                    }
+                    return await this.go(id, rollCount + 1, diceRolls)
+                }
+                return this.apply(choice, diceRolls)
             }
             toString(){
                 let st = ``
@@ -2590,7 +2657,9 @@ The commands below, only work after **path** has been run:
             "foak": "four of a kind",
             "c": "chance",
             "ch": "chance",
-            "y!": "yahtzee"
+            "y!": "yahtzee",
+            "rr": "reroll",
+            "roll": "reroll"
         }
         let options = ["ones", "twos", "threes", "fours", "fives", "sixes", "three of a kind", "four of a kind", "full house", "small straight", "large straight", "chance", "yahtzee"]
 
@@ -2696,36 +2765,10 @@ The commands below, only work after **path** has been run:
                 diceRolls.push(Math.floor(Math.random() * (7 - 1) + 1))
             }
 
-            let sheet = users[going]
-            await handleSending(msg, { content: `<@${going}>  YOUR UP:\n${sheet.toString()}\n\n${diceRolls.join(", ")}`, status: StatusCode.INFO })
+            await users[going].go(going, 1, diceRolls)
 
-            let filter = function(m: Message) {
-                if(m.author.id !== going){
-                    return false
-                }
-                if(!(options.includes(m.content.toLowerCase()) || Object.keys(aliases).includes(m.content.toLowerCase()))){
-                    return false
-                }
-                //@ts-ignore
-                let choice: string = aliases[m.content.toLowerCase()] as (undefined | string) ?? m.content.toLowerCase()
-                if(sheet.is_applied(choice)){
-                    m.reply("U did that already")
-                    return false
-                }
-                return true
-            }
 
-            let choiceMessageCollection = await msg.channel.awaitMessages({ filter: filter, max: 1 })
-            let choiceMessage = choiceMessageCollection.at(0)
-
-            //@ts-ignore
-            let choice: string = aliases[choiceMessage.content.toLowerCase()] as (undefined | string) ?? choiceMessage.content.toLowerCase()
-
-            if (!choiceMessage) {
-                return { noSend: true, status: StatusCode.RETURN }
-            }
-
-            users[choiceMessage.author.id].apply(choice, diceRolls)
+            users[going]
             turnNo++;
         }
 
