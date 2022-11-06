@@ -203,6 +203,12 @@ client.on("messageCreate", async (m: Message) => {
         m.content = '[stop'
         content = m.content
     }
+    if(content.startsWith("s!") && local_prefix !== prefix){
+        user_options.unsetOpt(m.author.id, 'prefix')
+        local_prefix = '['
+        m.content = m.content.replace("s!", "[")
+        content = m.content
+    }
 
     let search;
     if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
