@@ -2584,20 +2584,24 @@ The commands below, only work after **path** has been run:
             bets[msg.author.id] = bet
         }
         if(mode === 'multi'){
-            let bet = economy.calculateAmountFromString(msg.author.id, args[1])
+            let bet = economy.calculateAmountFromString(msg.author.id, args[1], {min: (total, k, data, match) => total * .001})
             if(!bet){
                 return {content: `Not a valid bet`, status: StatusCode.ERR}
             }
             else if(!economy.canBetAmount(msg.author.id, bet)){
                 return {content: `Bet too high`, status: StatusCode.ERR}
             }
+
+            bets[msg.author.id] = bet
+
+            await handleSending(msg, {content: "A YAHTZEE GAME HAS STARTED type `join <bet>` to join", status: StatusCode.INFO})
             globals.YAHTZEE_WAITING_FOR_PLAYERS = true
 
             if(globals.YAHTZEE_WAITING_FOR_PLAYERS){
                 let timeLeft = 30000
                 let int = setInterval(async() => {
                     timeLeft -= 8000
-                    await handleSending(msg, {content: `Yahtzee begins in ${Math.round(timeLeft / 1000)} sedonds`, status: StatusCode.INFO})
+                    await handleSending(msg, {content: `Yahtzee begins in ${Math.round(timeLeft / 1000)} seconds`, status: StatusCode.INFO})
                 }, 8000)
                 let playersJoining;
                 try{
@@ -2606,7 +2610,7 @@ The commands below, only work after **path** has been run:
                             return false
                         let args = m.content.split(/\s/).map(v => v.toLowerCase())
                         if(args[0] === "join"){
-                            let bet = economy.calculateAmountFromString(m.author.id, args[1])
+                            let bet = economy.calculateAmountFromString(m.author.id, args[1], {min: (total, k, data, match) => total * .001})
                             if(!bet || bet < 0){
                                 m.reply("No bet")
                                 return false
@@ -2616,6 +2620,7 @@ The commands below, only work after **path** has been run:
                                 return false
                             }
                             bets[m.author.id] = bet
+                            m.reply("U joined")
                             return true
                         }
                         return false
@@ -2644,6 +2649,7 @@ The commands below, only work after **path** has been run:
             return {content: "Only  one user joined :(", status: StatusCode.ERR}
         }
 
+
         while(Object.values(users).filter(v => !v.is_filled()).length > 0){
             let validPlayers = Object.fromEntries(Object.entries(users).filter(v => {
                 return !v[1].is_filled()
@@ -2671,6 +2677,7 @@ The commands below, only work after **path** has been run:
                 //@ts-ignore
                 let choice: string = aliases[m.content.toLowerCase()] as (undefined | string) ?? m.content.toLowerCase()
                 if(sheet.is_applied(choice)){
+                    m.reply("U did that already")
                     return false
                 }
                 return true
