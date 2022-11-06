@@ -165,7 +165,7 @@ client.on("messageCreate", async (m: Message) => {
             let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
             if(pingresponse){
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                if(commands.isCmd(pingresponse, local_prefix)){
+                if(commands.isCmd(pingresponse, prefix)){
                     let oldContent = m.content
                     m.content = pingresponse
                     await commands.doCmd(m, false, 0, commands.generateDefaultRecurseBans()) as CommandReturn

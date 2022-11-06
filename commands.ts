@@ -11408,7 +11408,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         delete rv['content']
     }
     //only do this if content
-    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, local_prefix.length) === local_prefix) {
+    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, prefix.length) === local_prefix) {
         let oldContent = msg.content
         msg.content = rv.content
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
