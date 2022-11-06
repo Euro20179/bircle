@@ -6567,6 +6567,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             })
             setTimeout(() => {
                 button.setDisabled(true)
+                m.edit({ components: [row], content: content ? String(content) : undefined})
                 collector.stop()
             }, Number(opts['stop-button-after']) * 1000 || 5000)
             if (!isNaN(delAfter)) {
