@@ -21,6 +21,7 @@ lottery.json
 inventory.json
 petinventory.json
 user-options.json
+timers.json
 
 index.js
 economy.js

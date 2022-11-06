@@ -11,7 +11,7 @@ import canvas = require("canvas")
 
 import { Worker, isMainThread, workerData } from "node:worker_threads"
 import { execFile, execFileSync, spawnSync } from "child_process"
-import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager, EmbedFieldData } from 'discord.js'
+import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager, EmbedFieldData, MessageAttachment, Collection } from 'discord.js'
 
 import { AudioPlayer, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
 import { execSync, exec } from 'child_process'
@@ -33,7 +33,7 @@ import { choice, generateSafeEvalContextFromMessage } from "./util"
 import { parentPort } from "worker_threads"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
 
-export enum StatusCode{
+export enum StatusCode {
     PROMPT = -2,
     INFO = -1,
     RETURN = 0,
@@ -282,60 +282,60 @@ function createCommand(
         permCheck: permCheck
     }
 }
-let currently_playing: {link: string, filename: string} | undefined;
+let currently_playing: { link: string, filename: string } | undefined;
 let connection: VoiceConnection | undefined;
-let vc_queue: {link: string, filename: string}[] = []
+let vc_queue: { link: string, filename: string }[] = []
 const player = createAudioPlayer({
     behaviors: {
         noSubscriber: NoSubscriberBehavior.Pause
     }
 })
-async function play_link({link, filename}: {link: string, filename: string}){
-    currently_playing = {link: link, filename: filename}
+async function play_link({ link, filename }: { link: string, filename: string }) {
+    currently_playing = { link: link, filename: filename }
     let is_valid_url
     let fn = filename
-    try{
+    try {
         is_valid_url = ytdl.validateURL(link)
     }
-    catch(err){
+    catch (err) {
         let new_link = vc_queue.shift()
-        if(new_link){
+        if (new_link) {
             play_link(new_link)
         }
-        else{
+        else {
             vc_queue = []
             connection?.destroy()
         }
         return
     }
-    if(is_valid_url){
+    if (is_valid_url) {
         let info = await ytdl.getInfo(link)
-        if(info.videoDetails.isLiveContent || parseFloat(info.videoDetails.lengthSeconds) > 60 * 30){
+        if (info.videoDetails.isLiveContent || parseFloat(info.videoDetails.lengthSeconds) > 60 * 30) {
             let new_link = vc_queue.shift()
-            if(new_link){
+            if (new_link) {
                 play_link(new_link)
             }
-            else{
+            else {
                 vc_queue = []
                 connection?.destroy()
             }
         }
-        ytdl(link, {filter: "audioonly"}).pipe(fs.createWriteStream(fn)).on("close", () => {
+        ytdl(link, { filter: "audioonly" }).pipe(fs.createWriteStream(fn)).on("close", () => {
             let resource = createAudioResource(fn)
 
             player.play(resource)
             connection?.subscribe(player)
         })
     }
-    else{
+    else {
         fetch.default(link).then(data => {
             data.buffer().then(value => {
-                if(value.byteLength >= 1024 * 1024 * 20){
+                if (value.byteLength >= 1024 * 1024 * 20) {
                     let new_link = vc_queue.shift()
-                    if(new_link){
+                    if (new_link) {
                         play_link(new_link)
                     }
-                    else{
+                    else {
                         vc_queue = []
                         connection?.destroy()
                     }
@@ -349,10 +349,10 @@ async function play_link({link, filename}: {link: string, filename: string}){
             })
         }).catch(err => {
             let new_link = vc_queue.shift()
-            if(new_link){
+            if (new_link) {
                 play_link(new_link)
             }
-            else{
+            else {
                 vc_queue = []
                 connection?.destroy()
             }
@@ -362,10 +362,10 @@ async function play_link({link, filename}: {link: string, filename: string}){
 player.on(AudioPlayerStatus.Idle, (err) => {
     fs.rmSync(currently_playing?.filename as string)
     let new_link = vc_queue.shift()
-    if(new_link){
+    if (new_link) {
         play_link(new_link)
     }
-    else{
+    else {
         vc_queue = []
         connection?.destroy()
     }
@@ -375,83 +375,83 @@ player.on(AudioPlayerStatus.Idle, (err) => {
 
 export const commands: { [command: string]: Command } = {
 
-    'scorigami': createCommand(async(msg, _, sc, opts, args) => {
+    'scorigami': createCommand(async (msg, _, sc, opts, args) => {
         let data
-        try{
+        try {
             data = await fetch.default('https://nflscorigami.com/data')
         }
-        catch(err){
-            return {content:  "Unable to fetch  scorigami", status: StatusCode.ERR}
+        catch (err) {
+            return { content: "Unable to fetch  scorigami", status: StatusCode.ERR }
         }
         let json = await data.json()
         let scores = json.matrix
 
         let less_than = 100000000000
         let greater_than = -1
-        if(opts['total-lt']){
+        if (opts['total-lt']) {
             less_than = Number(opts['total-lt'])
         }
-        if(opts['total-gt']){
+        if (opts['total-gt']) {
             greater_than = Number(opts['total-gt'])
         }
 
-        if(!isNaN(Number(opts['count']))){
+        if (!isNaN(Number(opts['count']))) {
             let count = Number(opts['count'])
-            let results: {data: any, score: [number, number]}[] = []
-            for(let i = 0; i < scores.length; i++){
+            let results: { data: any, score: [number, number] }[] = []
+            for (let i = 0; i < scores.length; i++) {
                 let range = scores[i]
-                for(let j = 0; j < range.length; j++){
-                    if(scores[i][j].count === count && i + j < less_than && i + j > greater_than){
-                        results.push({data: scores[i][j], score: [i, j]})
+                for (let j = 0; j < range.length; j++) {
+                    if (scores[i][j].count === count && i + j < less_than && i + j > greater_than) {
+                        results.push({ data: scores[i][j], score: [i, j] })
                     }
                 }
             }
             let text = ""
-            for(let i = 0; i < (parseInt(String(opts['result-count'])) || 1) && i < results.length; i++){
-                text +=  results[Math.floor(Math.random() * results.length)].score.join(" to ") + '\n'
+            for (let i = 0; i < (parseInt(String(opts['result-count'])) || 1) && i < results.length; i++) {
+                text += results[Math.floor(Math.random() * results.length)].score.join(" to ") + '\n'
             }
-            return {content: text, status:  StatusCode.RETURN}
+            return { content: text, status: StatusCode.RETURN }
         }
 
         let [score1_str, score2_str] = args
         let score1 = Number(score1_str)
         let score2 = Number(score2_str)
-        if (score1 > score2){
+        if (score1 > score2) {
             [score1, score2] = [score2, score1]
         }
 
         let score = scores[score1]?.[score2]
-        if(!score){
-            return {content: "Invalid score", status: StatusCode.ERR}
+        if (!score) {
+            return { content: "Invalid score", status: StatusCode.ERR }
         }
-        if(score.count === 0){
+        if (score.count === 0) {
             let closestDistance = 10000
             let closestScore = ""
-            for(let i = 0; i < scores.length; i++){
+            for (let i = 0; i < scores.length; i++) {
                 let range = scores[i]
-                for(let j = 0; j < range.length; j++){
-                    if(scores[i][j].count === 0) continue;
+                for (let j = 0; j < range.length; j++) {
+                    if (scores[i][j].count === 0) continue;
                     let win_diff = Math.abs(scores[i][j].pts_win - score2)
                     let lose_diff = Math.abs(scores[i][j].pts_lose - score1)
-                    if(win_diff + lose_diff < closestDistance){
+                    if (win_diff + lose_diff < closestDistance) {
                         closestDistance = win_diff + lose_diff
                         closestScore = `${scores[i][j].pts_win} - ${scores[i][j].pts_lose}`
                     }
                 }
             }
-            return {content: `SCORIGAMI!\nNearest score: ${closestScore} (${closestDistance} difference)`,  status: StatusCode.RETURN}
+            return { content: `SCORIGAMI!\nNearest score: ${closestScore} (${closestDistance} difference)`, status: StatusCode.RETURN }
         }
         let first_time_embed = new MessageEmbed()
         first_time_embed.setTitle(`${score.first_team_away} @ ${score.first_team_home}`)
         first_time_embed.setDescription(`First time during ${(new Date(score.first_date)).toDateString()}`)
-        first_time_embed.setFooter({text: score.first_link})
+        first_time_embed.setFooter({ text: score.first_link })
         let last_time_embed = new MessageEmbed()
         last_time_embed.setTitle(`${score.last_team_away} @ ${score.last_team_home}`)
         last_time_embed.setDescription(`Most recent during ${(new Date(score.last_date)).toDateString()}`)
-        last_time_embed.setFooter({text: score.last_link})
-        let info_embed =  new MessageEmbed()
+        last_time_embed.setFooter({ text: score.last_link })
+        let info_embed = new MessageEmbed()
         info_embed.setTitle(`Count:  ${score.count}`)
-        let nfl_years  = (new Date()).getFullYear() - 1922
+        let nfl_years = (new Date()).getFullYear() - 1922
         let years_since_first = (new Date()).getFullYear() - (new Date(score.first_date)).getFullYear()
         let scores_per_year = score.count / nfl_years
         let scores_per_year_since_first = score.count / years_since_first
@@ -459,23 +459,23 @@ export const commands: { [command: string]: Command } = {
         let years = drought.getFullYear() - 1970
         console.log(drought)
         info_embed.addFields([
-            {inline: true, name: "Times per year", value: String(scores_per_year)},
-            {inline: true, name: "Times per year since first occurance", value: String(scores_per_year_since_first)},
-            {inline: false,  name: "Drought", value: `${years} years`},
+            { inline: true, name: "Times per year", value: String(scores_per_year) },
+            { inline: true, name: "Times per year since first occurance", value: String(scores_per_year_since_first) },
+            { inline: false, name: "Drought", value: `${years} years` },
         ])
 
-        return {embeds: [info_embed, first_time_embed, last_time_embed], status: StatusCode.RETURN}
+        return { embeds: [info_embed, first_time_embed, last_time_embed], status: StatusCode.RETURN }
     }, CommandCategory.FUN),
 
-    'play': createCommand(async(msg, args) => {
+    'play': createCommand(async (msg, args) => {
         let link = args.join(" ")
         let attachment = msg.attachments.at(0)
-        if(attachment){
+        if (attachment) {
             link = attachment.url
         }
         let voice_state = msg.member?.voice
-        if(!voice_state?.channelId){
-            return {content: "No voice", status: StatusCode.ERR}
+        if (!voice_state?.channelId) {
+            return { content: "No voice", status: StatusCode.ERR }
         }
         connection = joinVoiceChannel({
             channelId: voice_state.channelId,
@@ -485,55 +485,55 @@ export const commands: { [command: string]: Command } = {
             adapterCreator: voice_state.guild.voiceAdapterCreator
         })
 
-        vc_queue.push({link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}`})
-        if(player.state.status === AudioPlayerStatus.Playing){
-            return {content: `${link} added to queue`, status: StatusCode.RETURN}
+        vc_queue.push({ link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}` })
+        if (player.state.status === AudioPlayerStatus.Playing) {
+            return { content: `${link} added to queue`, status: StatusCode.RETURN }
         }
-        play_link(vc_queue.shift() as {link: string, filename: string})
-        return {content: `loading: ${link}`, status: StatusCode.RETURN}
+        play_link(vc_queue.shift() as { link: string, filename: string })
+        return { content: `loading: ${link}`, status: StatusCode.RETURN }
     }, CommandCategory.VOICE),
-    'queue': createCommand(async(msg, args) => {
+    'queue': createCommand(async (msg, args) => {
         let embed = new MessageEmbed()
         embed.setTitle("queue")
         embed.setDescription(String(currently_playing?.link) || "None")
-        return {content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN}
+        return { content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN }
     }, CommandCategory.VOICE),
-    'next': createCommand(async(msg, args) =>  {
+    'next': createCommand(async (msg, args) => {
         let voice_state = msg.member?.voice
-        if(!voice_state?.channelId){
-            return {content: "No voice", status: StatusCode.ERR}
+        if (!voice_state?.channelId) {
+            return { content: "No voice", status: StatusCode.ERR }
         }
         fs.rmSync(currently_playing?.filename as string)
         let new_link = vc_queue.shift()
-        if(new_link){
+        if (new_link) {
             play_link(new_link)
         }
-        else{
+        else {
             vc_queue = []
             connection?.destroy()
         }
-        return {content: "next", status: StatusCode.RETURN}
+        return { content: "next", status: StatusCode.RETURN }
     }, CommandCategory.VOICE),
-    'leave': createCommand(async(msg, args) => {
+    'leave': createCommand(async (msg, args) => {
         vc_queue = []
         let voice_state = msg.member?.voice
-        if(!voice_state?.channelId){
-            return {content: "No voice", status: StatusCode.ERR}
+        if (!voice_state?.channelId) {
+            return { content: "No voice", status: StatusCode.ERR }
         }
         let con = getVoiceConnection(voice_state.guild.id)
-        if(con){
+        if (con) {
             vc_queue = []
             con.destroy()
-            return {content: "Left vc", status: StatusCode.RETURN}
+            return { content: "Left vc", status: StatusCode.RETURN }
         }
-        else{
-            return {content: "Not in vc", status: StatusCode.ERR}
+        else {
+            return { content: "Not in vc", status: StatusCode.ERR }
         }
     }, CommandCategory.VOICE),
 
     "count": createCommand(async (msg, args) => {
         if (msg.channel.id !== '468874244021813258') {
-            return { content: "You are not in the counting channel", status: StatusCode.ERR}
+            return { content: "You are not in the counting channel", status: StatusCode.ERR }
         }
         let latestMessage = msg.channel.messages.cache.at(-2)
         if (!latestMessage) {
@@ -567,31 +567,31 @@ export const commands: { [command: string]: Command } = {
         return { content: count_text, delete: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
     }, CommandCategory.FUN),
 
-    "is-alias": createCommand(async(msg, args) => {
+    "is-alias": createCommand(async (msg, args) => {
         let res = []
-        for(let cmd of args){
-            if(commands[cmd] === undefined){
+        for (let cmd of args) {
+            if (commands[cmd] === undefined) {
                 res.push(true)
             }
-            else{
+            else {
                 res.push(false)
             }
         }
-        return {content: res.join(","), status: StatusCode.RETURN}
+        return { content: res.join(","), status: StatusCode.RETURN }
     }, CommandCategory.META, "Checks if a command is an alias"),
 
-    "has-role": createCommand(async(msg, args) => {
+    "has-role": createCommand(async (msg, args) => {
         let user = args[0]
         let search = args.slice(1).join(" ")
-        if(!search){
-            return {content: "No role given",  status: StatusCode.ERR}
+        if (!search) {
+            return { content: "No role given", status: StatusCode.ERR }
         }
-        if(!user){
-            return {content: "No user given",  status: StatusCode.ERR}
+        if (!user) {
+            return { content: "No user given", status: StatusCode.ERR }
         }
         let roles = await msg.guild?.roles.fetch()
-        if(!roles){
-            return {content: "No roles",  status: StatusCode.ERR}
+        if (!roles) {
+            return { content: "No roles", status: StatusCode.ERR }
         }
         let foundRoles = roles.filter(r => r.name.toLowerCase() == search.toLowerCase() ? true : false)
         if (!foundRoles.size) {
@@ -603,13 +603,13 @@ export const commands: { [command: string]: Command } = {
 
         let role = foundRoles?.at(0)
         if (!role) {
-            return { content: "Could not find role",  status: StatusCode.ERR }
+            return { content: "Could not find role", status: StatusCode.ERR }
         }
         let member: GuildMember | undefined = await fetchUser(msg.guild as Guild, user)
-        if(!member){
-            return {content: "No member found",  status: StatusCode.ERR}
+        if (!member) {
+            return { content: "No member found", status: StatusCode.ERR }
         }
-        return {content: String(member.roles.cache.has(role.id)),  status: StatusCode.RETURN}
+        return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
     }, CommandCategory.UTIL),
 
     "option": createCommand(async (msg, args) => {
@@ -620,7 +620,7 @@ export const commands: { [command: string]: Command } = {
         if (value.length === 0) {
             user_options.unsetOpt(msg.author.id, optname)
             user_options.saveUserOptions()
-            return { content: `<@${msg.author.id}> unset ${optname}`, status: StatusCode.RETURN}
+            return { content: `<@${msg.author.id}> unset ${optname}`, status: StatusCode.RETURN }
         }
         else {
             let optVal = value.join(" ")
@@ -649,7 +649,7 @@ export const commands: { [command: string]: Command } = {
             return { content: `${user} not found`, status: StatusCode.ERR }
         user_options.unsetOpt(member.id, optname)
         user_options.saveUserOptions()
-        return { content: `<@${member.id}> unset ${optname}`, status:  StatusCode.RETURN }
+        return { content: `<@${member.id}> unset ${optname}`, status: StatusCode.RETURN }
 
     }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
 
@@ -675,14 +675,14 @@ export const commands: { [command: string]: Command } = {
         }),
 
     "img-diff": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let [img1, img2] = args
-            if(!img1 || !img2){
-                return {content: "Must provide 2 image links", status: StatusCode.ERR}
+            if (!img1 || !img2) {
+                return { content: "Must provide 2 image links", status: StatusCode.ERR }
             }
             let image1 = await canvas.loadImage(img1 as string)
-            if(image1.width * image1.height > 1000000){
-                return {content: "Image 1 is too large", status: StatusCode.ERR}
+            if (image1.width * image1.height > 1000000) {
+                return { content: "Image 1 is too large", status: StatusCode.ERR }
             }
             let canv = new canvas.Canvas(image1.width, image1.height)
             let ctx = canv.getContext("2d")
@@ -695,55 +695,59 @@ export const commands: { [command: string]: Command } = {
             ctx.scale(image1.width / image2.width, image1.height / image2.height)
             ctx.drawImage(image2, 0, 0)
             let data2 = ctx.getImageData(0, 0, canv.width, canv.height)
-            if(image2.width * image2.height > 1000000){
-                return {content: "Image 2 is too large", status: StatusCode.ERR}
+            if (image2.width * image2.height > 1000000) {
+                return { content: "Image 2 is too large", status: StatusCode.ERR }
             }
 
-            let diffData = data1.data.map((v, idx) =>{
+            let diffData = data1.data.map((v, idx) => {
                 let mod = idx % 4 == 3
                 //@ts-ignore
-                return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod^1))
+                return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod ^ 1))
             })
 
             //console.log(diffData)
             ctx.putImageData(new canvas.ImageData(diffData, data1.width, data1.height), 0, 0)
             let fn = `${generateFileName("img-diff", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer())
-            return {files: [
-                {
-                    attachment: fn,
-                    name: fn,
-                    delete: true
-                }
-            ],
-            status: StatusCode.RETURN}
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ],
+                status: StatusCode.RETURN
+            }
         }, category: CommandCategory.IMAGES
     },
-    "picsum.photos": createCommand(async(msg, args) => {
+    "picsum.photos": createCommand(async (msg, args) => {
         let opts;
         [opts, args] = getOpts(args)
         let width = parseInt(args[0]) || 100;
         let height = parseInt(args[1]) || 100;
         let data = await fetch.default(`https://picsum.photos/${width}/${height}`);
-        if(data.status !== 200){
-            return {content: `picsum returned a ${data.status} error`, status: StatusCode.ERR}
+        if (data.status !== 200) {
+            return { content: `picsum returned a ${data.status} error`, status: StatusCode.ERR }
         }
-        if(opts['url']){
-            return {content: data.url, status: StatusCode.RETURN}
+        if (opts['url']) {
+            return { content: data.url, status: StatusCode.RETURN }
         }
         let png_fetch = await fetch.default(data.url)
         let png = await png_fetch.buffer()
         let fn = `${generateFileName("picsum.photos", msg.author.id)}.png`
         fs.writeFileSync(fn, png)
-        return {files: [
-            {
-                attachment: fn,
-                name: `Image(${width}x${height}).png`,
-                description: `A random image with a width of ${width} and height of ${height}`,
-                delete: true
-            }
-        ],
-        status: StatusCode.RETURN}
+        return {
+            files: [
+                {
+                    attachment: fn,
+                    name: `Image(${width}x${height}).png`,
+                    description: `A random image with a width of ${width} and height of ${height}`,
+                    delete: true
+                }
+            ],
+            status: StatusCode.RETURN
+        }
     }, CommandCategory.IMAGES,
         "Gets an image from picsum.photos",
         {
@@ -754,19 +758,19 @@ export const commands: { [command: string]: Command } = {
             "url": createHelpOption("Print the image url instead of giving back the image")
         }),
     'invert': {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let channel = args.map(v => v.toLowerCase())
             let above = parseInt(opts['above'] as string) || 0
             let below = parseInt(opts['below'] as string) || 255
-            if(!channel.length){
+            if (!channel.length) {
                 channel = ["red", "green", "blue"]
             }
             let img = getImgFromMsgAndOpts(opts, msg)
             let image = await canvas.loadImage(img as string)
-            if(image.width * image.height > 1000000){
-                return {content: "Image is too large", status: StatusCode.ERR}
+            if (image.width * image.height > 1000000) {
+                return { content: "Image is too large", status: StatusCode.ERR }
             }
             let canv = new canvas.Canvas(image.width, image.height)
             let ctx = canv.getContext("2d")
@@ -774,9 +778,9 @@ export const commands: { [command: string]: Command } = {
             let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
             let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
                 let cur_channel = rgba_cycle.next().value
-                if(idx % 4 === 3)
+                if (idx % 4 === 3)
                     return v
-                if(channel.includes(cur_channel) && (v >= above && v <= below)){
+                if (channel.includes(cur_channel) && (v >= above && v <= below)) {
                     return 255 - v
                 }
                 return v
@@ -784,14 +788,16 @@ export const commands: { [command: string]: Command } = {
             ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
             let fn = `${generateFileName("img-channel", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer())
-            return  {files: [
-                {
-                    attachment: fn,
-                    name: fn,
-                    delete: true
-                }
-            ],
-            status: StatusCode.RETURN}
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ],
+                status: StatusCode.RETURN
+            }
         }, category: CommandCategory.IMAGES,
         help: {
             arguments: {
@@ -811,12 +817,12 @@ export const commands: { [command: string]: Command } = {
         }
     },
     "img-channel": {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
             let channel = args.map(v => v.toLowerCase())
-            if(!channel.length){
-                return {content: "No channel", status: StatusCode.ERR}
+            if (!channel.length) {
+                return { content: "No channel", status: StatusCode.ERR }
             }
             let img = getImgFromMsgAndOpts(opts, msg)
             let image = await canvas.loadImage(img as string)
@@ -826,9 +832,9 @@ export const commands: { [command: string]: Command } = {
             let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
             let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
                 let cur_channel = rgba_cycle.next().value
-                if(idx % 4 === 3 && !channel.includes("alpha"))
+                if (idx % 4 === 3 && !channel.includes("alpha"))
                     return v
-                if(channel.includes(cur_channel)){
+                if (channel.includes(cur_channel)) {
                     return v
                 }
                 return 0
@@ -836,17 +842,19 @@ export const commands: { [command: string]: Command } = {
             ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
             let fn = `${generateFileName("img-channel", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer())
-            return  {files: [
-                {
-                    attachment: fn,
-                    name: fn,
-                    delete: true
-                }
-            ], status: StatusCode.RETURN}
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ], status: StatusCode.RETURN
+            }
         }, category: CommandCategory.IMAGES
     },
 
-    draw: createCommand(async(msg, args, sendCallback) => {
+    draw: createCommand(async (msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
         let width = Pipe.start(opts['w']).default(500).next((v: any) => String(v)).done()
@@ -854,8 +862,8 @@ export const commands: { [command: string]: Command } = {
         let canv = new canvas.Canvas(width, height, "image")
         let ctx = canv.getContext('2d')
         ctx.textBaseline = 'top'
-        function createColor(type: string, data: string[], m: Message){
-            switch(type){
+        function createColor(type: string, data: string[], m: Message) {
+            switch (type) {
                 // case "pattern": {
                 //     let opts: {[key: string]: string} = {};
                 //     if(data.join(" ").trim()){
@@ -876,20 +884,20 @@ export const commands: { [command: string]: Command } = {
                     let y2 = parsePosition(coords[3], canv.height)
                     const grad = ctx.createLinearGradient(x1, y1, x2, y2)
                     let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
-                    for(let color of colors){
+                    for (let color of colors) {
                         let [stop, ...c] = color.split(" ")
                         color = c.join(" ")
-                        if(color === "rand"){
+                        if (color === "rand") {
                             color = `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2))}`
                         }
-                        try{
+                        try {
                             grad.addColorStop(parseFloat(stop), color)
                         }
-                        catch(err){
-                            return {err:  `Could not add ${color} at stop point ${stop}`}
+                        catch (err) {
+                            return { err: `Could not add ${color} at stop point ${stop}` }
                         }
                     }
-                    return {color: grad}
+                    return { color: grad }
                 }
                 case 'rgrad':
                 case 'rgradient':
@@ -904,58 +912,61 @@ export const commands: { [command: string]: Command } = {
                     let r2 = parsePosition(coords[5], canv.width)
                     const grad = ctx.createRadialGradient(x1, y1, r1, x2, y2, r2)
                     let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
-                    for(let color of colors){
+                    for (let color of colors) {
                         let [stop, ...c] = color.split(" ")
                         color = c.join(" ")
-                        if(color === "rand"){
+                        if (color === "rand") {
                             color = `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2))}`
                         }
-                        try{
+                        try {
                             grad.addColorStop(parseFloat(stop), color)
                         }
-                        catch(err){
-                            return {err:  `Could not add ${color} at stop point ${stop}`}
+                        catch (err) {
+                            return { err: `Could not add ${color} at stop point ${stop}` }
                         }
                     }
-                    return {color: grad}
+                    return { color: grad }
                 }
-                case 'solid':{
-                    return {color: data.join(" ")}
+                case 'solid': {
+                    return { color: data.join(" ") }
                 }
-                default:{
-                    if(data.length){
-                        return {color: type + data.join(" ")}
+                default: {
+                    if (data.length) {
+                        return { color: type + data.join(" ") }
                     }
-                    return {color: type}
+                    return { color: type }
                 }
             }
         }
-        draw_loop: while(true){
+        draw_loop: while (true) {
             let m;
-            try{
-                m = await msg.channel.awaitMessages({filter: m => m.author.id == msg.author.id, max: 1, time: 120000})
+            try {
+                m = await msg.channel.awaitMessages({ filter: m => m.author.id == msg.author.id, max: 1, time: 120000 })
             }
-            catch(err){
+            catch (err) {
                 let fn = `${generateFileName("draw", msg.author.id)}.png`
                 fs.writeFileSync(fn, canv.toBuffer())
-                return {files: [
-                    {
-                        attachment: fn,
-                        name: fn,
-                        delete: true
-                    }
-                ],
-                status: StatusCode.RETURN}
+                return {
+                    files: [
+                        {
+                            attachment: fn,
+                            name: fn,
+                            delete: true
+                        }
+                    ],
+                    status: StatusCode.RETURN
+                }
             }
             let actionMessage = m.at(0)
-            if(!actionMessage){
+            if (!actionMessage) {
                 break
             }
             let action = actionMessage.content.split(" ")[0]
             let args = actionMessage.content.split(" ").slice(1)
-            switch(action){
+            switch (action) {
                 case "help": {
-                    await handleSending(msg, {status: StatusCode.INFO, content: `
+                    await handleSending(msg, {
+                        status: StatusCode.INFO, content: `
 COLOR TYPES:
     #rgb
     #rrggbb
@@ -1096,9 +1107,9 @@ The commands below, only work after **path** has been run:
                 }//}}}
                 case "no": {//{{{
                     let type = args[0]
-                    switch(type){
+                    switch (type) {
                         case "shadow-color":
-                        case "shadow":{
+                        case "shadow": {
                             ctx.shadowColor = "transparent"
                             break
                         }
@@ -1106,7 +1117,7 @@ The commands below, only work after **path** has been run:
                             ctx.fillStyle = "transparent"
                             break
                         }
-                        case "text-align":{
+                        case "text-align": {
                             ctx.textAlign = "start"
                             break
                         }
@@ -1125,13 +1136,13 @@ The commands below, only work after **path** has been run:
                 case "start-path"://{{{
                 case "path":
                 case "begin-path":
-                case "begin-stroke":{
+                case "begin-stroke": {
                     ctx.beginPath()
                     continue
                 }//}}}
                 case "end-path"://{{{
                 case "stroke":
-                case "end-stroke":{
+                case "end-stroke": {
                     ctx.stroke()
                     break
                 }//}}}
@@ -1170,7 +1181,7 @@ The commands below, only work after **path** has been run:
                     args = args_str.split(" ")
                     let [str_dx, str_dy, str_dw, str_dh, str_sx, str_sy, str_sw, str_sh] = args
                     let opts: any = {};
-                    if(image?.trim()){
+                    if (image?.trim()) {
                         opts['img'] = image.trim()
                     }
                     image = getImgFromMsgAndOpts(opts, actionMessage) as string
@@ -1178,7 +1189,7 @@ The commands below, only work after **path** has been run:
                     let dx = parsePosition(str_dx || "0", canv.width)
                     let dy = parsePosition(str_dy || "0", canv.height)
                     let dw = parsePosition(str_dw || `${canv.width}`, canv.width)
-                    let dh = parsePosition(str_dh  || `${canv.height}`, canv.height)
+                    let dh = parsePosition(str_dh || `${canv.height}`, canv.height)
                     let sx = parsePosition(str_sx || "0", canv_img.width)
                     let sy = parsePosition(str_sy || "0", canv_img.height)
                     let sw = parsePosition(str_sw || `${canv_img.width}`, canv_img.width)
@@ -1214,9 +1225,9 @@ The commands below, only work after **path** has been run:
                 case "stroke"://{{{
                 case "outline": {
                     let type = args[0]
-                    let {color, err} = createColor(type, args.slice(1), actionMessage)
-                    if(err){
-                        await handleSending(msg, {status: StatusCode.ERR, content: err}, sendCallback)
+                    let { color, err } = createColor(type, args.slice(1), actionMessage)
+                    if (err) {
+                        await handleSending(msg, { status: StatusCode.ERR, content: err }, sendCallback)
                     }
                     ctx.strokeStyle = color ?? "red"
                     continue
@@ -1230,14 +1241,14 @@ The commands below, only work after **path** has been run:
                 case "outline-type"://{{{
                 case "line-type":
                 case "stroke-type": {
-                    ctx.lineJoin = args.join(" ")  as CanvasLineJoin
+                    ctx.lineJoin = args.join(" ") as CanvasLineJoin
                     continue
                 }//}}}
                 case "color": {//{{{
                     let type = args[0]
-                    let {color, err} = createColor(type, args.slice(1), actionMessage)
-                    if(err){
-                        await handleSending(msg, {content: err, status: StatusCode.ERR}, sendCallback)
+                    let { color, err } = createColor(type, args.slice(1), actionMessage)
+                    if (err) {
+                        await handleSending(msg, { content: err, status: StatusCode.ERR }, sendCallback)
                         continue
                     }
                     ctx.fillStyle = color ?? "red"
@@ -1247,7 +1258,7 @@ The commands below, only work after **path** has been run:
                     let [size, ...font] = args
                     let font_name = font.join(" ") || ctx.font.split(" ")[1].trim() || "serif"
                     let trueSize = parseFloat(size)
-                    if (!trueSize){
+                    if (!trueSize) {
                         font_name = size + font_name
                         trueSize = 50
                     }
@@ -1259,11 +1270,11 @@ The commands below, only work after **path** has been run:
                     continue
                 }//}}}
                 case 'text-baseline': {//{{{
-                    try{
+                    try {
                         //@ts-ignore
                         ctx.textBaseline = args.join(" ")
                     }
-                    catch(err){
+                    catch (err) {
                         ctx.textBaseline = 'top'
                     }
                     continue
@@ -1273,24 +1284,24 @@ The commands below, only work after **path** has been run:
                     let [strx, stry, ...text] = args
                     let textInfo = ctx.measureText(text.join(" "))
                     let font_size = parseFloat(ctx.font)
-                    let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72/96) + textInfo.actualBoundingBoxDescent)]
-                    ctx.strokeText(text.join(" ").replaceAll("\\n", "\n"), x, y )
+                    let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72 / 96) + textInfo.actualBoundingBoxDescent)]
+                    ctx.strokeText(text.join(" ").replaceAll("\\n", "\n"), x, y)
                     break;
                 }//}}}
                 case 'text': {//{{{
                     let [strx, stry, ...text] = args
                     let textInfo = ctx.measureText(text.join(" "))
                     let font_size = parseFloat(ctx.font)
-                    let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72/96) + textInfo.actualBoundingBoxDescent)]
-                    ctx.fillText(text.join(" ").replaceAll("\\n", "\n"), x, y )
+                    let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72 / 96) + textInfo.actualBoundingBoxDescent)]
+                    ctx.fillText(text.join(" ").replaceAll("\\n", "\n"), x, y)
                     break;
                 }//}}}
-                case 'box':{//{{{
+                case 'box': {//{{{
                     let [str_x, str_y, str_w, str_h] = args
-                    if(!str_x) str_x = "0";
-                    if(!str_y) str_y = "0";
-                    if(!str_w) str_w = String(canv.width);
-                    if(!str_h) str_h = String(canv.height);
+                    if (!str_x) str_x = "0";
+                    if (!str_y) str_y = "0";
+                    if (!str_w) str_w = String(canv.width);
+                    if (!str_h) str_h = String(canv.height);
                     let x, y, w, h
                     w = parsePosition(str_w, canv.width - ctx.lineWidth)
                     h = parsePosition(str_h, canv.width - ctx.lineWidth)
@@ -1301,10 +1312,10 @@ The commands below, only work after **path** has been run:
                 }//}}}
                 case "fill-screen": {//{{{
                     let type = args[0]
-                    if(type){
-                        let {color, err} = createColor(type, args.slice(1), actionMessage)
-                        if(err){
-                            await handleSending(msg, {content: err, status: StatusCode.ERR}, sendCallback)
+                    if (type) {
+                        let { color, err } = createColor(type, args.slice(1), actionMessage)
+                        if (err) {
+                            await handleSending(msg, { content: err, status: StatusCode.ERR }, sendCallback)
                             continue
                         }
                         ctx.fillStyle = color ?? "red"
@@ -1314,10 +1325,10 @@ The commands below, only work after **path** has been run:
                 }//}}}
                 case "rect": {//{{{
                     let [str_x, str_y, str_w, str_h] = args
-                    if(!str_x) str_x = "0";
-                    if(!str_y) str_y = "0";
-                    if(!str_w) str_w = String(canv.width);
-                    if(!str_h) str_h = String(canv.height);
+                    if (!str_x) str_x = "0";
+                    if (!str_y) str_y = "0";
+                    if (!str_w) str_w = String(canv.width);
+                    if (!str_h) str_h = String(canv.height);
                     let x, y, w, h
                     w = parsePosition(str_w, canv.width)
                     h = parsePosition(str_h, canv.width)
@@ -1329,10 +1340,10 @@ The commands below, only work after **path** has been run:
                 }//}}}
                 case "orect": {//{{{
                     let [str_x, str_y, str_w, str_h] = args
-                    if(!str_x) str_x = "0";
-                    if(!str_y) str_y = "0";
-                    if(!str_w) str_w = String(canv.width);
-                    if(!str_h) str_h = String(canv.height);
+                    if (!str_x) str_x = "0";
+                    if (!str_y) str_y = "0";
+                    if (!str_w) str_w = String(canv.width);
+                    if (!str_h) str_h = String(canv.height);
                     let x, y, w, h
                     w = parsePosition(str_w, canv.width - ctx.lineWidth)
                     h = parsePosition(str_h, canv.width - ctx.lineWidth)
@@ -1351,24 +1362,28 @@ The commands below, only work after **path** has been run:
             }
             let fn = `${generateFileName("draw", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer())
-            await handleSending(msg, {files: [
-                {
-                    attachment: fn,
-                    name: fn,
-                }
-            ], status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                    }
+                ], status: StatusCode.INFO
+            }, sendCallback)
 
-                    
+
         }
         let fn = `${generateFileName("draw", msg.author.id)}.png`
         fs.writeFileSync(fn, canv.toBuffer())
-        return {files: [
-            {
-                attachment: fn,
-                name: fn,
-                delete: true
-            }
-        ], status: StatusCode.RETURN}
+        return {
+            files: [
+                {
+                    attachment: fn,
+                    name: fn,
+                    delete: true
+                }
+            ], status: StatusCode.RETURN
+        }
     }, CommandCategory.IMAGES),
     "ed": createCommand(async (msg, args) => {
         if (globals.EDS[msg.author.id]) {
@@ -1450,7 +1465,7 @@ The commands below, only work after **path** has been run:
                         console.log(rgx)
                     }
                     catch (err) {
-                        handleSending(msg, {status: StatusCode.ERR, content: "? Invalid regex'" })
+                        handleSending(msg, { status: StatusCode.ERR, content: "? Invalid regex'" })
                         return [currentLine]
                     }
                     let validLines = []
@@ -1535,7 +1550,7 @@ The commands below, only work after **path** has been run:
                 }
 
                 else if (!opts['exec']) {
-                    await handleSending(msg, {status: StatusCode.ERR, content: "?" })
+                    await handleSending(msg, { status: StatusCode.ERR, content: "?" })
                 }
             }
             else {
@@ -1593,7 +1608,7 @@ The commands below, only work after **path** has been run:
                 for (let line of commandLines) {
                     textToSend += text[line] + "\n"
                 }
-                await handleSending(msg, {status: StatusCode.INFO, content: textToSend })
+                await handleSending(msg, { status: StatusCode.INFO, content: textToSend })
                 return true
             },
             n: async (range, _args) => {
@@ -1602,7 +1617,7 @@ The commands below, only work after **path** has been run:
                 for (let line of commandLines) {
                     textToSend += `${String(line + 1)} ${text[line]}\n`
                 }
-                await handleSending(msg, {status: StatusCode.INFO, content: textToSend })
+                await handleSending(msg, { status: StatusCode.INFO, content: textToSend })
                 return true
             },
             s: async (range, args) => {
@@ -1613,7 +1628,7 @@ The commands below, only work after **path** has been run:
                     rgx = new RegExp(searchRegex, flags)
                 }
                 catch (err) {
-                    await handleSending(msg, {status: StatusCode.INFO, content: "? Invalid regex'" })
+                    await handleSending(msg, { status: StatusCode.INFO, content: "? Invalid regex'" })
                     return true
                 }
                 for (let line of commandLines) {
@@ -1768,26 +1783,26 @@ The commands below, only work after **path** has been run:
                 let embed = new MessageEmbed()
                 let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
                 if (!stockData) {
-                    await handleSending(msg, {status: StatusCode.ERR, content: "No data found"}, sendCallback)
+                    await handleSending(msg, { status: StatusCode.ERR, content: "No data found" }, sendCallback)
                     return
                 }
                 stockData = stockData[0]
                 let price = stockData.match(/>(\d+\.\d+)/)
                 if (!price) {
-                    await handleSending(msg, {status: StatusCode.ERR, content: "No price found"}, sendCallback)
+                    await handleSending(msg, { status: StatusCode.ERR, content: "No price found" }, sendCallback)
                     return
                 }
                 price = price[1]
                 let change = stockData.match(/(\+|-)(\d+\.\d+)/)
                 if (!change) {
-                    await handleSending(msg, {status: StatusCode.ERR, content: "No change found"}, sendCallback)
+                    await handleSending(msg, { status: StatusCode.ERR, content: "No change found" }, sendCallback)
                     return
                 }
                 change = `${change[1]}${change[2]}`
                 let numberchange = Number(change)
                 let stockName = html.match(/<span class="r0bn4c rQMQod">([^a-z]+)<\/span>/)
                 if (!stockName) {
-                    await handleSending(msg, {status: StatusCode.ERR, content: "Could not get stock name"}, sendCallback)
+                    await handleSending(msg, { status: StatusCode.ERR, content: "Could not get stock name" }, sendCallback)
                     return
                 }
                 stockName = stockName[1]
@@ -1800,7 +1815,7 @@ The commands below, only work after **path** has been run:
                 embed.setTitle(stockName)
                 embed.addField("Price", price)
                 embed.addField("Price change", change, true)
-                await handleSending(msg, {status: StatusCode.RETURN,  embeds: [embed] }, sendCallback)
+                await handleSending(msg, { status: StatusCode.RETURN, embeds: [embed] }, sendCallback)
             })
         }).end()
         return { content: "Getting data", status: StatusCode.INFO }
@@ -1821,7 +1836,7 @@ The commands below, only work after **path** has been run:
             if (!data) {
                 return { content: "No  info found", status: StatusCode.ERR }
             }
-            await handleSending(msg, {content: "Getting data", status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, { content: "Getting data", status: StatusCode.INFO }, sendCallback)
             if (fmt == "{embed}") {
                 let embed = new MessageEmbed()
                 let nChange = Number(data.change)
@@ -1928,7 +1943,7 @@ The commands below, only work after **path** has been run:
             if (!allowedTypes.includes(type)) {
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
-                    await handleSending(msg, {content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING}, sendCallback)
+                    await handleSending(msg, { content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING }, sendCallback)
                     return await commands['bstock'].run(msg, args, sendCallback, {}, args, recursion)
                 }
                 //else
@@ -2007,7 +2022,7 @@ The commands below, only work after **path** has been run:
                             if (i > 0) {
                                 return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`, status: StatusCode.RETURN }
                             }
-                            return { content: `This item is too expensive for u`, status: StatusCode.ERR  }
+                            return { content: `This item is too expensive for u`, status: StatusCode.ERR }
                         }
                     }
                     return { content: `You bought: ${amount} ${item}(s) for $${totalSpent}`, status: StatusCode.RETURN }
@@ -2172,7 +2187,7 @@ The commands below, only work after **path** has been run:
                 }
                 handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for $${data.price * amount}`, status: StatusCode.RETURN }, sendCallback)
             }, () => {
-                handleSending(msg, {content: `Failed to get stock data for: ${stock}`, status: StatusCode.ERR}, sendCallback)
+                handleSending(msg, { content: `Failed to get stock data for: ${stock}`, status: StatusCode.ERR }, sendCallback)
             })
             return { noSend: true, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
@@ -2281,13 +2296,13 @@ The commands below, only work after **path** has been run:
     work: {
         run: async (msg, _args, sendCallback) => {
             let canWork = economy.canWork(msg.author.id)
-            if(canWork === 0 && msg.member?.roles.cache.filter(r => r.name === "College").at(0)){
+            if (canWork === 0 && msg.member?.roles.cache.filter(r => r.name === "College").at(0)) {
                 let amount = economy.work(msg.author.id)
-                if(Math.random() > .99 && amount){
+                if (Math.random() > .99 && amount) {
                     amount *= -1
-                    return {content: `Looks like you got fired, the boss took ${amount}`, status: StatusCode.RETURN}
+                    return { content: `Looks like you got fired, the boss took ${amount}`, status: StatusCode.RETURN }
                 }
-                return {content: `Congrats, you grad student, here's ${amount} from your job`, status: StatusCode.RETURN}
+                return { content: `Congrats, you grad student, here's ${amount} from your job`, status: StatusCode.RETURN }
             }
             if (canWork) {
                 let amount = economy.work(msg.author.id)
@@ -2317,9 +2332,407 @@ The commands below, only work after **path** has been run:
         }, category: CommandCategory.ECONOMY
     },
 
+    yahtzee: createCommand(async (msg, _, sc, opts, args) => {
+        class ScoreSheet {
+            ones: number | undefined
+            twos: number | undefined
+            threes: number | undefined
+            fours: number | undefined
+            fives: number | undefined
+            sixes: number | undefined
+            three_of_a_kind: number | undefined
+            four_of_a_kind: number | undefined
+            full_house: number | undefined
+            small_straight: number | undefined
+            large_straight: number | undefined
+            chance: number | undefined
+
+            yahtzee: number[]
+
+            constructor() {
+                this.yahtzee = []
+            }
+
+            #is_x_of_a_kind(dice: number[], size: number) {
+                let diceSet = new Set(dice)
+                //dice.length + 1 comes from the fact that if you subtract size from it,
+                //you get the maximum number of different dice that can be rolled while still haveing
+                //a <size> of a kind
+                //
+
+                let isKind = false
+                if (diceSet.size > (dice.length + 1) - size) {
+                    return false
+                }
+                for (let num of diceSet) {
+                    if (dice.filter(v => v === num).length >= size) {
+                        isKind = true
+                        break
+                    }
+                }
+                return isKind
+            }
+
+            #is_a_straight(dice: number[], size: number) {
+                let sorted = dice.sort()
+                let isStraight = false
+                let last = sorted[0]
+                let inARow = 1
+                for (let item of sorted.slice(1)) {
+                    if (inARow === size) {
+                        isStraight = true
+                        break
+                    }
+                    if (item === last) {
+                        continue
+                    }
+                    if (item !== last + 1) {
+                        inARow = 0
+                    }
+                    else {
+                        inARow++;
+                    }
+                    last = item
+                }
+                if (isStraight || inARow == size) {
+                    return true
+                }
+                else {
+                    return false
+                }
+            }
+
+            is_applied(type: string) {
+                if(type === "yahtzee" && !this.yahtzee.includes(0)){
+                    return false
+                }
+                //@ts-ignore
+                return this[type.replaceAll(" ", "_")] !== undefined
+            }
+
+            apply(type: string, dice: number[]) {
+
+                //@ts-ignore
+                this[`apply_${type.replaceAll(" ", "_")}`](dice)
+            }
+            apply_chance(dice: number[]) {
+                this.chance = dice.reduce((p, c) => p + c, 0)
+            }
+            apply_ones(dice: number[]) {
+                this.ones = dice.filter(v => v === 1).length
+            }
+            apply_twos(dice: number[]) {
+                this.twos = dice.filter(v => v === 2).length * 2
+            }
+            apply_threes(dice: number[]) {
+                this.threes = dice.filter(v => v === 3).length * 3
+            }
+            apply_fours(dice: number[]) {
+                this.fours = dice.filter(v => v === 4).length * 4
+            }
+            apply_fives(dice: number[]) {
+                this.fives = dice.filter(v => v === 5).length * 5
+            }
+            apply_sixes(dice: number[]) {
+                this.sixes = dice.filter(v => v === 6).length * 6
+            }
+            apply_three_of_a_kind(dice: number[]) {
+
+                if (this.#is_x_of_a_kind(dice, 3)) {
+                    this.three_of_a_kind = dice.reduce((p, c) => p + c, 0)
+                }
+                else {
+                    this.three_of_a_kind = 0
+                }
+            }
+            apply_four_of_a_kind(dice: number[]) {
+                if (this.#is_x_of_a_kind(dice, 4)) {
+                    this.four_of_a_kind = dice.reduce((p, c) => p + c, 0)
+                }
+                else {
+                    this.four_of_a_kind = 0
+                }
+            }
+            apply_full_house(dice: number[]) {
+                let diceSet = new Set(dice)
+                //Only 2 numbers can be in a full house
+                if (diceSet.size !== 2) {
+                    this.full_house = 0
+                    return
+                }
+                let fullHouseNumbs: { 2: number, 3: number } = { 2: 0, 3: 0 }
+                for (let number of new Set(dice)) {
+                    let count = dice.filter(v => v === number).length
+                    //@ts-ignore
+                    if (fullHouseNumbs[count] === undefined) {
+                        break
+                    }
+                    if (fullHouseNumbs[count as 2 | 3]) {
+                        break
+                    }
+                    fullHouseNumbs[count as 2 | 3] = 1
+                }
+                if (fullHouseNumbs[2] && fullHouseNumbs[3]) {
+                    this.full_house = 25
+                }
+                else {
+                    this.full_house = 0
+                }
+            }
+            apply_small_straight(dice: number[]) {
+                console.log(dice, this.#is_a_straight(dice, 4))
+                if (this.#is_a_straight(dice, 4)) {
+                    this.small_straight = 30
+                }
+                else{
+                    this.small_straight = 0
+                }
+            }
+            apply_large_straight(dice: number[]) {
+                if (this.#is_a_straight(dice, 5)) {
+                    this.large_straight = 40
+                }
+                else{
+                    this.large_straight = 0
+                }
+            }
+            apply_yahtzee(dice: number[]) {
+                let s = new Set(dice)
+                if (s.size === 1) {
+                    if (this.yahtzee.includes(0)) {
+                        this.yahtzee.push(0)
+                    }
+                    else {
+                        this.yahtzee.push(50)
+                    }
+                }
+                else {
+                    this.yahtzee.push(0)
+                }
+            }
+            is_filled(){
+                if(this.yahtzee.length === 0){
+                    return false
+                }
+                for(let item of Object.keys(this)){
+                    //@ts-ignore
+                    if(this[item] === undefined){
+                        return false
+                    }
+                }
+                return true
+            }
+            score(){
+                return Object.values(this).reduce((p, c) => {
+                    let final = p
+                    if(c.length){
+                        for(let i of c){
+                            final += i
+                        }
+                    }
+                    else{
+                        final += c
+                    }
+                    return final
+                }, 0)
+            }
+            toString(){
+                let st = ``
+                for(let kv of Object.entries(this)){
+                    st += `**${kv[0]}**: ${kv[1] ?? "-"}\n`
+                }
+                return st
+            }
+        }
+
+        const aliases = {
+            "5": "fives",
+            "4": "fours",
+            "3": "threes",
+            "2": "twos",
+            "1": "ones",
+            "6": "sixes",
+            "fh": "full house",
+            "sm": "small straight",
+            "lg": "large straight",
+            "3k": "three of a kind",
+            "4k": "four of a kind",
+            "c": "chance",
+            "y!": "yahtzee"
+        }
+        let options = ["ones", "twos", "threes", "fours", "fives", "sixes", "three of a kind", "four of a kind", "full house", "small straight", "large straight", "chance", "yahtzee"]
+
+        if(globals.YAHTZEE_WAITING_FOR_PLAYERS){
+            return {content: "A yahtzee game has already been started", status: StatusCode.ERR}
+        }
+
+        let gameModes = ["single", "multi"];
+
+        let mode = args[0]?.toLowerCase()
+        if(!gameModes.includes(mode)){
+            return {content: `${mode} is not a valid mode, must be \`single\` or \`multi\``, status: StatusCode.ERR}
+        }
+
+        let users: { [key: string]: ScoreSheet } = {}
+        let bets: {[key: string]: number} = {}
+        users[msg.author.id] = new ScoreSheet()
+        if(mode === "single"){
+            let bet = Number(args[1])
+            if(!bet || bet < 0){
+                return {content: "No bet", status: StatusCode.ERR}
+            }
+            bets[msg.author.id] = bet
+        }
+        if(mode === 'multi'){
+            let bet = economy.calculateAmountFromString(msg.author.id, args[1])
+            if(!bet){
+                return {content: `Not a valid bet`, status: StatusCode.ERR}
+            }
+            else if(!economy.canBetAmount(msg.author.id, bet)){
+                return {content: `Bet too high`, status: StatusCode.ERR}
+            }
+            globals.YAHTZEE_WAITING_FOR_PLAYERS = true
+
+            if(globals.YAHTZEE_WAITING_FOR_PLAYERS){
+                let timeLeft = 30000
+                let int = setInterval(async() => {
+                    timeLeft -= 8000
+                    await handleSending(msg, {content: `Yahtzee begins in ${Math.round(timeLeft / 1000)} sedonds`, status: StatusCode.INFO})
+                }, 8000)
+                let playersJoining;
+                try{
+                    let filter = function(m: Message) {
+                        if(m.author.bot)
+                            return false
+                        let args = m.content.split(/\s/).map(v => v.toLowerCase())
+                        if(args[0] === "join"){
+                            let bet = economy.calculateAmountFromString(m.author.id, args[1])
+                            if(!bet || bet < 0){
+                                m.reply("No bet")
+                                return false
+                            }
+                            if(!economy.canBetAmount(m.author.id, bet)){
+                                m.reply("Bet too high")
+                                return false
+                            }
+                            bets[m.author.id] = bet
+                            return true
+                        }
+                        return false
+                    }
+                    playersJoining = await msg.channel.awaitMessages({filter: filter, time: 30000, errors: ["time"]})
+                }
+                catch(err){
+                    if(err instanceof Collection){
+                        playersJoining = err
+                    }
+                }
+                clearInterval(int)
+                for(let i = 0; i < (playersJoining?.size || 0); i++){
+                    if(users[playersJoining?.at(i)?.author.id]){
+                        continue
+                    }
+                    //@ts-ignore
+                    users[playersJoining.at(i)?.author.id as string] = new ScoreSheet()
+                }
+            }
+        }
+
+        let turnNo = 0
+
+        if(Object.keys(users).length < 2 && mode === "multi"){
+            return {content: "Only  one user joined :(", status: StatusCode.ERR}
+        }
+
+        while(Object.values(users).filter(v => !v.is_filled()).length > 0){
+            let validPlayers = Object.fromEntries(Object.entries(users).filter(v => {
+                return !v[1].is_filled()
+            }))
+
+            let validPlayerKeys = Object.keys(validPlayers)
+            let going = validPlayerKeys[turnNo % validPlayerKeys.length]
+
+            let diceRolls = []
+
+            for (let i = 0; i < 5; i++) {
+                diceRolls.push(Math.floor(Math.random() * (7 - 1) + 1))
+            }
+
+            let sheet = users[going]
+            await handleSending(msg, { content: `<@${going}>  YOUR UP:\n${sheet.toString()}\n\n${diceRolls.join(", ")}`, status: StatusCode.INFO })
+
+            let filter = function(m: Message) {
+                if(m.author.id !== going){
+                    return false
+                }
+                if(!(options.includes(m.content.toLowerCase()) || Object.keys(aliases).includes(m.content.toLowerCase()))){
+                    return false
+                }
+                //@ts-ignore
+                let choice: string = aliases[m.content.toLowerCase()] as (undefined | string) ?? m.content.toLowerCase()
+                if(sheet.is_applied(choice)){
+                    return false
+                }
+                return true
+            }
+
+            let choiceMessageCollection = await msg.channel.awaitMessages({ filter: filter, max: 1 })
+            let choiceMessage = choiceMessageCollection.at(0)
+
+            //@ts-ignore
+            let choice: string = aliases[choiceMessage.content.toLowerCase()] as (undefined | string) ?? choiceMessage.content.toLowerCase()
+
+            if (!choiceMessage) {
+                return { noSend: true, status: StatusCode.RETURN }
+            }
+
+            users[choiceMessage.author.id].apply(choice, diceRolls)
+            turnNo++;
+        }
+
+        let embed = new MessageEmbed()
+        embed.setTitle("Game Over")
+        let fields = []
+        if(mode === "multi"){
+            let winner = Object.entries(users).sort((a, b) => a[1].score() - b[1].score()).slice(-1)[0]
+            let amount = Object.values(bets).reduce((p, c) => p + c, 0)
+            embed.setDescription(`<@${winner[0]}> WINS ${amount}`)
+            economy.addMoney(winner[0], amount)
+            for(let user of Object.keys(users)){
+                if(user === winner[0]) continue;
+                economy.loseMoneyToBank(user, bets[user])
+            }
+        }
+        for(let kv of Object.entries(users)){
+            let [user, scoreSheet] = kv
+            fields.push({name: msg.guild?.members.cache.get(user)?.displayName || user, value: String(scoreSheet.score()), inline: true})
+        }
+        if(mode === 'single'){
+            let score = Object.values(users).at(0)?.score() as number
+            let bet = Object.values(bets).at(0) as number
+            let amount_earned = (bet / score)
+            if(score - bet < 0){
+                amount_earned *= -1
+            }
+            //@ts-ignore
+            let money_earned = economy.calculateAmountFromString(Object.keys(users).at(0), `${amount_earned}%`)
+            //@ts-ignore
+            economy.addMoney(Object.keys(users).at(0), money_earned)
+            await handleSending(msg, {content: `You earned $${money_earned}`, status: StatusCode.INFO})
+        }
+        embed.addFields(fields)
+
+        globals.YAHTZEE_WAITING_FOR_PLAYERS = false
+
+        //@ts-ignore
+        return {content: `Game Over!!`, status: StatusCode.INFO, embeds: [embed]}
+
+    }, CommandCategory.GAME),
+
     bitem: {
         run: async (msg, args, sendCallback) => {
             let opts;
+
             [opts, args] = getOpts(args)
             let count = Number(opts['count'] || opts['c'])
             if (!count) {
@@ -2420,7 +2833,7 @@ The commands below, only work after **path** has been run:
                 totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
             }
             if (!economy.canBetAmount(msg.author.id, totalCost)) {
-                return { content: "You do not have enough money to buy this pet", status:  StatusCode.ERR }
+                return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
             }
             if (pet.buyPet(msg.author.id, requested_pet)) {
                 return { content: `You have successfuly bought: ${requested_pet} for: $${totalCost}`, status: StatusCode.RETURN }
@@ -2504,7 +2917,7 @@ The commands below, only work after **path** has been run:
             //@ts-ignore
             let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
             if (!user) {
-                return { content: `${opts['as']} not found`,  status: StatusCode.ERR }
+                return { content: `${opts['as']} not found`, status: StatusCode.ERR }
             }
             let userCheckingShop = user.user
             let itemJ = JSON.parse(items)
@@ -2533,10 +2946,10 @@ The commands below, only work after **path** has been run:
                     totalCost = Math.floor(totalCost * 100) / 100
                 }
                 let text = `**${totalCost == Infinity ? "puffle only" : `$${totalCost}`}**\n${itemJ[item].description}`
-                if(itemJ[item]['puffle-banned']){
+                if (itemJ[item]['puffle-banned']) {
                     text += '\n**buy only**'
                 }
-                e.addField(item.toUpperCase(), text , true)
+                e.addField(item.toUpperCase(), text, true)
                 if (i % 25 == 0) {
                     pages.push(e)
                     e = new MessageEmbed()
@@ -2672,7 +3085,7 @@ The commands below, only work after **path** has been run:
                 }
             }
             if (raw) {
-                return { content: `\\${JSON.stringify(finalColumns)}`, status:  StatusCode.RETURN }
+                return { content: `\\${JSON.stringify(finalColumns)}`, status: StatusCode.RETURN }
             }
             for (let row of finalColumns) {
                 for (let i = 0; i < row.length; i++) {
@@ -2689,7 +3102,7 @@ The commands below, only work after **path** has been run:
                 for (let i = 0; i < finalColumns[0].length; i++) {
                     text += `(col: ${i + 1}): ${columnLongestLengths[i]}\n`
                 }
-                return { content: text, status:  StatusCode.RETURN }
+                return { content: text, status: StatusCode.RETURN }
             }
             let newText = "```"
             for (let row of finalColumns) {
@@ -3275,8 +3688,8 @@ The commands below, only work after **path** has been run:
             if (realAmount < 0) {
                 return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
             }
-            if(economy.getEconomy()[member.id] ===  undefined){
-                return {content: `${member.id} is not in the economy`, status: StatusCode.ERR}
+            if (economy.getEconomy()[member.id] === undefined) {
+                return { content: `${member.id} is not in the economy`, status: StatusCode.ERR }
             }
             if (economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot) {
                 economy.loseMoneyToPlayer(msg.author.id, realAmount, member.id)
@@ -3310,7 +3723,7 @@ The commands below, only work after **path** has been run:
             return { content: `Member: ${player} not found`, status: StatusCode.ERR }
         }
         if (!economy.getEconomy()[member.id]) {
-            return { content: "Cannot give stocks to this player" , status: StatusCode.ERR}
+            return { content: "Cannot give stocks to this player", status: StatusCode.ERR }
         }
         userStockData.info.shares -= amount
         //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
@@ -3336,7 +3749,7 @@ The commands below, only work after **path** has been run:
         if (userStockData.info.shares == 0) {
             economy.removeStock(msg.author.id, sn)
         }
-        return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] } , status: StatusCode.RETURN}
+        return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
     }, CommandCategory.ECONOMY,
         "Give a stock to a user",
         {
@@ -3414,15 +3827,15 @@ The commands below, only work after **path** has been run:
             if (taxAmount.amount == max) {
                 useItem(userBeingTaxed, "tax shield")
             }
-            if(pet.getActivePet(userBeingTaxed) === 'frog' && userBeingTaxed !== userGainingMoney){
+            if (pet.getActivePet(userBeingTaxed) === 'frog' && userBeingTaxed !== userGainingMoney) {
                 let text = `<@${userBeingTaxed}> has a frog!\n`
                 let playersToFrog = Object.entries(economy.getEconomy()).filter((a) => economy.playerLooseNetWorth(a[0]) > economy.playerLooseNetWorth(userBeingTaxed))
-                for(let player of playersToFrog){
+                for (let player of playersToFrog) {
                     let amount = economy.playerLooseNetWorth(player[0]) * 0.001
                     economy.loseMoneyToPlayer(player[0], amount, userBeingTaxed)
                     text += `<@${player[0]}> has  been frogged for ${amount}\n`
                 }
-                await handleSending(msg, {content: text, allowedMentions: {parse: []}, status: StatusCode.INFO}, sendCallback)
+                await handleSending(msg, { content: text, allowedMentions: { parse: [] }, status: StatusCode.INFO }, sendCallback)
             }
             economy.addMoney(userGainingMoney, taxAmount.amount)
             if (opts['no-round'])
@@ -3566,14 +3979,14 @@ The commands below, only work after **path** has been run:
                     await handleSending(msg, { content: `${timeRemaining / 1000} seconds until the heist commences!`, status: StatusCode.INFO }, sendCallback)
             }, 1000)
             let data: { [key: string]: number } = {} //player_id: amount won
-            let data_floor: {[key: string]: number} = {} // player_id: amount won (non-percentage based)
+            let data_floor: { [key: string]: number } = {} // player_id: amount won (non-percentage based)
             globals.HEIST_TIMEOUT = setTimeout(async () => {
                 globals.HEIST_STARTED = true
                 clearInterval(int)
                 await handleSending(msg, { content: `Commencing heist with ${globals.HEIST_PLAYERS.length} players`, status: StatusCode.INFO }, sendCallback)
                 for (let player of globals.HEIST_PLAYERS) {
                     data[player] = 0
-                    data_floor[player] = 0 
+                    data_floor[player] = 0
                     setVar("__heist", "0", player)
                 }
                 let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
@@ -4180,7 +4593,7 @@ The commands below, only work after **path** has been run:
             delete globals.BLACKJACK_GAMES[msg.author.id]
             if (Math.random() > .999) {
                 economy.loseMoneyToBank(msg.author.id, bet * 2)
-                return {content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN}
+                return { content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN }
             }
             return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**`, status: StatusCode.RETURN }
         }
@@ -4280,7 +4693,7 @@ The commands below, only work after **path** has been run:
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     if (Math.random() > .999) {
                         economy.loseMoneyToBank(msg.author.id, bet * 2)
-                        return {content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN}
+                        return { content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN }
                     }
                     return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**`, status: StatusCode.RETURN }
                 }
@@ -4317,9 +4730,9 @@ The commands below, only work after **path** has been run:
                 let UserHp = 60;
                 let SpiderHp = 50;
 
-                await handleSending(msg, {status: StatusCode.INFO, content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)"}, sendCallback);
+                await handleSending(msg, { status: StatusCode.INFO, content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)" }, sendCallback);
 
-                let newmsg = await handleSending(msg, {status: StatusCode.INFO, content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}`}, sendCallback);
+                let newmsg = await handleSending(msg, { status: StatusCode.INFO, content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}` }, sendCallback);
                 while (UserHp >= 0 && SpiderHp >= 0) {
                     let action = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, max: 1 })
                     let actionMessage = action.at(0)
@@ -4362,7 +4775,7 @@ The commands below, only work after **path** has been run:
             economy.addMoney(msg.author.id, bet)
         }
         delete globals.BLACKJACK_GAMES[msg.author.id]
-        return { content: `**${status}**\n${stats}` , status: StatusCode.RETURN}
+        return { content: `**${status}**\n${stats}`, status: StatusCode.RETURN }
     }, CommandCategory.GAME,
         "Play a round of blackjack",
         {
@@ -4383,7 +4796,7 @@ The commands below, only work after **path** has been run:
             }
 
             if (!reqElem && !opts['r']) {
-                return { content: "No element requesed" , status: StatusCode.ERR}
+                return { content: "No element requesed", status: StatusCode.ERR }
             }
 
             if (opts['refresh']) {
@@ -4448,6 +4861,25 @@ The commands below, only work after **path** has been run:
             return { embeds: embeds, status: StatusCode.RETURN }
         }, category: CommandCategory.UTIL
     },
+
+    ".economy": createCommand(async (msg, _, sc, opts, args) => {
+        let rw = args[0]
+        let data = []
+        let econ = economy.getEconomy()
+        if (rw === "write") {
+            for (let user in econ) {
+                let user_data = econ[user]
+                data.push(Buffer.from(user))
+                data.push(Buffer.from(Number(String(user_data.money).split(".")[0]).toString(16), "hex"))
+                data.push(Buffer.from("."))
+                data.push(Buffer.from(Number(String(user_data.money).split(".")[1]).toString(16), "hex"))
+            }
+        }
+        data.forEach(t => {
+            fs.appendFileSync("./test.economy", t)
+        })
+        return { noSend: true, status: StatusCode.RETURN }
+    }, CommandCategory.META),
 
     economy: {
         run: async (_msg, _args, sendCallback) => {
@@ -4736,7 +5168,7 @@ The commands below, only work after **path** has been run:
     // }, CommandCategory.ECONOMY, "The bowser command"),
     //
     yt: {
-        run: async(msg, _, sc, opts, args) => {
+        run: async (msg, _, sc, opts, args) => {
             let instance = 'https://vid.puffyan.us'
 
             let pageNo = Number(opts['page'] as string) || 1
@@ -4744,7 +5176,7 @@ The commands below, only work after **path** has been run:
             let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}`)
             let jsonData = await res.json()
 
-            let embeds: {embed: MessageEmbed, button: MessageButton, jsonButton: MessageButton}[] = []
+            let embeds: { embed: MessageEmbed, button: MessageButton, jsonButton: MessageButton }[] = []
             let current_page = 0
 
             let valid_thumbnail_qualities = [
@@ -4761,75 +5193,75 @@ The commands below, only work after **path** has been run:
             let thumbnail_quality = valid_thumbnail_qualities.filter(v => v === opts['thumb-quality'])[0] || "high"
 
 
-            if(opts['list']){
+            if (opts['list']) {
                 let fmt = opts['list']
-                if(fmt == true){
+                if (fmt == true) {
                     fmt = "%l\n"
                 }
 
                 let string = ""
-                for(let res of jsonData){
-                    string += format(fmt, {l: `https://www.youtube.com/watch?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A"})
+                for (let res of jsonData) {
+                    string += format(fmt, { l: `https://www.youtube.com/watch?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A" })
                 }
 
-                return {content: string, status: StatusCode.RETURN}
+                return { content: string, status: StatusCode.RETURN }
             }
 
             let pages = jsonData.length
             let i = 0
 
-            for(let res of jsonData){
+            for (let res of jsonData) {
                 i++;
 
                 let e = new MessageEmbed()
                 e.setTitle(String(res['title']))
 
-                if(res.description){
+                if (res.description) {
                     console.log(res.description)
                     e.setDescription(res.description)
                 }
 
-                e.setFooter({text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}`})
+                e.setFooter({ text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}` })
 
                 //@ts-ignore
                 e.setImage(res.videoThumbnails.filter(v => v.quality == thumbnail_quality)[0].url)
 
-                let button = new MessageButton({label: "OPEN", style: "LINK", url: `https://www.youtube.com/watch?v=${res.videoId}`})
+                let button = new MessageButton({ label: "OPEN", style: "LINK", url: `https://www.youtube.com/watch?v=${res.videoId}` })
 
-                let json_button = new MessageButton({label: "JSON", style: "SECONDARY", customId: `yt.json:${res.videoId}`})
+                let json_button = new MessageButton({ label: "JSON", style: "SECONDARY", customId: `yt.json:${res.videoId}` })
 
-                embeds.push({embed: e, button: button, jsonButton: json_button})
+                embeds.push({ embed: e, button: button, jsonButton: json_button })
             }
 
-            let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY"})
-            let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY"})
+            let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY" })
+            let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY" })
 
             let action_row = new MessageActionRow()
             action_row.addComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
 
-            let m = await handleSending(msg, {components: [action_row], embeds: [embeds[current_page].embed], status: StatusCode.PROMPT}, sc)
-            let collector = m.createMessageComponentCollector({filter: int => int.user.id === msg.author.id})
+            let m = await handleSending(msg, { components: [action_row], embeds: [embeds[current_page].embed], status: StatusCode.PROMPT }, sc)
+            let collector = m.createMessageComponentCollector({ filter: int => int.user.id === msg.author.id })
 
             let to = setTimeout(collector.stop.bind(collector), 60000)
-            collector.on("collect", async(int) => {
+            collector.on("collect", async (int) => {
                 clearTimeout(to)
                 to = setTimeout(collector.stop.bind(collector), 60000)
 
-                if(int.customId.startsWith('yt.next')){
+                if (int.customId.startsWith('yt.next')) {
                     current_page++;
-                    if(current_page >= pages){
+                    if (current_page >= pages) {
                         current_page = 0
                     }
                 }
 
-                else if(int.customId.startsWith('yt.back')){
+                else if (int.customId.startsWith('yt.back')) {
                     current_page--;
-                    if(current_page < 0){
+                    if (current_page < 0) {
                         current_page = 0
                     }
                 }
 
-                else if(int.customId.startsWith("yt.json")){
+                else if (int.customId.startsWith("yt.json")) {
                     let yt_id = int.customId.split(":")[1]
                     //@ts-ignore
                     let json_data = jsonData.filter(v => v.videoId == yt_id)[0]
@@ -4849,13 +5281,13 @@ The commands below, only work after **path** has been run:
 
                 action_row.setComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
 
-                await m.edit({components: [action_row], embeds: [embeds[current_page].embed]})
+                await m.edit({ components: [action_row], embeds: [embeds[current_page].embed] })
                 await int.deferUpdate()
             })
-            if(opts['json']){
-                return {content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN}
+            if (opts['json']) {
+                return { content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN }
             }
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         },
         category: CommandCategory.UTIL,
         help: {
@@ -4892,15 +5324,15 @@ middle
         }
     },
     'fetch-time': {
-        run: async(msg, args) => {
+        run: async (msg, args) => {
             let url = args.join(" ") || "https://www.duckduckgo.com"
-            try{
+            try {
                 let start = Date.now()
                 await fetch.default(url)
-                return {content: `${Date.now() - start}ms`, status: StatusCode.RETURN}
+                return { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }
             }
-            catch(err){
-                return {content: "Problem fetching ".concat(url), status: StatusCode.ERR}
+            catch (err) {
+                return { content: "Problem fetching ".concat(url), status: StatusCode.ERR }
             }
         }, category: CommandCategory.UTIL
     },
@@ -5228,7 +5660,7 @@ middle
                 let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
                 const embed = new MessageEmbed()
                 let aurl = member.user.avatarURL()
-                if(aurl){
+                if (aurl) {
                     embed.setThumbnail(aurl)
                 }
                 embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
@@ -5260,32 +5692,32 @@ middle
         },
         category: CommandCategory.FUN
     },
-    "wiki": createCommand(async(msg, _,  sb, opts, args) => {
+    "wiki": createCommand(async (msg, _, sb, opts, args) => {
         let search = args.join(" ").toLowerCase().replaceAll("/", "%2f")
-        for(let  file of fs.readdirSync("./wiki")){
+        for (let file of fs.readdirSync("./wiki")) {
             let name = file.toLowerCase()
-            if(name.replace(".txt", "") === search){
+            if (name.replace(".txt", "") === search) {
                 return {
                     content: fs.readFileSync(`./wiki/${file}`, "utf-8"),
                     status: StatusCode.RETURN
                 }
             }
         }
-        return {content: "No results", status: StatusCode.ERR}
+        return { content: "No results", status: StatusCode.ERR }
     }, CommandCategory.FUN),
-    "search-wiki": createCommand(async(msg, _, sb, opts, args) => {
+    "search-wiki": createCommand(async (msg, _, sb, opts, args) => {
         let search = args.join(" ").toLowerCase()
-        let results: {[key: string]: number} = {}
-        for(let  file of fs.readdirSync("./wiki")){
+        let results: { [key: string]: number } = {}
+        for (let file of fs.readdirSync("./wiki")) {
             file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
             // let accuracy = 0
             // let sequence = 1
             let lastMatch = 0;
             let matchIndicies: number[] = []
-            for(let i = 0; i < search.length; i++){
+            for (let i = 0; i < search.length; i++) {
                 // let foundMatch = false
-                for(let j = lastMatch; j < file.length; j++){
-                    if(file[j] === search[i]){
+                for (let j = lastMatch; j < file.length; j++) {
+                    if (file[j] === search[i]) {
                         matchIndicies.push(j)
                         lastMatch = j
                         // accuracy += (j - i) * sequence * (file.length - j)
@@ -5302,57 +5734,57 @@ middle
                 // }
             }
             let total = 0
-            for(let i = 1; i < matchIndicies.length; i++){
-                if(matchIndicies[i] - matchIndicies[i - 1] === 0){
+            for (let i = 1; i < matchIndicies.length; i++) {
+                if (matchIndicies[i] - matchIndicies[i - 1] === 0) {
                     continue
                 }
                 total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
             }
             results[file] = total
         }
-        if(opts['all']){
-            return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN}
+        if (opts['all']) {
+            return { content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN }
         }
-        return {content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN}
+        return { content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN }
     }, CommandCategory.FUN),
-    "awiki": createCommand(async(msg, args) => {
+    "awiki": createCommand(async (msg, args) => {
         let [title, ...txt] = args.join(" ").split("|")
         title = title.trim().replaceAll("/", "%2f")
         let text = txt.join("|")
-        if(fs.existsSync(`./wiki/${title.trim()}.txt`)){
-            return {content: `${title} already exists`, status: StatusCode.ERR}
+        if (fs.existsSync(`./wiki/${title.trim()}.txt`)) {
+            return { content: `${title} already exists`, status: StatusCode.ERR }
         }
         fs.writeFileSync(`./wiki/${title.trim()}.txt`, text)
-        return {content: `created a page called: ${title}`, status: StatusCode.RETURN}
+        return { content: `created a page called: ${title}`, status: StatusCode.RETURN }
 
     }, CommandCategory.FUN),
-    "ewiki": createCommand(async(msg, _, cb, opts, args) => {
+    "ewiki": createCommand(async (msg, _, cb, opts, args) => {
         let [page, type, ...text] = args
         let valid_types = ["new", "n", "append", "a"]
         type = type.toLowerCase()
-        if(!valid_types.includes(type)){
-            return {content: `type must be one of new, append`, status: StatusCode.ERR}
+        if (!valid_types.includes(type)) {
+            return { content: `type must be one of new, append`, status: StatusCode.ERR }
         }
-        if(!fs.existsSync(`./wiki/${page}.txt`)){
-            return {content: `${page} does not exist`, status: StatusCode.ERR}
+        if (!fs.existsSync(`./wiki/${page}.txt`)) {
+            return { content: `${page} does not exist`, status: StatusCode.ERR }
         }
-        if(type === "n" || type === "new"){
+        if (type === "n" || type === "new") {
             fs.writeFileSync(`./wiki/${page}.txt`, text.join(" "))
-            return {content: `${page} rewritten`, status: StatusCode.ERR}
+            return { content: `${page} rewritten`, status: StatusCode.ERR }
         }
-        else if(type === "a" || type === "append"){
+        else if (type === "a" || type === "append") {
             let oldData = fs.readFileSync(`./wiki/${page}.txt`, "utf-8")
             fs.writeFileSync(`./wiki/${page}.txt`, oldData + "\n" + args.join(" "))
-            return {content: `${page} appended to`, status: StatusCode.ERR}
+            return { content: `${page} appended to`, status: StatusCode.ERR }
         }
-        return {content: "How did we get here (ewiki)", status: StatusCode.ERR}
+        return { content: "How did we get here (ewiki)", status: StatusCode.ERR }
     }, CommandCategory.FUN),
-    "dwiki": createCommand(async(msg, args) => {
-        if(fs.existsSync(`./wiki/${args.join(" ")}.txt`)){
+    "dwiki": createCommand(async (msg, args) => {
+        if (fs.existsSync(`./wiki/${args.join(" ")}.txt`)) {
             fs.rmSync(`./wiki/${args.join(" ")}.txt`)
-            return {content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN}
+            return { content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN }
         }
-        return {content: `${args.join(" ")} not found`, status: StatusCode.ERR}
+        return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
     }, CommandCategory.META, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
     wikipedia: {
         run: async (msg, args, sendCallback) => {
@@ -5771,7 +6203,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
-            if (!opts['N']) return { noSend: true, delete: true, status: StatusCode.RETURN}
+            if (!opts['N']) return { noSend: true, delete: true, status: StatusCode.RETURN }
             msg.content = `${prefix}${args.join(" ")}`
             await doCmd(msg, false)
             return { noSend: true, delete: true, status: StatusCode.RETURN }
@@ -5798,7 +6230,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             cmd = cmd.split(";end")[0]
             let success;
-            if(condition.trim().startsWith(`(${prefix}`)){
+            if (condition.trim().startsWith(`(${prefix}`)) {
                 let command_to_run = ""
                 let check = ""
                 let expected = ""
@@ -5807,37 +6239,37 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let end_of_command = 0;
                 let end_of_check = 0;
 
-                for(let i = condition.indexOf("(") + 1; i < condition.length; i++){
+                for (let i = condition.indexOf("(") + 1; i < condition.length; i++) {
                     let ch = condition[i]
-                    if(ch === "("){
+                    if (ch === "(") {
                         parenCount++;
                     }
-                    else if(ch === ")"){
+                    else if (ch === ")") {
                         parenCount--;
                     }
-                    if(parenCount === 0){
+                    if (parenCount === 0) {
                         end_of_command = i + 1;
                         break;
                     }
                     command_to_run += ch
                 }
-                for(let i = end_of_command; i < condition.length; i++){
-                    if(condition[i] === "("){
+                for (let i = end_of_command; i < condition.length; i++) {
+                    if (condition[i] === "(") {
                         end_of_check = i + 1;
                         break;
                     }
                     check += condition[i];
                 }
                 parenCount = 1;
-                for(let i = end_of_check; i < condition.length; i++){
+                for (let i = end_of_check; i < condition.length; i++) {
                     let ch = condition[i]
-                    if(ch === "("){
+                    if (ch === "(") {
                         parenCount++;
                     }
-                    else if(ch === ")"){
+                    else if (ch === ")") {
                         parenCount--;
                     }
-                    if(parenCount === 0){
+                    if (parenCount === 0) {
                         end_of_command = i + 1;
                         break;
                     }
@@ -5848,7 +6280,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let content = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim();
                 expected = expected.trim()
                 msg.content = oldContent;
-                switch(check.trim().toLowerCase()){
+                switch (check.trim().toLowerCase()) {
                     case "==": {
                         success = content === expected;
                         break;
@@ -5902,10 +6334,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         break;
                     }
                     case ":": {
-                        try{
+                        try {
                             success = !!content.match(expected);
                         }
-                        catch(err){
+                        catch (err) {
                             success = false;
                         }
                         break;
@@ -5932,7 +6364,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     getimg: {
         run: async (msg, _, sendCallback, opts, args) => {
             let img = getImgFromMsgAndOpts(opts, msg)
-            if(opts['pop'] && msg.attachments.at(0)){
+            if (opts['pop'] && msg.attachments.at(0)) {
                 msg.attachments.delete(msg.attachments.keyAt(0) as string)
             }
             return { content: String(img), status: StatusCode.RETURN }
@@ -6027,7 +6459,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (opts['recurse']) {
                 rv.recurse = true
             }
-            if(opts['status']){
+            if (opts['status']) {
                 let status = {
                     "return": StatusCode.RETURN,
                     "err": StatusCode.ERR,
@@ -6036,7 +6468,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     "info": StatusCode.INFO,
                     "warning": StatusCode.WARNING
                 }[String(opts['status']).toString()]
-                if(status){
+                if (status) {
                     rv.status = status
                 }
             }
@@ -6154,13 +6586,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (_msg, args) => {
             let id = args[0]
             if (!id) {
-                return {status: StatusCode.ERR, content: "no id given" }
+                return { status: StatusCode.ERR, content: "no id given" }
             }
             let str = ""
             for (let key in globals.POLLS[`poll:${id}`]) {
                 str += `${key}: ${globals.POLLS[`poll:${id}`]["votes"][key].length}\n`
             }
-            return { content: str, status: StatusCode.RETURN}
+            return { content: str, status: StatusCode.RETURN }
         },
         help: {
             arguments: {
@@ -6184,7 +6616,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 choices.push({ label: arg, value: arg })
             }
             if (choices.length < 1) {
-                return {status: StatusCode.ERR, content: "no options given" }
+                return { status: StatusCode.ERR, content: "no options given" }
             }
             let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
@@ -6209,13 +6641,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 link = String(getImgFromMsgAndOpts(opts, msg))
             }
             if (!link)
-                return { content: "no link given", status:  StatusCode.ERR }
+                return { content: "no link given", status: StatusCode.ERR }
             try {
                 await client.user?.setAvatar(link)
             }
             catch (err) {
                 console.log(err)
-                return { content: "could not set pfp", status:  StatusCode.ERR }
+                return { content: "could not set pfp", status: StatusCode.ERR }
             }
             return { content: 'set pfp', delete: Boolean(opts['d'] || opts['delete']), status: StatusCode.RETURN }
         },
@@ -6276,11 +6708,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             const low = parseFloat(args[0]) || 0
             const high = parseFloat(args[1]) || 100
             const count = parseInt(args[2]) || 1
-            if(count > 50000){
-                return {content: "Too many numbers", status: StatusCode.ERR}
+            if (count > 50000) {
+                return { content: "Too many numbers", status: StatusCode.ERR }
             }
             let answers = []
-            for(let i  = 0; i < count; i++){
+            for (let i = 0; i < count; i++) {
                 let ans = Math.random() * (high - low) + low
                 if (opts['round']) {
                     ans = Math.floor(ans)
@@ -6340,13 +6772,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 embed.addField("Role count", String(roles.cache.size))
                 let text = roles.cache.toJSON().join(" ")
                 let backup_text = roles.cache.map(v => v.name).join(" ")
-                if(text.length <= 1024){
+                if (text.length <= 1024) {
                     embed.addField("Roles", roles.cache.toJSON().join(" "))
                 }
-                else if(backup_text.length <= 1024){
+                else if (backup_text.length <= 1024) {
                     embed.addField("Roles", backup_text)
                 }
-                else{
+                else {
                     embed.addField("Roles", "Too many to list")
                 }
                 embeds.push(embed)
@@ -6387,12 +6819,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     "rt": {
         run: async (msg, _, sendCallback, opts, args) => {
             if (opts['t']) {
-                handleSending(msg, {content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1}, sendCallback).then(_m => {
+                handleSending(msg, { content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1 }, sendCallback).then(_m => {
                     try {
                         let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                         let start = Date.now()
                         collector.on("collect", async (_m) => {
-                            await handleSending(msg, {content: `${Date.now() - start}ms`, status: StatusCode.RETURN}, sendCallback)
+                            await handleSending(msg, { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }, sendCallback)
                             collector.stop()
                         })
                     }
@@ -6485,8 +6917,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     nick: {
         //@ts-ignore
         run: async (msg, _, sendCallback, opts, args) => {
-            if(args.join(" ").length > 31){
-                return {content: "Too long", status: StatusCode.ERR}
+            if (args.join(" ").length > 31) {
+                return { content: "Too long", status: StatusCode.ERR }
             }
             try {
                 (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
@@ -6513,7 +6945,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 //@ts-ignore
                 let p = await fetchUser(msg.guild, player)
                 if (!p) {
-                    await handleSending(msg, {content: `${player} not found`, status: StatusCode.ERR}, sendCallback)
+                    await handleSending(msg, { content: `${player} not found`, status: StatusCode.ERR }, sendCallback)
                     continue
                 }
                 players.push(p)
@@ -6523,7 +6955,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             let max = parseInt(String(opts["max"])) || 9
             if (max > 1000) {
-                await handleSending(msg, {content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING})
+                await handleSending(msg, { content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING })
                 max = 1000
             }
             let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
@@ -6545,11 +6977,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         return
                     }
                     if (forcedDraw) {
-                        handleSending(msg, {content: `<@${going}> is forced to draw ${forcedDraw} cards`, status: StatusCode.INFO},)
+                        handleSending(msg, { content: `<@${going}> is forced to draw ${forcedDraw} cards`, status: StatusCode.INFO },)
                         for (let i = 0; i < forcedDraw; i++) {
                             let rv = playerData[going].draw(deck)
                             if (!rv) {
-                                handleSending(msg, {content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO},)
+                                handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO },)
                                 pile.shuffle()
                                 deck = new uno.Stack(pile.cards)
                                 pile = new uno.Stack([])
@@ -6596,16 +7028,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (m.content.toLowerCase() == "stop") {
                         players = players.filter(v => v.id != m.author.id)
                         if (players.length == 0) {
-                            await handleSending(msg, {content: "game over", status: StatusCode.RETURN},)
+                            await handleSending(msg, { content: "game over", status: StatusCode.RETURN },)
                         }
                         collection?.stop()
                         if (m.author.id == client.user?.id) return
-                        await handleSending(msg, {content: `${m.author} quit`, status: StatusCode.RETURN},)
+                        await handleSending(msg, { content: `${m.author} quit`, status: StatusCode.RETURN },)
                         going = turns.next().value
                         return
                     }
                     if (playerData[player.id].cards.length <= 0) {
-                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN})
+                        await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -6632,17 +7064,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         let rv = playerData[player.id].draw(deck)
                         cardsDrawn++
                         if (!rv) {
-                            await handleSending(msg, {content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO})
+                            await handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO })
                             pile.shuffle()
                             deck = new uno.Stack(pile.cards)
                             pile = new uno.Stack([])
                             playerData[player.id].draw(deck)
                         }
-                        await handleSending(msg, {content: `${player} drew a card`, status: StatusCode.INFO})
+                        await handleSending(msg, { content: `${player} drew a card`, status: StatusCode.INFO })
                         let send = displayStack(playerData[player.id])
                         send += "\n-------------------------"
                         await m.channel.send(send)
-                        await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO})
+                        await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO })
                         if (pile.cards.length)
                             player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                         return
@@ -6667,13 +7099,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             playerData[player.id].remove(Number(m.content) - 1)
-                            await handleSending(msg, {content: "**stack was shuffled**", status: StatusCode.INFO},)
+                            await handleSending(msg, { content: "**stack was shuffled**", status: StatusCode.INFO },)
                             pile.add(selectedCard)
                             pile.shuffle()
                             going = turns.next().value
                         }
                         else {
-                            await handleSending(msg, {content: "You cannot play that card", status: StatusCode.ERR})
+                            await handleSending(msg, { content: "You cannot play that card", status: StatusCode.ERR })
                         }
                     }
                     else if (selectedCard.type == 'give') {
@@ -6719,7 +7151,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             playerData[player.id].remove(Number(m.content) - 1)
                             pile.add(selectedCard)
                             let randomPlayer = choice(players.filter(v => v.id != player.id)).id
-                            await handleSending(msg, {content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`, status: StatusCode.INFO})
+                            await handleSending(msg, { content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`, status: StatusCode.INFO })
                             let newTopCard = playerData[randomPlayer].cards[0]
                             playerData[randomPlayer].remove(0)
                             pile.add(newTopCard)
@@ -6732,20 +7164,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         try {
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             if (!colorM) {
-                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
+                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
+                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await handleSending(msg, {content: "Something went wrong, defaulting to red", status: StatusCode.ERR})
+                            await handleSending(msg, { content: "Something went wrong, defaulting to red", status: StatusCode.ERR })
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -6759,20 +7191,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
                             console.log(colorM?.content)
                             if (!colorM) {
-                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
+                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
                                 selectedCard.color = "red"
                             }
                             else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
                                 selectedCard.color = colorM.content
                             }
                             else {
-                                await handleSending(msg, {content: "User picked incorrect color, using red", status: StatusCode.ERR})
+                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
                                 selectedCard.color = "red"
                             }
                         }
                         catch (err) {
                             console.log(err)
-                            await handleSending(msg, {content: "Something went wrong, defaulting to red", status: StatusCode.ERR})
+                            await handleSending(msg, { content: "Something went wrong, defaulting to red", status: StatusCode.ERR })
                             selectedCard.color = "red"
                         }
                         pile.add(selectedCard)
@@ -6784,7 +7216,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (selectedCard.canBePlayed(pile)) {
                             cardsPlayed++
                             let skipped = turns.next().value
-                            await handleSending(msg, {content: `<@${skipped}> was skipped`, status: StatusCode.INFO})
+                            await handleSending(msg, { content: `<@${skipped}> was skipped`, status: StatusCode.INFO })
                             going = turns.next().value
                             await new Promise(res => {
                                 pile.add(selectedCard)
@@ -6813,9 +7245,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             await m.channel.send("You cannot play that card")
                         }
                     }
-                    await handleSending(msg, {content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status:  StatusCode.INFO})
+                    await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO })
                     if (playerData[player.id].cards.length <= 0) {
-                        await handleSending(msg, {content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN})
+                        await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
                         for (let player of players) {
                             await player.send("STOP")
                         }
@@ -6870,7 +7302,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             });
                     }
                     catch (err) {
-                        await handleSending(msg, {content: "No results", status: StatusCode.ERR}, sendCallback)
+                        await handleSending(msg, { content: "No results", status: StatusCode.ERR }, sendCallback)
                         return
                     }
                     homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
@@ -6880,7 +7312,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
                     }
                     catch (err) {
-                        await handleSending(msg, {content: "Failed to get data", status: StatusCode.ERR}, sendCallback)
+                        await handleSending(msg, { content: "Failed to get data", status: StatusCode.ERR }, sendCallback)
                         return
                     }
                     homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
@@ -6899,7 +7331,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     embed.addField("Time", inning)
                     embed.addField(`${homeTeam}`, String(homeScore))
                     embed.addField(`${awayTeam}`, String(awayScore))
-                    await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN}, sendCallback)
+                    await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN }, sendCallback)
                 })
             }).end()
             return {
@@ -6935,12 +7367,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
             let guessCount = parseInt(opts["lives"] as string) || 6
             let display: string[] = []
-            await handleSending(msg, {content: "key: **correct**, *wrong place*, `wrong`", status: StatusCode.INFO}, sendCallback)
-            await handleSending(msg, {content: `The word is ${word.length} characters long`, status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, { content: "key: **correct**, *wrong place*, `wrong`", status: StatusCode.INFO }, sendCallback)
+            await handleSending(msg, { content: `The word is ${word.length} characters long`, status: StatusCode.INFO }, sendCallback)
             for (let i = 0; i < guessCount; i++) {
                 display.push(mulStr("⬛ ", word.length))
             }
-            await handleSending(msg, {content: display.join("\n"), status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, { content: display.join("\n"), status: StatusCode.INFO }, sendCallback)
             let letterCount: { [k: string]: number } = {}
             for (let letter of word) {
                 if (letterCount[letter] === undefined) {
@@ -6953,7 +7385,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             collector.on("collect", async (m) => {
                 if (m.content == "STOP") {
                     collector.stop()
-                    await handleSending(msg, {content: "stopped", status: StatusCode.RETURN}, sendCallback)
+                    await handleSending(msg, { content: "stopped", status: StatusCode.RETURN }, sendCallback)
                     return
                 }
                 guesses.push(m.content)
@@ -6975,14 +7407,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 display[6 - guessCount] = nextInDisplay
                 guessCount--
-                await handleSending(msg, {content: display.join("\n"), status: StatusCode.INFO}, sendCallback)
+                await handleSending(msg, { content: display.join("\n"), status: StatusCode.INFO }, sendCallback)
                 if (m.content == word) {
-                    await handleSending(msg, {content: `You win`, status: StatusCode.RETURN}, sendCallback)
+                    await handleSending(msg, { content: `You win`, status: StatusCode.RETURN }, sendCallback)
                     collector.stop()
                     return
                 }
                 if (guessCount == 0) {
-                    await handleSending(msg, {content: `You lose, it was ${word}`, status: StatusCode.RETURN}, sendCallback)
+                    await handleSending(msg, { content: `You lose, it was ${word}`, status: StatusCode.RETURN }, sendCallback)
                     collector.stop()
                     return
                 }
@@ -7059,7 +7491,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }
                 }
                 try {
-                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess` , status: StatusCode.PROMPT})
+                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess`, status: StatusCode.PROMPT })
                 }
                 catch (err) {
                     return { content: "2K char limit reached", status: StatusCode.ERR }
@@ -7071,7 +7503,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (m.content == '\\n' || m.content == "<enter>")
                         m.content = '\n'
                     if (m.content == "STOP") {
-                        await handleSending(msg, {content: "STOPPED", status: StatusCode.RETURN}, sendCallback)
+                        await handleSending(msg, { content: "STOPPED", status: StatusCode.RETURN }, sendCallback)
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -7083,11 +7515,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         participants[m.author.id] = .5
                     }
                     if ([...guessed].indexOf(m.content) > -1) {
-                        await handleSending(msg, {content: `You've already guessed ${m.content}`, status: StatusCode.ERR}, sendCallback)
+                        await handleSending(msg, { content: `You've already guessed ${m.content}`, status: StatusCode.ERR }, sendCallback)
                         return
                     }
                     else if (m.content == wordstr) {
-                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`,status: StatusCode.RETURN })
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`, status: StatusCode.RETURN })
                         collection.stop()
                         gameIsGoing = false
                         return
@@ -7210,7 +7642,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let edits = args.join(" ").split("|")
             let message
             try {
-                message = await handleSending(msg, {content: edits[0], status: StatusCode.INFO}, sendCallback)
+                message = await handleSending(msg, { content: edits[0], status: StatusCode.INFO }, sendCallback)
             }
             catch (err) {
                 return { content: "message too big", status: StatusCode.ERR }
@@ -7243,7 +7675,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 else if (edit[0] == ";") {
                     try {
-                        message = await handleSending(msg, {content: edit.slice(1), status: StatusCode.INFO}, sendCallback)
+                        message = await handleSending(msg, { content: edit.slice(1), status: StatusCode.INFO }, sendCallback)
                     }
                     catch (err) {
                         return { content: "message too big", status: StatusCode.ERR }
@@ -7255,9 +7687,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 catch (err) {
                     if (!message.deletable) {
-                        return { noSend: true,status: StatusCode.ERR }
+                        return { noSend: true, status: StatusCode.ERR }
                     }
-                    await handleSending(msg, {content: `Could not edit message with: ${edit}`, status: StatusCode.ERR}, sendCallback)
+                    await handleSending(msg, { content: `Could not edit message with: ${edit}`, status: StatusCode.ERR }, sendCallback)
                 }
                 await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
                 lastEdit = message.content
@@ -7866,47 +8298,47 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
         category: CommandCategory.IMAGES
     },
-    "img-info": createCommand(async(msg, args, sendCallback) => {
+    "img-info": createCommand(async (msg, args, sendCallback) => {
         let opts;
         [opts, args] = getOpts(args)
         let img = getImgFromMsgAndOpts(opts, msg)
-        if(!img || img === true){
-            return {content: "No image given", status: StatusCode.ERR}
+        if (!img || img === true) {
+            return { content: "No image given", status: StatusCode.ERR }
         }
         let image = await canvas.loadImage(img)
 
-        return {content: `width: ${image.width}\nheight: ${image.height}`, status: StatusCode.RETURN}
+        return { content: `width: ${image.width}\nheight: ${image.height}`, status: StatusCode.RETURN }
     }, CommandCategory.IMAGES),
-    overlay: createCommand(async(msg, _, sc, opts, args) => {
+    overlay: createCommand(async (msg, _, sc, opts, args) => {
         let [img1, img2] = args.join(" ").split("|")
         img1 = img1.trim()
         img2 = img2.trim()
-        if(img1 && !img1.startsWith("http")){
+        if (img1 && !img1.startsWith("http")) {
             let new_img1 = getVar(msg, img1, msg.author.id)
-            if(!new_img1){
+            if (!new_img1) {
                 new_img1 = getVar(msg, img1, "__global__")
             }
             img1 = String(new_img1)
         }
-        if(!img1 || !img1.startsWith("http")){
-            img1 = getImgFromMsgAndOpts(opts, msg) as  string
-            if(msg.attachments.keyAt(0)){
+        if (!img1 || !img1.startsWith("http")) {
+            img1 = getImgFromMsgAndOpts(opts, msg) as string
+            if (msg.attachments.keyAt(0)) {
                 msg.attachments.delete(msg.attachments.keyAt(0) as string)
             }
         }
-        if(img2 && !img2.startsWith("http")){
-            let  new_img2 = getVar(msg, img2, msg.author.id)
-            if(!new_img2){
+        if (img2 && !img2.startsWith("http")) {
+            let new_img2 = getVar(msg, img2, msg.author.id)
+            if (!new_img2) {
                 new_img2 = getVar(msg, img2, "__global__")
             }
             img2 = String(new_img2)
         }
-        if(!img2 || !img2.startsWith("http")){
+        if (!img2 || !img2.startsWith("http")) {
             img2 = getImgFromMsgAndOpts(opts, msg) as string
         }
         console.log(img1, img2)
-        if(!img2 || !img1){
-            return {content: `Must provide 2 images\nimg1: ${img1}\nimg2: ${img2}`, status: StatusCode.ERR}
+        if (!img2 || !img1) {
+            return { content: `Must provide 2 images\nimg1: ${img1}\nimg2: ${img2}`, status: StatusCode.ERR }
         }
         let image1 = await canvas.loadImage(img1)
         let image2 = await canvas.loadImage(img2)
@@ -7931,16 +8363,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
 
     }, CommandCategory.IMAGES,
-                          `overlay image 1 onto image 2 seperated by |
+        `overlay image 1 onto image 2 seperated by |
 <br>
 If an image is not provided it will be pulled from chat, or an image you gave it`,
-                          {
-                              img1: createHelpArgument("The first image, put a | if you just want to use an image from chat"),
-                              img2: createHelpArgument("A link to image, an image you  gave as attachment, or an image from chat")
-                          },
-                          {
-                              alpha: createHelpOption("The alpha to use, defaults to 0.5")
-                          }),
+        {
+            img1: createHelpArgument("The first image, put a | if you just want to use an image from chat"),
+            img2: createHelpArgument("A link to image, an image you  gave as attachment, or an image from chat")
+        },
+        {
+            alpha: createHelpOption("The alpha to use, defaults to 0.5")
+        }),
     text: {
         //text command
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -7948,19 +8380,19 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             [opts, args] = getOpts(args)
 
             let img;
-            if(opts['img'] || msg.attachments.at(0)){
+            if (opts['img'] || msg.attachments.at(0)) {
                 img = getImgFromMsgAndOpts(opts, msg)
             }
 
             let width = Number(opts['w']) || 0
             let height = Number(opts['h']) || 0
-            if(width * height > 4000000){
-                return {content: "Too large", status: StatusCode.ERR}
+            if (width * height > 4000000) {
+                return { content: "Too large", status: StatusCode.ERR }
             }
 
             let text = args.join(" ")
-            if(!text){
-                return {content: "No text", status: StatusCode.ERR}
+            if (!text) {
+                return { content: "No text", status: StatusCode.ERR }
             }
 
             let lineCount = text.split("\n").length
@@ -7968,18 +8400,18 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let font_size = String(opts['size'] || "10") + "px"
             let font = String(opts['font'] || "serif")
 
-            if(width === 0 || height === 0){
+            if (width === 0 || height === 0) {
                 let c = new canvas.Canvas(1000, 1000)
                 let ctx = c.getContext("2d")
                 ctx.font = `${font_size} ${font}`
                 let textInfo = ctx.measureText(text)
                 width ||= textInfo.width
                 //@ts-ignore
-                height ||= parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
+                height ||= parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
             }
 
             let canv, ctx;
-            if(img){
+            if (img) {
                 let image = await canvas.loadImage(img as string)
                 width = width || image.width
                 height = height || image.height
@@ -7987,7 +8419,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ctx = canv.getContext("2d")
                 ctx.drawImage(image, 0, 0)
             }
-            else{
+            else {
                 width = width || 100
                 height = height || 100
                 canv = new canvas.Canvas(width, height, "image")
@@ -7998,12 +8430,12 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             ctx.font = `${font_size} ${font}`
             let textInfo = ctx.measureText(text)
 
-            if(opts['measure']){
-                if(opts['measure'] !== true){
+            if (opts['measure']) {
+                if (opts['measure'] !== true) {
                     //@ts-ignore
-                    return {content: String(textInfo[opts['measure']]), status: StatusCode.RETURN}
+                    return { content: String(textInfo[opts['measure']]), status: StatusCode.RETURN }
                 }
-                return {content: JSON.stringify(textInfo), status: StatusCode.RETURN}
+                return { content: JSON.stringify(textInfo), status: StatusCode.RETURN }
             }
 
             ctx.textBaseline = Pipe.start(opts['baseline']).default("top").next((v: string) => String(v)).done()
@@ -8012,38 +8444,38 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let x = parsePosition(req_x, width, textInfo.width)
             let req_y = String(opts['y'] || 0)
             //@ts-ignore
-            let y = parsePosition(req_y, width, parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+            let y = parsePosition(req_y, width, parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
 
             let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
-            if(bg_colors.length == 1){
-                if(bg_colors[0] !== 'transparent'){
+            if (bg_colors.length == 1) {
+                if (bg_colors[0] !== 'transparent') {
                     ctx.fillStyle = bg_colors[0]
                     //@ts-ignore
-                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 }
             }
-            else{
+            else {
                 //@ts-ignore
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
-                let interval = 1 /(bg_colors.length - 1)
-                for(let i = 0; i < bg_colors.length; i++){
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                let interval = 1 / (bg_colors.length - 1)
+                for (let i = 0; i < bg_colors.length; i++) {
                     console.log(bg_colors[i])
                     grad.addColorStop(interval * i, bg_colors[i])
                 }
                 ctx.fillStyle = grad
                 //@ts-ignore
-                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72/96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
             }
 
             let colors = intoColorList(String(opts['color'] || "red"))
-            if(colors.length == 1){
+            if (colors.length == 1) {
                 ctx.fillStyle = colors[0]
             }
-            else{
+            else {
                 //@ts-ignore
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72/96) + textInfo.actualBoundingBoxDescent + (textInfo.emHeightDescent / lineCount))
-                let interval = 1 /(colors.length - 1)
-                for(let i = 0; i < colors.length; i++){
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + (textInfo.emHeightDescent / lineCount))
+                let interval = 1 / (colors.length - 1)
+                for (let i = 0; i < colors.length; i++) {
                     console.log(colors[i])
                     grad.addColorStop(interval * i, colors[i])
                 }
@@ -8144,17 +8576,17 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let url = "https://www.wttr.in"
             let town = args.join(" ") || "tokyo"
 
-            let  data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
+            let data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
             let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
-            if(!tempData){
-                return {content: "Could not find weather", status: StatusCode.ERR}
+            if (!tempData) {
+                return { content: "Could not find weather", status: StatusCode.ERR }
             }
             let condition, temp, unit
             try {
                 [condition, temp, unit] = tempData.slice(1, 4)
             }
             catch (err) {
-                return { content: "Could not find weather :(" , status: StatusCode.ERR}
+                return { content: "Could not find weather :(", status: StatusCode.ERR }
             }
             temp = Number(temp)
             let tempC, tempF
@@ -8186,10 +8618,10 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             embed.addField("Temp F", `${tempF}F`, true)
             embed.addField("Temp C", `${tempC}C`, true)
             embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
-            if(opts['fmt']){
-                return {content: format(String(opts['fmt']), {f: String(tempF), c: String(tempC), g: color, s: condition, l: town}), status: StatusCode.RETURN}
+            if (opts['fmt']) {
+                return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
             }
-            return {embeds: [embed], status: StatusCode.RETURN}
+            return { embeds: [embed], status: StatusCode.RETURN }
         },
         help: {
             info: "Get weather for a specific place, default: tokyo",
@@ -8396,8 +8828,8 @@ Valid formats:
     },
     "do": {
         run: async (msg: Message, args: ArgumentList, sendCallback, opts, deopedArgs, recursion) => {
-            if(recursion >= globals.RECURSION_LIMIT){
-                return {content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR}
+            if (recursion >= globals.RECURSION_LIMIT) {
+                return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
             let times = parseInt(args[0])
             if (times) {
@@ -8411,17 +8843,17 @@ Valid formats:
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
             let cmd = cmdArgs.split(" ")[0]
             let expansion = await expandAlias(cmd, (alias) => {
                 console.log(alias)
-                if(alias === "do" || alias === "spam" || alias === "run"){
+                if (alias === "do" || alias === "spam" || alias === "run") {
                     return false
                 }
                 return true
             })
-            if(!expansion){
-                return {content: "Cannot run do, spam, or run", status: StatusCode.ERR}
+            if (!expansion) {
+                return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
             }
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
@@ -8449,16 +8881,16 @@ Valid formats:
                 sendText = [times, ...text].join(" ")
             }
             let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
             globals.SPAMS[id] = true
-            let message = await handleSending(msg, {content: sendText, status: StatusCode.RETURN}, sendCallback)
+            let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
             while (globals.SPAMS[id] && timesToGo--) {
                 if (message.deletable) await message.delete()
-                message = await handleSending(msg, {content: sendText, status: StatusCode.RETURN}, sendCallback)
+                message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             delete globals.SPAMS[id]
-            return { content: "done",status: StatusCode.INFO }
+            return { content: "done", status: StatusCode.INFO }
         }, category: CommandCategory.FUN
     },
     spam: {
@@ -8474,10 +8906,10 @@ Valid formats:
             }
             let totalTimes = times
             let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, {content: `starting ${id}`, status: StatusCode.INFO}, sendCallback)
+            await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
             globals.SPAMS[id] = true
             let delay: number | null = parseFloat(String(opts['delay'])) * 1000 || 0
-            if(delay < 700 || delay > 0x7FFFFFFF){
+            if (delay < 700 || delay > 0x7FFFFFFF) {
                 delay = null
             }
             while (globals.SPAMS[id] && times--) {
@@ -8545,7 +8977,7 @@ Valid formats:
             let opts: Opts;
             [opts, args] = getOpts(args)
             if (msg.deletable && opts['d']) await msg.delete()
-            let message = await handleSending(msg, {content: args.join(" ") || "poll", status: StatusCode.RETURN}, sendCallback)
+            let message = await handleSending(msg, { content: args.join(" ") || "poll", status: StatusCode.RETURN }, sendCallback)
             await message.react("<:Blue_check:608847324269248512>")
             await message.react("<:neutral:716078457880051734>")
             await message.react("❌")
@@ -8795,8 +9227,8 @@ Valid formats:
     },
     "run": {
         run: async (msg: Message, args, sendCallback, _, _2, recursion, bans) => {
-            if(recursion >= globals.RECURSION_LIMIT){
-                return {content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR}
+            if (recursion >= globals.RECURSION_LIMIT) {
+                return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
             }
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -8823,7 +9255,7 @@ Valid formats:
             let id = Math.floor(Math.random() * 10000000)
             globals.SPAMS[id] = true
             if (!opts['s']) {
-                await handleSending(msg, {content: `Starting id: ${id}`, status: StatusCode.INFO}, sendCallback)
+                await handleSending(msg, { content: `Starting id: ${id}`, status: StatusCode.INFO }, sendCallback)
             }
             function handleRunFn(fn: string, contents: string) {
                 switch (fn) {
@@ -8910,8 +9342,8 @@ Valid formats:
             }
             let v = getVar(msg, name, scope)
             if (v)
-                return { content: String(v), status: StatusCode.RETURN}
-            else return { content: `\\v{${args.join(" ")}}` , status: StatusCode.RETURN}
+                return { content: String(v), status: StatusCode.RETURN }
+            else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
         }, category: CommandCategory.META
     },
     "var": {
@@ -8926,7 +9358,7 @@ Valid formats:
             if (opts['prefix']) {
                 let prefix = String(opts['prefix'])
                 if (prefix.match(/^\d{18}/)) {
-                    return { content: "No ids allowed", status: StatusCode.ERR}
+                    return { content: "No ids allowed", status: StatusCode.ERR }
                 }
                 setVar(name, realVal, prefix)
                 if (!opts['silent'])
@@ -9006,7 +9438,7 @@ Valid formats:
                     for (let numStr of m.content.split(" ")) {
                         let num = parseInt(numStr || "0")
                         if (!num) {
-                            await handleSending(msg, {content: `${num} is not a valid number`, status: StatusCode.ERR}, sendCallback)
+                            await handleSending(msg, { content: `${num} is not a valid number`, status: StatusCode.ERR }, sendCallback)
                             return
                         }
                         let removal = data[num - 1]
@@ -9052,9 +9484,10 @@ Valid formats:
 
     },
     "file": {
-        run: async (msg, args, sendCallback) => {
+        run: async (msg, _, sendCallback, opts, args) => {
             let fn = generateFileName("file", msg.author.id)
             fs.writeFileSync(fn, args.join(" "))
+
             return {
                 files: [
                     {
@@ -9069,30 +9502,30 @@ Valid formats:
         category: CommandCategory.UTIL
 
     },
-    "b64m": createCommand(async(msg, _, sc, opts, args) => {
-        let table: {[key: number]: string} = {}
+    "b64m": createCommand(async (msg, _, sc, opts, args) => {
+        let table: { [key: number]: string } = {}
         let j = 0;
-        for(let char of "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"){
+        for (let char of "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") {
             table[j++] = char;
         }
         let encoded = ""
         let binnumber = ""
-        for(let char of args.join(" ")){
+        for (let char of args.join(" ")) {
             let n = `${char.codePointAt(0)?.toString(2)}`
-            if(n.length < 8){
+            if (n.length < 8) {
                 n = mulStr("0", 8 - n.length) + n
             }
             binnumber += n
         }
         let i;
-        for(i = 0; i < binnumber.length - 6; i+= 6){
+        for (i = 0; i < binnumber.length - 6; i += 6) {
             let binrep = binnumber.slice(i, i + 6)
             encoded += String(table[Number(`0b${binrep}`)])
         }
         let lastBits = binnumber.slice(i)
         lastBits += (() => {
             let x = ""
-            for(let i = 0; i < 6 - lastBits.length; i++){
+            for (let i = 0; i < 6 - lastBits.length; i++) {
                 x += "0"
             }
             return x
@@ -9100,7 +9533,7 @@ Valid formats:
         encoded += String(table[Number(`0b${lastBits}`)])
 
 
-        return {content: encoded, status: StatusCode.RETURN}
+        return { content: encoded, status: StatusCode.RETURN }
     }, CommandCategory.UTIL),
     "b64": {
         run: async (_msg, args, sendCallback) => {
@@ -9126,49 +9559,49 @@ Valid formats:
         },
         category: CommandCategory.UTIL
     },
-    "timer": createCommand(async(msg, _, sc, opts, args) => {
+    "timer": createCommand(async (msg, _, sc, opts, args) => {
         let action = args[0]?.toLowerCase()
         let actions = ["create", "delete", "get", "list", "lap"]
-        if(!actions.includes(action)){
-            return {content: `${action} is not a valid action\ncommand use: \`[timer <create | delete | get | list | lap> ...\``, status: StatusCode.ERR}
+        if (!actions.includes(action)) {
+            return { content: `${action} is not a valid action\ncommand use: \`[timer <create | delete | get | list | lap> ...\``, status: StatusCode.ERR }
         }
-        switch(action){
+        switch (action) {
             case "create": {
                 let name = String(args.slice(1).join(" ")).trim()
-                if(timer.getTimer(msg.author.id, name)){
-                    return {content: `You already have a timer called: ${name}`, status: StatusCode.ERR}
+                if (timer.getTimer(msg.author.id, name)) {
+                    return { content: `You already have a timer called: ${name}`, status: StatusCode.ERR }
                 }
                 timer.createTimer(msg.author.id, name)
-                return {content: `${name} created`, status: StatusCode.RETURN}
+                return { content: `${name} created`, status: StatusCode.RETURN }
             }
             case "delete": {
                 let name = String(args.slice(1).join(" ")).trim()
-                if(!timer.getTimer(msg.author.id, name)){
-                    return {content: `You do not have a timer called ${name}`, status: StatusCode.ERR}
+                if (!timer.getTimer(msg.author.id, name)) {
+                    return { content: `You do not have a timer called ${name}`, status: StatusCode.ERR }
                 }
                 timer.deleteTimer(msg.author.id, name)
-                return {content: `${name} deleted`, status: StatusCode.RETURN}
+                return { content: `${name} deleted`, status: StatusCode.RETURN }
             }
             case "get": {
-                return {content: String(timer.getTimer(msg.author.id, args.slice(1).join(" "))), status: StatusCode.RETURN}
+                return { content: String(timer.getTimer(msg.author.id, args.slice(1).join(" "))), status: StatusCode.RETURN }
             }
             case "list": {
                 let timers = timer.getTimersOfUser(msg.author.id)
-                if(!timers){
-                    return {content: "You do not have any timers", status: StatusCode.ERR}
+                if (!timers) {
+                    return { content: "You do not have any timers", status: StatusCode.ERR }
                 }
-                return {content: Object.entries(timers).map((v) => `${v[0]}: ${Date.now() - v[1]}`).join("\n"), status: StatusCode.RETURN}
+                return { content: Object.entries(timers).map((v) => `${v[0]}: ${Date.now() - v[1]}`).join("\n"), status: StatusCode.RETURN }
             }
             case "lap": {
                 let name = args.slice(1).join(" ").trim()
                 let t = timer.getTimer(msg.author.id, name)
-                if(!t){
-                    return {content: `You do not have a timer called ${name}`, status: StatusCode.ERR}
+                if (!t) {
+                    return { content: `You do not have a timer called ${name}`, status: StatusCode.ERR }
                 }
-                return {content: `${Date.now() - t}ms`, status: StatusCode.RETURN}
+                return { content: `${Date.now() - t}ms`, status: StatusCode.RETURN }
             }
-            default:{
-                return {content: "How did we get here", status: StatusCode.ERR}
+            default: {
+                return { content: "How did we get here", status: StatusCode.ERR }
             }
 
         }
@@ -9709,7 +10142,7 @@ ${styles}
     RESET_ECONOMY: {
         run: async (msg, _args, sendCallback) => {
 
-            if(hasItem(msg.author.id, "reset economy")){
+            if (hasItem(msg.author.id, "reset economy")) {
                 useItem(msg.author.id, "reset economy")
             }
             economy.resetEconomy()
@@ -9720,9 +10153,9 @@ ${styles}
         permCheck: (m) => ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy")
     },
     RESET_LOTTERY: {
-        run: async(msg, args, sb) => {
+        run: async (msg, args, sb) => {
             economy.newLottery()
-            return {content: "Lottery reset", status: StatusCode.RETURN}
+            return { content: "Lottery reset", status: StatusCode.RETURN }
         },
         category: CommandCategory.ADMIN
     },
@@ -9861,11 +10294,11 @@ ${styles}
     },
     END: {
         run: async (msg: Message, _args: ArgumentList, sendCallback) => {
-            if(fs.existsSync(String(currently_playing?.filename))){
-                try{
+            if (fs.existsSync(String(currently_playing?.filename))) {
+                try {
                     fs.rmSync(String(currently_playing?.filename))
                 }
-                catch(err){}
+                catch (err) { }
             }
             await sendCallback("STOPPING")
             economy.saveEconomy()
@@ -9910,13 +10343,13 @@ ${styles}
                 if (hours == minutes) {
                     amount *= 1.1
                 }
-                if(minutes == seconds){
+                if (minutes == seconds) {
                     amount *= 1.1
                 }
                 if (hours == minutes && minutes == seconds) {
                     amount *= 1.5
                 }
-                if(pet.getActivePet(msg.author.id) == "bird"){
+                if (pet.getActivePet(msg.author.id) == "bird") {
                     amount *= 2
                 }
                 economy.addMoney(msg.author.id, amount)
@@ -10000,7 +10433,7 @@ ${styles}
             let search = args.join(" ").toLowerCase()
             let roles = await msg.guild?.roles.fetch()
             if (!roles) {
-                return { content: "No roles found", status: StatusCode.ERR}
+                return { content: "No roles found", status: StatusCode.ERR }
             }
             let foundRoles = roles.filter(r => r.name.toLowerCase() == search ? true : false)
             if (!foundRoles.size) {
@@ -10675,7 +11108,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
     let redir: boolean | [Object, string] = false //Object is the object in which the variable is stored, string is the variable name
 
     //The return  value from this function
-    let rv: CommandReturn = {status: StatusCode.RETURN};
+    let rv: CommandReturn = { status: StatusCode.RETURN };
 
     let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
 
@@ -10756,7 +11189,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
         if (msg.deletable) await msg.delete()
         command = command.slice(2)
     }
-    if (command.startsWith("n:")){
+    if (command.startsWith("n:")) {
         skipParsing = true
         command = command.slice(2)
     }
@@ -10798,14 +11231,14 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
     if (!commands[command]) {
         //We dont want to keep running commands if the command doens't exist
         //fixes the [[[[[[[[[[[[[[[[[ exploit
-        if(command.startsWith(prefix)){
+        if (command.startsWith(prefix)) {
             command = `\\${command}`
         }
         rv = { content: `${command} does not exist`, status: StatusCode.ERR }
         exists = false
     }
 
-    if(skipParsing === false){
+    if (skipParsing === false) {
         //Then parse cmd to get the cmd, arguments, and dofirsts
         let _
         //get the new parsed args
@@ -10873,7 +11306,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             let [opts, args2] = getOpts(args)
             setVar("_!!!", command, msg.author.id)
             rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
-                //if normal command, it counts as use
+            //if normal command, it counts as use
             globals.addToCmdUse(command)
         }
         else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
@@ -10935,11 +11368,11 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (rv.noSend) {
         return msg
     }
-    if(rv.content && rv.do_change_cmd_user_expansion !== false){
+    if (rv.content && rv.do_change_cmd_user_expansion !== false) {
         //if not empty, save in the _! variable
         setVar("_!", rv.content, msg.author.id)
         setVar("_!", rv.content)
-        
+
         //@ts-ignore
         let optionToGet: user_options.UserOption = {
             [StatusCode.ERR]: "change-cmd-error",
@@ -10950,13 +11383,13 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         }[rv.status] as user_options.UserOption
 
         let opt = user_options.getOpt(msg.author.id, optionToGet, "")
-        if(opt !== ""){
+        if (opt !== "") {
             rv.content = opt
-            if(rv.recurse && rv.recurse !== true){
+            if (rv.recurse && rv.recurse !== true) {
                 //if rv specified different bans, we want those to take priority
-                rv.recurse = {...rv.recurse}
+                rv.recurse = { ...rv.recurse }
             }
-            else{
+            else {
                 rv.recurse = generateDefaultRecurseBans()
             }
             rv.do_change_cmd_user_expansion = false
@@ -10974,10 +11407,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
         rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
         //we only want to override it if the command doens't explicitly want to do it
-        if(rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false){
+        if (rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false) {
             rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion
         }
-            
+
         msg.content = oldContent
         //it's better to just recursively do this, otherwise all the code above would be repeated
         return await handleSending(msg, rv, sendCallback, recursion + 1)
