@@ -5532,7 +5532,8 @@ middle
                     .replaceAll("ampm", AMPM)
                     .replaceAll("month", `${date.getMonth() + 1}`)
                     .replaceAll("year", `${date.getFullYear()}`)
-                    .replaceAll("day", `${date.getDay()}`),
+                    .replaceAll("day", `${date.getDay()}`)
+                    .replaceAll("unix", String(Date.now() / 1000)),
                 status: StatusCode.RETURN
             }
         },
