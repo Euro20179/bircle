@@ -2562,16 +2562,7 @@ The commands below, only work after **path** has been run:
             async go(id: string, rollCount: number, diceRolls: number[]): Promise<any>{
                 this.score()
 
-                let embed = new MessageEmbed()
-                    .setTitle("Rolls")
-
-                let fields = []
-                for(let i = 0; i < diceRolls.length; i++){
-                    fields.push({value: `${i+1}`, name: `${diceRolls[i]}`, inline: true})
-                }
-                embed.addFields(fields)
-
-                await handleSending(msg, { content: `<@${id}>  YOUR UP:\n${this.toString()}`, embeds: [embed], status: StatusCode.INFO })
+                await handleSending(msg, { content: `<@${id}>  YOUR UP:\n${this.toString()}\n\n${diceRolls.join(", ")}`, status: StatusCode.INFO })
 
                 let filter = (function(m: Message) {
                     if(m.author.id !== id){
