@@ -11,7 +11,7 @@ const ADMINS = ["334538784043696130"]
 
 const LOGFILE = "log.txt"
 
-const VERSION = { major: 4, minor: 1, bug: 15, part: "", beta: false, alpha: false }
+const VERSION = { major: 4, minor: 2, bug: 0, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
 
