@@ -11431,7 +11431,9 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
 
 export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false> {
     let expansions = 0
-    let aliasPreArgs = aliases[command].slice(1)
+    let aliasPreArgs = aliases[command]?.slice(1)
+    if(aliasPreArgs === undefined)
+        return [command, []]
     command = aliases[command][0]
     if (onExpand && !onExpand?.(command, aliasPreArgs)) {
         return false
