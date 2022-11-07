@@ -3,7 +3,7 @@ import fs = require("fs")
 
 import http from 'http'
 
-import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions } from "discord.js"
+import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } from "discord.js"
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
@@ -23,6 +23,30 @@ const user_options = require("./user-options")
 let {client, purgeSnipe,  prefix, BLACKLIST, saveVars} = require("./common")
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
+
+//@ts-ignore
+Object.defineProperty(User.prototype, "balance", {
+    "get": function(){
+        return economy.calculateAmountFromString(this.id, "100%")
+    }
+});
+//@ts-ignore
+Object.defineProperty(User.prototype, "loan", {
+    "get": function(){
+        return economy.calculateLoanAmountFromString(this.id, "100%")
+    }
+});
+
+Object.defineProperty(User.prototype, "economyData", {
+    "get": function(){
+        return economy.getEconomy()[this.id]
+    }
+});
+Object.defineProperty(User.prototype, "netWorth", {
+    "get": function(){
+        return economy.playerLooseNetWorth(this.id)
+    }
+});
 
 (async () => {
     try {

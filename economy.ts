@@ -551,10 +551,6 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     return data
 }
 
-function useBowser(id: string){
-    ECONOMY[id].usedBowser = Date.now()
-}
-
 export {
     loadEconomy,
     saveEconomy,
