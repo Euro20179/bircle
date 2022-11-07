@@ -8869,7 +8869,10 @@ Valid formats:
                 return { content: "Something went wrong rotating image", status: StatusCode.ERR }
             }
         },
-        category: CommandCategory.IMAGES
+        category: CommandCategory.IMAGES,
+        help: {
+            info: "Rotates an image by an angle (degrees)"
+        }
     },
     color: {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -8967,7 +8970,10 @@ Valid formats:
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info: "List all blacklists"
+        }
 
     },
     "l-wl": {
@@ -8977,7 +8983,10 @@ Valid formats:
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info:  "List all whitelists"
+        }
     },
     ship: {
         run: async (_msg, args, sendCallback) => {
@@ -9301,7 +9310,10 @@ Valid formats:
             embed.setTitle(post.text || "None")
             embed.setFooter({ text: post.link || "None" })
             return { embeds: [embed], status: StatusCode.RETURN }
-        }, category: CommandCategory.FUN
+        }, category: CommandCategory.FUN,
+        help: {
+            info: "Gets a random post  from a subreddit"
+        }
     },
 
     "expr": {
