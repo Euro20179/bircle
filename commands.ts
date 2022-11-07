@@ -4248,11 +4248,11 @@ until you put a 0 in the box`)
                     if (amountType[1] === 'cents') {
                         amount = Math.random() / 100
                     }
-                    // else {
-                    //     //@ts-ignore
-                    //     let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
-                    //     amount *= multiplier
-                    // }
+                    else {
+                        //@ts-ignore
+                        let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
+                        amount *= multiplier
+                    }
 
                     response = response.replaceAll(/\{user(\d+|all)\}/g, (_all: any, capture: any) => {
                         if (capture === "all") {
