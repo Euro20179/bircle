@@ -5518,7 +5518,18 @@ middle
             }
             return { content: string, status: StatusCode.RETURN }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Maps a string through various commands",
+            arguments: {
+                string: {
+                    description: "The first argument is the string to map"
+                },
+                "...maps": {
+                    description: "After the first arg, is a command, {string} will be replaced with the current string<br>all maps after the first must start with <code>&gt;map&gt;</code>"
+                }
+            }
+        }
     },
 
     time: {
@@ -9092,7 +9103,10 @@ Valid formats:
             }
             delete globals.SPAMS[id]
             return { content: "done", status: StatusCode.INFO }
-        }, category: CommandCategory.FUN
+        }, category: CommandCategory.FUN,
+        help: {
+            info: "Repeatedly send and delete a message"
+        }
     },
     spam: {
         run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
@@ -9171,7 +9185,16 @@ Valid formats:
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info: "Stop spams",
+            arguments: {
+                "spam": {
+                    description: "The spam to stop<br>If not given, will stop all spams",
+                    required: false
+                }
+            }
+        }
     },
     "pollify": {
         run: async (msg, args, sendCallback) => {
@@ -9215,7 +9238,10 @@ Valid formats:
             }
             return { content: rv, status: StatusCode.RETURN }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info: "List all variables"
+        }
     },
 
     'stackl': {
