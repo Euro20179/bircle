@@ -6635,10 +6635,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     return
                 }
                 if (opts['say']) {
-                    await interaction.reply({ content: String(opts['say']) })
+                    await interaction.reply({ content: String(opts['say']).trim() || "_ _" })
                 }
                 else {
-                    await interaction.reply({ content: text })
+                    await interaction.reply({ content: text.trim() || "_ _" })
                 }
             })
             setTimeout(() => {
