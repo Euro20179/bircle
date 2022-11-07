@@ -2333,6 +2333,9 @@ The commands below, only work after **path** has been run:
     },
 
     yahtzee: createCommand(async (msg, _, sc, opts, args) => {
+
+        let new_rules = Boolean(opts['new-rules'])
+
         class ScoreSheet {
             ones: number | undefined
             twos: number | undefined
@@ -2408,6 +2411,11 @@ The commands below, only work after **path** has been run:
             is_applied(type: string) {
                 //@ts-ignore
                 let val = this[type.replaceAll(" ", "_")]
+                if(!new_rules){
+                    if(val?.length){
+                        return true
+                    }
+                }
                 if((val?.length && !val?.includes(0)) || val?.length === 0){
                     return false
                 }
@@ -2809,7 +2817,21 @@ The commands below, only work after **path** has been run:
         //@ts-ignore
         return {content: `Game Over!!`, status: StatusCode.INFO, embeds: [embed]}
 
-    }, CommandCategory.GAME),
+    }, CommandCategory.GAME, "play a game of yahtzee, can be single or multi player",
+        {
+            mode: createHelpArgument("must be multi (multiplayer) or single (single player)", true),
+            bet: createHelpArgument(`The bet for the game<br>
+if it's single player, tthe bet should actually be a guess on what your final  score is
+the amount you earn will be <code>(bet/score)%</code> of your net worth
+
+If it's multiplayer, it's just the amount you want to bet
+`, true)
+        },
+        {
+            "new-rules": createHelpOption(`Whether or not to play with the new rules<br>
+If enabled, full houses, small straights, and large straights may be played an infinite number of times
+until you put a 0 in the box`)
+        }),
 
     bitem: {
         run: async (msg, args, sendCallback) => {
