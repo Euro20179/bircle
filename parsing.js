@@ -198,8 +198,9 @@ async function buildEscape(letter, sequence, msg, curArg){
                 return `\\D`
             }
             return (new Date(parseInt(sequence))).toString()
-        case "t":{
+        case "T":{
             let ts = Date.now()
+            console.log(ts, sequence, parseFloat(sequence))
             if(parseFloat(sequence)){
                 return String(ts / parseFloat(sequence))
             }
