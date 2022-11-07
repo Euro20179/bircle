@@ -198,6 +198,13 @@ async function buildEscape(letter, sequence, msg, curArg){
                 return `\\D`
             }
             return (new Date(parseInt(sequence))).toString()
+        case "t":{
+            let ts = Date.now()
+            if(parseFloat(sequence)){
+                return String(ts / parseFloat(sequence))
+            }
+            return String(Date.now())
+        }
         case "V": {
             let [scope, ...name] = sequence.split(":")
             name = name.join(":")
