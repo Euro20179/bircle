@@ -6194,9 +6194,9 @@ middle
         of: createHelpArgument("Will get either a <code>rand</code> or <code>#</code> of one of the following<ul><li>channel</li><li>role</li><li>member</li><li>user</li><li>bot</li><li>command</li></ul>", true),
         filter: createHelpArgument(`The filter type to use, <lh>can be one of the following</lh>
 <ul><li>with: checks if <code>property</code> is on the object and includes <code>search</code></li>
-<ul><li>with!: checks if <code>property</code> is on the object and equals <code>search</code></li>
-<ul><li>without: checks if <code>property</code> is not on the object, but if it is, does not include <code>search</code></li>
-<ul><li>without!: checks if <code>property</code> is not on the object, but if it is, does not include <code>search</code></li>
+<li>with!: checks if <code>property</code> is on the object and equals <code>search</code></li>
+<li>without: checks if <code>property</code> is not on the object, but if it is, does not include <code>search</code></li>
+<li>without!: checks if <code>property</code> is not on the object, but if it is, does not include <code>search</code></li></ul>
 `, false),
         property: createHelpArgument("The property to check of the object", false),
         search: createHelpArgument("Searches the property if exists", false)

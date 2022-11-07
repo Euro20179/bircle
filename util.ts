@@ -411,7 +411,7 @@ function renderElementChildren(elem: cheerio.Element, indentation=0){
     let text = ""
     for(let child of elem.children){
         if(child.type === "text"){
-            text += child.data
+            text += child.data.replaceAll(/\s+/g, " ")
         }
         else if(child.type === "tag"){
             text += renderELEMENT(child, indentation)
@@ -433,12 +433,9 @@ function renderUlElement(elem: cheerio.Element, indentation=0, marker="*\t"){
             if(child.name === "li"){
                 text += renderLiElement(child, indentation + 1, marker)
             }
-            else{
-                renderELEMENT(child, indentation)
-            }
         }
         else if(child.type === "text"){
-            text += child.data
+            text += child.data.replaceAll(/\s+/g, " ")
         }
     }
     return text
@@ -478,7 +475,7 @@ function renderELEMENT(elem: cheerio.AnyNode, indentation=0){
             text += `\n${"\t".repeat(indentation)}`
         }
         else if(elem.name ==="ul"){
-            text += `\n${renderUlElement(elem, indentation)}\n${"\t".repeat(indentation)}`
+            text += `\n${renderUlElement(elem, indentation)}${"\t".repeat(indentation)}`
         }
         else if(elem.name === "lh"){
             text += renderLHElement(elem, indentation)
@@ -502,7 +499,7 @@ function renderELEMENT(elem: cheerio.AnyNode, indentation=0){
         }
     }
     if(elem.type === "text"){
-        text += elem.data
+        text += elem.data.replaceAll(/\s+/g, " ")
     }
     return text
 
@@ -536,6 +533,7 @@ function generateTextFromCommandHelp(name: string, command: Command) {
             let html = cheerio.load(helpData.arguments[arg].description)
             text +=  `:\n\t\t- ${renderELEMENT(html("*")[0], 2)}\n`
         }
+        text += "\n"
     }
     if (helpData.options) {
         text += "__Options__:\n"
@@ -545,6 +543,7 @@ function generateTextFromCommandHelp(name: string, command: Command) {
                 text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
         }
+        text += "\n"
     }
     if (helpData.tags?.length) {
         text += `__Tags__:\n${helpData.tags.join(", ")}\n`
