@@ -531,19 +531,25 @@ function generateTextFromCommandHelp(name: string, command: Command) {
                 text += ` (requires: ${helpData.arguments[arg].requires}) `
             }
             let html = cheerio.load(helpData.arguments[arg].description)
-            text +=  `:\n\t\t- ${renderELEMENT(html("*")[0], 2)}\n`
+            text +=  `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`
+            //we want exactly 2 new lines
+            while(!text.endsWith("\n\n")){
+                text += "\n"
+            }
         }
-        text += "\n"
     }
     if (helpData.options) {
         text += "__Options__:\n"
         for (let op in helpData.options) {
-            text += `\t* **-${op}**: ${renderHTML(helpData.options[op].description, 2)}`
+            text += `\t* **-${op}**: ${renderHTML(helpData.options[op].description, 2).trim()}`
             if (helpData.options[op].alternates) {
                 text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
+            //we want exactly 2 new lines
+            while(!text.endsWith("\n\n")){
+                text += "\n"
+            }
         }
-        text += "\n"
     }
     if (helpData.tags?.length) {
         text += `__Tags__:\n${helpData.tags.join(", ")}\n`
