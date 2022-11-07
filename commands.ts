@@ -2934,7 +2934,15 @@ until you put a 0 in the box`)
                 return { content: `You have successfuly bought: ${requested_pet} for: $${totalCost}`, status: StatusCode.RETURN }
             }
             return { content: "You already have this pet", status: StatusCode.ERR }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Buy a pet",
+            arguments: {
+                pet: {
+                    description: "The pet to buy"
+                }
+            }
+        }
     },
 
     "gapet": {
@@ -5006,7 +5014,10 @@ until you put a 0 in the box`)
                 ],
                 status: StatusCode.RETURN
             }
-        }, category: CommandCategory.META
+        }, category: CommandCategory.META,
+        help: {
+            info: "Sends the raw inventory.json database file"
+        }
     },
 
     leaderboard: {
@@ -6540,7 +6551,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             return { content: "?", status: StatusCode.ERR }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info: "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent",
+        }
     },
     getimg: {
         run: async (msg, _, sendCallback, opts, args) => {
@@ -10178,7 +10192,10 @@ ${fs.readdirSync("./command-results").join("\n")}
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.FUN
+        category: CommandCategory.FUN,
+        help: {
+            info: "List all builtin commands"
+        }
     },
     ht: {
         //help command
@@ -11313,7 +11330,10 @@ valid formats:<br>
             }
             return { content: data || "No spams", status: StatusCode.RETURN }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info: "List the ongoing spam ids"
+        }
     }
 }
 
