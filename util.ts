@@ -9,7 +9,7 @@ import { Client, Guild, Message, MessageEmbed } from "discord.js"
 import globals = require("./globals")
 
 const { execFileSync, exec } = require('child_process')
-const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST } = require("./common.js")
+const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
 class Pipe{
     data: any[]
@@ -107,11 +107,7 @@ function choice(list: Array<any> | string) {
 }
 
 function mulStr(str: string, amount: number) {
-    let ans = ""
-    for (let i = 0; i < amount; i++) {
-        ans += str
-    }
-    return ans
+    return str.repeat(amount)
 }
 
 async function fetchChannel(guild: Guild, find: string) {
@@ -306,6 +302,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     context['escapeShell'] = escapeShell
     context['randomColor'] = randomColor
     context['mulStr'] = mulStr
+    context ['mul_t'] =  weirdMulStr
     context['choice'] = choice
     try {
         vm.runInNewContext(code, context, opts)
@@ -410,13 +407,118 @@ function getContentFromResult(result: CommandReturn) {
     return res
 }
 
+function renderElementChildren(elem: cheerio.Element, indentation=0){
+    let text = ""
+    for(let child of elem.children){
+        if(child.type === "text"){
+            text += child.data
+        }
+        else if(child.type === "tag"){
+            text += renderELEMENT(child, indentation)
+        }
+    }
+    return text
+}
+
+function renderLiElement(elem: cheerio.Element, indentation=0, marker="*\t"){
+    marker = elem.attributes.filter(v => v.name === "marker")?.[0]?.value ?? marker
+    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation) + "\n"
+}
+
+function renderUlElement(elem: cheerio.Element, indentation=0, marker="*\t"){
+    let text = ""
+    marker = elem.attributes.filter(v => v.name === "marker")?.[0]?.value ?? marker
+    for(let child of elem.children){
+        if(child.type === "tag"){
+            if(child.name === "li"){
+                text += renderLiElement(child, indentation + 1, marker)
+            }
+            else{
+                renderELEMENT(child, indentation)
+            }
+        }
+        else if(child.type === "text"){
+            text += child.data
+        }
+    }
+    return text
+}
+
+function renderLHElement(elem: cheerio.Element, indentation=0){
+    return `__${renderElementChildren(elem, indentation)}__`
+}
+
+function renderBElement(elem: cheerio.Element, indentation=0){
+    return `**${renderElementChildren(elem, indentation)}**`
+}
+
+function renderIElement(elem: cheerio.Element, indentation=0){
+    return `*${renderElementChildren(elem, indentation)}*`
+}
+function renderSElement(elem: cheerio.Element, indentation=0){
+    return `~~${renderElementChildren(elem, indentation)}~~`
+}
+
+function renderCodeElement(elem: cheerio.Element, indentation=0){
+    let  text = "`"
+    let lang = elem.attributes.filter(v => v.name === "lang")?.[0]?.value
+    if(lang){
+        text += `\`\`${lang}\`\`\n`
+    }
+    text += renderElementChildren(elem, indentation)
+    if(lang){
+        text += "\n``"
+    }
+    return text + "`"
+}
+function renderELEMENT(elem: cheerio.AnyNode, indentation=0){
+    let text = ""
+    if(elem.type === "tag"){
+        if(elem.name === "br"){
+            text += `\n${"\t".repeat(indentation)}`
+        }
+        else if(elem.name ==="ul"){
+            text += `\n${renderUlElement(elem, indentation)}\n${"\t".repeat(indentation)}`
+        }
+        else if(elem.name === "lh"){
+            text += renderLHElement(elem, indentation)
+        }
+        else if(elem.name === "code"){
+            text += renderCodeElement(elem, indentation)
+        }
+        else if(["strong",  "b"].includes(elem.name)){
+            text += renderBElement(elem, indentation)
+        }
+        else if(["i"].includes(elem.name)){
+            text += renderIElement(elem, indentation)
+        }
+        else if(["del"].includes(elem.name)){
+            text += renderSElement(elem, indentation)
+        }
+        else{
+            for(let child of elem.children ?? []){
+                text += renderELEMENT(child, indentation)
+            }
+        }
+    }
+    if(elem.type === "text"){
+        text += elem.data
+    }
+    return text
+
+}
+
+function renderHTML(text: string, indentation=0){
+    return renderELEMENT(cheerio.load(text)("*")[0], indentation)
+}
+
 function generateTextFromCommandHelp(name: string, command: Command) {
     let text = `***${name}***:\n\n`
     let helpData = command.help
     if (!helpData)
         return text
     if (helpData.info) {
-        text += `**${cheerio.load(helpData.info).text()}**\n\n`
+        text += renderHTML(helpData.info) + "\n\n"
     }
     if (helpData.aliases) {
         text += `Aliases: ${helpData.aliases.join(", ")}\n`
@@ -429,21 +531,20 @@ function generateTextFromCommandHelp(name: string, command: Command) {
                 text += " (required) "
             }
             if (helpData.arguments[arg].requires) {
-                text += ` (required: ${helpData.arguments[arg].requires}) `
+                text += ` (requires: ${helpData.arguments[arg].requires}) `
             }
-            text += `:\n\t\t- ${cheerio.load(helpData.arguments[arg].description).text()}\n`
+            let html = cheerio.load(helpData.arguments[arg].description)
+            text +=  `:\n\t\t- ${renderELEMENT(html("*")[0], 2)}\n`
         }
-        text += "\n"
     }
     if (helpData.options) {
         text += "__Options__:\n"
         for (let op in helpData.options) {
-            text += `\t* **-${op}**: ${cheerio.load(helpData.options[op].description).text()}\n`
+            text += `\t* **-${op}**: ${renderHTML(helpData.options[op].description, 2)}`
             if (helpData.options[op].alternates) {
                 text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
         }
-        text += "\n"
     }
     if (helpData.tags?.length) {
         text += `__Tags__:\n${helpData.tags.join(", ")}\n`
@@ -510,6 +611,11 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
     return `${html}</div><hr>`
 }
 
+
+function weirdMulStr(text: string[], ...count: string[]){
+    return mulStr(text.join(" "), Number(count[0]) ?? 1)
+}
+
 export {
     fetchUser,
     fetchChannel,
@@ -537,6 +643,7 @@ export {
     generateTextFromCommandHelp,
     Pipe,
     getFonts,
-    intoColorList
+    intoColorList,
+    renderHTML
 }
 

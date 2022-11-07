@@ -28,7 +28,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle } from './util'
+import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle, renderHTML } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 import { parentPort } from "worker_threads"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
@@ -2411,12 +2411,12 @@ The commands below, only work after **path** has been run:
             is_applied(type: string) {
                 //@ts-ignore
                 let val = this[type.replaceAll(" ", "_")]
-                if(!new_rules && type !== "yahtzee"){
-                    if(val?.length){
+                if (!new_rules && type !== "yahtzee") {
+                    if (val?.length) {
                         return true
                     }
                 }
-                if((val?.length && !val?.includes(0)) || val?.length === 0){
+                if ((val?.length && !val?.includes(0)) || val?.length === 0) {
                     return false
                 }
                 return val !== undefined
@@ -2494,14 +2494,14 @@ The commands below, only work after **path** has been run:
             apply_small_straight(dice: number[]) {
                 let val = 0
                 if (this.#is_a_straight(dice, 4)) {
-                    if(this.small_straight?.includes(0)){
+                    if (this.small_straight?.includes(0)) {
                         val = 0
                     }
-                    else{
+                    else {
                         val = 30
                     }
                 }
-                else{
+                else {
                     val = 0
                 }
                 this.small_straight.push(val)
@@ -2509,14 +2509,14 @@ The commands below, only work after **path** has been run:
             apply_large_straight(dice: number[]) {
                 let val = 0
                 if (this.#is_a_straight(dice, 5)) {
-                    if(this.large_straight?.includes(0)){
+                    if (this.large_straight?.includes(0)) {
                         val = 0
                     }
-                    else{
+                    else {
                         val = 40
                     }
                 }
-                else{
+                else {
                     val = 0
                 }
                 this.large_straight.push(val)
@@ -2535,55 +2535,55 @@ The commands below, only work after **path** has been run:
                     this.yahtzee.push(0)
                 }
             }
-            is_filled(){
-                if(this.yahtzee.length === 0){
+            is_filled() {
+                if (this.yahtzee.length === 0) {
                     return false
                 }
-                for(let item of Object.keys(this)){
+                for (let item of Object.keys(this)) {
                     //@ts-ignore
-                    if(this[item] === undefined || this[item]?.length === 0){
+                    if (this[item] === undefined || this[item]?.length === 0) {
                         return false
                     }
                 }
                 return true
             }
-            score(){
+            score() {
                 return Object.values(this).reduce((p, c) => {
                     let final = p
-                    if(c?.length){
+                    if (c?.length) {
                         final += c.reduce((p: number, c: number) => p + c, 0)
                     }
-                    else{
+                    else {
                         final += c ?? 0
                     }
                     return final
                 }, 0)
             }
-            async go(id: string, rollCount: number, diceRolls: number[]): Promise<any>{
+            async go(id: string, rollCount: number, diceRolls: number[]): Promise<any> {
                 this.score()
 
                 await handleSending(msg, { content: `<@${id}>  YOUR UP:\n${this.toString()}\n\n${diceRolls.join(", ")}`, status: StatusCode.INFO })
 
                 let filter = (function(m: Message) {
-                    if(m.author.id !== id){
+                    if (m.author.id !== id) {
                         return false
                     }
                     let choiceArgs = m.content.split(/\s+/)
 
-                    if(!(options.includes(choiceArgs[0].toLowerCase()) || Object.keys(aliases).includes(choiceArgs[0].toLowerCase()))){
+                    if (!(options.includes(choiceArgs[0].toLowerCase()) || Object.keys(aliases).includes(choiceArgs[0].toLowerCase()))) {
                         return false
                     }
                     //@ts-ignore
                     let choice: string = aliases[choiceArgs[0].toLowerCase()] as (undefined | string) ?? choiceArgs[0].toLowerCase()
 
-                    if(choice == "reroll"){
-                        if(rollCount >= 3){
+                    if (choice == "reroll") {
+                        if (rollCount >= 3) {
                             m.reply("You have already rerolled twice")
                             return false
                         }
                     }
                     //@ts-ignore
-                    if(this.is_applied(choice)){
+                    if (this.is_applied(choice)) {
                         m.reply("U did that already")
                         return false
                     }
@@ -2602,26 +2602,26 @@ The commands below, only work after **path** has been run:
                 //@ts-ignore
                 let choice: string = aliases[choiceArgs[0].toLowerCase()] as (undefined | string) ?? choiceArgs[0].toLowerCase()
 
-                if(choice == "reroll"){
+                if (choice == "reroll") {
                     let diceToReRoll = new Set()
-                    for(let arg of choiceArgs.slice(1)){
-                        for(let n of arg){
+                    for (let arg of choiceArgs.slice(1)) {
+                        for (let n of arg) {
                             diceToReRoll.add(Number(n))
                         }
                     }
-                    for(let val of diceToReRoll){
-                        if((val as number) > diceRolls.length){
+                    for (let val of diceToReRoll) {
+                        if ((val as number) > diceRolls.length) {
                             continue
                         }
-                        diceRolls[(val as number) - 1] = Math.floor(Math.random() *  (7 - 1) + 1)
+                        diceRolls[(val as number) - 1] = Math.floor(Math.random() * (7 - 1) + 1)
                     }
                     return await this.go(id, rollCount + 1, diceRolls)
                 }
                 return this.apply(choice, diceRolls)
             }
-            toString(){
+            toString() {
                 let st = ``
-                for(let kv of Object.entries(this)){
+                for (let kv of Object.entries(this)) {
                     st += `**${kv[0]}**: ${kv[1] ?? "-"}\n`
                 }
                 return st
@@ -2662,60 +2662,60 @@ The commands below, only work after **path** has been run:
         }
         let options = ["ones", "twos", "threes", "fours", "fives", "sixes", "three of a kind", "four of a kind", "full house", "small straight", "large straight", "chance", "yahtzee"]
 
-        if(globals.YAHTZEE_WAITING_FOR_PLAYERS){
-            return {content: "A yahtzee game has already been started", status: StatusCode.ERR}
+        if (globals.YAHTZEE_WAITING_FOR_PLAYERS) {
+            return { content: "A yahtzee game has already been started", status: StatusCode.ERR }
         }
 
         let gameModes = ["single", "multi"];
 
         let mode = args[0]?.toLowerCase()
-        if(!gameModes.includes(mode)){
-            return {content: `${mode} is not a valid mode, must be \`single\` or \`multi\``, status: StatusCode.ERR}
+        if (!gameModes.includes(mode)) {
+            return { content: `${mode} is not a valid mode, must be \`single\` or \`multi\``, status: StatusCode.ERR }
         }
 
         let users: { [key: string]: ScoreSheet } = {}
-        let bets: {[key: string]: number} = {}
+        let bets: { [key: string]: number } = {}
         users[msg.author.id] = new ScoreSheet()
-        if(mode === "single"){
+        if (mode === "single") {
             let bet = Number(args[1])
-            if(!bet || bet < 0){
-                return {content: "No bet", status: StatusCode.ERR}
+            if (!bet || bet < 0) {
+                return { content: "No bet", status: StatusCode.ERR }
             }
             bets[msg.author.id] = bet
         }
-        if(mode === 'multi'){
-            let bet = economy.calculateAmountFromString(msg.author.id, args[1], {min: (total, k, data, match) => total * .001})
-            if(!bet){
-                return {content: `Not a valid bet`, status: StatusCode.ERR}
+        if (mode === 'multi') {
+            let bet = economy.calculateAmountFromString(msg.author.id, args[1], { min: (total, k, data, match) => total * .001 })
+            if (!bet) {
+                return { content: `Not a valid bet`, status: StatusCode.ERR }
             }
-            else if(!economy.canBetAmount(msg.author.id, bet)){
-                return {content: `Bet too high`, status: StatusCode.ERR}
+            else if (!economy.canBetAmount(msg.author.id, bet)) {
+                return { content: `Bet too high`, status: StatusCode.ERR }
             }
 
             bets[msg.author.id] = bet
 
-            await handleSending(msg, {content: "A YAHTZEE GAME HAS STARTED type `join <bet>` to join", status: StatusCode.INFO})
+            await handleSending(msg, { content: "A YAHTZEE GAME HAS STARTED type `join <bet>` to join", status: StatusCode.INFO })
             globals.YAHTZEE_WAITING_FOR_PLAYERS = true
 
-            if(globals.YAHTZEE_WAITING_FOR_PLAYERS){
+            if (globals.YAHTZEE_WAITING_FOR_PLAYERS) {
                 let timeLeft = 30000
-                let int = setInterval(async() => {
+                let int = setInterval(async () => {
                     timeLeft -= 8000
-                    await handleSending(msg, {content: `Yahtzee begins in ${Math.round(timeLeft / 1000)} seconds`, status: StatusCode.INFO})
+                    await handleSending(msg, { content: `Yahtzee begins in ${Math.round(timeLeft / 1000)} seconds`, status: StatusCode.INFO })
                 }, 8000)
                 let playersJoining;
-                try{
+                try {
                     let filter = function(m: Message) {
-                        if(m.author.bot)
+                        if (m.author.bot)
                             return false
                         let args = m.content.split(/\s/).map(v => v.toLowerCase())
-                        if(args[0] === "join"){
-                            let bet = economy.calculateAmountFromString(m.author.id, args[1], {min: (total, k, data, match) => total * .001})
-                            if(!bet || bet < 0){
+                        if (args[0] === "join") {
+                            let bet = economy.calculateAmountFromString(m.author.id, args[1], { min: (total, k, data, match) => total * .001 })
+                            if (!bet || bet < 0) {
                                 m.reply("No bet")
                                 return false
                             }
-                            if(!economy.canBetAmount(m.author.id, bet)){
+                            if (!economy.canBetAmount(m.author.id, bet)) {
                                 m.reply("Bet too high")
                                 return false
                             }
@@ -2725,16 +2725,16 @@ The commands below, only work after **path** has been run:
                         }
                         return false
                     }
-                    playersJoining = await msg.channel.awaitMessages({filter: filter, time: 30000, errors: ["time"]})
+                    playersJoining = await msg.channel.awaitMessages({ filter: filter, time: 30000, errors: ["time"] })
                 }
-                catch(err){
-                    if(err instanceof Collection){
+                catch (err) {
+                    if (err instanceof Collection) {
                         playersJoining = err
                     }
                 }
                 clearInterval(int)
-                for(let i = 0; i < (playersJoining?.size || 0); i++){
-                    if(users[playersJoining?.at(i)?.author.id]){
+                for (let i = 0; i < (playersJoining?.size || 0); i++) {
+                    if (users[playersJoining?.at(i)?.author.id]) {
                         continue
                     }
                     //@ts-ignore
@@ -2745,12 +2745,12 @@ The commands below, only work after **path** has been run:
 
         let turnNo = 0
 
-        if(Object.keys(users).length < 2 && mode === "multi"){
-            return {content: "Only  one user joined :(", status: StatusCode.ERR}
+        if (Object.keys(users).length < 2 && mode === "multi") {
+            return { content: "Only  one user joined :(", status: StatusCode.ERR }
         }
 
 
-        while(Object.values(users).filter(v => !v.is_filled()).length > 0){
+        while (Object.values(users).filter(v => !v.is_filled()).length > 0) {
             let validPlayers = Object.fromEntries(Object.entries(users).filter(v => {
                 return !v[1].is_filled()
             }))
@@ -2774,39 +2774,39 @@ The commands below, only work after **path** has been run:
         let embed = new MessageEmbed()
         embed.setTitle("Game Over")
         let fields = []
-        if(mode === "multi"){
+        if (mode === "multi") {
             let winner = Object.entries(users).sort((a, b) => a[1].score() - b[1].score()).slice(-1)[0]
             let amount = Object.values(bets).reduce((p, c) => p + c, 0)
             embed.setDescription(`<@${winner[0]}> WINS ${amount}`)
             economy.addMoney(winner[0], amount)
-            for(let user of Object.keys(users)){
-                if(user === winner[0]) continue;
+            for (let user of Object.keys(users)) {
+                if (user === winner[0]) continue;
                 economy.loseMoneyToBank(user, bets[user])
             }
         }
-        for(let kv of Object.entries(users)){
+        for (let kv of Object.entries(users)) {
             let [user, scoreSheet] = kv
-            fields.push({name: msg.guild?.members.cache.get(user)?.displayName || user, value: String(scoreSheet.score()), inline: true})
+            fields.push({ name: msg.guild?.members.cache.get(user)?.displayName || user, value: String(scoreSheet.score()), inline: true })
         }
-        if(mode === 'single'){
+        if (mode === 'single') {
             let score = Object.values(users).at(0)?.score() as number
             let bet = Object.values(bets).at(0) as number
             let amount_earned = (bet / score)
-            if(score - bet < 0){
+            if (score - bet < 0) {
                 amount_earned *= -1
             }
             //@ts-ignore
             let money_earned = economy.calculateAmountFromString(Object.keys(users).at(0), `${amount_earned}%`)
             //@ts-ignore
             economy.addMoney(Object.keys(users).at(0), money_earned)
-            await handleSending(msg, {content: `You earned $${money_earned}`, status: StatusCode.INFO})
+            await handleSending(msg, { content: `You earned $${money_earned}`, status: StatusCode.INFO })
         }
         embed.addFields(fields)
 
         globals.YAHTZEE_WAITING_FOR_PLAYERS = false
 
         //@ts-ignore
-        return {content: `Game Over!!`, status: StatusCode.INFO, embeds: [embed]}
+        return { content: `Game Over!!`, status: StatusCode.INFO, embeds: [embed] }
 
     }, CommandCategory.GAME, "play a game of yahtzee, can be single or multi player",
         {
@@ -5553,7 +5553,7 @@ middle
         help: {
             arguments: {
                 format: {
-                    description: "the format to use for the time<br>formats:<br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
+                    description: "the format to use for the time<br><lh>formats:</lh><br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li>"
                 }
             }
         },
@@ -6055,80 +6055,154 @@ middle
             return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
         }, category: CommandCategory.META
     },
+    "render-html": createCommand(async (msg, _, sc, opts, args) => {
+        return { content: renderHTML(args.join(" "), 0), status: StatusCode.RETURN }
+    }, CommandCategory.UTIL, "Renders <code>html</code>", {
+        html: {
+            description: "The html to render",
+            required: true
+        }
+    }),
     "htmlq": {
         run: async (_msg, args, sendCallback) => {
             let [query, ...html] = args.join(" ").split("|")
             let realHTML = html.join("|")
             let $ = cheerio.load(realHTML)(query).text()
             return { content: $, status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
-    },
-    "get": {
-        run: async (msg, opts, sendCallback) => {
-            let operator = opts[0]
-            let object = opts[1]
-            switch (operator) {
-                case "#": {
-                    let number = parseInt(opts[2])
-                    let data;
-                    switch (object) {
-                        case "channel": {
-                            data = await msg.guild?.channels.fetch()
-                            break
-                        }
-                        case "role": {
-                            data = await msg.guild?.roles.fetch()
-                            break
-                        }
-                        case "member": {
-                            data = await msg.guild?.members.fetch()
-                            break
-                        }
-                        case "bot": {
-                            let bots = await msg.guild?.members.fetch()
-                            data = bots?.filter(u => u.user.bot).size
-                            break
-                        }
-                        case "command": {
-                            data = Object.keys(commands).length
-                            break
-                        }
-                    }
-                    if (!data) {
-                        return { content: `${object} is invalid`, status: StatusCode.ERR }
-                    }
-                    if (typeof data === 'number') {
-                        return { content: String(data), status: StatusCode.RETURN }
-                    }
-                    if (number) {
-                        return { content: String(data.at(number)), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                    }
-                    else {
-                        return { content: String(data.size), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                    }
-                }
-                case "rand": {
-                    switch (object) {
-                        case "channel": {
-                            let channels = await msg.guild?.channels.fetch()
-                            return { content: channels?.random()?.toString(), status: StatusCode.RETURN }
-                        }
-                        case "role": {
-                            let roles = await msg.guild?.roles.fetch()
-                            return { content: String(roles?.random()), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                        }
-                        case "member": {
-                            let members = await msg.guild?.members.fetch()
-                            return { content: String(members?.random()), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                        }
-                    }
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Query html",
+            arguments: {
+                query: {
+                    description: "The css query to query the html with",
+                    required: true
+                },
+                "|": {
+                    description: "A bar to seperate the query from the html",
+                    required: true,
+                },
+                "html": {
+                    description: "Anything after the bar is the html to query",
+                    required: true
                 }
             }
-            return { content: "Not a valid option", status: StatusCode.ERR }
-        },
-        category: CommandCategory.UTIL
+        }
 
     },
+    "get": createCommand(async (msg, _, sendCallback, cmd_opts, opts) => {
+        let operator = opts[0]
+        let object = opts[1]
+        let filterInfo: {type: "with" | "without" | "with!" | "without!", attribute: string, search: string} | null = null
+        let filter = function(_k: any, _v: any){
+            return true
+        }
+        if(["with", "without", "with!"].includes(opts[2])){
+            filterInfo = {type:  opts[2] as "with" | "without" | "without!" | "with!", attribute: opts[3], search: opts.slice(4).join(" ")}
+            filter = function(v: any, k: any){
+                let search = filterInfo?.search
+                //@ts-ignore
+                let val = v[filterInfo.attribute]
+                switch(filterInfo?.type){
+                    case "with": {
+                        if(val !== undefined && search){
+                            return String(val).includes(search)
+                        }
+                        return val !== undefined
+                    }
+                    case "without": {
+                        if(val !== undefined && search){
+                            return !String(val).includes(search)
+                        }
+                        return val === undefined
+                    }
+                    case "without!": {
+                        if(val !== undefined && search){
+                            return String(val) !== search
+                        }
+                        return val === undefined
+                    }
+                    case "with!": {
+                        if(val !== undefined && search){
+                            return String(val) === search
+                        }
+                        return val !== undefined
+                    }
+                }
+                return false
+            }
+        }
+        let data: Collection<any, any> | undefined;
+        let number = parseInt(String(cmd_opts['n']))
+        switch (object) {
+            case "channel": {
+                data = await msg.guild?.channels.fetch()
+                break
+            }
+            case "role": {
+                data = await msg.guild?.roles.fetch()
+                break
+            }
+            case "member": {
+                data = await msg.guild?.members.fetch()
+                break
+            }
+            case "user": {
+                data = await msg.guild?.members.fetch()
+                data = data?.mapValues(v => v.user)
+                break
+            }
+            case "bot": {
+                let bots = await msg.guild?.members.fetch()
+                data = bots?.filter(u => u.user.bot)
+                break
+            }
+            case "command": {
+                data = new Collection<string, Command>(Object.entries(commands))
+                break
+            }
+        }
+        data = data?.filter(filter)
+        if (!data) {
+            return { content: `${object} is invalid`, status: StatusCode.ERR }
+        }
+        if(data.size < 1){
+            return {content: "No results", status: StatusCode.RETURN}
+        }
+        switch (operator) {
+            case "#": {
+                if (number) {
+                    return { content: String(data.at(number)), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+                }
+                else {
+                    return { content: String(data.size), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+                }
+            }
+            case "rand": {
+                if(object === "command"){
+                    data = data.mapValues((v, k) => k)
+                }
+                let text = ""
+                for(let i = 0; i < (number || 1); i++){
+                    text += data.random().toString() + "\n"
+                }
+                return {content: text, status: StatusCode.RETURN, allowedMentions: {parse: []}}
+            }
+        }
+        return { content: "Not a valid option", status: StatusCode.ERR }
+    }, CommandCategory.UTIL, "gets stuff :+1:", {
+        operator: createHelpArgument(`Can either be # or rand<ul><li><code>#</code>: will get a number of something</li><li><code>rand</code>: will get a random of something</li></ul>`, true),
+        of: createHelpArgument("Will get either a <code>rand</code> or <code>#</code> of one of the following<ul><li>channel</li><li>role</li><li>member</li><li>user</li><li>bot</li><li>command</li></ul>", true),
+        filter: createHelpArgument(`The filter type to use, <lh>can be one of the following</lh>
+<ul><li>with: checks if <code>property</code> is on the object and includes <code>search</code></li>
+<ul><li>with!: checks if <code>property</code> is on the object and equals <code>search</code></li>
+<ul><li>without: checks if <code>property</code> is not on the object, but if it is, does not include <code>search</code></li>
+<ul><li>without!: checks if <code>property</code> is not on the object, but if it is, does not include <code>search</code></li>
+`, false),
+        property: createHelpArgument("The property to check of the object", false),
+        search: createHelpArgument("Searches the property if exists", false)
+    }, {
+        n: createHelpOption("If <code>operator</code> is <code>#</code>, gets the n'th item<br>if <code>operator</code> is <code>rand</code>, gets n random items")
+    }),
     embed: createCommand(
         async (msg, args) => {
             let opts;
@@ -6656,7 +6730,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             })
             setTimeout(() => {
                 button.setDisabled(true)
-                m.edit({ components: [row], content: content ? String(content) : undefined})
+                m.edit({ components: [row], content: content ? String(content) : undefined })
                 collector.stop()
             }, Number(opts['stop-button-after']) * 1000 || 5000)
             if (!isNaN(delAfter)) {
@@ -11445,7 +11519,7 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
 export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false> {
     let expansions = 0
     let aliasPreArgs = aliases[command]?.slice(1)
-    if(aliasPreArgs === undefined)
+    if (aliasPreArgs === undefined)
         return [command, []]
     command = aliases[command][0]
     if (onExpand && !onExpand?.(command, aliasPreArgs)) {
