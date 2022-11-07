@@ -6574,6 +6574,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
         category: CommandCategory.META
     },
+    variablize: createCommand(async(msg, _, sc, opts, args) => {
+        let vars = args
+        let str = vars.map(v => {
+            if(v.startsWith("\\")){
+                return v.slice(1)
+            }
+            return getVar(msg, v)
+        }).join(" ")
+        return {content: str, status: StatusCode.RETURN}
+    }, CommandCategory.META, "Each arg in the arguments is treated as a string, unless it starts with \\"),
     echo: {
         run: async (msg: Message, _, __, opts, args) => {
             let wait = parseFloat(String(opts['wait'])) || 0
@@ -11300,8 +11310,6 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
     //Get the command (the first word in the message content)
     command = msg.content.split(" ")[0].slice(local_prefix.length)
 
-    setVar("_!!", command, msg.author.id)
-
     //the rest of the stuff are the arguments
     args = msg.content.split(" ").slice(1)
 
@@ -11489,7 +11497,6 @@ export async function doCmd(msg: Message, returnJson = false, recursion = 0, dis
             if (typing)
                 await msg.channel.sendTyping()
             let [opts, args2] = getOpts(args)
-            setVar("_!!!", command, msg.author.id)
             rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
             //if normal command, it counts as use
             globals.addToCmdUse(command)
