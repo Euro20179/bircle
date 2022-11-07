@@ -2411,7 +2411,7 @@ The commands below, only work after **path** has been run:
             is_applied(type: string) {
                 //@ts-ignore
                 let val = this[type.replaceAll(" ", "_")]
-                if(!new_rules){
+                if(!new_rules && type !== "yahtzee"){
                     if(val?.length){
                         return true
                     }
