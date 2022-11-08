@@ -1,7 +1,7 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable }  from 'discord.js'
 import { getVar } from './common'
 
-import { doCmd } from "./commands"
+import { runCmd } from "./commands"
 
 const { vars, prefix } = require( "./common.js")
 
@@ -520,19 +520,13 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if(typeof text !== 'string'){
                     return {err: true, content: "Cannot run a non-string"}
                 }
-                let oldContent = msg.content
-                let oldSend = msg.channel.send
-                msg.channel.send = async() => msg
-                msg.content = text[0] === prefix ? text : `${prefix}${text}`
-                let data = await doCmd(msg, true)
+                let data = await runCmd(msg, text, 19, true)
                 if(data === undefined){
                     stack.push(0)
                 }
                 else{
                     stack.push(data)
                 }
-                msg.content = oldContent
-                msg.channel.send = oldSend
                 break
             }
             case "%isnumeric": {

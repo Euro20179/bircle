@@ -248,8 +248,9 @@ client.on("messageCreate", async (m: Message) => {
         }
         for(let cmd of content.split(`\n${local_prefix};\n`)){
             m.content = `${cmd}`
+            let c = m.content.slice(local_prefix.length)
             try{
-                await commands.doCmd(m)
+                await commands.runCmd(m, c)
             }
             catch(err){
                 console.error(err)
@@ -779,7 +780,7 @@ server.on("request", (req, res) => {
                     _cacheType: false,
                     _patch: (_data) => {}
                 }
-                commands.doCmd(msg, true).then(rv => {
+                commands.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
                     commands.handleSending(msg, rv as CommandReturn).then(_done => {
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))

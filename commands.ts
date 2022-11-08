@@ -27,7 +27,10 @@ import timer from './timer'
 import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
-const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
+//const {Parser, parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
+
+import { Parser, parseCmd, parsePosition, parseAliasReplacement, parseDoFirst, Token, T, Modifier, Modifiers } from './parsing'
+
 import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle, renderHTML, parseBracketPair } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 import { parentPort } from "worker_threads"
@@ -263,7 +266,7 @@ function createHelpOption(description: string, alternatives?: string[]) {
 }
 
 function createCommand(
-    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: {categories?: CommandCategory[], commands?: string[]}) => Promise<CommandReturn>,
+    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -374,6 +377,12 @@ player.on(AudioPlayerStatus.Idle, (err) => {
 
 
 export const commands: { [command: string]: Command } = {
+
+    'tokenize': createCommand(async (msg, args, sc, opts, _, rec) => {
+        let parser = new Parser(msg, args.join(" ").trim())
+        await parser.parse()
+        return {content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN}
+    }, CommandCategory.META),
 
     'scorigami': createCommand(async (msg, _, sc, opts, args) => {
         let data
@@ -531,7 +540,7 @@ export const commands: { [command: string]: Command } = {
         }
     }, CommandCategory.VOICE),
 
-    "count": createCommand(async (msg, args) => {
+    "count": createCommand(async (msg, args, _, __, ___, rec, disable) => {
         if (msg.channel.id !== '468874244021813258') {
             return { content: "You are not in the counting channel", status: StatusCode.ERR }
         }
@@ -555,9 +564,8 @@ export const commands: { [command: string]: Command } = {
             count_text = "{count}"
         }
         count_text = count_text.replaceAll("{count}", `.${numeric}.`)
-        if (count_text.startsWith(user_options.getOpt(msg.author.id, "prefix", prefix))) {
-            msg.content = count_text
-            let rv = await doCmd(msg, true)
+        if (count_text.startsWith(prefix)) {
+            let rv = await runCmd(msg, count_text.slice(prefix.length), rec, true, disable)
             if (!rv) {
                 return { delete: true, noSend: true, status: StatusCode.RETURN }
             }
@@ -1385,7 +1393,7 @@ The commands below, only work after **path** has been run:
             ], status: StatusCode.RETURN
         }
     }, CommandCategory.IMAGES),
-    "ed": createCommand(async (msg, args) => {
+    "ed": createCommand(async (msg, args, _, __, ___, rec, bans) => {
         if (globals.EDS[msg.author.id]) {
             return { content: "Ur already editing", status: StatusCode.ERR }
         }
@@ -1642,11 +1650,8 @@ The commands below, only work after **path** has been run:
                 if (args) {
                     for (let i = 0; i < commandLines.length; i++) {
                         let textAtLine = text[commandLines[i]]
-                        let oldContent = msg.content
                         setVar("__ed_line", textAtLine, msg.author.id)
-                        msg.content = `${prefix}${args}`
-                        let rv = await doCmd(msg, true)
-                        msg.content = oldContent
+                        let rv = await runCmd(msg, args, rec, true, bans)
                         let t = getContentFromResult(rv as CommandReturn).trim()
                         delete vars[msg.author.id]["__ed_line"]
                         text[commandLines[i]] = t
@@ -5511,21 +5516,19 @@ middle
     ),
 
     map: {
-        run: async (msg, args, sendCallback) => {
+        run: async (msg, args, sendCallback,  _, __, rec, bans) => {
             let string = args[0]
-            let functions = args.slice(1).join(" ").split(">map>").map(v => `${prefix}${v.trim()}`)
+            let functions = args.slice(1).join(" ").split(">map>").map(v => v.trim())
             if (!functions) {
                 return { content: "nothing to  do", status: StatusCode.ERR }
             }
             for (let fn of functions) {
                 let replacedFn = fn.replaceAll("{string}", string)
                 if (replacedFn === fn) {
-                    msg.content = `${fn} ${string}`
+                    replacedFn = `${fn} ${string}`
                 }
-                else {
-                    msg.content = `${replacedFn}`
-                }
-                string = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim()
+
+                string = getContentFromResult(await runCmd(msg, replacedFn, rec + 1, true, bans) as CommandReturn).trim()
             }
             return { content: string, status: StatusCode.RETURN }
         },
@@ -6114,37 +6117,37 @@ middle
     "get": createCommand(async (msg, _, sendCallback, cmd_opts, opts) => {
         let operator = opts[0]
         let object = opts[1]
-        let filterInfo: {type: "with" | "without" | "with!" | "without!", attribute: string, search: string} | null = null
-        let filter = function(_k: any, _v: any){
+        let filterInfo: { type: "with" | "without" | "with!" | "without!", attribute: string, search: string } | null = null
+        let filter = function(_k: any, _v: any) {
             return true
         }
-        if(["with", "without", "with!"].includes(opts[2])){
-            filterInfo = {type:  opts[2] as "with" | "without" | "without!" | "with!", attribute: opts[3], search: opts.slice(4).join(" ")}
-            filter = function(v: any, k: any){
+        if (["with", "without", "with!"].includes(opts[2])) {
+            filterInfo = { type: opts[2] as "with" | "without" | "without!" | "with!", attribute: opts[3], search: opts.slice(4).join(" ") }
+            filter = function(v: any, k: any) {
                 let search = filterInfo?.search
                 //@ts-ignore
                 let val = v[filterInfo.attribute]
-                switch(filterInfo?.type){
+                switch (filterInfo?.type) {
                     case "with": {
-                        if(val !== undefined && search){
+                        if (val !== undefined && search) {
                             return String(val).includes(search)
                         }
                         return val !== undefined
                     }
                     case "without": {
-                        if(val !== undefined && search){
+                        if (val !== undefined && search) {
                             return !String(val).includes(search)
                         }
                         return val === undefined
                     }
                     case "without!": {
-                        if(val !== undefined && search){
+                        if (val !== undefined && search) {
                             return String(val) !== search
                         }
                         return val === undefined
                     }
                     case "with!": {
-                        if(val !== undefined && search){
+                        if (val !== undefined && search) {
                             return String(val) === search
                         }
                         return val !== undefined
@@ -6187,8 +6190,8 @@ middle
         if (!data) {
             return { content: `${object} is invalid`, status: StatusCode.ERR }
         }
-        if(data.size < 1){
-            return {content: "No results", status: StatusCode.RETURN}
+        if (data.size < 1) {
+            return { content: "No results", status: StatusCode.RETURN }
         }
         switch (operator) {
             case "#": {
@@ -6200,14 +6203,14 @@ middle
                 }
             }
             case "rand": {
-                if(object === "command"){
+                if (object === "command") {
                     data = data.mapValues((v, k) => k)
                 }
                 let text = ""
-                for(let i = 0; i < (number || 1); i++){
+                for (let i = 0; i < (number || 1); i++) {
                     text += data.random().toString() + "\n"
                 }
-                return {content: text, status: StatusCode.RETURN, allowedMentions: {parse: []}}
+                return { content: text, status: StatusCode.RETURN, allowedMentions: { parse: [] } }
             }
         }
         return { content: "Not a valid option", status: StatusCode.ERR }
@@ -6325,6 +6328,13 @@ The order these are given does not matter, excpet for field, which will be added
             "json": createHelpOption("Return the json that makes up the embed")
         }
     ),
+    eval: {
+        run: async (msg, args, sendCallback) => {
+            return { content: JSON.stringify(eval(args.join(" "))), status: StatusCode.RETURN }
+        },
+        category: CommandCategory.ADMIN,
+        permCheck: v => ADMINS.includes(v.author.id) || v.author.id === "288904417036468225"
+    },
     calc: {
         run: async (msg, args, sendCallback) => {
             let opts;
@@ -6392,12 +6402,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         category: CommandCategory.UTIL
     },
     del: {
-        run: async (msg, args, sendCallback) => {
+        run: async (msg, args, sendCallback, _, __, rec, bans) => {
             let opts;
             [opts, args] = getOpts(args)
             if (!opts['N']) return { noSend: true, delete: true, status: StatusCode.RETURN }
-            msg.content = `${prefix}${args.join(" ")}`
-            await doCmd(msg, false)
+            await runCmd(msg, args.join(" "), rec + 1, false, bans)
             return { noSend: true, delete: true, status: StatusCode.RETURN }
         },
         help: {
@@ -6414,36 +6423,33 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
         category: CommandCategory.META
     },
-    "analyze-cmd": createCommand(async(msg, _, sc, opts, args, rec) => {
+    "analyze-cmd": createCommand(async (msg, _, sc, opts, args, rec, bans) => {
         let results = []
-        let oldC = msg.content
 
         let text = args.join(" ").trim()
         let command = parseBracketPair(text, "()")
 
         text = text.slice(command.length + 2)
 
-        msg.content = `${prefix}${command}`
-        let rv = await doCmd(msg, true, rec + 1)
-        msg.content = oldC
-        for(let line of text.split("\n")){
+        let rv = await runCmd(msg, command, rec + 1, true, bans)
+        for (let line of text.split("\n")) {
             line = line.trim()
-            if(!line)continue
+            if (!line) continue
             let val: any = rv;
             let props = line.split(/\s+/)
-            for(let i = 0; i < props.length; i++){
+            for (let i = 0; i < props.length; i++) {
                 let prop = props[i]
-                switch(prop){
+                switch (prop) {
                     case "==": {
                         let test_eq = props[++i]
                         val = val == test_eq
                         break
                     }
                     case "!=": {
-                        let test_ne =  props[++i]
-                        val =  val != test_ne
+                        let test_ne = props[++i]
+                        val = val != test_ne
                     }
-                    default:{
+                    default: {
                         //@ts-ignore
                         val = val?.[prop]
                     }
@@ -6451,11 +6457,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             results.push(val)
         }
-        if(opts['index']){
-            return {content: JSON.stringify(results[Number(opts['index'])]) || "null", status: StatusCode.RETURN}
+        if (opts['index']) {
+            return { content: JSON.stringify(results[Number(opts['index'])]) || "null", status: StatusCode.RETURN }
         }
-        return {content: results.map(v => String(JSON.stringify(v))).join(";\n") + ";", status: StatusCode.RETURN} }, CommandCategory.META),
-    "if-cmd": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
+        return { content: results.map(v => String(JSON.stringify(v))).join(";\n") + ";", status: StatusCode.RETURN }
+    }, CommandCategory.META),
+    "if-cmd": createCommand(async (msg, _, sc, opts, args, rec, bans) => {
         let text = args.join(" ")
 
         let cmd = parseBracketPair(text, "()")
@@ -6465,14 +6472,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         text = text.slice(operator.length + 2)
 
         let value = parseBracketPair(text, "()")
-        text = text.slice(value.length +  2)
+        text = text.slice(value.length + 2)
 
-        let oldc = msg.content
-        msg.content = `${prefix}${cmd}`
-        let rv = await doCmd(msg, true, rec + 1, bans) as CommandReturn
-        msg.content = oldc
+        let rv = await runCmd(msg, cmd, rec + 1, true, bans) as CommandReturn
         let isTrue = false
-        switch(operator){
+        switch (operator) {
             case "==": {
                 isTrue = rv.content === value
                 break
@@ -6482,28 +6486,28 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 break
             }
             case "<": {
-                if(!rv.content)
+                if (!rv.content)
                     isTrue = false
                 else
                     isTrue = parseFloat(rv.content) < parseFloat(value)
                 break
             }
             case ">": {
-                if(!rv.content)
+                if (!rv.content)
                     isTrue = false
                 else
                     isTrue = parseFloat(rv.content) > parseFloat(value)
                 break
             }
             case "<=": {
-                if(!rv.content)
+                if (!rv.content)
                     isTrue = false
                 else
                     isTrue = parseFloat(rv.content) <= parseFloat(value)
                 break
             }
             case ">=": {
-                if(!rv.content)
+                if (!rv.content)
                     isTrue = false
                 else
                     isTrue = parseFloat(rv.content) >= parseFloat(value)
@@ -6515,10 +6519,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 break
             }
             case ":": {
-                try{
+                try {
                     isTrue = !!rv.content?.match(value)
                 }
-                catch(err){
+                catch (err) {
                     isTrue = false
                 }
                 break
@@ -6542,29 +6546,24 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         let falseBlock = parseBracketPair(text, "{}")
         text = text.slice(trueBlock.length + 2)
 
-        if(isTrue){
+        if (isTrue) {
 
 
-            for(let line of trueBlock.split(";\n")){
-                let oldC = msg.content
+            for (let line of trueBlock.split(";\n")) {
                 line = line.trim()
-                if(!line) continue
-                msg.content = `${prefix}${line}`
-                await doCmd(msg, false, rec + 1,  bans)
-                msg.content = oldC
+                if (!line) continue
+                await runCmd(msg, line, rec + 1, false,  bans)
             }
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         }
-        else{
-            for(let line of falseBlock.split(";\n")){
+        else {
+            for (let line of falseBlock.split(";\n")) {
                 let oldC = msg.content
                 line = line.trim()
-                if(!line) continue
-                msg.content = `${prefix}${line}`
-                await doCmd(msg, false, rec + 1,  bans)
-                msg.content = oldC
+                if (!line) continue
+                await runCmd(msg, line, rec + 1, false,  bans)
             }
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         }
     }, CommandCategory.META),
     "if": {
@@ -6620,11 +6619,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }
                     expected += ch;
                 }
-                let oldContent = msg.content;
-                msg.content = command_to_run;
-                let content = getContentFromResult(await doCmd(msg, true) as CommandReturn).trim();
+                let content = getContentFromResult(await runCmd(msg, command_to_run.slice(prefix.length), recursion_count + 1, true, command_bans) as CommandReturn).trim();
                 expected = expected.trim()
-                msg.content = oldContent;
                 switch (check.trim().toLowerCase()) {
                     case "==": {
                         success = content === expected;
@@ -6694,13 +6690,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                msg.content = `${prefix}${cmd.trim()}`
-                return await doCmd(msg, true) as CommandReturn
+                return await runCmd(msg, cmd.trim(), recursion_count + 1, true, command_bans) as CommandReturn
             }
             let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
             if (elseCmd) {
-                msg.content = `${prefix}${elseCmd.trim()}`
-                return await doCmd(msg, true) as CommandReturn
+                return await runCmd(msg, elseCmd.trim(), recursion_count, true, command_bans) as CommandReturn
             }
             return { content: "?", status: StatusCode.ERR }
         },
@@ -6752,15 +6746,15 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
         category: CommandCategory.META
     },
-    variablize: createCommand(async(msg, _, sc, opts, args) => {
+    variablize: createCommand(async (msg, _, sc, opts, args) => {
         let vars = args
         let str = vars.map(v => {
-            if(v.startsWith("\\")){
+            if (v.startsWith("\\")) {
                 return v.slice(1)
             }
             return getVar(msg, v)
         }).join(" ")
-        return {content: str, status: StatusCode.RETURN}
+        return { content: str, status: StatusCode.RETURN }
     }, CommandCategory.META, "Each arg in the arguments is treated as a string, unless it starts with \\"),
     echo: {
         run: async (msg: Message, _, __, opts, args) => {
@@ -9163,7 +9157,7 @@ Valid formats:
         },
         category: CommandCategory.META,
         help: {
-            info:  "List all whitelists"
+            info: "List all whitelists"
         }
     },
     ship: {
@@ -9197,16 +9191,15 @@ Valid formats:
         category: CommandCategory.FUN
     },
     timeit: {
-        run: async (msg, args, sendCallback) => {
-            msg.content = `${prefix}${args.join(" ").trim()}`
+        run: async (msg, args, sendCallback, _, __, rec, bans) => {
             let start = new Date().getTime()
-            await doCmd(msg)
+            await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
             return { content: `${new Date().getTime() - start} ms`, status: StatusCode.RETURN }
         },
         category: CommandCategory.META
     },
     "do": {
-        run: async (msg: Message, args: ArgumentList, sendCallback, opts, deopedArgs, recursion) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback, opts, deopedArgs, recursion, bans) => {
             if (recursion >= globals.RECURSION_LIMIT) {
                 return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
@@ -9236,8 +9229,7 @@ Valid formats:
             }
             globals.SPAMS[id] = true
             while (globals.SPAMS[id] && times--) {
-                msg.content = `${prefix}${format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) })}`
-                await doCmd(msg, false, globals.RECURSION_LIMIT)
+                await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, false, bans)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
             delete globals.SPAMS[id]
@@ -9714,8 +9706,7 @@ Valid formats:
                 if (line.startsWith(prefix)) {
                     line = line.slice(prefix.length)
                 }
-                msg.content = `${prefix}${parseRunLine(line)}`
-                await doCmd(msg, false, recursion + 1, bans)
+                await runCmd(msg, parseRunLine(line), recursion + 1, false,  bans)
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.INFO }
@@ -11301,7 +11292,7 @@ valid formats:<br>
         category: CommandCategory.META
     },
     "!!": {
-        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+        run: async (msg: Message, args: ArgumentList, sendCallback, _, __, rec, bans) => {
             let opts;
             [opts, args] = getOpts(args)
             if (opts['check'] || opts['print'] || opts['see'])
@@ -11310,7 +11301,7 @@ valid formats:<br>
                 return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
             msg.content = lastCommand[msg.author.id]
-            return await doCmd(msg, true) as CommandReturn
+            return await runCmd(msg, lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), rec + 1, true, bans) as CommandReturn
         },
         help: {
             info: "Run the last command that was run",
@@ -11496,242 +11487,279 @@ export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
-export async function doCmd(msg: Message, returnJson = false, recursion = 0, disable?: { categories?: CommandCategory[], commands?: string[] }) {
-    let command: string
-    let args: Array<string>
-    let doFirsts: { [item: number]: string }
+export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }){
+    let parser = new Parser(msg, command_excluding_prefix)
+    parser.parse()
+    let int = new Interprater(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
+    return await int.run()
+}
 
-    //canRun is true if the user is not BLACKLISTED from a command
-    //it is also  true if the user is WHITELISTED for a command
-    let canRun = true
-    //This is true if the command exists
-    let exists = true
+class Interprater {
+    tokens: Token[]
+    args: string[]
+    cmd: string
+    real_cmd: string
+    recursion: number
+    returnJson: boolean
+    disable: { categories?: CommandCategory[], commands?: string[] }
 
-    //This is true if the bot  is supposed  to type
-    let typing = false
+    #interprated: boolean
+    #i: number
+    #curTok: Token | undefined
+    #doFirstCountValueTable: { [key: number]: string }
+    #doFirstNoFromArgNo: { [key: number]: number }
+    #msg: Message
+    #argOffsetFromDoFirstSpreading: number
+    #modifiers: Modifier[]
 
-    //This is  false  if the command result is not redirected into a variable
-    let redir: boolean | [Object, string] = false //Object is the object in which the variable is stored, string is the variable name
+    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
+        this.tokens = tokens
+        this.args = []
+        this.cmd = ""
+        this.real_cmd = ""
+        this.recursion = recursion
+        this.returnJson = returnJson
+        this.disable = disable ?? {}
 
-    //The return  value from this function
-    let rv: CommandReturn = { status: StatusCode.RETURN };
-
-    let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
-
-    //Get the command (the first word in the message content)
-    command = msg.content.split(" ")[0].slice(local_prefix.length)
-
-    //the rest of the stuff are the arguments
-    args = msg.content.split(" ").slice(1)
-
-    //first check for modifiers
-
-    let sendCallback = msg.channel.send.bind(msg.channel)
-
-
-    let skipParsing = false
-
-    if (command.startsWith("s:")) { //s: (silent) modifier
-        //change this function to essentially do nothing, it just returns the orriginal message as it must return a message
-        //msg.channel.send = async (_data) => msg
-        command = command.slice(2)
-        sendCallback = async (_data) => msg
+        this.#modifiers = modifiers
+        this.#i = -1
+        this.#curTok = undefined
+        this.#doFirstCountValueTable = {}
+        this.#msg = msg
+        this.#argOffsetFromDoFirstSpreading = 0
+        this.#doFirstNoFromArgNo = {}
+        this.#interprated = false
     }
-    let m; //variable to keep track of the match
-    //this regex matches: /redir!?\((prefix)?:variable\)
-    if (m = command.match(/^redir(!)?\(([^:]*):([^:]+)\):/)) { //the redir: modifier
-        //whether or not to redirect *all* message sends to the variable, or just the return value from the command
-        let all = m[1] //this matches the ! after redir
-        let skip = 9 //the base length of redir(:):
-        if (all) {
-            //add 1 for the !
-            skip++
-            //change this function to redirect into the variable requested
-            sendCallback = async (_data) => {
-                //@ts-ignore
-                if (_data.content) {
-                    if (typeof redir === 'object') {
-                        let [place, name] = redir
-                        //@ts-ignore
-                        place[name] = place[name] + "\n" + _data.content
-                    }
-                }
-                else if (typeof _data === 'string') {
-                    if (typeof redir === 'object') {
-                        let [place, name] = redir
-                        //@ts-ignore
-                        place[name] = place[name] + "\n" + _data
-                    }
-                }
-                return msg
-            }
+    advance(amount = 1) {
+        this.#i += amount;
+        this.#curTok = this.tokens[this.#i]
+        if (this.#curTok === undefined) {
+            return false
         }
-        //the variable scope
-        let prefix = m[2] //matches the text before the  : in the parens in redir
-        console.log(prefix.length)
-        skip += prefix.length
-        //the variable name
-        let name = m[3] //matches the text after the :  in the parens in redir
-        if (!prefix) {
-            prefix = "__global__"
-            redir = [vars["__global__"], name]
+        return true
+    }
+    back() {
+        this.#i--;
+        if (this.#i < 0) {
+            return false
         }
-        else if (prefix) {
-            skip += prefix.length
-            if (!vars[prefix])
-                vars[prefix] = {}
-            redir = [vars[prefix], name]
-        }
-        skip += name.length
-        command = command.slice(skip)
+        this.#curTok = this.tokens[this.#i]
+        return true
     }
-    if (command.startsWith("t:")) {
-        typing = true
-        command = command.slice(2)
-    }
-    if (command.startsWith("d:")) {
-        if (msg.deletable) await msg.delete()
-        command = command.slice(2)
-    }
-    if (command.startsWith("n:")) {
-        skipParsing = true
-        command = command.slice(2)
-    }
-
-    //next expand aliases
-    if (!commands[command] && aliases[command]) {
-        //expand the alias to find the true command
-        let expansion = await expandAlias(command, (alias: any) => {
-            globals.addToCmdUse(alias) //for every expansion, add to cmd use
-            if (BLACKLIST[msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                handleSending(msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, sendCallback, recursion + 1)
-                return false
-            }
-            return true
-        })
-        //if it was able to expand (not blacklisted, and no misc errors)
-        if (expansion) {
-            //alias is actually the real command
-            //aliasPreArgs are the arguments taht go after the commnad
-            let [alias, aliasPreArgs] = expansion
-            msg.content = `${local_prefix}${alias} ${aliasPreArgs.join(" ")}`
-            let oldC = msg.content
-            //aliasPreArgs.join is the command  content, args is what the user typed
-            msg.content = `${local_prefix}${alias} ${parseAliasReplacement(msg, aliasPreArgs.join(" "), args)}`
-            if (oldC == msg.content) {
-                msg.content = msg.content + ` ${args.join(" ")}`
-            }
-            //set the args again as alias expansion can change it
-            args = msg.content.split(" ").slice(1)
-            //set the command to the new alias
-            command = alias
-            //rv = await doCmd(msg, true) as CommandReturn
+    addTokenToArgList(token: Token) {
+        if (this.args[token.argNo + this.#argOffsetFromDoFirstSpreading] === undefined) {
+            this.args[token.argNo + this.#argOffsetFromDoFirstSpreading] = token.data
         }
         else {
-            rv = { content: `failed to expand ${command}`, status: StatusCode.ERR }
+            this.args[token.argNo + this.#argOffsetFromDoFirstSpreading] += token.data
+        }
+    }
+    //str token
+    async [0](token: Token) {
+        this.addTokenToArgList(token)
+    }
+    //dofirst token
+    async [1](token: Token) {
+        let parser = new Parser(this.#msg, token.data)
+        parser.parse()
+        let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
+        let rv = await int.run() as CommandReturn
+        let data = getContentFromResult(rv as CommandReturn).trim()
+        if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
+            let parser = new Parser(this.#msg, token.data)
+            parser.parse()
+            let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
+            let rv = await  int.run() as CommandReturn
+            data = getContentFromResult(rv as CommandReturn).trim()
+        }
+        this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
+        this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
+    }
+    //calc
+    async [2](token: Token) {
+        let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars["__global__"] }, { timeout: 1000 })), token.argNo)
+        this.addTokenToArgList(t)
+    }
+    //esc sequence
+    async [3](token: Token) {
+        this.addTokenToArgList(token)
+    }
+    //fmt
+    async [4](token: Token) {
+        this.addTokenToArgList(token)
+    }
+    //dofirstrepl
+    async [5](token: Token) {
+        let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
+        if (doFirstResultNo === undefined) {
+            doFirstResultNo = doFirstArgNo
+            doFirstArgNo = String(this.#doFirstNoFromArgNo[token.argNo])
+        }
+        let doFirst = this.#doFirstCountValueTable[Number(doFirstArgNo)]
+        if (doFirst !== undefined) {
+            let text = ""
+            if (doFirstResultNo === "") {
+                text = doFirst
+            }
+            else {
+                text = doFirst[Number(doFirstResultNo)]
+            }
+            this.addTokenToArgList(new Token(T.str, text, token.argNo))
+        }
+        //needss to support
+        //%{...} spreads  args into  multiple arguments
+        //%{x:} gets the  dofirst at the arg[x]  position DONE
+        //%{y} replaces the dofirst attached to  this withh tbhe do first's result[y] DONE
+        //%{-1} replaces with nothing DONE
+        //%{x:y} replaces with the dofirst at the arg[x] position with the result[y] DONE
+
+    }
+    async [6](token: Token) {
+        this.real_cmd = token.data
+        this.cmd = token.data
+    }
+
+    hasModifier(mod: Modifiers) {
+        return this.#modifiers.filter(v => v.type === mod).length > 0
+    }
+
+
+    async run(): Promise<CommandReturn | undefined> {
+        let args = await this.interprate()
+        //canRun is true if the user is not BLACKLISTED from a command
+        //it is also  true if the user is WHITELISTED for a command
+        let canRun = true
+        //This is true if the command exists
+        let exists = true
+
+        //This is true if the bot  is supposed  to type
+        let typing = false
+
+        //This is  false  if the command result is not redirected into a variable
+        let redir: boolean | [Object, string] = false //Object is the object in which the variable is stored, string is the variable name
+
+        //The return  value from this function
+        let rv: CommandReturn = { status: StatusCode.RETURN };
+
+        let sendCallback = this.#msg.channel.send.bind(this.#msg.channel)
+
+        if (this.hasModifier(Modifiers.silent)) {
+            sendCallback = async (_data) => this.#msg
+        }
+
+        if (this.hasModifier(Modifiers.typing)) {
+            typing = true
+        }
+        if (this.hasModifier(Modifiers.delete)) {
+            if (this.#msg.deletable) await this.#msg.delete()
+        }
+
+        if (!commands[this.cmd] && aliases[this.cmd]) {
+            //expand the alias to find the true command
+            let expansion = await expandAlias(this.cmd, (alias: any) => {
+                globals.addToCmdUse(alias) //for every expansion, add to cmd use
+                if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
+                    handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, sendCallback, this.recursion + 1)
+                    return false
+                }
+                return true
+            })
+            //if it was able to expand (not blacklisted, and no misc errors)
+            if (expansion) {
+                //alias is actually the real command
+                //aliasPreArgs are the arguments taht go after the commnad
+                let [alias, aliasPreArgs] = expansion
+                let content = aliasPreArgs.join(" ")
+                let oldC = content
+                //aliasPreArgs.join is the command  content, args is what the user typed
+                content = parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), args)
+                if (oldC == content) {
+                    content += ` ${args.join(" ")}`
+                }
+                //set the args again as alias expansion can change it
+                args = content.split(" ")
+                console.log(alias, args)
+                //set the command to the new alias
+                this.real_cmd = alias
+            }
+            else {
+                rv = { content: `failed to expand ${this.cmd}`, status: StatusCode.ERR }
+                exists = false
+            }
+        }
+        if (!commands[this.real_cmd]) {
+            //We dont want to keep running commands if the command doens't exist
+            //fixes the [[[[[[[[[[[[[[[[[ exploit
+            if (this.real_cmd.startsWith(prefix)) {
+                this.real_cmd = `\\${this.real_cmd}`
+            }
+            rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
             exists = false
         }
-    }
-    if (!commands[command]) {
-        //We dont want to keep running commands if the command doens't exist
-        //fixes the [[[[[[[[[[[[[[[[[ exploit
-        if (command.startsWith(prefix)) {
-            command = `\\${command}`
-        }
-        rv = { content: `${command} does not exist`, status: StatusCode.ERR }
-        exists = false
-    }
 
-    if (skipParsing === false) {
-        //Then parse cmd to get the cmd, arguments, and dofirsts
-        let _
-        //get the new parsed args
-        [_, args, doFirsts] = await parseCmd({ msg: msg })
-
-        let doFirstData: { [key: number]: string } = {} //where key is the argno that the dofirst is at
-        let doFirstCountNoToArgNo: { [key: number]: string } = {} //where key is the doFirst number
-
-        //idxNo is the doFirst count (the number  of dofirst)
-        let idxNo = 0
-        //idx is the position in the args variable, not the doFirst count
-        for (let idx in doFirsts) {
-            let cmd = doFirsts[idx]
-            let oldContent = msg.content
-            //hack to run command as if message is cmd
-            msg.content = cmd
-            let rv = await doCmd(msg, true, recursion + 1, disable) as CommandReturn
-            msg.content = oldContent
-            //recursively evaluate msg.content as a command
-            if (rv.recurse && rv.content && isCmd(rv.content, local_prefix) && recursion < 20) {
-                let oldContent = msg.content
-                msg.content = rv.content
-                rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
-                msg.content = oldContent
+        if (exists) {
+            //make sure it passes the command's perm check if it has one
+            if (commands[this.real_cmd].permCheck) {
+                canRun = commands[this.real_cmd].permCheck?.(this.#msg) ?? true
             }
-            let data = getContentFromResult(rv as CommandReturn).trim()
-            msg.content = oldContent
-            //end hack
-            doFirstData[idx] = data
-            doFirstCountNoToArgNo[idxNo] = idx
-            idxNo++
+            //is whitelisted
+            if (WHITELIST[this.#msg.author.id]?.includes(this.real_cmd)) {
+                canRun = true
+            }
+            //is blacklisted
+            if (BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd)) {
+                canRun = false
+            }
+            if (this.disable?.commands && this.disable.commands.includes(this.real_cmd)) {
+                canRun = false
+            }
+            if (this.disable?.categories && this.disable.categories.includes(commands[this.real_cmd].category)) {
+                canRun = false
+            }
+            if (canRun) {
+                if (typing)
+                    await this.#msg.channel.sendTyping()
+                let [opts, args2] = getOpts(args)
+                rv = await commands[this.real_cmd].run(this.#msg, args, sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                //if normal command, it counts as use
+                globals.addToCmdUse(this.real_cmd)
+            }
+            else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
         }
 
-        //If there is a dofirst, parse the %{...} stuff
-        if (Object.keys(doFirstData).length > 0) {
-            args = parseDoFirst(doFirstData, doFirstCountNoToArgNo, args)
-            //%{-1} expands to __BIRCLE__UNDEFINED__, replace with nothing
-            args = args.map(v => v.replaceAll("__BIRCLE__UNDEFINED__", ""))
+        //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
+        if (!illegalLastCmds.includes(this.real_cmd)) {
+            //this is for the !! command
+            lastCommand[this.#msg.author.id] = this.#msg.content
         }
+        if (this.returnJson) {
+            return rv;
+        }
+        // if (redir) {
+        //     let [place, name] = redir
+        //     //set the variable to the response
+        //     //@ts-ignore
+        //     place[name] = () => getContentFromResult(rv)
+        //     return
+        // }
+        //handles the rv protocol
+        handleSending(this.#msg, rv, sendCallback, this.recursion + 1)
     }
 
-
-    if (exists) {
-        //make sure it passes the command's perm check if it has one
-        if (commands[command].permCheck) {
-            canRun = commands[command].permCheck?.(msg) ?? true
+    async interprate() {
+        if (this.#interprated) {
+            return this.args
         }
-        //is whitelisted
-        if (WHITELIST[msg.author.id]?.includes(command)) {
-            canRun = true
+        for (let doFirst of this.tokens.filter(v => v.type === T.dofirst)) {
+            await this[1](doFirst)
         }
-        //is blacklisted
-        if (BLACKLIST[msg.author.id]?.includes(command)) {
-            canRun = false
+        this.tokens = this.tokens.filter(v => v.type !== T.dofirst)
+        while (this.advance()) {
+            await this[(this.#curTok as Token).type](this.#curTok as Token)
         }
-        if (disable?.commands && disable.commands.includes(command)) {
-            canRun = false
-        }
-        if (disable?.categories && disable.categories.includes(commands[command].category)) {
-            canRun = false
-        }
-        if (canRun) {
-            if (typing)
-                await msg.channel.sendTyping()
-            let [opts, args2] = getOpts(args)
-            rv = await commands[command].run(msg, args, sendCallback, opts, args2, recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
-            //if normal command, it counts as use
-            globals.addToCmdUse(command)
-        }
-        else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+        this.#interprated = true
+        return this.args
     }
-
-    //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
-    if (!illegalLastCmds.includes(command)) {
-        //this is for the !! command
-        lastCommand[msg.author.id] = msg.content
-    }
-    if (returnJson) {
-        return rv;
-    }
-    if (redir) {
-        let [place, name] = redir
-        //set the variable to the response
-        //@ts-ignore
-        place[name] = () => getContentFromResult(rv)
-        return
-    }
-    //handles the rv protocol
-    handleSending(msg, rv, sendCallback, recursion + 1)
 }
 
 export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false> {
