@@ -298,7 +298,7 @@ class Parser {
     async parseFormat(msg:  Message){
         this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
-        this.advance()
+        this.advance(inner.length)
         let [format, ...args] = inner.split("|")
         let data = ""
         switch(format){
@@ -319,6 +319,7 @@ class Parser {
             }
             case "rev":
             case "reverse":
+            console.log(format, args)
                 if (args.length > 1)
                     data = args.reverse().join(" ")
                 else{
@@ -479,12 +480,15 @@ class Parser {
                     "n": `${msg.channel.name}`,
                     "c": `${msg.channel.createdAt}`
                 })
-        }
-        if (args.length > 0) {
-            data = `{${format}|${args.join("|")}}`
-        }
-        else{
-            data = `{${format}}`
+                break
+            default:{
+                if (args.length > 0) {
+                    data = `{${format}|${args.join("|")}}`
+                }
+                else{
+                    data = `{${format}}`
+                }
+            }
         }
         return new Token(T.str, data, this.#curArgNo)
     }
