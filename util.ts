@@ -11,6 +11,32 @@ import globals = require("./globals")
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
+function parseBracketPair(string: string, pair: string){
+    let count = 1;
+    if(string.indexOf(pair[0]) === -1){
+        return string
+    }
+    let curStr = ""
+    for(let i = string.indexOf(pair[0]) + 1; i < string.length; i++){
+        let ch = string[i]
+        if(ch == pair[0]){
+            count++;
+        }
+        if(ch == pair[1]){
+            count--;
+        }
+        if(count == 0){
+            return curStr
+        }
+        //sspecial case when the pairs are the same
+        if(count == 1 && pair[0] == ch && pair[1] == pair[0] && curStr){
+            return curStr
+        }
+        curStr += ch
+    }
+    return curStr
+}
+
 class Pipe{
     data: any[]
     fn: Function
@@ -621,6 +647,10 @@ function weirdMulStr(text: string[], ...count: string[]){
     return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
 
+function quotify(text: string[], ...values: string[]){
+    return values.map(v => `"${v}"`).map((v, i) => `${text[i]}${v}`) + text.slice(-1)[0]
+}
+
 export {
     fetchUser,
     fetchChannel,
@@ -649,6 +679,7 @@ export {
     Pipe,
     getFonts,
     intoColorList,
-    renderHTML
+    renderHTML,
+    parseBracketPair
 }
 

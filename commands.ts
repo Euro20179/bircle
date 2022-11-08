@@ -28,7 +28,7 @@ import { getVar } from "./common"
 
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 const { parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
-import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle, renderHTML } from './util'
+import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle, renderHTML, parseBracketPair } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 import { parentPort } from "worker_threads"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
@@ -263,7 +263,7 @@ function createHelpOption(description: string, alternatives?: string[]) {
 }
 
 function createCommand(
-    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList) => Promise<CommandReturn>,
+    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: {categories?: CommandCategory[], commands?: string[]}) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -6414,8 +6414,150 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
         category: CommandCategory.META
     },
+    "analyze-cmd": createCommand(async(msg, _, sc, opts, args, rec) => {
+        let results = []
+        let oldC = msg.content
+
+        let text = args.join(" ").trim()
+        let command = parseBracketPair(text, "()")
+
+        text = text.slice(command.length + 2)
+
+        msg.content = `${prefix}${command}`
+        let rv = await doCmd(msg, true, rec + 1)
+        msg.content = oldC
+        for(let line of text.split("\n")){
+            line = line.trim()
+            if(!line)continue
+            let val = rv;
+            for(let prop of line.split(/\s+/)){
+                switch(prop){
+                    default:{
+                        //@ts-ignore
+                        val = val?.[prop]
+                    }
+                }
+            }
+            results.push(val)
+        }
+        if(opts['index']){
+            return {content: JSON.stringify(results[Number(opts['index'])]) || "null", status: StatusCode.RETURN}
+        }
+        return {content: results.map(JSON.stringify).join(";\n") + ";", status: StatusCode.RETURN} }, CommandCategory.META),
+    "if-cmd": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
+        let text = args.join(" ")
+
+        let cmd = parseBracketPair(text, "()")
+        text = text.slice(cmd.length + 2)
+
+        let operator = parseBracketPair(text, "  ")
+        text = text.slice(operator.length + 2)
+
+        let value = parseBracketPair(text, "()")
+        text = text.slice(value.length +  2)
+
+        let oldc = msg.content
+        msg.content = `${prefix}${cmd}`
+        let rv = await doCmd(msg, true, rec + 1, bans) as CommandReturn
+        msg.content = oldc
+        let isTrue = false
+        switch(operator){
+            case "==": {
+                isTrue = rv.content === value
+                break
+            }
+            case "!=": {
+                isTrue = rv.content !== value
+                break
+            }
+            case "<": {
+                if(!rv.content)
+                    isTrue = false
+                else
+                    isTrue = parseFloat(rv.content) < parseFloat(value)
+                break
+            }
+            case ">": {
+                if(!rv.content)
+                    isTrue = false
+                else
+                    isTrue = parseFloat(rv.content) > parseFloat(value)
+                break
+            }
+            case "<=": {
+                if(!rv.content)
+                    isTrue = false
+                else
+                    isTrue = parseFloat(rv.content) <= parseFloat(value)
+                break
+            }
+            case ">=": {
+                if(!rv.content)
+                    isTrue = false
+                else
+                    isTrue = parseFloat(rv.content) >= parseFloat(value)
+                break
+            }
+            case "*=":
+            case "includes": {
+                isTrue = Boolean(rv.content?.includes(value))
+                break
+            }
+            case ":": {
+                try{
+                    isTrue = !!rv.content?.match(value)
+                }
+                catch(err){
+                    isTrue = false
+                }
+                break
+            }
+            case "^=":
+            case "starts-with":
+            case "sw": {
+                isTrue = rv.content?.startsWith(value) ?? false
+                break
+            }
+            case "$=":
+            case "ends-with":
+            case "ew": {
+                isTrue = rv.content?.endsWith(value) ?? false
+                break
+            }
+        }
+        let trueBlock = parseBracketPair(text, "{}")
+        text = text.slice(trueBlock.length + 2)
+
+        let falseBlock = parseBracketPair(text, "{}")
+        text = text.slice(trueBlock.length + 2)
+
+        if(isTrue){
+
+
+            for(let line of trueBlock.split(";\n")){
+                let oldC = msg.content
+                line = line.trim()
+                if(!line) continue
+                msg.content = `${prefix}${line}`
+                await doCmd(msg, false, rec + 1,  bans)
+                msg.content = oldC
+            }
+            return {noSend: true, status: StatusCode.RETURN}
+        }
+        else{
+            for(let line of falseBlock.split(";\n")){
+                let oldC = msg.content
+                line = line.trim()
+                if(!line) continue
+                msg.content = `${prefix}${line}`
+                await doCmd(msg, false, rec + 1,  bans)
+                msg.content = oldC
+            }
+            return {noSend: true, status: StatusCode.RETURN}
+        }
+    }, CommandCategory.META),
     "if": {
-        run: async (msg, args, sendCallback) => {
+        run: async (msg, args, sendCallback, opts, deopedArgs, recursion_count, command_bans) => {
             let [condition, cmd] = args.join(" ").split(";")
             if (!cmd) {
                 return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
