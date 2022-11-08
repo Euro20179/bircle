@@ -50,16 +50,16 @@ class Parser {
 
     modifiers: Modifier[]
 
+    IFS: string
+
     #msg: Message
-
-
     #curChar: string | undefined
     #i: number
     #curArgNo: number
     #hasCmd: boolean
 
-    static get specialChars() {
-        return "\\${ %"
+    get specialChars() {
+        return `\\\$${this.IFS}{%`
     }
 
     constructor(msg: Message, string: string) {
@@ -71,6 +71,7 @@ class Parser {
         this.#hasCmd = false
         this.#msg = msg
         this.modifiers = []
+        this.IFS = getVar(msg, "IFS", msg.author.id) || " "
     }
 
     advance(amount = 1) {
@@ -94,7 +95,7 @@ class Parser {
         let lastWasspace = false
         parseLoop: while (this.advance()) {
             switch (this.#curChar) {
-                case " ": {
+                case this.IFS: {
                     if(!lastWasspace){
                         this.#curArgNo++;
                     }
@@ -126,7 +127,7 @@ class Parser {
                     if(!this.#hasCmd){
                         this.tokens.push(this.parseCmd())
                         if(this.modifiers.filter(v => v.type === Modifiers.skip).length){
-                            this.tokens = this.tokens.concat(this.string.split(" ").slice(1).map((v, i) => new Token(T.str, v, i)))
+                            this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).map((v, i) => new Token(T.str, v, i)))
                             break parseLoop
                         }
                     }
@@ -142,7 +143,7 @@ class Parser {
     parseCmd(){
         let cmd = this.#curChar as string
         let modifiers = [/^n:/, /^s:/, /^t:/, /^d:/, /^redir(!)?\(([^:]*):([^:]+)\):/]
-        while(this.advance()  && this.#curChar !== " "){
+        while(this.advance()  && this.#curChar !== this.IFS){
             cmd += this.#curChar as string
         }
         while(true){
@@ -204,7 +205,7 @@ class Parser {
                 if (sequence) {
                     return new Token(T.str, sequence, this.#curArgNo)
                 }
-                return new Token(T.str, " ", this.#curArgNo)
+                return new Token(T.str, this.IFS, this.#curArgNo)
             case "A":
                 if(sequence){
                     for(let i = 0; i < sequence.length - 1; i++){
@@ -302,7 +303,7 @@ class Parser {
         let data = ""
         switch(format){
             case "cmd":
-                data = msg.content.split(" ")[0].slice(getOpt(msg.author.id, "prefix", prefix).length)
+                data = msg.content.split(this.IFS)[0].slice(getOpt(msg.author.id, "prefix", prefix).length)
                 break
             case "fhex":
             case "fbase": {
@@ -325,7 +326,7 @@ class Parser {
                 }
                 break
             case 'c':
-                data = msg.content.split(" ").slice(1).join(" ").trim()
+                data = msg.content.split(this.IFS).slice(1).join(this.IFS).trim()
                 break
             case "channel": {
                 let fmt = args.join(" ") || "<#%i>"
@@ -499,7 +500,7 @@ class Parser {
             this.advance(inner.length)
             return new Token(T.dofirstrepl, inner, this.#curArgNo)
         }
-        else if (Parser.specialChars.includes(this.#curChar as string)) {
+        else if (this.specialChars.includes(this.#curChar as string)) {
             let tok = new Token(T.str, text, this.#curArgNo)
             this.back()
             return tok
@@ -550,10 +551,10 @@ class Parser {
     }
     parseString() {
         let str = this.#curChar as string
-        while (this.advance() && !Parser.specialChars.includes(this.#curChar as string)) {
+        while (this.advance() && !this.specialChars.includes(this.#curChar as string)) {
             str += this.#curChar
         }
-        if (Parser.specialChars.includes(this.#curChar as string)) {
+        if (this.specialChars.includes(this.#curChar as string)) {
             this.back()
         }
         return new Token(T.str, str, this.#curArgNo)
