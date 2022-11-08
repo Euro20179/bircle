@@ -36,6 +36,7 @@ globals.js
 common.js
 commands.js
 user-options.js
+parsing.js
 
 *.bircle
 
