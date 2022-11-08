@@ -11625,6 +11625,40 @@ class Interprater {
         return this.#modifiers.filter(v => v.type === mod).length > 0
     }
 
+    async runAlias(){
+        let rv: CommandReturn
+        //expand the alias to find the true command
+        let expansion = await expandAlias(this.cmd, (alias: any) => {
+            globals.addToCmdUse(alias) //for every expansion, add to cmd use
+            if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
+                handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, sendCallback, this.recursion + 1)
+                return false
+            }
+            return true
+        })
+        //if it was able to expand (not blacklisted, and no misc errors)
+        if (expansion) {
+            //alias is actually the real command
+            //aliasPreArgs are the arguments taht go after the commnad
+            let [alias, aliasPreArgs] = expansion
+            let content = `${alias} ${aliasPreArgs.join(" ")}`.trim()
+            let oldC = content
+            //aliasPreArgs.join is the command  content, args is what the user typed
+            content = `${alias} ${parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), this.args)}`.trim()
+            if (oldC == content) {
+                content += ` ${this.args.join(" ")}`
+            }
+
+            this.real_cmd = alias
+
+            rv = await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn)
+        }
+        else {
+            rv = { content: `failed to expand ${this.cmd}`, status: StatusCode.ERR }
+        }
+        return rv
+    }
+
 
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
@@ -11699,39 +11733,9 @@ class Interprater {
         }
 
         if (!commands[this.cmd] && aliases[this.cmd]) {
-            //expand the alias to find the true command
-            let expansion = await expandAlias(this.cmd, (alias: any) => {
-                globals.addToCmdUse(alias) //for every expansion, add to cmd use
-                if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                    handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, sendCallback, this.recursion + 1)
-                    return false
-                }
-                return true
-            })
-            //if it was able to expand (not blacklisted, and no misc errors)
-            if (expansion) {
-                //alias is actually the real command
-                //aliasPreArgs are the arguments taht go after the commnad
-                let [alias, aliasPreArgs] = expansion
-                let content = aliasPreArgs.join(" ")
-                let oldC = content
-                //aliasPreArgs.join is the command  content, args is what the user typed
-                content = parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), args)
-                if (oldC == content) {
-                    content += ` ${args.join(" ")}`
-                }
-                //set the args again as alias expansion can change it
-                args = content.split(" ")
-                console.log(alias, args)
-                //set the command to the new alias
-                this.real_cmd = alias
-            }
-            else {
-                rv = { content: `failed to expand ${this.cmd}`, status: StatusCode.ERR }
-                exists = false
-            }
+            rv = await this.runAlias()
         }
-        if (!commands[this.real_cmd]) {
+        else if (!commands[this.real_cmd]) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
             if (this.real_cmd.startsWith(prefix)) {
@@ -11740,8 +11744,7 @@ class Interprater {
             rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
             exists = false
         }
-
-        if (exists) {
+        else if (exists) {
             //make sure it passes the command's perm check if it has one
             if (commands[this.real_cmd].permCheck) {
                 canRun = commands[this.real_cmd].permCheck?.(this.#msg) ?? true
