@@ -1,6 +1,6 @@
 const { getOpt } = require("./user-options")
 const {prefix, vars, getVar} = require('./common.js')
-const {format, safeEval, getOpts, generateSafeEvalContextFromMessage} = require('./util.js')
+const {format, safeEval, getOpts, generateSafeEvalContextFromMessage, parseBracketPair} = require('./util.js')
 const  economy = require('./economy.js')
 const timer = require("./timer.js")
 
@@ -283,36 +283,20 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 ch = content[i]
                 if(ch === '['){
                     if(curArg.indexOf("%{}") === -1) curArg += "%{}"
-                    let inside = ""
-                    let parenCount = 1
-                    for(i++; parenCount != 0; i++){
-                        ch = content[i]
-                        if(!ch) break
-                        if(ch == "["){
-                            parenCount++
-                        } else if(ch == "]"){
-                            parenCount--
-                        }
-                        if(parenCount != 0) inside += ch;
-                    }
-                    i--
+                    let inside = parseBracketPair(content, "[]", ++i)
+                    i += inside.length
+
                     curArg = curArg.replaceAll(/(?<!\\)%\{\}/g, String(safeEval(inside, {...generateSafeEvalContextFromMessage(msg), curArg: curArg, ...vars["__global__"]}, {timeout: 1000})))
                 }
                 else if(ch === "("){
                     if(!curArg.match(/(%\{\d*\}|%\{-1\})/g)) curArg += "%{}"
+
                     let inside = getOpt(msg.author.id, "prefix", prefix)
-                    let parenCount = 1
-                    for(i++; parenCount != 0; i++){
-                        ch = content[i]
-                        if(!ch) break
-                        if(ch == "("){
-                            parenCount++
-                        } else if(ch == ")"){
-                            parenCount--
-                        }
-                        if(parenCount != 0) inside += ch;
-                    }
-                    i--
+
+                    inside += parseBracketPair(content, "()", ++i)
+
+                    i += inside.length
+
                     doFirsts[argNo] = inside
                 }
                 else if(ch == ' '){
@@ -338,40 +322,14 @@ async function parseCmd({msg, content, command, customEscapes, customFormats}){
                 let prefixLetter = ch
                 i++
                 ch = content[i]
-                let sequence = ""
-                let parenCount = 0
-                if(ch == "{"){
-                    parenCount++
-                    for(i++; i < content.length; i++){
-                        ch = content[i]
-                        if(ch == "{")
-                            parenCount++;
-                        else if(ch == "}")
-                            parenCount--;
-                        if(parenCount == 0) break;
-                        sequence += ch
-                    }
-                }else{
-                    //We only want to go back a character, if there is no sequence, otherwise } will be tacked on
-                    i--
-                }
+                let sequence = parseBracketPair(content, "{}", ++i)
+                i += sequence.length
                 curArg += await buildEscape(prefixLetter, sequence, msg, curArg, customEscapes)
                 break;
             }
             case "{":
-                let value = ""
-                let parenCount = 1
-                for(i++; i < content.length; i++){
-                    ch = content[i]
-                    if(ch == "{"){
-                        parenCount++
-                    }
-                    if(ch == "}"){
-                        parenCount--
-                    }
-                    if(parenCount == 0) break
-                    value += ch
-                }
+                let value = parseBracketPair(content, "{}", ++i)
+                i += value.length
                 curArg += await buildFormat(value, msg, curArg, customFormats)
                 break;
             default:

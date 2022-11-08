@@ -11,13 +11,14 @@ import globals = require("./globals")
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
-function parseBracketPair(string: string, pair: string){
+function parseBracketPair(string: string, pair: string, start=-1){
     let count = 1;
     if(string.indexOf(pair[0]) === -1){
         return string
     }
     let curStr = ""
-    for(let i = string.indexOf(pair[0]) + 1; i < string.length; i++){
+    start = start === -1 ?  string.indexOf(pair[0]) + 1 : start
+    for(let i = start; i < string.length; i++){
         let ch = string[i]
         if(ch == pair[0]){
             count++;
