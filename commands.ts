@@ -11607,16 +11607,11 @@ class Interprater {
                 text = doFirst
             }
             else {
-                text = doFirst[Number(doFirstResultNo)]
+                text = doFirst.split(" ")[Number(doFirstResultNo)]
             }
             this.addTokenToArgList(new Token(T.str, text, token.argNo))
         }
-        //needss to support
-        //%{...} spreads  args into  multiple arguments
-        //%{x:} gets the  dofirst at the arg[x]  position DONE
-        //%{y} replaces the dofirst attached to  this withh tbhe do first's result[y] DONE
-        //%{-1} replaces with nothing DONE
-        //%{x:y} replaces with the dofirst at the arg[x] position with the result[y] DONE
+        //TODO: %{...} spreads  args into  multiple arguments
 
     }
     async [6](token: Token) {
