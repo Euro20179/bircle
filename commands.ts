@@ -6454,7 +6454,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if(opts['index']){
             return {content: JSON.stringify(results[Number(opts['index'])]) || "null", status: StatusCode.RETURN}
         }
-        return {content: results.map(JSON.stringify).join(";\n") + ";", status: StatusCode.RETURN} }, CommandCategory.META),
+        return {content: results.map(v => String(JSON.stringify(v))).join(";\n") + ";", status: StatusCode.RETURN} }, CommandCategory.META),
     "if-cmd": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
         let text = args.join(" ")
 
