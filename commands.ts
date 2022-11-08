@@ -11656,10 +11656,7 @@ class Interprater {
             let m = this.#modifiers.filter(v => v.type === Modifiers.redir)[0].data
             //whether or not to redirect *all* message sends to the variable, or just the return value from the command
             let all = m[1] //this matches the ! after redir
-            let skip = 9 //the base length of redir(:):
             if (all) {
-                //add 1 for the !
-                skip++
                 //change this function to redirect into the variable requested
                 sendCallback = async (_data) => {
                     //@ts-ignore
@@ -11682,8 +11679,6 @@ class Interprater {
             }
             //the variable scope
             let prefix = m[2] //matches the text before the  : in the parens in redir
-            console.log(prefix.length)
-            skip += prefix.length
             //the variable name
             let name = m[3] //matches the text after the :  in the parens in redir
             if (!prefix) {
@@ -11692,7 +11687,6 @@ class Interprater {
             }
 
             else if (prefix) {
-                skip += prefix.length
                 if (!vars[prefix])
                     vars[prefix] = {}
                 redir = [vars[prefix], name]
@@ -11788,13 +11782,12 @@ class Interprater {
         if (this.returnJson) {
             return rv;
         }
-        // if (redir) {
-        //     let [place, name] = redir
-        //     //set the variable to the response
-        //     //@ts-ignore
-        //     place[name] = () => getContentFromResult(rv)
-        //     return
-        // }
+        if (redir) {
+            let [place, name] = redir
+            //set the variable to the response
+            place[name] = () => getContentFromResult(rv)
+            return
+        }
         //handles the rv protocol
         handleSending(this.#msg, rv, sendCallback, this.recursion + 1)
     }
