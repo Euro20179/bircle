@@ -11507,6 +11507,7 @@ class Interprater {
     recursion: number
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
+    sendCallback: (options: MessageOptions | MessagePayload | string) => Promise<Message>
 
     #interprated: boolean
     #i: number
@@ -11517,7 +11518,7 @@ class Interprater {
     #argOffsetFromDoFirstSpreading: number
     #modifiers: Modifier[]
 
-    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
+    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>) {
         this.tokens = tokens
         this.args = []
         this.cmd = ""
@@ -11525,6 +11526,7 @@ class Interprater {
         this.recursion = recursion
         this.returnJson = returnJson
         this.disable = disable ?? {}
+        this.sendCallback = sendCallback || msg.channel.send.bind(msg.channel)
 
         this.#modifiers = modifiers
         this.#i = -1
@@ -11631,7 +11633,7 @@ class Interprater {
         let expansion = await expandAlias(this.cmd, (alias: any) => {
             globals.addToCmdUse(alias) //for every expansion, add to cmd use
             if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, sendCallback, this.recursion + 1)
+                handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, this.sendCallback, this.recursion + 1)
                 return false
             }
             return true
@@ -11677,10 +11679,9 @@ class Interprater {
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
 
-        let sendCallback = this.#msg.channel.send.bind(this.#msg.channel)
 
         if (this.hasModifier(Modifiers.silent)) {
-            sendCallback = async (_data) => this.#msg
+            this.sendCallback = async (_data) => this.#msg
         }
 
         if (this.hasModifier(Modifiers.redir)) {
@@ -11689,7 +11690,7 @@ class Interprater {
             let all = m[1] //this matches the ! after redir
             if (all) {
                 //change this function to redirect into the variable requested
-                sendCallback = async (_data) => {
+                this.sendCallback = async (_data) => {
                     //@ts-ignore
                     if (_data.content) {
                         if (typeof redir === 'object') {
@@ -11767,7 +11768,7 @@ class Interprater {
                 if (typing)
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
-                rv = await commands[this.real_cmd].run(this.#msg, args, sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                rv = await commands[this.real_cmd].run(this.#msg, args, this.sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 //if normal command, it counts as use
                 globals.addToCmdUse(this.real_cmd)
             }
@@ -11789,7 +11790,7 @@ class Interprater {
             return
         }
         //handles the rv protocol
-        handleSending(this.#msg, rv, sendCallback, this.recursion + 1)
+        handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
     async interprate() {
