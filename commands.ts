@@ -11622,6 +11622,8 @@ class Interprater {
     async [6](token: Token) {
         this.real_cmd = token.data
         this.cmd = token.data
+
+        setVar("_!!", this.cmd, this.#msg.author.id)
     }
 
     hasModifier(mod: Modifiers) {
