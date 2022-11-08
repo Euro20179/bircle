@@ -6429,9 +6429,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         for(let line of text.split("\n")){
             line = line.trim()
             if(!line)continue
-            let val = rv;
-            for(let prop of line.split(/\s+/)){
+            let val: any = rv;
+            let props = line.split(/\s+/)
+            for(let i = 0; i < props.length; i++){
+                let prop = props[i]
                 switch(prop){
+                    case "==": {
+                        let test_eq = props[++i]
+                        val = val == test_eq
+                        break
+                    }
+                    case "!=": {
+                        let test_ne =  props[++i]
+                        val =  val != test_ne
+                    }
                     default:{
                         //@ts-ignore
                         val = val?.[prop]
