@@ -381,7 +381,7 @@ export const commands: { [command: string]: Command } = {
     'tokenize': createCommand(async (msg, args, sc, opts, _, rec) => {
         let parser = new Parser(msg, args.join(" ").trim())
         await parser.parse()
-        return {content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN}
+        return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
     }, CommandCategory.META),
 
     'scorigami': createCommand(async (msg, _, sc, opts, args) => {
@@ -5516,7 +5516,7 @@ middle
     ),
 
     map: {
-        run: async (msg, args, sendCallback,  _, __, rec, bans) => {
+        run: async (msg, args, sendCallback, _, __, rec, bans) => {
             let string = args[0]
             let functions = args.slice(1).join(" ").split(">map>").map(v => v.trim())
             if (!functions) {
@@ -6465,6 +6465,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     "if-cmd": createCommand(async (msg, _, sc, opts, args, rec, bans) => {
         let text = args.join(" ")
 
+        console.log(text)
+
         let cmd = parseBracketPair(text, "()")
         text = text.slice(cmd.length + 2)
 
@@ -6546,13 +6548,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         let falseBlock = parseBracketPair(text, "{}")
         text = text.slice(trueBlock.length + 2)
 
+
+        console.log(isTrue)
         if (isTrue) {
 
 
             for (let line of trueBlock.split(";\n")) {
                 line = line.trim()
+                console.log(line)
                 if (!line) continue
-                await runCmd(msg, line, rec + 1, false,  bans)
+                await runCmd(msg, line, rec + 1, false, bans)
             }
             return { noSend: true, status: StatusCode.RETURN }
         }
@@ -6561,7 +6566,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let oldC = msg.content
                 line = line.trim()
                 if (!line) continue
-                await runCmd(msg, line, rec + 1, false,  bans)
+                await runCmd(msg, line, rec + 1, false, bans)
             }
             return { noSend: true, status: StatusCode.RETURN }
         }
@@ -9706,7 +9711,7 @@ Valid formats:
                 if (line.startsWith(prefix)) {
                     line = line.slice(prefix.length)
                 }
-                await runCmd(msg, parseRunLine(line), recursion + 1, false,  bans)
+                await runCmd(msg, parseRunLine(line), recursion + 1, false, bans)
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.INFO }
@@ -11487,9 +11492,9 @@ export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
-export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }){
+export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
     let parser = new Parser(msg, command_excluding_prefix)
-    parser.parse()
+    await parser.parse()
     let int = new Interprater(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
     return await int.run()
 }
@@ -11561,15 +11566,15 @@ class Interprater {
     //dofirst token
     async [1](token: Token) {
         let parser = new Parser(this.#msg, token.data)
-        parser.parse()
+        await parser.parse()
         let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
         let rv = await int.run() as CommandReturn
         let data = getContentFromResult(rv as CommandReturn).trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data)
-            parser.parse()
+            await parser.parse()
             let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
-            let rv = await  int.run() as CommandReturn
+            let rv = await int.run() as CommandReturn
             data = getContentFromResult(rv as CommandReturn).trim()
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
@@ -11647,9 +11652,57 @@ class Interprater {
             sendCallback = async (_data) => this.#msg
         }
 
+        if (this.hasModifier(Modifiers.redir)) {
+            let m = this.#modifiers.filter(v => v.type === Modifiers.redir)[0].data
+            //whether or not to redirect *all* message sends to the variable, or just the return value from the command
+            let all = m[1] //this matches the ! after redir
+            let skip = 9 //the base length of redir(:):
+            if (all) {
+                //add 1 for the !
+                skip++
+                //change this function to redirect into the variable requested
+                sendCallback = async (_data) => {
+                    //@ts-ignore
+                    if (_data.content) {
+                        if (typeof redir === 'object') {
+                            let [place, name] = redir
+                            //@ts-ignore
+                            place[name] = place[name] + "\n" + _data.content
+                        }
+                    }
+                    else if (typeof _data === 'string') {
+                        if (typeof redir === 'object') {
+                            let [place, name] = redir
+                            //@ts-ignore
+                            place[name] = place[name] + "\n" + _data
+                        }
+                    }
+                    return this.#msg
+                }
+            }
+            //the variable scope
+            let prefix = m[2] //matches the text before the  : in the parens in redir
+            console.log(prefix.length)
+            skip += prefix.length
+            //the variable name
+            let name = m[3] //matches the text after the :  in the parens in redir
+            if (!prefix) {
+                prefix = "__global__"
+                redir = [vars["__global__"], name]
+            }
+
+            else if (prefix) {
+                skip += prefix.length
+                if (!vars[prefix])
+                    vars[prefix] = {}
+                redir = [vars[prefix], name]
+            }
+        }
+
         if (this.hasModifier(Modifiers.typing)) {
             typing = true
         }
+
         if (this.hasModifier(Modifiers.delete)) {
             if (this.#msg.deletable) await this.#msg.delete()
         }
@@ -11835,16 +11888,13 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     //only do this if content
     else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, prefix.length) === local_prefix) {
-        let oldContent = msg.content
-        msg.content = rv.content
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
-        rv = await doCmd(msg, true, recursion + 1, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
+        rv = await runCmd(msg, rv.content.slice(prefix.length), recursion + 1, true, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
         //we only want to override it if the command doens't explicitly want to do it
         if (rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false) {
             rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion
         }
-
-        msg.content = oldContent
+        //
         //it's better to just recursively do this, otherwise all the code above would be repeated
         return await handleSending(msg, rv, sendCallback, recursion + 1)
     }

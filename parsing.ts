@@ -295,7 +295,9 @@ class Parser {
     }
 
     async parseFormat(msg:  Message){
+        this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
+        this.advance()
         let [format, ...args] = inner.split("|")
         let data = ""
         switch(format){
