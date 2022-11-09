@@ -1,4 +1,4 @@
-///<reference path="index.d.ts" />
+///<reference path="src/types.d.ts" />
 import fs = require("fs")
 
 import http from 'http'
@@ -8,19 +8,19 @@ import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, Gu
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 
-import pet = require("./pets")
-import commands = require("./commands")
-import globals = require("./globals")
-import timer from "./timer"
+import pet = require("./src/pets")
+import commands = require("./src/commands")
+import globals = require("./src/globals")
+import timer from "./src/timer"
 import { URLSearchParams } from "url"
 
-const economy = require("./economy")
-const {generateFileName} = require("./util")
-const { saveItems, hasItem } = require("./shop")
+const economy = require("./src/economy")
+const {generateFileName} = require("./src/util")
+const { saveItems, hasItem } = require("./src/shop")
 
-const user_options = require("./user-options")
+const user_options = require("./src/user-options")
 
-let {client, purgeSnipe,  prefix, BLACKLIST, saveVars} = require("./common")
+let {client, purgeSnipe,  prefix, BLACKLIST, saveVars} = require("./src/common")
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
 
