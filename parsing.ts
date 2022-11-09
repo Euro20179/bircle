@@ -820,7 +820,7 @@ function parseDoFirst(cmdData: string, doFirstCountNoToArgNo: number, args: stri
     return finalArgs
 }
 
-function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize: number, numberConv: Function) {
+function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize?: number, numberConv?: Function) {
     let conversions
     if (!objectSize) {
         conversions = {
@@ -869,7 +869,7 @@ function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: n
     return numberConv(v2)
 }
 
-function parsePosition(position: string, areaSize: number, objectSize: number, numberConv: Function) {
+function parsePosition(position: string, areaSize: number, objectSize?: number, numberConv?: Function) {
     if (!numberConv) numberConv = parseInt
     let firstVal, secondVal, operator
     let curValue = ""

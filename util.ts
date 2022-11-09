@@ -391,6 +391,32 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
     return img
 }
 
+class Options{
+    constructor(opts: Opts){
+        for(let op in opts){
+            Object.defineProperty(this, op, {value: opts[op]})
+        }
+    }
+    /**
+        * @description Looks for <value> if it is not found, return <default_>
+    */
+    get(value: string, default_: string){
+        let rv = Reflect.get(this, value, this)
+        return rv === undefined ? default_ : rv
+    }
+    /**
+        * @description same as get(), but returns default_ if value is true
+    */
+    getValue(value: string, default_: string){
+        let rv = Reflect.get(this, value, this)
+        if(rv === true || rv === undefined){
+            return default_
+        }
+        return rv
+    }
+}
+
+
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
     let newArgs = []
@@ -536,7 +562,7 @@ function renderHTML(text: string, indentation=0){
     return renderELEMENT(cheerio.load(text)("*")[0], indentation)
 }
 
-function generateTextFromCommandHelp(name: string, command: Command) {
+function generateTextFromCommandHelp(name: string, command: Command | CommandV2) {
     let text = `***${name}***:\n\n`
     let helpData = command.help
     if (!helpData)
@@ -691,6 +717,7 @@ export {
     getFonts,
     intoColorList,
     renderHTML,
-    parseBracketPair
+    parseBracketPair,
+    Options
 }
 

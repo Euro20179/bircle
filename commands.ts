@@ -9,12 +9,12 @@ import ytdl = require("ytdl-core")
 
 import canvas = require("canvas")
 
-import { Worker, isMainThread, workerData } from "node:worker_threads"
-import { execFile, execFileSync, spawnSync } from "child_process"
-import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Role, RoleManager, EmbedFieldData, MessageAttachment, Collection } from 'discord.js'
 
-import { AudioPlayer, AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
-import { execSync, exec } from 'child_process'
+import { spawnSync } from "child_process"
+import { MessageOptions, MessageEmbed, Message, PartialMessage, GuildMember, ColorResolvable, TextChannel, MessageButton, MessageActionRow, MessageSelectMenu, GuildEmoji, User, MessagePayload, Guild, Collection} from 'discord.js'
+
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
+import { execSync } from 'child_process'
 import globals = require("./globals")
 import uno = require("./uno")
 import battle = require("./battle")
@@ -29,9 +29,9 @@ import { getVar } from "./common"
 import { prefix, vars, ADMINS, FILE_SHORTCUTS, WHITELIST, BLACKLIST, addToPermList, removeFromPermList, VERSION, client, setVar, saveVars } from './common'
 //const {Parser, parseCmd, parsePosition, parseAliasReplacement, parseDoFirst } = require('./parsing.js')
 
-import { Parser, parseCmd, parsePosition, parseAliasReplacement, parseDoFirst, Token, T, Modifier, Modifiers } from './parsing'
+import { Parser, parsePosition, parseAliasReplacement, Token, T, Modifier, Modifiers } from './parsing'
 
-import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, escapeShell, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, getFonts, intoColorList, cycle, renderHTML, parseBracketPair } from './util'
+import { downloadSync, fetchUser, fetchChannel, format, generateFileName, createGradient, randomColor, rgbToHex, safeEval, mulStr, strlen, cmdCatToStr, getImgFromMsgAndOpts, getOpts, getContentFromResult, generateTextFromCommandHelp, generateHTMLFromCommandHelp, Pipe, intoColorList, cycle, renderHTML, parseBracketPair, Options } from './util'
 import { choice, generateSafeEvalContextFromMessage } from "./util"
 import { parentPort } from "worker_threads"
 const { saveItems, INVENTORY, buyItem, ITEMS, hasItem, useItem, resetItems, resetPlayerItems, giveItem } = require("./shop.js")
@@ -284,9 +284,34 @@ function createCommand(
             tags: tags ? tags : undefined
         },
         category: category,
-        permCheck: permCheck
+        permCheck: permCheck,
+        cmd_std_version: 1
     }
 }
+
+function createCommandV2(
+    cb: ({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: {msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: {categories?: CommandCategory[], commands?: string[]}}) => Promise<CommandReturn>,
+    category: CommandCategory,
+    helpInfo?: string,
+    helpArguments?: CommandHelpArguments | null,
+    helpOptions?: CommandHelpOptions | null,
+    tags?: string[] | null,
+    permCheck?: (m: Message) => boolean): CommandV2 {
+    return {
+        run: cb,
+        help: {
+            info: helpInfo,
+            arguments: helpArguments ? helpArguments : undefined,
+            options: helpOptions ? helpOptions : undefined,
+            tags: tags ? tags : undefined
+        },
+        category: category,
+        permCheck: permCheck,
+        cmd_std_version: 2
+    }
+}
+
+
 let currently_playing: { link: string, filename: string } | undefined;
 let connection: VoiceConnection | undefined;
 let vc_queue: { link: string, filename: string }[] = []
@@ -378,36 +403,36 @@ player.on(AudioPlayerStatus.Idle, (err) => {
 })
 
 
-export const commands: { [command: string]: Command } = {
+export const commands: { [command: string]: Command | CommandV2 } = {
 
-    "```bircle": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
-        for(let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")){
+    "```bircle": createCommandV2(async ({msg, args, commandBans: bans}) => {
+        for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
             line = line.trim()
-            if(!line) continue
+            if (!line) continue
             await runCmd(msg, line, globals.RECURSION_LIMIT - 1, false, bans)
         }
-        return {noSend: true, status: StatusCode.RETURN}
+        return { noSend: true, status: StatusCode.RETURN }
     }, CommandCategory.META, "Run some commands"),
 
-    "(": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
-        if(args[args.length - 1] !== ")"){
-            return {content: "The last argument to ( must be )", status: StatusCode.ERR}
+    "(": createCommandV2(async ({msg, rawArgs: args, commandBans: bans, recursionCount: rec}) => {
+        if (args[args.length - 1] !== ")") {
+            return { content: "The last argument to ( must be )", status: StatusCode.ERR }
         }
-        return {content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans)), status: StatusCode.RETURN}
+        return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans)), status: StatusCode.RETURN }
     }, CommandCategory.META),
 
-    'tokenize': createCommand(async (msg, args, sc, opts, _, rec) => {
+    'tokenize': createCommandV2(async ({msg, rawArgs: args}) => {
         let parser = new Parser(msg, args.join(" ").trim())
         await parser.parse()
         return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
     }, CommandCategory.META, "Tokenize command input"),
 
-    "interprate": createCommand(async(msg, args, sc, opts,  _, rec) => {
+    "interprate": createCommandV2(async ({msg, rawArgs: args}) => {
         let parser = new Parser(msg, args.join(" ").trim())
         await parser.parse()
         let int = new Interprater(msg, parser.tokens, parser.modifiers)
         await int.interprate()
-        return {content: JSON.stringify(int), status: StatusCode.RETURN}
+        return { content: JSON.stringify(int), status: StatusCode.RETURN }
     }, CommandCategory.META, "Interprate args"),
 
     'scorigami': createCommand(async (msg, _, sc, opts, args) => {
@@ -1984,7 +2009,7 @@ The commands below, only work after **path** has been run:
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
                     await handleSending(msg, { content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING }, sendCallback)
-                    return await commands['bstock'].run(msg, args, sendCallback, {}, args, recursion)
+                    return await (commands['bstock'] as Command).run(msg, args, sendCallback, {}, args, recursion)
                 }
                 //else
                 return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
@@ -3691,7 +3716,17 @@ until you put a 0 in the box`)
                 return { content: `${amount}`, status: StatusCode.RETURN }
             }
             return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Calculate balance",
+            arguments: {
+                amount: createHelpArgument("The amount to calculate", true),
+            },
+            options: {
+                sign: createHelpOption("The currency symbol"),
+                as: createHelpOption("Get the balance of a different user")
+            }
+        }
     },
 
     calcl: {
@@ -3714,7 +3749,17 @@ until you put a 0 in the box`)
                 return { content: `${amount}`, status: StatusCode.RETURN }
             }
             return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Calculate loan",
+            arguments: {
+                amount: createHelpArgument("The amount to calculate", true),
+            },
+            options: {
+                sign: createHelpOption("The currency symbol"),
+                as: createHelpOption("Get the loan of a different user")
+            }
+        }
     },
 
     calcms: {
@@ -3734,7 +3779,18 @@ until you put a 0 in the box`)
                 return { content: `${amount}`, status: StatusCode.RETURN }
             }
             return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Calculate total worth",
+            arguments: {
+                amount: createHelpArgument("The amount to calculate", true),
+            },
+            options: {
+                sign: createHelpOption("The currency symbol"),
+                as: createHelpOption("Get the total worth of a different user")
+            }
+        }
+
     },
 
     "calcam": {
@@ -3754,7 +3810,17 @@ until you put a 0 in the box`)
                 return { content: `${amount}`, status: StatusCode.RETURN }
             }
             return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Calculate an amount",
+            arguments: {
+                total: createHelpArgument("The total to start with", true),
+                amount: createHelpArgument("The amount of the total to calculate", true)
+            },
+            options: {
+                sign: createHelpOption("The currency symbol", undefined, "")
+            }
+        }
     },
 
     nw: createCommand(async (msg, args) => {
@@ -3773,7 +3839,9 @@ until you put a 0 in the box`)
         let amount = economy.playerLooseNetWorth(user.id)
         let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
         return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-    }, CommandCategory.ECONOMY),
+    }, CommandCategory.ECONOMY, "gets the net worth of a user", {
+        user: createHelpArgument("The user to get the net worth of")
+    }),
 
     money: createCommand(async (msg, args) => {
         let opts;
@@ -3853,7 +3921,14 @@ until you put a 0 in the box`)
             else {
                 return { content: `You cannot give away ${realAmount}`, status: StatusCode.ERR }
             }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Give a user money",
+            arguments: {
+                amount: createHelpArgument("The amount to give"),
+                "...user": createHelpArgument("The user to give the money to")
+            }
+        }
     },
 
     "give-stock": createCommand(async (msg, args) => {
@@ -6019,7 +6094,7 @@ middle
                     return { content: "not found", status: StatusCode.ERR }
                 }
                 if (resp.headers.get("location")) {
-                    await commands['wikipedia'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args)
+                    await (commands['wikipedia'] as Command).run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args, 1)
                 }
                 else {
                     let respText = await resp.text()
@@ -6254,7 +6329,7 @@ middle
                 break
             }
             case "command": {
-                data = new Collection<string, Command>(Object.entries(commands))
+                data = new Collection<string, Command | CommandV2>(Object.entries(commands))
                 break
             }
         }
@@ -8544,7 +8619,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             }
                         })
                     }
-                    let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight, intHeight), left: parsePosition(x, oldWidth, intWidth) }]).png().toBuffer()
+                    let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight as number, intHeight), left: parsePosition(x, oldWidth as number, intWidth) }]).png().toBuffer()
                     /*
                             if(outline){
                                 let [color, lineWidth] = outline.split(":")
@@ -9274,7 +9349,7 @@ Valid formats:
     },
     aship: {
         run: async (msg, args, sendCallback) => {
-            return await commands['add'].run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")])
+            return await (commands['add'] as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
         },
         help: {
             info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
@@ -9576,8 +9651,10 @@ Valid formats:
                     dataToAdd['text'] = item.children[0].data
                 }
                 else { continue }
-                if (item.attribs.href) {
-                    dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs.href}`
+                //@ts-ignore
+                if (item.attribs?.href) {
+                    //@ts-ignore
+                    dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs?.href}`
                 }
                 foundData.push(dataToAdd)
             }
@@ -11764,12 +11841,12 @@ class Interprater {
             })
 
 
-            if(expansion){
+            if (expansion) {
                 this.#aliasExpandSuccess = true
                 this.alias = expansion
                 this.real_cmd = expansion[0]
             }
-            else{
+            else {
                 this.alias = true
             }
         }
@@ -11779,7 +11856,7 @@ class Interprater {
         return this.modifiers.filter(v => v.type === mod).length > 0
     }
 
-    async runAlias(){
+    async runAlias() {
         //alias is actually the real command
         //aliasPreArgs are the arguments taht go after the commnad
         let [alias, aliasPreArgs] = this.alias as [string, string[]]
@@ -11791,7 +11868,7 @@ class Interprater {
             content += ` ${this.args.join(" ")}`
         }
 
-        if(this.hasModifier(Modifiers.typing)){
+        if (this.hasModifier(Modifiers.typing)) {
             await this.#msg.channel.sendTyping()
         }
 
@@ -11873,8 +11950,8 @@ class Interprater {
         if (this.alias && this.#aliasExpandSuccess) {
             rv = await this.runAlias()
         }
-        else if(this.alias && !this.#aliasExpandSuccess){
-            rv = {content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR}
+        else if (this.alias && !this.#aliasExpandSuccess) {
+            rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
         else if (!commands[this.real_cmd]) {
             //We dont want to keep running commands if the command doens't exist
@@ -11908,7 +11985,23 @@ class Interprater {
                 if (typing)
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
-                rv = await commands[this.real_cmd].run(this.#msg, args, this.sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+
+                if(commands[this.real_cmd].cmd_std_version == 2){
+                    let obj: CommandV2RunArg = {
+                        msg: this.#msg,
+                        rawArgs: args,
+                        args: args2,
+                        sendCallback: this.sendCallback,
+                        recursionCount: this.recursion,
+                        commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
+                        opts: new Options(opts)
+                    }
+                    rv = await (commands[this.real_cmd] as CommandV2).run(obj)
+                }
+                else{
+
+                    rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                }
                 globals.addToCmdUse(this.real_cmd)
                 //if normal command, it counts as use
             }
@@ -11926,6 +12019,7 @@ class Interprater {
         if (redir) {
             let [place, name] = redir
             //set the variable to the response
+            //@ts-ignore
             place[name] = () => getContentFromResult(rv)
             return
         }
