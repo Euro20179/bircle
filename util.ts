@@ -557,6 +557,9 @@ function generateTextFromCommandHelp(name: string, command: Command) {
             if (helpData.arguments[arg].requires) {
                 text += ` (requires: ${helpData.arguments[arg].requires}) `
             }
+            if(helpData.arguments[arg].default){
+                text += ` (default: ${helpData.arguments[arg].default})`
+            }
             let html = cheerio.load(helpData.arguments[arg].description)
             text +=  `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`
             //we want exactly 2 new lines
@@ -568,7 +571,12 @@ function generateTextFromCommandHelp(name: string, command: Command) {
     if (helpData.options) {
         text += "__Options__:\n"
         for (let op in helpData.options) {
-            text += `\t* **-${op}**: ${renderHTML(helpData.options[op].description, 2).trim()}`
+            text += `\t* **-${op}**`
+            if(helpData.options[op].default){
+                text += ` (default: ${helpData.options[op].default})`
+            }
+            text += ': '
+            text += renderHTML(helpData.options[op].description, 2).trim()
             if (helpData.options[op].alternates) {
                 text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
@@ -601,12 +609,13 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
                 let argument = args[argName].description
                 let required = args[argName].required || false
                 let requires = args[argName].requires || ""
+                let default_ = args[argName]["default"] || ""
                 let extraText = ""
                 if (requires) {
                     extraText = `<span class="requires">requires: ${requires}</span>`
                 }
                 html += `<li class="command-argument" data-required="${required}">
-    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}&nbsp;</summary>${argument}<br>${extraText}</details>
+    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}&nbsp; (default: ${default_})</summary>${argument}<br>${extraText}</details>
     </li>`
             }
             html += "</ul>"
@@ -617,8 +626,9 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
                 let desc = options[option].description || ""
                 let alternates = options[option].alternates || 0
                 let requiresValue = options[option].requiresValue || false
+                let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
-    <span class="command-option-details-label" title="requires value: ${requiresValue}"><summary class="command-option-summary">-${option}&nbsp</summary> ${desc}</details>`
+    <summary class="command-option-summary" title="default: ${default_}">-${option}&nbsp</summary> ${desc}</details>`
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`

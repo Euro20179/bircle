@@ -34,13 +34,15 @@ declare global{
         [key: string]: {
             description: string,
             required?: boolean,
-            requires?: string
+            requires?: string,
+            default?: string
         }
     }
     interface CommandHelpOptions{
         [key: string]: {
             description: string,
-            alternates?: string[]
+            alternates?: string[],
+            default?: string
         }
     }
 

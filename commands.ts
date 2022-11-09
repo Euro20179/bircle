@@ -5649,7 +5649,16 @@ middle
             let fmt = args.join(" ") || "%n"
             return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: String(role.color), C: String(role.createdAt), hc: role.hexColor, u: String(role.unicodeEmoji), p: String(role.position), I: String(role.icon) }), status: StatusCode.ERR }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Get information on a random role",
+            arguments: {
+                "...format": {
+                    description: "The format to show<br><b>formats</b><ul><li>%n: the name</li><li>%i: the id</li><li>%c: the color</li><li>%C: created at</li><li>{hc}: the hex color</li><li>%u: the emoji</li><li>%p: the position number</li><li>%I: the icon</li></ul>",
+                    default: "%n"
+                }
+            }
+        }
     },
     "cmd-search": {
         run: async (_msg, args, sendCallback) => {
@@ -8146,7 +8155,21 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
             return { embeds: [embed], status: StatusCode.RETURN }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Compare 2 user's roles",
+            arguments: {
+                user1: {
+                    description: "The first user",
+                },
+                "|": {
+                    description: "Seperates the users",
+                },
+                user2: {
+                    description: "The second user"
+                }
+            }
+        }
     },
     "most-roles": {
         run: async (msg, args, sendCallback) => {
@@ -10589,7 +10612,10 @@ ${styles}
             return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
         },
         category: CommandCategory.ADMIN,
-        permCheck: m => ADMINS.includes(m.author.id)
+        permCheck: m => ADMINS.includes(m.author.id),
+        help: {
+            info: "Resets a player's money"
+        }
     },
     RESET_PLAYER_ITEMS: {
         run: async (msg, args, sendCallback) => {
@@ -10601,7 +10627,10 @@ ${styles}
             return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
         },
         category: CommandCategory.ADMIN,
-        permCheck: m => ADMINS.includes(m.author.id)
+        permCheck: m => ADMINS.includes(m.author.id),
+        help: {
+            info: "Reset's a players inventory"
+        }
     },
     RESET_ITEMS: {
         run: async (_msg, _args, sendCallback) => {
@@ -10609,7 +10638,10 @@ ${styles}
             return { content: "Items reset", status: StatusCode.RETURN }
         },
         permCheck: (m) => ADMINS.includes(m.author.id),
-        category: CommandCategory.ADMIN
+        category: CommandCategory.ADMIN,
+        help: {
+            info: "Resets all inventories"
+        }
     },
     SETMONEY: {
         run: async (msg, args, sendCallback) => {
@@ -10625,7 +10657,10 @@ ${styles}
             }
             return { content: "nothing happened", status: StatusCode.ERR }
         }, category: CommandCategory.ADMIN,
-        permCheck: (m) => ADMINS.includes(m.author.id)
+        permCheck: (m) => ADMINS.includes(m.author.id),
+        help: {
+            info: "Sets a player's money to an amount"
+        }
     },
     'blacklist': {
         run: async (msg, args, sendCallback) => {
@@ -10660,7 +10695,10 @@ ${styles}
                     status: StatusCode.RETURN
                 }
             }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Blacklist/unblacklist yourself from an alias"
+        }
     },
     BLACKLIST: {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
