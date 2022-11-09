@@ -250,18 +250,20 @@ export const slashCommands = [
     }
 ]
 
-function createHelpArgument(description: string, required?: boolean, requires?: string) {
+function createHelpArgument(description: string, required?: boolean, requires?: string, default_?: string) {
     return {
         description: description,
         required: required,
-        requires: requires
+        requires: requires,
+        default: default_
     }
 }
 
-function createHelpOption(description: string, alternatives?: string[]) {
+function createHelpOption(description: string, alternatives?: string[], default_?: string) {
     return {
         description: description,
-        alternatives: alternatives
+        alternatives: alternatives,
+        default: default_
     }
 }
 
@@ -2979,7 +2981,13 @@ until you put a 0 in the box`)
             //@ts-ignore
             let user = await fetchUser(msg.guild, args[0] || msg.author.id)
             return { content: String(pet.getActivePet(user?.user.id || "")), status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Gets the current active pet of a user",
+            arguments: {
+                user: createHelpArgument("The user to get the active pet of", false, undefined, "Yourself")
+            }
+        }
     },
 
     "sapet": {
@@ -4991,7 +4999,23 @@ until you put a 0 in the box`)
                 return { content: elementsNamesList.join("\n"), status: StatusCode.RETURN }
             }
             return { embeds: embeds, status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Get information on elements",
+            arguments: {
+                "element_or_search": {
+                    description: "Can either be a search, eg: ElementID=1<br>or an element, eg: h",
+                    required: true
+                }
+            },
+            options: {
+                n: createHelpOption("Get the element with an atomic number", ["an"]),
+                "list-names": createHelpOption("List the names of all found elements"),
+                "r": createHelpOption("get n random elements", undefined, "if -r is used: 1"),
+                "list-attributes": createHelpOption("List all attributes of an element"),
+                refresh: createHelpOption("Refresh the periodic table")
+            }
+        }
     },
 
     ".economy": createCommand(async (msg, _, sc, opts, args) => {
@@ -9784,7 +9808,10 @@ Valid formats:
             if (v)
                 return { content: String(v), status: StatusCode.RETURN }
             else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
-        }, category: CommandCategory.META
+        }, category: CommandCategory.META,
+        help: {
+            info: "Get the value of a variable"
+        }
     },
     "var": {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -9939,7 +9966,10 @@ Valid formats:
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Creates a file with data"
+        }
 
     },
     "b64m": createCommand(async (msg, _, sc, opts, args) => {
@@ -10593,14 +10623,20 @@ ${styles}
             return { content: "Economy reset", status: StatusCode.RETURN }
 
         }, category: CommandCategory.ADMIN,
-        permCheck: (m) => ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy")
+        permCheck: (m) => ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy"),
+        help: {
+            info: "Resets the economy"
+        }
     },
     RESET_LOTTERY: {
         run: async (msg, args, sb) => {
             economy.newLottery()
             return { content: "Lottery reset", status: StatusCode.RETURN }
         },
-        category: CommandCategory.ADMIN
+        category: CommandCategory.ADMIN,
+        help: {
+            info: "Resets the lottery"
+        }
     },
     RESET_PLAYER: {
         run: async (msg, args, sendCallback) => {
@@ -10987,7 +11023,10 @@ ${styles}
                 embed.setThumbnail(e.url)
             embed.addField("URL", e?.url, true)
             return { embeds: [embed], status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Get a random emote"
+        }
     },
     "user-info": {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -11356,7 +11395,15 @@ valid formats:<br>
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.META
+        category: CommandCategory.META,
+        help: {
+            info: "Create an alias",
+            arguments: {
+                command: createHelpArgument("The command name", true),
+                command_to_run: createHelpArgument("The command to run", true),
+                args: createHelpArgument("Arguments for the command to run", false)
+            }
+        }
     },
     "!!": {
         run: async (msg: Message, args: ArgumentList, sendCallback, _, __, rec, bans) => {
