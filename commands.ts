@@ -378,6 +378,22 @@ player.on(AudioPlayerStatus.Idle, (err) => {
 
 export const commands: { [command: string]: Command } = {
 
+    "```bircle\nstart": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
+        for(let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")){
+            line = line.trim()
+            if(!line) continue
+            await runCmd(msg, line, globals.RECURSION_LIMIT - 1, false, bans)
+        }
+        return {noSend: true, status: StatusCode.RETURN}
+    }, CommandCategory.META, "Run some commands"),
+
+    "(": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
+        if(args[args.length - 1] !== ")"){
+            return {content: "The last argument to ( must be )", status: StatusCode.ERR}
+        }
+        return {content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans)), status: StatusCode.RETURN}
+    }, CommandCategory.META),
+
     'tokenize': createCommand(async (msg, args, sc, opts, _, rec) => {
         let parser = new Parser(msg, args.join(" ").trim())
         await parser.parse()
@@ -11653,7 +11669,7 @@ class Interprater {
 
             this.real_cmd = alias
 
-            rv = await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn)
+            rv = await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
         }
         else {
             rv = { content: `failed to expand ${this.cmd}`, status: StatusCode.ERR }
