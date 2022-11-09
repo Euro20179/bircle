@@ -11542,7 +11542,7 @@ class Interprater {
     #doFirstNoFromArgNo: { [key: number]: number }
     #msg: Message
     #argOffsetFromDoFirstSpreading: number
-    #modifiers: Modifier[]
+    modifiers: Modifier[]
 
     constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>) {
         this.tokens = tokens
@@ -11555,7 +11555,7 @@ class Interprater {
         this.sendCallback = sendCallback || msg.channel.send.bind(msg.channel)
         this.alias = false
 
-        this.#modifiers = modifiers
+        this.modifiers = modifiers
         this.#i = -1
         this.#curTok = undefined
         this.#doFirstCountValueTable = {}
@@ -11671,7 +11671,7 @@ class Interprater {
     }
 
     hasModifier(mod: Modifiers) {
-        return this.#modifiers.filter(v => v.type === mod).length > 0
+        return this.modifiers.filter(v => v.type === mod).length > 0
     }
 
     async runAlias(){
@@ -11684,6 +11684,10 @@ class Interprater {
         content = `${alias} ${parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), this.args)}`.trim()
         if (oldC == content) {
             content += ` ${this.args.join(" ")}`
+        }
+
+        if(this.hasModifier(Modifiers.typing)){
+            await this.#msg.channel.sendTyping()
         }
 
         return await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
@@ -11713,7 +11717,7 @@ class Interprater {
         }
 
         if (this.hasModifier(Modifiers.redir)) {
-            let m = this.#modifiers.filter(v => v.type === Modifiers.redir)[0].data
+            let m = this.modifiers.filter(v => v.type === Modifiers.redir)[0].data
             //whether or not to redirect *all* message sends to the variable, or just the return value from the command
             let all = m[1] //this matches the ! after redir
             if (all) {
