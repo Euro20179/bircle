@@ -184,6 +184,9 @@ class Parser {
                     this.back()
                 }
             }
+            else{
+                this.back()
+            }
         }
         switch (char) {
             case "n":
