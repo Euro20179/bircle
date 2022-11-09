@@ -10223,12 +10223,6 @@ ${fs.readdirSync("./command-results").join("\n")}
             return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.RETURN }
         }, category: CommandCategory.META
     },
-    "list-files": {
-        run: async (_msg, _args, sendCallback) => {
-            return { content: fs.readdirSync('./command-results').join("\n"), status: StatusCode.RETURN }
-        },
-        category: CommandCategory.META
-    },
     add: {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
             //@ts-ignore
