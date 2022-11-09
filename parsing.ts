@@ -143,7 +143,7 @@ class Parser {
     parseCmd(){
         let cmd = this.#curChar as string
         let modifiers = [/^n:/, /^s:/, /^t:/, /^d:/, /^redir(!)?\(([^:]*):([^:]+)\):/]
-        while(this.advance()  && this.#curChar !== this.IFS){
+        while(this.advance()  && this.#curChar !== this.IFS && this.#curChar !== "\n"){
             cmd += this.#curChar as string
         }
         while(true){

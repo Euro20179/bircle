@@ -378,7 +378,7 @@ player.on(AudioPlayerStatus.Idle, (err) => {
 
 export const commands: { [command: string]: Command } = {
 
-    "```bircle\nstart": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
+    "```bircle": createCommand(async(msg, _, sc, opts, args, rec, bans) => {
         for(let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")){
             line = line.trim()
             if(!line) continue
@@ -11290,8 +11290,8 @@ valid formats:<br>
                 return { content: "No  alias name given", status: StatusCode.ERR }
             }
             realCmd = realCmd.trim()
-            if (realCmd.includes(" ")) {
-                return { content: "Name cannot have space", status: StatusCode.ERR }
+            if (realCmd.includes(" ") || realCmd.includes("\n")) {
+                return { content: "Name cannot have space or new lines", status: StatusCode.ERR }
             }
             args = args.slice(1)
             if (!args) {
@@ -11635,8 +11635,6 @@ class Interprater {
     async [6](token: Token) {
         this.real_cmd = token.data
         this.cmd = token.data
-
-        setVar("_!!", this.cmd, this.#msg.author.id)
     }
 
     hasModifier(mod: Modifiers) {
