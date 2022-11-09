@@ -11612,6 +11612,11 @@ class Interprater {
     }
     //calc
     async [2](token: Token) {
+        let parser = new Parser(this.#msg, token.data, false)
+        await parser.parse()
+        let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
+        await int.interprate()
+        token.data = int.args.join(" ")
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars["__global__"] }, { timeout: 1000 })), token.argNo)
         this.addTokenToArgList(t)
     }

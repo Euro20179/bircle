@@ -52,6 +52,7 @@ class Parser {
 
     IFS: string
 
+    #isParsingCmd: boolean
     #msg: Message
     #curChar: string | undefined
     #i: number
@@ -62,7 +63,7 @@ class Parser {
         return `\\\$${this.IFS}{%`
     }
 
-    constructor(msg: Message, string: string) {
+    constructor(msg: Message, string: string, isCmd = true) {
         this.tokens = []
         this.string = string
         this.#i = -1
@@ -70,6 +71,7 @@ class Parser {
         this.#curArgNo = 0
         this.#hasCmd = false
         this.#msg = msg
+        this.#isParsingCmd = isCmd
         this.modifiers = []
         this.IFS = getVar(msg, "IFS", msg.author.id) || " "
     }
@@ -124,7 +126,7 @@ class Parser {
                 }
                 default: {
                     lastWasspace = false
-                    if(!this.#hasCmd){
+                    if(!this.#hasCmd && this.#isParsingCmd){
                         this.tokens.push(this.parseCmd())
                         if(this.modifiers.filter(v => v.type === Modifiers.skip).length){
                             this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).map((v, i) => new Token(T.str, v, i)))
@@ -518,7 +520,7 @@ class Parser {
 
     }
 
-    parseDollar(msg: Message) {
+    parseDollar() {
         this.advance()
 
         if (this.#curChar === '[') {
