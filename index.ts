@@ -159,8 +159,8 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
             return m
         }
         for (let cmd of cmds) {
-            m.content = `${prefix}${cmd} ${result}`
-            let rv = await commands.doCmd(m, true)
+            //m.content = `${prefix}${cmd} ${result}`
+            let rv = await commands.runCmd(m, true)
             //@ts-ignore
             if (rv?.content) result = rv.content
         }
@@ -190,10 +190,7 @@ client.on("messageCreate", async (m: Message) => {
             if(pingresponse){
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if(commands.isCmd(pingresponse, prefix)){
-                    let oldContent = m.content
-                    m.content = pingresponse
-                    await commands.doCmd(m, false, 0, commands.generateDefaultRecurseBans()) as CommandReturn
-                    m.content = oldContent
+                    await commands.runCmd(m, pingresponse, 0, false, commands.generateDefaultRecurseBans()) as CommandReturn
                 }
                 else{
                     m.channel.send(pingresponse)

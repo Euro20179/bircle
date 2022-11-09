@@ -879,7 +879,6 @@ function parsePosition(position: string, areaSize: number, objectSize: number, n
 }
 
 export {
-    parseCmd,
     parsePosition,
     parseAliasReplacement,
     parseDoFirst,
