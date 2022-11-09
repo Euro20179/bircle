@@ -398,7 +398,15 @@ export const commands: { [command: string]: Command } = {
         let parser = new Parser(msg, args.join(" ").trim())
         await parser.parse()
         return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
-    }, CommandCategory.META),
+    }, CommandCategory.META, "Tokenize command input"),
+
+    "interprate": createCommand(async(msg, args, sc, opts,  _, rec) => {
+        let parser = new Parser(msg, args.join(" ").trim())
+        await parser.parse()
+        let int = new Interprater(msg, parser.tokens, parser.modifiers)
+        await int.interprate()
+        return {content: JSON.stringify(int), status: StatusCode.RETURN}
+    }, CommandCategory.META, "Interprate args"),
 
     'scorigami': createCommand(async (msg, _, sc, opts, args) => {
         let data
@@ -5948,7 +5956,7 @@ middle
                     })
                     req.on("end", async () => {
                         //@ts-ignore
-                        let rv = await commands['wiki'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
+                        let rv = await commands['wikipedia'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
                         await sendCallback(rv)
                     })
                 }).end()
@@ -5963,7 +5971,7 @@ middle
                     return { content: "not found", status: StatusCode.ERR }
                 }
                 if (resp.headers.get("location")) {
-                    await commands['wiki'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args)
+                    await commands['wikipedia'].run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args)
                 }
                 else {
                     let respText = await resp.text()
@@ -11524,8 +11532,10 @@ class Interprater {
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
     sendCallback: (options: MessageOptions | MessagePayload | string) => Promise<Message>
+    alias: boolean | [string, string[]]
 
     #interprated: boolean
+    #aliasExpandSuccess: boolean
     #i: number
     #curTok: Token | undefined
     #doFirstCountValueTable: { [key: number]: string }
@@ -11543,6 +11553,7 @@ class Interprater {
         this.returnJson = returnJson
         this.disable = disable ?? {}
         this.sendCallback = sendCallback || msg.channel.send.bind(msg.channel)
+        this.alias = false
 
         this.#modifiers = modifiers
         this.#i = -1
@@ -11552,6 +11563,7 @@ class Interprater {
         this.#argOffsetFromDoFirstSpreading = 0
         this.#doFirstNoFromArgNo = {}
         this.#interprated = false
+        this.#aliasExpandSuccess = false
     }
     advance(amount = 1) {
         this.#i += amount;
@@ -11633,8 +11645,29 @@ class Interprater {
 
     }
     async [6](token: Token) {
-        this.real_cmd = token.data
         this.cmd = token.data
+        this.real_cmd = token.data
+
+        if (!commands[this.cmd] && aliases[this.cmd]) {
+            let expansion = await expandAlias(this.cmd, (alias: any) => {
+                globals.addToCmdUse(alias) //for every expansion, add to cmd use
+                if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
+                    handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, this.sendCallback, this.recursion + 1)
+                    return false
+                }
+                return true
+            })
+
+
+            if(expansion){
+                this.#aliasExpandSuccess = true
+                this.alias = expansion
+                this.real_cmd = expansion[0]
+            }
+            else{
+                this.alias = true
+            }
+        }
     }
 
     hasModifier(mod: Modifiers) {
@@ -11642,37 +11675,18 @@ class Interprater {
     }
 
     async runAlias(){
-        let rv: CommandReturn
-        //expand the alias to find the true command
-        let expansion = await expandAlias(this.cmd, (alias: any) => {
-            globals.addToCmdUse(alias) //for every expansion, add to cmd use
-            if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, this.sendCallback, this.recursion + 1)
-                return false
-            }
-            return true
-        })
-        //if it was able to expand (not blacklisted, and no misc errors)
-        if (expansion) {
-            //alias is actually the real command
-            //aliasPreArgs are the arguments taht go after the commnad
-            let [alias, aliasPreArgs] = expansion
-            let content = `${alias} ${aliasPreArgs.join(" ")}`.trim()
-            let oldC = content
-            //aliasPreArgs.join is the command  content, args is what the user typed
-            content = `${alias} ${parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), this.args)}`.trim()
-            if (oldC == content) {
-                content += ` ${this.args.join(" ")}`
-            }
-
-            this.real_cmd = alias
-
-            rv = await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
+        //alias is actually the real command
+        //aliasPreArgs are the arguments taht go after the commnad
+        let [alias, aliasPreArgs] = this.alias as [string, string[]]
+        let content = `${alias} ${aliasPreArgs.join(" ")}`.trim()
+        let oldC = content
+        //aliasPreArgs.join is the command  content, args is what the user typed
+        content = `${alias} ${parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), this.args)}`.trim()
+        if (oldC == content) {
+            content += ` ${this.args.join(" ")}`
         }
-        else {
-            rv = { content: `failed to expand ${this.cmd}`, status: StatusCode.ERR }
-        }
-        return rv
+
+        return await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
     }
 
 
@@ -11747,8 +11761,11 @@ class Interprater {
             if (this.#msg.deletable) await this.#msg.delete()
         }
 
-        if (!commands[this.cmd] && aliases[this.cmd]) {
+        if (this.alias && this.#aliasExpandSuccess) {
             rv = await this.runAlias()
+        }
+        else if(this.alias && !this.#aliasExpandSuccess){
+            rv = {content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR}
         }
         else if (!commands[this.real_cmd]) {
             //We dont want to keep running commands if the command doens't exist
@@ -11783,8 +11800,8 @@ class Interprater {
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
                 rv = await commands[this.real_cmd].run(this.#msg, args, this.sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
-                //if normal command, it counts as use
                 globals.addToCmdUse(this.real_cmd)
+                //if normal command, it counts as use
             }
             else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
         }
