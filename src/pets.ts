@@ -35,7 +35,7 @@ let PETACTIONS: {[key: string]: Function} = {
             }
             else{ //30% for items
                 for(let i = 0; i < 2; i++){
-                    let items = fs.readFileSync("./shop.json", "utf-8")
+                    let items = fs.readFileSync("./data/shop.json", "utf-8")
                     let itemJ = JSON.parse(items)
                     let itemNames = Object.keys(itemJ)
                     let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]

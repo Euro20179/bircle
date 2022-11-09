@@ -1,8 +1,8 @@
 import fs = require("fs")
 
-export const token = fs.readFileSync("./TOKEN", "utf-8").trim()
-export const CLIENT_ID = fs.readFileSync("./CLIENT", "utf-8").trim()
-export const GUILD_ID = fs.readFileSync("./GUILD", "utf-8").trim()
+export const token = fs.readFileSync("./data/TOKEN", "utf-8").trim()
+export const CLIENT_ID = fs.readFileSync("./data/CLIENT", "utf-8").trim()
+export const GUILD_ID = fs.readFileSync("./data/GUILD", "utf-8").trim()
 
 export let SPAM_ALLOWED = true
 
@@ -45,7 +45,7 @@ export function addToEmoteUse(emote: string) {
     else {
         EMOTEUSE[emote] = 1
     }
-    fs.writeFileSync("emoteuse", generateEmoteUseFile())
+    fs.writeFileSync("data/emoteuse", generateEmoteUseFile())
 }
 
 export function addToCmdUse(cmd: string) {
@@ -57,15 +57,15 @@ export function addToCmdUse(cmd: string) {
 }
 
 export function writeCmdUse() {
-    fs.writeFileSync("cmduse", generateCmdUseFile())
+    fs.writeFileSync("data/cmduse", generateCmdUseFile())
 }
 
 export function loadCmdUse() {
     let cmduse: { [key: string]: number } = {}
-    if (!fs.existsSync("cmduse")) {
+    if (!fs.existsSync("data/cmduse")) {
         return {}
     }
-    let data = fs.readFileSync("cmduse", "utf-8")
+    let data = fs.readFileSync("data/cmduse", "utf-8")
     for (let line of data.split("\n")) {
         if (!line) continue
         let [cmd, times] = line.split(":")
@@ -76,10 +76,10 @@ export function loadCmdUse() {
 
 export function loadEmoteUse() {
     let emoteuse: { [key: string]: number } = {}
-    if (!fs.existsSync("emoteuse")) {
+    if (!fs.existsSync("data/emoteuse")) {
         return {}
     }
-    let data = fs.readFileSync("emoteuse", "utf-8")
+    let data = fs.readFileSync("data/emoteuse", "utf-8")
     for (let line of data.split("\n")) {
         if (!line) continue
         let [emote, times] = line.split(":")

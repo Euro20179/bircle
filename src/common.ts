@@ -4,7 +4,7 @@ import { allowedOptions, getOpt } from "./user-options";
 const { readFileSync, writeFileSync, existsSync } = require("fs");
 const { Client, Intents } = require("discord.js")
 const economy = require("./economy");
-const prefix = readFileSync("./prefix", "utf-8").trim()
+const prefix = readFileSync("./data/prefix", "utf-8").trim()
 
 
 const ADMINS = ["334538784043696130"]
@@ -97,12 +97,12 @@ function saveVars() {
             delete vars['__global__'][vname]
         }
     }
-    writeFileSync("./vars", JSON.stringify(vars))
+    writeFileSync("./data/vars", JSON.stringify(vars))
 }
 
 function readVars() {
     if (existsSync("./vars")) {
-        vars = JSON.parse(readFileSync("./vars", "utf-8"))
+        vars = JSON.parse(readFileSync("./data/vars", "utf-8"))
         vars["__global__"] = { ...vars["__global__"], ...defaultVars }
     }
 }

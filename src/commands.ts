@@ -9581,7 +9581,7 @@ Valid formats:
                             name: "stackl.txt",
                             description: "The stackl documentation",
                             delete: false,
-                            attachment: "stackl.norg"
+                            attachment: "./data/stackl.norg"
                         }
                     ],
                     status: StatusCode.RETURN
