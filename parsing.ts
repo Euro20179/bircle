@@ -106,7 +106,7 @@ class Parser {
                 }
                 case "$": {
                     lastWasspace = false
-                    this.tokens.push(this.parseDollar(this.#msg))
+                    this.tokens.push(this.parseDollar())
                     break
                 }
                 case "%": {
@@ -548,6 +548,16 @@ class Parser {
             this.advance(inside.length)
 
             return new Token(T.dofirst, inside, this.#curArgNo)
+        }
+        else if(this.#curChar === '{'){
+            this.advance()
+            let inner = parseBracketPair(this.string, "{}", this.#i)
+            this.advance(inner.length)
+            let var_ = getVar(this.#msg, inner)
+            if(var_ === false){
+                return new Token(T.str, `\${${inner}}`, this.#curArgNo)
+            }
+            return new Token(T.str, var_, this.#curArgNo)
         }
         else if (this.#curChar == ' ') {
             let tok = new Token(T.str, "$", this.#curArgNo)
