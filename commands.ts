@@ -885,7 +885,13 @@ export const commands: { [command: string]: Command } = {
                     }
                 ], status: StatusCode.RETURN
             }
-        }, category: CommandCategory.IMAGES
+        }, category: CommandCategory.IMAGES,
+        help: {
+            info: "Get a specific color channel from an image",
+            arguments: {
+                channel: createHelpArgument("The channel<br><b>can be</b><ul><li>red</li><li>green</li><li>blue</li><li>alpha</li>")
+            }
+        }
     },
 
     draw: createCommand(async (msg, args, sendCallback) => {
@@ -1800,7 +1806,10 @@ The commands below, only work after **path** has been run:
                 status: StatusCode.RETURN
             }
         }, category: CommandCategory.UTIL,
-        permCheck: (m) => ADMINS.includes(m.author.id)
+        permCheck: (m) => ADMINS.includes(m.author.id),
+        help: {
+            info: "Clears logs"
+        }
     },
 
     "stk": createCommand(async (msg, args, sendCallback) => {
@@ -3347,7 +3356,13 @@ until you put a 0 in the box`)
                     status: StatusCode.RETURN
                 }
             }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Get the profit you have made on a specific stock",
+            arguments: {
+                stock: createHelpArgument("The stock to get the profit of", true)
+            }
+        }
     },
 
     sell: {
