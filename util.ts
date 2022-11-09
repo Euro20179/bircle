@@ -400,19 +400,29 @@ class Options{
     /**
         * @description Looks for <value> if it is not found, return <default_>
     */
-    get(value: string, default_: string){
-        let rv = Reflect.get(this, value, this)
-        return rv === undefined ? default_ : rv
+    get<T>(key: string, default_: T, assert: (v: any) => undefined | any = (_v) => _v ){
+        let rv = Reflect.get(this, key, this)
+        return assert(rv) ?? default_
     }
-    /**
-        * @description same as get(), but returns default_ if value is true
-    */
-    getValue(value: string, default_: string){
-        let rv = Reflect.get(this, value, this)
-        if(rv === true || rv === undefined){
+
+    getNumber(key: string, default_: number, toNumber: (v: string) => number = Number){
+        let n = Reflect.get(this, key, this)
+        if(n !== undefined){
+            let number = toNumber(n)
+            if(!isNaN(number)){
+                return number
+            }
             return default_
         }
-        return rv
+        return default_
+    }
+    getBool(key: string, default_: number, toBoolean: (v: any) => boolean = Boolean){
+        let v = Reflect.get(this, key, this)
+        if(v !== undefined){
+            let bool = toBoolean(v)
+            return bool
+        }
+        return default_
     }
 }
 

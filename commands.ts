@@ -290,7 +290,7 @@ function createCommand(
 }
 
 function createCommandV2(
-    cb: ({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: {msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: {categories?: CommandCategory[], commands?: string[]}}) => Promise<CommandReturn>,
+    cb: ({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: {msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgumentList, recursionCount: number, commandBans?: {categories?: CommandCategory[], commands?: string[]}}) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -435,7 +435,7 @@ export const commands: { [command: string]: Command | CommandV2 } = {
         return { content: JSON.stringify(int), status: StatusCode.RETURN }
     }, CommandCategory.META, "Interprate args"),
 
-    'scorigami': createCommand(async (msg, _, sc, opts, args) => {
+    'scorigami': createCommandV2(async ({args, opts}) => {
         let data
         try {
             data = await fetch.default('https://nflscorigami.com/data')
@@ -446,17 +446,12 @@ export const commands: { [command: string]: Command | CommandV2 } = {
         let json = await data.json()
         let scores = json.matrix
 
-        let less_than = 100000000000
-        let greater_than = -1
-        if (opts['total-lt']) {
-            less_than = Number(opts['total-lt'])
-        }
-        if (opts['total-gt']) {
-            greater_than = Number(opts['total-gt'])
-        }
+        let less_than = opts.getNumber("total-lt", 100000000000)
+        let greater_than = opts.getNumber("total-gt", -1)
 
-        if (!isNaN(Number(opts['count']))) {
-            let count = Number(opts['count'])
+        let count = opts.getNumber("count", NaN)
+
+        if (!isNaN(count)) {
             let results: { data: any, score: [number, number] }[] = []
             for (let i = 0; i < scores.length; i++) {
                 let range = scores[i]
@@ -467,7 +462,8 @@ export const commands: { [command: string]: Command | CommandV2 } = {
                 }
             }
             let text = ""
-            for (let i = 0; i < (parseInt(String(opts['result-count'])) || 1) && i < results.length; i++) {
+            let result_count = opts.getNumber("result-count", 1, parseInt)
+            for (let i = 0; i < result_count && i < results.length; i++) {
                 text += results[Math.floor(Math.random() * results.length)].score.join(" to ") + '\n'
             }
             return { content: text, status: StatusCode.RETURN }
