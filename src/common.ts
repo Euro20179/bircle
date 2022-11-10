@@ -101,7 +101,7 @@ function saveVars() {
 }
 
 function readVars() {
-    if (existsSync("./vars")) {
+    if (existsSync("./data/vars")) {
         vars = JSON.parse(readFileSync("./data/vars", "utf-8"))
         vars["__global__"] = { ...vars["__global__"], ...defaultVars }
     }
