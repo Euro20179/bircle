@@ -23,20 +23,7 @@ petinventory.json
 user-options.json
 timers.json
 
-index.js
-economy.js
-pets.js
-shop.js
-uno.js
-battle.js
-stackl.js
-util.js
-api.js
-globals.js
-common.js
-commands.js
-user-options.js
-parsing.js
+*.js
 
 *.bircle
 

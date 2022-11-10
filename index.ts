@@ -10,6 +10,7 @@ const { Routes } = require("discord-api-types/v9")
 
 import pet = require("./src/pets")
 import commands = require("./src/commands")
+import command_commons = require("./src/common_to_commands")
 import globals = require("./src/globals")
 import timer from "./src/timer"
 import { URLSearchParams } from "url"
@@ -94,9 +95,9 @@ client.on('ready', async () => {
 client.on("messageDelete", async (m: Message) => {
     if (m.author?.id != client.user?.id) {
         for (let i = 3; i >= 0; i--) {
-            commands.snipes[i + 1] = commands.snipes[i]
+            command_commons.snipes[i + 1] = command_commons.snipes[i]
         }
-        commands.snipes[0] = m
+        command_commons.snipes[0] = m
     }
 })
 
@@ -159,14 +160,14 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
             return m
         }
         for (let cmd of cmds) {
-            let rv = await commands.runCmd(m, `${cmd} ${result}`, 0, true)
+            let rv = await command_commons.runCmd(m, `${cmd} ${result}`, 0, true)
             //@ts-ignore
             if (rv?.content) result = rv.content
         }
         m.channel.send = oldSend
         finalMessages = [result]
     }
-    commands.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: 0 })
+    command_commons.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: 0 })
 }
 
 client.on("messageCreate", async (m: Message) => {
@@ -188,8 +189,8 @@ client.on("messageCreate", async (m: Message) => {
             let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
             if(pingresponse){
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                if(commands.isCmd(pingresponse, prefix)){
-                    await commands.runCmd(m, pingresponse.slice(prefix.length), 0, false, commands.generateDefaultRecurseBans()) as CommandReturn
+                if(command_commons.isCmd(pingresponse, prefix)){
+                    await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans()) as CommandReturn
                 }
                 else{
                     m.channel.send(pingresponse)
@@ -199,7 +200,7 @@ client.on("messageCreate", async (m: Message) => {
     }
 
     if(m.content === `<@${client.user.id}>`){
-        await commands.handleSending(m, {content: `The prefix is: ${local_prefix}`, status: 0})
+        await command_commons.handleSending(m, {content: `The prefix is: ${local_prefix}`, status: 0})
     }
 
     //saves economy stuff 45% of the time
@@ -246,7 +247,7 @@ client.on("messageCreate", async (m: Message) => {
             m.content = `${cmd}`
             let c = m.content.slice(local_prefix.length)
             try{
-                await commands.runCmd(m, c)
+                await command_commons.runCmd(m, c)
             }
             catch(err){
                 console.error(err)
@@ -448,7 +449,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
         else if (interaction.commandName == 'img') {
             //@ts-ignore
-            let rv = await commands.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
             if (rv.files) {
                 for (let file of rv.files) {
@@ -475,7 +476,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 arglist = arglist.concat(args.split(" "))
             }
             //@ts-ignore
-            let rv = await commands.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'poll') {
@@ -489,7 +490,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             argList.push(options)
             //@ts-ignore
-            await commands.commands['poll'].run(interaction, argList, interaction.channel.send.bind(interaction.channel))
+            await command_commons.commands['poll'].run(interaction, argList, interaction.channel.send.bind(interaction.channel))
         }
         else if (interaction.commandName == 'ccmd') {
             //@ts-ignore
@@ -500,14 +501,14 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 arglist = arglist.concat(args.split(" "))
             }
             //@ts-ignore
-            let rv = await commands.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'rccmd') {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
-            let rv = await commands.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'say') {
@@ -517,7 +518,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
-            let rv = await commands.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == "add-8") {
@@ -525,7 +526,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member?.user
             let resp = interaction.options.get("response")?.value as string
             //@ts-ignore
-            let rv = await commands.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == "add-wordle") {
@@ -537,7 +538,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             //@ts-ignore
-            let rv = await commands.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
         else if (interaction.commandName == 'rps') {
@@ -578,7 +579,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             //@ts-ignore
             interaction.author = interaction.member.user
             //@ts-ignore
-            let rv = await commands.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
+            let rv = await command_commons.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
             await interaction.reply(rv as InteractionReplyOptions)
         }
     }
@@ -776,8 +777,8 @@ server.on("request", (req, res) => {
                     _cacheType: false,
                     _patch: (_data) => {}
                 }
-                commands.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
-                    commands.handleSending(msg, rv as CommandReturn).then(_done => {
+                command_commons.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
+                    command_commons.handleSending(msg, rv as CommandReturn).then(_done => {
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))
                     }).catch(_err => {
