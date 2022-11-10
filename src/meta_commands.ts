@@ -165,17 +165,46 @@ export default function() {
                 if (!cmd) {
                     return { content: "No cmd  chosen", status: StatusCode.ERR }
                 }
-                let command = Object.keys(commands).filter(v => v.toLowerCase() === cmd.toLowerCase())
-                if (!command.length)
+
+                let attrs = args.slice(1)
+                if(attrs.length === 0){
+                    attrs.push("run")
+                }
+
+                let command = Object.entries(commands).filter(v => v[0] === cmd)[0]?.[1]
+                if (!command)
                     return { content: "no command found", status: StatusCode.ERR }
-                return { content: String(commands[command[0]].run), status: StatusCode.RETURN }
+
+                let results = []
+                let curAttr = command
+                for(let attr of attrs){
+                    for(let subAttr of attr.split(".")){
+                        //@ts-ignore
+                        curAttr = curAttr[subAttr]
+                        if(curAttr === undefined) break;
+                    }
+
+                    if(curAttr !== undefined){
+                        if(typeof curAttr === 'object'){
+                            results.push(JSON.stringify(curAttr))
+                        }
+                        else{
+                            results.push(String(curAttr))
+                        }
+                    }
+                }
+
+                return { content: results.join("\n"), status: StatusCode.RETURN }
             }, category: CommandCategory.META,
             help: {
                 info: "Get the source code of a file, or a command",
                 arguments: {
                     command: {
                         description: "The command to get the source code  of",
-                        required: false
+                        required: true
+                    },
+                    "...attributes": {
+                        description: "Get attributes of a command"
                     }
                 },
                 options: {
