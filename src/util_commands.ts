@@ -683,7 +683,13 @@ export default function() {
                 return { content: `Your new active pet is ${newActivePet}`, status: StatusCode.RETURN }
             }
             return { content: "Failed to set active pet", status: StatusCode.ERR }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Sets your active pet",
+            arguments: {
+                pet: createHelpArgument("The pet to set to")
+            }
+        }
     },
     )
 
@@ -1399,13 +1405,16 @@ middle
             let url = args.join(" ") || "https://www.duckduckgo.com"
             try {
                 let start = Date.now()
-                await fetch.default(url)
+                await fetch.default(url, {timeout: 1500})
                 return { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }
             }
             catch (err) {
                 return { content: "Problem fetching ".concat(url), status: StatusCode.ERR }
             }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Getss the ping to an ip (timeout after 1.5s)"
+        }
     },
     )
 
@@ -1434,7 +1443,15 @@ middle
                 return { content: "no text to search through", status: StatusCode.ERR }
             }
             return { content: text.replaceAll(search, repl || ""), status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Replaces a string with another string",
+            arguments: {
+                search: createHelpArgument("The search (1 arg)", true),
+                replace: createHelpArgument("The replacement (1 arg)", true),
+                "...text": createHelpArgument("The text to search/replace through", true)
+            }
+        }
     },
     )
 
@@ -3073,7 +3090,7 @@ valid formats:<br>
     )
 
     registerCommand(
-    "grep", {
+        "grep", {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
