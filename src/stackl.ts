@@ -1,7 +1,7 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable }  from 'discord.js'
 import { getVar } from './common'
 
-import { runCmd } from "./commands"
+import { runCmd } from "./common_to_commands"
 
 const { vars, prefix } = require( "./common.js")
 
