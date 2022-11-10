@@ -6,7 +6,7 @@ import user_options = require("./user-options")
 
 import { prefix } from './common'
 import { CommandCategory, createCommand, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
-import { format, getOpts } from './util'
+import { fetchUser, format, getOpts } from './util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from './shop'
 const { buyItem, hasItem, useItem } = require('./shop')
