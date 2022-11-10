@@ -1053,7 +1053,7 @@ until you put a 0 in the box`)
                                     let gain = netWorth * (data[player] / 100)
                                     gain += data_floor[player] ? data_floor[player] : 0
                                     if (member) {
-                                        e.addField(String(member.nickname || member.user.username), `$${gain} (${data[player]}%)`)
+                                        e.addField(String(member.nickname || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`)
                                     }
                                     else {
                                         e.addField(String(data[player]), `<@${player}>`)
@@ -1077,6 +1077,7 @@ until you put a 0 in the box`)
 
         }, CommandCategory.GAME,
             "Go on a \"heist\"",
+            undefined,
             {
                 "no-stats": createHelpOption("Display only the amount gained/lost from the heist", ['ns']),
                 "no-adventure-order": createHelpOption("Do not display  the  adventure order", ["noa"]),
