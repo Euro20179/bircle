@@ -9,8 +9,11 @@ const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 
 import pet = require("./src/pets")
-import commands = require("./src/commands")
+require("./src/commands")
 import command_commons = require("./src/common_to_commands")
+
+let commands = command_commons.getCommands()
+
 import globals = require("./src/globals")
 import timer from "./src/timer"
 import { URLSearchParams } from "url"
@@ -55,7 +58,7 @@ Object.defineProperty(User.prototype, "netWorth", {
 
         await rest.put(
             Routes.applicationGuildCommands(globals.CLIENT_ID, globals.GUILD_ID),
-            { body: commands.slashCommands },
+            { body: command_commons.slashCommands },
         );
 
         console.log('Successfully reloaded application (/) commands.');

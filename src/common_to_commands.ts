@@ -31,6 +31,12 @@ export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
 export let purgeSnipe: (Message | PartialMessage)[];
 
+export let currently_playing: { link: string, filename: string } | undefined;
+
+export function setCurrentlyPlaying(to: { link: string, filename: string } | undefined){
+    currently_playing = to
+}
+
 export const illegalLastCmds = ["!!", "spam"]
 
 export function createAliases() {
@@ -539,6 +545,67 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     return newMsg
 }
 
+export function createHelpArgument(description: string, required?: boolean, requires?: string, default_?: string) {
+    return {
+        description: description,
+        required: required,
+        requires: requires,
+        default: default_
+    }
+}
+
+export function createHelpOption(description: string, alternatives?: string[], default_?: string) {
+    return {
+        description: description,
+        alternatives: alternatives,
+        default: default_
+    }
+}
+
+export function createCommand(
+    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
+    category: CommandCategory,
+    helpInfo?: string,
+    helpArguments?: CommandHelpArguments | null,
+    helpOptions?: CommandHelpOptions | null,
+    tags?: string[] | null,
+    permCheck?: (m: Message) => boolean): Command {
+    return {
+        run: cb,
+        help: {
+            info: helpInfo,
+            arguments: helpArguments ? helpArguments : undefined,
+            options: helpOptions ? helpOptions : undefined,
+            tags: tags ? tags : undefined
+        },
+        category: category,
+        permCheck: permCheck,
+        cmd_std_version: 1
+    }
+}
+
+export function createCommandV2(
+    cb: ({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: {msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgumentList, recursionCount: number, commandBans?: {categories?: CommandCategory[], commands?: string[]}}) => Promise<CommandReturn>,
+    category: CommandCategory,
+    helpInfo?: string,
+    helpArguments?: CommandHelpArguments | null,
+    helpOptions?: CommandHelpOptions | null,
+    tags?: string[] | null,
+    permCheck?: (m: Message) => boolean): CommandV2 {
+    return {
+        run: cb,
+        help: {
+            info: helpInfo,
+            arguments: helpArguments ? helpArguments : undefined,
+            options: helpOptions ? helpOptions : undefined,
+            tags: tags ? tags : undefined
+        },
+        category: category,
+        permCheck: permCheck,
+        cmd_std_version: 2
+    }
+}
+
 export function generateDefaultRecurseBans() {
     return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas"] }
 }
@@ -559,3 +626,179 @@ export function getAliases(refresh?: boolean){
     }
     return aliases
 }
+
+export function createChatCommandOption(type: number, name: string, description: string, { min, max, required }: { min?: number, max?: number | null, required?: boolean }) {
+    let obj: { [key: string]: any } = {
+        type: type,
+        name: name,
+        description: description,
+        required: required || false
+    }
+    if (min) {
+        obj["min"] = min
+    }
+    if (max) {
+        obj["max"] = max
+    }
+    return obj
+}
+
+function createChatCommand(name: string, description: string, options: any) {
+    return {
+        name: name,
+        description: description,
+        options: options
+    }
+}
+
+const STRING = 3
+const INTEGER = 4
+const USER = 6
+
+
+
+export const slashCommands = [
+    createChatCommand("defer-reply", "defers the reply :+1:", []),
+    createChatCommand("attack", "attacks chris, and no one else", [createChatCommandOption(USER, "user", "who to attack", { required: true })]),
+    createChatCommand("ping", "Pings a user for some time", [
+        createChatCommandOption(USER, "user", "who to ping twice", { required: true }),
+        createChatCommandOption(INTEGER, "evilness", "on a scale of 1 to 10 how evil are you", {})
+    ]),
+    createChatCommand("img", "create an image", [
+        createChatCommandOption(INTEGER, "width", "width of image", { required: true, min: 0, max: 5000 }),
+        createChatCommandOption(INTEGER, "height", "height of image", { required: true, min: 0, max: 5000 }),
+        createChatCommandOption(STRING, "color", "color of image", {})
+    ]),
+    createChatCommand("ccmd", "create a custom command, WOWZERS", [
+        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", { required: true }),
+        createChatCommandOption(STRING, "text", "what to say", { required: true })
+    ]),
+    createChatCommand("alias", "A more powerful ccmd", [
+        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", { required: true }),
+        createChatCommandOption(STRING, "command", "command to run", { required: true }),
+        createChatCommandOption(STRING, "text", "Text to give to command", {})
+    ]),
+    createChatCommand("rps", "Rock paper scissors", [
+        createChatCommandOption(USER, "opponent", "opponent", { required: true }),
+        createChatCommandOption(STRING, "choice", "choice", { required: true }),
+        createChatCommandOption(STRING, "bet", "bet", { required: false })
+    ]),
+    createChatCommand("rccmd", "remove a custom command, WOWZERS", [
+        createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", { required: true }),
+    ]),
+    createChatCommand("say", "says something", [
+        createChatCommandOption(STRING, "something", "the something to say", { required: true })
+    ]),
+    createChatCommand("poll", "create a poll", [
+        createChatCommandOption(STRING, "options", "Options are seperated by |", { required: true }),
+        createChatCommandOption(STRING, "title", "The title of the poll", { required: false }),
+    ]),
+    {
+        name: 'aheist',
+        description: 'Add a heist response',
+        options: [
+            {
+                type: STRING,
+                name: "stage",
+                required: true,
+                description: "The stage (getting_in, robbing, escape)",
+
+            },
+            {
+                type: STRING,
+                name: "gain-or-lose",
+                description: "Whether to gain or lose money",
+                required: true,
+                choices: [
+                    {
+                        name: "gain",
+                        value: "GAIN",
+                    },
+                    {
+                        name: "lose",
+                        value: "LOSE",
+                    }
+                ]
+            },
+            {
+                type: STRING,
+                name: "users-to-gain-or-lose",
+                description: "User numbers (or all) seperated by ,",
+                required: true
+            },
+            {
+                type: STRING,
+                name: "amount",
+                description: "The amount to gain/lose",
+                required: true,
+                choices: [
+                    {
+                        name: "none",
+                        value: "none"
+                    },
+                    {
+                        name: "normal",
+                        value: "normal",
+                    },
+                    {
+                        name: "cents",
+                        value: "cents",
+                    }
+                ]
+            },
+            {
+                type: STRING,
+                name: "message",
+                description: "The message, {user1} is replaced w/ user 1, {userall} with all users, and {amount} with amount",
+                required: true
+            },
+            {
+                type: STRING,
+                name: "nextstage",
+                description: "The stage to enter into after this response",
+                required: false,
+            },
+            {
+                type: STRING,
+                name: "location",
+                description: "The location of this response",
+                required: false,
+            },
+            {
+                type: STRING,
+                name: "set-location",
+                description: "The location that this response will set the game to",
+                required: false
+            },
+            {
+                type: STRING,
+                name: "button-response",
+                description: "Reply that happens if set-location is multiple locations",
+                required: false
+            },
+            {
+                type: STRING,
+                name: "if",
+                description: "This response can only happen under this condition",
+                required: false
+            }
+        ]
+    },
+    createChatCommand("help", "get help", []),
+    createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", { required: true })]),
+    createChatCommand("add-8", "add a response to 8ball", [createChatCommandOption(STRING, "response", "the response", { required: true })]),
+    createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", { required: true })]),
+    {
+        name: "ping",
+        type: 2
+    },
+    {
+        name: "info",
+        type: 2
+    },
+    {
+        name: "fileify",
+        type: 3
+    }
+]
+
