@@ -8,7 +8,7 @@ import fetch = require("node-fetch")
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, format, getImgFromMsgAndOpts, getOpts, rgbToHex } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, rgbToHex } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")

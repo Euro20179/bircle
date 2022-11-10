@@ -254,7 +254,7 @@ client.on("messageCreate", async (m: Message) => {
             }
             catch(err){
                 console.error(err)
-                await m.channel.send({content: `Command failure: **${cmd}**`})
+                await m.channel.send({content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\``})
             }
         }
         globals.writeCmdUse()
