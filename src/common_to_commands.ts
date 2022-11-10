@@ -4,7 +4,7 @@ import fs from 'fs'
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, prefix, setVar, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement } from './parsing';
+import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
 import { cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
 
 export enum StatusCode {
@@ -242,6 +242,12 @@ export class Interprater {
             await this.#msg.channel.sendTyping()
         }
 
+        for(let mod of this.modifiers){
+            if(mod.type === Modifiers.redir)
+                continue;
+            content = modifierToStr(mod.type) + content
+        }
+
         return await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
     }
 
@@ -397,16 +403,35 @@ export class Interprater {
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
+    async interprateAllAsToken(t: T){
+        while(this.advance()){
+            await this[t](this.#curTok as Token)
+        }
+    }
+
     async interprate() {
         if (this.#interprated) {
             return this.args
         }
-        for (let doFirst of this.tokens.filter(v => v.type === T.dofirst)) {
-            await this[1](doFirst)
+
+        if(this.hasModifier(Modifiers.skip)){
+            this.advance()
+            if((this.#curTok as Token).type === T.command){
+                await this[T.command](this.#curTok as Token)
+            }
+            await this.interprateAllAsToken(T.str)
         }
-        this.tokens = this.tokens.filter(v => v.type !== T.dofirst)
-        while (this.advance()) {
-            await this[(this.#curTok as Token).type](this.#curTok as Token)
+        else{
+
+            for (let doFirst of this.tokens.filter(v => v.type === T.dofirst)) {
+                await this[1](doFirst)
+            }
+
+            this.tokens = this.tokens.filter(v => v.type !== T.dofirst)
+
+            while (this.advance()) {
+                await this[(this.#curTok as Token).type](this.#curTok as Token)
+            }
         }
         this.#interprated = true
         return this.args

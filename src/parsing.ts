@@ -35,6 +35,21 @@ enum Modifiers{
     redir = 4
 }
 
+function modifierToStr(mod: Modifiers){
+    switch(mod){
+        case 0:
+            return "n:"
+        case 1:
+            return "s:"
+        case 2:
+            return "t:"
+        case 3:
+            return "d:"
+        case 4:
+            throw new Error("Cannot convert redir tot a string")
+    }
+}
+
 class Modifier{
     data: RegExpMatchArray
     type: Modifiers
@@ -901,5 +916,6 @@ export {
     Token,
     T,
     Modifier,
-    Modifiers
+    Modifiers,
+    modifierToStr
 }
