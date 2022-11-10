@@ -274,7 +274,13 @@ export default function() {
                 return { content: "You have fully payed off your loan", status: StatusCode.RETURN }
             }
             return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left`, status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Pay off your lown",
+            arguments: {
+                amount: createHelpArgument("The amount to pay off", false, undefined, "100%")
+            }
+        }
     },
     )
 
@@ -328,7 +334,13 @@ export default function() {
                 }
             }
             return { content: `You bought: ${item} for $${totalSpent}`, status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Buy an item",
+            options: {
+                count: createHelpOption("The amount of the item to buy", undefined, "1")
+            }
+        }
     },
     )
 
