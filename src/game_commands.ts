@@ -512,12 +512,13 @@ until you put a 0 in the box`)
     )
 
     registerCommand(
-        "battle", {
-        run: async (msg, args, sendCallback) => {
-            return battle.battle(msg, args)
-        }, category: CommandCategory.GAME,
-        help: {
-            info: `<h1>A BATTLE SIMULATOR</h1>
+        "battle",
+        {
+            run: async (msg, args, sendCallback) => {
+                return battle.battle(msg, args)
+            }, category: CommandCategory.GAME,
+            help: {
+                info: `<h1>A BATTLE SIMULATOR</h1>
             <br>Rules:<br>
             <ul>
                 <li>
@@ -577,87 +578,88 @@ until you put a 0 in the box`)
             </ul>
             <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
             `,
-            arguments: {
-                "bet": {
-                    description: "Your bet (must be at minimum 0.2%)"
+                arguments: {
+                    "bet": {
+                        description: "Your bet (must be at minimum 0.2%)"
+                    },
+                    "pool type": {
+                        description: "The type of pool, can be winnter take all (wta) or distribute (where when someone dies, their money gets distributed)"
+                    }
                 },
-                "pool type": {
-                    description: "The type of pool, can be winnter take all (wta) or distribute (where when someone dies, their money gets distributed)"
-                }
-            },
-            options: {
-                "no-items": {
-                    description: "Disable items"
+                options: {
+                    "no-items": {
+                        description: "Disable items"
+                    }
                 }
             }
-        }
-    },
+        },
     )
 
     registerCommand(
-        "ticket", {
-        run: async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            let round = !opts['no-round']
-            let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
-            let numbers = args.slice(1, 4)
-            if (!amount) {
-                return { content: "No amount given", status: StatusCode.ERR }
-            }
-            if (!economy.canBetAmount(msg.author.id, amount)) {
-                return { content: "You do not have enough money for this", status: StatusCode.ERR }
-            }
-            if (amount / economy.getEconomy()[msg.author.id].money < 0.005) {
-                return { content: "You must bet at least 0.5%", status: StatusCode.ERR }
-            }
-            let ticket = economy.buyLotteryTicket(msg.author.id, amount)
-            if (!ticket) {
-                return { content: "Could not buy ticket", status: StatusCode.ERR }
-            }
-            if (numbers && numbers.length == 1) {
-                ticket = numbers[0].split("").map(v => Number(v))
-            }
-            else if (numbers && numbers.length == 3) {
-                ticket = numbers.map(v => Number(v))
-            }
-            let answer = economy.getLottery()
-            let e = new MessageEmbed()
-            if (round) {
-                amount = Math.floor(amount * 100) / 100
-            }
-            e.setFooter({ text: `Cost: ${amount}` })
-            if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
-                let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
-                let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")
-                economy.addMoney(msg.author.id, winningAmount)
-                economy.newLottery()
-                if (userFormat !== "__default__") {
-                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+        "ticket",
+        {
+            run: async (msg, args, sendCallback) => {
+                let opts;
+                [opts, args] = getOpts(args)
+                let round = !opts['no-round']
+                let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
+                let numbers = args.slice(1, 4)
+                if (!amount) {
+                    return { content: "No amount given", status: StatusCode.ERR }
                 }
-                e.setTitle("WINNER!!!")
-                e.setColor("GREEN")
-                e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
-            }
-            else {
-                e.setColor("RED")
-                e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
-                e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
-            }
-            return { embeds: [e], status: StatusCode.RETURN }
-        }, category: CommandCategory.GAME,
-        help: {
-            info: "Buy a lottery ticket",
-            arguments: {
-                "amount": {
-                    description: "The amount to pay for the ticket (minimum of 0.5% of your money)",
-                },
-                "numbers": {
-                    description: "The numbers to buy seperated by spaces"
+                if (!economy.canBetAmount(msg.author.id, amount)) {
+                    return { content: "You do not have enough money for this", status: StatusCode.ERR }
+                }
+                if (amount / economy.getEconomy()[msg.author.id].money < 0.005) {
+                    return { content: "You must bet at least 0.5%", status: StatusCode.ERR }
+                }
+                let ticket = economy.buyLotteryTicket(msg.author.id, amount)
+                if (!ticket) {
+                    return { content: "Could not buy ticket", status: StatusCode.ERR }
+                }
+                if (numbers && numbers.length == 1) {
+                    ticket = numbers[0].split("").map(v => Number(v))
+                }
+                else if (numbers && numbers.length == 3) {
+                    ticket = numbers.map(v => Number(v))
+                }
+                let answer = economy.getLottery()
+                let e = new MessageEmbed()
+                if (round) {
+                    amount = Math.floor(amount * 100) / 100
+                }
+                e.setFooter({ text: `Cost: ${amount}` })
+                if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
+                    let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
+                    let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")
+                    economy.addMoney(msg.author.id, winningAmount)
+                    economy.newLottery()
+                    if (userFormat !== "__default__") {
+                        return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                    }
+                    e.setTitle("WINNER!!!")
+                    e.setColor("GREEN")
+                    e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
+                }
+                else {
+                    e.setColor("RED")
+                    e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
+                    e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
+                }
+                return { embeds: [e], status: StatusCode.RETURN }
+            }, category: CommandCategory.GAME,
+            help: {
+                info: "Buy a lottery ticket",
+                arguments: {
+                    "amount": {
+                        description: "The amount to pay for the ticket (minimum of 0.5% of your money)",
+                    },
+                    "numbers": {
+                        description: "The numbers to buy seperated by spaces"
+                    }
                 }
             }
-        }
-    },
+        },
     )
 
     registerCommand(
@@ -1088,56 +1090,57 @@ until you put a 0 in the box`)
     )
 
     registerCommand(
-        "last-run", {
-        run: async (msg, args, sendCallback) => {
-            let lastRun;
-            let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
-            if (fs.existsSync("./command-results/last-run")) {
-                let data = fs.readFileSync("./command-results/last-run", "utf-8")
-                lastRun = new Date()
-                lastRun.setTime(Number(data))
-            }
-            else {
-                lastRun = new Date(Date.now())
-            }
-            let diff = Date.now() - lastRun.getTime()
-            let milliseconds = Math.floor(diff % 1000).toString()
-            let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/, "0$1")
-            let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
-            let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
-            let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
-            let amount = 0
-            if (economy.canEarn(msg.author.id)) {
-                amount = diff / (1000 * 60 * 60)
-                if (hours == minutes) {
-                    amount *= 1.1
+        "last-run",
+        {
+            run: async (msg, args, sendCallback) => {
+                let lastRun;
+                let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
+                if (fs.existsSync("./command-results/last-run")) {
+                    let data = fs.readFileSync("./command-results/last-run", "utf-8")
+                    lastRun = new Date()
+                    lastRun.setTime(Number(data))
                 }
-                if (minutes == seconds) {
-                    amount *= 1.1
+                else {
+                    lastRun = new Date(Date.now())
                 }
-                if (hours == minutes && minutes == seconds) {
-                    amount *= 1.5
+                let diff = Date.now() - lastRun.getTime()
+                let milliseconds = Math.floor(diff % 1000).toString()
+                let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/, "0$1")
+                let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
+                let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
+                let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
+                let amount = 0
+                if (economy.canEarn(msg.author.id)) {
+                    amount = diff / (1000 * 60 * 60)
+                    if (hours == minutes) {
+                        amount *= 1.1
+                    }
+                    if (minutes == seconds) {
+                        amount *= 1.1
+                    }
+                    if (hours == minutes && minutes == seconds) {
+                        amount *= 1.5
+                    }
+                    if (pet.getActivePet(msg.author.id) == "bird") {
+                        amount *= 2
+                    }
+                    economy.addMoney(msg.author.id, amount)
+                    fmt += `\n{earnings}`
+                    fs.writeFileSync("./command-results/last-run", String(Date.now()))
                 }
-                if (pet.getActivePet(msg.author.id) == "bird") {
-                    amount *= 2
-                }
-                economy.addMoney(msg.author.id, amount)
-                fmt += `\n{earnings}`
-                fs.writeFileSync("./command-results/last-run", String(Date.now()))
-            }
-            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${amount}` }), status: StatusCode.RETURN }
-        },
-        help: {
-            arguments: {
-                fmt: {
-                    description: "The format to show the time in"
-                }
+                return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${amount}` }), status: StatusCode.RETURN }
             },
-            info: "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>"
-        },
-        category: CommandCategory.GAME
+            help: {
+                arguments: {
+                    fmt: {
+                        description: "The format to show the time in"
+                    }
+                },
+                info: "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>"
+            },
+            category: CommandCategory.GAME
 
-    },
+        },
     )
 
     registerCommand(
@@ -1424,672 +1427,685 @@ until you put a 0 in the box`)
     )
 
     registerCommand(
-        "coin", {
-        run: async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            let guess = args[0]
-            let bet = economy.calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
-            if (bet && !guess) {
-                return { content: "You cannot bet, but not have a guess", status: StatusCode.ERR }
+        "coin",
+        {
+            run: async (msg, args, sendCallback) => {
+                let opts;
+                [opts, args] = getOpts(args)
+                let guess = args[0]
+                let bet = economy.calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
+                if (bet && !guess) {
+                    return { content: "You cannot bet, but not have a guess", status: StatusCode.ERR }
+                }
+                let side = Math.random() > .5 ? "heads" : "tails"
+                if (!bet || bet < 0) {
+                    return { content: side, status: StatusCode.RETURN }
+                }
+                if (!economy.canBetAmount(msg.author.id, bet)) {
+                    return { content: "You dont have enough money for this bet", status: StatusCode.ERR }
+                }
+                guess = guess.toLowerCase()
+                if (side == guess) {
+                    economy.addMoney(msg.author.id, bet)
+                    return { content: `The side was: ${side}\nYou won: ${bet}`, status: StatusCode.RETURN }
+                }
+                else {
+                    economy.loseMoneyToBank(msg.author.id, bet)
+                    return { content: `The side was: ${side}\nYou lost: ${bet}`, status: StatusCode.RETURN }
+                }
+            }, category: CommandCategory.GAME,
+            help: {
+                info: "flip a coin",
+                options: {
+                    bet: createHelpOption("The bet to put on a side")
+                },
+                arguments: {
+                    bet: createHelpArgument("What you think the coin will land  on (heads/tails)", false, "-bet")
+                }
             }
-            let side = Math.random() > .5 ? "heads" : "tails"
-            if (!bet || bet < 0) {
-                return { content: side, status: StatusCode.RETURN }
-            }
-            if (!economy.canBetAmount(msg.author.id, bet)) {
-                return { content: "You dont have enough money for this bet", status: StatusCode.ERR }
-            }
-            guess = guess.toLowerCase()
-            if (side == guess) {
-                economy.addMoney(msg.author.id, bet)
-                return { content: `The side was: ${side}\nYou won: ${bet}`, status: StatusCode.RETURN }
-            }
-            else {
-                economy.loseMoneyToBank(msg.author.id, bet)
-                return { content: `The side was: ${side}\nYou lost: ${bet}`, status: StatusCode.RETURN }
-            }
-        }, category: CommandCategory.GAME
-    },
+        },
     )
 
     registerCommand(
-        "uno", {
-        run: async (msg, _, sendCallback, opts, args) => {
-            let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
-            //@ts-ignore
-            let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
-            for (let player of requestPlayers) {
+        "uno",
+        {
+            run: async (msg, _, sendCallback, opts, args) => {
+                let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
                 //@ts-ignore
-                let p = await fetchUser(msg.guild, player)
-                if (!p) {
-                    await handleSending(msg, { content: `${player} not found`, status: StatusCode.ERR }, sendCallback)
-                    continue
-                }
-                players.push(p)
-            }
-            if (players.length == 1) {
-                return { content: "No one to play with :(", status: StatusCode.ERR }
-            }
-            let max = parseInt(String(opts["max"])) || 9
-            if (max > 1000) {
-                await handleSending(msg, { content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING })
-                max = 1000
-            }
-            let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
-            let deck = new uno.Stack(cards)
-            let pile = new uno.Stack([])
-            let playerData: { [k: string]: uno.Hand } = {}
-            let order = []
-            for (let player of players) {
-                playerData[player.id] = new uno.Hand(7, deck)
-                order.push(player.id)
-            }
-            let forcedDraw = 0
-            let turns = cycle(order, (i: any) => {
-                let playerIds = Object.keys(playerData)
-                //@ts-ignore
-                fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
-                    if (players.map(v => v.id).indexOf(going) < 0) {
-                        going = turns.next().value
-                        return
+                let players: (GuildMember)[] = [await fetchUser(msg.guild, msg.author.id)]
+                for (let player of requestPlayers) {
+                    //@ts-ignore
+                    let p = await fetchUser(msg.guild, player)
+                    if (!p) {
+                        await handleSending(msg, { content: `${player} not found`, status: StatusCode.ERR }, sendCallback)
+                        continue
                     }
-                    if (forcedDraw) {
-                        handleSending(msg, { content: `<@${going}> is forced to draw ${forcedDraw} cards`, status: StatusCode.INFO },)
-                        for (let i = 0; i < forcedDraw; i++) {
-                            let rv = playerData[going].draw(deck)
+                    players.push(p)
+                }
+                if (players.length == 1) {
+                    return { content: "No one to play with :(", status: StatusCode.ERR }
+                }
+                let max = parseInt(String(opts["max"])) || 9
+                if (max > 1000) {
+                    await handleSending(msg, { content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING })
+                    max = 1000
+                }
+                let cards = uno.createCards(max, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
+                let deck = new uno.Stack(cards)
+                let pile = new uno.Stack([])
+                let playerData: { [k: string]: uno.Hand } = {}
+                let order = []
+                for (let player of players) {
+                    playerData[player.id] = new uno.Hand(7, deck)
+                    order.push(player.id)
+                }
+                let forcedDraw = 0
+                let turns = cycle(order, (i: any) => {
+                    let playerIds = Object.keys(playerData)
+                    //@ts-ignore
+                    fetchUser(msg.guild, playerIds[i % playerIds.length]).then((u: any) => {
+                        if (players.map(v => v.id).indexOf(going) < 0) {
+                            going = turns.next().value
+                            return
+                        }
+                        if (forcedDraw) {
+                            handleSending(msg, { content: `<@${going}> is forced to draw ${forcedDraw} cards`, status: StatusCode.INFO },)
+                            for (let i = 0; i < forcedDraw; i++) {
+                                let rv = playerData[going].draw(deck)
+                                if (!rv) {
+                                    handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO },)
+                                    pile.shuffle()
+                                    deck = new uno.Stack(pile.cards)
+                                    pile = new uno.Stack([])
+                                }
+                            }
+                            forcedDraw = 0
+                        }
+                        if (!(pile.top()?.type == 'skip')) {
+                            let player = players[players.map(v => v.id).indexOf(going)]
+                            let send = displayStack(playerData[player.id])
+                            send += "\n-------------------------"
+                            player.send({ content: send })
+                            if (pile.cards.length)
+                                player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                        }
+                        if (pile.cards.length) {
+                            handleSending(msg, { content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`, status: StatusCode.INFO },)
+                        }
+                        else {
+                            handleSending(msg, { content: `${u}, it's your turn`, status: StatusCode.INFO },)
+                        }
+                    })
+                })
+                let going = turns.next().value
+                let cardsPlayed = 0
+                let cardsDrawn = 0
+                let choosing = false
+                function displayStack(stack: uno.Stack | uno.Hand, count = -1) {
+                    let send = "card\n"
+                    if (count < 0) count = stack.cards.length
+                    for (let i = 0; i < count; i++) {
+                        send += `${i + 1}:\n`
+                        send += stack.cards[i]?.display()
+                    }
+                    return send
+                }
+                for (let player of players) {
+                    await player.user.createDM()
+                    let collection = player.user.dmChannel?.createMessageCollector({ filter: (m: any) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false })
+                    if (!collection) {
+                        return { content: `Couldnt listen in ${player}'s dms`, status: StatusCode.ERR }
+                    }
+                    collection.on("collect", async (m: any) => {
+                        if (m.content.toLowerCase() == "stop") {
+                            players = players.filter(v => v.id != m.author.id)
+                            if (players.length == 0) {
+                                await handleSending(msg, { content: "game over", status: StatusCode.RETURN },)
+                            }
+                            collection?.stop()
+                            if (m.author.id == client.user?.id) return
+                            await handleSending(msg, { content: `${m.author} quit`, status: StatusCode.RETURN },)
+                            going = turns.next().value
+                            return
+                        }
+                        if (playerData[player.id].cards.length <= 0) {
+                            await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
+                            for (let player of players) {
+                                await player.send("STOP")
+                            }
+                            collection?.stop()
+                            return
+                        }
+                        if (player.id != going) return
+                        if (m.content.toLowerCase() == "stack") {
+                            let text = displayStack(pile)
+                            if (text.length > 1900) {
+                                text = ""
+                                for (let i = pile.cards.length - 1; i > pile.cards.length - 10; i--) {
+                                    text += `${pile.cards[i].display()}\n`
+                                }
+                            }
+                            await m.channel.send(text)
+                            return
+                        }
+                        if (m.content.toLowerCase() == "cards") {
+                            await m.channel.send(displayStack(playerData[player.id]))
+                            return
+                        }
+                        if (m.content.toLowerCase() == 'draw') {
+                            let rv = playerData[player.id].draw(deck)
+                            cardsDrawn++
                             if (!rv) {
-                                handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO },)
+                                await handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO })
                                 pile.shuffle()
                                 deck = new uno.Stack(pile.cards)
                                 pile = new uno.Stack([])
+                                playerData[player.id].draw(deck)
+                            }
+                            await handleSending(msg, { content: `${player} drew a card`, status: StatusCode.INFO })
+                            let send = displayStack(playerData[player.id])
+                            send += "\n-------------------------"
+                            await m.channel.send(send)
+                            await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO })
+                            if (pile.cards.length)
+                                player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                            return
+                        }
+                        let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
+                        if (!selectedCard) {
+                            await player.user.send(`${m.content} is not a valid choice`)
+                        }
+                        else if (selectedCard.type == "+2") {
+                            if (selectedCard.canBePlayed(pile)) {
+                                cardsPlayed++;
+                                forcedDraw = 2
+                                pile.add(selectedCard)
+                                playerData[player.id].remove(Number(m.content) - 1)
+                                going = turns.next().value
+                            }
+                            else {
+                                await m.channel.send("You cannot play that card")
                             }
                         }
-                        forcedDraw = 0
-                    }
-                    if (!(pile.top()?.type == 'skip')) {
-                        let player = players[players.map(v => v.id).indexOf(going)]
-                        let send = displayStack(playerData[player.id])
-                        send += "\n-------------------------"
-                        player.send({ content: send })
-                        if (pile.cards.length)
-                            player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
-                    }
-                    if (pile.cards.length) {
-                        handleSending(msg, { content: `${u}, it's your turn\nstack:\n${pile.cards[pile.cards.length - 1].display()}`, status: StatusCode.INFO },)
-                    }
-                    else {
-                        handleSending(msg, { content: `${u}, it's your turn`, status: StatusCode.INFO },)
-                    }
-                })
-            })
-            let going = turns.next().value
-            let cardsPlayed = 0
-            let cardsDrawn = 0
-            let choosing = false
-            function displayStack(stack: uno.Stack | uno.Hand, count = -1) {
-                let send = "card\n"
-                if (count < 0) count = stack.cards.length
-                for (let i = 0; i < count; i++) {
-                    send += `${i + 1}:\n`
-                    send += stack.cards[i]?.display()
-                }
-                return send
-            }
-            for (let player of players) {
-                await player.user.createDM()
-                let collection = player.user.dmChannel?.createMessageCollector({ filter: (m: any) => (!isNaN(Number(m.content)) || m.content.toLowerCase().trim() == 'draw' || m.content.toLowerCase() == "stack" || m.content.toLowerCase() == "stop" || m.content.toLowerCase() == 'cards') && choosing == false })
-                if (!collection) {
-                    return { content: `Couldnt listen in ${player}'s dms`, status: StatusCode.ERR }
-                }
-                collection.on("collect", async (m: any) => {
-                    if (m.content.toLowerCase() == "stop") {
-                        players = players.filter(v => v.id != m.author.id)
-                        if (players.length == 0) {
-                            await handleSending(msg, { content: "game over", status: StatusCode.RETURN },)
-                        }
-                        collection?.stop()
-                        if (m.author.id == client.user?.id) return
-                        await handleSending(msg, { content: `${m.author} quit`, status: StatusCode.RETURN },)
-                        going = turns.next().value
-                        return
-                    }
-                    if (playerData[player.id].cards.length <= 0) {
-                        await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
-                        for (let player of players) {
-                            await player.send("STOP")
-                        }
-                        collection?.stop()
-                        return
-                    }
-                    if (player.id != going) return
-                    if (m.content.toLowerCase() == "stack") {
-                        let text = displayStack(pile)
-                        if (text.length > 1900) {
-                            text = ""
-                            for (let i = pile.cards.length - 1; i > pile.cards.length - 10; i--) {
-                                text += `${pile.cards[i].display()}\n`
+                        else if (selectedCard.type == 'shuffle-stack') {
+                            if (selectedCard.canBePlayed(pile)) {
+                                cardsPlayed++
+                                playerData[player.id].remove(Number(m.content) - 1)
+                                await handleSending(msg, { content: "**stack was shuffled**", status: StatusCode.INFO },)
+                                pile.add(selectedCard)
+                                pile.shuffle()
+                                going = turns.next().value
+                            }
+                            else {
+                                await handleSending(msg, { content: "You cannot play that card", status: StatusCode.ERR })
                             }
                         }
-                        await m.channel.send(text)
-                        return
-                    }
-                    if (m.content.toLowerCase() == "cards") {
-                        await m.channel.send(displayStack(playerData[player.id]))
-                        return
-                    }
-                    if (m.content.toLowerCase() == 'draw') {
-                        let rv = playerData[player.id].draw(deck)
-                        cardsDrawn++
-                        if (!rv) {
-                            await handleSending(msg, { content: "Deck empty, shuffling pile into deck", status: StatusCode.INFO })
-                            pile.shuffle()
-                            deck = new uno.Stack(pile.cards)
-                            pile = new uno.Stack([])
-                            playerData[player.id].draw(deck)
+                        else if (selectedCard.type == 'give') {
+                            if (selectedCard.canBePlayed(pile)) {
+                                cardsPlayed++;
+                                playerData[player.id].remove(Number(m.content) - 1)
+                                await player.send({ content: displayStack(playerData[m.author.id]) })
+                                await player.send("Pick a card from your deck to give to a random opponent")
+                                choosing = true
+                                try {
+                                    let cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                    while (!cardM) {
+                                        await m.channel.send("Not a valid card")
+                                        cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                    }
+                                    while (!parseInt(cardM?.content as string)) {
+                                        await m.channel.send("Not a valid card")
+                                        cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                    }
+                                    let n = parseInt(cardM?.content as string)
+                                    let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
+                                    let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
+                                    let randomPlayer = choice(tempPlayerData)
+                                    let hand = playerData[randomPlayer]
+                                    playerData[m.author.id].remove(selectedRemovealCard)
+                                    hand.add(selectedRemovealCard)
+                                }
+                                catch (err) {
+                                    console.log(err)
+                                    choosing = false
+                                }
+                                choosing = false
+                                pile.add(selectedCard)
+                                going = turns.next().value
+                            }
+                            else {
+                                await m.channel.send("You cannot play that card")
+                            }
                         }
-                        await handleSending(msg, { content: `${player} drew a card`, status: StatusCode.INFO })
-                        let send = displayStack(playerData[player.id])
-                        send += "\n-------------------------"
-                        await m.channel.send(send)
-                        await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO })
-                        if (pile.cards.length)
-                            player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
-                        return
-                    }
-                    let selectedCard = playerData[player.id].cards[Number(m.content) - 1]
-                    if (!selectedCard) {
-                        await player.user.send(`${m.content} is not a valid choice`)
-                    }
-                    else if (selectedCard.type == "+2") {
-                        if (selectedCard.canBePlayed(pile)) {
+                        else if (selectedCard.type == '-1') {
+                            if (selectedCard.canBePlayed(pile)) {
+                                cardsPlayed++;
+                                playerData[player.id].remove(Number(m.content) - 1)
+                                pile.add(selectedCard)
+                                let randomPlayer = choice(players.filter(v => v.id != player.id)).id
+                                await handleSending(msg, { content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`, status: StatusCode.INFO })
+                                let newTopCard = playerData[randomPlayer].cards[0]
+                                playerData[randomPlayer].remove(0)
+                                pile.add(newTopCard)
+                                going = turns.next().value
+                            }
+                        }
+                        else if (selectedCard.type == "wild") {
                             cardsPlayed++;
-                            forcedDraw = 2
-                            pile.add(selectedCard)
-                            playerData[player.id].remove(Number(m.content) - 1)
-                            going = turns.next().value
-                        }
-                        else {
-                            await m.channel.send("You cannot play that card")
-                        }
-                    }
-                    else if (selectedCard.type == 'shuffle-stack') {
-                        if (selectedCard.canBePlayed(pile)) {
-                            cardsPlayed++
-                            playerData[player.id].remove(Number(m.content) - 1)
-                            await handleSending(msg, { content: "**stack was shuffled**", status: StatusCode.INFO },)
-                            pile.add(selectedCard)
-                            pile.shuffle()
-                            going = turns.next().value
-                        }
-                        else {
-                            await handleSending(msg, { content: "You cannot play that card", status: StatusCode.ERR })
-                        }
-                    }
-                    else if (selectedCard.type == 'give') {
-                        if (selectedCard.canBePlayed(pile)) {
-                            cardsPlayed++;
-                            playerData[player.id].remove(Number(m.content) - 1)
-                            await player.send({ content: displayStack(playerData[m.author.id]) })
-                            await player.send("Pick a card from your deck to give to a random opponent")
-                            choosing = true
+                            await player.send("Pick a color\nred, green, yellow, or blue")
                             try {
-                                let cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
-                                while (!cardM) {
-                                    await m.channel.send("Not a valid card")
-                                    cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                if (!colorM) {
+                                    await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
+                                    selectedCard.color = "red"
                                 }
-                                while (!parseInt(cardM?.content as string)) {
-                                    await m.channel.send("Not a valid card")
-                                    cardM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
+                                    selectedCard.color = colorM.content
                                 }
-                                let n = parseInt(cardM?.content as string)
-                                let selectedRemovealCard = playerData[m.author.id].cards[n - 1]
-                                let tempPlayerData = Object.keys(playerData).filter(v => v != m.author.id)
-                                let randomPlayer = choice(tempPlayerData)
-                                let hand = playerData[randomPlayer]
-                                playerData[m.author.id].remove(selectedRemovealCard)
-                                hand.add(selectedRemovealCard)
+                                else {
+                                    await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
+                                    selectedCard.color = "red"
+                                }
                             }
                             catch (err) {
                                 console.log(err)
-                                choosing = false
+                                await handleSending(msg, { content: "Something went wrong, defaulting to red", status: StatusCode.ERR })
+                                selectedCard.color = "red"
                             }
-                            choosing = false
                             pile.add(selectedCard)
+                            playerData[player.id].remove(Number(m.content) - 1)
                             going = turns.next().value
+                        }
+                        else if (selectedCard.type == "wild+4") {
+                            cardsPlayed++;
+                            await player.send("Pick a color\nred, green, yellow, or blue")
+                            try {
+                                let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
+                                console.log(colorM?.content)
+                                if (!colorM) {
+                                    await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
+                                    selectedCard.color = "red"
+                                }
+                                else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
+                                    selectedCard.color = colorM.content
+                                }
+                                else {
+                                    await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
+                                    selectedCard.color = "red"
+                                }
+                            }
+                            catch (err) {
+                                console.log(err)
+                                await handleSending(msg, { content: "Something went wrong, defaulting to red", status: StatusCode.ERR })
+                                selectedCard.color = "red"
+                            }
+                            pile.add(selectedCard)
+                            playerData[player.id].remove(Number(m.content) - 1)
+                            forcedDraw = 4
+                            going = turns.next().value
+                        }
+                        else if (selectedCard.type == 'skip') {
+                            if (selectedCard.canBePlayed(pile)) {
+                                cardsPlayed++
+                                let skipped = turns.next().value
+                                await handleSending(msg, { content: `<@${skipped}> was skipped`, status: StatusCode.INFO })
+                                going = turns.next().value
+                                await new Promise(res => {
+                                    pile.add(selectedCard)
+                                    playerData[player.id].remove(Number(m.content) - 1)
+                                    let gP = players.filter(v => v.id == going)[0]
+                                    let send = displayStack(playerData[going])
+                                    send += "\n-------------------------"
+                                    gP.send({ content: send })
+                                    if (pile.cards.length)
+                                        gP.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
+                                    res("")
+                                })
+                            }
+                            else {
+                                await m.channel.send("You cannot play that card")
+                            }
                         }
                         else {
-                            await m.channel.send("You cannot play that card")
-                        }
-                    }
-                    else if (selectedCard.type == '-1') {
-                        if (selectedCard.canBePlayed(pile)) {
-                            cardsPlayed++;
-                            playerData[player.id].remove(Number(m.content) - 1)
-                            pile.add(selectedCard)
-                            let randomPlayer = choice(players.filter(v => v.id != player.id)).id
-                            await handleSending(msg, { content: `**${player} played the ${selectedCard.color} -1 card, and <@${randomPlayer}> lost a card**`, status: StatusCode.INFO })
-                            let newTopCard = playerData[randomPlayer].cards[0]
-                            playerData[randomPlayer].remove(0)
-                            pile.add(newTopCard)
-                            going = turns.next().value
-                        }
-                    }
-                    else if (selectedCard.type == "wild") {
-                        cardsPlayed++;
-                        await player.send("Pick a color\nred, green, yellow, or blue")
-                        try {
-                            let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
-                            if (!colorM) {
-                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
-                                selectedCard.color = "red"
-                            }
-                            else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
-                                selectedCard.color = colorM.content
-                            }
-                            else {
-                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
-                                selectedCard.color = "red"
-                            }
-                        }
-                        catch (err) {
-                            console.log(err)
-                            await handleSending(msg, { content: "Something went wrong, defaulting to red", status: StatusCode.ERR })
-                            selectedCard.color = "red"
-                        }
-                        pile.add(selectedCard)
-                        playerData[player.id].remove(Number(m.content) - 1)
-                        going = turns.next().value
-                    }
-                    else if (selectedCard.type == "wild+4") {
-                        cardsPlayed++;
-                        await player.send("Pick a color\nred, green, yellow, or blue")
-                        try {
-                            let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
-                            console.log(colorM?.content)
-                            if (!colorM) {
-                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
-                                selectedCard.color = "red"
-                            }
-                            else if (["red", "yellow", "green", "blue"].includes(colorM.content.toLowerCase().trim())) {
-                                selectedCard.color = colorM.content
-                            }
-                            else {
-                                await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
-                                selectedCard.color = "red"
-                            }
-                        }
-                        catch (err) {
-                            console.log(err)
-                            await handleSending(msg, { content: "Something went wrong, defaulting to red", status: StatusCode.ERR })
-                            selectedCard.color = "red"
-                        }
-                        pile.add(selectedCard)
-                        playerData[player.id].remove(Number(m.content) - 1)
-                        forcedDraw = 4
-                        going = turns.next().value
-                    }
-                    else if (selectedCard.type == 'skip') {
-                        if (selectedCard.canBePlayed(pile)) {
-                            cardsPlayed++
-                            let skipped = turns.next().value
-                            await handleSending(msg, { content: `<@${skipped}> was skipped`, status: StatusCode.INFO })
-                            going = turns.next().value
-                            await new Promise(res => {
+                            if (selectedCard.canBePlayed(pile)) {
+                                cardsPlayed++
                                 pile.add(selectedCard)
                                 playerData[player.id].remove(Number(m.content) - 1)
-                                let gP = players.filter(v => v.id == going)[0]
-                                let send = displayStack(playerData[going])
-                                send += "\n-------------------------"
-                                gP.send({ content: send })
-                                if (pile.cards.length)
-                                    gP.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
-                                res("")
-                            })
+                                going = turns.next().value
+                            }
+                            else {
+                                await m.channel.send("You cannot play that card")
+                            }
                         }
-                        else {
-                            await m.channel.send("You cannot play that card")
+                        await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO })
+                        if (playerData[player.id].cards.length <= 0) {
+                            await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
+                            for (let player of players) {
+                                await player.send("STOP")
+                            }
+                            collection?.stop()
                         }
+                    })
+                }
+                return { content: "Starting game", status: StatusCode.INFO }
+            },
+            help: {
+                info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
+                arguments: {
+                    players: {
+                        description: "Players to play, seperated by |"
                     }
-                    else {
-                        if (selectedCard.canBePlayed(pile)) {
-                            cardsPlayed++
-                            pile.add(selectedCard)
-                            playerData[player.id].remove(Number(m.content) - 1)
-                            going = turns.next().value
-                        }
-                        else {
-                            await m.channel.send("You cannot play that card")
-                        }
+                },
+                options: {
+                    max: {
+                        description: "the amount of numbers, default: 10"
+                    },
+                    give: {
+                        description: "enable the give card"
+                    },
+                    shuffle: {
+                        description: "enable the shuffle card"
+                    },
+                    "1": {
+                        description: "enable the -1 card"
                     }
-                    await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${playerData[player.id].cards.length} cards**`, status: StatusCode.INFO })
-                    if (playerData[player.id].cards.length <= 0) {
-                        await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
-                        for (let player of players) {
-                            await player.send("STOP")
-                        }
-                        collection?.stop()
-                    }
-                })
-            }
-            return { content: "Starting game", status: StatusCode.INFO }
-        },
-        help: {
-            info: "UNO<br>things you can do in dms<br><ul><li>draw - draw a card</li><li>stack - see all cards in the pile if it can send, otherwise the top 10 cards</li><li>stop - quit the game</li><li>cards - see your cards</li></ul>",
-            arguments: {
-                players: {
-                    description: "Players to play, seperated by |"
                 }
             },
-            options: {
-                max: {
-                    description: "the amount of numbers, default: 10"
-                },
-                give: {
-                    description: "enable the give card"
-                },
-                shuffle: {
-                    description: "enable the shuffle card"
-                },
-                "1": {
-                    description: "enable the -1 card"
-                }
-            }
-        },
-        category: CommandCategory.GAME
+            category: CommandCategory.GAME
 
-    },
+        },
     )
 
     registerCommand(
-        "wordle", {
-        run: async (msg, args, sendCallback) => {
-            let opts: Opts
-            [opts, args] = getOpts(args)
-            let min = parseInt(opts["min"] as string) || 5
-            let max = parseInt(opts["max"] as string) || 5
-            if (min > max) {
-                max = min
-            }
-            let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
-            if (words.length == 0) {
-                return { content: "no words found", status: StatusCode.ERR }
-            }
-            let word = choice(words)
-            let guesses = []
-            let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
-            let guessCount = parseInt(opts["lives"] as string) || 6
-            let display: string[] = []
-            await handleSending(msg, { content: "key: **correct**, *wrong place*, `wrong`", status: StatusCode.INFO }, sendCallback)
-            await handleSending(msg, { content: `The word is ${word.length} characters long`, status: StatusCode.INFO }, sendCallback)
-            for (let i = 0; i < guessCount; i++) {
-                display.push(mulStr("⬛ ", word.length))
-            }
-            await handleSending(msg, { content: display.join("\n"), status: StatusCode.INFO }, sendCallback)
-            let letterCount: { [k: string]: number } = {}
-            for (let letter of word) {
-                if (letterCount[letter] === undefined) {
-                    letterCount[letter] = 1
+        "wordle",
+        {
+            run: async (msg, args, sendCallback) => {
+                let opts: Opts
+                [opts, args] = getOpts(args)
+                let min = parseInt(opts["min"] as string) || 5
+                let max = parseInt(opts["max"] as string) || 5
+                if (min > max) {
+                    max = min
                 }
-                else {
-                    letterCount[letter] += 1
+                let words = fs.readFileSync(`./command-results/wordle`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ").trim()).filter(v => v.length <= max && v.length >= min ? true : false)
+                if (words.length == 0) {
+                    return { content: "no words found", status: StatusCode.ERR }
                 }
-            }
-            collector.on("collect", async (m) => {
-                if (m.content == "STOP") {
-                    collector.stop()
-                    await handleSending(msg, { content: "stopped", status: StatusCode.RETURN }, sendCallback)
-                    return
+                let word = choice(words)
+                let guesses = []
+                let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id && (m.content.length >= min && m.content.length <= max) || m.content == "STOP" })
+                let guessCount = parseInt(opts["lives"] as string) || 6
+                let display: string[] = []
+                await handleSending(msg, { content: "key: **correct**, *wrong place*, `wrong`", status: StatusCode.INFO }, sendCallback)
+                await handleSending(msg, { content: `The word is ${word.length} characters long`, status: StatusCode.INFO }, sendCallback)
+                for (let i = 0; i < guessCount; i++) {
+                    display.push(mulStr("⬛ ", word.length))
                 }
-                guesses.push(m.content)
-                let nextInDisplay = ""
-                let guessLetterCount: { [key: string]: number } = {}
-                for (let i = 0; i < word.length; i++) {
-                    let correct = word[i]
-                    let guessed = m.content[i]
-                    if (guessLetterCount[guessed] === undefined) {
-                        guessLetterCount[guessed] = 1
-                    } else {
-                        guessLetterCount[guessed] += 1
-                    }
-                    if (correct == guessed)
-                        nextInDisplay += `**${guessed}** `
-                    else if (word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
-                        nextInDisplay += `*${guessed}* `
-                    else nextInDisplay += `\`${guessed}\` `
-                }
-                display[6 - guessCount] = nextInDisplay
-                guessCount--
                 await handleSending(msg, { content: display.join("\n"), status: StatusCode.INFO }, sendCallback)
-                if (m.content == word) {
-                    await handleSending(msg, { content: `You win`, status: StatusCode.RETURN }, sendCallback)
-                    collector.stop()
-                    return
-                }
-                if (guessCount == 0) {
-                    await handleSending(msg, { content: `You lose, it was ${word}`, status: StatusCode.RETURN }, sendCallback)
-                    collector.stop()
-                    return
-                }
-            })
-            return { content: "starting wordle", status: StatusCode.INFO }
-        },
-        help: {
-            info: "wordle",
-            options: {
-                "min": {
-                    description: "The minimum length of the word, default: 5"
-                },
-                "max": {
-                    description: "The maximum length of the word, default: 5"
-                },
-                "lives": {
-                    description: "Lives, default: 6"
-                }
-            }
-        },
-        category: CommandCategory.GAME
-
-    },
-    )
-
-    registerCommand(
-        "hangman", {
-        run: async (msg, args, sendCallback) => {
-            let opponent = msg.author
-            let opts: Opts;
-            [opts, args] = getOpts(args)
-            let caseSensitive = opts['case']
-            let wordstr: string;
-            let everyone = false
-            let users: any[] = []
-            for (let arg of args) {
-                if (['all', 'everyone'].includes(arg)) {
-                    users.push("Everyone")
-                    everyone = true
-                    break
-                }
-                //@ts-ignore
-                opponent = await fetchUser(msg.guild, arg)
-                if (opponent) {
-                    users.push(opponent)
-                }
-            }
-            if (users.length == 0) {
-                users.push(msg.author)
-            }
-            try {
-                await msg.author.createDM()
-            }
-            catch (err) {
-                return { content: "Could not dm you", status: StatusCode.ERR }
-            }
-            let points = 0
-            let losingStreak = 0
-            let winningStreak = 0
-            let participants: { [key: string]: number } = {}
-            async function game(wordstr: string) {
-                let wordLength = strlen(wordstr)
-                if (!caseSensitive) {
-                    wordstr = wordstr.toLowerCase()
-                }
-                let guessed = ""
-                let disp = ""
-                let lives = parseInt(opts["lives"] as string) || 10
-                let _startingLives = lives
-                let word = [...wordstr]
-                for (let i = 0; i < wordLength; i++) {
-                    if (word[i] == " ") {
-                        disp += '   '
+                let letterCount: { [k: string]: number } = {}
+                for (let letter of word) {
+                    if (letterCount[letter] === undefined) {
+                        letterCount[letter] = 1
                     }
                     else {
-                        disp += "\\_ "
+                        letterCount[letter] += 1
                     }
+                }
+                collector.on("collect", async (m) => {
+                    if (m.content == "STOP") {
+                        collector.stop()
+                        await handleSending(msg, { content: "stopped", status: StatusCode.RETURN }, sendCallback)
+                        return
+                    }
+                    guesses.push(m.content)
+                    let nextInDisplay = ""
+                    let guessLetterCount: { [key: string]: number } = {}
+                    for (let i = 0; i < word.length; i++) {
+                        let correct = word[i]
+                        let guessed = m.content[i]
+                        if (guessLetterCount[guessed] === undefined) {
+                            guessLetterCount[guessed] = 1
+                        } else {
+                            guessLetterCount[guessed] += 1
+                        }
+                        if (correct == guessed)
+                            nextInDisplay += `**${guessed}** `
+                        else if (word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
+                            nextInDisplay += `*${guessed}* `
+                        else nextInDisplay += `\`${guessed}\` `
+                    }
+                    display[6 - guessCount] = nextInDisplay
+                    guessCount--
+                    await handleSending(msg, { content: display.join("\n"), status: StatusCode.INFO }, sendCallback)
+                    if (m.content == word) {
+                        await handleSending(msg, { content: `You win`, status: StatusCode.RETURN }, sendCallback)
+                        collector.stop()
+                        return
+                    }
+                    if (guessCount == 0) {
+                        await handleSending(msg, { content: `You lose, it was ${word}`, status: StatusCode.RETURN }, sendCallback)
+                        collector.stop()
+                        return
+                    }
+                })
+                return { content: "starting wordle", status: StatusCode.INFO }
+            },
+            help: {
+                info: "wordle",
+                options: {
+                    "min": {
+                        description: "The minimum length of the word, default: 5"
+                    },
+                    "max": {
+                        description: "The maximum length of the word, default: 5"
+                    },
+                    "lives": {
+                        description: "Lives, default: 6"
+                    }
+                }
+            },
+            category: CommandCategory.GAME
+
+        },
+    )
+
+    registerCommand(
+        "hangman",
+        {
+            run: async (msg, args, sendCallback) => {
+                let opponent = msg.author
+                let opts: Opts;
+                [opts, args] = getOpts(args)
+                let caseSensitive = opts['case']
+                let wordstr: string;
+                let everyone = false
+                let users: any[] = []
+                for (let arg of args) {
+                    if (['all', 'everyone'].includes(arg)) {
+                        users.push("Everyone")
+                        everyone = true
+                        break
+                    }
+                    //@ts-ignore
+                    opponent = await fetchUser(msg.guild, arg)
+                    if (opponent) {
+                        users.push(opponent)
+                    }
+                }
+                if (users.length == 0) {
+                    users.push(msg.author)
                 }
                 try {
-                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess`, status: StatusCode.PROMPT })
+                    await msg.author.createDM()
                 }
                 catch (err) {
-                    return { content: "2K char limit reached", status: StatusCode.ERR }
+                    return { content: "Could not dm you", status: StatusCode.ERR }
                 }
-                let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
-                let gameIsGoing = true
-                collection.on("collect", async (m) => {
-                    if (!gameIsGoing) return
-                    if (m.content == '\\n' || m.content == "<enter>")
-                        m.content = '\n'
-                    if (m.content == "STOP") {
-                        await handleSending(msg, { content: "STOPPED", status: StatusCode.RETURN }, sendCallback)
-                        collection.stop()
-                        gameIsGoing = false
-                        return
-                    }
+                let points = 0
+                let losingStreak = 0
+                let winningStreak = 0
+                let participants: { [key: string]: number } = {}
+                async function game(wordstr: string) {
+                    let wordLength = strlen(wordstr)
                     if (!caseSensitive) {
-                        m.content = m.content.toLowerCase()
+                        wordstr = wordstr.toLowerCase()
                     }
-                    if (participants[m.author.id] === undefined && !m.author.bot) {
-                        participants[m.author.id] = .5
-                    }
-                    if ([...guessed].indexOf(m.content) > -1) {
-                        await handleSending(msg, { content: `You've already guessed ${m.content}`, status: StatusCode.ERR }, sendCallback)
-                        return
-                    }
-                    else if (m.content == wordstr) {
-                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`, status: StatusCode.RETURN })
-                        collection.stop()
-                        gameIsGoing = false
-                        return
-                    }
-                    else guessed += m.content
-                    if (word.indexOf(m.content) < 0) {
-                        losingStreak++
-                        winningStreak = 0
-                        points -= losingStreak ** 2
-                        participants[m.author.id] /= 1.2
-                        lives--
-                    }
-                    else {
-                        participants[m.author.id] *= 1.2
-                        winningStreak++
-                        losingStreak = 0
-                        points += winningStreak ** 2
-                    }
-                    if (lives < 1) {
-                        await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
-                        collection.stop()
-                        gameIsGoing = false
-                        return
-                    }
-                    let correctIndecies: { [k: number]: string } = {}
-                    for (let i = 0; i < strlen(guessed); i++) {
-                        let letter = [...guessed][i]
-                        //@ts-ignore
-                        let tempWord = [...word]
-                        let totalIdx = 0
-                        let idx;
-                        while ((idx = [...tempWord].indexOf(letter)) >= 0) {
-                            correctIndecies[idx + totalIdx] = letter
-                            totalIdx += idx + 1
-                            tempWord = tempWord.slice(idx + 1)
-                        }
-                    }
+                    let guessed = ""
                     let disp = ""
+                    let lives = parseInt(opts["lives"] as string) || 10
+                    let _startingLives = lives
+                    let word = [...wordstr]
                     for (let i = 0; i < wordLength; i++) {
-                        if (correctIndecies[i]) {
-                            disp += correctIndecies[i]
-                        }
-                        else if (word[i] == " ") {
+                        if (word[i] == " ") {
                             disp += '   '
                         }
                         else {
                             disp += "\\_ "
                         }
                     }
-                    if (disp.replaceAll("   ", " ") == wordstr) {
-                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
-                        collection.stop()
-                        gameIsGoing = false
-                        return
+                    try {
+                        await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess`, status: StatusCode.PROMPT })
                     }
-                    await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)`, status: StatusCode.INFO })
-                })
-            }
-            if (opts["random"]) {
-                let channels = (await msg.guild?.channels.fetch())?.toJSON()
-                if (!channels) {
-                    return { content: "no channels found", status: StatusCode.ERR }
+                    catch (err) {
+                        return { content: "2K char limit reached", status: StatusCode.ERR }
+                    }
+                    let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
+                    let gameIsGoing = true
+                    collection.on("collect", async (m) => {
+                        if (!gameIsGoing) return
+                        if (m.content == '\\n' || m.content == "<enter>")
+                            m.content = '\n'
+                        if (m.content == "STOP") {
+                            await handleSending(msg, { content: "STOPPED", status: StatusCode.RETURN }, sendCallback)
+                            collection.stop()
+                            gameIsGoing = false
+                            return
+                        }
+                        if (!caseSensitive) {
+                            m.content = m.content.toLowerCase()
+                        }
+                        if (participants[m.author.id] === undefined && !m.author.bot) {
+                            participants[m.author.id] = .5
+                        }
+                        if ([...guessed].indexOf(m.content) > -1) {
+                            await handleSending(msg, { content: `You've already guessed ${m.content}`, status: StatusCode.ERR }, sendCallback)
+                            return
+                        }
+                        else if (m.content == wordstr) {
+                            await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`, status: StatusCode.RETURN })
+                            collection.stop()
+                            gameIsGoing = false
+                            return
+                        }
+                        else guessed += m.content
+                        if (word.indexOf(m.content) < 0) {
+                            losingStreak++
+                            winningStreak = 0
+                            points -= losingStreak ** 2
+                            participants[m.author.id] /= 1.2
+                            lives--
+                        }
+                        else {
+                            participants[m.author.id] *= 1.2
+                            winningStreak++
+                            losingStreak = 0
+                            points += winningStreak ** 2
+                        }
+                        if (lives < 1) {
+                            await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
+                            collection.stop()
+                            gameIsGoing = false
+                            return
+                        }
+                        let correctIndecies: { [k: number]: string } = {}
+                        for (let i = 0; i < strlen(guessed); i++) {
+                            let letter = [...guessed][i]
+                            //@ts-ignore
+                            let tempWord = [...word]
+                            let totalIdx = 0
+                            let idx;
+                            while ((idx = [...tempWord].indexOf(letter)) >= 0) {
+                                correctIndecies[idx + totalIdx] = letter
+                                totalIdx += idx + 1
+                                tempWord = tempWord.slice(idx + 1)
+                            }
+                        }
+                        let disp = ""
+                        for (let i = 0; i < wordLength; i++) {
+                            if (correctIndecies[i]) {
+                                disp += correctIndecies[i]
+                            }
+                            else if (word[i] == " ") {
+                                disp += '   '
+                            }
+                            else {
+                                disp += "\\_ "
+                            }
+                        }
+                        if (disp.replaceAll("   ", " ") == wordstr) {
+                            await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
+                            collection.stop()
+                            gameIsGoing = false
+                            return
+                        }
+                        await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)`, status: StatusCode.INFO })
+                    })
                 }
-                let channel = choice(channels)
-                while (!channel.isText())
-                    channel = choice(channels)
-                let messages
-                try {
-                    messages = await channel.messages.fetch({ limit: 100 })
-                }
-                catch (err) {
-                    messages = await msg.channel.messages.fetch({ limit: 100 })
-                }
-                let times = 0;
-                //@ts-ignore
-                while (!(wordstr = messages.random()?.content)) {
-                    times++
-                    if (times > 20) break
-                }
-                await game(wordstr)
-            }
-            else {
-                await msg.author.send("Type a word")
-                let collector = msg.author.dmChannel?.createMessageCollector({ time: 30000, max: 1 })
-                collector?.on("collect", async (m) => {
-                    wordstr = m.content
+                if (opts["random"]) {
+                    let channels = (await msg.guild?.channels.fetch())?.toJSON()
+                    if (!channels) {
+                        return { content: "no channels found", status: StatusCode.ERR }
+                    }
+                    let channel = choice(channels)
+                    while (!channel.isText())
+                        channel = choice(channels)
+                    let messages
+                    try {
+                        messages = await channel.messages.fetch({ limit: 100 })
+                    }
+                    catch (err) {
+                        messages = await msg.channel.messages.fetch({ limit: 100 })
+                    }
+                    let times = 0;
+                    //@ts-ignore
+                    while (!(wordstr = messages.random()?.content)) {
+                        times++
+                        if (times > 20) break
+                    }
                     await game(wordstr)
-                })
-            }
-            return {
-                content: "STARTING HANGMAN, WOOOOOO",
-                status: StatusCode.INFO
-            }
-        },
-        help: {
-            arguments: {
-                users: {
-                    description: "List of users seperated by space to play against, or put all so everyone can play"
-                },
-            },
-            options: {
-                "random": {
-                    description: "Picks a random message from the channel and uses that as the word"
-                },
-                "case": {
-                    description: "Enabled case sensitive"
-                },
-                "lives": {
-                    description: "The amount of lives to have"
                 }
-            }
+                else {
+                    await msg.author.send("Type a word")
+                    let collector = msg.author.dmChannel?.createMessageCollector({ time: 30000, max: 1 })
+                    collector?.on("collect", async (m) => {
+                        wordstr = m.content
+                        await game(wordstr)
+                    })
+                }
+                return {
+                    content: "STARTING HANGMAN, WOOOOOO",
+                    status: StatusCode.INFO
+                }
+            },
+            help: {
+                arguments: {
+                    users: {
+                        description: "List of users seperated by space to play against, or put all so everyone can play"
+                    },
+                },
+                options: {
+                    "random": {
+                        description: "Picks a random message from the channel and uses that as the word"
+                    },
+                    "case": {
+                        description: "Enabled case sensitive"
+                    },
+                    "lives": {
+                        description: "The amount of lives to have"
+                    }
+                }
+            },
+            category: CommandCategory.GAME
         },
-        category: CommandCategory.GAME
-    },
     )
 }
