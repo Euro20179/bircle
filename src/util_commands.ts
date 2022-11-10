@@ -51,6 +51,7 @@ export default function() {
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
         }, CommandCategory.UTIL)
     )
+
     registerCommand(
         "help", createCommand(async (_msg, args) => {
 
@@ -120,6 +121,7 @@ export default function() {
             }
         ),
     )
+
     registerCommand(
         "clear-logs", {
         run: async (_msg, _args, sendCallback) => {
@@ -139,6 +141,7 @@ export default function() {
         }
     },
     )
+
     registerCommand(
         "ed", createCommand(async (msg, args, _, __, ___, rec, bans) => {
             if (globals.EDS[msg.author.id]) {

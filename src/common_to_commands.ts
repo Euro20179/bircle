@@ -5,7 +5,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement } from './parsing';
-import { generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
+import { cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
 
 export enum StatusCode {
     PROMPT = -2,
@@ -613,7 +613,10 @@ export function generateDefaultRecurseBans() {
 export let commands: {[key: string]: Command | CommandV2} = {}
 
 export function registerCommand(name: string, command: Command | CommandV2){
-    commands[name] = command
+    if(!command.help){
+        console.warn(name, `(${cmdCatToStr(command.category)})`, "does not have help")
+    }
+    Reflect.set(commands, name, command)
 }
 
 export function getCommands(){

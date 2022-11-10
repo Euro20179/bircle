@@ -62,8 +62,10 @@ declare global {
         invalid: string
     }
 
+    type CommandRun = (msg: Message, args: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion_count: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>
+
     interface Command {
-        run: (msg: Message, args: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion_count: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>;
+        run: CommandRun;
         permCheck?: (msg: Message) => boolean;
         help?: CommandHelp
         category: CommandCategory,

@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, expandAlias, getAliases, getCommands, handleSending, Interprater, lastCommand, runCmd, StatusCode } from "./common_to_commands"
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getCommands, handleSending, Interprater, lastCommand, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -1724,19 +1724,6 @@ ${styles}
     )
 
     registerCommand(
-        "code", {
-        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-            return {
-                content: "https://github.com/euro20179/bircle",
-                status: StatusCode.RETURN
-            }
-        },
-        category: CommandCategory.META
-
-    },
-    )
-
-    registerCommand(
         "WHITELIST", {
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
             let user = args[0]
@@ -1808,8 +1795,13 @@ ${styles}
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.META
-
+        category: CommandCategory.META,
+        help: {
+            info: "Gets a list of the most  used commands",
+            options: {
+                s: createHelpOption("The seperator between commands", undefined, "\\n")
+            }
+        }
     },
     )
 
@@ -1881,12 +1873,12 @@ ${styles}
     )
 
     registerCommand(
-        "ping", {
-        run: async (msg, _args, sendCallback) => {
+        "ping", createCommand(async (msg, _args, sendCallback) => {
             return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`, status: StatusCode.RETURN }
         },
-        category: CommandCategory.META
-    },
+            CommandCategory.META,
+            "Gets the bot's ping (very accurate)"
+        )
     )
 
     registerCommand(
