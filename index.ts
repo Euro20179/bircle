@@ -290,30 +290,30 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let intendedUser = interaction.customId.split(":")[1]
             let table: { [k: string]: string } = { "rock": "paper", "paper": "scissors", "scissors": "rock" }
             if (interaction.user.id != intendedUser) {
-                interaction.reply({ ephemeral: true, content: "You idiot, you already picked" })
+                interaction.reply({ ephemeral: true, content: "You idiot, you already picked" }).catch(console.error)
                 return
             }
             let oppChoice = interaction.customId.split(":")[0].split(".")[1]
             if (typeof globals.BUTTONS[interaction.customId] !== 'string') {
-                interaction.reply({ content: "Something went wrong" })
+                interaction.reply({ content: "Something went wrong" }).catch(console.error)
                 return
             }
             //@ts-ignore
             let [userChoice, ogUser, bet] = globals.BUTTONS[interaction.customId].split(":")
             let ogBet = Number(bet)
             if (interaction.member?.user.id === ogUser) {
-                interaction.reply({ content: "Ur a dingus" })
+                interaction.reply({ content: "Ur a dingus" }).catch(console.error)
                 return
             }
             if (userChoice == oppChoice) {
-                interaction.reply({ content: "TIE" })
+                interaction.reply({ content: "TIE" }).catch(console.error)
             }
             else if (table[oppChoice] == userChoice) {
                 if (ogBet) {
                     economy.addMoney(ogUser, ogBet)
-                    interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` })
+                    interaction.reply({ content: `<@${ogUser}> user won ${ogBet}` }).catch(console.error)
                 }
-                else interaction.reply({ content: `<@${ogUser}> user wins!` })
+                else interaction.reply({ content: `<@${ogUser}> user wins!` }).catch(console.error)
             }
             else {
                 if (ogBet) {
@@ -321,10 +321,10 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                     if (interaction.member?.user.id) {
                         //@ts-ignore
                         economy.addMoney(interaction.member?.user.id, ogBet)
-                        interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` })
+                        interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` }).catch(console.error)
                     }
                 }
-                else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` })
+                else interaction.reply({ content: `<@${interaction.member?.user.id}> user wins!` }).catch(console.error)
             }
             for (let b in globals.BUTTONS) {
                 if (b.match(/button\.(rock|paper|scissors)/)) {
@@ -367,55 +367,56 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 }
                 else {
                     interaction.message.edit({ content: `**${globals.POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}` })
-                    interaction.reply({ content: `${interaction.values.toString()} is your vote`, ephemeral: true })
+                    interaction.reply({ content: `${interaction.values.toString()} is your vote`, ephemeral: true }).catch(console.error)
                 }
             }
-            else interaction.reply({ content: interaction.values.toString(), ephemeral: true })
+            else interaction.reply({ content: interaction.values.toString(), ephemeral: true }).catch(console.error)
         }
     }
     else if (interaction.isCommand() && !interaction.replied) {
         if (BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)) {
-            interaction.reply({ content: "You are blacklisted from this" })
+            interaction.reply({ content: "You are blacklisted from this" }).catch(console.error)
             return
         }
         globals.addToCmdUse(`/${interaction.commandName}`)
         if (interaction.commandName == 'attack') {
             let user = interaction.options.get("user")?.['value']
             if (!user) {
-                await interaction.reply("NO USER GIVEN???")
+                interaction.reply("NO USER GIVEN???").catch(console.error)
+                return
             }
-            await interaction.reply(`Attacking ${user}...`)
-            await interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`)
+            interaction.reply(`Attacking ${user}...`).catch(console.error)
+            interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
         }
         else if (interaction.commandName == 'aheist') {
             let userId = interaction.user.id
             let stage = interaction.options.get("stage")?.value
             if (!stage) {
-                interaction.reply(`${stage} is not a valid stage`)
+                interaction.reply(`${stage} is not a valid stage`).catch(console.error)
                 return
             }
             let gainOrLose = interaction.options.get("gain-or-lose")?.value as string
             if (!gainOrLose) {
-                interaction.reply("You messed up bubs")
+                interaction.reply("You messed up bubs").catch(console.error)
                 return
             }
             let users = interaction.options.get("users-to-gain-or-lose")?.value as string
             if (!users) {
-                interaction.reply("You messed up bubs")
+                interaction.reply("You messed up bubs").catch(console.error)
                 return
             }
             if (!users.match(/^(:?(\d+|all),?)+$/)) {
-                interaction.reply(`${users} does not match ((digit|all),)+`)
+                interaction.reply(`${users} does not match ((digit|all),)+`).catch(console.error)
                 return
             }
             let amount = interaction.options.get("amount")?.value
             if (!amount) {
-                interaction.reply("You messed up bubs")
+                interaction.reply("You messed up bubs").catch(console.error)
                 return
             }
             let message = interaction.options.get("message")?.value
             if (!message) {
-                interaction.reply("You messed up bubs")
+                interaction.reply("You messed up bubs").catch(console.error)
                 return
             }
             let text = `${userId}: ${message} AMOUNT=${amount} STAGE=${stage} ${gainOrLose.toUpperCase()}=${users}`
@@ -437,12 +438,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 text += ` IF=${condition}`
             }
             fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
-            interaction.reply(`Added:\n${text}`)
+            interaction.reply(`Added:\n${text}`).catch(console.error)
         }
         else if (interaction.commandName == 'ping') {
             let user = interaction.options.get("user")?.value || `<@${interaction.user.id}>`
             let times = interaction.options.get("evilness")?.value || 1
-            interaction.reply("Pinging...")
+            interaction.reply("Pinging...").catch(console.error)
             globals.SPAM_ALLOWED = true
             for (let i = 0; i < times; i++) {
                 if (!globals.SPAM_ALLOWED) break
@@ -453,7 +454,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         else if (interaction.commandName == 'img') {
             //@ts-ignore
             let rv = await command_commons.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
             if (rv.files) {
                 for (let file of rv.files) {
                     fs.rmSync(file.attachment)
@@ -461,14 +462,14 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
         }
         else if (interaction.commandName == 'help') {
-            await interaction.reply({
+            interaction.reply({
                 content: "use `[help -n -plain`, slash commands r boring, so i will not support them that much\nbegrudgingly, here is the current help file",
                 files: [{
                     attachment: './help.html',
                     name: "heres some help.html",
                     description: "lmao"
                 }]
-            })
+            }).catch(console.error)
         }
         else if (interaction.commandName == "alias") {
             //@ts-ignore
@@ -480,7 +481,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'poll') {
             //@ts-ignore
@@ -505,24 +506,24 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'rccmd') {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
             let rv = await command_commons.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'say') {
-            await interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here")
+            interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here").catch(console.error)
         }
         else if (interaction.commandName == "dad") {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
             let rv = await command_commons.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == "add-8") {
             //@ts-ignore
@@ -530,19 +531,19 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let resp = interaction.options.get("response")?.value as string
             //@ts-ignore
             let rv = await command_commons.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == "add-wordle") {
             //@ts-ignore
             interaction.author = interaction.member?.user
             let resp = interaction.options.get("word")?.value as string
             if (resp.includes(" ")) {
-                await interaction.reply("no spaces")
+                interaction.reply("no spaces").catch(console.error)
                 return
             }
             //@ts-ignore
             let rv = await command_commons.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'rps') {
             let opponent = interaction.options.get("opponent")?.value
@@ -553,7 +554,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 if (interaction.member?.user.id) {
                     nBet = economy.calculateAmountFromString(interaction.member.user.id, bet)
                     if (!economy.canBetAmount(interaction.member.user.id, nBet) || nBet < 0) {
-                        interaction.reply({ content: "You cant bet this much" })
+                        interaction.reply({ content: "You cant bet this much" }).catch(console.error)
                         return
                     }
                 }
@@ -565,7 +566,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             globals.BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             globals.BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
-            interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` })
+            interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` }).catch(console.error)
         }
         else if (interaction.commandName == "hangman") {
             let caseSensitive = interaction.options.get("case")?.value
@@ -583,13 +584,13 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member.user
             //@ts-ignore
             let rv = await command_commons.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
-            await interaction.reply(rv as InteractionReplyOptions)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
         }
     }
     else if (interaction.isUserContextMenu() && !interaction.replied) {
         globals.addToCmdUse(`${interaction.commandName}:user`)
         if (interaction.commandName == 'ping') {
-            interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`)
+            interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`).catch(console.error)
         }
         else if (interaction.commandName == 'info') {
             const user = interaction.targetUser
@@ -607,7 +608,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
             embed.addField("Joined at", member?.joinedAt?.toString() || "#!N/A", true)
             embed.addField("Boosting since", member?.premiumSince?.toString() || "#!N/A", true)
-            interaction.reply({ embeds: [embed] })
+            interaction.reply({ embeds: [embed] }).catch(console.error)
         }
     }
     else if (interaction.isMessageContextMenu() && !interaction.replied) {
@@ -617,7 +618,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             fs.writeFileSync(fn, interaction.targetMessage.content)
             interaction.reply({ files: [{ attachment: fn, description: "Your file, sir" }] }).then(() => {
                 fs.rmSync(fn)
-            })
+            }).catch(console.error)
         }
     }
 })
