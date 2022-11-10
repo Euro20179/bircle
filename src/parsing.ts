@@ -16,6 +16,34 @@ enum T {
     command,
 }
 
+function strToTT(str: string) {
+    switch (str.toLowerCase()) {
+        case "str":
+            return T.str
+
+        case "dofirst":
+            return T.dofirst
+
+        case "calc":
+            return T.calc
+
+        case "esc":
+            return T.esc
+
+        case "format":
+            return T.format
+
+        case "dofirstrepl":
+            return T.dofirstrepl
+
+        case "command":
+            return T.command
+
+        default:
+            return T.str
+    }
+}
+
 class Token {
     type: T
     data: string
@@ -27,7 +55,7 @@ class Token {
     }
 }
 
-enum Modifiers{
+enum Modifiers {
     skip = 0,
     silent = 1,
     typing = 2,
@@ -35,8 +63,8 @@ enum Modifiers{
     redir = 4
 }
 
-function modifierToStr(mod: Modifiers){
-    switch(mod){
+function modifierToStr(mod: Modifiers) {
+    switch (mod) {
         case 0:
             return "n:"
         case 1:
@@ -50,10 +78,10 @@ function modifierToStr(mod: Modifiers){
     }
 }
 
-class Modifier{
+class Modifier {
     data: RegExpMatchArray
     type: Modifiers
-    constructor(data: RegExpMatchArray, type: Modifiers){
+    constructor(data: RegExpMatchArray, type: Modifiers) {
         this.data = data
         this.type = type
     }
@@ -113,7 +141,7 @@ class Parser {
         parseLoop: while (this.advance()) {
             switch (this.#curChar) {
                 case this.IFS: {
-                    if(!lastWasspace){
+                    if (!lastWasspace) {
                         this.#curArgNo++;
                     }
                     lastWasspace = true
@@ -141,14 +169,14 @@ class Parser {
                 }
                 default: {
                     lastWasspace = false
-                    if(!this.#hasCmd && this.#isParsingCmd){
+                    if (!this.#hasCmd && this.#isParsingCmd) {
                         this.tokens.push(this.parseCmd())
-                        if(this.modifiers.filter(v => v.type === Modifiers.skip).length){
+                        if (this.modifiers.filter(v => v.type === Modifiers.skip).length) {
                             this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).map((v, i) => new Token(T.str, v, i)))
                             break parseLoop
                         }
                     }
-                    else{
+                    else {
                         this.tokens.push(this.parseString())
                     }
                     break
@@ -157,24 +185,24 @@ class Parser {
         }
     }
 
-    parseCmd(){
+    parseCmd() {
         let cmd = this.#curChar as string
         let modifiers = [/^n:/, /^s:/, /^t:/, /^d:/, /^redir(!)?\(([^:]*):([^:]+)\):/]
-        while(this.advance()  && this.#curChar !== this.IFS && this.#curChar !== "\n"){
+        while (this.advance() && this.#curChar !== this.IFS && this.#curChar !== "\n") {
             cmd += this.#curChar as string
         }
-        while(true){
+        while (true) {
             let foundMatch = false
-            for(let modNo = 0; modNo < modifiers.length; modNo++){
+            for (let modNo = 0; modNo < modifiers.length; modNo++) {
                 let mod = modifiers[modNo]
                 let m = cmd.match(mod)
-                if(m){
+                if (m) {
                     cmd = cmd.slice(m[0].length)
                     this.modifiers.push(new Modifier(m, modNo))
                     foundMatch = true
                 }
             }
-            if(!foundMatch)
+            if (!foundMatch)
                 break
         }
         this.#hasCmd = true
@@ -191,17 +219,17 @@ class Parser {
         }
         let char = this.#curChar
         let sequence = ""
-        if(this.advance()){
-            if(this.#curChar === "{"){
-                if(this.advance()){
+        if (this.advance()) {
+            if (this.#curChar === "{") {
+                if (this.advance()) {
                     sequence = parseBracketPair(this.string, "{}", this.#i)
                     this.advance(sequence.length)
                 }
-                else{
+                else {
                     this.back()
                 }
             }
-            else{
+            else {
                 this.back()
             }
         }
@@ -219,7 +247,7 @@ class Parser {
                     return new Token(T.str, String.fromCodePoint(parseInt(`0x${sequence}`)), this.#curArgNo)
                 }
                 catch (err) {
-                    return new Token(T.str,  `\\u{${sequence}}`, this.#curArgNo)
+                    return new Token(T.str, `\\u{${sequence}}`, this.#curArgNo)
                 }
             case "s":
                 if (sequence) {
@@ -227,8 +255,8 @@ class Parser {
                 }
                 return new Token(T.str, this.IFS, this.#curArgNo)
             case "A":
-                if(sequence){
-                    for(let i = 0; i < sequence.length - 1; i++){
+                if (sequence) {
+                    for (let i = 0; i < sequence.length - 1; i++) {
                         this.tokens.push(new Token(T.str, sequence[i], ++this.#curArgNo))
                     }
                     return new Token(T.str, sequence[sequence.length - 1], ++this.#curArgNo)
@@ -244,19 +272,19 @@ class Parser {
                 let date = new Date(sequence)
                 if (date.toString() === "Invalid Date") {
                     if (sequence) {
-                        return new Token(T.str, `\\d{${sequence}}`,  this.#curArgNo)
+                        return new Token(T.str, `\\d{${sequence}}`, this.#curArgNo)
                     }
                     else {
-                        return new Token(T.str, `\\d`,  this.#curArgNo)
+                        return new Token(T.str, `\\d`, this.#curArgNo)
                     }
                 }
                 return new Token(T.str, date.toString(), this.#curArgNo)
             case "D":
                 if (isNaN(parseInt(sequence))) {
                     if (sequence) {
-                        return new Token(T.str, `\\D{${sequence}}`,  this.#curArgNo)
+                        return new Token(T.str, `\\D{${sequence}}`, this.#curArgNo)
                     }
-                    return new Token(T.str, `\\D`,  this.#curArgNo)
+                    return new Token(T.str, `\\D`, this.#curArgNo)
                 }
                 return new Token(T.str, (new Date(parseInt(sequence))).toString(), this.#curArgNo)
             case "T": {
@@ -277,7 +305,7 @@ class Parser {
                     let v = getVar(msg, name)
                     if (v !== false)
                         return new Token(T.str, v, this.#curArgNo)
-                    else return new Token(T.str, `\\V{${sequence}}`,  this.#curArgNo)
+                    else return new Token(T.str, `\\V{${sequence}}`, this.#curArgNo)
                 }
                 else if (!name) {
                     //@ts-ignore
@@ -285,12 +313,12 @@ class Parser {
                     let v = getVar(msg, name)
                     if (v !== false)
                         return new Token(T.str, v, this.#curArgNo)
-                    return new Token(T.str, `\\V{${sequence}}`,  this.#curArgNo)
+                    return new Token(T.str, `\\V{${sequence}}`, this.#curArgNo)
                 }
                 let v = getVar(msg, name, scope)
                 if (v !== false)
                     return new Token(T.str, v, this.#curArgNo)
-                else return new Token(T.str, `\\V{${sequence}}`,  this.#curArgNo)
+                else return new Token(T.str, `\\V{${sequence}}`, this.#curArgNo)
             }
             case "v":
                 let num = Number(sequence)
@@ -304,7 +332,7 @@ class Parser {
                     v = getVar(msg, sequence)
                 if (v !== false)
                     return new Token(T.str, v, this.#curArgNo)
-                else return new Token(T.str, `\\v{${sequence}}`,  this.#curArgNo)
+                else return new Token(T.str, `\\v{${sequence}}`, this.#curArgNo)
             case "\\":
                 return new Token(T.str, "\\", this.#curArgNo)
             default:
@@ -315,13 +343,13 @@ class Parser {
         }
     }
 
-    async parseFormat(msg:  Message){
+    async parseFormat(msg: Message) {
         this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
         this.advance(inner.length)
         let [format, ...args] = inner.split("|")
         let data = ""
-        switch(format){
+        switch (format) {
             case "cmd":
                 data = msg.content.split(this.IFS)[0].slice(getOpt(msg.author.id, "prefix", prefix).length)
                 break
@@ -334,15 +362,23 @@ class Parser {
             case "hex":
             case "base": {
                 let [num, base] = args
-                data= String(Number(num).toString(parseInt(base) || 16))
+                data = String(Number(num).toString(parseInt(base) || 16))
                 break
             }
+
+            case "token": {
+                let [tt, ...data] = args
+                let text = data.join("|")
+
+                return new Token(strToTT(tt), text, this.#curArgNo)
+            }
+
             case "rev":
             case "reverse":
-            console.log(format, args)
+                console.log(format, args)
                 if (args.length > 1)
                     data = args.reverse().join(" ")
-                else{
+                else {
                     data = [...args.join(" ")].reverse().join("")
                 }
                 break
@@ -377,7 +413,7 @@ class Parser {
                 if (name[0] === '-') {
                     data = String(timer.default.do_lap(msg.author.id, name.slice(1)))
                 }
-                else{
+                else {
                     data = String(timer.default.getTimer(msg.author.id, args.join(" ").trim()))
                 }
                 break
@@ -408,7 +444,7 @@ class Parser {
             case "rand":
                 if (args && args?.length > 0)
                     data = args[Math.floor(Math.random() * args.length)]
-                else{
+                else {
                     data = "{rand}"
                 }
                 break
@@ -420,7 +456,7 @@ class Parser {
                     let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
                     if (dec)
                         data = String((Math.random() * (high - low)) + low)
-                    else{
+                    else {
                         data = String(Math.floor((Math.random() * (high - low)) + low))
                     }
                     break
@@ -484,8 +520,8 @@ class Parser {
                     "w": `${date.getDay()}`
                 })
                 break
-            case "arg":{
-                for(let i = 0; i < this.tokens.filter(v => v.argNo === this.#curArgNo).length; i++){
+            case "arg": {
+                for (let i = 0; i < this.tokens.filter(v => v.argNo === this.#curArgNo).length; i++) {
                     this.tokens.push(this.tokens[i])
                 }
                 data = ""
@@ -501,11 +537,11 @@ class Parser {
                     "c": `${msg.channel.createdAt}`
                 })
                 break
-            default:{
+            default: {
                 if (args.length > 0) {
                     data = `{${format}|${args.join("|")}}`
                 }
-                else{
+                else {
                     data = `{${format}}`
                 }
             }
@@ -547,7 +583,7 @@ class Parser {
         else if (this.#curChar === "(") {
             let containsDoFirstRepl = false
             for (let token of this.tokens.filter(v => v.argNo === this.#curArgNo)) {
-                if(token.type === T.dofirstrepl){
+                if (token.type === T.dofirstrepl) {
                     containsDoFirstRepl = true
                     break
                 }
@@ -564,12 +600,12 @@ class Parser {
 
             return new Token(T.dofirst, inside, this.#curArgNo)
         }
-        else if(this.#curChar === '{'){
+        else if (this.#curChar === '{') {
             this.advance()
             let inner = parseBracketPair(this.string, "{}", this.#i)
             this.advance(inner.length)
             let var_ = getVar(this.#msg, inner)
-            if(var_ === false){
+            if (var_ === false) {
                 return new Token(T.str, `\${${inner}}`, this.#curArgNo)
             }
             return new Token(T.str, var_, this.#curArgNo)
@@ -917,5 +953,6 @@ export {
     T,
     Modifier,
     Modifiers,
-    modifierToStr
+    modifierToStr,
+    strToTT
 }

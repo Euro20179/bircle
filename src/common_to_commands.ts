@@ -91,6 +91,8 @@ export class Interprater {
     #argOffsetFromDoFirstSpreading: number
     modifiers: Modifier[]
 
+    static commandUndefined = new Object()
+
     constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>) {
         this.tokens = tokens
         this.args = []
@@ -189,13 +191,14 @@ export class Interprater {
                 text = doFirst
             }
             else {
-                text = doFirst.split(" ")[Number(doFirstResultNo)]
+                text = doFirst.split(" ")[Number(doFirstResultNo)] ?? null
             }
             this.addTokenToArgList(new Token(T.str, text, token.argNo))
         }
         //TODO: %{...} spreads  args into  multiple arguments
 
     }
+    //command
     async [6](token: Token) {
         this.cmd = token.data
         this.real_cmd = token.data
@@ -220,6 +223,8 @@ export class Interprater {
                 this.alias = true
             }
         }
+
+        this.addTokenToArgList(new Token(T.str, Interprater.commandUndefined as string, token.argNo))
     }
 
     hasModifier(mod: Modifiers) {
@@ -403,9 +408,13 @@ export class Interprater {
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
+    async interprateCurrentAsToken(t: T){
+        await this[t](this.#curTok as Token)
+    }
+
     async interprateAllAsToken(t: T){
         while(this.advance()){
-            await this[t](this.#curTok as Token)
+            await this.interprateCurrentAsToken(t)
         }
     }
 
@@ -430,9 +439,23 @@ export class Interprater {
             this.tokens = this.tokens.filter(v => v.type !== T.dofirst)
 
             while (this.advance()) {
-                await this[(this.#curTok as Token).type](this.#curTok as Token)
+                await this.interprateCurrentAsToken((this.#curTok as Token).type)
             }
         }
+
+        //null comes from %{-1}doFirsts
+        this.args = this.args.filter(v => v !== null)
+
+        //undefined can get in args if {token} format is used, and they want a command token
+        //@ts-ignore
+        let lastUndefIdx = this.args.lastIndexOf(Interprater.commandUndefined)
+
+        //if it is found
+        if(lastUndefIdx > -1){
+            //we basically treat everythign before it as if it didn't happen
+            this.args = this.args.slice(lastUndefIdx + 1)
+        }
+
         this.#interprated = true
         return this.args
     }
