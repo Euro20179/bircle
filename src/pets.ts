@@ -62,7 +62,7 @@ function randInt(min: number, max: number){
 
 function loadPets(){
     if(fs.existsSync("./pets.json")){
-        PETSHOP = JSON.parse(fs.readFileSync("./pets.json", "utf-8"))
+        PETSHOP = JSON.parse(fs.readFileSync("./data/pets.json", "utf-8"))
     }
     if(fs.existsSync("./petinventory.json")){
         PETINVENTORY = JSON.parse(fs.readFileSync("./petinventory.json", "utf-8"))

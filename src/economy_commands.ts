@@ -438,7 +438,7 @@ export default function() {
         run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
-            let items = fs.readFileSync("./shop.json", "utf-8")
+            let items = fs.readFileSync("./data/shop.json", "utf-8")
             //@ts-ignore
             let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
             if (!user) {

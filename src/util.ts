@@ -11,6 +11,72 @@ import globals = require("./globals")
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
+
+class LengthUnit{
+    value: number
+    constructor(value: number){
+        this.value = value
+    }
+
+    /**
+        * @abstract
+    */
+    yards(): number{
+        return 0
+    }
+
+    toUnit(cls: typeof LengthUnit){
+        let inYards = this.yards()
+        let amountOfUnitsInYards = (new cls(1)).yards()
+        return new cls(inYards / amountOfUnitsInYards)
+    }
+}
+
+class Mile extends LengthUnit{
+    yards(){
+        return this.value * 1760
+    }
+}
+
+class Yard extends LengthUnit{
+}
+
+class Foot extends LengthUnit{
+    yards(){
+        return this.value / 3
+    }
+}
+
+class Inch extends LengthUnit{
+    yards(){
+        return this.value / 3 / 12
+    }
+}
+
+class Rack extends LengthUnit{
+
+    yards(){
+        return (new Inch(this.value * 4)).yards()
+    }
+}
+
+class ValveSourceHammer extends LengthUnit{
+    yards(){
+        return this.value / 3 / 16
+    }
+}
+
+const Units = {
+    LengthUnit,
+    Mile,
+    Yard,
+    Foot,
+    Inch,
+    Rack,
+    ValveSourceHammer
+}
+
+
 function parseBracketPair(string: string, pair: string, start=-1){
     let count = 1;
     if(string.indexOf(pair[0]) === -1){
@@ -301,7 +367,7 @@ function rgbToHex(r: number, g: number, b: number) {
 }
 
 function generateSafeEvalContextFromMessage(msg: Message) {
-    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot }
+    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, Units: Units }
 }
 
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {
@@ -331,6 +397,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     context['mulStr'] = mulStr
     context ['mul_t'] =  weirdMulStr
     context['choice'] = choice
+    context['Units'] = Units
     try {
         vm.runInNewContext(code, context, opts)
         //@ts-ignore
@@ -694,10 +761,6 @@ function weirdMulStr(text: string[], ...count: string[]){
     return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
 
-function quotify(text: string[], ...values: string[]){
-    return values.map(v => `"${v}"`).map((v, i) => `${text[i]}${v}`) + text.slice(-1)[0]
-}
-
 export {
     fetchUser,
     fetchChannel,
@@ -728,6 +791,7 @@ export {
     intoColorList,
     renderHTML,
     parseBracketPair,
-    Options
+    Options,
+    Units
 }
 

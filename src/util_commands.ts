@@ -13,7 +13,7 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from 'discord.js'
 import { StatusCode, Interprater, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans } from './common_to_commands'
-import { choice, cmdCatToStr, downloadSync, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval } from './util'
+import { choice, cmdCatToStr, downloadSync, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, getVar, prefix, setVar, vars } from './common'
 import { spawnSync } from 'child_process'
 
@@ -49,6 +49,19 @@ export default function() {
                 return { content: "No member found", status: StatusCode.ERR }
             }
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
+        }, CommandCategory.UTIL)
+    )
+
+    registerCommand(
+        "units", createCommandV2(async({args}) => {
+            let unitPairs: [number, string][] = []
+            if(args.length % 2 !== 0){
+                return {content: "Each number must have a unit", status: StatusCode.ERR}
+            }
+            for(let i = 0; i < args.length; i+=2){
+                unitPairs.push([Number(args[i]), args[i + 1]])
+            }
+            return {content: `${unitPairs.join("\n")}`, status: StatusCode.RETURN}
         }, CommandCategory.UTIL)
     )
 
