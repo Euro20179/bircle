@@ -13,7 +13,7 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from 'discord.js'
 import { StatusCode, Interprater, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans } from './common_to_commands'
-import { choice, cmdCatToStr, downloadSync, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
+import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, getVar, prefix, setVar, vars } from './common'
 import { spawnSync } from 'child_process'
 
@@ -54,15 +54,27 @@ export default function() {
 
     registerCommand(
         "units", createCommandV2(async({args}) => {
-            let unitPairs: [number, string][] = []
-            if(args.length % 2 !== 0){
-                return {content: "Each number must have a unit", status: StatusCode.ERR}
+            let number = Number(args[0])
+            let unit;
+            if(isNaN(number)){
+                unit = Units.LengthUnit.fromUnitRepr(args[0] as `${number}${string}`)
             }
-            for(let i = 0; i < args.length; i+=2){
-                unitPairs.push([Number(args[i]), args[i + 1]])
+            else{
+                args = args.slice(1)
+                unit = new (Units.LengthUnit.fromUnitName(args[0]))(number)
             }
-            return {content: `${unitPairs.join("\n")}`, status: StatusCode.RETURN}
-        }, CommandCategory.UTIL)
+            args = args.slice(1)
+            for(let i = 0; i < args.length; i+=1){
+                //@ts-ignore
+                unit = unit.toUnit(Units.LengthUnit.fromUnitName(args[i]))
+            }
+            //eval complains Units is not defined, but this works for some reason
+            let unitRef = Units
+            return {content: `${unit.value}${eval(`unitRef.${unit.constructor.name}.shorthand`)}`, status: StatusCode.RETURN}
+        }, CommandCategory.UTIL, "Converts a unit to a different unit", {
+            unit1: createHelpArgument("The first unit in the form of &lt;amount&gt;&lt;unit&gt;"),
+            to: createHelpArgument("The unit to convert to")
+        })
     )
 
     registerCommand(
@@ -2050,7 +2062,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 status: StatusCode.RETURN
             }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Gets the roles of a user",
+            arguments: {
+                "user": createHelpArgument("The user to get the roles of", true)
+            }
+        }
     },
     )
 
@@ -2093,7 +2111,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
             return { content: final.join("\n"), status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Searches a command file",
+            arguments: {
+                file: createHelpArgument("The file to search", true),
+                "...search": createHelpArgument("The regex to search for in the file", true)
+            }
+        }
     },
     )
 
@@ -2263,7 +2288,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addField("Member count", String(memberCount))
             return { embeds: [embed], status: StatusCode.RETURN }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Gets a list of users with a specific role",
+            arguments: {
+                "...role": createHelpArgument("The role to search for")
+            }
+        }
     },
     )
 
@@ -2531,7 +2562,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
             return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Encodes text to base64"
+        }
     },
     )
 
@@ -2540,7 +2574,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         run: async (_msg, args, sendCallback) => {
             let text = args.join(" ")
             return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
-        }, category: CommandCategory.UTIL
+        }, category: CommandCategory.UTIL,
+        help: {
+            info: "Decodes text from base64"
+        }
     },
     )
 
@@ -2555,7 +2592,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             return { noSend: true, status: StatusCode.ERR }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "reads a file",
+            arguments: {
+                file: createHelpArgument("must be an attachment", true),
+                "decoding": createHelpArgument("The decoding method to use", false, undefined, "utf-8")
+            }
+        }
     },
     )
 
@@ -2742,7 +2786,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
             return { embeds: [embed] || "none", status: StatusCode.RETURN }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Gets infromation about a role",
+        }
     },
     )
 
@@ -2789,7 +2836,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             return { embeds: [embed], status: StatusCode.RETURN }
         },
-        category: CommandCategory.UTIL
+        category: CommandCategory.UTIL,
+        help: {
+            info: "Gets info about a channel"
+        }
     },
     )
 

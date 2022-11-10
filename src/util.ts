@@ -14,8 +14,43 @@ const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require(
 
 class LengthUnit{
     value: number
+
+    /**
+        * @abstract
+    */
+    static shorthand: string = "units"
+
+    /**
+        * @abstract
+    */
+    static longname: string = "units"
+
     constructor(value: number){
         this.value = value
+    }
+
+    static fromUnitName(name: string): typeof LengthUnit{
+        let convTable: {[key: string]: typeof LengthUnit} = {}
+        for(let unit of Object.values(Units)){
+            convTable[unit.shorthand] = unit
+            convTable[unit.longname] = unit
+        }
+        //@ts-ignore
+        return Reflect.get(convTable, name.toLowerCase(), convTable) ?? Yard
+    }
+
+    static fromUnitRepr(repr: `${number}${string}`){
+        let numberPart = ""
+        let unitPart = ""
+        for(let ch of repr){
+            if(!"0123456789".includes(ch)){
+                unitPart += ch
+            }
+            else{
+                numberPart += ch
+            }
+        }
+        return new (this.fromUnitName(unitPart))(Number(numberPart))
     }
 
     /**
@@ -33,27 +68,45 @@ class LengthUnit{
 }
 
 class Mile extends LengthUnit{
+    static longname = "mile"
+    static shorthand = "mi"
     yards(){
         return this.value * 1760
     }
 }
 
 class Yard extends LengthUnit{
+    static longname = "yard"
+    static shorthand = "yd"
 }
 
 class Foot extends LengthUnit{
+    static longname = "foot"
+    static shorthand = "ft"
     yards(){
         return this.value / 3
     }
 }
 
+class MetricFoot extends LengthUnit{
+    static longname = 'metricfoot'
+    static shorthand = 'metricft'
+    yards(){
+        return (new Inch(11.811)).toUnit(Foot).value / 3
+    }
+}
+
 class Inch extends LengthUnit{
+    static longname = "inch"
+    static shorthand = "in"
     yards(){
         return this.value / 3 / 12
     }
 }
 
-class Rack extends LengthUnit{
+class Hand extends LengthUnit{
+    static longname = "rack"
+    static shorthand = "rack"
 
     yards(){
         return (new Inch(this.value * 4)).yards()
@@ -61,6 +114,8 @@ class Rack extends LengthUnit{
 }
 
 class ValveSourceHammer extends LengthUnit{
+    static longname = "ValveSourcehammer"
+    static shorthand = "VShammer"
     yards(){
         return this.value / 3 / 16
     }
@@ -72,8 +127,9 @@ const Units = {
     Yard,
     Foot,
     Inch,
-    Rack,
-    ValveSourceHammer
+    Hand,
+    ValveSourceHammer,
+    MetricFoot
 }
 
 
