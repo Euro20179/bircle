@@ -350,9 +350,9 @@ class Parser {
         this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
         this.advance(inner.length)
-        let [format, ...args] = inner.split("|")
+        let [format_name, ...args] = inner.split("|")
         let data = ""
-        switch (format) {
+        switch (format_name) {
             case "cmd":
                 data = msg.content.split(this.IFS)[0].slice(getOpt(msg.author.id, "prefix", prefix).length)
                 break
@@ -538,10 +538,10 @@ class Parser {
                 break
             default: {
                 if (args.length > 0) {
-                    data = `{${format}|${args.join("|")}}`
+                    data = `{${format_name}|${args.join("|")}}`
                 }
                 else {
-                    data = `{${format}}`
+                    data = `{${format_name}}`
                 }
             }
         }
