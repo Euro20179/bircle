@@ -2767,11 +2767,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                     i: user.id || "#!N/A",
                                     u: user.username || "#!N/A",
                                     n: member.nickname || "#!N/A",
+                                    d: member.displayName,
                                     X: member.displayHexColor.toString() || "#!N/A",
                                     x: member.displayColor.toString() || "#!N/A",
                                     c: user.createdAt.toString() || "#!N/A",
                                     j: member.joinedAt?.toString() || "#!N/A",
-                                    b: member.premiumSince?.toString() || "#!N/A"
+                                    b: member.premiumSince?.toString() || "#!N/A",
+                                    a: user.avatarURL() || "#!N/A"
                                 }
                             )
                         }
@@ -2952,6 +2954,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
                                         n: member.nickname || "#!N/A",
+                                        d: member.displayName,
                                         X: member.displayHexColor.toString() || "#!N/A",
                                         x: member.displayColor.toString() || "#!N/A",
                                         c: user.createdAt.toString() || "#!N/A",

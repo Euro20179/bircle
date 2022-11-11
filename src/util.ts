@@ -219,7 +219,7 @@ class Pipe{
         this.fn = fn
         if(this.data.length && !this.#failed){
             this.#can_set_default = true
-            this.data = [this.fn.bind(this)(...this.data)]
+            this.data = [this.fn.bind(this)(...this.data)].flat(1)
         }
         else{
             this.data = this.default_data
@@ -235,8 +235,11 @@ class Pipe{
         return this
     }
     done(){
-        if(this.data === undefined){
+        if(this.data.length === 0){
             return this.default_data
+        }
+        if(this.data.length === 1){
+            return this.data[0]
         }
         return this.data
     }
