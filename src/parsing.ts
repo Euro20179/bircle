@@ -381,9 +381,6 @@ class Parser {
                     data = [...args.join(" ")].reverse().join("")
                 }
                 break
-            case 'c':
-                data = msg.content.split(this.IFS).slice(1).join(this.IFS).trim()
-                break
             case "channel": {
                 let fmt = args.join(" ") || "<#%i>"
                 let channel = msg.channel
