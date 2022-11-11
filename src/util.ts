@@ -78,6 +78,9 @@ class Mile extends LengthUnit{
 class Yard extends LengthUnit{
     static longname = "yard"
     static shorthand = "yd"
+    yards(){
+        return 1
+    }
 }
 
 class Foot extends LengthUnit{
@@ -101,6 +104,38 @@ class Inch extends LengthUnit{
     static shorthand = "in"
     yards(){
         return this.value / 3 / 12
+    }
+}
+
+class Meter extends LengthUnit{
+    static longname = 'meter'
+    static shorthand = 'm'
+    yards(){
+        return (new Centimeter(this.value * 100)).yards()
+    }
+}
+
+class Decimeter extends LengthUnit{
+    static longname = 'decimeter'
+    static shorthand = 'dm'
+    yards(){
+        return (new Centimeter(this.value * 10)).yards()
+    }
+}
+
+class Centimeter extends LengthUnit{
+    static longname = "centimeter"
+    static shorthand = "cm"
+    yards(){
+        return this.value / 2.54 / 36
+    }
+}
+
+class Horse extends LengthUnit{
+    static longname = 'horse'
+    static shorthand = 'horse'
+    yards(){
+        return (new Foot(this.value * 8)).yards()
     }
 }
 
@@ -129,7 +164,11 @@ const Units = {
     Inch,
     Hand,
     ValveSourceHammer,
-    MetricFoot
+    MetricFoot,
+    Centimeter,
+    Meter,
+    Decimeter,
+    Horse
 }
 
 

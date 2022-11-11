@@ -1036,7 +1036,7 @@ export default function() {
                 globals.SPAMS[id] = true
                 while (globals.SPAMS[id] && times--) {
                     await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, false, bans)
-                    await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+                    await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
                 delete globals.SPAMS[id]
                 return {
