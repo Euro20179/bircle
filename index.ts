@@ -193,7 +193,7 @@ client.on("messageCreate", async (m: Message) => {
             if(pingresponse){
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if(command_commons.isCmd(pingresponse, prefix)){
-                    await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans()) as CommandReturn
+                    await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans())
                 }
                 else{
                     m.channel.send(pingresponse)

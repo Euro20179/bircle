@@ -11,6 +11,7 @@ import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, ge
 import { Guild, Message } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
+import { performance } from 'perf_hooks'
 
 export default function() {
     registerCommand(
@@ -993,9 +994,9 @@ export default function() {
         "timeit",
         {
             run: async (msg, args, sendCallback, _, __, rec, bans) => {
-                let start = new Date().getTime()
+                let start = performance.now()
                 await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
-                return { content: `${new Date().getTime() - start} ms`, status: StatusCode.RETURN }
+                return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
             },
             category: CommandCategory.META
         },
