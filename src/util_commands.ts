@@ -1944,7 +1944,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 let ret: string = ""
                 try {
-                    ret = stringifyFn(safeEval(args.join(" "), { ...generateDefaultRecurseBans(), args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id] || {} }, { timeout: 3000 }))
+                    ret = stringifyFn(safeEval(args.join(" "), { args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id], ...generateDefaultRecurseBans() || {} }, { timeout: 3000 }))
                 }
                 catch (err) {
                     console.log(err)
@@ -2941,16 +2941,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (args[1]) {
                             const fmt = args.slice(1).join(" ")
                             return {
-                                content: format(fmt
-                                    .replaceAll("{id}", user.id || "#!N/A")
-                                    .replaceAll("{username}", user.username || "#!N/A")
-                                    .replaceAll("{nickname}", member.nickname || "#!N/A")
-                                    .replaceAll("{0xcolor}", member.displayHexColor.toString() || "#!N/A")
-                                    .replaceAll("{color}", member.displayColor.toString() || "#!N/A")
-                                    .replaceAll("{created}", user.createdAt.toString() || "#!N/A")
-                                    .replaceAll("{joined}", member.joinedAt?.toString() || "#!N/A")
-                                    .replaceAll("{boost}", member.premiumSince?.toString() || "#!N/A"),
+                                content: format(fmt,
                                     {
+                                        "{id}": user.id || "#!N/A",
+                                        "{username}": user.username || "#!N/A",
+                                        "{nickname}": member.nickname || "#!N/A",
+                                        "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
+                                        "{color}": member.displayColor.toString() || "#!N/A",
+                                        "{created}": user.createdAt.toString() || "#!N/A",
+                                        "{joined}": member.joinedAt?.toString() || "#!N/A",
+                                        "{boost}": member.premiumSince?.toString() || "#!N/A",
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
                                         n: member.nickname || "#!N/A",

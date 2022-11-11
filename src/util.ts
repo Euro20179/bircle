@@ -171,6 +171,71 @@ const Units = {
     Horse
 }
 
+function parsePercentFormat(string: string, replacements?: {[key: string]: string}){
+    let formats = []
+    let ploc = -1;
+    while((ploc = string.indexOf("%")) > -1){
+        string = string.slice(ploc + 1)
+        let char = string[0]
+        if(char === undefined)
+            break
+        else if(char === "%"){
+            formats.push("%")
+        }
+        else if(replacements){
+            formats.push(replacements[char] || char)
+        }
+        else{
+            formats.push(char)
+        }
+        //skip past char
+        string = string.slice(1)
+    }
+    return formats
+}
+
+function formatPercentStr(string: string, replacements: {[key: string]: string}){
+    let ploc = -1;
+    let newStr = ""
+    while((ploc = string.indexOf("%")) > -1){
+        newStr += string.slice(0, ploc)
+        string = string.slice(ploc + 1)
+        let char = string[0]
+        if(char === undefined)
+            break
+        if(char !== "%"){
+            newStr += replacements[char] ?? `%${char}`
+        }
+        else{
+            newStr += "%"
+        }
+        //get past char
+        string = string.slice(1)
+    }
+    newStr += string
+    return newStr
+}
+
+function formatBracePairs(string: string, replacements: {[key: string]: string}, pair = "{}"){
+    let newStr = ""
+    let escape = false
+    for(let i = 0; i < string.length; i++){
+        let ch = string[i]
+        if(ch === "\\" && !escape){
+            escape = true
+        }
+        else if(ch == pair[0] && !escape){
+            let inner = parseBracketPair(string.slice(i), pair)
+            newStr += replacements[inner] ?? `${pair[0]}${inner}${pair[1]}`
+            i += 2
+        }
+        else{
+            escape = false
+            newStr += ch
+        }
+    }
+    return newStr
+}
 
 function parseBracketPair(string: string, pair: string, start=-1){
     let count = 1;
@@ -373,20 +438,8 @@ function escapeRegex(str: string) {
     return finalString
 }
 
-function format(str: string, formats: { [key: string]: string }, doPercent?: boolean, doBraces?: boolean) {
-    if (doBraces === undefined) doBraces = true
-    if (doPercent === undefined) doPercent = true
-    for (let fmt in formats) {
-        if (fmt.length > 1) {
-            str = str.replaceAll(`{${fmt}}`, formats[fmt])
-        }
-        else {
-            let unescaped = fmt
-            fmt = escapeRegex(fmt)
-            str = str.replaceAll(new RegExp(`((?<!%)%${fmt}|(?<!\\\\)\\{${fmt}\\})`, "g"), formats[unescaped])
-        }
-    }
-    return str
+function format(str: string, formats: { [key: string]: string }) {
+    return formatPercentStr(formatBracePairs(str, formats), formats)
 }
 
 async function createGradient(gradient: string[], width: number | string, height: number | string) {
@@ -486,16 +539,23 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     if (!context) {
         context = {}
     }
-    context['yes'] = true
-    context['no'] = false
-    context['rgbToHex'] = rgbToHex
-    context['escapeRegex'] = escapeRegex
-    context['escapeShell'] = escapeShell
-    context['randomColor'] = randomColor
-    context['mulStr'] = mulStr
-    context ['mul_t'] =  weirdMulStr
-    context['choice'] = choice
-    context['Units'] = Units
+    Object.entries({
+        yes: true,
+        false: false,
+        rgbToHex,
+        escapeRegex,
+        escapeShell,
+        randomColor,
+        mulStr,
+        mul_t: weirdMulStr,
+        choice,
+        Units,
+        Pipe,
+        parseBracketPair,
+        parsePercentFormat,
+        formatPercentStr,
+        formatBracePairs
+    }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
         //@ts-ignore
@@ -890,6 +950,9 @@ export {
     renderHTML,
     parseBracketPair,
     Options,
-    Units
+    Units,
+    formatPercentStr,
+    parsePercentFormat,
+    formatBracePairs
 }
 

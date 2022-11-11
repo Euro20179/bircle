@@ -334,6 +334,9 @@ class Parser {
                     return new Token(T.str, v, this.#curArgNo)
                 else return new Token(T.str, `\\v{${sequence}}`, this.#curArgNo)
             case "\\":
+                if(sequence){
+                    return new Token(T.str, `\\{${sequence}}`, this.#curArgNo)
+                }
                 return new Token(T.str, "\\", this.#curArgNo)
             default:
                 if (sequence) {
