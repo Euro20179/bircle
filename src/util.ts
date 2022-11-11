@@ -219,7 +219,7 @@ class Pipe{
         this.fn = fn
         if(this.data.length && !this.#failed){
             this.#can_set_default = true
-            this.data = this.fn.bind(this)(...this.data)
+            this.data = [this.fn.bind(this)(...this.data)]
         }
         else{
             this.data = this.default_data

@@ -8,7 +8,7 @@ import fetch = require("node-fetch")
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, rgbToHex } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
@@ -120,18 +120,22 @@ export default function() {
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
             }
-            let latestMessage = msg.channel.messages.cache.at(-2)
-            if (!latestMessage) {
-                return { noSend: true, delete: true, status: StatusCode.ERR }
+
+            let numeric = Pipe.start(msg.channel.messages.cache.at(-2))
+                .default({noSend: true, delete: true, status: StatusCode.ERR})
+                .next((lastMessage: Message) => {
+                    return lastMessage.content.split(".")[1]
+                })
+                .default({noSend: true, delete: true, status: StatusCode.ERR})
+                .next((text: string) => {
+                    return Number(text) + 1
+                }).done()[0]
+
+
+            if(numeric.status === StatusCode.ERR){
+                return numeric
             }
-            let number = latestMessage.content.split(".")[1]
-            if (!number) {
-                return { noSend: true, delete: true, status: StatusCode.ERR }
-            }
-            let numeric = Number(number) + 1
-            if (!numeric) {
-                return { noSend: true, delete: true, status: StatusCode.ERR }
-            }
+
             let count_text = args.join(" ").trim()
             if (!count_text) {
                 count_text = user_options.getOpt(msg.author.id, "count-text", "{count}")
