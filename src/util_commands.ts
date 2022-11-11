@@ -63,6 +63,9 @@ export default function() {
                 })
                 return { content: units.sort((a, b) => a[1] - b[1]).map(v => `${v[0].longname} (${v[0].shorthand}) (${v[1]}${compareToUnit})`).join("\n"), status: StatusCode.RETURN }
             }
+            if(args.length < 2){
+                return {content: "Command usage: `[units <number><unit> <convert-to-unit>`", status: StatusCode.ERR}
+            }
             let number = Number(args[0])
             let unit;
             if (isNaN(number)) {
@@ -83,6 +86,7 @@ export default function() {
         }, CommandCategory.UTIL, "Converts a unit to a different unit", {
             unit1: createHelpArgument("The first unit in the form of &lt;amount&gt;&lt;unit&gt;"),
             to: createHelpArgument("The unit to convert to"),
+            unit2: createHelpArgument("The unit to convert to (use -l to see a list of units)")
         }, {
             l: createHelpOption("List units and compare them to a unit", undefined, "yd"),
             "round-to": createHelpOption("Round to a certain number of decimals", undefined, "10")
