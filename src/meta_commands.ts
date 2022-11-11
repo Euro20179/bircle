@@ -602,7 +602,12 @@ export default function() {
                 }
             }
             let trueBlock = parseBracketPair(text, "{}")
-            text = text.slice(trueBlock.length + 2)
+            text = text.slice(trueBlock.length + 2).trim()
+
+            //optional else
+            if(text.startsWith("else")){
+                text = text.slice("else".length)
+            }
 
             let falseBlock = parseBracketPair(text, "{}")
             text = text.slice(trueBlock.length + 2)

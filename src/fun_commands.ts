@@ -17,6 +17,13 @@ import { CommandCategory, createCommand, createCommandV2, createHelpOption, getC
 const { useItem, hasItem } = require("./shop")
 
 export default function() {
+    
+    registerCommand(
+        "the secret command", createCommandV2(async() => {
+            return {content: "Congrats, you found the secret command", status: StatusCode.RETURN}
+        }, CommandCategory.FUN)
+    )
+
     registerCommand(
 
         'scorigami', createCommandV2(async ({ args, opts }) => {
