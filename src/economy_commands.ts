@@ -909,6 +909,14 @@ export default function() {
             return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
         }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Give a player an item",
+            arguments: {
+                item: createHelpArgument("The item to give to another player", true),
+                "|": createHelpArgument("The separator between the item and the player", true),
+                player: createHelpArgument("The player to give the item to", true)
+            }
+        }
     },
     )
 
@@ -999,9 +1007,6 @@ export default function() {
                 if (isNaN(place)) {
                     place = 10
                 }
-            }
-            if (!msg.guild) {
-                return { content: "No guild", status: StatusCode.ERR }
             }
             let embed = new MessageEmbed()
             let text = ""
@@ -1098,7 +1103,10 @@ export default function() {
             saveItems()
             pet.savePetData()
             return { content: "Economy saved", status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Saves the economy (by default, on every message send, there is a 45% chance to save the economy)"
+        }
     },
     )
 }
