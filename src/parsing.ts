@@ -375,7 +375,6 @@ class Parser {
 
             case "rev":
             case "reverse":
-                console.log(format, args)
                 if (args.length > 1)
                     data = args.reverse().join(" ")
                 else {
@@ -776,7 +775,6 @@ function parseDoFirst(cmdData: string, doFirstCountNoToArgNo: number, args: stri
                         data += ch
                     }
                     let [doFirstIndex, slice] = parseDoFirstInnerBracketData(data)
-                    console.log(doFirstIndex, slice)
                     if (doFirstIndex !== undefined && slice === undefined) {
                         //@ts-ignore
                         finalArg += `${cmdData[doFirstCountNoToArgNo[doFirstIndex]]}`
