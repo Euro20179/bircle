@@ -227,7 +227,7 @@ function formatBracePairs(string: string, replacements: {[key: string]: string},
         else if(ch == pair[0] && !escape){
             let inner = parseBracketPair(string.slice(i), pair)
             newStr += replacements[inner] ?? `${pair[0]}${inner}${pair[1]}`
-            i += inner.length + 2
+            i += inner.length + 1
         }
         else{
             escape = false

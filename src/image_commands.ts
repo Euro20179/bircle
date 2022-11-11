@@ -1389,7 +1389,6 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 let interval = 1 / (bg_colors.length - 1)
                 for (let i = 0; i < bg_colors.length; i++) {
-                    console.log(bg_colors[i])
                     grad.addColorStop(interval * i, bg_colors[i])
                 }
                 ctx.fillStyle = grad
@@ -1406,7 +1405,6 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + (textInfo.emHeightDescent / lineCount))
                 let interval = 1 / (colors.length - 1)
                 for (let i = 0; i < colors.length; i++) {
-                    console.log(colors[i])
                     grad.addColorStop(interval * i, colors[i])
                 }
                 ctx.fillStyle = grad
