@@ -129,7 +129,7 @@ export default function() {
                 .default({noSend: true, delete: true, status: StatusCode.ERR})
                 .next((text: string) => {
                     return Number(text) + 1
-                }).done()[0]
+                }).done()
 
 
             if(numeric.status === StatusCode.ERR){
