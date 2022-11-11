@@ -226,6 +226,16 @@ export class Interprater {
 
         this.addTokenToArgList(new Token(T.str, Interprater.commandUndefined as string, token.argNo))
     }
+    //syntax
+    async [7](token: Token){
+        let parse = new Parser(this.#msg, token.data, false)
+        await parse.parse()
+        let int = new Interprater(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
+        let args = await int.interprate()
+        for(let i = 0; i < args.length; i++){
+            this.addTokenToArgList(new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo))
+        }
+    }
 
     hasModifier(mod: Modifiers) {
         return this.modifiers.filter(v => v.type === mod).length > 0

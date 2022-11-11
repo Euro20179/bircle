@@ -14,6 +14,7 @@ enum T {
     format,
     dofirstrepl,
     command,
+    syntax
 }
 
 function strToTT(str: string) {
@@ -38,6 +39,9 @@ function strToTT(str: string) {
 
         case "command":
             return T.command
+
+        case "syntax":
+            return T.syntax
 
         default:
             return T.str
@@ -254,6 +258,12 @@ class Parser {
                     return new Token(T.str, sequence, this.#curArgNo)
                 }
                 return new Token(T.str, this.IFS, this.#curArgNo)
+            case "y": {
+                if(sequence){
+                    return new Token(T.syntax, sequence, this.#curArgNo)
+                }
+                return new Token(T.str, this.IFS, this.#curArgNo)
+            }
             case "A":
                 if (sequence) {
                     for (let i = 0; i < sequence.length - 1; i++) {
