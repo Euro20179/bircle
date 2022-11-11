@@ -635,7 +635,31 @@ export default function() {
                 }
                 return { noSend: true, status: StatusCode.RETURN }
             }
-        }, CommandCategory.META),
+        }, CommandCategory.META,
+                               "Compares the result of a command a value",
+                               {
+                                   "(command)": createHelpArgument("The command to run surrounded by ()", true),
+                                   "comparator": createHelpArgument(`The comparison operator<br><b>valid operators</b>
+<ul>
+<li><b>==</b>: exact equality</li>
+<li><b>!=</b>: not equal</li>
+<li><b>&lt;</b>: less than</li>
+<li><b>&gt;</b>: greater than</li>
+<li><b>&lt;=</b>: less than or equal</li>
+<li><b>&gt;=</b>: greater than or equal</li>
+<li><b>*=</b>: result includes value</li>
+<li><b>includes</b>: result includes value</li>
+<li><b>:</b>: do a regex match with value in result</li>
+<li><b>^=</b>: result starts with value</li>
+<li><b>starts-with</b>: result starts with value</li>
+<li><b>sw</b>: result starts with value</li>
+<li><b>$=</b>: result ends with value</li>
+<li><b>ends-with</b>: result ends with value</li>
+<li><b>ew</b>: result ends with value</li>
+</ul>
+`, true),
+                                   "(value)": createHelpArgument("The value to compare against surrounded by ()", true)
+                               }),
     )
 
     registerCommand(
