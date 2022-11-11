@@ -36,7 +36,7 @@ class LengthUnit{
             convTable[unit.longname] = unit
         }
         //@ts-ignore
-        return Reflect.get(convTable, name.toLowerCase(), convTable) ?? Yard
+        return Reflect.get(convTable, name, convTable) ?? Yard
     }
 
     static fromUnitRepr(repr: `${number}${string}`){
@@ -64,6 +64,14 @@ class LengthUnit{
         let inYards = this.yards()
         let amountOfUnitsInYards = (new cls(1)).yards()
         return new cls(inYards / amountOfUnitsInYards)
+    }
+}
+
+class AstronomicalUnit extends LengthUnit{
+    static longname = 'astronomicalunit'
+    static shorthand = 'AU'
+    yards(){
+        return this.value * 92955807.267433 * 1760
     }
 }
 
@@ -107,6 +115,31 @@ class Inch extends LengthUnit{
     }
 }
 
+class Kilometer extends LengthUnit{
+    static longname = 'kilometer'
+    static shorthand = 'km'
+    yards(){
+        return (new Meter(this.value * 1000)).yards()
+    }
+}
+
+class Hectometer extends LengthUnit{
+    static longname = 'hectometer'
+    static shorthand = 'hm'
+    yards(){
+        return (new Meter(this.value * 100)).yards()
+    }
+}
+
+
+class Dekameter extends LengthUnit{
+    static longname = 'dekameter'
+    static shorthand = 'dam'
+    yards(){
+        return (new Meter(this.value * 10)).yards()
+    }
+}
+
 class Meter extends LengthUnit{
     static longname = 'meter'
     static shorthand = 'm'
@@ -131,6 +164,30 @@ class Centimeter extends LengthUnit{
     }
 }
 
+class Millimeter extends LengthUnit{
+    static longname = 'millimeter'
+    static shorthand = 'mm'
+    yards(){
+        return (this.value / 10) / 2.54 / 36
+    }
+}
+
+class Micrometer extends LengthUnit{
+    static longname = 'micrometer'
+    static shorthand = 'µm'
+    yards(){
+        return (this.value / 100) / 2.54 / 36
+    }
+}
+
+class Nanometer extends LengthUnit{
+    static longname = 'nanometer'
+    static shortname = 'nm'
+    yards(){
+        return (this.value / 1000) / 2.54 / 36
+    }
+}
+
 class Horse extends LengthUnit{
     static longname = 'horse'
     static shorthand = 'horse'
@@ -140,8 +197,8 @@ class Horse extends LengthUnit{
 }
 
 class Hand extends LengthUnit{
-    static longname = "rack"
-    static shorthand = "rack"
+    static longname = "hand"
+    static shorthand = "hand"
 
     yards(){
         return (new Inch(this.value * 4)).yards()
@@ -156,8 +213,98 @@ class ValveSourceHammer extends LengthUnit{
     }
 }
 
+class Mickey extends LengthUnit{
+    static longname = 'Mickey'
+    static shorthand = 'Mickey'
+    yards(){
+        return this.value / 16000 / 36
+    }
+}
+
+class Smoot extends LengthUnit{
+    static longname = 'Smoot'
+    static shorthand = 'Smoot'
+    yards(){
+        return (new Centimeter(170)).yards()
+    }
+}
+
+class Footballfield extends LengthUnit{
+    static longname = 'footballfield'
+    static shorthand = 'footballfield'
+    yards(){
+        return this.value * 100
+    }
+}
+
+class Minecraftblock extends LengthUnit{
+    static longname = 'Minecraftblock'
+    static shorthand = 'MCblock'
+    yards(){
+        return (new Meter(this.value * 100)).yards()
+    }
+}
+
+
+class Lightyear extends LengthUnit{
+    static longname = 'lightyear'
+    static shorthand = 'lighty'
+    yards(){
+        return (new AstronomicalUnit(this.value * 63241.08)).yards()
+    }
+}
+
+class Lightmonth extends LengthUnit{
+    static longname = 'lightmonth'
+    static shorthand = 'lightm'
+    yards(){
+        return (new Lightyear(this.value / 12.175)).yards()
+    }
+}
+
+class Lightweek extends LengthUnit{
+    static longname = 'lightweek'
+    static shorthand = 'lightw'
+    yards(){
+        return (new Lightmonth(this.value * .233333333333333333333333)).yards()
+    }
+}
+
+class Lightday extends LengthUnit{
+    static longname = 'lightday'
+    static shorthand = 'lightd'
+    yards(){
+        return (new Lightweek(this.value / 7)).yards()
+    }
+}
+
+class Lighthour extends LengthUnit{
+    static longname = 'lighthour'
+    static shorthand = 'lightH'
+    yards(){
+        return (new Lightday(this.value / 24)).yards()
+    }
+}
+
+class Lightminute extends LengthUnit{
+    static longname = 'lightminute'
+    static shorthand = 'lightM'
+    yards(){
+        return (new Lighthour(this.value / 60)).yards()
+    }
+}
+
+class Lightsecond extends LengthUnit{
+    static longname = 'lightsecond'
+    static shorthand = 'lightS'
+    yards(){
+        return (new Lightminute(this.value / 60)).yards()
+    }
+}
+
 const Units = {
     LengthUnit,
+    AstronomicalUnit,
     Mile,
     Yard,
     Foot,
@@ -166,10 +313,28 @@ const Units = {
     ValveSourceHammer,
     MetricFoot,
     Centimeter,
+    Millimeter,
+    Micrometer,
+    Nanometer,
     Meter,
+    Kilometer,
     Decimeter,
-    Horse
+    Dekameter,
+    Hectometer,
+    Horse,
+    Mickey,
+    Smoot,
+    Footballfield,
+    Minecraftblock,
+    Lightmonth,
+    Lightyear,
+    Lightweek,
+    Lightday,
+    Lighthour,
+    Lightminute,
+    Lightsecond
 }
+
 
 function parsePercentFormat(string: string, replacements?: {[key: string]: string}){
     let formats = []
@@ -630,6 +795,18 @@ class Options{
         return assert(rv) ?? default_
     }
 
+    getString(key: string, default_: string, toString: (v: string | boolean) => string = String){
+        let n = Reflect.get(this, key, this)
+        if(n !== undefined && n !== true){
+            n = toString(n)
+            if(n){
+                return n
+            }
+            return default_
+        }
+        return default_
+    }
+
     getNumber(key: string, default_: number, toNumber: (v: string) => number = Number){
         let n = Reflect.get(this, key, this)
         if(n !== undefined){
@@ -641,7 +818,7 @@ class Options{
         }
         return default_
     }
-    getBool(key: string, default_: number, toBoolean: (v: any) => boolean = Boolean){
+    getBool(key: string, default_: boolean, toBoolean: (v: any) => boolean = Boolean){
         let v = Reflect.get(this, key, this)
         if(v !== undefined){
             let bool = toBoolean(v)

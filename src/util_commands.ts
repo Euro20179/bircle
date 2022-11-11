@@ -53,7 +53,16 @@ export default function() {
     )
 
     registerCommand(
-        "units", createCommandV2(async ({ args }) => {
+        "units", createCommandV2(async ({ args, opts }) => {
+            let roundTo = opts.getNumber("round-to", 10)
+            if (opts.get("l", false)) {
+                let compareToUnit = opts.getString("l", "yd")
+                let units: [typeof Units.LengthUnit, number][] = []
+                Object.entries(Units).forEach(kv => {
+                    units.push([kv[1], Number((new kv[1](1)).toUnit(Units.LengthUnit.fromUnitName(compareToUnit)).value.toFixed(roundTo))])
+                })
+                return { content: units.sort((a, b) => a[1] - b[1]).map(v => `${v[0].longname} (${v[0].shorthand}) (${v[1]}${compareToUnit})`).join("\n"), status: StatusCode.RETURN }
+            }
             let number = Number(args[0])
             let unit;
             if (isNaN(number)) {
@@ -70,10 +79,13 @@ export default function() {
             }
             //eval complains Units is not defined, but this works for some reason
             let unitRef = Units
-            return { content: `${unit.value}${eval(`unitRef.${unit.constructor.name}.shorthand`)}`, status: StatusCode.RETURN }
+            return { content: `${unit.value.toFixed(roundTo)}${eval(`unitRef.${unit.constructor.name}.shorthand`)}`, status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Converts a unit to a different unit", {
             unit1: createHelpArgument("The first unit in the form of &lt;amount&gt;&lt;unit&gt;"),
-            to: createHelpArgument("The unit to convert to")
+            to: createHelpArgument("The unit to convert to"),
+        }, {
+            l: createHelpOption("List units and compare them to a unit", undefined, "yd"),
+            "round-to": createHelpOption("Round to a certain number of decimals", undefined, "10")
         })
     )
 
