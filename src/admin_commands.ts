@@ -1,12 +1,13 @@
 import fs from 'fs'
 import { ADMINS, client, saveVars } from './common'
-import { CommandCategory, currently_playing, registerCommand, StatusCode } from './common_to_commands'
+import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, registerCommand, StatusCode } from './common_to_commands'
 import economy = require("./economy")
 import user_options = require("./user-options")
 import pet = require("./pets")
 import timer from './timer'
 import { saveItems } from './shop'
 import { Message } from 'discord.js'
+import { fetchUser } from './util'
 const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('./shop')
 
 export default function() {
@@ -23,6 +24,28 @@ export default function() {
                 info: "run javascript"
             }
         },
+    )
+
+    registerCommand(
+        "REGISTER_COMMAND", createCommandV2(
+            async({rawArgs: args}) => {
+                let name = args[0]
+                args = args.slice(1)
+                let func = new (Object.getPrototypeOf(async function(){})).constructor("msg", "rawArgs", "sendCallback", "opts", "args", "recursion_count", "command_bans", args.join(" "))
+
+                registerCommand(name, createCommandV2(func, CommandCategory.FUN))
+                return {content: "test", status: StatusCode.RETURN}
+            },
+            CommandCategory.META,
+            "Create a command",
+            {
+                name: createHelpArgument("Name of the command", true),
+                body: createHelpArgument("Function body of the command", true)
+            },
+            {},
+            undefined,
+            m => ADMINS.includes(m.author.id)
+        )
     )
 
     registerCommand(
