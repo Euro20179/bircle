@@ -1296,6 +1296,16 @@ export default function() {
     )
 
     registerCommand(
+        "rand-arg", createCommandV2(
+            async({args}) =>{
+                return {content: choice(args), status: StatusCode.RETURN}
+            },
+            CommandCategory.UTIL,
+            "Sends a random argument"
+        )
+    )
+
+    registerCommand(
         "yt",
         {
             run: async (msg, _, sc, opts, args) => {

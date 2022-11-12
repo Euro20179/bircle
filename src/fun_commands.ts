@@ -13,14 +13,15 @@ import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
 import { CommandCategory, createCommand, createCommandV2, createHelpOption, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
+import { registerFont } from 'canvas';
 
 const { useItem, hasItem } = require("./shop")
 
 export default function() {
-    
+
     registerCommand(
-        "the secret command", createCommandV2(async() => {
-            return {content: "Congrats, you found the secret command", status: StatusCode.RETURN}
+        "the secret command", createCommandV2(async () => {
+            return { content: "Congrats, you found the secret command", status: StatusCode.RETURN }
         }, CommandCategory.FUN)
     )
 
@@ -122,17 +123,17 @@ export default function() {
             }
 
             let numeric = Pipe.start(msg.channel.messages.cache.at(-2))
-                .default({noSend: true, delete: true, status: StatusCode.ERR})
+                .default({ noSend: true, delete: true, status: StatusCode.ERR })
                 .next((lastMessage: Message) => {
                     return lastMessage.content.split(".")[1]
                 })
-                .default({noSend: true, delete: true, status: StatusCode.ERR})
+                .default({ noSend: true, delete: true, status: StatusCode.ERR })
                 .next((text: string) => {
                     return Number(text) + 1
                 }).done()
 
 
-            if(numeric.status === StatusCode.ERR){
+            if (numeric.status === StatusCode.ERR) {
                 return numeric
             }
 
