@@ -1715,65 +1715,32 @@ middle
                     let search = filterInfo?.search
                     //@ts-ignore
                     let val = v[filterInfo.attribute]
-                    switch (filterInfo?.type) {
-                        case "with": {
-                            if (val !== undefined && search) {
-                                return String(val).includes(search)
-                            }
-                            return val !== undefined
-                        }
-                        case "without": {
-                            if (val !== undefined && search) {
-                                return !String(val).includes(search)
-                            }
-                            return val === undefined
-                        }
-                        case "without!": {
-                            if (val !== undefined && search) {
-                                return String(val) !== search
-                            }
-                            return val === undefined
-                        }
-                        case "with!": {
-                            if (val !== undefined && search) {
-                                return String(val) === search
-                            }
-                            return val !== undefined
-                        }
+                    if(val !== undefined && search){
+                        return {
+                            with: () => String(val).includes(search as string),
+                            without: () => !String(val).includes(search as string),
+                            "without!": () => String(val) !== search,
+                            "with!": () => String(val) === search
+                        }[filterInfo?.type as "with" | "without" | "without!" |"with!"]?.() ?? false
                     }
-                    return false
+                    return {
+                        "with": val !== undefined,
+                        "with!": val !== undefined,
+                        "without": val === undefined,
+                        "without!": val === undefined
+                    }[filterInfo?.type as "with" | "without" | "without!" | "with!"] ?? false
                 }
             }
             let data: Collection<any, any> | undefined;
             let number = parseInt(String(cmd_opts['n']))
-            switch (object) {
-                case "channel": {
-                    data = await msg.guild?.channels.fetch()
-                    break
-                }
-                case "role": {
-                    data = await msg.guild?.roles.fetch()
-                    break
-                }
-                case "member": {
-                    data = await msg.guild?.members.fetch()
-                    break
-                }
-                case "user": {
-                    data = await msg.guild?.members.fetch()
-                    data = data?.mapValues(v => v.user)
-                    break
-                }
-                case "bot": {
-                    let bots = await msg.guild?.members.fetch()
-                    data = bots?.filter(u => u.user.bot)
-                    break
-                }
-                case "command": {
-                    data = new Collection<string, Command | CommandV2>(Object.entries(getCommands()))
-                    break
-                }
-            }
+            data = await {
+                "channel": async() => await msg.guild?.channels.fetch(),
+                "role": async() => await msg.guild?.roles.fetch(),
+                "member": async() => await msg.guild?.members.fetch(),
+                "user": async() => (await msg.guild?.members.fetch())?.mapValues(v => v.user),
+                "bot": async() => (await msg.guild?.members.fetch())?.filter(u => u.user.bot),
+                "command": async() => new Collection<string, Command | CommandV2>(Object.entries(getCommands()))
+            }[object as "channel" | "role" | "member" | "user" | "bot" | "command"]()
             data = data?.filter(filter)
             if (!data) {
                 return { content: `${object} is invalid`, status: StatusCode.ERR }
@@ -1783,12 +1750,8 @@ middle
             }
             switch (operator) {
                 case "#": {
-                    if (number) {
-                        return { content: String(data.at(number)), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                    }
-                    else {
-                        return { content: String(data.size), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                    }
+                    let c = number ? String(data.at(number)) : String(data.size)
+                    return { content: c, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
                 }
                 case "rand": {
                     if (object === "command") {
