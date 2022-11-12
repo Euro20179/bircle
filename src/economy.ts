@@ -80,6 +80,7 @@ function loadEconomy() {
 }
 function saveEconomy() {
     fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY))
+
     fs.writeFileSync("./lottery.json", JSON.stringify(lottery))
 }
 
