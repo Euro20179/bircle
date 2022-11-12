@@ -18,7 +18,6 @@ export function loadUserOptions(){
 
 loadUserOptions()
 
-
 export function saveUserOptions(){
     fs.writeFileSync("./user-options.json", JSON.stringify(USER_OPTIONS))
 }

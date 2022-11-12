@@ -1595,6 +1595,18 @@ middle
     )
 
     registerCommand(
+        "format-seconds", createCommandV2(async ({ args }) => {
+            let amountOfTime = parseFloat(args[0])
+            if(isNaN(amountOfTime)){
+                return {content: `Invalid command usage\n\`[format-seconds <seconds> <format>\``, status: StatusCode.ERR}
+            }
+            return {content: format(args.slice(1).join(" ") || "%H:%M:%S", {H: String((amountOfTime * 60 * 60) % 24), M: String((amountOfTime * 60) % 60), S: String(amountOfTime % 60), d: String((amountOfTime * 60 * 60 * 24) % 7)}), status: StatusCode.RETURN}
+        }, CommandCategory.UTIL,
+        "Convert seconds into days/hours/minutes/seconds"
+        )
+    )
+
+    registerCommand(
         "time",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1715,13 +1727,13 @@ middle
                     let search = filterInfo?.search
                     //@ts-ignore
                     let val = v[filterInfo.attribute]
-                    if(val !== undefined && search){
+                    if (val !== undefined && search) {
                         return {
                             with: () => String(val).includes(search as string),
                             without: () => !String(val).includes(search as string),
                             "without!": () => String(val) !== search,
                             "with!": () => String(val) === search
-                        }[filterInfo?.type as "with" | "without" | "without!" |"with!"]?.() ?? false
+                        }[filterInfo?.type as "with" | "without" | "without!" | "with!"]?.() ?? false
                     }
                     return {
                         "with": val !== undefined,
@@ -1734,12 +1746,12 @@ middle
             let data: Collection<any, any> | undefined;
             let number = parseInt(String(cmd_opts['n']))
             data = await {
-                "channel": async() => await msg.guild?.channels.fetch(),
-                "role": async() => await msg.guild?.roles.fetch(),
-                "member": async() => await msg.guild?.members.fetch(),
-                "user": async() => (await msg.guild?.members.fetch())?.mapValues(v => v.user),
-                "bot": async() => (await msg.guild?.members.fetch())?.filter(u => u.user.bot),
-                "command": async() => new Collection<string, Command | CommandV2>(Object.entries(getCommands()))
+                "channel": async () => await msg.guild?.channels.fetch(),
+                "role": async () => await msg.guild?.roles.fetch(),
+                "member": async () => await msg.guild?.members.fetch(),
+                "user": async () => (await msg.guild?.members.fetch())?.mapValues(v => v.user),
+                "bot": async () => (await msg.guild?.members.fetch())?.filter(u => u.user.bot),
+                "command": async () => new Collection<string, Command | CommandV2>(Object.entries(getCommands()))
             }[object as "channel" | "role" | "member" | "user" | "bot" | "command"]()
             data = data?.filter(filter)
             if (!data) {
