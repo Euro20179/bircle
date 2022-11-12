@@ -568,6 +568,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             }]
         }
     }
+    console.log(rv)
     //the place to send message to
     let location = msg.channel
     if (rv['dm']) {
