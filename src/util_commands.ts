@@ -1364,7 +1364,7 @@ export default function() {
                     e.setFooter({ text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}` })
 
                     //@ts-ignore
-                    e.setImage(res.videoThumbnails.filter(v => v.quality == thumbnail_quality)[0].url)
+                    e.setImage(res.videoThumbnails?.filter(v => v.quality == thumbnail_quality)[0].url)
 
                     let button = new MessageButton({ label: "OPEN", style: "LINK", url: `https://www.youtube.com/watch?v=${res.videoId}` })
 
@@ -1407,14 +1407,14 @@ export default function() {
                         let json_data = jsonData.filter(v => v.videoId == yt_id)[0]
                         let fn = `${generateFileName("yt", msg.author.id)}.json`
                         fs.writeFileSync(fn, JSON.stringify(json_data))
-                        await int.reply({
+                        int.reply({
                             files: [
                                 {
                                     attachment: fn,
                                     name: fn,
                                 }
                             ]
-                        })
+                        }).catch(console.error)
                         fs.rmSync(fn)
                         return
                     }

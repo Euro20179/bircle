@@ -6,7 +6,7 @@ import user_options = require("./user-options")
 
 import { prefix } from './common'
 import { CommandCategory, createCommand, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
-import { fetchUser, format, getOpts } from './util'
+import { ArgList, fetchUser, format, getOpts } from './util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from './shop'
 const { buyItem, hasItem, useItem } = require('./shop')
@@ -882,6 +882,7 @@ export default function() {
     registerCommand(
     "give-item", {
         run: async (msg, args, sendCallback) => {
+            let alist = new ArgList(args)
             let [i, user] = args.join(" ").split("|").map(v => v.trim())
             if (!user) {
                 return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``, status: StatusCode.ERR }

@@ -781,6 +781,16 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
     return img
 }
 
+class ArgList{
+    length: number
+    constructor(args: string[]){
+        this.length = args.length
+        for(let index in args){
+            Reflect.set(this, index, args[index])
+        }
+    }
+}
+
 class Options{
     constructor(opts: Opts){
         for(let op in opts){
@@ -1130,6 +1140,7 @@ export {
     Units,
     formatPercentStr,
     parsePercentFormat,
-    formatBracePairs
+    formatBracePairs,
+    ArgList
 }
 

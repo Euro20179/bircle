@@ -5,7 +5,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
-import { cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
 
 export enum StatusCode {
     PROMPT = -2,
@@ -385,7 +385,8 @@ export class Interprater {
                         sendCallback: this.sendCallback,
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
-                        opts: new Options(opts)
+                        opts: new Options(opts),
+                        argList: new ArgList(args2)
                     }
                     rv = await (commands[this.real_cmd] as CommandV2).run(obj)
                 }

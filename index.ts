@@ -1,6 +1,9 @@
 ///<reference path="src/types.d.ts" />
 import fs = require("fs")
 
+//TODO: add ArgumentList class to interact with args
+//can be added to commandV2 as arguments in the object given to the fn
+
 import http from 'http'
 
 import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } from "discord.js"
