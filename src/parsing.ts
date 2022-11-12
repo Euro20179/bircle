@@ -671,7 +671,6 @@ function parseAliasReplacement(msg: Message, cmdContent: string, args: string[])
                     val += ch
                 }
                 let suffix = ""
-                let isSlice = false
                 let dotsInARow = 0
                 for (i++; i < cmdContent.length; i++) {
                     let ch = cmdContent[i]
@@ -680,7 +679,6 @@ function parseAliasReplacement(msg: Message, cmdContent: string, args: string[])
                     }
                     if (ch == '.') {
                         dotsInARow++
-                        isSlice = true
                         continue
                     }
                     suffix += ch

@@ -592,7 +592,8 @@ export default function() {
                     sep = " "
                 } else sep = String(sep)
                 let words = []
-                for (let word of args) {
+                //args are not strictly space separated
+                for (let word of args.join(" ").split(" ")) {
                     if (word.match(/^[aeiou]/)) {
                         words.push(`${word}ay`)
                     }

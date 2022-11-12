@@ -52,6 +52,7 @@ Object.defineProperty(User.prototype, "netWorth", {
     }
 });
 
+
 (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
