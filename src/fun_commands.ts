@@ -408,7 +408,7 @@ export default function() {
     )
 
     registerCommand(
-        "wiki", createCommand(async (msg, _, sb, opts, args) => {
+        "wiki", createCommandV2(async ({args}) => {
             let search = args.join(" ").toLowerCase().replaceAll("/", "%2f")
             for (let file of fs.readdirSync("./wiki")) {
                 let name = file.toLowerCase()
@@ -420,7 +420,7 @@ export default function() {
                 }
             }
             return { content: "No results", status: StatusCode.ERR }
-        }, CommandCategory.FUN),
+        }, CommandCategory.FUN, "Look at a page on the server wiki"),
     )
 
     registerCommand(
