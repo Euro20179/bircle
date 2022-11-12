@@ -7,7 +7,7 @@ import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { ADMINS, client, FILE_SHORTCUTS, getVar, prefix, saveVars, setVar, vars, VERSION } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp } from "./util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML } from "./util"
 import { Guild, Message } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
@@ -168,7 +168,7 @@ export default function() {
                 }
 
                 let attrs = args.slice(1)
-                if(attrs.length === 0){
+                if (attrs.length === 0) {
                     attrs.push("run")
                 }
 
@@ -178,18 +178,18 @@ export default function() {
 
                 let results = []
                 let curAttr = command
-                for(let attr of attrs){
-                    for(let subAttr of attr.split(".")){
+                for (let attr of attrs) {
+                    for (let subAttr of attr.split(".")) {
                         //@ts-ignore
                         curAttr = curAttr[subAttr]
-                        if(curAttr === undefined) break;
+                        if (curAttr === undefined) break;
                     }
 
-                    if(curAttr !== undefined){
-                        if(typeof curAttr === 'object'){
+                    if (curAttr !== undefined) {
+                        if (typeof curAttr === 'object') {
                             results.push(JSON.stringify(curAttr))
                         }
-                        else{
+                        else {
                             results.push(String(curAttr))
                         }
                     }
@@ -357,17 +357,17 @@ export default function() {
                 for (let cmd in commands) {
                     if (cmd.match(regexp)) {
                         if (commands[cmd].help?.info) {
-                            results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands[cmd].help?.info || "")}`)
                         }
                         else results.push(cmd)
                     }
                     else if (commands[cmd].help) {
                         let help = commands[cmd].help
                         if (help?.info?.match(search)) {
-                            results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands[cmd].help?.info || "")}`)
                         }
                         else if (help?.tags?.includes(search)) {
-                            results.push(`**${cmd}**: ${commands[cmd].help?.info}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands[cmd].help?.info || "")}`)
                         }
                     }
                 }
@@ -454,29 +454,15 @@ export default function() {
     )
 
     registerCommand(
-        "del",
-        {
-            run: async (msg, args, sendCallback, _, __, rec, bans) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (!opts['N']) return { noSend: true, delete: true, status: StatusCode.RETURN }
-                await runCmd(msg, args.join(" "), rec + 1, false, bans)
-                return { noSend: true, delete: true, status: StatusCode.RETURN }
-            },
-            help: {
-                arguments: {
-                    text: {
-                        description: "Text"
-                    }
-                },
-                options: {
-                    "N": {
-                        description: "Treat text as a command"
-                    }
-                }
-            },
-            category: CommandCategory.META
-        },
+        "del", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, opts }) => {
+            if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
+            await runCmd(msg, args.join(" "), rec + 1, false, bans)
+            return { noSend: true, delete: true, status: StatusCode.RETURN }
+        }, CommandCategory.META, "delete your message", {
+            "...text": createHelpArgument("text"),
+        }, {
+            N: createHelpOption("Treat text as a command")
+        })
     )
 
     registerCommand(
@@ -606,7 +592,7 @@ export default function() {
             text = text.slice(trueBlock.length + 2).trim()
 
             //optional else
-            if(text.startsWith("else")){
+            if (text.startsWith("else")) {
                 text = text.slice("else".length)
             }
 
@@ -636,10 +622,10 @@ export default function() {
                 return { noSend: true, status: StatusCode.RETURN }
             }
         }, CommandCategory.META,
-                               "Compares the result of a command a value",
-                               {
-                                   "(command)": createHelpArgument("The command to run surrounded by ()", true),
-                                   "comparator": createHelpArgument(`The comparison operator<br><b>valid operators</b>
+            "Compares the result of a command a value",
+            {
+                "(command)": createHelpArgument("The command to run surrounded by ()", true),
+                "comparator": createHelpArgument(`The comparison operator<br><b>valid operators</b>
 <ul>
 <li><b>==</b>: exact equality</li>
 <li><b>!=</b>: not equal</li>
@@ -658,8 +644,8 @@ export default function() {
 <li><b>ew</b>: result ends with value</li>
 </ul>
 `, true),
-                                   "(value)": createHelpArgument("The value to compare against surrounded by ()", true)
-                               }),
+                "(value)": createHelpArgument("The value to compare against surrounded by ()", true)
+            }),
     )
 
     registerCommand(
