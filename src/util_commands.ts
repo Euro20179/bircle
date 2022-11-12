@@ -63,8 +63,8 @@ export default function() {
                 })
                 return { content: units.sort((a, b) => a[1] - b[1]).map(v => `${v[0].longname} (${v[0].shorthand}) (${v[1]}${compareToUnit})`).join("\n"), status: StatusCode.RETURN }
             }
-            if(args.length < 2){
-                return {content: "Command usage: `[units <number><unit> <convert-to-unit>`", status: StatusCode.ERR}
+            if (args.length < 2) {
+                return { content: "Command usage: `[units <number><unit> <convert-to-unit>`", status: StatusCode.ERR }
             }
             let number = Number(args[0])
             let unit;
@@ -1297,8 +1297,8 @@ export default function() {
 
     registerCommand(
         "rand-arg", createCommandV2(
-            async({args}) =>{
-                return {content: choice(args), status: StatusCode.RETURN}
+            async ({ args }) => {
+                return { content: choice(args), status: StatusCode.RETURN }
             },
             CommandCategory.UTIL,
             "Sends a random argument"
@@ -1526,29 +1526,23 @@ middle
     registerCommand(
         "string", createCommand(async (_msg, args) => {
             let operation = args[0]
-            let validOperations = ["upper", "lower", "title", "lc", "wc", "bc"]
             let string = args.slice(1).join(" ")
+            let operations: { [key: string]: (string: string) => string } = {
+                upper: string => string.toUpperCase(),
+                lower: string => string.toUpperCase(),
+                title: string => string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" "),
+                lc: string => String(string.split("\n").length),
+                wc: string => String(string.split(" ").length),
+                bc: string => String(string.split("").length),
+                "utf-8c": string => String([...string].length)
+            }
             if (!string) {
                 return { content: "No text to manipulate", status: StatusCode.ERR }
             }
-            if (!validOperations.includes(operation.toLowerCase())) {
-                return { content: `${operation} is not one of: \`${validOperations.join(", ")}\``, status: StatusCode.ERR }
+            if (!Object.keys(operations).includes(operation.toLowerCase())) {
+                return { content: `${operation} is not one of: \`${Object.keys(operations).join(", ")}\``, status: StatusCode.ERR }
             }
-            switch (operation) {
-                case "upper":
-                    return { content: string.toUpperCase(), status: StatusCode.RETURN }
-                case "lower":
-                    return { content: string.toLowerCase(), status: StatusCode.RETURN }
-                case "title":
-                    return { content: string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" "), status: StatusCode.RETURN }
-                case "lc":
-                    return { content: String(string.split("\n").length), status: StatusCode.RETURN }
-                case "wc":
-                    return { content: String(string.split(" ").length), status: StatusCode.RETURN }
-                case "bc":
-                    return { content: String(string.split(" ").length), status: StatusCode.RETURN }
-            }
-            return { content: "Invalid Operation", status: StatusCode.ERR }
+            return { content: operations[operation.toLowerCase()](string), status: StatusCode.RETURN }
         },
             CommandCategory.UTIL,
             "Do something to some text",

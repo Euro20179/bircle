@@ -193,7 +193,7 @@ client.on("messageCreate", async (m: Message) => {
             if(pingresponse){
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if(command_commons.isCmd(pingresponse, prefix)){
-                    await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans())
+                    command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans())
                 }
                 else{
                     m.channel.send(pingresponse)
@@ -250,7 +250,7 @@ client.on("messageCreate", async (m: Message) => {
             m.content = `${cmd}`
             let c = m.content.slice(local_prefix.length)
             try{
-                await command_commons.runCmd(m, c)
+                command_commons.runCmd(m, c)
             }
             catch(err){
                 console.error(err)
