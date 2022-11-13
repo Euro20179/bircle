@@ -1316,9 +1316,6 @@ If an image is not provided it will be pulled from chat, or an image you gave it
 
             let width = Number(opts['w']) || 0
             let height = Number(opts['h']) || 0
-            if (width * height > 4000000) {
-                return { content: "Too large", status: StatusCode.ERR }
-            }
 
             let text = args.join(" ")
             if (!text) {
@@ -1345,6 +1342,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 let image = await canvas.loadImage(img as string)
                 width = width || image.width
                 height = height || image.height
+                if (width * height > 4000000) {
+                    return { content: "Too large", status: StatusCode.ERR }
+                }
                 canv = new canvas.Canvas(width, height, "image")
                 ctx = canv.getContext("2d")
                 ctx.drawImage(image, 0, 0)
@@ -1352,6 +1352,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             else {
                 width = width || 100
                 height = height || 100
+                if (width * height > 4000000) {
+                    return { content: "Too large", status: StatusCode.ERR }
+                }
                 canv = new canvas.Canvas(width, height, "image")
                 ctx = canv.getContext("2d")
             }
