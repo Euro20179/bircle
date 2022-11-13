@@ -1597,12 +1597,15 @@ middle
     registerCommand(
         "format-seconds", createCommandV2(async ({ args }) => {
             let amountOfTime = parseFloat(args[0])
-            if(isNaN(amountOfTime)){
-                return {content: `Invalid command usage\n\`[format-seconds <seconds> <format>\``, status: StatusCode.ERR}
+            if (isNaN(amountOfTime)) {
+                return { content: `Invalid command usage\n\`[format-seconds <seconds> <format>\``, status: StatusCode.ERR }
             }
-            return {content: format(args.slice(1).join(" ") || "%H:%M:%S", {H: String(Math.floor((amountOfTime /(60 * 60)) % 24)), M: String(Math.floor((amountOfTime / 60) % 60)), S: String(Math.floor(amountOfTime % 60)), d: String((Math.floor(amountOfTime / (60 * 60 * 24)) % 7))}), status: StatusCode.RETURN}
-        }, CommandCategory.UTIL,
-        "Convert seconds into days/hours/minutes/seconds"
+            return { content: format(args.slice(1).join(" ") || "%H:%M:%S", { H: String(Math.floor((amountOfTime / (60 * 60)) % 24)), M: String(Math.floor((amountOfTime / 60) % 60)), S: String(Math.floor(amountOfTime % 60)), d: String((Math.floor(amountOfTime / (60 * 60 * 24)) % 7)) }), status: StatusCode.RETURN }
+        }, CommandCategory.UTIL, "Convert seconds into days/hours/minutes/seconds",
+            {
+                seconds: createHelpArgument("The amount of seconds"),
+                format: createHelpArgument("The format to use<br><b>Possible formats</b><ul><li>d: The amount of days</li><li>H: The amount of hours</li><li>M: The amount of minutes</li><li>S: The amount of seconds</li></ul>", false, undefined, "%H:%M:%S")
+            }
         )
     )
 
