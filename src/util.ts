@@ -381,7 +381,7 @@ function formatPercentStr(string: string, replacements: {[key: string]: string})
     return newStr
 }
 
-function formatBracePairs(string: string, replacements: {[key: string]: string}, pair = "{}"){
+function formatBracePairs(string: string, replacements: {[key: string]: string}, pair = "{}", recursion = true){
     let newStr = ""
     let escape = false
     for(let i = 0; i < string.length; i++){
@@ -391,7 +391,12 @@ function formatBracePairs(string: string, replacements: {[key: string]: string},
         }
         else if(ch == pair[0] && !escape){
             let inner = parseBracketPair(string.slice(i), pair)
-            newStr += replacements[inner] ?? `${pair[0]}${inner}${pair[1]}`
+            if(recursion){
+                newStr += replacements[inner] ?? `${pair[0]}${formatBracePairs(inner, replacements, pair, recursion)}${pair[1]}`
+            }
+            else{
+                newStr += replacements[inner] ?? `${pair[0]}${inner}${pair[1]}`
+            }
             i += inner.length + 1
         }
         else{
@@ -603,8 +608,8 @@ function escapeRegex(str: string) {
     return finalString
 }
 
-function format(str: string, formats: { [key: string]: string }) {
-    return formatPercentStr(formatBracePairs(str, formats), formats)
+function format(str: string, formats: { [key: string]: string }, recursion=false) {
+    return formatPercentStr(formatBracePairs(str, formats, "{}", recursion), formats)
 }
 
 async function createGradient(gradient: string[], width: number | string, height: number | string) {
