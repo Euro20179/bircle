@@ -69,6 +69,8 @@ function removeFromPermList(list: { [key: string]: string[] }, listFile: string,
 
 const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
+const GLOBAL_CURRENCY_SIGN = "$"
+
 let defaultVars = {
     random: () => Math.random(),
     rand: () => Math.random(),
@@ -78,6 +80,7 @@ let defaultVars = {
     carson: () => "The all legendary Carson Williams",
     money: (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
     "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
+    "__global_currency_sign": () => GLOBAL_CURRENCY_SIGN
 }
 
 for(let v of allowedOptions){
@@ -177,5 +180,6 @@ export {
     readVars,
     saveVars,
     getVar,
+    GLOBAL_CURRENCY_SIGN
 }
 

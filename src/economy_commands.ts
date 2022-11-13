@@ -4,7 +4,7 @@ import pet = require("./pets")
 import user_options = require("./user-options")
 
 
-import { prefix } from './common'
+import { GLOBAL_CURRENCY_SIGN, prefix } from './common'
 import { CommandCategory, createCommand, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
 import { ArgList, fetchUser, format, getOpts } from './util'
 import { MessageEmbed } from 'discord.js'
@@ -55,7 +55,7 @@ export default function() {
                     else {
                         economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
                     }
-                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${data.price * amount}`, status: StatusCode.RETURN }
+                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }
                 }
                 case "pet": {
                     if (!item) {
@@ -75,7 +75,7 @@ export default function() {
                         return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
                     }
                     if (pet.buyPet(msg.author.id, item)) {
-                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${totalCost}\nTo activate it run ${prefix}sapet ${item}`, status: StatusCode.RETURN }
+                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${prefix}sapet ${item}`, status: StatusCode.RETURN }
                     }
                     return { content: "You already have this pet", status: StatusCode.ERR }
                 }
@@ -112,7 +112,7 @@ export default function() {
                             return { content: `This item is too expensive for u`, status: StatusCode.ERR }
                         }
                     }
-                    return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${totalSpent}`, status: StatusCode.RETURN }
+                    return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
                 }
             }
             return { noSend: true, status: StatusCode.RETURN }
@@ -169,7 +169,7 @@ export default function() {
                 else {
                     economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
                 }
-                handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${data.price * amount}`, status: StatusCode.RETURN }, sendCallback)
+                handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }, sendCallback)
             }, () => {
                 handleSending(msg, { content: `Failed to get stock data for: ${stock}`, status: StatusCode.ERR }, sendCallback)
             })
@@ -333,7 +333,7 @@ export default function() {
                     return { content: `This item is too expensive for u`, status: StatusCode.ERR }
                 }
             }
-            return { content: `You bought: ${item} for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${totalSpent}`, status: StatusCode.RETURN }
+            return { content: `You bought: ${item} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
         help: {
             info: "Buy an item",
@@ -375,7 +375,7 @@ export default function() {
                 for (let cost of data.cost) {
                     totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
                 }
-                embed.addField(`${pet}\n${user_options.getOpt(msg.author.id, "currency-sign", "$")}${totalCost}`, `${data.description}`, true)
+                embed.addField(`${pet}\n${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`, `${data.description}`, true)
             }
             embed.setFooter({ text: `To buy a pet, do ${prefix}bpet <pet name>` })
             return { embeds: [embed], status: StatusCode.RETURN }
@@ -404,7 +404,7 @@ export default function() {
                 return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
             }
             if (pet.buyPet(msg.author.id, requested_pet)) {
-                return { content: `You have successfuly bought: ${requested_pet} for: ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${totalCost}`, status: StatusCode.RETURN }
+                return { content: `You have successfuly bought: ${requested_pet} for: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`, status: StatusCode.RETURN }
             }
             return { content: "You already have this pet", status: StatusCode.ERR }
         }, category: CommandCategory.ECONOMY,
@@ -482,7 +482,7 @@ export default function() {
                 if (round) {
                     totalCost = Math.floor(totalCost * 100) / 100
                 }
-                let text = `**${totalCost == Infinity ? "puffle only" : `${user_options.getOpt(msg.author.id, "currency-sign", "$")}${totalCost}`}**\n${itemJ[item].description}`
+                let text = `**${totalCost == Infinity ? "puffle only" : `${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`}**\n${itemJ[item].description}`
                 if (itemJ[item]['puffle-banned']) {
                     text += '\n**buy only**'
                 }
@@ -699,7 +699,7 @@ export default function() {
                 let profit = (nPrice - stockInfo.buyPrice) * sellAmount
                 economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
                 economy.addMoney(msg.author.id, profit)
-                return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${profit} in total`, status: StatusCode.RETURN }
+                return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
             }
         }, category: CommandCategory.ECONOMY
     },
@@ -1057,10 +1057,10 @@ export default function() {
                     percent = Math.round(percent * 100) / 100
                 }
                 if (opts['text']) {
-                    text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${money} (${percent}%)\n`
+                    text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)\n`
                 }
                 else {
-                    embed.addField(`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${money} (${percent}%)`, true)
+                    embed.addField(`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true)
                 }
                 place++
             }
