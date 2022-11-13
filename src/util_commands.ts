@@ -1600,7 +1600,7 @@ middle
             if(isNaN(amountOfTime)){
                 return {content: `Invalid command usage\n\`[format-seconds <seconds> <format>\``, status: StatusCode.ERR}
             }
-            return {content: format(args.slice(1).join(" ") || "%H:%M:%S", {H: String((amountOfTime * 60 * 60) % 24), M: String((amountOfTime * 60) % 60), S: String(amountOfTime % 60), d: String((amountOfTime * 60 * 60 * 24) % 7)}), status: StatusCode.RETURN}
+            return {content: format(args.slice(1).join(" ") || "%H:%M:%S", {H: String(Math.floor((amountOfTime /(60 * 60)) % 24)), M: String(Math.floor((amountOfTime / 60) % 60)), S: String(Math.floor(amountOfTime % 60)), d: String((Math.floor(amountOfTime / (60 * 60 * 24)) % 7))}), status: StatusCode.RETURN}
         }, CommandCategory.UTIL,
         "Convert seconds into days/hours/minutes/seconds"
         )
