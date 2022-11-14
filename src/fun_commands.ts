@@ -55,7 +55,7 @@ export default function() {
             [ "a fine grain of sand", 0.01, ],
             [ "a fine quarter", 0.25, ],
             [ "fishing rod", 0.05 ],
-            [ "item yoinker", 1.005]
+            [ "item yoinker", 0.005]
         ]
         while(possibleItems.length > 1){
             possibleItems = possibleItems.filter(v => Math.random() < v[1])
