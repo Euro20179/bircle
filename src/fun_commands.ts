@@ -311,16 +311,16 @@ export default function() {
         "feed-pet",
         {
             run: async (msg, args, sendCallback) => {
-                let petName = args[0]?.toLowerCase()
+                let petName = args[0]
                 let item = args.slice(1).join(" ").toLowerCase()
-                if (!pet.hasPet(msg.author.id, petName)) {
+                if (!pet.hasPetByNameOrType(msg.author.id, petName)) {
                     return { content: `You do not  have a ${petName}`, status: StatusCode.ERR }
                 }
                 if (!hasItem(msg.author.id, item)) {
                     return { content: `You do not have the item: ${item}`, status: StatusCode.ERR }
                 }
                 useItem(msg.author.id, item)
-                let feedAmount = pet.feedPet(msg.author.id, petName, item)
+                let feedAmount = pet.feedPet(msg.author.id, pet.getPetTypeByName(msg.author.id, petName) as string, item)
                 if (feedAmount) {
                     return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`, status: StatusCode.RETURN }
                 }

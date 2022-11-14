@@ -165,6 +165,9 @@ function getPetTypeByName(id: string, name: string){
                 return pet
             }
         }
+        if(PETINVENTORY[id]?.[name.toLowerCase()]){
+            return name.toLowerCase()
+        }
     }
     return null
 }
