@@ -39,6 +39,10 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         requirements: ["id"],
         exec: async({ id }: {id: string}) => pet.getActivePet(id)
     },
+    getSandCounter: {
+        requirements: ["id"],
+        exec: async({ id }: {id: string}) => economy.getSandCounter(id)
+    },
     getStockInformation: {
         requirements: ["symbol"],
         exec: async({ symbol }: {symbol:  string}) => {
