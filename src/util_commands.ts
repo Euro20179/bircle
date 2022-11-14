@@ -740,7 +740,7 @@ export default function() {
         "sapet",
         {
             run: async (msg, args, sendCallback) => {
-                let newActivePet = args[0]?.toLowerCase()
+                let newActivePet = args[0]
                 if (!pet.hasPetByNameOrType(msg.author.id, newActivePet)) {
                     return { content: `You do not have a ${newActivePet}`, status: StatusCode.ERR }
                 }
