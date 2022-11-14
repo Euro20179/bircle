@@ -8,7 +8,7 @@ import fetch = require("node-fetch")
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
@@ -427,6 +427,8 @@ export default function() {
         "search-wiki", createCommand(async (msg, _, sb, opts, args) => {
             let search = args.join(" ").toLowerCase()
             let results: { [key: string]: number } = {}
+            let r2: { [key: string]: number } = searchList(search, fs.readdirSync("./wiki").map(v => v.replaceAll("%2f", "/").slice(0, -4).toLowerCase()))
+            console.log(r2)
             for (let file of fs.readdirSync("./wiki")) {
                 file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
                 // let accuracy = 0

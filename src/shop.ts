@@ -12,8 +12,8 @@ export function loadItems(){
         let data = fs.readFileSync("./inventory.json", "utf-8")
         INVENTORY = JSON.parse(data)
     }
-    if(fs.existsSync("./shop.json")){
-        let data = fs.readFileSync("./shop.json", "utf-8")
+    if(fs.existsSync("./data/shop.json")){
+        let data = fs.readFileSync("./data/shop.json", "utf-8")
         ITEMS = JSON.parse(data)
     }
 }
