@@ -1,6 +1,6 @@
 {
     "tax evasion": {
-        "description": "Increase the time before you can be taxed again by 30 seconds (used immediately on purchase)",
+        "description": "Increase the time before you can be taxed again by 1 minute (used immediately on purchase)",
         "uses": 1,
         "cost": ["8%", "22"]
     },
@@ -29,7 +29,7 @@
     "bone": {
         "description": "Restore randomly 3-7 hunger to a pet of your  choice",
         "uses": 1,
-        "cost": ["3"]
+        "cost": ["0.5"]
     },
     "puffle chat": {
         "description": "get an extra .01% every minute talking",

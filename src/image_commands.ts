@@ -230,7 +230,7 @@ export default function() {
             let canv = new canvas.Canvas(width, height, "image")
             let ctx = canv.getContext('2d')
             ctx.textBaseline = 'top'
-            function createColor(type: string, data: string[], m: Message) {
+            function createColor(type: string, data: string[]) {
                 switch (type) {
                     // case "pattern": {
                     //     let opts: {[key: string]: string} = {};
