@@ -280,7 +280,7 @@ client.on("messageCreate", async (m: Message) => {
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
             if (stuff)
-                await m.channel.send(`<@${m.author.id}>'s puffle found: ${stuff.items.join(", ")}, and $${stuff.money}`)
+                await m.channel.send(`<@${m.author.id}>'s ${pet.hasPet(m.author.id, ap).name} found: ${stuff.items.join(", ")}, and ${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}`)
         }
     }
 })

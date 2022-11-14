@@ -6,7 +6,7 @@ import user_options = require("./user-options")
 
 
 import { GLOBAL_CURRENCY_SIGN, prefix } from './common'
-import { CommandCategory, createCommand, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
 import { ArgList, fetchUser, format, getOpts } from './util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from './shop'
@@ -434,9 +434,10 @@ export default function() {
             let e = new MessageEmbed()
             e.setTitle(`${user.user.username}'s pets`)
             let activePet = pet.getActivePet(msg.author.id)
+            console.log(activePet)
             e.setDescription(`active pet: ${activePet}`)
             for (let pet in pets) {
-                e.addField(pet, `${pets[pet]} hunger`, true)
+                e.addField(pets[pet].name, `${pets[pet].health} hunger`, true)
             }
             if (!activePet) {
                 e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
@@ -445,6 +446,20 @@ export default function() {
         }, category: CommandCategory.ECONOMY
     },
     )
+
+    registerCommand("name-pet", createCommandV2(async({args, msg}) => {
+        let [p, ...name] = args
+        let realName = name.join(" ")
+        let type = pet.getPetTypeByName(msg.author.id, p)
+        console.log(type)
+        if(type)
+            p = type
+        if(pet.namePet(msg.author.id, p, realName)){
+        
+            return {content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN}
+        }
+        return {content: `You do not have a ${p}`, status: StatusCode.ERR}
+    }, CommandCategory.ECONOMY))
 
     registerCommand(
         "shop", {

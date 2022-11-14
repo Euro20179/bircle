@@ -741,7 +741,7 @@ export default function() {
         {
             run: async (msg, args, sendCallback) => {
                 let newActivePet = args[0]?.toLowerCase()
-                if (!pet.hasPet(msg.author.id, newActivePet)) {
+                if (!pet.hasPetByNameOrType(msg.author.id, newActivePet)) {
                     return { content: `You do not have a ${newActivePet}`, status: StatusCode.ERR }
                 }
                 if (pet.setActivePet(msg.author.id, newActivePet)) {
