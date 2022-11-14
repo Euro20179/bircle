@@ -1345,7 +1345,12 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 if (width * height > 4000000) {
                     return { content: "Too large", status: StatusCode.ERR }
                 }
-                canv = new canvas.Canvas(width, height, "image")
+                try{
+                    canv = new canvas.Canvas(width, height, "image")
+                }
+                catch(err){
+                    return {content: "Invalid value (typically too big) for size", status: StatusCode.ERR}
+                }
                 ctx = canv.getContext("2d")
                 ctx.drawImage(image, 0, 0)
             }
@@ -1355,7 +1360,12 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 if (width * height > 4000000) {
                     return { content: "Too large", status: StatusCode.ERR }
                 }
-                canv = new canvas.Canvas(width, height, "image")
+                try{
+                    canv = new canvas.Canvas(width, height, "image")
+                }
+                catch(err){
+                    return {content: "Invalid value (typically too big) for size", status: StatusCode.ERR}
+                }
                 ctx = canv.getContext("2d")
             }
 
