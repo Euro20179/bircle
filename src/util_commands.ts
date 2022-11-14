@@ -714,7 +714,7 @@ export default function() {
                 return { content: "No working for you bubs", status: StatusCode.ERR }
             }, category: CommandCategory.UTIL,
             help: {
-                info: `Earn money (.1% of the economy) if your net worth is below 0`
+                info: `Earn money (.1% of the economy) if your net worth is below 0 or if you graduated #school\nYou can work once per hour`
             }
         },
     )
