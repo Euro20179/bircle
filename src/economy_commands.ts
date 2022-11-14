@@ -358,7 +358,7 @@ export default function() {
             if (au)
                 e.setThumbnail(au)
             for (let item in INVENTORY()[user.id]) {
-                e.addField(item, `${INVENTORY()[user.id][item]}`)
+                e.addField(item, `${INVENTORY()[user.id][item]}`, true)
             }
             return { embeds: [e], status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY

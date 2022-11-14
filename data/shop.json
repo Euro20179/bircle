@@ -41,5 +41,10 @@
         "uses": 1,
         "cost": ["99%"],
         "puffle-banned": true
+    },
+    "fishing rod": {
+        "description": "Allows you to go fishing",
+        "uses": 10,
+        "cost": ["3%"]
     }
 }

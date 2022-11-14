@@ -14,6 +14,7 @@ import pet = require("./pets")
 import globals = require("./globals")
 import { CommandCategory, createCommand, createCommandV2, createHelpOption, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
 import { registerFont } from 'canvas';
+import { giveItem } from './shop';
 
 const { useItem, hasItem } = require("./shop")
 
@@ -24,6 +25,31 @@ export default function() {
             return { content: "Congrats, you found the secret command", status: StatusCode.RETURN }
         }, CommandCategory.FUN)
     )
+
+    registerCommand("fishing", createCommandV2(async({msg, args}) => {
+        let rod = hasItem(msg.author.id, "fishing rod")
+        if(!rod){
+            return {content: "You do not have a fishing rod", status: StatusCode.ERR}
+        }
+        let possibleItems: [string, number][] = [
+            [ "fish", 0.5, ],
+            [ "stinky ol' boot", 0.3, ],
+            [ "ghostly's nose", 0.1, ],
+            [ "a fine grain of sand", 0.01, ],
+            [ "a fine quarter", 0.25, ],
+            [ "fishing rod", 0.05 ]
+        ]
+        while(possibleItems.length > 1){
+            possibleItems = possibleItems.filter(v => Math.random() < v[1])
+        }
+        let item = possibleItems[0]
+        if(!item){
+            return {content: "You found nothing!", status: StatusCode.RETURN}
+        }
+        giveItem(msg.author.id, item[0], 1)
+        useItem(msg.author.id, "fishing rod", Math.floor(Math.random() * 2))
+        return {content: `You fished up ${item[0]}!!`, status: StatusCode.RETURN}
+    }, CommandCategory.FUN))
 
     registerCommand(
 
@@ -408,7 +434,7 @@ export default function() {
     )
 
     registerCommand(
-        "wiki", createCommandV2(async ({args}) => {
+        "wiki", createCommandV2(async ({ args }) => {
             let search = args.join(" ").toLowerCase().replaceAll("/", "%2f")
             for (let file of fs.readdirSync("./wiki")) {
                 let name = file.toLowerCase()
@@ -647,7 +673,7 @@ export default function() {
                 if (embed) {
                     rv["embeds"] = [embed]
                 }
-                if(stickers.length){
+                if (stickers.length) {
                     rv['stickers'] = stickers
                 }
                 if (opts['recurse']) {
