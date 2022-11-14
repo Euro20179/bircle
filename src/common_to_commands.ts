@@ -644,7 +644,7 @@ export function createCommand(
 }
 
 export function createCommandV2(
-    cb: ({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: {msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgumentList, recursionCount: number, commandBans?: {categories?: CommandCategory[], commands?: string[]}}) => Promise<CommandReturn>,
+    cb: (arg0: CommandV2RunArg) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,

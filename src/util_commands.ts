@@ -14,7 +14,7 @@ import timer from './timer'
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from 'discord.js'
 import { StatusCode, Interprater, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
-import { ADMINS, getVar, prefix, setVar, vars } from './common'
+import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
 import { spawnSync } from 'child_process'
 
 export default function() {
@@ -2914,6 +2914,32 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
         },
     )
+
+    registerCommand("sticker-info", createCommandV2(async({msg, opts, args}) => {
+        let sticker = msg.stickers.at(0)
+        if(opts.getBool("r", false)){
+            sticker = (await msg.guild?.stickers.fetch())?.random()
+        }
+        if(!sticker){
+            return {content: "No sticker", status: StatusCode.ERR}
+        }
+        let fmt = args.join(" ") || "{embed}"
+        if(fmt === "{embed}"){
+            let embed = new MessageEmbed()
+            embed.setThumbnail(sticker.url)
+            embed.addFields([
+                {name: "type", value: sticker.type || "N/A", inline: true},
+                {name: "name", value: sticker.name, inline: true},
+                {name: "id", value: sticker.id, inline: true},
+                {name: "creator", value: sticker.user?.toString() || "N/A", inline: true},
+                {name: "createdAt", value: sticker.createdAt.toString(), inline: true},
+                {name: "format", value: sticker.format, inline: true},
+                {name: "tags", value: sticker.tags?.join(", ") || "N/A", inline: true}
+            ])
+            return {embeds: [embed], status: StatusCode.RETURN}
+        }
+        return {content: format(fmt, {"t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A"}), status: StatusCode.RETURN}
+    }, CommandCategory.UTIL))
 
     registerCommand(
         "user-info",

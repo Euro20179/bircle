@@ -771,10 +771,9 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
         //@ts-ignore
         img = msg.attachments.at(0)?.attachment
     }
-    //@ts-ignore
-    else if (msg.reply?.attachments?.at(0)) {
+    else if(msg.stickers?.at(0)){
         //@ts-ignore
-        img = msg.reply.attachments.at(0)?.attachment
+        img = msg.stickers.at(0).url as string
     }
     else if (msg.embeds?.at(0)?.image?.url) {
         //@ts-ignore
