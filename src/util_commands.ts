@@ -705,11 +705,11 @@ export default function() {
                             return {content: event.message, status: StatusCode.RETURN}
                         }
                     }
-                    return { content: `Congrats, you grad student, here's ${amount} from your job`, status: StatusCode.RETURN }
+                    return { content: `Congrats, you grad student, here's ${currency_sign}${amount} from your job`, status: StatusCode.RETURN }
                 }
                 if (canWork) {
                     let amount = economy.work(msg.author.id)
-                    return { content: `You earned: ${amount}`, status: StatusCode.RETURN }
+                    return { content: `You earned: ${currency_sign}${amount}`, status: StatusCode.RETURN }
                 }
                 return { content: "No working for you bubs", status: StatusCode.ERR }
             }, category: CommandCategory.UTIL,
