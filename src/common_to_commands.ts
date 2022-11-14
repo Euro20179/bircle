@@ -588,10 +588,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //usually happens when there is nothing to send
         console.log(err)
         if (sendCallback) {
-            newMsg = await sendCallback({ content: "Something went wrong" })
+            newMsg = await sendCallback({ content: `${err}` })
         }
         else {
-            newMsg = await location.send({ content: "Something went wrong" })
+            newMsg = await location.send({ content: `${err}` })
         }
     }
     //delete files that were sent
