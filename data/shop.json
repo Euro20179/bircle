@@ -46,5 +46,10 @@
         "description": "Allows you to go fishing",
         "uses": 10,
         "cost": ["0.3%"]
+    },
+    "item yoinker": {
+        "description": "Steal a random item from everyone that has item, use `[use-item item yoinker` to use this item",
+        "uses": 1,
+        "cost": ["Infinity"]
     }
 }

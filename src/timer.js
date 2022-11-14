@@ -22,6 +22,11 @@ function deleteTimer(for_user, name) {
     delete TIMERS[for_user][name];
     return true;
 }
+function restartTimer(for_user, name) {
+    if (TIMERS[for_user]?.[name]) {
+        TIMERS[for_user][name] = Date.now();
+    }
+}
 function getTimer(for_user, name) {
     return TIMERS[for_user]?.[name];
 }
@@ -62,5 +67,6 @@ exports.default = {
     saveTimers,
     loadTimers,
     getTimer,
-    getTimersOfUser
+    getTimersOfUser,
+    restartTimer
 };

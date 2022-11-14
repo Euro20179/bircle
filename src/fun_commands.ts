@@ -12,11 +12,12 @@ import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHe
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
+import timer from './timer'
 import { CommandCategory, createCommand, createCommandV2, createHelpOption, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
 import { registerFont } from 'canvas';
 import { giveItem } from './shop';
 
-const { useItem, hasItem } = require("./shop")
+const { useItem, hasItem, INVENTORY } = require("./shop")
 
 export default function() {
 
@@ -28,6 +29,22 @@ export default function() {
 
     registerCommand("fishing", createCommandV2(async({msg, args}) => {
         let rod = hasItem(msg.author.id, "fishing rod")
+
+        let canfish = false
+        if(!timer.getTimer(msg.author.id, "%fishing")){
+            canfish = true
+            timer.createTimer(msg.author.id, "%fishing")
+        }
+
+        if(timer.has_x_s_passed(msg.author.id, "%fishing", 30)){
+            canfish = true
+            timer.restartTimer(msg.author.id, "%fishing")
+        }
+
+        if(!canfish){
+            return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
+        }
+
         if(!rod){
             return {content: "You do not have a fishing rod", status: StatusCode.ERR}
         }
@@ -37,7 +54,8 @@ export default function() {
             [ "ghostly's nose", 0.1, ],
             [ "a fine grain of sand", 0.01, ],
             [ "a fine quarter", 0.25, ],
-            [ "fishing rod", 0.05 ]
+            [ "fishing rod", 0.05 ],
+            [ "item yoinker", 1.005]
         ]
         while(possibleItems.length > 1){
             possibleItems = possibleItems.filter(v => Math.random() < v[1])
@@ -74,6 +92,21 @@ export default function() {
             case "a fine grain of sand": {
                 economy.increaseSandCounter(msg.author.id, 1)
                 return {content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)}`, status: StatusCode.RETURN}
+            }
+            case "item yoinker": {
+                let inv = INVENTORY()
+                let text = ""
+                for(let user in inv){
+                    if(user === msg.author.id){
+                        continue;
+                    }
+                    let randItem = Object.keys(inv[user]).sort(() => Math.random() - 0.5)[0]
+                    if(!randItem) continue
+                    useItem(user, randItem, 1)
+                    giveItem(msg.author.id, randItem, 1)
+                    text += `Stole ${randItem} from <@${user}>\n`
+                }
+                return {content: text, allowedMentions: { parse: []}, status: StatusCode.RETURN}
             }
             default: {
                 return {content: "Lmao this item does nothing", status: StatusCode.RETURN}

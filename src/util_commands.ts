@@ -2665,6 +2665,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             switch (action) {
                 case "create": {
                     let name = String(args.slice(1).join(" ")).trim()
+                    if(name[0] === "%"){
+                        return {content: "Cannot create timer starting with %", status: StatusCode.ERR}
+                    }
                     if (timer.getTimer(msg.author.id, name)) {
                         return { content: `You already have a timer called: ${name}`, status: StatusCode.ERR }
                     }
@@ -2673,6 +2676,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 case "delete": {
                     let name = String(args.slice(1).join(" ")).trim()
+                    if(name[0] === "%"){
+                        return {content: "Cannot delete timer starting with %", status: StatusCode.ERR}
+                    }
                     if (!timer.getTimer(msg.author.id, name)) {
                         return { content: `You do not have a timer called ${name}`, status: StatusCode.ERR }
                     }
