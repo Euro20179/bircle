@@ -20,6 +20,7 @@ let commands = command_commons.getCommands()
 import globals = require("./src/globals")
 import timer from "./src/timer"
 import { URLSearchParams } from "url"
+import { format } from "./src/util"
 
 const economy = require("./src/economy")
 const {generateFileName} = require("./src/util")
@@ -279,8 +280,10 @@ client.on("messageCreate", async (m: Message) => {
         }
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
-            if (stuff)
-                await m.channel.send(`<@${m.author.id}>'s ${pet.hasPet(m.author.id, ap).name} found: ${stuff.items.join(", ")}, and ${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}`)
+            if (stuff){
+                let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
+                await command_commons.handleSending(m, {content: format(findMessage, {user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}` : stuff.items.join(", ")}), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans()})
+            }
         }
     }
 })
