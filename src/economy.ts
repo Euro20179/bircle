@@ -1,20 +1,12 @@
 const fs = require("fs")
-const https = require("https")
-
 import fetch = require("node-fetch")
-import Stream = require('stream')
 
 import pet = require("./pets")
-import { fetchUser } from './util'
 
-import api = require("./api")
-
-
-type TradeType = {type: "money" | "stock", item: number | {name: string, data: Stock}}
 
 type Stock = {buyPrice:  number, shares: number}
 
-export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number }
+export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -29,6 +21,22 @@ function setUserStockSymbol(id: string, symbol: string, data: {name: string, inf
     //@ts-ignore
     ECONOMY[id].stocks[data.name] = data.info
     return true
+}
+
+function increaseSandCounter(id: string, amount  = 1){
+    if(ECONOMY[id]?.sandCounter !== undefined){
+        //@ts-ignore
+        ECONOMY[id].sandCounter += amount
+        return true
+    }
+    else if(ECONOMY[id]){
+        ECONOMY[id].sandCounter = amount
+    }
+    return false
+}
+
+function getSandCounter(id: string){
+    return ECONOMY[id]?.sandCounter
 }
 
 function userHasStockSymbol(id: string, symbol: string) {
@@ -595,6 +603,7 @@ export {
     playerLooseNetWorth,
     canWork,
     setUserStockSymbol,
-    useBowser
+    increaseSandCounter,
+    getSandCounter
     // tradeItems
 }

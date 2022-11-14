@@ -51,6 +51,32 @@ export default function() {
         return {content: `You fished up ${item[0]}!!`, status: StatusCode.RETURN}
     }, CommandCategory.FUN))
 
+    registerCommand("use-item", createCommandV2(async({args, msg}) => {
+        let item = args.join(" ").toLowerCase()
+        switch (item){
+            case "ghostly's nose": {
+                return {files: [
+                    {
+                        attachment: "https://cdn.discordapp.com/emojis/825937263707947008.png",
+                        name: "Nose 😏",
+                        delete: false
+                    }
+                ], status: StatusCode.RETURN}
+            }
+            case "a fine quarter": {
+                economy.addMoney(msg.author.id, 0.26)
+                return {content: "You were about to earn 25 cents, but since it is a fine quarter you get 26 cents :+1:", status: StatusCode.RETURN}
+            }
+            case "a fine grain of sand": {
+                economy.increaseSandCounter(msg.author.id, 1)
+                return {content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)}`, status: StatusCode.RETURN}
+            }
+            default: {
+                return {content: "Lmao this item does nothing", status: StatusCode.RETURN}
+            }
+        }
+    }, CommandCategory.FUN))
+
     registerCommand(
 
         'scorigami', createCommandV2(async ({ args, opts }) => {
