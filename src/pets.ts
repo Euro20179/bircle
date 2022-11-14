@@ -122,7 +122,7 @@ function hasPet(id: string, pet: string){
 }
 
 function hasPetByName(id: string, pet: string){
-    return Object.entries(PETINVENTORY[id]).filter(v => v[1].name === pet)[0][1]
+    return Object.entries(PETINVENTORY[id]).filter(v => v[1].name === pet)[0]?.[1]
 }
 
 function hasPetByNameOrType(id: string, pet: string){
