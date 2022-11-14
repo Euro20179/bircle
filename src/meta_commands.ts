@@ -238,6 +238,16 @@ export default function() {
         }, CommandCategory.META),
     )
 
+    registerCommand("pet-inventory", createCommandV2(async() => {
+        return { files: [
+            {
+                attachment: "./petinventory.json",
+                name: "Pet inventory.json",
+                delete: false
+            }
+        ], status: StatusCode.RETURN}
+    }, CommandCategory.META))
+
     registerCommand(
         "economy",
         {
