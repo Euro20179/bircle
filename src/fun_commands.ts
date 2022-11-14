@@ -62,7 +62,7 @@ export default function() {
                 return {files: [
                     {
                         attachment: "https://cdn.discordapp.com/emojis/825937263707947008.png",
-                        name: "Nose 😏",
+                        name: "Nose 😏.png",
                         delete: false
                     }
                 ], status: StatusCode.RETURN}
