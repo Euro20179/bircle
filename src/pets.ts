@@ -118,7 +118,7 @@ function getUserPets(id: string){
 }
 
 function hasPet(id: string, pet: string){
-    return PETINVENTORY[id]?.[pet]
+    return PETINVENTORY[id]?.[pet.toLowerCase()]
 }
 
 function hasPetByName(id: string, pet: string){
