@@ -630,12 +630,7 @@ export default function() {
                 }
                 let stringArgs = args.join(" ")
                 let files = msg.attachments?.toJSON()
-                if (!stringArgs && !embed && !files.length) {
-                    return {
-                        content: "cannot send nothing",
-                        status: StatusCode.ERR
-                    }
-                }
+                let stickers = msg.stickers?.toJSON()
                 if (wait) {
                     await new Promise((res) => setTimeout(res, wait * 1000))
                 }
@@ -651,6 +646,9 @@ export default function() {
                 }
                 if (embed) {
                     rv["embeds"] = [embed]
+                }
+                if(stickers.length){
+                    rv['stickers'] = stickers
                 }
                 if (opts['recurse']) {
                     rv.recurse = true
