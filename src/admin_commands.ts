@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { ADMINS, client, saveVars } from './common'
+import { addToPermList, ADMINS, client, removeFromPermList, saveVars } from './common'
 import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, registerCommand, StatusCode } from './common_to_commands'
 import economy = require("./economy")
 import user_options = require("./user-options")
