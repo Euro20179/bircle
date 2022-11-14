@@ -16,6 +16,7 @@ import { StatusCode, Interprater, lastCommand, snipes, purgeSnipe, createAliases
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
 import { spawnSync } from 'child_process'
+import { getOpt } from './user-options'
 
 export default function() {
     registerCommand(
@@ -681,11 +682,28 @@ export default function() {
         {
             run: async (msg, _args, sendCallback) => {
                 let canWork = economy.canWork(msg.author.id)
+                let currency_sign = getOpt(msg.author.id, "currency-sign", "$")
+                //0 means that it has been an hour, but they are not broke
                 if (canWork === 0 && msg.member?.roles.cache.filter(r => r.name === "College").at(0)) {
+                    let events: {[key: string]: (amount: number) => false | {message: string, gain: number, lose: number}} = {
+                        fired: (amount) => {
+                            return {message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount}
+                        },
+                        murderer: (amount) => {
+                            return {message: `There was an asassin waiting for you at the door, luckily they missed your heart but you had to pay ${currency_sign}${amount * 2} at the hospital`, gain: 0, lose: amount * 2}
+                        },
+                        toolbox: (amount) => {
+                            return {message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0}
+                        }
+                    }
                     let amount = economy.work(msg.author.id)
-                    if (Math.random() > .99 && amount) {
-                        amount *= -1
-                        return { content: `Looks like you got fired, the boss took ${amount}`, status: StatusCode.RETURN }
+                    if (Math.random() > .95 && amount) {
+                        let event = choice(Object.values(events))(amount)
+                        if(event){
+                            economy.addMoney(msg.author.id, event.gain)
+                            economy.loseMoneyToBank(msg.author.id, event.lose)
+                            return {content: event.message, status: StatusCode.RETURN}
+                        }
                     }
                     return { content: `Congrats, you grad student, here's ${amount} from your job`, status: StatusCode.RETURN }
                 }

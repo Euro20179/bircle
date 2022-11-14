@@ -528,7 +528,7 @@ function intoColorList(color: string) {
         .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2)).join("")}`)
 }
 
-function choice(list: Array<any> | string) {
+function choice<T>(list: Array<T>): T {
     return list[Math.floor(Math.random() * list.length)]
 }
 

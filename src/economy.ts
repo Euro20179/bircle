@@ -203,11 +203,14 @@ function canWork(id: string){
     }
     let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
     let total = playerEconomyLooseTotal(id)
+    //not broke but it has been 1 hour
     if(total >= 0 && secondsDiff > 3600)
         return 0;
     if(total < 0 && secondsDiff > 3600){
+        //broke and has been 1 hour
         return true
     }
+    //not broke or has not been 1 hour
     return false
 }
 
