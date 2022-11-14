@@ -724,7 +724,8 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         parseBracketPair,
         parsePercentFormat,
         formatPercentStr,
-        formatBracePairs
+        formatBracePairs,
+        searchList
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
@@ -1118,8 +1119,8 @@ function searchList(search: string, list_of_strings: string[]) {
         let matchIndicies: number[] = []
         for (let i = 0; i < search.length; i++) {
             // let foundMatch = false
-            for (let j = lastMatch; j < list_of_strings.length; j++) {
-                if (list_of_strings[j] === search[i]) {
+            for (let j = lastMatch; j < str.length; j++) {
+                if (str[j] === search[i]) {
                     matchIndicies.push(j)
                     lastMatch = j
                     // accuracy += (j - i) * sequence * (file.length - j)

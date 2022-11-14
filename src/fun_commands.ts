@@ -426,43 +426,7 @@ export default function() {
     registerCommand(
         "search-wiki", createCommand(async (msg, _, sb, opts, args) => {
             let search = args.join(" ").toLowerCase()
-            let results: { [key: string]: number } = {}
-            let r2: { [key: string]: number } = searchList(search, fs.readdirSync("./wiki").map(v => v.replaceAll("%2f", "/").slice(0, -4).toLowerCase()))
-            console.log(r2)
-            for (let file of fs.readdirSync("./wiki")) {
-                file = file.replaceAll("%2f", "/").slice(0, -4).toLowerCase()
-                // let accuracy = 0
-                // let sequence = 1
-                let lastMatch = 0;
-                let matchIndicies: number[] = []
-                for (let i = 0; i < search.length; i++) {
-                    // let foundMatch = false
-                    for (let j = lastMatch; j < file.length; j++) {
-                        if (file[j] === search[i]) {
-                            matchIndicies.push(j)
-                            lastMatch = j
-                            // accuracy += (j - i) * sequence * (file.length - j)
-                            // sequence += 1
-                            // foundMatch = true
-                            // break
-                        }
-                        // else if(i === j)
-                        //     sequence = 1
-                    }
-                    // if(!foundMatch){
-                    //     accuracy -= file.length
-                    //     sequence = 1
-                    // }
-                }
-                let total = 0
-                for (let i = 1; i < matchIndicies.length; i++) {
-                    if (matchIndicies[i] - matchIndicies[i - 1] === 0) {
-                        continue
-                    }
-                    total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
-                }
-                results[file] = total
-            }
+            let results: { [key: string]: number } = searchList(search, fs.readdirSync("./wiki").map(v => v.replaceAll("%2f", "/").slice(0, -4).toLowerCase()))
             if (opts['all']) {
                 return { content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN }
             }
