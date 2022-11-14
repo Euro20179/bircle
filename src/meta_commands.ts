@@ -238,6 +238,11 @@ export default function() {
         }, CommandCategory.META),
     )
 
+    registerCommand("code-info", createCommandV2(async() => {
+        let info = execSync("wc -l *.ts src/*.ts").toString("utf-8")
+        return {content: info, status: StatusCode.RETURN}
+    }, CommandCategory.META))
+
     registerCommand("pet-inventory", createCommandV2(async() => {
         return { files: [
             {
