@@ -53,6 +53,10 @@ export default function() {
 
     registerCommand("use-item", createCommandV2(async({args, msg}) => {
         let item = args.join(" ").toLowerCase()
+        if(!hasItem(msg.author.id, item)){
+            return {content: `You do not have a ${item}`, status: StatusCode.ERR}
+        }
+        useItem(msg.author.id, item)
         switch (item){
             case "ghostly's nose": {
                 return {files: [
