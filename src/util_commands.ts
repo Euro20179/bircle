@@ -19,15 +19,19 @@ import { spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function() {
-    registerCommand("pet-info", createCommandV2(async ({args}) => {
-        let pet_type = pet.getPetShop()[args.join(" ").toLowerCase()]
-        if(!pet_type){
+    registerCommand("pet-info", createCommandV2(async ({msg, args}) => {
+        let pet_type = pet.hasPetByNameOrType(msg.author.id, args.join(" "))
+        if(!pet_type[1]){
             return {content: `${args.join(" ").toLowerCase()} is not a pet`, status: StatusCode.RETURN}
         }
+        let petInfo = pet_type[1]
+        let petType = pet_type[0]
+        let petTypeInfo = pet.getPetShop()[petType]
         let embed = new MessageEmbed()
+        embed.setTitle(petInfo.name || petType)
         embed.addFields([
-            {name: "Favorite food", value: pet_type['favorite-food'], inline: true},
-            {name: "Max HP", value: String(pet_type['max-hunger']), inline: true}
+            {name: "Favorite food", value: petTypeInfo['favorite-food'], inline: true},
+            {name: "HP", value: `${petInfo.health} / ${petTypeInfo['max-hunger']}`, inline: true}
         ])
         return {embeds: [embed], status: StatusCode.RETURN}
     }, CommandCategory.FUN))
