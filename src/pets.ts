@@ -122,13 +122,13 @@ function hasPet(id: string, pet: string){
 }
 
 function hasPetByName(id: string, pet: string){
-    return Object.entries(PETINVENTORY[id]).filter(v => v[1].name === pet)[0]?.[1]
+    return Object.entries(PETINVENTORY[id]).filter(v => v[1].name === pet)[0]
 }
 
-function hasPetByNameOrType(id: string, pet: string){
+function hasPetByNameOrType(id: string, pet: string): [string, {health: number, name: string}]{
     let namedPet = hasPetByName(id, pet)
     if(!namedPet){
-        return hasPet(id, pet)
+        return [pet, hasPet(id, pet)]
     }
     return namedPet
 }

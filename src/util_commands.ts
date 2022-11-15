@@ -19,6 +19,19 @@ import { spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function() {
+    registerCommand("pet-info", createCommandV2(async ({args}) => {
+        let pet_type = pet.getPetShop()[args.join(" ").toLowerCase()]
+        if(!pet_type){
+            return {content: `${args.join(" ").toLowerCase()} is not a pet`, status: StatusCode.RETURN}
+        }
+        let embed = new MessageEmbed()
+        embed.addFields([
+            {name: "Favorite food", value: pet_type['favorite-food'], inline: true},
+            {name: "Max HP", value: String(pet_type['max-hunger']), inline: true}
+        ])
+        return {embeds: [embed], status: StatusCode.RETURN}
+    }, CommandCategory.FUN))
+
     registerCommand(
         "has-role", createCommand(async (msg, args) => {
             let user = args[0]
@@ -741,7 +754,7 @@ export default function() {
         {
             run: async (msg, args, sendCallback) => {
                 let newActivePet = args[0]
-                if (!pet.hasPetByNameOrType(msg.author.id, newActivePet)) {
+                if (!pet.hasPetByNameOrType(msg.author.id, newActivePet)[1]) {
                     return { content: `You do not have a ${newActivePet}`, status: StatusCode.ERR }
                 }
                 if (pet.setActivePet(msg.author.id, newActivePet)) {

@@ -110,6 +110,7 @@ export default function() {
         return { content: `You fished up ${item[0]}!!`, status: StatusCode.RETURN }
     }, CommandCategory.FUN))
 
+
     registerCommand("use-item", createCommandV2(async ({ args, msg, opts }) => {
         let recipes: [[string, string?], () => CommandReturn][] = [
             [["balanced breakfast"], () => {
@@ -394,14 +395,15 @@ export default function() {
             run: async (msg, args, sendCallback) => {
                 let petName = args[0]
                 let item = args.slice(1).join(" ").toLowerCase()
-                if (!pet.hasPetByNameOrType(msg.author.id, petName)) {
+                let p = pet.hasPetByNameOrType(msg.author.id, petName)
+                if (!p[1]) {
                     return { content: `You do not  have a ${petName}`, status: StatusCode.ERR }
                 }
                 if (!hasItem(msg.author.id, item)) {
                     return { content: `You do not have the item: ${item}`, status: StatusCode.ERR }
                 }
                 useItem(msg.author.id, item)
-                let feedAmount = pet.feedPet(msg.author.id, pet.getPetTypeByName(msg.author.id, petName) as string, item)
+                let feedAmount = pet.feedPet(msg.author.id, p[0], item)
                 if (feedAmount) {
                     return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`, status: StatusCode.RETURN }
                 }
