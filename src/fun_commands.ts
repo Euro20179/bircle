@@ -67,6 +67,12 @@ export default function() {
             return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
         }
 
+        let mumboStink = hasItem(msg.author.id, "mumbo stink")
+        //if random number is less than 1 / 2^x
+        if(mumboStink && Math.random() < (1 / Math.pow(2, mumboStink))){
+            return {content: "All that mumbo stink you had drove all the fish away", status: StatusCode.RETURN}
+        }
+
         if (!rod) {
             return { content: "You do not have a fishing rod", status: StatusCode.ERR }
         }
@@ -125,6 +131,14 @@ export default function() {
                 return { content: "All of your pets have full health, there is some leftover smell :nose:", status: StatusCode.RETURN }
             }
             ],
+            [["mumbo stink"], () => {
+                if(Math.random() > .85){
+                    let amount = economy.playerLooseNetWorth(msg.author.id) * 0.01
+                    economy.loseMoneyToBank(msg.author.id, amount)
+                    return {content: `You get sued for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount} for being so stinky`, status: StatusCode.RETURN}
+                }
+                return {content: "You got rid of the mumbo stink", status: StatusCode.RETURN}
+            }],
             [["ghostly's nose"], () => {
                 return {
                     files: [
