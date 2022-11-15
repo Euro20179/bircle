@@ -62,9 +62,9 @@ export default function() {
             timer.restartTimer(msg.author.id, "%fishing")
         }
 
-        // if(!canfish){
-        //     return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
-        // }
+        if(!canfish){
+            return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
+        }
 
         if (!rod) {
             return { content: "You do not have a fishing rod", status: StatusCode.ERR }
