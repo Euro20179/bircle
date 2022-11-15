@@ -69,15 +69,23 @@ export default function() {
         if(!rod){
             return {content: "You do not have a fishing rod", status: StatusCode.ERR}
         }
+        let hasShark = pet.getActivePet(msg.author.id) === "shark"
         let possibleItems: [string, number][] = [
             [ "fish", 0.5, ],
-            [ "stinky ol' boot", 0.05, ],
+            [ "a fine quarter", 0.25, ],
             [ "ghostly's nose", 0.1, ],
             [ "a fine grain of sand", 0.01, ],
-            [ "a fine quarter", 0.25, ],
+            [ "stinky ol' boot", 0.05, ],
             [ "fishing rod", 0.05 ],
             [ "item yoinker", 0.005]
         ]
+        if(hasShark && Math.random() > .8){
+            possibleItems = [
+                [ "seal", 0.8 ],
+                [ "fish carcas", 0.2 ],
+                [ "ship wreck", .05 ],
+            ]
+        }
         while(possibleItems.length > 1){
             possibleItems = possibleItems.filter(v => Math.random() < v[1])
         }

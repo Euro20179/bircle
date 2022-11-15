@@ -133,6 +133,10 @@ function hasPetByNameOrType(id: string, pet: string){
     return namedPet
 }
 
+function getFavoriteFoodOfPetType(pet: string){
+    return PETSHOP[pet]?.['favorite-food']
+}
+
 function feedPet(id: string, pet: string, itemName: string){
     if(!PETINVENTORY[id]?.[pet]){
         return false
@@ -148,8 +152,16 @@ function feedPet(id: string, pet: string, itemName: string){
             amount = Math.floor(Math.random() * 6 + 3)
             break
         }
+        case "seal": {
+            amount = Math.floor(Math.random() * 7 + 4)
+            break
+        }
         default:
             return false
+    }
+    let favoriteFood = getFavoriteFoodOfPetType(pet)
+    if(itemName === favoriteFood){
+        amount *= 2
     }
     PETINVENTORY[id][pet].health += amount
     if(PETINVENTORY[id][pet].health > max){
@@ -256,5 +268,6 @@ export{
     PETACTIONS,
     getPetTypeByName,
     namePet,
-    hasPetByNameOrType
+    hasPetByNameOrType,
+    getFavoriteFoodOfPetType
 }
