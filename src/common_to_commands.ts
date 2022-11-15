@@ -533,7 +533,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
                 rv.recurse = { ...rv.recurse }
             }
             else {
-                rv.recurse = generateDefaultRecurseBans()
+                rv.recurse =true
             }
             rv.do_change_cmd_user_expansion = false
         }
