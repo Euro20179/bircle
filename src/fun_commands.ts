@@ -104,7 +104,8 @@ export default function() {
                     let petData = pets[p]
                     petData.health = petShop[p]['max-hunger']
                 }
-                return {content: "All of your pets have full health", status: StatusCode.RETURN}
+                giveItem(msg.author.id, "mumbo stink", 1)
+                return {content: "All of your pets have full health, there is some leftover smell :nose:", status: StatusCode.RETURN}
             }
             case "ghostly's nose": {
                 return {files: [
