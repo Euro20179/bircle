@@ -16,6 +16,7 @@ import timer from './timer'
 import { CommandCategory, createCommand, createCommandV2, createHelpOption, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
 import { registerFont } from 'canvas';
 import { giveItem } from './shop';
+import { randomInt } from 'crypto';
 
 const { useItem, hasItem, INVENTORY } = require("./shop")
 
@@ -147,6 +148,15 @@ export default function() {
             [["stinky ol' boot", "mumbo meal"], () => {
                 giveItem(msg.author.id, "balanced breakfast", 1)
                 return { content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN }
+            }],
+            [["the titanic"], () => {
+                let items = fs.readFileSync("./data/shop.json", "utf-8")
+                let itemJ = JSON.parse(items)
+                let itemNames = Object.keys(itemJ)
+                let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                giveItem(msg.author.id, randItemName, 1)
+                let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
+                return {content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}
             }],
             [["item yoinker"], () => {
                 let inv = INVENTORY()
