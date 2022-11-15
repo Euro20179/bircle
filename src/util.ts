@@ -533,7 +533,11 @@ function choice<T>(list: Array<T>): T {
 }
 
 function mulStr(str: string, amount: number) {
-    return str.repeat(amount)
+    let newStr = ""
+    for(let i = 0; i < amount; i++){
+        newStr += str
+    }
+    return newStr
 }
 
 async function fetchChannel(guild: Guild, find: string) {
