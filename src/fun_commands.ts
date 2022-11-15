@@ -62,14 +62,14 @@ export default function() {
             timer.restartTimer(msg.author.id, "%fishing")
         }
 
-        if(!canfish){
-            return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
-        }
+        // if(!canfish){
+        //     return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
+        // }
 
         if(!rod){
             return {content: "You do not have a fishing rod", status: StatusCode.ERR}
         }
-        let hasShark = pet.getActivePet(msg.author.id) === "shark"
+        let isUsingShark = pet.getActivePet(msg.author.id) === "shark"
         let possibleItems: [string, number][] = [
             [ "fish", 0.5, ],
             [ "a fine quarter", 0.25, ],
@@ -79,17 +79,16 @@ export default function() {
             [ "fishing rod", 0.05 ],
             [ "item yoinker", 0.005]
         ]
-        if(hasShark && Math.random() > .8){
+        if(isUsingShark && Math.random() > .8){
             possibleItems = [
                 [ "seal", 0.8 ],
                 [ "fish carcas", 0.2 ],
-                [ "ship wreck", .05 ],
+                [ "ship wreck", 0.1 ],
+                [ "The Titanic", 0.005],
             ]
         }
-        while(possibleItems.length > 1){
-            possibleItems = possibleItems.filter(v => Math.random() < v[1])
-        }
-        let item = possibleItems[0]
+        let rand = Math.random()
+        let item = possibleItems.filter(v => rand < v[1]).sort((a, b) => a[1] - b[1])[0]
         if(!item){
             return {content: "You found nothing!", status: StatusCode.RETURN}
         }
@@ -99,11 +98,14 @@ export default function() {
     }, CommandCategory.FUN))
 
     registerCommand("use-item", createCommandV2(async({args, msg}) => {
-        let item = args.join(" ").toLowerCase()
-        if(!hasItem(msg.author.id, item)){
-            return {content: `You do not have a ${item}`, status: StatusCode.ERR}
+        let items = args.join(" ").toLowerCase().split("|").map(v => v.trim())
+        for(let item of items){
+            if(!hasItem(msg.author.id, item)){
+                return {content: `You do not have a ${item}`, status: StatusCode.ERR}
+            }
+            useItem(msg.author.id, item)
         }
-        useItem(msg.author.id, item)
+        return {content: "NOT DONE", status: StatusCode.ERR}
         switch (item){
             case "balanced breakfast": {
                 let pets = pet.getUserPets(msg.author.id)
