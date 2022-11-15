@@ -87,8 +87,21 @@ export default function() {
                 ["The Titanic", 0.005],
             ]
         }
-        let rand = Math.random()
-        let item = possibleItems.filter(v => rand < v[1]).sort((a, b) => a[1] - b[1])[0]
+
+        let weightSum = possibleItems.reduce((p, c) => p + c[1], 0)
+        const threshold = Math.random() * weightSum
+
+        let runningTotal = 0;
+        let item;
+        for(let i = 0; i < possibleItems.length; i++){
+            runningTotal += possibleItems[i][1]
+
+            if(runningTotal >= threshold){
+                item = possibleItems[i][0]
+                break
+            }
+        }
+
         if (!item) {
             return { content: "You found nothing!", status: StatusCode.RETURN }
         }
