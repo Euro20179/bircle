@@ -78,7 +78,7 @@ export class Interprater {
     recursion: number
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
-    sendCallback: (options: MessageOptions | MessagePayload | string) => Promise<Message>
+    sendCallback: ((options: MessageOptions | MessagePayload | string) => Promise<Message>) | undefined
     alias: boolean | [string, string[]]
 
     #interprated: boolean
@@ -101,7 +101,7 @@ export class Interprater {
         this.recursion = recursion
         this.returnJson = returnJson
         this.disable = disable ?? {}
-        this.sendCallback = sendCallback || msg.channel.send.bind(msg.channel)
+        this.sendCallback = sendCallback
         this.alias = false
 
         this.modifiers = modifiers
@@ -382,7 +382,7 @@ export class Interprater {
                         msg: this.#msg,
                         rawArgs: args,
                         args: args2,
-                        sendCallback: this.sendCallback,
+                        sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                         opts: new Options(opts),
@@ -392,7 +392,7 @@ export class Interprater {
                 }
                 else{
 
-                    rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback, opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                    rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
                 globals.addToCmdUse(this.real_cmd)
                 //if normal command, it counts as use
@@ -500,7 +500,12 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (!Object.keys(rv).length) {
         return msg
     }
-    let local_prefix = user_options.getOpt(msg.author.id, "prefix", prefix)
+    if(!sendCallback && rv.dm){
+        sendCallback = msg.author.send.bind(msg.author.dmChannel)
+    }
+    else if(!sendCallback){
+        sendCallback = msg.channel.send.bind(msg.channel)
+    }
     //by default delete files that are being sent from local storage
     if (rv.deleteFiles === undefined) {
         rv.deleteFiles = true
@@ -568,31 +573,14 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             }]
         }
     }
-    //the place to send message to
-    let location = msg.channel
-    if (rv['dm']) {
-
-        //@ts-ignore
-        location = msg.author
-    }
-    let newMsg;
+    let newMsg
     try {
-        if (sendCallback) {
-            newMsg = await sendCallback(rv)
-        }
-        else {
-            newMsg = await location.send(rv)
-        }
+        newMsg = await sendCallback(rv)
     }
     catch (err) {
         //usually happens when there is nothing to send
         console.log(err)
-        if (sendCallback) {
-            newMsg = await sendCallback({ content: `${err}` })
-        }
-        else {
-            newMsg = await location.send({ content: `${err}` })
-        }
+        newMsg = await sendCallback({ content: `${err}` })
     }
     //delete files that were sent
     if (rv.files) {
