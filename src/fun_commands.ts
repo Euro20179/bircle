@@ -158,6 +158,10 @@ export default function() {
                 let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
                 return {content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}
             }],
+            [["ship wreck"], () => {
+                let amount = randomInt(0, economy.playerLooseNetWorth(msg.author.id) * 0.05)
+                return {content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}
+            }],
             [["item yoinker"], () => {
                 let inv = INVENTORY()
                 let text = ""
