@@ -51,5 +51,10 @@
         "description": "Steal a random item from everyone that has item, use `[use-item item yoinker` to use this item",
         "uses": 1,
         "cost": ["Infinity"]
+    },
+    "mumbo meal":  {
+        "description": "Combine this with a stinky ol' boot to give all your pets full health",
+        "uses": 1,
+        "cost": ["0.80"]
     }
 }

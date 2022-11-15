@@ -71,7 +71,7 @@ export default function() {
         }
         let possibleItems: [string, number][] = [
             [ "fish", 0.5, ],
-            [ "stinky ol' boot", 0.3, ],
+            [ "stinky ol' boot", 0.05, ],
             [ "ghostly's nose", 0.1, ],
             [ "a fine grain of sand", 0.01, ],
             [ "a fine quarter", 0.25, ],
@@ -97,6 +97,15 @@ export default function() {
         }
         useItem(msg.author.id, item)
         switch (item){
+            case "balanced breakfast": {
+                let pets = pet.getUserPets(msg.author.id)
+                let petShop = pet.getPetShop()
+                for(let p in pets){
+                    let petData = pets[p]
+                    petData.health = petShop[p]['max-hunger']
+                }
+                return {content: "All of your pets have full health", status: StatusCode.RETURN}
+            }
             case "ghostly's nose": {
                 return {files: [
                     {
@@ -113,6 +122,15 @@ export default function() {
             case "a fine grain of sand": {
                 economy.increaseSandCounter(msg.author.id, 1)
                 return {content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)}`, status: StatusCode.RETURN}
+            }
+            case "stinky ol' boot": {
+                if(hasItem(msg.author.id, "mumbo meal")){
+                    giveItem(msg.author.id, "balanced breakfast", 1)
+                    return {content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN}
+                }
+                else{
+                    return {content: "This item only works if you have the mumbo meal", status: StatusCode.ERR}
+                }
             }
             case "item yoinker": {
                 let inv = INVENTORY()
