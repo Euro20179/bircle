@@ -8,7 +8,7 @@ import fetch = require("node-fetch")
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
@@ -20,6 +20,27 @@ import { giveItem } from './shop';
 const { useItem, hasItem, INVENTORY } = require("./shop")
 
 export default function() {
+
+    registerCommand("mail", createCommandV2(async({msg, argList, recursionCount}) => {
+        if(user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true"){
+            return {content: "You must set the 'enable-mail' option to true in order to use mail", status: StatusCode.ERR}
+        }
+        if(!msg.guild){
+            return {content: "cannot send from dms", status: StatusCode.ERR}
+        }
+        let toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
+        if(user_options.getOpt(toUser.user.id, "enable-mail", "false").toLowerCase() !== "true"){
+            return {content: `${toUser?.displayName} does not have mail enabled`, status: StatusCode.ERR}
+        }
+        try{
+            await toUser.user.createDM()
+        }
+        catch(err){
+            return {content: `Could not create dm channel with ${toUser.displayName}`, status: StatusCode.ERR}
+        }
+        handleSending(msg, {content: argList.slice(1).join(" ") || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN}, toUser.user.send.bind(toUser.user.dmChannel), recursionCount)
+        return {noSend: true, status: StatusCode.RETURN, delete: true}
+    }, CommandCategory.FUN))
 
     registerCommand(
         "the secret command", createCommandV2(async () => {

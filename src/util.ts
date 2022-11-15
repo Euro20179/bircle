@@ -4,7 +4,7 @@ import { spawnSync } from "child_process"
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, Guild, Message, MessageEmbed } from "discord.js"
+import { Client, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
 
 import globals = require("./globals")
 
@@ -786,13 +786,19 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
     return img
 }
 
-class ArgList {
-    length: number
+class ArgList extends Array{
     constructor(args: string[]) {
-        this.length = args.length
+        super(args.length)
         for (let index in args) {
             Reflect.set(this, index, args[index])
         }
+    }
+    async assertIndexIs<T>(index: number, assertion: (data: string) => Promise<T | undefined>, fallback: T): Promise<T>{
+        return await assertion(this.at(index)) ?? fallback
+    }
+
+    async assertIndexIsUser(guild: Guild, index: number, fallback: GuildMember){
+        return await this.assertIndexIs(index, async(data) => await fetchUser(guild, data), fallback)
     }
 }
 

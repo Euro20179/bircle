@@ -1,5 +1,7 @@
 import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload } from "discord.js"
 
+import { ArgList } from './util'
+
 declare global {
     type ArgumentList = Array<string>
 
