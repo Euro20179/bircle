@@ -126,6 +126,7 @@ export default function() {
             }
             case "stinky ol' boot": {
                 if(hasItem(msg.author.id, "mumbo meal")){
+                    useItem(msg.author.id, "mumbo meal")
                     giveItem(msg.author.id, "balanced breakfast", 1)
                     return {content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN}
                 }
