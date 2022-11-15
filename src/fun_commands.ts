@@ -188,7 +188,7 @@ export default function() {
             return true
         })[0]
         if (!chosen_recipe) {
-            return { content: `${items.join(" + ")} is not a valid recipe`, status: StatusCode.ERR }
+            return { content: `${items.join(" + ")} is not a valid combination`, status: StatusCode.ERR }
         }
         for (let item of chosen_recipe[0]) {
             useItem(msg.author.id, item, 1)
