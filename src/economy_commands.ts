@@ -756,7 +756,7 @@ export default function() {
         if (!user) {
             return { content: "How are you not a member?", status: StatusCode.ERR }
         }
-        let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', "$")}\${amount}`)
+        let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', "$")}{amount}`)
         let text = ""
         if (economy.getEconomy()[user.id]) {
             if (opts['m']) {
