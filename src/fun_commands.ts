@@ -105,9 +105,9 @@ export default function() {
         if (!item) {
             return { content: "You found nothing!", status: StatusCode.RETURN }
         }
-        giveItem(msg.author.id, item[0], 1)
+        giveItem(msg.author.id, item, 1)
         useItem(msg.author.id, "fishing rod", Math.floor(Math.random() * 2))
-        return { content: `You fished up ${item[0]}!!`, status: StatusCode.RETURN }
+        return { content: `You fished up ${item}!!`, status: StatusCode.RETURN }
     }, CommandCategory.FUN))
 
 
