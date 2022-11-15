@@ -8,7 +8,7 @@ const { getOpts } = require("./util.js")
 
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy = require("./economy")
-import { StatusCode } from './commands'
+import { StatusCode, handleSending } from './common_to_commands'
 const { hasItem } = require("./shop.js")
 
 let BATTLEGAME: boolean = false;
@@ -40,7 +40,6 @@ async function handleDeath(id: string, players: {[key: string]: number}, winning
 
 async function game(msg: Message, players: {[key: string]: number}, ogBets: {[key: string]: number}, cooldowns: {[key: string]: number}, usedSwap: string[], usedShell: string[], bets: {[key: string]: number}, betTotal: number, useItems: boolean, winningType: "wta" | "distribute", shields: {[key: string]: boolean}){
 
-    const { handleSending } = require("./commands")
 
     let midGameCollector = msg.channel.createMessageCollector({filter: m => !m.author.bot && m.content.toLowerCase() == 'join' && hasItem(m.author.id, "intrude")})
 
@@ -502,7 +501,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             }
         }
         if(text){
-            await handleSending(msg, {content: text})
+            await handleSending(msg, {content: text, status: StatusCode.INFO})
         }
         if(Object.keys(players).length <= 1){
             break
@@ -557,9 +556,9 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         }
     }
     if(bonusText)
-        await handleSending(msg, {embeds: [e], content: bonusText})
+        await handleSending(msg, {embeds: [e], content: bonusText, status: StatusCode.INFO})
     else
-        await handleSending(msg, {embeds: [e]})
+        await handleSending(msg, {embeds: [e], status: StatusCode.INFO})
     itemUseCollector.stop()
 }
 
