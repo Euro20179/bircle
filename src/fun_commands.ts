@@ -79,7 +79,7 @@ export default function() {
         let isUsingShark = pet.getActivePet(msg.author.id) === "shark"
         let possibleItems: [string, number][] = [
             ["fish", 0.5,],
-            ["a fine quarter", 0.25,],
+            ["a fine quarter", 0.1,],
             ["ghostly's nose", 0.1,],
             ["a fine grain of sand", 0.01,],
             ["fishing rod", 0.05],
@@ -92,6 +92,7 @@ export default function() {
                 ["fish carcas", 0.2],
                 ["ship wreck", 0.1],
                 ["The Titanic", 0.005],
+                ["Amelia Earhart", 0.005]
             ]
         }
 
@@ -162,6 +163,10 @@ export default function() {
             [["stinky ol' boot", "mumbo meal"], () => {
                 giveItem(msg.author.id, "balanced breakfast", 1)
                 return { content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN }
+            }],
+            [["amelia earhart"], () => {
+                giveItem(msg.author.id, "airplane", 1)
+                return {content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN}
             }],
             [["the titanic"], () => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
