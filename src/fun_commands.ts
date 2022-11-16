@@ -82,8 +82,8 @@ export default function() {
             ["a fine quarter", 0.25,],
             ["ghostly's nose", 0.1,],
             ["a fine grain of sand", 0.01,],
-            ["stinky ol' boot", 0.05,],
             ["fishing rod", 0.05],
+            ["stinky ol' boot", 0.01,],
             ["item yoinker", 0.005]
         ]
         if (isUsingShark && Math.random() > .8) {
