@@ -70,7 +70,7 @@ export default function() {
                     let petData = shopData[item]
                     let totalCost = 0
                     for (let cost of petData.cost) {
-                        totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                        totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
                     }
                     if (!economy.canBetAmount(msg.author.id, totalCost)) {
                         return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
@@ -374,7 +374,7 @@ export default function() {
                 let data = shopData[pet]
                 let totalCost = 0
                 for (let cost of data.cost) {
-                    totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                    totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
                 }
                 embed.addField(`${pet}\n${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`, `${data.description}`, true)
             }
@@ -399,7 +399,7 @@ export default function() {
             let petData = shopData[requested_pet]
             let totalCost = 0
             for (let cost of petData.cost) {
-                totalCost += economy.calculateAmountFromStringIncludingStocks(msg.author.id, cost)
+                totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
             }
             if (!economy.canBetAmount(msg.author.id, totalCost)) {
                 return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
