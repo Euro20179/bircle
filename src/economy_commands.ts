@@ -1031,6 +1031,9 @@ export default function() {
         "Tax someone evily",
         {
             "no-round": createHelpOption("Dont round numbers"),
+        },
+        {
+            user: createHelpArgument("The player to tax", true)
         }
     ),
     )
