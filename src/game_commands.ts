@@ -1169,7 +1169,16 @@ until you put a 0 in the box`)
             if (globals.BLACKJACK_GAMES[msg.author.id]) {
                 return { content: "You idiot u already playing the game", status: StatusCode.ERR }
             }
+
             let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
+
+            if(hasItem(msg.author.id, "conspiracy")){
+                useItem(msg.author.id, "conspiracy")
+                economy.addMoney(msg.author.id, bet * 3)
+                delete globals.BLACKJACK_GAMES[msg.author.id]
+                return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+            }
+
             globals.BLACKJACK_GAMES[msg.author.id] = true
             let cards = []
             let numbers = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
