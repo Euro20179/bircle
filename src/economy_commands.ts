@@ -3,6 +3,7 @@ import fetch = require("node-fetch")
 import economy = require('./economy')
 import pet = require("./pets")
 import user_options = require("./user-options")
+import timer from './timer'
 
 
 import { GLOBAL_CURRENCY_SIGN, prefix } from './common'
@@ -943,6 +944,21 @@ export default function() {
         if (msg.author.bot) {
             return { content: "Bots cannot steal", status: StatusCode.ERR }
         }
+        let canTax = false
+        if (!timer.getTimer(msg.author.id, "%tax")) {
+            canTax = true
+            timer.createTimer(msg.author.id, "%tax")
+        }
+
+        if (timer.has_x_s_passed(msg.author.id, "%fishing", 1.7)) {
+            canTax = true
+            timer.restartTimer(msg.author.id, "%fishing")
+        }
+
+        if(!canTax){
+            return {content: "You can only tax every 1.7 seconds", status: StatusCode.ERR}
+        }
+
         let opts;
         [opts, args] = getOpts(args)
         if (!args.length) {
