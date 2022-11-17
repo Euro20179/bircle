@@ -181,14 +181,16 @@ function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
 }
 
-function taxPlayer(id: string, max: number) {
+function taxPlayer(id: string, max: number, taxPercent: number | boolean = false) {
     ECONOMY[id].lastTaxed = Date.now()
     let total = playerEconomyLooseTotal(id)
-    let taxPercent = randInt(0.001, 0.008)
+    if(taxPercent === false){
+        taxPercent = randInt(0.001, 0.008)
+    }
     if (pet.getActivePet(id) == 'tiger') {
         taxPercent = pet.PETACTIONS['tiger']()
     }
-    let amountTaxed = total * taxPercent
+    let amountTaxed = total * <number>taxPercent
     if (amountTaxed > max)
         amountTaxed = max
     ECONOMY[id].money -= amountTaxed

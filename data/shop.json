@@ -56,5 +56,11 @@
         "description": "Combine this with a stinky ol' boot to give all your pets full health",
         "uses": 1,
         "cost": ["0.80"]
+    },
+    "the irs": {
+        "description": "Tax people for 1-3% instead of 0.1%-0.8%",
+        "uses": 2,
+        "max": 2,
+        "cost": ["3%"]
     }
 }

@@ -10,6 +10,7 @@ import { CommandCategory, createCommand, createCommandV2, createHelpArgument, cr
 import { ArgList, fetchUser, format, getOpts } from './util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from './shop'
+import { randomInt } from 'crypto'
 const { buyItem, hasItem, useItem } = require('./shop')
 
 const { ITEMS, INVENTORY } = require("./shop")
@@ -971,7 +972,12 @@ export default function() {
             if (hasItem(userBeingTaxed, "tax shield")) {
                 max = economy.getEconomy()[userBeingTaxed].money
             }
-            taxAmount = economy.taxPlayer(userBeingTaxed, max)
+            if(hasItem(userGainingMoney, "the irs")){
+                taxAmount = economy.taxPlayer(userBeingTaxed, max, Math.random() * (.03 - .01) + .01)
+            }
+            else{
+                taxAmount = economy.taxPlayer(userBeingTaxed, max)
+            }
             if (taxAmount.amount == max) {
                 useItem(userBeingTaxed, "tax shield")
             }
