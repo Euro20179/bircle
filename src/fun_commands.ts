@@ -177,6 +177,10 @@ export default function() {
                 let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
                 return {content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}
             }],
+            [["amelia earhart", "the titanic"], () => {
+                giveItem(msg.author.id, "conspiracy", 1)
+                return {content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN}
+            }],
             [["ship wreck"], () => {
                 let amount = Math.random() * economy.playerLooseNetWorth(msg.author.id) * 0.05
                 return {content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}

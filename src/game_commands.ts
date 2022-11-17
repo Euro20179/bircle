@@ -1172,8 +1172,9 @@ until you put a 0 in the box`)
             let blackjack_screen = user_options.getOpt(msg.author.id, "bj-screen", "**BLACKJACK!**\nYou got: **{amount}**")
             globals.BLACKJACK_GAMES[msg.author.id] = true
             let cards = []
+            let numbers = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
             for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
-                for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
+                for (let num of numbers) {
                     cards.push(`${num}`)
                 }
             }
