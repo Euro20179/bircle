@@ -49,6 +49,51 @@ export default function() {
         }, CommandCategory.FUN)
     )
 
+    registerCommand("hunting", createCommandV2(async({msg, args}) => {
+        let activePet = pet.getActivePet(msg.author.id)
+        if(!activePet){
+            return {content: `You must activate a bird, dog, or cat to hunt`, status: StatusCode.ERR}
+        }
+        let itemsToFind = {
+            "bird": [
+                ["worm", 1],
+                ["fly", 1]
+            ],
+            "dog": [
+                ["bone", 1],
+                ["fossil", 0.25],
+                ["time machine", 0.05]
+            ],
+            "cat": [
+                ["dead bird", 1],
+                ["dead rat", 1]
+            ]
+        }[activePet] as [string, number][]
+        if(!itemsToFind){
+            return {content: `A ${activePet} cannot hunt`, status: StatusCode.ERR}
+        }
+        let weightSum = itemsToFind.reduce((p, c) => p + c[1], 0)
+        const threshold = Math.random() * weightSum
+
+        let runningTotal = 0;
+        let item;
+        for(let i = 0; i < itemsToFind.length; i++){
+            runningTotal += itemsToFind[i][1]
+
+            if(runningTotal >= threshold){
+                item = itemsToFind[i][0]
+                break
+            }
+        }
+        if(!item){
+            return {content: "Nothing was found :(", status: StatusCode.RETURN}
+        }
+        let petName = pet.getUserPets(msg.author.id)[activePet].name || activePet
+        giveItem(msg.author.id, item, 1)
+        return {content: `${petName} found a ${item}`, status: StatusCode.RETURN}
+
+    }, CommandCategory.FUN))
+
     registerCommand("fishing", createCommandV2(async ({ msg, args }) => {
         let rod = hasItem(msg.author.id, "fishing rod")
 
@@ -81,10 +126,11 @@ export default function() {
             ["fish", 0.5,],
             ["a fine quarter", 0.1,],
             ["ghostly's nose", 0.1,],
-            ["a fine grain of sand", 0.01,],
+            ["a fine grain of sand", 0.03,],
             ["fishing rod", 0.05],
             ["stinky ol' boot", 0.01,],
-            ["item yoinker", 0.005]
+            ["item yoinker", 0.005],
+            ["pirate's gold tooth", 0.01]
         ]
         if (isUsingShark && Math.random() > .8) {
             possibleItems = [
@@ -155,6 +201,10 @@ export default function() {
             [["a fine quarter"], () => {
                 economy.addMoney(msg.author.id, 0.26)
                 return { content: "You were about to earn 25 cents, but since it is a fine quarter you get 26 cents :+1:", status: StatusCode.RETURN }
+            }],
+            [["pirate's gold tooth", "a fine quarter"], () => {
+                giveItem(msg.author.id, "pawn shop", 1)
+                return {content: "With all of your valuables, you decide to open a pawn shop", status: StatusCode.RETURN}
             }],
             [["a fine grain of sand"], () => {
                 economy.increaseSandCounter(msg.author.id, 1)

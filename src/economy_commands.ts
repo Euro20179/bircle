@@ -17,6 +17,7 @@ const { buyItem, hasItem, useItem } = require('./shop')
 const { ITEMS, INVENTORY } = require("./shop")
 
 export default function() {
+
     registerCommand(
         "buy", {
         run: async (msg, args, sendCallback, _, _2, recursion) => {
