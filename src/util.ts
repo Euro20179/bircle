@@ -806,15 +806,18 @@ class ArgList extends Array{
     }
 }
 
-class Options {
+class Options extends Map{
     constructor(opts: Opts) {
+        super()
         for (let op in opts) {
-            Object.defineProperty(this, op, { value: opts[op] })
+            this.set(op, opts[op])
         }
     }
     /**
         * @description Looks for <value> if it is not found, return <default_>
     */
+    //overriding the default map.get
+    //@ts-ignore
     get<T>(key: string, default_: T, assert: (v: any) => undefined | any = (_v) => _v) {
         let rv = Reflect.get(this, key, this)
         return assert(rv) ?? default_

@@ -951,9 +951,9 @@ export default function() {
             timer.createTimer(msg.author.id, "%tax")
         }
 
-        if (timer.has_x_s_passed(msg.author.id, "%fishing", 1.7)) {
+        if (timer.has_x_s_passed(msg.author.id, "%tax", 1.7)) {
             canTax = true
-            timer.restartTimer(msg.author.id, "%fishing")
+            timer.restartTimer(msg.author.id, "%tax")
         }
 
         if(!canTax){
