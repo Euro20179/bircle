@@ -960,6 +960,8 @@ export default function() {
             return {content: "You can only tax every 1.7 seconds", status: StatusCode.ERR}
         }
 
+        let m = new Map();
+
         let opts;
         [opts, args] = getOpts(args)
         if (!args.length) {
