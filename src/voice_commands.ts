@@ -9,7 +9,7 @@ import user_options = require("./user-options")
 
 
 import { prefix } from './common'
-import { CommandCategory, createCommand, createHelpArgument, createHelpOption, currently_playing, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, setCurrentlyPlaying, StatusCode } from './common_to_commands'
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, currently_playing, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, setCurrentlyPlaying, StatusCode } from './common_to_commands'
 import { format, generateFileName, getOpts } from './util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from './shop'
@@ -134,6 +134,21 @@ export default function() {
             return { content: `loading: ${link}`, status: StatusCode.RETURN }
         }, CommandCategory.VOICE),
     )
+
+    registerCommand("skip", createCommandV2(async({msg, args}) => {
+        player.stop()
+        return {content: "skipping", status: StatusCode.RETURN}
+    }, CommandCategory.VOICE))
+
+    registerCommand("pause", createCommandV2(async({msg, args}) => {
+        player.pause()
+        return {content: "Pausing", status: StatusCode.RETURN}
+    }, CommandCategory.VOICE))
+
+    registerCommand("unpause", createCommandV2(async({msg, args}) => {
+        player.unpause()
+        return {content: "UnPausing", status: StatusCode.RETURN}
+    }, CommandCategory.VOICE))
 
     registerCommand(
         'queue', createCommand(async (msg, args) => {
