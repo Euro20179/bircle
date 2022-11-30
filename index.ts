@@ -287,10 +287,6 @@ client.on("messageCreate", async (m: Message) => {
         m.content = '[stop'
         content = m.content
     }
-    else if (content === "]translate") {
-        await m.channel.send(lastTranslation)
-        return
-    }
     if (content.startsWith('u!eval')) {
         m.content = `${prefix}calc -python ` + content.slice('u!eval'.length)
         content = m.content
