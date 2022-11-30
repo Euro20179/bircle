@@ -186,25 +186,25 @@ const japRegex = /[\u{2E80}-\u{2FD5}\u{3000}-\u{303F}\u{3041}-\u{3096}\u{30A0}-\
 let shouldDeleteTranslationMessage = false
 let lastTranslation = "__BIRCLE_UNDEFINED__"
 
-function messageContainsText(msg: Message, text){
+function messageContainsText(msg: Message, text) {
     text = text.toLowerCase()
-    if(msg.content.toLowerCase().includes(text))
+    if (msg.content.toLowerCase().includes(text))
         return true
-    if(msg.components.some(value => {
+    if (msg.components.some(value => {
         return value.components.some(com => {
-            if(com.type === "BUTTON"){
+            if (com.type === "BUTTON") {
                 return com.label?.toLowerCase().includes(text)
             }
             return false
         })
-    })){
+    })) {
         return true
     }
 }
 
-client.on("messageUpdate", async(m_old: Message, m: Message) => {
-    if(m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation)){
-        if(m.deletable)
+client.on("messageUpdate", async (m_old: Message, m: Message) => {
+    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation)){
+        if (m.deletable)
             m.delete().catch(console.log)
         shouldDeleteTranslationMessage = false
         //lastTranslation = "__BIRCLE_UNDEFINED__"
@@ -213,22 +213,22 @@ client.on("messageUpdate", async(m_old: Message, m: Message) => {
 
 client.on("messageCreate", async (m: Message) => {
 
-    if(m.content.match(japRegex)){// && m.author.id === "334538784043696130"){
+    if (m.content.match(japRegex)) {// && m.author.id === "334538784043696130"){
         shouldDeleteTranslationMessage = true
-        lastTranslation = (await translate(m.content, {to: 'en'})).text
+        lastTranslation = (await translate(m.content, { to: 'en' })).text
     }
 
-    if(m.author.bot && m.content.startsWith("#") && !m.content.includes(lastTranslation)){
+    if (m.author.bot && m.content.startsWith("#") && !m.content.includes(lastTranslation)) {
         shouldDeleteTranslationMessage = false
         // lastTranslation = "__BIRCLE_UNDEFINED__"
     }
-    else if(m.content.startsWith("#") && !m.author.bot){
+    else if (m.content.startsWith("#") && !m.author.bot) {
         shouldDeleteTranslationMessage = false
         lastTranslation = "__BIRCLE_UNDEFINED__"
     }
 
-    if(m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation)){
-        if(m.deletable)
+    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation))) {
+        if (m.deletable)
             m.delete().catch(console.log)
         shouldDeleteTranslationMessage = false
         // lastTranslation = "__BIRCLE_UNDEFINED__"
@@ -287,7 +287,7 @@ client.on("messageCreate", async (m: Message) => {
         m.content = '[stop'
         content = m.content
     }
-    else if(content === "]translate"){
+    else if (content === "]translate") {
         await m.channel.send(lastTranslation)
         return
     }

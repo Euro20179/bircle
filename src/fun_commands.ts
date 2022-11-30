@@ -8,12 +8,12 @@ import fetch = require("node-fetch")
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
 import timer from './timer'
-import { CommandCategory, createCommand, createCommandV2, createHelpOption, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
+import { CommandCategory, createCommand, createCommandV2, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
 import { registerFont } from 'canvas';
 import { giveItem } from './shop';
 import { randomInt } from 'crypto';
@@ -22,7 +22,7 @@ const { useItem, hasItem, INVENTORY } = require("./shop")
 
 export default function() {
 
-    registerCommand("mail", createCommandV2(async ({ msg, argList, recursionCount }) => {
+    registerCommand("mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: "You must set the 'enable-mail' option to true in order to use mail", status: StatusCode.ERR }
         }
@@ -39,7 +39,14 @@ export default function() {
         catch (err) {
             return { content: `Could not create dm channel with ${toUser.displayName}`, status: StatusCode.ERR }
         }
-        handleSending(msg, { content: argList.slice(1).join(" ") || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, toUser.user.send.bind(toUser.user.dmChannel), recursionCount)
+        let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
+        if(signature.slice(0, prefix.length) === prefix){
+            signature = getContentFromResult(await runCmd(msg, signature.slice(prefix.length), recursionCount, true, {...(commandBans || {}), ...generateDefaultRecurseBans()}) as CommandReturn)
+            if(signature.startsWith(prefix)){
+                signature = "\\" + signature
+            }
+        }
+        handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, toUser.user.send.bind(toUser.user.dmChannel), recursionCount)
         return { noSend: true, status: StatusCode.RETURN, delete: true }
     }, CommandCategory.FUN))
 
