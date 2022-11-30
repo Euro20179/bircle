@@ -551,7 +551,21 @@ class Parser {
                     data = `{${format_name}|${args.join("|")}}`
                 }
                 else {
-                    data = `{${format_name}}`
+                    let match = format_name.match(/(\d+)\.\.(\d+)/)
+                    if(match){
+                        let start = parseInt(match[1])
+                        let end = parseInt(match[2])
+                        if(end - start > 10000000){
+                            end = start + 1
+                        }
+                        for(let i = start; i <= end; i++){
+                            this.tokens.push(new Token(T.str, String(i), ++this.#curArgNo))
+                        }
+                        data = ""
+                    }
+                    else{
+                        data = `{${format_name}}`
+                    }
                 }
             }
         }
