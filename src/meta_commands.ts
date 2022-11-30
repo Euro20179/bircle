@@ -6,7 +6,7 @@ import user_options = require("./user-options")
 import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
-import { ADMINS, client, FILE_SHORTCUTS, getVar, prefix, saveVars, setVar, vars, VERSION } from "./common"
+import { addToPermList, ADMINS, client, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML } from "./util"
 import { Guild, Message } from "discord.js"
 import { registerCommand } from "./common_to_commands"

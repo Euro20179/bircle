@@ -6,6 +6,9 @@ import fs = require("fs")
 
 import http from 'http'
 
+const translate = require("@iamtraction/google-translate")
+
+
 import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } from "discord.js"
 
 const { REST } = require('@discordjs/rest')
@@ -23,35 +26,35 @@ import { URLSearchParams } from "url"
 import { format } from "./src/util"
 
 const economy = require("./src/economy")
-const {generateFileName} = require("./src/util")
+const { generateFileName } = require("./src/util")
 const { saveItems, hasItem } = require("./src/shop")
 
 const user_options = require("./src/user-options")
 
-let {client, purgeSnipe,  prefix, BLACKLIST, saveVars} = require("./src/common")
+let { client, purgeSnipe, prefix, BLACKLIST, saveVars } = require("./src/common")
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
 
 //@ts-ignore
 Object.defineProperty(User.prototype, "balance", {
-    "get": function(){
+    "get": function() {
         return economy.calculateAmountFromString(this.id, "100%")
     }
 });
 //@ts-ignore
 Object.defineProperty(User.prototype, "loan", {
-    "get": function(){
+    "get": function() {
         return economy.calculateLoanAmountFromString(this.id, "100%")
     }
 });
 
 Object.defineProperty(User.prototype, "economyData", {
-    "get": function(){
+    "get": function() {
         return economy.getEconomy()[this.id]
     }
 });
 Object.defineProperty(User.prototype, "netWorth", {
-    "get": function(){
+    "get": function() {
         return economy.playerLooseNetWorth(this.id)
     }
 });
@@ -88,7 +91,7 @@ client.on("guildMemberAdd", async (m: Message) => {
 
 client.on('ready', async () => {
     Object.keys(user_options.USER_OPTIONS).forEach((v) => {
-        if(user_options.getOpt(v, "dm-when-online", "false") !== "false"){
+        if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
             client.users.fetch(v).then((u: any) => {
                 u.createDM().then((channel: any) => {
                     channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
@@ -177,11 +180,64 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
     command_commons.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: 0 })
 }
 
+const japRegex = /[\u{2E80}-\u{2FD5}\u{3000}-\u{303F}\u{3041}-\u{3096}\u{30A0}-\u{30FF}\u{31F0}-\u{31FF}\u{3220}-\u{3243}\u{3280}-\u{337F}\u{3400}-\u{4DB5}\u{4E00}-\u{9FCB}\u{F900}-\u{FA6A}\u{FF5F}-\u{FF9F}]/u
+
+
+let shouldDeleteTranslationMessage = false
+let lastTranslation = "__BIRCLE_UNDEFINED__"
+
+function messageContainsText(msg: Message, text){
+    text = text.toLowerCase()
+    if(msg.content.toLowerCase().includes(text))
+        return true
+    if(msg.components.some(value => {
+        return value.components.some(com => {
+            if(com.type === "BUTTON"){
+                return com.label?.toLowerCase().includes(text)
+            }
+            return false
+        })
+    })){
+        return true
+    }
+}
+
+client.on("messageUpdate", async(m_old: Message, m: Message) => {
+    if(m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation)){
+        if(m.deletable)
+            m.delete().catch(console.log)
+        shouldDeleteTranslationMessage = false
+        //lastTranslation = "__BIRCLE_UNDEFINED__"
+    }
+})
+
 client.on("messageCreate", async (m: Message) => {
-    if(m.member?.roles.cache.find(v => v.id == '1031064812995760233')){
+
+    if(m.content.match(japRegex)){// && m.author.id === "334538784043696130"){
+        shouldDeleteTranslationMessage = true
+        lastTranslation = (await translate(m.content, {to: 'en'})).text
+    }
+
+    if(m.author.bot && m.content.startsWith("#") && !m.content.includes(lastTranslation)){
+        shouldDeleteTranslationMessage = false
+        // lastTranslation = "__BIRCLE_UNDEFINED__"
+    }
+    else if(m.content.startsWith("#") && !m.author.bot){
+        shouldDeleteTranslationMessage = false
+        lastTranslation = "__BIRCLE_UNDEFINED__"
+    }
+
+    if(m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation)){
+        if(m.deletable)
+            m.delete().catch(console.log)
+        shouldDeleteTranslationMessage = false
+        // lastTranslation = "__BIRCLE_UNDEFINED__"
+    }
+
+    if (m.member?.roles.cache.find(v => v.id == '1031064812995760233')) {
         return
     }
-    if(m.channel.type !== "DM" && m.guild && m.guild?.id !== globals.GUILD_ID)
+    if (m.channel.type !== "DM" && m.guild && m.guild?.id !== globals.GUILD_ID)
         return
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
@@ -189,25 +245,25 @@ client.on("messageCreate", async (m: Message) => {
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
-    if(!m.author.bot && (m.mentions.members?.size || 0) > 0){
+    if (!m.author.bot && (m.mentions.members?.size || 0) > 0) {
         //@ts-ignore
-        for(let i = 0; i < m.mentions.members.size; i++){
+        for (let i = 0; i < m.mentions.members.size; i++) {
             //@ts-ignore
             let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
-            if(pingresponse){
+            if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                if(command_commons.isCmd(pingresponse, prefix)){
+                if (command_commons.isCmd(pingresponse, prefix)) {
                     await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans())
                 }
-                else{
+                else {
                     m.channel.send(pingresponse)
                 }
             }
         }
     }
 
-    if(m.content === `<@${client.user.id}>`){
-        await command_commons.handleSending(m, {content: `The prefix is: ${local_prefix}`, status: 0})
+    if (m.content === `<@${client.user.id}>`) {
+        await command_commons.handleSending(m, { content: `The prefix is: ${local_prefix}`, status: 0 })
     }
 
     //saves economy stuff 45% of the time
@@ -231,14 +287,18 @@ client.on("messageCreate", async (m: Message) => {
         m.content = '[stop'
         content = m.content
     }
-    if(content.startsWith('u!eval')){
+    else if(content === "]translate"){
+        await m.channel.send(lastTranslation)
+        return
+    }
+    if (content.startsWith('u!eval')) {
         m.content = `${prefix}calc -python ` + content.slice('u!eval'.length)
         content = m.content
     }
-    if(content.startsWith("s!") && local_prefix !== prefix){
+    if (content.startsWith("s!") && local_prefix !== prefix) {
         user_options.unsetOpt(m.author.id, 'prefix')
         local_prefix = prefix
-        m.content = m.content.replace("s!",prefix)
+        m.content = m.content.replace("s!", prefix)
         content = m.content
     }
 
@@ -247,18 +307,18 @@ client.on("messageCreate", async (m: Message) => {
         await handleChatSearchCommandType(m, search)
     }
     if (content.slice(0, local_prefix.length) == local_prefix) {
-        if(m.content === `${local_prefix}END` && m.author.id === "334538784043696130"){
+        if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
             server.close()
         }
-        for(let cmd of content.split(`\n${local_prefix};\n`)){
+        for (let cmd of content.split(`\n${local_prefix};\n`)) {
             m.content = `${cmd}`
             let c = m.content.slice(local_prefix.length)
-            try{
+            try {
                 await command_commons.runCmd(m, c)
             }
-            catch(err){
+            catch (err) {
                 console.error(err)
-                await m.channel.send({content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\``})
+                await m.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
             }
         }
         globals.writeCmdUse()
@@ -279,16 +339,16 @@ client.on("messageCreate", async (m: Message) => {
         }
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
-            if (stuff){
+            if (stuff) {
                 let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
-                await command_commons.handleSending(m, {content: format(findMessage, {user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}` : stuff.items.join(", ")}), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans()})
+                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
         }
     }
 })
 
 client.on("interactionCreate", async (interaction: Interaction) => {
-    if(interaction?.user?.username === undefined){
+    if (interaction?.user?.username === undefined) {
         return
     }
     if (interaction.isButton() && !interaction.replied) {
@@ -636,30 +696,30 @@ server.listen(8222)
 
 server.on("request", (req, res) => {
     let url = req.url
-    if(!url){
+    if (!url) {
         res.writeHead(404)
-        res.end(JSON.stringify({err: "Page not found"}))
+        res.end(JSON.stringify({ err: "Page not found" }))
         return
     }
     let paramsStart = url.indexOf("?")
     let path = url.slice(0, paramsStart > -1 ? paramsStart : undefined)
     let urlParams: URLSearchParams | null = new URLSearchParams(url.slice(paramsStart))
-    if(paramsStart == -1){
+    if (paramsStart == -1) {
         urlParams = null
     }
-    switch(path){
+    switch (path) {
         case "/economy": {
             let userId = urlParams?.get("user-id")
             let econData = economy.getEconomy()
             let rv;
-            if(userId){
-                if(econData[userId])
+            if (userId) {
+                if (econData[userId])
                     rv = econData[userId]
-                else{
-                    rv = {error: "Cannot find data for user"}
+                else {
+                    rv = { error: "Cannot find data for user" }
                 }
             }
-            else{
+            else {
                 rv = econData
             }
             res.writeHead(200)
@@ -668,12 +728,12 @@ server.on("request", (req, res) => {
         }
         case "/files": {
             let files = urlParams?.get("file")?.split(" ")
-            if(!files){
+            if (!files) {
                 files = fs.readdirSync(`./command-results/`)
             }
-            let data: {[file: string]: string} = {}
-            for(let file of files){
-                if(fs.existsSync(`./command-results/${file}`)){
+            let data: { [file: string]: string } = {}
+            for (let file of files) {
+                if (fs.existsSync(`./command-results/${file}`)) {
                     data[file] = fs.readFileSync(`./command-results/${file}`, "utf-8")
                 }
             }
@@ -688,37 +748,37 @@ server.on("request", (req, res) => {
             pet.savePetData()
             client.destroy()
             res.writeHead(200)
-            res.end(JSON.stringify({success: "Successfully ended bot"}))
+            res.end(JSON.stringify({ success: "Successfully ended bot" }))
             server.close()
             break;
         }
         case "/send": {
             let text = urlParams?.get("text")
-            if(!text){
+            if (!text) {
                 res.writeHead(400)
-                res.end(JSON.stringify({error: "No text given"}))
+                res.end(JSON.stringify({ error: "No text given" }))
                 break
             }
             let inChannel = urlParams?.get("channel-id")
             client.channels.fetch(inChannel).then((channel: TextChannel) => {
-                channel.send({content: text}).then((msg) => {
+                channel.send({ content: text }).then((msg) => {
                     res.writeHead(200)
                     res.end(JSON.stringify(msg.toJSON()))
                 })
             }).catch((_err: any) => {
                 res.writeHead(444)
-                res.end(JSON.stringify({error: "Channel not found"}))
+                res.end(JSON.stringify({ error: "Channel not found" }))
             })
             break
         }
         case "/run": {
             let command = urlParams?.get("cmd")
-            if(!command){
+            if (!command) {
                 res.writeHead(400)
-                res.end(JSON.stringify({error: "No text given"}))
+                res.end(JSON.stringify({ error: "No text given" }))
                 break
             }
-            if(!command.startsWith(prefix)){
+            if (!command.startsWith(prefix)) {
                 command = `${prefix}${command}`
             }
             let inChannel = urlParams?.get("channel-id")
@@ -785,7 +845,7 @@ server.on("request", (req, res) => {
                     url: "http://localhost:8222/",
                     webhookId: null,
                     _cacheType: false,
-                    _patch: (_data) => {}
+                    _patch: (_data) => { }
                 }
                 command_commons.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
                     command_commons.handleSending(msg, rv as CommandReturn).then(_done => {
@@ -793,20 +853,20 @@ server.on("request", (req, res) => {
                         res.end(JSON.stringify(rv))
                     }).catch(_err => {
                         res.writeHead(500)
-                        res.end(JSON.stringify({error: "Soething went wrong sending message"}))
+                        res.end(JSON.stringify({ error: "Soething went wrong sending message" }))
                     })
                 }).catch(_err => {
-                        res.writeHead(500)
-                        res.end(JSON.stringify({error: "Soething went wrong executing command"}))
+                    res.writeHead(500)
+                    res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
                 })
             }).catch((_err: any) => {
                 res.writeHead(444)
-                res.end(JSON.stringify({error: "Channel not found"}))
+                res.end(JSON.stringify({ error: "Channel not found" }))
             })
             break
         }
         default:
             res.writeHead(404)
-            res.end(JSON.stringify({error: "Route not found"}))
+            res.end(JSON.stringify({ error: "Route not found" }))
     }
 })
