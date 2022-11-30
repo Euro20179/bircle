@@ -1,0 +1,78 @@
+```
+Anything may be prefixed with a \ to prevent it from happening immediately
+
+[command [args...]
+
+do first:
+    $(command)
+    put %{-1}$(command) to replace $(command) with nothing
+    %{0}$(command) gets replaced with the first word of the result
+    %{do-first-index:} gets replaces with the result of a specific $(command)
+    %{do-first-index:word-index} gets replaced with the word index of a specific $(cmd)
+end of statement:
+    putting a [; on its own line seperates commands.
+calc:
+    $[calculation]
+special commands:
+    [count]:<range>[cmd/...]
+    [t:cmd (type)
+    [s:cmd (silence command result)
+    [d:cmd (delete your message)
+    [redir([prefix]:var-name):cmd (put cmd output into the variable)
+escapes:
+    \n: new line
+    \t: tab
+    \U{hex}: unicode
+    \u{hex}: unicode
+    \s: space
+    \s{text}: all the text inside is treated as 1 argument
+    \b{text}: bold
+    \i{text}: italic
+    \S{text}: strikethrough
+    \d{date}: date
+    \D{unix timestamp}: date from timestamp
+    \v{(g:)variable name}: value of a variable (put g: to garantee global scope)
+    \V{prefix:variable name}: get a variable from a specific scope (. for global and % for user)
+    \\: backslash
+getting variables:
+    ${[prefix:]variable_name}
+    a % as the prefix represents a user variable, no prefix defaults to __global__, then to user
+formats:
+    {ruser[|fmt]}: generate a user
+    {user}: mention yourself
+    {channel}: The current channel
+    {cmd}: the command
+    {fhex|number}: convert a number from a base
+    {hex|number}: convert a number to a base
+    {rev|string}: reverse a string
+    {rand[|item1|item2...]}: random item
+    {time[|datetime format]}: time date format
+    {channel[|format]}: channel
+    {token|type|data}: create a token of type type with data as the text.
+    {$}: your balance
+    {$l}: Your loan
+    {$t}: Your total amount
+    {$n}: Your net worth
+    {timer|name}: Gets the time your timer with <name> started
+    {timer|-name}: Gets the number of ms that have passed since <name> started
+variables:
+    **prefix**:
+    A prefix is so you can have multiple variables with the same name without clashes.
+    **user vars**
+    A user var is a variable only you can edit.
+    **builtin vars**
+    random: random number
+    rand: random number
+    prefix: bot's prefix
+    scopecount: amount of scopes
+    sender: mention yourself
+    money: The amont of money you have
+    $: The amount of money you have
+    **defining vars**
+    you may also define custom variables like: [var x=y
+        or [var x=this is a long variable
+    To define a user variable you can do
+    [var -u x=y
+    To define a variable with a prefix, do
+    [var -prefix=this-is-the-prefix x=y
+```

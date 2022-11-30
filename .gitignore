@@ -35,3 +35,4 @@ vars
 wiki/*
 
 !wiki/index.txt
+!help.txt
