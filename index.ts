@@ -213,7 +213,7 @@ client.on("messageUpdate", async (m_old: Message, m: Message) => {
 
 client.on("messageCreate", async (m: Message) => {
 
-    if (m.content.match(japRegex)) {// && m.author.id === "334538784043696130"){
+    if (m.content.match(japRegex)  && user_options.getOpt(m.author.id, "delete-auto-translate", "false") === "true"){
         shouldDeleteTranslationMessage = true
         lastTranslation = (await translate(m.content, { to: 'en' })).text
     }
