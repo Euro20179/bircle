@@ -217,8 +217,10 @@ client.on("messageCreate", async (m: Message) => {
         shouldDeleteTranslationMessage = true
         lastTranslation = (await translate(m.content, { to: 'en' })).text
     }
-
-    console.log(shouldDeleteTranslationMessage)
+    else if(m.content.match(japRegex)  && user_options.getOpt(m.author.id, "delete-auto-translate", "false") === "false"){
+        shouldDeleteTranslationMessage = false
+        lastTranslation = "__BIRCLE_UNDEFINED__"
+    }
 
     if (m.author.bot && m.content.startsWith("#") && !m.content.includes(lastTranslation)) {
         shouldDeleteTranslationMessage = false
