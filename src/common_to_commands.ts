@@ -1,11 +1,13 @@
 import { Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
+import economy = require("./economy")
+import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
 
 export enum StatusCode {
     PROMPT = -2,
@@ -88,7 +90,7 @@ export class Interprater {
     #doFirstCountValueTable: { [key: number]: string }
     #doFirstNoFromArgNo: { [key: number]: number }
     #msg: Message
-    #argOffsetFromDoFirstSpreading: number
+    #argOffset: number
     modifiers: Modifier[]
 
     static commandUndefined = new Object()
@@ -109,7 +111,7 @@ export class Interprater {
         this.#curTok = undefined
         this.#doFirstCountValueTable = {}
         this.#msg = msg
-        this.#argOffsetFromDoFirstSpreading = 0
+        this.#argOffset = 0
         this.#doFirstNoFromArgNo = {}
         this.#interprated = false
         this.#aliasExpandSuccess = false
@@ -131,12 +133,15 @@ export class Interprater {
         return true
     }
     addTokenToArgList(token: Token) {
-        if (this.args[token.argNo + this.#argOffsetFromDoFirstSpreading] === undefined) {
-            this.args[token.argNo + this.#argOffsetFromDoFirstSpreading] = token.data
+        if (this.args[token.argNo + this.#argOffset] === undefined) {
+            this.args[token.argNo + this.#argOffset] = token.data
         }
         else {
-            this.args[token.argNo + this.#argOffsetFromDoFirstSpreading] += token.data
+            this.args[token.argNo + this.#argOffset] += token.data
         }
+    }
+    removeLastTokenFromArgList(){
+        this.args = this.args.slice(0, -1)
     }
     //str token
     async [0](token: Token) {
@@ -175,7 +180,241 @@ export class Interprater {
     }
     //fmt
     async [4](token: Token) {
-        this.addTokenToArgList(token)
+        let [format_name, ...args] = token.data.split("|")
+        let data = ""
+        switch (format_name) {
+            case "cmd":
+                data = this.#msg.content.split(" ")[0].slice(user_options.getOpt(this.#msg.author.id, "prefix", prefix).length)
+                break
+            case "fhex":
+            case "fbase": {
+                let [num, base] = args
+                data = String(parseInt(num, parseInt(base) || 16))
+                break
+            }
+            case "hex":
+            case "base": {
+                let [num, base] = args
+                data = String(Number(num).toString(parseInt(base) || 16))
+                break
+            }
+
+            // case "token": {
+            //     let [tt, ...data] = args
+            //     let text = data.join("|")
+            //
+            //     return new Token(strToTT(tt), text, this.#curArgNo)
+            // }
+
+            case "rev":
+            case "reverse":
+                if (args.length > 1)
+                    data = args.reverse().join(" ")
+                else {
+                    data = [...args.join(" ")].reverse().join("")
+                }
+                break
+            case "channel": {
+                let fmt = args.join(" ") || "<#%i>"
+                let channel = this.#msg.channel
+                //@ts-ignore
+                data = format(fmt, { i: channel.id, n: channel.name ?? `{${channel.type}}` })
+                break
+            }
+            case '$': {
+                data = String(economy.calculateAmountFromString(this.#msg.author.id, args.join(" ") || "100%"))
+                break
+            }
+            case '$l': {
+                data = String(economy.calculateLoanAmountFromString(this.#msg.author.id, args.join(" ") || "100%"))
+                break
+            }
+            case '$t': {
+                data = String(economy.calculateAmountFromStringIncludingStocks(this.#msg.author.id, args.join(" ") || "100%"))
+                break
+            }
+            case '$n': {
+                data = String(economy.calculateAmountFromStringIncludingStocks(this.#msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(this.#msg.author.id, "100%"))
+                break
+            }
+            case "timer": {
+                let name = args.join(" ").trim()
+                if (name[0] === '-') {
+                    data = String(timer.default.do_lap(this.#msg.author.id, name.slice(1)))
+                }
+                else {
+                    data = String(timer.default.getTimer(this.#msg.author.id, args.join(" ").trim()))
+                }
+                break
+            }
+            case "user": {
+                let fmt = args.join(" ") || "<@%i>"
+                let member = this.#msg.member
+                let user = member?.user
+                if (user === undefined || member === undefined || member === null) {
+                    data = `{${args.join(" ")}}`
+                    break
+                }
+                data = format(fmt,
+                    {
+                        i: user.id || "#!N/A",
+                        u: user.username || "#!N/A",
+                        n: member.nickname || "#!N/A",
+                        X: member.displayHexColor.toString() || "#!N/A",
+                        x: member.displayColor.toString() || "#!N/A",
+                        c: user.createdAt.toString() || "#!N/A",
+                        j: member.joinedAt?.toString() || "#!N/A",
+                        b: member.premiumSince?.toString() || "#!N/A",
+                        a: member.user.avatarURL() || "#N/A"
+                    }
+                )
+                break
+            }
+            case "rand":
+                if (args && args?.length > 0)
+                    data = args[Math.floor(Math.random() * args.length)]
+                else {
+                    data = "{rand}"
+                }
+                break
+            case "num":
+            case "number":
+                if (args && args?.length > 0) {
+                    let low = Number(args[0])
+                    let high = Number(args[1]) || low * 10
+                    let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
+                    if (dec)
+                        data = String((Math.random() * (high - low)) + low)
+                    else {
+                        data = String(Math.floor((Math.random() * (high - low)) + low))
+                    }
+                    break
+                }
+                data = String(Math.random())
+                break
+            case "ruser":
+                let fmt = args.join(" ") || "%u"
+                let guild = this.#msg.guild
+                if (guild === null) {
+                    data = `{${fmt}}`
+                    break
+                }
+
+                let member = guild.members.cache.random()
+                if (member === undefined)
+                    member = (await guild.members.fetch()).random()
+                if (member === undefined) {
+                    data = `{${fmt}}`
+                    break
+                }
+                let user = member.user
+                data = format(fmt,
+                    {
+                        i: user.id || "#!N/A",
+                        u: user.username || "#!N/A",
+                        n: member.nickname || "#!N/A",
+                        X: member.displayHexColor.toString() || "#!N/A",
+                        x: member.displayColor.toString() || "#!N/A",
+                        c: user.createdAt.toString() || "#!N/A",
+                        j: member.joinedAt?.toString() || "#!N/A",
+                        b: member.premiumSince?.toString() || "#!N/A"
+                    }
+                )
+                break
+            case "time":
+                let date = new Date()
+                if (!args.length) {
+                    data = date.toString()
+                    break
+                }
+                let hours = date.getHours()
+                let AMPM = hours < 12 ? "AM" : "PM"
+                if (args[0].trim() == '12') {
+                    hours > 12 ? hours = hours - 12 : hours
+                    args.splice(0, 1)
+                }
+                data = format(args.join("|"), {
+                    "d": `${date.getDate()}`,
+                    "H": `${hours}`,
+                    "M": `${date.getMinutes()}`,
+                    "S": `${date.getSeconds()}`,
+                    "T": `${hours}:${date.getMinutes()}:${date.getSeconds()}`,
+                    "t": `${hours}:${date.getMinutes()}`,
+                    "1": `${date.getMilliseconds()}`,
+                    "z": `${date.getTimezoneOffset()}`,
+                    "x": AMPM,
+                    "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+                    "m": `${date.getMonth() + 1}`,
+                    "Y": `${date.getFullYear()}`,
+                    "w": `${date.getDay()}`
+                })
+                break
+            case "arg": {
+                for (let i = 0; i < this.tokens.filter(v => v.argNo === token.argNo).length; i++) {
+                    if(this.tokens[i].id === token.id) continue
+                    this.addTokenToArgList(this.tokens[i])
+                }
+                data = ""
+                break
+            }
+            case "channel":
+                data = format(args.join("|"), {
+                    "i": `${this.#msg.channel.id}`,
+                    //@ts-ignore
+                    "N!": `${this.#msg.channel.nsfw}`,
+                    //@ts-ignore
+                    "n": `${this.#msg.channel.name}`,
+                    "c": `${this.#msg.channel.createdAt}`
+                })
+                break
+            default: {
+                if (args.length > 0) {
+                    data = `{${format_name}|${args.join("|")}}`
+                }
+                else {
+                    let rangeMatch = format_name.match(/(\d+)(?:\.\.|-)(\d+)/)
+                    if(rangeMatch){
+                        let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
+                        let beforeNumber = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+
+                        //if we dont do this, there will be extra text
+                        if(beforeNumber){
+                            this.removeLastTokenFromArgList()
+                        }
+
+                        let afterNumber = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+                        let start = parseInt(rangeMatch[1])
+                        let end = parseInt(rangeMatch[2])
+                        if(end - start > 1000000){
+                            end = start + 1
+                        }
+                        for(let i = start; i <= end; i++){
+                            this.addTokenToArgList(new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++))
+                        }
+                        data = ""
+                    }
+                    else if(format_name.includes(",")){
+                        let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
+                        let beforeWord = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+
+                        //if we dont do this, there will be extra text
+                        if(beforeWord){
+                            this.removeLastTokenFromArgList()
+                        }
+
+                        let afterWord = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+                        for(let word of format_name.split(",")){
+                            this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
+                        }
+                        data = ""
+                    }
+                    else{
+                        data = `{${format_name}}`
+                    }
+                }
+            }
+        }
+        this.addTokenToArgList(new Token(T.str, data, token.argNo))
     }
     //dofirstrepl
     async [5](token: Token) {
