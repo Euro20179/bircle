@@ -351,7 +351,7 @@ export class Interprater {
                 break
             case "arg": {
                 for (let i = 0; i < this.tokens.filter(v => v.argNo === token.argNo).length; i++) {
-                    if(this.tokens[i].id === token.id) continue
+                    if(this.tokens[i].id === token.id || this.tokens[i].type === T.format) continue
                     this.addTokenToArgList(this.tokens[i])
                 }
                 data = ""
