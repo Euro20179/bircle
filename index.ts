@@ -218,6 +218,8 @@ client.on("messageCreate", async (m: Message) => {
         lastTranslation = (await translate(m.content, { to: 'en' })).text
     }
 
+    console.log(shouldDeleteTranslationMessage)
+
     if (m.author.bot && m.content.startsWith("#") && !m.content.includes(lastTranslation)) {
         shouldDeleteTranslationMessage = false
         // lastTranslation = "__BIRCLE_UNDEFINED__"
@@ -227,7 +229,7 @@ client.on("messageCreate", async (m: Message) => {
         lastTranslation = "__BIRCLE_UNDEFINED__"
     }
 
-    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation))) {
+    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation) || shouldDeleteTranslationMessage)) {
         if (m.deletable)
             m.delete().catch(console.log)
         shouldDeleteTranslationMessage = false
