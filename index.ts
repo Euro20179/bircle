@@ -203,7 +203,7 @@ function messageContainsText(msg: Message, text) {
 }
 
 client.on("messageUpdate", async (m_old: Message, m: Message) => {
-    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation)){
+    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation))){
         if (m.deletable)
             m.delete().catch(console.log)
         shouldDeleteTranslationMessage = false

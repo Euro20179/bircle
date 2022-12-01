@@ -80,7 +80,8 @@ let defaultVars = {
     carson: () => "The all legendary Carson Williams",
     money: (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
     "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "__global_currency_sign": () => GLOBAL_CURRENCY_SIGN
+    "__global_currency_sign": () => GLOBAL_CURRENCY_SIGN,
+    "_": (msg: Message) => getVar(msg, "_!", msg.author.id)
 }
 
 for(let v of allowedOptions){
