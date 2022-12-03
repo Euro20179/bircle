@@ -383,6 +383,12 @@ export class Interprater {
                         }
 
                         let afterNumber = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+
+                        if(afterNumber){
+                            //dont let these tokens get parsed
+                            this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
+                        }
+
                         let start = parseInt(rangeMatch[1])
                         let end = parseInt(rangeMatch[2])
                         if(end - start > 1000000){
@@ -403,6 +409,12 @@ export class Interprater {
                         }
 
                         let afterWord = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+
+                        if(afterWord){
+                            //dont let these tokens get parsed
+                            this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
+                        }
+
                         for(let word of format_name.split(",")){
                             this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
                         }
