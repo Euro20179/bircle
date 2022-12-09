@@ -1,39 +1,73 @@
+
+###############
+#   SECRETS   #
+###############
+
 TOKEN
-node_modules
 CLIENT
 GUILD
 REDDIT
-help.html
+data/*.key
+
+
+###############
+#   BOT DAT   #
+###############
+
+
+# global data
 prefix
 cmduse
 emoteuse
 command-perms
 command-results
-log.txt
-make-changelog
-*.txt
-*.png
-*.mp3
-*.mp4
-out
-economy.json
 lottery.json
+wiki/*
+
+# user data
+economy.json
 inventory.json
 petinventory.json
 user-options.json
 timers.json
-
-*.js
-
-*.bircle
-
 vars
 
-!command-perms/holder
+###############
+#   CONFIGS   #
+###############
 
-data/*.key
+node_modules
 
-wiki/*
+###############
+#   CMD OUT   #
+###############
+
+*.txt
+*.png
+*.mp3
+*.mp4
+*.jsonl
+help.html
+log.txt
+
+###############
+# BUILD STUFF #
+###############
+
+make-changelog
+*.js
+
+###############
+#     MISC    #
+###############
+
+out
+*.bircle
+
+###############
+#   INCLUDE   #
+###############
 
 !wiki/index.txt
 !help.txt
+!command-perms/holder
