@@ -507,7 +507,12 @@ class UTF8String {
     }
 }
 
-function* cycle(iter: any, onNext?: Function) {
+/**
+ * @param {Iterable} iter
+ * @param {function(number):void} [onNext]
+ * @returns {Iterable}
+ */
+function* cycle(iter: any, onNext?: (n: number) => void) {
     for (let i = 0; true; i++) {
         if (onNext)
             onNext(i)
@@ -515,6 +520,12 @@ function* cycle(iter: any, onNext?: Function) {
     }
 }
 
+
+
+/**
+ * Generates a random color
+ * @returns {Array} An array of three numbers representing the RGB values of the color
+ */
 function randomColor() {
     let colors = []
     for (let i = 0; i < 3; i++) {
@@ -522,6 +533,8 @@ function randomColor() {
     }
     return colors
 }
+
+
 
 function intoColorList(color: string) {
     return String(color).replaceAll("|", ">").split(">").map(v => v.trim())
@@ -542,7 +555,7 @@ function mulStr(str: string, amount: number) {
 
 async function fetchChannel(guild: Guild, find: string) {
     let channels = await guild.channels.fetch()
-    let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || channel?.name?.indexOf(find) > -1).at(0)
+    let channel = channels.filter(channel => `<#${channel?.id}>` == find || channel?.id == find || channel?.name == find || (channel?.name?.indexOf(find) ?? -1) > -1).at(0)
     return channel
 }
 
@@ -824,7 +837,7 @@ class Options extends Map{
     }
 
     getString(key: string, default_: string, toString: (v: string | boolean) => string = String) {
-        let n = Reflect.get(this, key, this)
+        let n = super.get(key)
         if (n !== undefined && n !== true) {
             n = toString(n)
             if (n) {
@@ -836,7 +849,7 @@ class Options extends Map{
     }
 
     getNumber(key: string, default_: number, toNumber: (v: string) => number = Number) {
-        let n = Reflect.get(this, key, this)
+        let n = super.get(key)
         if (n !== undefined) {
             let number = toNumber(n)
             if (!isNaN(number)) {
@@ -847,7 +860,7 @@ class Options extends Map{
         return default_
     }
     getBool(key: string, default_: boolean, toBoolean: (v: any) => boolean = Boolean) {
-        let v = Reflect.get(this, key, this)
+        let v = super.get(key)
         if (v !== undefined) {
             let bool = toBoolean(v)
             return bool
@@ -902,9 +915,15 @@ function getContentFromResult(result: CommandReturn) {
 
 function renderElementChildren(elem: cheerio.Element, indentation = 0) {
     let text = ""
+
+    if(elem.type == "text")
+        return elem.data
+    else if(elem.type == "comment")
+        return ""
+
     for (let child of elem.children) {
         if (child.type === "text") {
-            text += child.data.replaceAll(/\s+/g, " ")
+            text += child.data?.replaceAll(/\s+/g, " ")
         }
         else if (child.type === "tag") {
             text += renderELEMENT(child, indentation)
@@ -914,13 +933,20 @@ function renderElementChildren(elem: cheerio.Element, indentation = 0) {
 }
 
 function renderLiElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
-    marker = elem.attributes.filter(v => v.name === "marker")?.[0]?.value ?? marker
+    if(elem.type === "text" || elem.type === "comment"){
+        return ""
+    }
+    marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
     return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation) + "\n"
 }
 
 function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
     let text = ""
-    marker = elem.attributes.filter(v => v.name === "marker")?.[0]?.value ?? marker
+    if(elem.type === "text" || elem.type === "comment"){
+        return ""
+    }
+
+    marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
     for (let child of elem.children) {
         if (child.type === "tag") {
             if (child.name === "li") {
@@ -928,7 +954,7 @@ function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t")
             }
         }
         else if (child.type === "text") {
-            text += child.data.replaceAll(/\s+/g, " ")
+            text += child.data?.replaceAll(/\s+/g, " ")
         }
     }
     return text
@@ -951,7 +977,11 @@ function renderSElement(elem: cheerio.Element, indentation = 0) {
 
 function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     let text = "`"
-    let lang = elem.attributes.filter(v => v.name === "lang")?.[0]?.value
+    if(elem.type === "text" || elem.type === "comment"){
+        return ""
+    }
+
+    let lang = Object.entries(elem.attribs).filter(v => v[0] === "lang")?.[0]?.[1]
     if (lang) {
         text += `\`\`${lang}\`\`\n`
     }
@@ -961,7 +991,7 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     }
     return text + "`"
 }
-function renderELEMENT(elem: cheerio.AnyNode, indentation = 0) {
+function renderELEMENT(elem: cheerio.Element, indentation = 0) {
     let text = ""
     if (elem.type === "tag") {
         if (elem.name === "br") {
@@ -992,7 +1022,7 @@ function renderELEMENT(elem: cheerio.AnyNode, indentation = 0) {
         }
     }
     if (elem.type === "text") {
-        text += elem.data.replaceAll(/\s+/g, " ")
+        text += elem.data?.replaceAll(/\s+/g, " ")
     }
     return text
 
@@ -1069,7 +1099,7 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
         if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
         }
-        if (args !== {}) {
+        if (args && Object.keys(args).length) {
             html += `<h2 class="command-arguments">Arguments</h2><ul class="command-argument-list">`
             for (let argName in args) {
                 let argument = args[argName].description
@@ -1086,12 +1116,12 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
             }
             html += "</ul>"
         }
-        if (options !== {}) {
+        if (options && Object.keys(options).length) {
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for (let option in options) {
                 let desc = options[option].description || ""
                 let alternates = options[option].alternates || 0
-                let requiresValue = options[option].requiresValue || false
+                // let requiresValue = options[option].requiresValue || false
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
     <summary class="command-option-summary" title="default: ${default_}">-${option}&nbsp</summary> ${desc}</details>`
@@ -1108,7 +1138,7 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
             html += "</ul>"
 
         }
-        if (aliases !== []) {
+        if (aliases) {
             html += `<h2 class="command-aliases">Aliases</h2><ul class="command-alias-list">`
             for (let alias of aliases) {
                 html += `<li class="command-alias">${alias}</li>`

@@ -6,9 +6,11 @@ import { Stream } from 'stream'
 import { ColorResolvable, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
 import fetch = require("node-fetch")
 
+import { Configuration, OpenAIApi } from "openai"
+
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
@@ -20,7 +22,59 @@ import { randomInt } from 'crypto';
 
 const { useItem, hasItem, INVENTORY } = require("./shop")
 
+const [key, orgid] = fs.readFileSync(__dirname + "/../data/openai.key", "utf-8").split("\n")
+const configuration = new Configuration({
+    organization: orgid,
+    apiKey: key
+})
+let openai = new OpenAIApi(configuration)
+
+
 export default function() {
+
+    registerCommand("chat", createCommandV2(async ({msg, argList, opts}) => {
+        const modelToUse = opts.getString("m", "text-davinci-003")
+        const temperature = opts.getNumber("t", 0.2)
+        const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
+        let text: string | undefined = argList.join(" ")
+        if(!text){
+            text = "\n"
+        }
+        let res = "No result"
+        if(requestType === "completion"){
+            let resp = await openai.createCompletion({
+                model: modelToUse,
+                prompt: text,
+                max_tokens: opts.getNumber("tokens", 0) || opts.getNumber("tok", 100),
+                user: msg.author.id,
+                temperature: temperature,
+            })
+            res = resp.data.choices.slice(-1)[0].text || "no result"
+        }
+        else if(requestType === "edit") {
+            let [instruction, ...input] = text.split("|").map(v => v.trim())
+            let resp = await openai.createEdit({
+                input: input.join("|"),
+                instruction: instruction,
+                temperature: temperature,
+                model: "text-davinci-edit-001"
+            })
+            res = resp.data.choices[0].text || "No result"
+
+        }
+        else if(requestType === "image") {
+            let resp = await openai.createImage({
+                prompt: text || "Hello",
+                size: opts.getString("size", "256x256"),
+                user: msg.author.id
+            })
+            res = resp.data.data[0].url || "No result"
+        }
+        else{
+            return {content: "Invalid request type", status: StatusCode.ERR}
+        }
+        return {content: res, status: StatusCode.RETURN}
+    }, CommandCategory.FUN))
 
     registerCommand("mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {

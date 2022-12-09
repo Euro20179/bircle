@@ -246,10 +246,10 @@ export default function() {
                     case 'linear': {
                         let info = data.join(" ")
                         let coords = info.split("|")[0].split(" ").map((v: string) => v.trim())
-                        let x1 = parsePosition(coords[0], canv.width)
-                        let y1 = parsePosition(coords[1], canv.height)
-                        let x2 = parsePosition(coords[2], canv.width)
-                        let y2 = parsePosition(coords[3], canv.height)
+                        let x1 = Number(parsePosition(coords[0], canv.width))
+                        let y1 = Number(parsePosition(coords[1], canv.height))
+                        let x2 = Number(parsePosition(coords[2], canv.width))
+                        let y2 = Number(parsePosition(coords[3], canv.height))
                         const grad = ctx.createLinearGradient(x1, y1, x2, y2)
                         let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
                         for (let color of colors) {
@@ -272,12 +272,12 @@ export default function() {
                     case 'radial': {
                         let info = data.join(" ")
                         let coords = info.split("|")[0].split(" ").map((v: string) => v.trim())
-                        let x1 = parsePosition(coords[0], canv.width)
-                        let y1 = parsePosition(coords[1], canv.height)
-                        let r1 = parsePosition(coords[2], canv.width)
-                        let x2 = parsePosition(coords[3], canv.width)
-                        let y2 = parsePosition(coords[4], canv.height)
-                        let r2 = parsePosition(coords[5], canv.width)
+                        let x1 = Number(parsePosition(coords[0], canv.width))
+                        let y1 = Number(parsePosition(coords[1], canv.height))
+                        let r1 = Number(parsePosition(coords[2], canv.width))
+                        let x2 = Number(parsePosition(coords[3], canv.width))
+                        let y2 = Number(parsePosition(coords[4], canv.height))
+                        let r2 = Number(parsePosition(coords[5], canv.width))
                         const grad = ctx.createRadialGradient(x1, y1, r1, x2, y2, r2)
                         let colors = info.split("|").slice(1).join("|").replaceAll("|", ">").split(">").map((v: string) => v.trim())
                         for (let color of colors) {
@@ -521,24 +521,24 @@ The commands below, only work after **path** has been run:
                     }//}}}
                     case "line-to": {//{{{
                         let [str_x, str_y] = args
-                        let x = parsePosition(str_x, canv.width)
-                        let y = parsePosition(str_y, canv.height)
+                        let x = Number(parsePosition(str_x, canv.width))
+                        let y = Number(parsePosition(str_y, canv.height))
                         ctx.lineTo(x, y)
                         continue
                     }//}}}
                     case "goto"://{{{
                     case "move-to": {
                         let [str_x, str_y] = args
-                        let x = parsePosition(str_x, canv.width)
-                        let y = parsePosition(str_y, canv.height)
+                        let x = Number(parsePosition(str_x, canv.width))
+                        let y = Number(parsePosition(str_y, canv.height))
                         ctx.moveTo(x, y)
                         continue
                     }//}}}
                     case "arc": {//{{{
                         let [str_x, str_y, str_r, str_sa, str_ea] = args
-                        let r = parsePosition(str_r, canv.width / 2)
-                        let x = parsePosition(str_x, canv.width, r)
-                        let y = parsePosition(str_y, canv.height, r)
+                        let r = Number(parsePosition(str_r, canv.width / 2))
+                        let x = Number(parsePosition(str_x, canv.width, r))
+                        let y = Number(parsePosition(str_y, canv.height, r))
                         let start_angle = parseFloat(str_sa) || 0
                         let end_angle = parseFloat(str_ea) || 2 * Math.PI
                         ctx.arc(x, y, r, start_angle * (Math.PI / 180), end_angle)
@@ -593,7 +593,7 @@ The commands below, only work after **path** has been run:
                     case "stroke"://{{{
                     case "outline": {
                         let type = args[0]
-                        let { color, err } = createColor(type, args.slice(1), actionMessage)
+                        let { color, err } = createColor(type, args.slice(1))
                         if (err) {
                             await handleSending(msg, { status: StatusCode.ERR, content: err }, sendCallback)
                         }
@@ -614,7 +614,7 @@ The commands below, only work after **path** has been run:
                     }//}}}
                     case "color": {//{{{
                         let type = args[0]
-                        let { color, err } = createColor(type, args.slice(1), actionMessage)
+                        let { color, err } = createColor(type, args.slice(1))
                         if (err) {
                             await handleSending(msg, { content: err, status: StatusCode.ERR }, sendCallback)
                             continue
@@ -652,7 +652,7 @@ The commands below, only work after **path** has been run:
                         let [strx, stry, ...text] = args
                         let textInfo = ctx.measureText(text.join(" "))
                         let font_size = parseFloat(ctx.font)
-                        let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72 / 96) + textInfo.actualBoundingBoxDescent)]
+                        let [x, y] = [Number(parsePosition(strx, canv.width, textInfo.width)), Number(parsePosition(stry, canv.height, font_size * (72 / 96) + textInfo.actualBoundingBoxDescent))]
                         ctx.strokeText(text.join(" ").replaceAll("\\n", "\n"), x, y)
                         break;
                     }//}}}
@@ -660,7 +660,7 @@ The commands below, only work after **path** has been run:
                         let [strx, stry, ...text] = args
                         let textInfo = ctx.measureText(text.join(" "))
                         let font_size = parseFloat(ctx.font)
-                        let [x, y] = [parsePosition(strx, canv.width, textInfo.width), parsePosition(stry, canv.height, font_size * (72 / 96) + textInfo.actualBoundingBoxDescent)]
+                        let [x, y] = [Number(parsePosition(strx, canv.width, textInfo.width)), Number(parsePosition(stry, canv.height, font_size * (72 / 96) + textInfo.actualBoundingBoxDescent))]
                         ctx.fillText(text.join(" ").replaceAll("\\n", "\n"), x, y)
                         break;
                     }//}}}
@@ -671,17 +671,17 @@ The commands below, only work after **path** has been run:
                         if (!str_w) str_w = String(canv.width);
                         if (!str_h) str_h = String(canv.height);
                         let x, y, w, h
-                        w = parsePosition(str_w, canv.width - ctx.lineWidth)
-                        h = parsePosition(str_h, canv.width - ctx.lineWidth)
-                        x = parsePosition(str_x, canv.width, w - ctx.lineWidth / 2)
-                        y = parsePosition(str_y, canv.height, h - ctx.lineWidth / 2)
+                        w = Number(parsePosition(str_w, canv.width - ctx.lineWidth))
+                        h = Number(parsePosition(str_h, canv.width - ctx.lineWidth))
+                        x = Number(parsePosition(str_x, canv.width, w - ctx.lineWidth / 2))
+                        y = Number(parsePosition(str_y, canv.height, h - ctx.lineWidth / 2))
                         ctx.strokeRect(x, y, w, h)
                         break
                     }//}}}
                     case "fill-screen": {//{{{
                         let type = args[0]
                         if (type) {
-                            let { color, err } = createColor(type, args.slice(1), actionMessage)
+                            let { color, err } = createColor(type, args.slice(1))
                             if (err) {
                                 await handleSending(msg, { content: err, status: StatusCode.ERR }, sendCallback)
                                 continue
@@ -698,10 +698,10 @@ The commands below, only work after **path** has been run:
                         if (!str_w) str_w = String(canv.width);
                         if (!str_h) str_h = String(canv.height);
                         let x, y, w, h
-                        w = parsePosition(str_w, canv.width)
-                        h = parsePosition(str_h, canv.width)
-                        x = parsePosition(str_x, canv.width, w)
-                        y = parsePosition(str_y, canv.height, h)
+                        w = Number(parsePosition(str_w, canv.width))
+                        h = Number(parsePosition(str_h, canv.width))
+                        x = Number(parsePosition(str_x, canv.width, w))
+                        y = Number(parsePosition(str_y, canv.height, h))
 
                         ctx.fillRect(x, y, w, h)
                         break;
@@ -713,10 +713,10 @@ The commands below, only work after **path** has been run:
                         if (!str_w) str_w = String(canv.width);
                         if (!str_h) str_h = String(canv.height);
                         let x, y, w, h
-                        w = parsePosition(str_w, canv.width - ctx.lineWidth)
-                        h = parsePosition(str_h, canv.width - ctx.lineWidth)
-                        x = parsePosition(str_x, canv.width, w - ctx.lineWidth / 2)
-                        y = parsePosition(str_y, canv.height, h - ctx.lineWidth / 2)
+                        w = Number(parsePosition(str_w, canv.width - ctx.lineWidth))
+                        h = Number(parsePosition(str_h, canv.width - ctx.lineWidth))
+                        x = Number(parsePosition(str_x, canv.width, w - ctx.lineWidth / 2))
+                        y = Number(parsePosition(str_y, canv.height, h - ctx.lineWidth / 2))
                         ctx.strokeRect(x, y, w, h)
                         ctx.fillRect(x + ctx.lineWidth / 2, y + ctx.lineWidth / 2, w - ctx.lineWidth, h - ctx.lineWidth)
                         break
@@ -890,14 +890,14 @@ The commands below, only work after **path** has been run:
                 ctx.drawImage(img, 0, 0, img.width, img.height)
                 ctx.beginPath()
 
-                let startX = parsePosition(positions[0][0], img.width)
-                let startY = parsePosition(positions[0][1], img.height)
+                let startX = Number(parsePosition(positions[0][0], img.width))
+                let startY = Number(parsePosition(positions[0][1], img.height))
                 ctx.moveTo(startX, startY)
                 let minX = startX, minY = startY
                 let maxX = startX, maxY = startY
                 for (let pos of positions.slice(1)) {
-                    let x = parsePosition(pos[0], img.width)
-                    let y = parsePosition(pos[1], img.width)
+                    let x = Number(parsePosition(pos[0], img.width))
+                    let y = Number(parsePosition(pos[1], img.width))
                     if (x < minX) minX = x;
                     if (x > maxX) maxX = x;
                     if (y < minY) minY = y;
@@ -1002,7 +1002,7 @@ The commands below, only work after **path** has been run:
                                 }
                             })
                         }
-                        let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: parsePosition(y, oldHeight as number, intHeight), left: parsePosition(x, oldWidth as number, intWidth) }]).png().toBuffer()
+                        let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: Number(parsePosition(y, oldHeight as number, intHeight)), left: Number(parsePosition(x, oldWidth as number, intWidth)) }]).png().toBuffer()
                         /*
                                 if(outline){
                                     let [color, lineWidth] = outline.split(":")
@@ -1423,7 +1423,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ctx.fillStyle = grad
             }
 
-            ctx.fillText(text, x, y, width)
+            ctx.fillText(text, Number(x), Number(y), width)
 
             let fn = `${generateFileName("text", msg.author.id)}.png`
             fs.writeFileSync(fn, canv.toBuffer("image/png"))

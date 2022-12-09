@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton } from "discord.js"
+import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, TextChannel } from "discord.js"
 import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory } from "./common_to_commands"
 
 import globals = require("./globals")
@@ -2068,6 +2068,10 @@ until you put a 0 in the box`)
                         return { content: "no channels found", status: StatusCode.ERR }
                     }
                     let channel = choice(channels)
+                    if(channel === null){
+                        return {content: "Cannot do random in this non-channel", status: StatusCode.ERR}
+                    }
+                    //@ts-ignore
                     while (!channel.isText())
                         channel = choice(channels)
                     let messages

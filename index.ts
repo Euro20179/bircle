@@ -186,7 +186,7 @@ const japRegex = /[\u{2E80}-\u{2FD5}\u{3000}-\u{303F}\u{3041}-\u{3096}\u{30A0}-\
 let shouldDeleteTranslationMessage = false
 let lastTranslation = "__BIRCLE_UNDEFINED__"
 
-function messageContainsText(msg: Message, text) {
+function messageContainsText(msg: Message, text: string) {
     text = text.toLowerCase()
     if (msg.content.toLowerCase().includes(text))
         return true

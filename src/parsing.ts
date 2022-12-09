@@ -684,7 +684,7 @@ function parseDoFirst(cmdData: string, doFirstCountNoToArgNo: number, args: stri
     return finalArgs
 }
 
-function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize?: number, numberConv?: Function) {
+function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize?: number, numberConv: Function = Number) {
     let conversions
     if (!objectSize) {
         conversions = {
@@ -707,10 +707,12 @@ function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: n
     if (conversions[v1] !== undefined) {
         //@ts-ignore
         v1 = conversions[v1]
+        //@ts-ignore
     } else v1 = numberConv(v1)
     if (conversions[v2] !== undefined) {
         //@ts-ignore
         v2 = conversions[v2]
+        //@ts-ignore
     } else v2 = numberConv(v2)
     if (v1 == undefined || v1 == null)
         return numberConv(v2)
