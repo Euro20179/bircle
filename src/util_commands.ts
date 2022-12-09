@@ -19,10 +19,10 @@ import { spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function() {
-    registerCommand("pet-info", createCommandV2(async ({msg, args}) => {
+    registerCommand("pet-info", createCommandV2(async ({ msg, args }) => {
         let pet_type = pet.hasPetByNameOrType(msg.author.id, args.join(" "))
-        if(!pet_type[1]){
-            return {content: `${args.join(" ").toLowerCase()} is not a pet`, status: StatusCode.RETURN}
+        if (!pet_type[1]) {
+            return { content: `${args.join(" ").toLowerCase()} is not a pet`, status: StatusCode.RETURN }
         }
         let petInfo = pet_type[1]
         let petType = pet_type[0]
@@ -30,10 +30,10 @@ export default function() {
         let embed = new MessageEmbed()
         embed.setTitle(petInfo.name || petType)
         embed.addFields([
-            {name: "Favorite food", value: petTypeInfo['favorite-food'], inline: true},
-            {name: "HP", value: `${petInfo.health} / ${petTypeInfo['max-hunger']}`, inline: true}
+            { name: "Favorite food", value: petTypeInfo['favorite-food'], inline: true },
+            { name: "HP", value: `${petInfo.health} / ${petTypeInfo['max-hunger']}`, inline: true }
         ])
-        return {embeds: [embed], status: StatusCode.RETURN}
+        return { embeds: [embed], status: StatusCode.RETURN }
     }, CommandCategory.FUN))
 
     registerCommand(
@@ -702,24 +702,24 @@ export default function() {
                 let currency_sign = getOpt(msg.author.id, "currency-sign", "$")
                 //0 means that it has been an hour, but they are not broke
                 if (canWork === 0 && msg.member?.roles.cache.filter(r => r.name === "College").at(0)) {
-                    let events: {[key: string]: (amount: number) => false | {message: string, gain: number, lose: number}} = {
+                    let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                         fired: (amount) => {
-                            return {message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount}
+                            return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
                         },
                         murderer: (amount) => {
-                            return {message: `There was an asassin waiting for you at the door, luckily they missed your heart but you had to pay ${currency_sign}${amount * 2} at the hospital`, gain: 0, lose: amount * 2}
+                            return { message: `There was an asassin waiting for you at the door, luckily they missed your heart but you had to pay ${currency_sign}${amount * 2} at the hospital`, gain: 0, lose: amount * 2 }
                         },
                         toolbox: (amount) => {
-                            return {message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0}
+                            return { message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0 }
                         }
                     }
                     let amount = economy.work(msg.author.id)
                     if (Math.random() > .95 && amount) {
                         let event = choice(Object.values(events))(amount)
-                        if(event){
+                        if (event) {
                             economy.addMoney(msg.author.id, event.gain)
                             economy.loseMoneyToBank(msg.author.id, event.lose)
-                            return {content: event.message, status: StatusCode.RETURN}
+                            return { content: event.message, status: StatusCode.RETURN }
                         }
                     }
                     return { content: `Congrats, you grad student, here's ${currency_sign}${amount} from your job`, status: StatusCode.RETURN }
@@ -782,19 +782,11 @@ export default function() {
             let maxWidth = Number(opts['max-width']) || 50
             let vertChar = String(opts['vert-char'] || "|")
             let horChar = String(opts['hor-char'] || "-")
-            let text = args.join(" ")
+            let text = args.join(" ").split("\n")
             let lines = [horChar.repeat(maxWidth + 2)]
-            let currLine = ""
-            for (let i = 1; i <= text.length; i++) {
-                let ch = text[i - 1]
-                currLine += ch
-                if (i % maxWidth === 0) {
-                    lines.push(vertChar + currLine + vertChar)
-                    currLine = ""
-                }
-            }
-            if (currLine) {
-                lines.push(`${vertChar}${" ".repeat((maxWidth - currLine.length) / 2)}${currLine}${" ".repeat((maxWidth - currLine.length) / 2)}${vertChar}`)
+            for (let line_of_text of text) {
+                lines.push(`${vertChar}${" ".repeat((maxWidth - line_of_text.length) / 2)}${line_of_text}${" ".repeat((maxWidth - line_of_text.length) / 2)}${vertChar}`)
+
             }
             lines.push(horChar.repeat(maxWidth + 2))
             return { content: `\`\`\`\n${lines.join("\n")}\n\`\`\``, status: StatusCode.RETURN }
@@ -2682,8 +2674,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             switch (action) {
                 case "create": {
                     let name = String(args.slice(1).join(" ")).trim()
-                    if(name[0] === "%"){
-                        return {content: "Cannot create timer starting with %", status: StatusCode.ERR}
+                    if (name[0] === "%") {
+                        return { content: "Cannot create timer starting with %", status: StatusCode.ERR }
                     }
                     if (timer.getTimer(msg.author.id, name)) {
                         return { content: `You already have a timer called: ${name}`, status: StatusCode.ERR }
@@ -2693,8 +2685,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 case "delete": {
                     let name = String(args.slice(1).join(" ")).trim()
-                    if(name[0] === "%"){
-                        return {content: "Cannot delete timer starting with %", status: StatusCode.ERR}
+                    if (name[0] === "%") {
+                        return { content: "Cannot delete timer starting with %", status: StatusCode.ERR }
                     }
                     if (!timer.getTimer(msg.author.id, name)) {
                         return { content: `You do not have a timer called ${name}`, status: StatusCode.ERR }
@@ -2956,30 +2948,30 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
     )
 
-    registerCommand("sticker-info", createCommandV2(async({msg, opts, args}) => {
+    registerCommand("sticker-info", createCommandV2(async ({ msg, opts, args }) => {
         let sticker = msg.stickers.at(0)
-        if(opts.getBool("r", false)){
+        if (opts.getBool("r", false)) {
             sticker = (await msg.guild?.stickers.fetch())?.random()
         }
-        if(!sticker){
-            return {content: "No sticker", status: StatusCode.ERR}
+        if (!sticker) {
+            return { content: "No sticker", status: StatusCode.ERR }
         }
         let fmt = args.join(" ") || "{embed}"
-        if(fmt === "{embed}"){
+        if (fmt === "{embed}") {
             let embed = new MessageEmbed()
             embed.setThumbnail(sticker.url)
             embed.addFields([
-                {name: "type", value: sticker.type || "N/A", inline: true},
-                {name: "name", value: sticker.name, inline: true},
-                {name: "id", value: sticker.id, inline: true},
-                {name: "creator", value: sticker.user?.toString() || "N/A", inline: true},
-                {name: "createdAt", value: sticker.createdAt.toString(), inline: true},
-                {name: "format", value: sticker.format, inline: true},
-                {name: "tags", value: sticker.tags?.join(", ") || "N/A", inline: true}
+                { name: "type", value: sticker.type || "N/A", inline: true },
+                { name: "name", value: sticker.name, inline: true },
+                { name: "id", value: sticker.id, inline: true },
+                { name: "creator", value: sticker.user?.toString() || "N/A", inline: true },
+                { name: "createdAt", value: sticker.createdAt.toString(), inline: true },
+                { name: "format", value: sticker.format, inline: true },
+                { name: "tags", value: sticker.tags?.join(", ") || "N/A", inline: true }
             ])
-            return {embeds: [embed], status: StatusCode.RETURN}
+            return { embeds: [embed], status: StatusCode.RETURN }
         }
-        return {content: format(fmt, {"t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A"}), status: StatusCode.RETURN}
+        return { content: format(fmt, { "t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A" }), status: StatusCode.RETURN }
     }, CommandCategory.UTIL))
 
     registerCommand(
