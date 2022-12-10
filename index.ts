@@ -35,13 +35,11 @@ let { client, purgeSnipe, prefix, BLACKLIST, saveVars } = require("./src/common"
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
 
-//@ts-ignore
 Object.defineProperty(User.prototype, "balance", {
     "get": function() {
         return economy.calculateAmountFromString(this.id, "100%")
     }
 });
-//@ts-ignore
 Object.defineProperty(User.prototype, "loan", {
     "get": function() {
         return economy.calculateLoanAmountFromString(this.id, "100%")

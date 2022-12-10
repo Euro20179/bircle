@@ -74,7 +74,7 @@ export default function() {
             return {content: "Invalid request type", status: StatusCode.ERR}
         }
         return {content: res, status: StatusCode.RETURN}
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true))
 
     registerCommand("mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
@@ -914,7 +914,8 @@ export default function() {
                     }
                 }
             },
-            category: CommandCategory.FUN
+            category: CommandCategory.FUN,
+            use_result_cache: true
         },
     )
 
@@ -991,6 +992,7 @@ export default function() {
                 }
                 return rv
             },
+            use_result_cache: true,
             help: {
                 info: "the bot will say the <code>text</code>",
                 options: {
@@ -1584,7 +1586,8 @@ Valid formats:
             }, category: CommandCategory.FUN,
             help: {
                 info: "Look up a word in urban dictionary"
-            }
+            },
+            use_result_cache: true
         },
     )
 
@@ -1777,8 +1780,9 @@ Valid formats:
             category: CommandCategory.FUN,
             help: {
                 info: "List all builtin commands"
-            }
-        },
+            },
+            use_result_cache: true
+        }
     )
 
     registerCommand(

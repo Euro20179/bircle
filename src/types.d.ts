@@ -1,6 +1,6 @@
 import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload } from "discord.js"
 
-import { ArgList } from './util'
+import { ArgList, Options } from './util'
 
 declare global {
     type ArgumentList = Array<string>
@@ -71,6 +71,8 @@ declare global {
         permCheck?: (msg: Message) => boolean;
         help?: CommandHelp
         category: CommandCategory,
+        make_bot_type?: boolean,
+        use_result_cache?: boolean
         cmd_std_version?: 1
     }
 
@@ -83,6 +85,8 @@ declare global {
         permCheck?: (msg: Message) => boolean;
         help?: CommandHelp
         category: CommandCategory,
+        make_bot_type?: boolean,
+        use_result_cache?: boolean
         cmd_std_version?: 2
     }
 

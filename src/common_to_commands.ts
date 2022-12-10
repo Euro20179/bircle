@@ -95,6 +95,8 @@ export class Interprater {
 
     static commandUndefined = new Object()
 
+    static resultCache = new Map()
+
     constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>) {
         this.tokens = tokens
         this.args = []
@@ -624,11 +626,15 @@ export class Interprater {
                 canRun = false
             }
             if (canRun) {
-                if (typing)
+                if (typing || commands[this.real_cmd].make_bot_type)
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
 
-                if(commands[this.real_cmd].cmd_std_version == 2){
+                if(commands[this.real_cmd].use_result_cache === true && Interprater.resultCache.get(`${this.real_cmd} ${this.args}`)){
+                    rv = Interprater.resultCache.get(`${this.real_cmd} ${this.args}`)
+                }
+
+                else if(commands[this.real_cmd].cmd_std_version == 2){
                     let obj: CommandV2RunArg = {
                         msg: this.#msg,
                         rawArgs: args,
@@ -644,6 +650,9 @@ export class Interprater {
                 else{
 
                     rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                }
+                if(commands[this.real_cmd].use_result_cache === true){
+                    Interprater.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 globals.addToCmdUse(this.real_cmd)
                 //if normal command, it counts as use
@@ -867,7 +876,8 @@ export function createCommand(
     helpArguments?: CommandHelpArguments | null,
     helpOptions?: CommandHelpOptions | null,
     tags?: string[] | null,
-    permCheck?: (m: Message) => boolean): Command {
+    permCheck?: (m: Message) => boolean,
+    use_result_cache?: boolean): Command {
     return {
         run: cb,
         help: {
@@ -878,6 +888,7 @@ export function createCommand(
         },
         category: category,
         permCheck: permCheck,
+        use_result_cache: use_result_cache,
         cmd_std_version: 1
     }
 }
@@ -889,7 +900,9 @@ export function createCommandV2(
     helpArguments?: CommandHelpArguments | null,
     helpOptions?: CommandHelpOptions | null,
     tags?: string[] | null,
-    permCheck?: (m: Message) => boolean): CommandV2 {
+    permCheck?: (m: Message) => boolean,
+    shouldType?: boolean,
+    use_result_cache?: boolean): CommandV2 {
     return {
         run: cb,
         help: {
@@ -900,7 +913,9 @@ export function createCommandV2(
         },
         category: category,
         permCheck: permCheck,
-        cmd_std_version: 2
+        make_bot_type: shouldType,
+        cmd_std_version: 2,
+        use_result_cache: use_result_cache
     }
 }
 
