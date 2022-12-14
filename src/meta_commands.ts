@@ -119,6 +119,9 @@ export default function() {
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
             }
+            if (opts['l']){
+                return {content: user_options.allowedOptions.join("\n"), status: StatusCode.RETURN}
+            }
             let userOpts = user_options.getUserOptions()[user]
             let optionToCheck = args.join(" ").toLowerCase()
             if (optionToCheck) {

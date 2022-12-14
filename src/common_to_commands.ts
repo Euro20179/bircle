@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML } from './util';
 
 export enum StatusCode {
     PROMPT = -2,
@@ -323,6 +323,10 @@ export class Interprater {
                     }
                 )
                 break
+            case "html": {
+                data = renderHTML(args.join("|"))
+                break
+            }
             case "time":
                 let date = new Date()
                 if (!args.length) {
@@ -974,7 +978,6 @@ const USER = 6
 
 
 export const slashCommands = [
-    createChatCommand("defer-reply", "defers the reply :+1:", []),
     createChatCommand("attack", "attacks chris, and no one else", [createChatCommandOption(USER, "user", "who to attack", { required: true })]),
     createChatCommand("ping", "Pings a user for some time", [
         createChatCommandOption(USER, "user", "who to ping twice", { required: true }),

@@ -975,6 +975,15 @@ function renderSElement(elem: cheerio.Element, indentation = 0) {
     return `~~${renderElementChildren(elem, indentation)}~~`
 }
 
+function renderAElement(elem: cheerio.TagElement, indentation = 0){
+    let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? marker
+    return `[${renderElementChildren(elem)}](${href})`
+}
+
+function renderBlockcodeElement(elem: cheerio.TagElement, indentation = 0){
+    return `> ${renderElementChildren(elem)}`
+}
+
 function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     let text = "`"
     if(elem.type === "text" || elem.type === "comment"){
@@ -991,6 +1000,7 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     }
     return text + "`"
 }
+
 function renderELEMENT(elem: cheerio.Element, indentation = 0) {
     let text = ""
     if (elem.type === "tag") {
@@ -1000,11 +1010,17 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         else if (elem.name === "ul") {
             text += `\n${renderUlElement(elem, indentation)}${"\t".repeat(indentation)}`
         }
+        else if(elem.name === "a"){
+            text += renderAElement(elem, indentation)
+        }
         else if (elem.name === "lh") {
             text += renderLHElement(elem, indentation)
         }
         else if (elem.name === "code") {
             text += renderCodeElement(elem, indentation)
+        }
+        else if(elem.name === "blockquote") {
+            text += renderBlockcodeElement(elem, indentation)
         }
         else if (["strong", "b"].includes(elem.name)) {
             text += renderBElement(elem, indentation)
@@ -1029,7 +1045,8 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
 }
 
 function renderHTML(text: string, indentation = 0) {
-    return renderELEMENT(cheerio.load(text)("*")[0], indentation)
+    let h = cheerio.load(text)("body")[0]
+    return renderELEMENT(h, indentation)
 }
 
 function generateTextFromCommandHelp(name: string, command: Command | CommandV2) {
