@@ -68,11 +68,11 @@ export function isCmd(text: string, prefix: string) {
 export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
-    let int = new Interprater(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
+    let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
     return await int.run()
 }
 
-export class Interprater {
+export class Interpreter {
     tokens: Token[]
     args: string[]
     cmd: string
@@ -153,13 +153,13 @@ export class Interprater {
     async [1](token: Token) {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
-        let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
+        let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
         let rv = await int.run() as CommandReturn
         let data = getContentFromResult(rv as CommandReturn).trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data)
             await parser.parse()
-            let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
+            let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
             let rv = await int.run() as CommandReturn
             data = getContentFromResult(rv as CommandReturn).trim()
         }
@@ -170,7 +170,7 @@ export class Interprater {
     async [2](token: Token) {
         let parser = new Parser(this.#msg, token.data, false)
         await parser.parse()
-        let int = new Interprater(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
+        let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
         await int.interprate()
         token.data = int.args.join(" ")
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars["__global__"] }, { timeout: 1000 })), token.argNo)
@@ -481,13 +481,13 @@ export class Interprater {
             }
         }
 
-        this.addTokenToArgList(new Token(T.str, Interprater.commandUndefined as string, token.argNo))
+        this.addTokenToArgList(new Token(T.str, Interpreter.commandUndefined as string, token.argNo))
     }
     //syntax
     async [7](token: Token){
         let parse = new Parser(this.#msg, token.data, false)
         await parse.parse()
-        let int = new Interprater(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
+        let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
         let args = await int.interprate()
         for(let i = 0; i < args.length; i++){
             this.addTokenToArgList(new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo))
@@ -634,8 +634,8 @@ export class Interprater {
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
 
-                if(commands[this.real_cmd].use_result_cache === true && Interprater.resultCache.get(`${this.real_cmd} ${this.args}`)){
-                    rv = Interprater.resultCache.get(`${this.real_cmd} ${this.args}`)
+                if(commands[this.real_cmd].use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)){
+                    rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
                 }
 
                 else if(commands[this.real_cmd].cmd_std_version == 2){
@@ -656,7 +656,7 @@ export class Interprater {
                     rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
                 if(commands[this.real_cmd].use_result_cache === true){
-                    Interprater.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
+                    Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 globals.addToCmdUse(this.real_cmd)
                 //if normal command, it counts as use
@@ -723,7 +723,7 @@ export class Interprater {
 
         //undefined can get in args if {token} format is used, and they want a command token
         //@ts-ignore
-        let lastUndefIdx = this.args.lastIndexOf(Interprater.commandUndefined)
+        let lastUndefIdx = this.args.lastIndexOf(Interpreter.commandUndefined)
 
         //if it is found
         if(lastUndefIdx > -1){

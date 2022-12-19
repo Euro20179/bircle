@@ -12,13 +12,23 @@ import pet = require("./pets")
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from 'discord.js'
-import { StatusCode, Interprater, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans } from './common_to_commands'
+import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
 import { spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function() {
+    // registerCommand("test", createCommandV2(async ({msg, args}) => {
+    //     const row = new MessageActionRow()
+    //     const button = new MessageButton()
+    //     button.setURL("discord://discord.gg/test");
+    //     button.setStyle("LINK")
+    //     button.setLabel("HI")
+    //     row.addComponents(button)
+    //     return {components: [row], status: StatusCode.RETURN}
+    // }, CommandCategory.UTIL))
+    //
     registerCommand("pet-info", createCommandV2(async ({ msg, args }) => {
         let pet_type = pet.hasPetByNameOrType(msg.author.id, args.join(" "))
         if (!pet_type[1]) {

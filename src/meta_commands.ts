@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getCommands, handleSending, Interprater, lastCommand, runCmd, StatusCode } from "./common_to_commands"
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -46,7 +46,7 @@ export default function() {
         "interprate", createCommandV2(async ({ msg, rawArgs: args }) => {
             let parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
-            let int = new Interprater(msg, parser.tokens, parser.modifiers)
+            let int = new Interpreter(msg, parser.tokens, parser.modifiers)
             await int.interprate()
             return { content: JSON.stringify(int), status: StatusCode.RETURN }
         }, CommandCategory.META, "Interprate args"),
