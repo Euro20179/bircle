@@ -24,6 +24,21 @@ const player = createAudioPlayer({
         noSubscriber: NoSubscriberBehavior.Pause
     }
 })
+
+
+async function play_next_in_queue_or_destroy_connection(queue: typeof vc_queue){
+    let new_link = vc_queue.shift()
+    if(new_link){
+        play_link(new_link)
+        return true
+    }
+    else{
+        vc_queue = []
+        connection?.destroy()
+    }
+    return false
+}
+
 async function play_link({ link, filename }: { link: string, filename: string }) {
     setCurrentlyPlaying({ link: link, filename: filename })
     let is_valid_url
@@ -32,27 +47,14 @@ async function play_link({ link, filename }: { link: string, filename: string })
         is_valid_url = ytdl.validateURL(link)
     }
     catch (err) {
-        let new_link = vc_queue.shift()
-        if (new_link) {
-            play_link(new_link)
+        if(!play_next_in_queue_or_destroy_connection(vc_queue)){
+            return
         }
-        else {
-            vc_queue = []
-            connection?.destroy()
-        }
-        return
     }
     if (is_valid_url) {
         let info = await ytdl.getInfo(link)
         if (info.videoDetails.isLiveContent || parseFloat(info.videoDetails.lengthSeconds) > 60 * 30) {
-            let new_link = vc_queue.shift()
-            if (new_link) {
-                play_link(new_link)
-            }
-            else {
-                vc_queue = []
-                connection?.destroy()
-            }
+            play_next_in_queue_or_destroy_connection(vc_queue)
         }
         ytdl(link, { filter: "audioonly" }).pipe(fs.createWriteStream(fn)).on("close", () => {
             let resource = createAudioResource(fn)
@@ -65,15 +67,9 @@ async function play_link({ link, filename }: { link: string, filename: string })
         fetch.default(link).then(data => {
             data.buffer().then(value => {
                 if (value.byteLength >= 1024 * 1024 * 20) {
-                    let new_link = vc_queue.shift()
-                    if (new_link) {
-                        play_link(new_link)
+                    if(!play_next_in_queue_or_destroy_connection(vc_queue)){
+                        return
                     }
-                    else {
-                        vc_queue = []
-                        connection?.destroy()
-                    }
-                    return
                 }
                 fs.writeFile(fn, value, () => {
                     let resource = createAudioResource(fn)
@@ -81,29 +77,14 @@ async function play_link({ link, filename }: { link: string, filename: string })
                     connection?.subscribe(player)
                 })
             })
-        }).catch(err => {
-            let new_link = vc_queue.shift()
-            if (new_link) {
-                play_link(new_link)
-            }
-            else {
-                vc_queue = []
-                connection?.destroy()
-            }
+        }).catch(_err => {
+            !play_next_in_queue_or_destroy_connection(vc_queue)
         })
     }
 }
 player.on(AudioPlayerStatus.Idle, (err) => {
     fs.rmSync(currently_playing?.filename as string)
-    let new_link = vc_queue.shift()
-    if (new_link) {
-        play_link(new_link)
-    }
-    else {
-        vc_queue = []
-        connection?.destroy()
-    }
-
+    play_next_in_queue_or_destroy_connection(vc_queue)
 })
 
 export default function() {
@@ -166,14 +147,7 @@ export default function() {
                 return { content: "No voice", status: StatusCode.ERR }
             }
             fs.rmSync(currently_playing?.filename as string)
-            let new_link = vc_queue.shift()
-            if (new_link) {
-                play_link(new_link)
-            }
-            else {
-                vc_queue = []
-                connection?.destroy()
-            }
+            play_next_in_queue_or_destroy_connection(vc_queue)
             return { content: "next", status: StatusCode.RETURN }
         }, CommandCategory.VOICE),
     )
