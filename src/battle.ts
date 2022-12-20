@@ -50,6 +50,8 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
     let usedYoink: string[] = []
 
+    let usedTriple: string[] =[]
+
     let negativeHpBonus: {[key: string]: number} = {}
 
     let itemUses: {[key: string]: number} = {}
@@ -169,6 +171,10 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         },
         triple: async(m, e) => {
             responseMultiplier *= 3
+            if(usedTriple.includes(m.author.id))
+                return false
+            usedTriple.push(m.author.id)
+
             e.setTitle("TRIPLE")
             e.setColor("GREEN")
             e.setDescription(`<@${m.author.id}> has tripled the multiplier\n**multiplier: ${responseMultiplier}**`)
