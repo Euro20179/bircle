@@ -84,7 +84,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         "anger toolbox": {amount: 3},
         "anger euro": {amount: 3},
         "blowtorch": {percent: 0.01, amount: 1},
-        "double bet": {percent: 0.01},
+        "double bet": {percent: 0.00},
         "swap": {percent: (3 * Object.keys(players).length) / 100},
         "double": {percent: 0.05, amount: 2},
         "triple": {percent: 0.10, amount: 3},
