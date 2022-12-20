@@ -9,11 +9,6 @@
         "uses": 1,
         "cost": ["1%", "10"]
     },
-    "intrude": {
-        "description": "Type join to join a battle mid game",
-        "uses": 1,
-        "cost": ["3", "0.5%"]
-    },
     "loan": {
         "description": "Gives you enough money to get to $1, with a maximum of however much money first place has",
         "uses": 1,
