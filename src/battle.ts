@@ -84,7 +84,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         "anger toolbox": {amount: 3},
         "anger euro": {amount: 3},
         "blowtorch": {percent: 0.01, amount: 1},
-        "double bet": {percent: 0.00},
         "swap": {percent: (3 * Object.keys(players).length) / 100},
         "double": {percent: 0.05, amount: 2},
         "triple": {percent: 0.10, amount: 3},
@@ -123,17 +122,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         },
         "anger euro": async(m, e) => {
             await msg.channel.send("STOPPING")
-            return false
-        },
-        "double bet": async(m, e) => {
-            if(economy.getEconomy()[m.author.id].money - bets[m.author.id] >= bets[m.author.id]){
-                betTotal += bets[m.author.id]
-                bets[m.author.id] *= 2
-                e.setTitle("DOUBLE BET")
-                e.setDescription(`${m.author} has doubled their bet to ${bets[m.author.id]}`)
-                e.setColor("GREEN")
-                return true
-            }
             return false
         },
         "blowtorch": async(m, e) => {
