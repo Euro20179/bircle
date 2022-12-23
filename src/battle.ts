@@ -158,10 +158,10 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             return true
         },
         triple: async(m, e) => {
-            responseMultiplier *= 3
             if(usedTriple.includes(m.author.id))
                 return false
             usedTriple.push(m.author.id)
+            responseMultiplier *= 3
 
             e.setTitle("TRIPLE")
             e.setColor("GREEN")
