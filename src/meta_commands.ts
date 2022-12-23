@@ -526,6 +526,42 @@ export default function() {
     )
 
     registerCommand(
+        "for", createCommandV2(async ({msg, args, recursionCount, commandBans}) => {
+            const var_name = args[0]
+            const range = args[1]
+            let [startS, endS] = range.split("..")
+            let [start, end] = [Number(startS), Number(endS)]
+            const scriptWithBraces = args.slice(2).join(" ").trim()
+            const scriptWithoutBraces = parseBracketPair(scriptWithBraces, "{}")
+            if(isNaN(start)){
+                start = 0
+            }
+            if(isNaN(end)){
+                end = start + 1
+            }
+            let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
+            let id = Math.floor(Math.random() * 100000000)
+            globals.SPAMS[id] = true
+            outer: for(let i = start; i < end; i++){
+                setVar(var_name, String(i), msg.author.id)
+                for(let line of scriptLines){
+                    await runCmd(msg, line, recursionCount + 1, false, commandBans)
+                    await new Promise(res => setTimeout(res, 1000))
+                    if(!globals.SPAMS[id]){
+                        break outer
+                    }
+                }
+                //this is here in case no lines of code should be run, and ]stop is run
+                if(!globals.SPAMS[id]){
+                    break outer
+                }
+            }
+            delete globals.SPAMS[id]
+            return {noSend: true, status: StatusCode.RETURN}
+        }, CommandCategory.META)
+    )
+
+    registerCommand(
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
             let text = args.join(" ")
 

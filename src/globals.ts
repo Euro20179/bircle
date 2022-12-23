@@ -22,20 +22,20 @@ export let YAHTZEE_WAITING_FOR_PLAYERS = false
 export const RECURSION_LIMIT = 20
 
 
-export function generateCmdUseFile() {
+function _generateUsageFile(OBJECT: {[key: string]: string | number}){
     let data = ""
-    for (let cmd in CMDUSE) {
-        data += `${cmd}:${CMDUSE[cmd]}\n`
+    for(let key in OBJECT){
+        data += `${key}:${OBJECT[key]}\n`
     }
     return data
 }
 
+export function generateCmdUseFile() {
+    return _generateUsageFile(CMDUSE)
+}
+
 export function generateEmoteUseFile() {
-    let data = ""
-    for (let emote in EMOTEUSE) {
-        data += `${emote}:${EMOTEUSE[emote]}\n`
-    }
-    return data
+    return _generateUsageFile(EMOTEUSE)
 }
 
 export function addToEmoteUse(emote: string) {
