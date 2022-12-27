@@ -976,7 +976,7 @@ function renderSElement(elem: cheerio.Element, indentation = 0) {
 }
 
 function renderAElement(elem: cheerio.TagElement, indentation = 0){
-    let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? marker
+    let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? ""
     return `[${renderElementChildren(elem)}](${href})`
 }
 
