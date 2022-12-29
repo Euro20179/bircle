@@ -47,6 +47,7 @@ node_modules
 *.mp3
 *.mp4
 *.jsonl
+*::[[:digit:]]*.html
 help.html
 log.txt
 
