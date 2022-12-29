@@ -10,7 +10,7 @@ import { Configuration, OpenAIApi } from "openai"
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
@@ -808,44 +808,48 @@ export default function() {
                 }
                 let sentences = parseInt(String(opts['s'])) || 1
                 let options = { hostname: baseurl, path: path }
+                let resp
                 if (path == "/wiki/Special:Random") {
-                    https.get(options, req => {
-                        let data = new Stream.Transform()
-                        req.on("error", err => {
-                            console.log(err)
-                        })
-                        req.on("data", chunk => {
-                            data.push(chunk)
-                        })
-                        req.on("end", async () => {
-                            //@ts-ignore
-                            let rv = await commands['wikipedia'].run(msg, [`-full=/wiki/${req.headers.location?.split("/wiki/")[1]}`])
-                            await sendCallback(rv)
-                        })
-                    }).end()
-                    return { content: "Generating random article", status: StatusCode.INFO }
+                    resp = await fetch.default(`https://${baseurl}${path}`)
                 }
-                else {
-                    let resp
+                else{
                     try {
                         resp = await fetch.default(`https://${baseurl}${path}`)
                     }
                     catch (err) {
                         return { content: "not found", status: StatusCode.ERR }
                     }
-                    if (resp.headers.get("location")) {
-                        await (getCommands()['wikipedia'] as Command).run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args, 1)
+                }
+                if (resp.headers.get("location")) {
+                    await (getCommands()['wikipedia'] as Command).run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args, 1)
+                }
+                else {
+                    let respText = await resp.text()
+                    let rvText = ""
+                    let $ = cheerio.load(respText)
+                    const fn = generateFileName("wikipedia", msg.author.id) + ".html"
+                    const title = $("h1#firstHeading").text().trim()
+                    fs.writeFileSync(fn, respText)
+                    if(opts['all']){
+                        rvText = renderHTML(respText)
                     }
-                    else {
-                        let respText = await resp.text()
-                        let $ = cheerio.load(respText)
-                        let text = $("p").text().trim().split("\n")
+                    else{
+                        let text = $(".mw-parser-output p").text().trim().split("\n")
                         if (!text.length) {
                             return { content: "nothing", status: StatusCode.ERR }
                         }
-                        let rv = text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")
-                        return { content: rv, status: StatusCode.ERR }
+                        rvText = `**${title}**\n${text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")}`
                     }
+                    if(opts['nf']){
+                        return {content: rvText, status: StatusCode.RETURN}
+                    }
+                    return { content: rvText, status: StatusCode.RETURN, files: [
+                        {
+                            attachment: fn,
+                            name: `${title}.html`,
+                            delete: true
+                        }
+                    ]}
                 }
                 return { content: "how did we get here (wikipedia)", status: StatusCode.ERR }
             },
@@ -860,6 +864,12 @@ export default function() {
                 options: {
                     s: {
                         description: "The amount of sentences to see"
+                    },
+                    nf: {
+                        description: "Do not send html file"
+                    },
+                    all: {
+                        description: "Send full page as text"
                     }
                 }
             },

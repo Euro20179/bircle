@@ -209,32 +209,15 @@ client.on("messageUpdate", async (m_old: Message, m: Message) => {
     }
 })
 
+//For auto translate delete
+let lastMessageAuthor: string | null = null
+
 client.on("messageCreate", async (m: Message) => {
-
-    if (m.content.match(japRegex)  && user_options.getOpt(m.author.id, "delete-auto-translate", "false") === "true"){
-        shouldDeleteTranslationMessage = true
-        lastTranslation = (await translate(m.content, { to: 'en' })).text
-    }
-    else if(m.content.match(japRegex)  && user_options.getOpt(m.author.id, "delete-auto-translate", "false") === "false"){
-        shouldDeleteTranslationMessage = false
-        lastTranslation = "__BIRCLE_UNDEFINED__"
+    if(m.author.bot && m.content.match(/^Translation: ".*" Sent by: ".*" Translated from: .*$/) && user_options.getOpt(lastMessageAuthor || m.author.id, "delete-auto-translate") === "true"){
+        if(m.deletable) await m.delete()
     }
 
-    if (m.author.bot && m.content.startsWith("#") && !m.content.includes(lastTranslation)) {
-        shouldDeleteTranslationMessage = false
-        // lastTranslation = "__BIRCLE_UNDEFINED__"
-    }
-    else if (m.content.startsWith("#") && !m.author.bot) {
-        shouldDeleteTranslationMessage = false
-        lastTranslation = "__BIRCLE_UNDEFINED__"
-    }
-
-    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation) || shouldDeleteTranslationMessage)) {
-        if (m.deletable)
-            m.delete().catch(console.log)
-        shouldDeleteTranslationMessage = false
-        // lastTranslation = "__BIRCLE_UNDEFINED__"
-    }
+    lastMessageAuthor = m.author.id
 
     if (m.member?.roles.cache.find(v => v.id == '1031064812995760233')) {
         return

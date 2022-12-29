@@ -1001,6 +1001,10 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     return text + "`"
 }
 
+function renderPElement(elem: cheerio.TagElement, indentation = 0){
+    return `\n${renderElementChildren(elem, indentation)}\n`
+}
+
 function renderELEMENT(elem: cheerio.Element, indentation = 0) {
     let text = ""
     if (elem.type === "tag") {
@@ -1030,6 +1034,9 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         }
         else if (["del"].includes(elem.name)) {
             text += renderSElement(elem, indentation)
+        }
+        else if(elem.name === "p"){
+            text += renderPElement(elem, indentation)
         }
         else {
             for (let child of elem.children ?? []) {
