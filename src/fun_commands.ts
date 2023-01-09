@@ -3,7 +3,7 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
-import { ColorResolvable, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
+import { ColorResolvable, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
 import fetch = require("node-fetch")
 
 import { Configuration, OpenAIApi } from "openai"
@@ -31,6 +31,33 @@ let openai = new OpenAIApi(configuration)
 
 
 export default function() {
+
+    registerCommand("give-scallywag-token", createCommandV2(async ({msg, args}) => {
+        let user = await fetchUser(msg.guild as Guild, args[0])
+        if(!user){
+            return {content: `${args[0]} not found`, status: StatusCode.ERR}
+        }
+        if(!globals.SCALLYWAG_TOKENS[user.id]){
+            globals.SCALLYWAG_TOKENS[user.id] = 1
+        }
+        else{
+            globals.SCALLYWAG_TOKENS[user.id]++
+        }
+
+        globals.saveScallywagTokens()
+
+        return {content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN}
+    }, CommandCategory.FUN, "Give a user another scallywag token"))
+
+    registerCommand("scallywag-token-count", createCommandV2(async ({msg, args}) => {
+        let user = await fetchUser(msg.guild as Guild, args[0] || msg.author.id)
+        if(!user){
+            return {content: `${args[0]} not found`, status: StatusCode.ERR}
+        }
+
+        return {content: `${globals.SCALLYWAG_TOKENS[user.id]}`, status: StatusCode.RETURN}
+
+    }, CommandCategory.FUN, "get the scallywag token count of a user"))
 
     registerCommand("chat", createCommandV2(async ({msg, argList, opts}) => {
         const modelToUse = opts.getString("m", "text-davinci-003")

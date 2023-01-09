@@ -21,6 +21,24 @@ export let YAHTZEE_WAITING_FOR_PLAYERS = false
 
 export const RECURSION_LIMIT = 20
 
+function loadScallyWagTokens () {
+    let SCALLYWAG_TOKENS
+    if(fs.existsSync("./command-results/scallywag-tokens.json")){
+        SCALLYWAG_TOKENS = JSON.parse(fs.readFileSync("./command-results/scallywag-tokens.json", "utf-8"))
+    }
+    else{
+        SCALLYWAG_TOKENS = {}
+    }
+    return SCALLYWAG_TOKENS
+}
+
+export function saveScallywagTokens () {
+    fs.writeFileSync("./command-results/scallywag-tokens.json", JSON.stringify(SCALLYWAG_TOKENS))
+}
+
+
+export let SCALLYWAG_TOKENS: {[key: string]: number} = loadScallyWagTokens()
+
 
 function _generateUsageFile(OBJECT: {[key: string]: string | number}){
     let data = ""
