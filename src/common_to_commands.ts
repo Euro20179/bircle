@@ -29,13 +29,62 @@ export enum CommandCategory {
     ADMIN
 }
 
+export class AliasV2 {
+    help: CommandHelp;
+    name: string
+    exec: string
+    creator: string
+    constructor(name: string, exec: string, creator: string, help: CommandHelp) {
+        this.name = name
+        this.exec = exec
+        this.creator = creator
+        this.help = help
+    }
+    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
+        //TODO: set variables such as args, opts, etc... in maybe %:__<var>
+        return await runCmd(msg, this.exec, recursionCount + 1, true)
+    }
+    toJsonString() {
+        return JSON.stringify({ name: this.name, exec: this.exec, help: this.help })
+    }
+
+    
+    async expand(onExpand?: (alias: string, preArgs: string[]) => any): Promise<[AliasV2, string[]] | false> {
+        let expansions = 0
+        let [command, ...aliasPreArgs] = this.exec.split(" ")
+        if (aliasPreArgs.length === 0)
+            return [this, aliasPreArgs]
+        if (onExpand && !onExpand?.(command, aliasPreArgs)) {
+            return false
+        }
+        let curAlias: AliasV2;
+        while (curAlias = aliasesV2[command]) {
+            expansions++;
+            if (expansions > 1000) {
+                return false
+            }
+            let newPreArgs = curAlias.exec.split(" ").slice(1)
+            aliasPreArgs = newPreArgs.concat(aliasPreArgs)
+            command = aliasesV2[command].name
+            if (onExpand && !onExpand?.(command, newPreArgs)) {
+                return false
+            }
+        }
+        return [curAlias as AliasV2, aliasPreArgs]
+    }
+
+    static allToJson(aliases: AliasV2[]) {
+        return JSON.stringify(aliases.map(v => v.toJsonString()))
+    }
+}
+
 export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
 export let purgeSnipe: (Message | PartialMessage)[];
 
 export let currently_playing: { link: string, filename: string } | undefined;
 
-export function setCurrentlyPlaying(to: { link: string, filename: string } | undefined){
+export function setCurrentlyPlaying(to: { link: string, filename: string } | undefined) {
     currently_playing = to
 }
 
@@ -59,7 +108,19 @@ export function createAliases() {
     return a
 }
 
+export function createAliasesV2(): {[key: string]: AliasV2} {
+    if (fs.existsSync("./command-results/aliasV2")) {
+        let j: {[key: string]: AliasV2} = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
+        for(let aName in j){
+            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help)
+        }
+        return j
+    }
+    return {}
+}
+
 export let aliases = createAliases()
+export let aliasesV2 = createAliasesV2()
 
 export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
@@ -82,6 +143,7 @@ export class Interpreter {
     disable: { categories?: CommandCategory[], commands?: string[] }
     sendCallback: ((options: MessageOptions | MessagePayload | string) => Promise<Message>) | undefined
     alias: boolean | [string, string[]]
+    aliasV2: false | AliasV2
 
     #interprated: boolean
     #aliasExpandSuccess: boolean
@@ -107,6 +169,7 @@ export class Interpreter {
         this.disable = disable ?? {}
         this.sendCallback = sendCallback
         this.alias = false
+        this.aliasV2 = false
 
         this.modifiers = modifiers
         this.#i = -1
@@ -142,7 +205,7 @@ export class Interpreter {
             this.args[token.argNo + this.#argOffset] += token.data
         }
     }
-    removeLastTokenFromArgList(){
+    removeLastTokenFromArgList() {
         this.args = this.args.slice(0, -1)
     }
     //str token
@@ -357,7 +420,7 @@ export class Interpreter {
                 break
             case "arg": {
                 for (let i = 0; i < this.tokens.filter(v => v.argNo === token.argNo).length; i++) {
-                    if(this.tokens[i].id === token.id || this.tokens[i].type === T.format) continue
+                    if (this.tokens[i].id === token.id || this.tokens[i].type === T.format) continue
                     this.addTokenToArgList(this.tokens[i])
                 }
                 data = ""
@@ -379,54 +442,54 @@ export class Interpreter {
                 }
                 else {
                     let rangeMatch = format_name.match(/(\d+)(?:\.\.|-)(\d+)/)
-                    if(rangeMatch){
+                    if (rangeMatch) {
                         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
                         let beforeNumber = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
 
                         //if we dont do this, there will be extra text
-                        if(beforeNumber){
+                        if (beforeNumber) {
                             this.removeLastTokenFromArgList()
                         }
 
                         let afterNumber = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
 
-                        if(afterNumber){
+                        if (afterNumber) {
                             //dont let these tokens get parsed
                             this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
                         }
 
                         let start = parseInt(rangeMatch[1])
                         let end = parseInt(rangeMatch[2])
-                        if(end - start > 1000000){
+                        if (end - start > 1000000) {
                             end = start + 1
                         }
-                        for(let i = start; i <= end; i++){
+                        for (let i = start; i <= end; i++) {
                             this.addTokenToArgList(new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++))
                         }
                         data = ""
                     }
-                    else if(format_name.includes(",")){
+                    else if (format_name.includes(",")) {
                         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
                         let beforeWord = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
 
                         //if we dont do this, there will be extra text
-                        if(beforeWord){
+                        if (beforeWord) {
                             this.removeLastTokenFromArgList()
                         }
 
                         let afterWord = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
 
-                        if(afterWord){
+                        if (afterWord) {
                             //dont let these tokens get parsed
                             this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
                         }
 
-                        for(let word of format_name.split(",")){
+                        for (let word of format_name.split(",")) {
                             this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
                         }
                         data = ""
                     }
-                    else{
+                    else {
                         data = `{${format_name}}`
                     }
                 }
@@ -481,15 +544,19 @@ export class Interpreter {
             }
         }
 
+        else if (!commands[this.cmd] && aliasesV2[this.cmd]) {
+            this.aliasV2 = aliasesV2[this.cmd]
+        }
+
         this.addTokenToArgList(new Token(T.str, Interpreter.commandUndefined as string, token.argNo))
     }
     //syntax
-    async [7](token: Token){
+    async [7](token: Token) {
         let parse = new Parser(this.#msg, token.data, false)
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
         let args = await int.interprate()
-        for(let i = 0; i < args.length; i++){
+        for (let i = 0; i < args.length; i++) {
             this.addTokenToArgList(new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo))
         }
     }
@@ -514,8 +581,8 @@ export class Interpreter {
             await this.#msg.channel.sendTyping()
         }
 
-        for(let mod of this.modifiers){
-            if(mod.type === Modifiers.redir)
+        for (let mod of this.modifiers) {
+            if (mod.type === Modifiers.redir)
                 continue;
             content = modifierToStr(mod.type) + content
         }
@@ -601,6 +668,10 @@ export class Interpreter {
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
+        else if(this.aliasV2){
+            let [opts, args2] = getOpts(args)
+            rv = await this.aliasV2.run({msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback as Function, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable}) as CommandReturn
+        }
         else if (!commands[this.real_cmd]) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
@@ -634,11 +705,11 @@ export class Interpreter {
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
 
-                if(commands[this.real_cmd].use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)){
+                if (commands[this.real_cmd].use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
                     rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
                 }
 
-                else if(commands[this.real_cmd].cmd_std_version == 2){
+                else if (commands[this.real_cmd].cmd_std_version == 2) {
                     let obj: CommandV2RunArg = {
                         msg: this.#msg,
                         rawArgs: args,
@@ -651,11 +722,11 @@ export class Interpreter {
                     }
                     rv = await (commands[this.real_cmd] as CommandV2).run(obj)
                 }
-                else{
+                else {
 
                     rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
-                if(commands[this.real_cmd].use_result_cache === true){
+                if (commands[this.real_cmd].use_result_cache === true) {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 globals.addToCmdUse(this.real_cmd)
@@ -683,12 +754,12 @@ export class Interpreter {
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
-    async interprateCurrentAsToken(t: T){
+    async interprateCurrentAsToken(t: T) {
         await this[t](this.#curTok as Token)
     }
 
-    async interprateAllAsToken(t: T){
-        while(this.advance()){
+    async interprateAllAsToken(t: T) {
+        while (this.advance()) {
             await this.interprateCurrentAsToken(t)
         }
     }
@@ -698,14 +769,14 @@ export class Interpreter {
             return this.args
         }
 
-        if(this.hasModifier(Modifiers.skip)){
+        if (this.hasModifier(Modifiers.skip)) {
             this.advance()
-            if((this.#curTok as Token).type === T.command){
+            if ((this.#curTok as Token).type === T.command) {
                 await this[T.command](this.#curTok as Token)
             }
             await this.interprateAllAsToken(T.str)
         }
-        else{
+        else {
 
             for (let doFirst of this.tokens.filter(v => v.type === T.dofirst)) {
                 await this[1](doFirst)
@@ -726,7 +797,7 @@ export class Interpreter {
         let lastUndefIdx = this.args.lastIndexOf(Interpreter.commandUndefined)
 
         //if it is found
-        if(lastUndefIdx > -1){
+        if (lastUndefIdx > -1) {
             //we basically treat everythign before it as if it didn't happen
             this.args = this.args.slice(lastUndefIdx + 1)
         }
@@ -764,10 +835,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (!Object.keys(rv).length) {
         return msg
     }
-    if(!sendCallback && rv.dm){
+    if (!sendCallback && rv.dm) {
         sendCallback = msg.author.send.bind(msg.author.dmChannel)
     }
-    else if(!sendCallback){
+    else if (!sendCallback) {
         sendCallback = msg.channel.send.bind(msg.channel)
     }
     //by default delete files that are being sent from local storage
@@ -802,7 +873,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
                 rv.recurse = { ...rv.recurse }
             }
             else {
-                rv.recurse =true
+                rv.recurse = true
             }
             rv.do_change_cmd_user_expansion = false
         }
@@ -927,21 +998,28 @@ export function generateDefaultRecurseBans() {
     return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas"] }
 }
 
-export let commands: {[key: string]: Command | CommandV2} = {}
+export let commands: { [key: string]: Command | CommandV2 } = {}
 
-export function registerCommand(name: string, command: Command | CommandV2){
-    if(!command.help){
+export function registerCommand(name: string, command: Command | CommandV2) {
+    if (!command.help) {
         console.warn(name, `(${cmdCatToStr(command.category)})`, "does not have help")
     }
     Reflect.set(commands, name, command)
 }
 
-export function getCommands(){
+export function getCommands() {
     return commands
 }
 
-export function getAliases(refresh?: boolean){
-    if(refresh){
+export function getAliasesV2(refresh?: boolean) {
+    if (refresh) {
+        aliasesV2 = createAliasesV2()
+    }
+    return aliasesV2
+}
+
+export function getAliases(refresh?: boolean) {
+    if (refresh) {
         aliases = createAliases()
     }
     return aliases

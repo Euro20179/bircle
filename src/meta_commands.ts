@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
+import { aliases, aliasesV2, AliasV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -12,6 +12,7 @@ import { Guild, Message } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
+
 
 export default function() {
     registerCommand(
@@ -119,8 +120,8 @@ export default function() {
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
             }
-            if (opts['l']){
-                return {content: user_options.allowedOptions.join("\n"), status: StatusCode.RETURN}
+            if (opts['l']) {
+                return { content: user_options.allowedOptions.join("\n"), status: StatusCode.RETURN }
             }
             let userOpts = user_options.getUserOptions()[user]
             let optionToCheck = args.join(" ").toLowerCase()
@@ -241,19 +242,21 @@ export default function() {
         }, CommandCategory.META),
     )
 
-    registerCommand("code-info", createCommandV2(async() => {
+    registerCommand("code-info", createCommandV2(async () => {
         let info = execSync("wc -l *.ts src/*.ts").toString("utf-8")
-        return {content: info, status: StatusCode.RETURN}
+        return { content: info, status: StatusCode.RETURN }
     }, CommandCategory.META))
 
-    registerCommand("pet-inventory", createCommandV2(async() => {
-        return { files: [
-            {
-                attachment: "./petinventory.json",
-                name: "Pet inventory.json",
-                delete: false
-            }
-        ], status: StatusCode.RETURN}
+    registerCommand("pet-inventory", createCommandV2(async () => {
+        return {
+            files: [
+                {
+                    attachment: "./petinventory.json",
+                    name: "Pet inventory.json",
+                    delete: false
+                }
+            ], status: StatusCode.RETURN
+        }
     }, CommandCategory.META))
 
     registerCommand(
@@ -526,38 +529,38 @@ export default function() {
     )
 
     registerCommand(
-        "for", createCommandV2(async ({msg, args, recursionCount, commandBans}) => {
+        "for", createCommandV2(async ({ msg, args, recursionCount, commandBans }) => {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
             let [start, end] = [Number(startS), Number(endS)]
             const scriptWithBraces = args.slice(2).join(" ").trim()
             const scriptWithoutBraces = parseBracketPair(scriptWithBraces, "{}")
-            if(isNaN(start)){
+            if (isNaN(start)) {
                 start = 0
             }
-            if(isNaN(end)){
+            if (isNaN(end)) {
                 end = start + 1
             }
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
             let id = Math.floor(Math.random() * 100000000)
             globals.SPAMS[id] = true
-            outer: for(let i = start; i < end; i++){
+            outer: for (let i = start; i < end; i++) {
                 setVar(var_name, String(i), msg.author.id)
-                for(let line of scriptLines){
+                for (let line of scriptLines) {
                     await runCmd(msg, line, recursionCount + 1, false, commandBans)
                     await new Promise(res => setTimeout(res, 1000))
-                    if(!globals.SPAMS[id]){
+                    if (!globals.SPAMS[id]) {
                         break outer
                     }
                 }
                 //this is here in case no lines of code should be run, and ]stop is run
-                if(!globals.SPAMS[id]){
+                if (!globals.SPAMS[id]) {
                     break outer
                 }
             }
             delete globals.SPAMS[id]
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         }, CommandCategory.META)
     )
 
@@ -1623,6 +1626,58 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
     )
 
+    registerCommand("alias-type", createCommandV2(async ({args}) => {
+        if(getAliases()[args[0]]){
+            return {content: "V1", status: StatusCode.RETURN}
+        }
+        else if(getAliasesV2()[args[0]]){
+            return {content: "V2", status: StatusCode.RETURN}
+        }
+        return {content: "None", status: StatusCode.ERR}
+
+    }, CommandCategory.META))
+
+    registerCommand("cmd-chainv2", createCommandV2(async ({ msg, args, opts }) => {
+
+        if (getAliases()[args[0]]) {
+            return { content: `${args[0]} is an alias command, run \`cmd-chain\` instead`, status: StatusCode.ERR }
+        }
+
+        let v2 = getAliasesV2()[args[0]]
+        let showArgs = true
+        if (opts.getBool("n", false) || opts.getBool("no-args", false)) {
+            showArgs = false
+        }
+        let expand = true
+        let a = ""
+        let chain: string[] = [args[0]]
+        if (v2) {
+            let result = v2.expand((alias: any, preArgs: any) => {
+                if (expand) {
+                    a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
+                }
+                else {
+                    a = preArgs.join(" ") + " " + a + " "
+                }
+                if (showArgs) {
+                    chain.push(`${alias} ${a}`)
+                }
+                else {
+                    chain.push(alias)
+                }
+                return true
+            })
+            if (!result) {
+                return { content: "failed to expand alias", status: StatusCode.ERR }
+            }
+            return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
+
+        }
+
+        return { noSend: true, status: StatusCode.RETURN }
+
+    }, CommandCategory.META))
+
     registerCommand(
         "cmd-chain",
         {
@@ -1636,6 +1691,9 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
                 let chain: string[] = [args[0]]
                 let a = ""
+                if (getAliasesV2()[args[0]]) {
+                    return { content: `${args[0]} is an aliasv2 command, run \`cmd-chainv2\` instead`, status: StatusCode.ERR }
+                }
                 if (getAliases()[args[0]]) {
                     let result = expandAlias(args[0], (alias: any, preArgs: any) => {
                         if (expand) {
@@ -1939,6 +1997,25 @@ ${styles}
         },
     )
 
+    registerCommand("aliasv2", createCommandV2(async ({ msg, args, opts }) => {
+        let [name, ...command] = args
+        const helpInfo = opts.getString("help-info", "")
+
+        const alias = new AliasV2(name, command.join(" "), msg.author.id, { info: helpInfo })
+        if (getAliases()[name]) {
+            return { content: `Failed to add ${name} it already exists as an alias`, status: StatusCode.ERR }
+        }
+        else if (getAliasesV2()[name]) {
+            return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
+        }
+        else if (getCommands()[name]) {
+            return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
+        }
+        aliasesV2[name] = alias
+        fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
+        getAliasesV2(true)
+        return { content: `added: ${alias.toJsonString()}`, status: StatusCode.RETURN }
+    }, CommandCategory.META))
     registerCommand(
         "alias",
         {
@@ -1959,6 +2036,9 @@ ${styles}
                 }
                 if (getAliases()[cmd]) {
                     return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
+                }
+                if (getAliasesV2()[cmd]) {
+                    return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
                 }
                 if (getCommands()[cmd]) {
                     return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
