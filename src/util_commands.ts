@@ -12,7 +12,7 @@ import pet = require("./pets")
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans } from './common_to_commands'
+import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2 } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
 import { spawnSync } from 'child_process'
@@ -180,7 +180,8 @@ export default function() {
                 }
                 return { content: rv, status: StatusCode.RETURN }
             }
-            let commandsToUse = commands
+            const aliasesV2 = getAliasesV2()
+            let commandsToUse = {...commands, ...getAliasesV2()}
             if (args[0]) {
                 commandsToUse = {}
                 if (args[0] == "?") {
@@ -188,8 +189,13 @@ export default function() {
                 }
                 else {
                     for (let cmd of args) {
-                        if (!commands[cmd]) continue
-                        commandsToUse[cmd] = commands[cmd]
+                        if(commands[cmd]){
+                            commandsToUse[cmd] = commands[cmd]
+                        }
+                        else if(aliasesV2[cmd]){
+                            commandsToUse[cmd] = aliasesV2[cmd]
+                        }
+                        else{ continue }
                     }
                 }
             }

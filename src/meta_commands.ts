@@ -1738,6 +1738,23 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
     )
 
+    registerCommand("rccmdv2", createCommandV2(async ({msg, args}) => {
+        let cmdName = args[0]
+        let aliasesV2 = getAliasesV2()
+        if(aliasesV2[cmdName] && aliasesV2[cmdName].creator === msg.author.id){
+            delete aliasesV2[cmdName]
+            fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
+            getAliasesV2(true)
+            return {content: `Removed: ${cmdName}`, status: StatusCode.RETURN}
+        }
+        else if(!aliasesV2[cmdName]){
+            return {content: `${cmdName} does not exist`, status: StatusCode.ERR}
+        }
+        else{
+            return {content: `You did not create ${cmdName}`, status: StatusCode.ERR}
+        }
+    }, CommandCategory.META))
+
     registerCommand(
         "rccmd",
         {

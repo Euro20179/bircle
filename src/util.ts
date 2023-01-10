@@ -5,6 +5,7 @@ const vm = require('vm')
 const fs = require('fs')
 
 import { Client, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { AliasV2 } from "./common_to_commands"
 
 import globals = require("./globals")
 
@@ -1056,7 +1057,7 @@ function renderHTML(text: string, indentation = 0) {
     return renderELEMENT(h, indentation)
 }
 
-function generateTextFromCommandHelp(name: string, command: Command | CommandV2) {
+function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2) {
     let text = `***${name}***:\n\n`
     let helpData = command.help
     if (!helpData)
