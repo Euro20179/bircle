@@ -2037,7 +2037,13 @@ ${styles}
         fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
         getAliasesV2(true)
         return { content: `added: ${alias.toJsonString()}`, status: StatusCode.RETURN }
-    }, CommandCategory.META))
+    }, CommandCategory.META, "Create an aliasv2<br>By default, the user arguments will be appended to the end of exec<br>To access an option in the exec, use \${%:-option-name}, for args use \${%:\\_\\_arg[&lt;i&gt;]}<br>raw args are also accessable with \\_\\_rawarg instead of \\_\\_arg.<br>To access all args, use \${%:\\_\\_arg[...]}", {
+        "name": createHelpArgument("the alias name", true),
+        exec: createHelpArgument("The command to run", true, "name")
+    }, {
+        "help-info": createHelpOption(`The information to say when ${prefix}help \${name} is run`, undefined, ""),
+        "no-args": createHelpOption("Do not append user arguments to the end of exec", undefined, "false")
+    }))
     registerCommand(
         "alias",
         {
