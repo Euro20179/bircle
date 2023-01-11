@@ -113,6 +113,11 @@ function readVars() {
 
 readVars()
 
+function delVar(varName: string, prefix?: string){
+    delete vars[prefix ?? "__global__"][varName]
+
+}
+
 function setVar(varName: string, value: string, prefix?: string) {
     if (!prefix) {
         prefix = "__global__"
@@ -181,6 +186,7 @@ export {
     readVars,
     saveVars,
     getVar,
+    delVar,
     GLOBAL_CURRENCY_SIGN
 }
 

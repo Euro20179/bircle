@@ -5,7 +5,7 @@ import economy = require("./economy")
 import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST, prefix, setVar, vars, WHITELIST } from './common';
+import { BLACKLIST, delVar, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML } from './util';
 
@@ -34,15 +34,56 @@ export class AliasV2 {
     name: string
     exec: string
     creator: string
-    constructor(name: string, exec: string, creator: string, help: CommandHelp) {
+    appendArgs: boolean
+    constructor(name: string, exec: string, creator: string, help: CommandHelp, appendArgs?: boolean) {
         this.name = name
         this.exec = exec
         this.creator = creator
         this.help = help
+        this.appendArgs = appendArgs ?? true
     }
-    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
+    setAppendArgs(bool?: boolean){
+        this.appendArgs = bool ?? false
+    }
+    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
-        return await runCmd(msg, this.exec, recursionCount + 1, true)
+        for(let opt of Object.entries(opts)){
+            setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
+        }
+
+        if(this.appendArgs){
+            this.exec += args.join(" ")
+        }
+
+        for(let i = 0; i < args.length; i++){
+            setVar(`__arg[${i}]`, args[i], msg.author.id)
+        }
+
+        setVar(`__arg[...]`, args.join(" "), msg.author.id)
+
+        for(let i = 0; i < rawArgs.length; i++){
+            setVar(`__rawarg[${i}]`, args[i], msg.author.id)
+        }
+
+        setVar(`__rawarg[...]`, args.join(" "), msg.author.id)
+
+        const rv = await runCmd(msg, this.exec, recursionCount + 1, true)
+
+        delVar(`__rawarg[...]`, msg.author.id)
+        delVar(`__arg[...]`, msg.author.id)
+
+        for(let opt of Object.entries(opts)){
+            delVar(`-${opt[0]}`, msg.author.id)
+        }
+
+        for(let i = 0; i < args.length; i++){
+            delVar(`__arg[${i}]`, msg.author.id)
+        }
+
+        for(let i = 0; i < rawArgs.length; i++){
+            delVar(`__rawarg[${i}]`, msg.author.id)
+        }
+        return rv
     }
     toJsonString() {
         return JSON.stringify({ name: this.name, exec: this.exec, help: this.help })
@@ -112,7 +153,7 @@ export function createAliasesV2(): {[key: string]: AliasV2} {
     if (fs.existsSync("./command-results/aliasV2")) {
         let j: {[key: string]: AliasV2} = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
         for(let aName in j){
-            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help)
+            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs)
         }
         return j
     }

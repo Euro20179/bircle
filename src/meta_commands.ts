@@ -6,7 +6,7 @@ import user_options = require("./user-options")
 import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
-import { addToPermList, ADMINS, client, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
+import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML } from "./util"
 import { Guild, Message } from "discord.js"
 import { registerCommand } from "./common_to_commands"
@@ -315,7 +315,7 @@ export default function() {
                 let deleted = []
                 for (let name of names) {
                     if (vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function') {
-                        delete vars[prefix][name]
+                        delVar(name, prefix)
                         deleted.push(name)
                     }
                 }
@@ -2028,6 +2028,11 @@ ${styles}
         else if (getCommands()[name]) {
             return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
         }
+
+        if(opts.getBool("no-args", true)){
+            alias.setAppendArgs(false)
+        }
+
         aliasesV2[name] = alias
         fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
         getAliasesV2(true)
