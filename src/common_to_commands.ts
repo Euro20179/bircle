@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, delVar, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair } from './util';
 
 export enum StatusCode {
     PROMPT = -2,
@@ -51,39 +51,71 @@ export class AliasV2 {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
+        let innerPairs = []
+
+        let escape = false
+        let curPair = ""
+        let bracketCount = 0
+        for(let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++){
+            let ch = this.exec[i]
+
+            if(ch === "{" && !escape){
+                bracketCount++;
+                continue
+            }
+            else if(ch === "}" && !escape){
+                bracketCount--;
+                continue
+            }
+
+            //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
+            if(ch === "\\"){
+                escape = true
+            }
+            else {
+                escape = false
+            }
+
+            if(bracketCount === 0){
+                innerPairs.push(curPair)
+                curPair = ""
+            }
+            if(bracketCount !== 0){
+                curPair += ch
+            }
+        }
+        if(curPair){
+            innerPairs.push(curPair)
+        }
+
+        const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+)/
+
+        for(let innerText of innerPairs){
+            if(argsRegex.test(innerText)){
+                let [left, right] = innerText.split("..")
+                if(left === "args"){
+                    this.exec = this.exec.replace(`{${innerText}}`, args.join(" "))
+                    continue
+                }
+                let leftIndex = Number(left.replace("args", ""))
+                let rightIndex  = right ? Number(right) : NaN
+                if(!isNaN(rightIndex) ){
+                    this.exec = this.exec.replace(`{${innerText}}`, args.slice(leftIndex, rightIndex).join(" "))
+                }
+                else if(right === ""){
+                    this.exec = this.exec.replace(`{${innerText}}`, args.slice(leftIndex).join(" "))
+                }
+                else{
+                    this.exec = this.exec.replace(`{${innerText}}`, args[leftIndex])
+                }
+            }
+        }
+
         if(this.appendArgs){
             this.exec += args.join(" ")
         }
 
-        for(let i = 0; i < args.length; i++){
-            setVar(`__arg[${i}]`, args[i], msg.author.id)
-        }
-
-        setVar(`__arg[...]`, args.join(" "), msg.author.id)
-
-        for(let i = 0; i < rawArgs.length; i++){
-            setVar(`__rawarg[${i}]`, args[i], msg.author.id)
-        }
-
-        setVar(`__rawarg[...]`, args.join(" "), msg.author.id)
-
-        const rv = await runCmd(msg, this.exec, recursionCount + 1, true)
-
-        delVar(`__rawarg[...]`, msg.author.id)
-        delVar(`__arg[...]`, msg.author.id)
-
-        for(let opt of Object.entries(opts)){
-            delVar(`-${opt[0]}`, msg.author.id)
-        }
-
-        for(let i = 0; i < args.length; i++){
-            delVar(`__arg[${i}]`, msg.author.id)
-        }
-
-        for(let i = 0; i < rawArgs.length; i++){
-            delVar(`__rawarg[${i}]`, msg.author.id)
-        }
-        return rv
+        return await runCmd(msg, this.exec, recursionCount + 1, true)
     }
     toJsonString() {
         return JSON.stringify({ name: this.name, exec: this.exec, help: this.help })
