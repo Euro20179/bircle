@@ -514,7 +514,7 @@ export class Interpreter {
                     data = `{${format_name}|${args.join("|")}}`
                 }
                 else {
-                    let rangeMatch = format_name.match(/(\d+)(?:\.\.|-)(\d+)/)
+                    let rangeMatch = format_name.match(/^(\d+)(?:\.\.|-)(\d+)$/)
                     if (rangeMatch) {
                         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
                         let beforeNumber = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
