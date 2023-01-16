@@ -212,9 +212,15 @@ client.on("messageUpdate", async (m_old: Message, m: Message) => {
 //For auto translate delete
 let lastMessageAuthor: string | null = null
 
+let translateRegex = /^Tr[4a]nslation: ".*" Sent by: ".*" Translated from: .*$/
+
 client.on("messageCreate", async (m: Message) => {
-    if(m.author.bot && m.content.match(/^Translation: ".*" Sent by: ".*" Translated from: .*$/) && user_options.getOpt(lastMessageAuthor || m.author.id, "delete-auto-translate") === "true"){
+    if(m.author.bot && m.content.match(translateRegex) && user_options.getOpt(lastMessageAuthor || m.author.id, "delete-auto-translate") === "true"){
         if(m.deletable) await m.delete()
+    }
+
+    if(m.content.includes(`${prefix}NEW_REGEX `) && m.author.id === "334538784043696130"){
+        translateRegex = new RegExp(m.content.slice(`${prefix}NEW_REGEX `.length))
     }
 
     lastMessageAuthor = m.author.id
