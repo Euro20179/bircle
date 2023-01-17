@@ -15,7 +15,7 @@ import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, M
 import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2 } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
-import { spawnSync } from 'child_process'
+import { exec, spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function() {
@@ -1962,6 +1962,56 @@ The order these are given does not matter, excpet for field, which will be added
             }
         ),
     )
+
+    registerCommand("sh", createCommandV2(async({msg, argList, opts}) => {
+        const cmd = spawn("bash")
+        cmd.stdout.on("data", data => {
+            msg.channel.send(data.toString("utf-8"))
+        })
+        cmd.stderr.on("data", data => {
+            msg.channel.send(data.toString("utf-8"))
+        })
+        const collector = msg.channel.createMessageCollector({filter: m => m.author.id === msg.author.id})
+        const TO_INTERVAL = 30000
+        let timeout = setTimeout(cmd.kill, TO_INTERVAL)
+        collector.on("collect", m => {
+            clearTimeout(timeout)
+            timeout = setTimeout(cmd.kill, TO_INTERVAL)
+            cmd.stdin.write(m.content + "\n")
+        })
+        return {noSend: true, status: StatusCode.ERR}
+    }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id)))
+
+    registerCommand("qalc", createCommandV2(async({msg, argList, opts}) => {
+        if(( opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false) ) && !globals.IN_QALC.includes(msg.author.id) ){
+            globals.IN_QALC.push(msg.author.id)
+            const cmd = spawn("qalc", argList)
+            cmd.stdout.on("data", data => {
+                let text = data.toString("utf-8").replaceAll(/\[[\d;]+m/g, "")
+                console.log(text)
+                msg.channel.send(text)
+            })
+            cmd.stderr.on("data", data => {
+                msg.channel.send(data.toString("utf-8"))
+            })
+            cmd.on("close", () => {
+                globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
+            })
+            cmd.on("exit", () => {
+                globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
+            })
+            const collector = msg.channel.createMessageCollector({filter: m => m.author.id === msg.author.id})
+            const TO_INTERVAL = 30000
+            let timeout = setTimeout(cmd.kill, TO_INTERVAL)
+            collector.on("collect", m => {
+                clearTimeout(timeout)
+                timeout = setTimeout(cmd.kill, TO_INTERVAL)
+                cmd.stdin.write(m.content + "\n")
+            })
+        }
+        const cmd = spawnSync("qalc", ["-t"].concat(argList))
+        return {content: cmd.stdout.toString("utf-8"), status: StatusCode.RETURN}
+    }, CommandCategory.UTIL))
 
     registerCommand(
         "calc",

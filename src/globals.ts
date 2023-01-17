@@ -17,6 +17,8 @@ export let HEIST_PLAYERS: string[] = []
 export let HEIST_TIMEOUT: NodeJS.Timeout | null = null
 export let HEIST_STARTED = false
 
+export let IN_QALC: string[] = []
+
 export let YAHTZEE_WAITING_FOR_PLAYERS = false
 
 export const RECURSION_LIMIT = 20

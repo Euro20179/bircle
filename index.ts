@@ -24,6 +24,7 @@ import globals = require("./src/globals")
 import timer from "./src/timer"
 import { URLSearchParams } from "url"
 import { format } from "./src/util"
+import { getOpt } from "./src/user-options"
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -236,7 +237,7 @@ client.on("messageCreate", async (m: Message) => {
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
-    if (!m.author.bot && (m.mentions.members?.size || 0) > 0) {
+    if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         //@ts-ignore
         for (let i = 0; i < m.mentions.members.size; i++) {
             //@ts-ignore
