@@ -179,12 +179,6 @@ async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray)
     command_commons.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: 0 })
 }
 
-const japRegex = /[\u{2E80}-\u{2FD5}\u{3000}-\u{303F}\u{3041}-\u{3096}\u{30A0}-\u{30FF}\u{31F0}-\u{31FF}\u{3220}-\u{3243}\u{3280}-\u{337F}\u{3400}-\u{4DB5}\u{4E00}-\u{9FCB}\u{F900}-\u{FA6A}\u{FF5F}-\u{FF9F}]/u
-
-
-let shouldDeleteTranslationMessage = false
-let lastTranslation = "__BIRCLE_UNDEFINED__"
-
 function messageContainsText(msg: Message, text: string) {
     text = text.toLowerCase()
     if (msg.content.toLowerCase().includes(text))
@@ -201,31 +195,7 @@ function messageContainsText(msg: Message, text: string) {
     }
 }
 
-client.on("messageUpdate", async (m_old: Message, m: Message) => {
-    if (m.author.bot && (lastTranslation.toLowerCase() === m.content.toLowerCase() || messageContainsText(m, lastTranslation))){
-        if (m.deletable)
-            m.delete().catch(console.log)
-        shouldDeleteTranslationMessage = false
-        //lastTranslation = "__BIRCLE_UNDEFINED__"
-    }
-})
-
-//For auto translate delete
-let lastMessageAuthor: string | null = null
-
-let translateRegex = /^Tr[4a]nslation: ".*" Sent by: ".*" Translated from: .*$/
-
 client.on("messageCreate", async (m: Message) => {
-    if(m.author.bot && m.content.match(translateRegex) && user_options.getOpt(lastMessageAuthor || m.author.id, "delete-auto-translate") === "true"){
-        if(m.deletable) await m.delete()
-    }
-
-    if(m.content.includes(`${prefix}NEW_REGEX `) && m.author.id === "334538784043696130"){
-        translateRegex = new RegExp(m.content.slice(`${prefix}NEW_REGEX `.length))
-    }
-
-    lastMessageAuthor = m.author.id
-
     if (m.member?.roles.cache.find(v => v.id == '1031064812995760233')) {
         return
     }
