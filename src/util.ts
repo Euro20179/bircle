@@ -837,7 +837,7 @@ class Options extends Map{
         return assert(rv) ?? default_
     }
 
-    getString(key: string, default_: string, toString: (v: string | boolean) => string = String) {
+    getString(key: string, default_: string, toString: (v: string | boolean) => string = String): string {
         let n = super.get(key)
         if (n !== undefined && n !== true) {
             n = toString(n)
@@ -849,7 +849,7 @@ class Options extends Map{
         return default_
     }
 
-    getNumber(key: string, default_: number, toNumber: (v: string) => number = Number) {
+    getNumber(key: string, default_: number, toNumber: (v: string) => number = Number): number {
         let n = super.get(key)
         if (n !== undefined) {
             let number = toNumber(n)
@@ -860,7 +860,7 @@ class Options extends Map{
         }
         return default_
     }
-    getBool(key: string, default_: boolean, toBoolean: (v: any) => boolean = Boolean) {
+    getBool(key: string, default_: boolean, toBoolean: (v: any) => boolean = Boolean): boolean {
         let v = super.get(key)
         if (v !== undefined) {
             let bool = toBoolean(v)

@@ -1,3 +1,4 @@
+import { User } from "discord.js"
 import fs = require("fs")
 
 export const token = fs.readFileSync("./data/TOKEN", "utf-8").trim()
@@ -20,6 +21,9 @@ export let HEIST_STARTED = false
 export let IN_QALC: string[] = []
 
 export let YAHTZEE_WAITING_FOR_PLAYERS = false
+
+export let KNOW_YOUR_MEME_TIMEOUT: NodeJS.Timeout;
+export let KNOW_YOUR_MEME_PLAYERS: User[] = []
 
 export const RECURSION_LIMIT = 20
 
