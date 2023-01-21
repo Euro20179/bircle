@@ -18,54 +18,59 @@ const { useItem, hasItem } = require("./shop")
 
 export default function() {
 
-    registerCommand("know-your-meme", createCommandV2(async ({ msg, args, sendCallback }) => {
+    registerCommand("know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
+
+        const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
 
         async function game() {
             //TODO: add prompts stuff
-            const prompts = ["prompt a", "prompt b"]
-            await handleSending(msg, { content: "The game is starting", status: StatusCode.INFO }, sendCallback)
-            const prompt = prompts[Math.floor(Math.random() * prompts.length)]
-            for(let user of globals.KNOW_YOUR_MEME_PLAYERS){
-                try{
-                    await user.send(`The prompt is: ${prompt}`)
+            const prompts = fs.readFileSync("./command-results/kym", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":")).map(v => v.trim())
+            for(let i = 0; i < amountOfRounds; i++){
+                await handleSending(msg, { content: `round: ${i + 1} is starting`, status: StatusCode.INFO }, sendCallback)
+                const prompt = prompts[Math.floor(Math.random() * prompts.length)]
+                await handleSending(msg, {content: `The prompt is: ${prompt}`, status: StatusCode.INFO}, sendCallback)
+                for(let user of globals.KNOW_YOUR_MEME_PLAYERS){
+                    try{
+                        await user.send(`The prompt is: ${prompt}`)
+                    }
+                    catch(err){
+                        await handleSending(msg, {content: `${user.username} has their dms closed`, status: StatusCode.ERR}, sendCallback)
+                    }
                 }
-                catch(err){
-                    await handleSending(msg, {content: `${user.username} has their dms closed`, status: StatusCode.ERR}, sendCallback)
+
+                let gifs = (await Promise.all(globals.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({max: 1, filter: m => m.content ? true : false, time: 30000}))))
+                            .map(gif => gif?.first())
+                            .map(m => m?.content)
+
+                for(let i = 0; i < gifs.length; i++){
+                    let gif = gifs[i]
+                    await handleSending(msg, {content: `${i + 1}:\n${gif}`, status: StatusCode.INFO})
                 }
+
+                await handleSending(msg, {content: `Vote for your favorite gif`, status: StatusCode.PROMPT});
+                let voted: string[] = []
+                let votes = await msg.channel.awaitMessages({filter: (m) => {
+                    //TODO: fix exploit whre you can vote for an arbitrary number
+                    if(!voted.includes(m.author.id) && !m.author.bot && !isNaN(Number(m.content))){
+                        voted.push(m.author.id)
+                        return true
+                    }
+                    return false
+                }, time: 30000})
+
+                let numberVotes = votes.mapValues(value => Number(value.content)).toJSON()
+                let map: {[key: number]: number} = {}
+                for(let vote of numberVotes){
+                    if(!map[vote]){
+                        map[vote] = 1
+                    }
+                    else{
+                        map[vote]++;
+                    }
+                }
+                let mostCommon = Object.entries(map).sort((a, b) => b[1] - a[1])[0]
+                await handleSending(msg, {content: `gif: ${mostCommon[1]} has won`, status: StatusCode.RETURN})
             }
-
-            let gifs = (await Promise.all(globals.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({max: 1, filter: m => m.content ? true : false, time: 30000}))))
-                        .map(gif => gif?.first())
-                        .map(m => m?.content)
-
-            for(let i = 0; i < gifs.length; i++){
-                let gif = gifs[i]
-                await handleSending(msg, {content: `${i + 1}:\n${gif}`, status: StatusCode.INFO})
-            }
-
-            await handleSending(msg, {content: `Vote for your favorite gif`, status: StatusCode.PROMPT});
-            let voted: string[] = []
-            let votes = await msg.channel.awaitMessages({filter: (m) => {
-                //TODO: fix exploit whre you can vote for an arbitrary number
-                if(!voted.includes(m.author.id) && !m.author.bot && !isNaN(Number(m.content))){
-                    voted.push(m.author.id)
-                    return true
-                }
-                return false
-            }, time: 30000})
-
-            let numberVotes = votes.mapValues(value => Number(value.content)).toJSON()
-            let map: {[key: number]: number} = {}
-            for(let vote of numberVotes){
-                if(!map[vote]){
-                    map[vote] = 1
-                }
-                else{
-                    map[vote]++;
-                }
-            }
-            let mostCommon = Object.entries(map).sort((a, b) => a[1] - b[1])[0]
-            await handleSending(msg, {content: `gif: ${mostCommon[1]} has won`, status: StatusCode.RETURN})
             //@ts-ignore
             globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
             globals.KNOW_YOUR_MEME_PLAYERS = []
@@ -74,13 +79,19 @@ export default function() {
         if (!globals.KNOW_YOUR_MEME_PLAYERS.find(u => u.id === msg.author.id)) {
             globals.KNOW_YOUR_MEME_PLAYERS.push(msg.author)
         }
-        if(!globals.KNOW_YOUR_MEME_TIMEOUT){
-            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 3000)
+        else{
+            return {content: "You are already in a game", status: StatusCode.ERR}
         }
-        return { noSend: true, status: StatusCode.RETURN }
+        if(!globals.KNOW_YOUR_MEME_TIMEOUT){
+            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 30000)
+        }
+        return { content: "You joined the game", status: StatusCode.INFO }
 
 
-    }, CommandCategory.GAME))
+    }, CommandCategory.GAME, "Know your meme", undefined, {
+        rounds: createHelpOption("Number of rounds", undefined, "1"),
+        r: createHelpOption("Number of rounds", undefined, "1")
+    }))
 
     registerCommand(
         "yahtzee", createCommand(async (msg, _, sc, opts, args) => {

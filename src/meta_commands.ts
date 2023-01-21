@@ -1447,7 +1447,6 @@ export default function() {
                     }],
                     status: StatusCode.PROMPT
                 }, sendCallback)
-                fs.rmSync(fn)
                 try {
                     let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 30000 })
                     collector.on("collect", async (m) => {
