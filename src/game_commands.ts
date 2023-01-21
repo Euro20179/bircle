@@ -47,11 +47,14 @@ export default function() {
 
                 let gifs = (await Promise.all(globals.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({max: 1, filter: m => m.content ? true : false, time: 30000}))))
                             .map(gif => gif?.first())
-                            .map(m => m?.content)
 
                 for(let i = 0; i < gifs.length; i++){
                     let gif = gifs[i]
-                    await handleSending(msg, {content: `${i + 1}:\n${gif}`, status: StatusCode.INFO})
+                    if(!gif) {
+                        await handleSending(msg, {content: `${i + 1}: \\_\\_NO\\_GIF\\_\\_`, status: StatusCode.INFO})
+                        continue
+                    }
+                    await handleSending(msg, {content: `${i + 1}:\n${gif.content}`, attachments: gif.attachments.toJSON(), status: StatusCode.INFO})
                 }
 
                 await handleSending(msg, {content: `Vote for your favorite gif`, status: StatusCode.PROMPT});
