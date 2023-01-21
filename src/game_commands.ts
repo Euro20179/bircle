@@ -23,8 +23,15 @@ export default function() {
         const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
 
         async function game() {
+            if(globals.KNOW_YOUR_MEME_PLAYERS.length < 2){
+                globals.KNOW_YOUR_MEME_PLAYERS = []
+                await handleSending(msg, {content: "Game not starting with 1 player", status: StatusCode.ERR}, sendCallback)
+                //@ts-ignore
+                globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
+                return 0
+            }
             //TODO: add prompts stuff
-            const prompts = fs.readFileSync("./command-results/kym", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":")).map(v => v.trim())
+            const prompts = fs.readFileSync("./command-results/kym", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":")).map(v => v.trim()).filter(v => v)
             for(let i = 0; i < amountOfRounds; i++){
                 await handleSending(msg, { content: `round: ${i + 1} is starting`, status: StatusCode.INFO }, sendCallback)
                 const prompt = prompts[Math.floor(Math.random() * prompts.length)]
@@ -69,7 +76,7 @@ export default function() {
                     }
                 }
                 let mostCommon = Object.entries(map).sort((a, b) => b[1] - a[1])[0]
-                await handleSending(msg, {content: `gif: ${mostCommon[1]} has won`, status: StatusCode.RETURN})
+                await handleSending(msg, {content: `gif: ${mostCommon[0]} has won with ${mostCommon[1]}`, status: StatusCode.RETURN})
             }
             //@ts-ignore
             globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
