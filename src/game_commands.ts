@@ -32,6 +32,7 @@ export default function() {
             }
             //TODO: add prompts stuff
             const prompts = fs.readFileSync("./command-results/kym", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":")).map(v => v.trim()).filter(v => v)
+
             for(let i = 0; i < amountOfRounds; i++){
                 await handleSending(msg, { content: `round: ${i + 1} is starting`, status: StatusCode.INFO }, sendCallback)
                 const prompt = prompts[Math.floor(Math.random() * prompts.length)]
@@ -48,38 +49,67 @@ export default function() {
                 let gifs = (await Promise.all(globals.KNOW_YOUR_MEME_PLAYERS.map(user => user.dmChannel?.awaitMessages({max: 1, filter: m => m.content ? true : false, time: 30000}))))
                             .map(gif => gif?.first())
 
+                let votes: {[key: number]: number} = {}
+
+                let buttons: MessageButton[] = []
+
                 for(let i = 0; i < gifs.length; i++){
                     let gif = gifs[i]
                     if(!gif) {
                         await handleSending(msg, {content: `${i + 1}: \\_\\_NO\\_GIF\\_\\_`, status: StatusCode.INFO})
                         continue
                     }
-                    await handleSending(msg, {content: `${i + 1}:\n${gif.content}`, attachments: gif.attachments.toJSON(), status: StatusCode.INFO})
+                    let b = new MessageButton({customId: `${i}`, style: "PRIMARY", label: `Vote for gif ${i+1})`})
+                    buttons.push(b)
+                    let row = new MessageActionRow()
+                    row.addComponents(b)
+                    let m = await handleSending(msg, {content: `${i + 1}:\n${gif.content}`, attachments: gif.attachments.toJSON(), status: StatusCode.INFO, components: [row]})
+                    m.awaitMessageComponent({componentType: "BUTTON"}).then(int => {
+                        let user = int.user
+                        if(!voted.includes(user.id)){
+                            int.reply({content: `You voted for: gif ${Number(int.customId) + 1}`, ephemeral: true})
+                            if(!votes[Number(int.customId)]){
+                                votes[Number(int.customId)] = 1
+                            }
+                            else{
+                                votes[Number(int.customId)]++;
+                            }
+                            voted.push(user.id)
+                        }
+                        else{
+                            int.reply({content: "You already voted", ephemeral: true})
+                        }
+                    })
                 }
 
                 await handleSending(msg, {content: `Vote for your favorite gif`, status: StatusCode.PROMPT});
                 let voted: string[] = []
-                let votes = await msg.channel.awaitMessages({filter: (m) => {
+                let messagevotes = await msg.channel.awaitMessages({filter: (m) => {
                     //TODO: fix exploit whre you can vote for an arbitrary number
                     if(!voted.includes(m.author.id) && !m.author.bot && !isNaN(Number(m.content))){
                         voted.push(m.author.id)
+                        handleSending(msg, {content: `You voted for gif: ${m.content}`, status: StatusCode.INFO})
                         return true
                     }
                     return false
-                }, time: 30000})
+                }, time: 3000})
 
-                let numberVotes = votes.mapValues(value => Number(value.content)).toJSON()
-                let map: {[key: number]: number} = {}
+                for(let button of buttons){
+                    button.setDisabled(true)
+                }
+
+                let numberVotes = messagevotes.mapValues(value => Number(value.content) - 1).toJSON()
+
                 for(let vote of numberVotes){
-                    if(!map[vote]){
-                        map[vote] = 1
+                    if(!votes[vote]){
+                        votes[vote] = 1
                     }
                     else{
-                        map[vote]++;
+                        votes[vote]++;
                     }
                 }
-                let mostCommon = Object.entries(map).sort((a, b) => b[1] - a[1])[0]
-                await handleSending(msg, {content: `gif: ${mostCommon[0]} has won with ${mostCommon[1]}`, status: StatusCode.RETURN})
+                let mostCommon = Object.entries(votes).sort((a, b) => a[1] - b[1])[0]
+                await handleSending(msg, {content: `gif: ${mostCommon[0] + 1} has won with ${mostCommon[1]} vote`, status: StatusCode.RETURN})
             }
             //@ts-ignore
             globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
@@ -93,7 +123,7 @@ export default function() {
             return {content: "You are already in a game", status: StatusCode.ERR}
         }
         if(!globals.KNOW_YOUR_MEME_TIMEOUT){
-            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 30000)
+            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 3000)
         }
         return { content: "You joined the game", status: StatusCode.INFO }
 
