@@ -131,7 +131,7 @@ export default function() {
             return { content: "You are already in a game", status: StatusCode.ERR }
         }
         if (!globals.KNOW_YOUR_MEME_TIMEOUT) {
-            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 3000)
+            globals.KNOW_YOUR_MEME_TIMEOUT = setTimeout(game, 30000)
         }
         return { content: "You joined the game", status: StatusCode.INFO }
 
