@@ -1963,13 +1963,29 @@ The order these are given does not matter, excpet for field, which will be added
         ),
     )
 
-    registerCommand("sh", createCommandV2(async({msg, argList, opts}) => {
+    registerCommand("sh", createCommandV2(async({msg, argList, opts, sendCallback}) => {
         const cmd = spawn("bash")
+        let dataToSend = ""
+        let sendingTimeout: NodeJS.Timeout | undefined = undefined;
         cmd.stdout.on("data", data => {
-            msg.channel.send(data.toString("utf-8"))
+            dataToSend += data.toString("utf-8")
+
+            if(sendingTimeout) clearTimeout(sendingTimeout)
+
+            sendingTimeout = setTimeout(() => {
+                handleSending(msg, {content: dataToSend, status: StatusCode.INFO}, sendCallback)
+                dataToSend = ""
+            }, 100)
         })
         cmd.stderr.on("data", data => {
-            msg.channel.send(data.toString("utf-8"))
+            dataToSend += data.toString("utf-8")
+
+            if(sendingTimeout) clearTimeout(sendingTimeout)
+
+            sendingTimeout = setTimeout(() => {
+                handleSending(msg, {content: dataToSend, status: StatusCode.INFO}, sendCallback)
+                dataToSend = ""
+            }, 100)
         })
         const collector = msg.channel.createMessageCollector({filter: m => m.author.id === msg.author.id})
         const TO_INTERVAL = 30000
