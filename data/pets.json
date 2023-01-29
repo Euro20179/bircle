@@ -40,5 +40,11 @@
         "max-hunger": 80,
         "cost": ["3", "4%"],
         "favorite-food": "seal"
+    },
+    "rock": {
+        "description": "Crushes your opponents",
+        "max-hunger": 1,
+        "cost": ["0.1"],
+        "favorite-food": "rock"
     }
 }
