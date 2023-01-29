@@ -15,6 +15,7 @@ import { performance } from 'perf_hooks'
 
 
 export default function() {
+
     registerCommand(
         "```bircle", createCommandV2(async ({ msg, args, commandBans: bans }) => {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {

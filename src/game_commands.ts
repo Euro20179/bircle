@@ -18,6 +18,73 @@ const { useItem, hasItem } = require("./shop")
 
 export default function() {
 
+    registerCommand("madlibs", createCommandV2(async ({ sendCallback, msg }) => {
+
+        const stories = fs.readFileSync("./command-results/madlibs", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim()).filter(v => v)
+
+        const story = choice(stories)
+
+        let variables = new Map<string, string | null>()
+
+        let processedStory = ""
+
+        let inPromptSection = false
+        let currentPrompt = ""
+
+        const processPrompt = async (prompt: string) => {
+            if (prompt.startsWith("$")) {
+                prompt = prompt.slice(1)
+                if (variables.get(prompt) !== undefined) {
+                    return variables.get(prompt)
+                }
+                else {
+                    await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+                    let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
+                    let resp = msgs.at(0)
+                    variables.set(prompt, resp?.content || "")
+                    return resp?.content || ""
+                }
+            }
+            else if (prompt.includes(":=")) {
+                let [varName, newPrompt] = prompt.split(":=")
+                await handleSending(msg, { content: newPrompt, status: StatusCode.PROMPT }, sendCallback)
+                let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
+                let resp = msgs.at(0)
+                variables.set(varName, resp?.content || "")
+                return resp?.content || ""
+            }
+            else{
+                await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+                let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
+                let resp = msgs.at(0)
+                return resp?.content || ""
+            }
+        }
+
+        for (let char of story) {
+            if (char === "{") {
+                inPromptSection = true
+            }
+            else if (char === "}") {
+                console.log(currentPrompt)
+                if (currentPrompt) {
+                    processedStory += await processPrompt(currentPrompt)
+                }
+                currentPrompt = ""
+                inPromptSection = false
+            }
+            else if (!inPromptSection) {
+                processedStory += char
+            }
+            else {
+                currentPrompt += char
+            }
+        }
+
+        return { content: processedStory, status: StatusCode.RETURN }
+
+    }, CommandCategory.GAME))
+
     registerCommand("know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
 
         const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
@@ -80,7 +147,7 @@ export default function() {
                         else {
                             int.reply({ content: "You already voted", ephemeral: true })
                         }
-                        m.awaitMessageComponent({componentType: "BUTTON"}).then(handleVoting)
+                        m.awaitMessageComponent({ componentType: "BUTTON" }).then(handleVoting)
                     }
 
                     m.awaitMessageComponent({ componentType: "BUTTON" }).then(handleVoting)
