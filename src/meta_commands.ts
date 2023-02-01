@@ -1256,7 +1256,7 @@ export default function() {
                     if (text.slice(0, bluecHeader.length) !== bluecHeader) {
                         return { content: "Does not appear to be a bluec script", status: StatusCode.ERR }
                     }
-                    text = text.slice(bluecHeader.length).split(";EOL")
+                    text = text.slice(bluecHeader.length).split("[;")
                 }
                 if (!text) {
                     return { content: "No script", status: StatusCode.ERR }
