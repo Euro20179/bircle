@@ -102,6 +102,7 @@ function saveVars() {
         }
     }
     writeFileSync("./data/vars", JSON.stringify(vars))
+    vars['__global__'] = {...vars['__global__'], ...defaultVars}
 }
 
 function readVars() {
