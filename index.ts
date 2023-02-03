@@ -25,6 +25,7 @@ import timer from "./src/timer"
 import { URLSearchParams } from "url"
 import { format } from "./src/util"
 import { getOpt } from "./src/user-options"
+import { InteractionResponseTypes } from "discord.js/typings/enums"
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -411,6 +412,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             interaction.reply(`Attacking ${user}...`).catch(console.error)
             interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
+        }
+        else if(interaction.commandName === 'md'){
+            interaction.reply({
+                type: InteractionResponseTypes.CHANNEL_MESSAGE_WITH_SOURCE,
+                content: interaction.options.get("text")?.value ?? "Hi"
+            })
         }
         else if (interaction.commandName == 'aheist') {
             let userId = interaction.user.id

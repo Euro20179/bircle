@@ -8,6 +8,7 @@ import user_options = require("./user-options")
 import { BLACKLIST, delVar, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair } from './util';
+import { create } from 'domain';
 
 export enum StatusCode {
     PROMPT = -2,
@@ -1162,6 +1163,9 @@ export const slashCommands = [
     createChatCommand("poll", "create a poll", [
         createChatCommandOption(STRING, "options", "Options are seperated by |", { required: true }),
         createChatCommandOption(STRING, "title", "The title of the poll", { required: false }),
+    ]),
+    createChatCommand("md", "say markdown", [
+        createChatCommandOption(STRING, "text", "The text to say", {required: true})
     ]),
     {
         name: 'aheist',
