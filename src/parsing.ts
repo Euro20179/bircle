@@ -420,8 +420,14 @@ class Parser {
             this.advance()
             let inner = parseBracketPair(this.string, "{}", this.#i)
             this.advance(inner.length)
+            let _ifNull
+            [inner, ..._ifNull] = inner.split("||")
+            let ifNull = _ifNull.join("||")
             let var_ = getVar(this.#msg, inner)
             if (var_ === false) {
+                if(ifNull){
+                    return new Token(T.str, ifNull, this.#curArgNo)
+                }
                 return new Token(T.str, `\${${inner}}`, this.#curArgNo)
             }
             return new Token(T.str, var_, this.#curArgNo)
