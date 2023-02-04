@@ -91,32 +91,34 @@ export class AliasV2 {
 
         const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+)/
 
+        let tempExec = this.exec
+
         for(let innerText of innerPairs){
             if(argsRegex.test(innerText)){
                 let [left, right] = innerText.split("..")
                 if(left === "args"){
-                    this.exec = this.exec.replace(`{${innerText}}`, args.join(" "))
+                    tempExec = tempExec.replace(`{${innerText}}`, args.join(" "))
                     continue
                 }
                 let leftIndex = Number(left.replace("args", ""))
                 let rightIndex  = right ? Number(right) : NaN
                 if(!isNaN(rightIndex) ){
-                    this.exec = this.exec.replace(`{${innerText}}`, args.slice(leftIndex, rightIndex).join(" "))
+                    tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex, rightIndex).join(" "))
                 }
                 else if(right === ""){
-                    this.exec = this.exec.replace(`{${innerText}}`, args.slice(leftIndex).join(" "))
+                    tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex).join(" "))
                 }
                 else{
-                    this.exec = this.exec.replace(`{${innerText}}`, args[leftIndex])
+                    tempExec = tempExec.replace(`{${innerText}}`, args[leftIndex])
                 }
             }
         }
 
         if(this.appendArgs){
-            this.exec += args.join(" ")
+            tempExec += args.join(" ")
         }
 
-        let rv = await runCmd(msg, this.exec, recursionCount + 1, true)
+        let rv = await runCmd(msg, tempExec, recursionCount + 1, true)
 
         for(let opt of Object.entries(opts)){
             delVar(`-${opt[0]}`, msg.author.id)
