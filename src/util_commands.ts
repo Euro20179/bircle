@@ -15,7 +15,7 @@ import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, M
 import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2 } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
-import { exec, spawn, spawnSync } from 'child_process'
+import { exec, execSync, spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function() {
@@ -45,6 +45,26 @@ export default function() {
         ])
         return { embeds: [embed], status: StatusCode.RETURN }
     }, CommandCategory.FUN))
+
+    // registerCommand("gcc", createCommandV2(async ({msg, args}) => {
+    //     let file = msg.attachments.at(0)
+    //     let data = args.join(" ")
+    //     if(file){
+    //         data = await (await fetch.default(file.url)).text()
+    //     }
+    //     let fn = `${generateFileName("gcc", msg.author.id)}.c`
+    //     fs.writeFileSync(fn, data)
+    //     execSync(`gcc ${fn} -o ${fn}.executable`)
+    //     return {
+    //         files: [{
+    //             name: "out",
+    //             attachment: `${fn}.executable`,
+    //             delete: true
+    //         }],
+    //         status: StatusCode.RETURN
+    //     }
+    //     
+    // }, CommandCategory.UTIL))
 
     registerCommand("google", createCommandV2(async ({msg ,args}) => {
 

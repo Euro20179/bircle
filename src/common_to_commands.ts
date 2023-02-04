@@ -116,7 +116,13 @@ export class AliasV2 {
             this.exec += args.join(" ")
         }
 
-        return await runCmd(msg, this.exec, recursionCount + 1, true)
+        let rv = await runCmd(msg, this.exec, recursionCount + 1, true)
+
+        for(let opt of Object.entries(opts)){
+            delVar(`-${opt[0]}`, msg.author.id)
+        }
+        
+        return rv
     }
     toJsonString() {
         return JSON.stringify({ name: this.name, exec: this.exec, help: this.help })
