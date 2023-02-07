@@ -2016,9 +2016,53 @@ ${styles}
 
     registerCommand("aliasv2", createCommandV2(async ({ msg, args, opts }) => {
         let [name, ...command] = args
+
+        if(!name){
+            return {content: "No name", status: StatusCode.ERR}
+        }
+
+        if(!command.length){
+            return {content: "No command", status: StatusCode.ERR}
+        }
+
         const helpInfo = opts.getString("help-info", "")
 
-        const alias = new AliasV2(name, command.join(" "), msg.author.id, { info: helpInfo })
+        const commandHelpOptions: CommandHelpOptions = {}
+
+        let attrs = {
+            "-desc": (name: string, value: string) => commandHelpOptions[name].description = value,
+            "-alt": (name: string, value: string) => commandHelpOptions[name].alternates = value.split(","),
+            "-default": (name: string, value: string) => commandHelpOptions[name].default = value,
+        } as const
+
+            //go through each opt
+        for(let opt of opts.keys() as IterableIterator<string>){
+            //if in the format of -<opt-name>-<possible-attr>
+            for(let possibleAttr in attrs){
+                if(opt.endsWith(possibleAttr)){
+                    //get the option name
+                    let oName = opt.slice(0, -(possibleAttr.length))
+                    if(!commandHelpOptions[oName]){
+                        commandHelpOptions[oName] = {description: oName}
+                    }
+                    //do the thing specified in $attrs with the vale of -<opt-name>-<possible-attr> as the value
+                    attrs[possibleAttr as keyof typeof attrs](oName, opts.getString(opt, ""))
+                    break
+                }
+            }
+        }
+
+        const helpMetaData: CommandHelp = {}
+
+        if(helpInfo){
+            helpMetaData.info = helpInfo
+        }
+        if(Object.keys(commandHelpOptions).length !== 0){
+            helpMetaData.options = commandHelpOptions
+        }
+
+        const alias = new AliasV2(name, command.join(" "), msg.author.id, helpMetaData)
+
         if (getAliases()[name]) {
             return { content: `Failed to add ${name} it already exists as an alias`, status: StatusCode.ERR }
         }

@@ -5,6 +5,7 @@ const vm = require('vm')
 const fs = require('fs')
 
 import { Client, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { client } from "./common"
 import { AliasV2 } from "./common_to_commands"
 
 import globals = require("./globals")
@@ -561,10 +562,10 @@ async function fetchChannel(guild: Guild, find: string) {
 }
 
 async function fetchUserFromClient(client: Client, find: string) {
-    if (!client.guilds.cache.at(0)) {
-        return undefined
-    }
-    return await fetchUser(client.guilds.cache.at(0) as Guild, find)
+    let user = client.users.cache.find((v, k) => {
+        return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find || `<@${v.id}>` === find || `<@!${v.id}>` === find
+    })
+    return user
 }
 
 async function fetchUser(guild: Guild, find: string) {
@@ -592,6 +593,9 @@ async function fetchUser(guild: Guild, find: string) {
         }
         if (!user) {
             user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
+        }
+        if(!user){
+            fetchUserFromClient(client, find)
         }
     }
     return user

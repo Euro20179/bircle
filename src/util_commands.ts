@@ -1812,8 +1812,13 @@ middle
                 filterInfo = { type: opts[2] as "with" | "without" | "without!" | "with!", attribute: opts[3], search: opts.slice(4).join(" ") }
                 filter = function(v: any, k: any) {
                     let search = filterInfo?.search
+                    let val = v;
+                    for(let attr of filterInfo?.attribute.split(".") ?? ["__BIRCLE_UNDEFINED__"]){
+                        val = val?.[attr]
+                        if(val === undefined)
+                            break
+                    }
                     //@ts-ignore
-                    let val = v[filterInfo.attribute]
                     if (val !== undefined && search) {
                         return {
                             with: () => String(val).includes(search as string),
