@@ -2086,7 +2086,10 @@ ${styles}
         exec: createHelpArgument("The command to run", true, "name")
     }, {
         "help-info": createHelpOption(`The information to say when ${prefix}help \${name} is run`, undefined, ""),
-        "no-args": createHelpOption("Do not append user arguments to the end of exec", undefined, "false")
+        "no-args": createHelpOption("Do not append user arguments to the end of exec", undefined, "false"),
+        "-<optname>-desc": createHelpOption("Set the description of <optname>", undefined),
+        "-<optname>-alt": createHelpOption("Set the alternate opts of <optname> seperated by commas", undefined),
+        "-<optname>-default": createHelpOption("Set the default value of <optname>", undefined),
     }))
     registerCommand(
         "alias",
