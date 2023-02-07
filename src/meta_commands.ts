@@ -992,7 +992,10 @@ export default function() {
                 fs.rmSync(`./command-results/${file}`)
                 return { content: `${file} removed`, status: StatusCode.ERR }
             }, category: CommandCategory.META,
-            permCheck: m => ADMINS.includes(m.author.id)
+            permCheck: m => ADMINS.includes(m.author.id),
+            help: {
+                info: "Remove a database file"
+            }
         },
     )
 
