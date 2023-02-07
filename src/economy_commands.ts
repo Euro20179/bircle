@@ -364,7 +364,13 @@ export default function() {
                 e.addField(item, `${INVENTORY()[user.id][item]}`, true)
             }
             return { embeds: [e], status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Get the inventory of a user",
+            arguments: {
+                user: createHelpArgument("The user to get info from", false, undefined, "@me")
+            }
+        }
     },
     )
 
@@ -383,7 +389,10 @@ export default function() {
             }
             embed.setFooter({ text: `To buy a pet, do ${prefix}bpet <pet name>` })
             return { embeds: [embed], status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "See the pet shop"
+        }
     },
     )
 
@@ -446,7 +455,13 @@ export default function() {
                 e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
             }
             return { embeds: [e], status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Get the pets of a user",
+            arguments: {
+                user: createHelpArgument("The user to get the pets of")
+            }
+        }
     },
     )
 
@@ -725,7 +740,14 @@ export default function() {
                 economy.addMoney(msg.author.id, profit)
                 return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
             }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            info: "Sell a stock",
+            arguments: {
+                stock: createHelpArgument("The stock to sell", true),
+                amount: createHelpArgument("The amount of shares to sell", true, "stock")
+            }
+        }
     },
     )
 

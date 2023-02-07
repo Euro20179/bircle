@@ -276,7 +276,10 @@ export default function() {
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META
+            category: CommandCategory.META,
+            help: {
+                info: "Get the database economy.json file"
+            }
         },
     )
 
@@ -348,7 +351,10 @@ export default function() {
             run: async (_msg, _args, sendCallback) => {
                 saveVars()
                 return { content: "Variables saved", status: StatusCode.RETURN }
-            }, category: CommandCategory.META
+            }, category: CommandCategory.META,
+            help: {
+                info: "Save all variables"
+            }
         },
     )
 
@@ -358,7 +364,10 @@ export default function() {
             run: async (_msg, _args, sendCallback) => {
                 return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n"), status: StatusCode.RETURN }
             },
-            category: CommandCategory.META
+            category: CommandCategory.META,
+            help: {
+                info: "<b><i>NOT HAPPENING</i></b>"
+            }
         },
     )
 
@@ -471,7 +480,16 @@ export default function() {
                     return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })), status: StatusCode.RETURN }
                 }
                 return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
-            }, category: CommandCategory.META
+            }, category: CommandCategory.META,
+            help: {
+                info: "Run low level bot commands<br>To see a list of api commands run <code>api -l</api>",
+                arguments: {
+                    command: createHelpArgument("The command to run", true),
+                },
+                options: {
+                    "<opt>": createHelpOption("Each command will require different options")
+                }
+            }
         },
     )
 
@@ -974,7 +992,10 @@ export default function() {
                 return { content: `${file} created`, status: StatusCode.RETURN }
             },
             permCheck: m => ADMINS.includes(m.author.id),
-            category: CommandCategory.META
+            category: CommandCategory.META,
+            help: {
+                info: "Create a database file"
+            }
         },
     )
 
@@ -1069,7 +1090,13 @@ export default function() {
                 await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
                 return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
             },
-            category: CommandCategory.META
+            category: CommandCategory.META,
+            help: {
+                info: "Time how long a command takes",
+                arguments: {
+                    "...command": createHelpArgument("The command to run", true)
+                }
+            }
         },
     )
 
@@ -1578,7 +1605,10 @@ ${fs.readdirSync("./command-results").join("\n")}
                     return { content: "File does not exist", status: StatusCode.ERR }
                 }
                 return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.RETURN }
-            }, category: CommandCategory.META
+            }, category: CommandCategory.META,
+            help: {
+                info: "Send names of all log files"
+            }
         },
     )
 
@@ -1802,8 +1832,13 @@ ${fs.readdirSync("./command-results").join("\n")}
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META
-
+            category: CommandCategory.META,
+            help: {
+                info: "Remove an aliasv1",
+                arguments: {
+                    command: createHelpArgument("The command to remove")
+                }
+            }
         },
     )
 
