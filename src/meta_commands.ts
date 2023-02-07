@@ -1112,7 +1112,14 @@ export default function() {
                     status: StatusCode.INFO
                 }
             },
-            category: CommandCategory.META
+            category: CommandCategory.META,
+            help: {
+                info: "Run a command a certain number of times",
+                arguments: {
+                    count: createHelpArgument("The number of times to run the command", false),
+                    "...command": createHelpArgument("The rest of the arguments are the command to run", true)
+                }
+            }
         },
     )
 

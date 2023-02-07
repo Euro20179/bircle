@@ -579,8 +579,8 @@ export default function() {
                         "^": String(todaysProfit),
                         v: String(stockInfo.price * userStockInfo.shares),
                         n: stockInfo.name,
-                        "internal-name": stockName,
-                        div: "\n---------------------------\n"
+                        "N": stockName,
+                        d: "\n---------------------------\n"
                     })
                 }
             }
@@ -588,7 +588,12 @@ export default function() {
                 return { content: "Something went wrong", status: StatusCode.ERR }
             }
             return { content: format(String(ffmt), { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }), status: StatusCode.RETURN }
-        }, category: CommandCategory.ECONOMY
+        }, category: CommandCategory.ECONOMY,
+        help: {
+            arguments: {
+                format: createHelpArgument("The format to print each stock<br><lh>Format specifiers</lh><ul><li><b>i</b>: general information</li><li><b>p</b>: current price</li><li><b>c</b>: change</li><li><b>+</b>: profit</li><li><b>^</b>: today's profit</li><li><b>v</b>: value</li><li><b>n</b>: stock name</li><li><b>N</b>: name of stock used in this bot</li><li><b>d</b>: a generic dashed divider</li></ul>")
+            }
+        }
     },
     )
 
