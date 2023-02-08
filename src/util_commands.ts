@@ -2066,6 +2066,9 @@ The order these are given does not matter, excpet for field, which will be added
                 globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
             })
             cmd.on("exit", () => {
+                if(timeout){
+                    clearTimeout(timeout)
+                }
                 globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
             })
             const collector = msg.channel.createMessageCollector({filter: m => m.author.id === msg.author.id})
