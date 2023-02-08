@@ -1042,32 +1042,31 @@ export default function() {
     )
 
     registerCommand(
-        "rand-line",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let file = args[0]
-                if (!file) {
-                    return { content: "No file specified", status: StatusCode.ERR }
-                }
-                if (file.match(/\./)) {
-                    return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
-                }
-                if (!fs.existsSync(`./command-results/${file}`)) {
-                    return {
-                        content: "file does not exist",
-                        status: StatusCode.ERR
+        "rand-line", createCommandV2(async({args, stdin}) => {
+                let text;
+                if(args[0]){
+                    let file = args[0]
+                    if (file.match(/\./)) {
+                        return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
                     }
+                    if (!fs.existsSync(`./command-results/${file}`)) {
+                        return {
+                            content: "file does not exist",
+                            status: StatusCode.ERR
+                        }
+                    }
+                    text = fs.readFileSync(`./command-results/${file}`, "utf-8")
                 }
-                const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
+                else if(stdin){
+                    text = getContentFromResult(stdin as CommandReturn)
+                }
+                else{
+                    return { content: "No file specified, and no pipe", status: StatusCode.ERR }
+                }
                 const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
                 return { content: choice(lines), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Gets a random line from a file"
-            },
-            category: CommandCategory.META
 
-        },
+        }, CommandCategory.META, "Get a random line from a file or pipe")
     )
 
     registerCommand(
