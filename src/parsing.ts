@@ -14,7 +14,9 @@ enum T {
     format,
     dofirstrepl,
     command,
-    syntax
+    syntax,
+    pipe,
+    pipeRepl
 }
 
 function strToTT(str: string) {
@@ -42,6 +44,9 @@ function strToTT(str: string) {
 
         case "syntax":
             return T.syntax
+
+        case "pipe":
+            return T.pipe
 
         default:
             return T.str
@@ -108,8 +113,11 @@ class Parser {
     #curArgNo: number
     #hasCmd: boolean
 
+    #pipeSign: string = ">pipe>"
+
+
     get specialChars() {
-        return `\\\$${this.IFS}{%`
+        return `\\\$${this.IFS}{%>`
     }
 
     constructor(msg: Message, string: string, isCmd = true) {
@@ -123,6 +131,7 @@ class Parser {
         this.#isParsingCmd = isCmd
         this.modifiers = []
         this.IFS = getVar(msg, "IFS", msg.author.id) || " "
+        this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     }
 
     advance(amount = 1) {
@@ -153,6 +162,11 @@ class Parser {
                     lastWasspace = true
                     break
                 }
+                case this.#pipeSign[0]: {
+                    lastWasspace = false
+                    this.tokens.push(this.parseGTBracket())
+                    break
+                }
                 case "$": {
                     lastWasspace = false
                     this.tokens.push(this.parseDollar())
@@ -160,7 +174,7 @@ class Parser {
                 }
                 case "%": {
                     lastWasspace = false
-                    this.tokens.push(this.parseDoFirstReplacement())
+                    this.tokens.push(this.parsePercent())
                     break
                 }
                 case "\\": {
@@ -188,6 +202,34 @@ class Parser {
                     break
                 }
             }
+        }
+    }
+
+    //parsegreaterthanbracket
+    parseGTBracket () {
+        let builtString = this.#curChar as string
+        while(this.advance() && this.#pipeSign.startsWith(builtString) && builtString !==this.#pipeSign){
+            builtString += this.#curChar
+        }
+        if(this.#curChar !== undefined){
+            this.back()
+        }
+        if(builtString === this.#pipeSign){
+            this.advance()
+            //ensure that the command WILL have argNo -1
+            //bit hacky though
+            if(this.#curChar === this.IFS){
+                this.#curArgNo = -2
+            }
+            else{
+                //command Argno should start at -1
+                this.#curArgNo = -1
+            }
+            this.back()
+            return new Token(T.pipe, this.#pipeSign, this.#curArgNo)
+        }
+        else{
+            return new Token(T.str, builtString, this.#curArgNo)
         }
     }
 
@@ -365,7 +407,7 @@ class Parser {
         return new Token(T.format, inner, this.#curArgNo)
     }
 
-    parseDoFirstReplacement() {
+    parsePercent() {
         let text = this.#curChar as string
         if (!this.advance()) {
             return new Token(T.str, text, this.#curArgNo)

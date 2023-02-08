@@ -9,6 +9,8 @@ import { BLACKLIST, delVar, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair } from './util';
 import { create } from 'domain';
+import { cloneDeep } from 'lodash';
+
 
 export enum StatusCode {
     PROMPT = -2,
@@ -47,6 +49,7 @@ export class AliasV2 {
         this.appendArgs = bool ?? false
     }
     async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
+
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
         for(let opt of Object.entries(opts)){
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
@@ -211,8 +214,7 @@ export function isCmd(text: string, prefix: string) {
 export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
-    let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
-    return await int.run()
+    return Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
 }
 
 export class Interpreter {
@@ -227,6 +229,8 @@ export class Interpreter {
     alias: boolean | [string, string[]]
     aliasV2: false | AliasV2
 
+    #originalTokens: Token[]
+
     #interprated: boolean
     #aliasExpandSuccess: boolean
     #i: number
@@ -235,14 +239,19 @@ export class Interpreter {
     #doFirstNoFromArgNo: { [key: number]: number }
     #msg: Message
     #argOffset: number
+
+    #pipeData: CommandReturn | undefined
+    #pipeTo: Token[]
+
     modifiers: Modifier[]
 
     static commandUndefined = new Object()
 
     static resultCache = new Map()
 
-    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>) {
-        this.tokens = tokens
+    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
+        this.tokens = cloneDeep(tokens)
+        this.#originalTokens = cloneDeep(tokens)
         this.args = []
         this.cmd = ""
         this.real_cmd = ""
@@ -252,6 +261,9 @@ export class Interpreter {
         this.sendCallback = sendCallback
         this.alias = false
         this.aliasV2 = false
+
+        this.#pipeData = pipeData
+        this.#pipeTo = []
 
         this.modifiers = modifiers
         this.#i = -1
@@ -263,6 +275,11 @@ export class Interpreter {
         this.#interprated = false
         this.#aliasExpandSuccess = false
     }
+
+    getPipeTo(){
+        return this.#pipeTo
+    }
+
     advance(amount = 1) {
         this.#i += amount;
         this.#curTok = this.tokens[this.#i]
@@ -293,23 +310,23 @@ export class Interpreter {
     //str token
     async [0](token: Token) {
         this.addTokenToArgList(token)
+        return true
     }
     //dofirst token
     async [1](token: Token) {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
-        let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
-        let rv = await int.run() as CommandReturn
+        let rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
         let data = getContentFromResult(rv as CommandReturn).trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data)
             await parser.parse()
-            let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable)
-            let rv = await int.run() as CommandReturn
+            rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
             data = getContentFromResult(rv as CommandReturn).trim()
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
+        return true
     }
     //calc
     async [2](token: Token) {
@@ -320,16 +337,26 @@ export class Interpreter {
         token.data = int.args.join(" ")
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars["__global__"] }, { timeout: 1000 })), token.argNo)
         this.addTokenToArgList(t)
+        return true
     }
     //esc sequence
     async [3](token: Token) {
         this.addTokenToArgList(token)
+        return true
     }
     //fmt
     async [4](token: Token) {
         let [format_name, ...args] = token.data.split("|")
         let data = ""
         switch (format_name) {
+            case "%":
+                if(this.#pipeData){
+                    data = getContentFromResult(this.#pipeData)
+                }
+                else{
+                    data = "{%}"
+                }
+                break
             case "cmd":
                 data = this.#msg.content.split(" ")[0].slice(user_options.getOpt(this.#msg.author.id, "prefix", prefix).length)
                 break
@@ -578,6 +605,7 @@ export class Interpreter {
             }
         }
         this.addTokenToArgList(new Token(T.str, data, token.argNo))
+        return true
     }
     //dofirstrepl
     async [5](token: Token) {
@@ -598,7 +626,7 @@ export class Interpreter {
             this.addTokenToArgList(new Token(T.str, text, token.argNo))
         }
         //TODO: %{...} spreads  args into  multiple arguments
-
+        return true
     }
     //command
     async [6](token: Token) {
@@ -631,6 +659,7 @@ export class Interpreter {
         }
 
         this.addTokenToArgList(new Token(T.str, Interpreter.commandUndefined as string, token.argNo))
+        return true
     }
     //syntax
     async [7](token: Token) {
@@ -641,6 +670,12 @@ export class Interpreter {
         for (let i = 0; i < args.length; i++) {
             this.addTokenToArgList(new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo))
         }
+        return true
+    }
+
+    //pipe
+    async[8](token: Token){
+        return false
     }
 
     hasModifier(mod: Modifiers) {
@@ -671,7 +706,6 @@ export class Interpreter {
 
         return await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
     }
-
 
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
@@ -800,7 +834,8 @@ export class Interpreter {
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                         opts: new Options(opts),
-                        argList: new ArgList(args2)
+                        argList: new ArgList(args2),
+                        stdin: this.#pipeData
                     }
                     rv = await (commands[this.real_cmd] as CommandV2).run(obj)
                 }
@@ -837,12 +872,12 @@ export class Interpreter {
     }
 
     async interprateCurrentAsToken(t: T) {
-        await this[t](this.#curTok as Token)
+        return await this[t](this.#curTok as Token)
     }
 
     async interprateAllAsToken(t: T) {
         while (this.advance()) {
-            await this.interprateCurrentAsToken(t)
+            return await this.interprateCurrentAsToken(t)
         }
     }
 
@@ -850,7 +885,6 @@ export class Interpreter {
         if (this.#interprated) {
             return this.args
         }
-
         if (this.hasModifier(Modifiers.skip)) {
             this.advance()
             if ((this.#curTok as Token).type === T.command) {
@@ -860,13 +894,20 @@ export class Interpreter {
         }
         else {
 
-            for (let doFirst of this.tokens.filter(v => v.type === T.dofirst)) {
+            for (let doFirst of this.tokens.slice(this.#i === -1 ? 0 : this.#i).filter(v => v.type === T.dofirst)) {
                 await this[1](doFirst)
             }
 
-            this.tokens = this.tokens.filter(v => v.type !== T.dofirst)
+            let pipeIndex = this.tokens.findIndex(v => v.type === T.pipe)
+
+            this.tokens = this.tokens.slice(this.#i === -1 ? 0 : this.#i, pipeIndex === -1 ? undefined : pipeIndex + 1).filter(v => v.type !== T.dofirst)
 
             while (this.advance()) {
+                if((this.#curTok as Token).type === T.pipe){
+                    this.#pipeTo = this.#originalTokens.slice(this.#i + 1)
+                    this.returnJson = true
+                    break
+                }
                 await this.interprateCurrentAsToken((this.#curTok as Token).type)
             }
         }
@@ -886,6 +927,19 @@ export class Interpreter {
 
         this.#interprated = true
         return this.args
+    }
+
+    static async run(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn){
+
+        let int = new Interpreter(msg, tokens, modifiers, recursion, returnJson, disable, sendCallback, pipeData)
+        let data = await int.run()
+        while(int.getPipeTo().length){
+            let tks = int.getPipeTo()
+            tks[0].type = T.command
+            int = new Interpreter(msg, tks, modifiers, recursion, returnJson, disable, sendCallback, data)
+            data = await int.run()
+        }
+        return data
     }
 }
 
@@ -1283,4 +1337,3 @@ export const slashCommands = [
         type: 3
     }
 ]
-
