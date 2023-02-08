@@ -16,7 +16,6 @@ enum T {
     command,
     syntax,
     pipe,
-    pipeRepl
 }
 
 function strToTT(str: string) {

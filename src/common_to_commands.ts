@@ -876,7 +876,7 @@ export class Interpreter {
 
     async interprateAllAsToken(t: T) {
         while (this.advance()) {
-            return await this.interprateCurrentAsToken(t)
+            await this.interprateCurrentAsToken(t)
         }
     }
 

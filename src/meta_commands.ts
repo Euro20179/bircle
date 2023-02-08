@@ -14,7 +14,7 @@ import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
 
-export default function() {
+export default function(CAT: CommandCategory) {
 
     registerCommand("raw", createCommandV2(async ({ rawArgs }) => {
         console.log(rawArgs)
@@ -33,7 +33,7 @@ export default function() {
         }
         return data as CommandReturn
 
-    }, CommandCategory.META, "Return the data raw", {
+    }, CAT, "Return the data raw", {
         json: createHelpArgument("The return json")
     }))
 
@@ -45,7 +45,7 @@ export default function() {
                 await runCmd(msg, line, globals.RECURSION_LIMIT - 1, false, bans)
             }
             return { noSend: true, status: StatusCode.RETURN }
-        }, CommandCategory.META, "Run some commands"),
+        }, CAT, "Run some commands"),
     )
 
     registerCommand(
@@ -54,7 +54,7 @@ export default function() {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
             return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans)), status: StatusCode.RETURN }
-        }, CommandCategory.META),
+        }, CAT),
     )
 
     registerCommand(
@@ -62,7 +62,7 @@ export default function() {
             let parser: Parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
             return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
-        }, CommandCategory.META, "Tokenize command input"),
+        }, CAT, "Tokenize command input"),
     )
 
     registerCommand(
@@ -72,7 +72,7 @@ export default function() {
             let int = new Interpreter(msg, parser.tokens, parser.modifiers)
             await int.interprate()
             return { content: JSON.stringify(int), status: StatusCode.RETURN }
-        }, CommandCategory.META, "Interprate args"),
+        }, CAT, "Interprate args"),
     )
 
     registerCommand(
@@ -87,7 +87,7 @@ export default function() {
                 }
             }
             return { content: res.join(","), status: StatusCode.RETURN }
-        }, CommandCategory.META, "Checks if a command is an alias"),
+        }, CAT, "Checks if a command is an alias"),
     )
 
     registerCommand(
@@ -108,7 +108,7 @@ export default function() {
                 user_options.saveUserOptions()
                 return { content: `<@${msg.author.id}> set ${optname}=${optVal}`, status: StatusCode.RETURN }
             }
-        }, CommandCategory.META,
+        }, CAT,
             "Sets a user option",
             {
                 option: createHelpArgument("The option to set", true),
@@ -133,7 +133,7 @@ export default function() {
             user_options.saveUserOptions()
             return { content: `<@${member.id}> unset ${optname}`, status: StatusCode.RETURN }
 
-        }, CommandCategory.META, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
+        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
     )
 
     registerCommand(
@@ -156,7 +156,7 @@ export default function() {
                 text += `**${opt}**\n${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}\n--------------------\n`
             }
             return { content: text, status: StatusCode.RETURN }
-        }, CommandCategory.META, "Prints the options for [option, and your values for them",
+        }, CAT, "Prints the options for [option, and your values for them",
             {
                 "option": createHelpArgument("The option to check the value of", false)
             }),
@@ -222,7 +222,7 @@ export default function() {
                 }
 
                 return { content: results.join("\n"), status: StatusCode.RETURN }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Get the source code of a file, or a command",
                 arguments: {
@@ -246,7 +246,7 @@ export default function() {
     registerCommand("code-info", createCommandV2(async () => {
         let info = execSync("wc -l *.ts src/*.ts").toString("utf-8")
         return { content: info, status: StatusCode.RETURN }
-    }, CommandCategory.META))
+    }, CAT))
 
     registerCommand("pet-inventory", createCommandV2(async () => {
         return {
@@ -258,7 +258,7 @@ export default function() {
                 }
             ], status: StatusCode.RETURN
         }
-    }, CommandCategory.META))
+    }, CAT))
 
     registerCommand(
         "economy",
@@ -276,7 +276,7 @@ export default function() {
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Get the database economy.json file"
             }
@@ -298,7 +298,7 @@ export default function() {
                     ],
                     status: StatusCode.RETURN
                 }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Sends the raw inventory.json database file"
             }
@@ -324,7 +324,7 @@ export default function() {
                     }
                 }
                 return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Delete a variable",
                 arguments: {
@@ -351,7 +351,7 @@ export default function() {
             run: async (_msg, _args, sendCallback) => {
                 saveVars()
                 return { content: "Variables saved", status: StatusCode.RETURN }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Save all variables"
             }
@@ -364,7 +364,7 @@ export default function() {
             run: async (_msg, _args, sendCallback) => {
                 return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n"), status: StatusCode.RETURN }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "<b><i>NOT HAPPENING</i></b>"
             }
@@ -410,7 +410,7 @@ export default function() {
             help: {
                 info: "Search for commands with a search query"
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -421,7 +421,7 @@ export default function() {
                 return { content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN }
             }
             return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
-        }, CommandCategory.META, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
+        }, CAT, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
     )
 
     registerCommand(
@@ -480,7 +480,7 @@ export default function() {
                     return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })), status: StatusCode.RETURN }
                 }
                 return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Run low level bot commands<br>To see a list of api commands run <code>api -l</api>",
                 arguments: {
@@ -498,7 +498,7 @@ export default function() {
             if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
             await runCmd(msg, args.join(" "), rec + 1, false, bans)
             return { noSend: true, delete: true, status: StatusCode.RETURN }
-        }, CommandCategory.META, "delete your message", {
+        }, CAT, "delete your message", {
             "...text": createHelpArgument("text"),
         }, {
             N: createHelpOption("Treat text as a command")
@@ -544,7 +544,7 @@ export default function() {
                 return { content: JSON.stringify(results[Number(opts['index'])]) || "null", status: StatusCode.RETURN }
             }
             return { content: results.map(v => String(JSON.stringify(v))).join(";\n") + ";", status: StatusCode.RETURN }
-        }, CommandCategory.META),
+        }, CAT),
     )
 
     registerCommand(
@@ -580,7 +580,7 @@ export default function() {
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.RETURN }
-        }, CommandCategory.META)
+        }, CAT)
     )
 
     registerCommand(
@@ -697,7 +697,7 @@ export default function() {
                 }
                 return { noSend: true, status: StatusCode.RETURN }
             }
-        }, CommandCategory.META,
+        }, CAT,
             "Compares the result of a command a value",
             {
                 "(command)": createHelpArgument("The command to run surrounded by ()", true),
@@ -858,7 +858,7 @@ export default function() {
                 }
                 return { content: "?", status: StatusCode.ERR }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent",
             }
@@ -886,7 +886,7 @@ export default function() {
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -899,7 +899,7 @@ export default function() {
             help: {
                 info: "Prints the number of arguments given to this command"
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -916,7 +916,7 @@ export default function() {
             help: {
                 info: "Print the opts given"
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -930,7 +930,7 @@ export default function() {
                 return getVar(msg, v)
             }).join(" ")
             return { content: str, status: StatusCode.RETURN }
-        }, CommandCategory.META, "Each arg in the arguments is treated as a string, unless it starts with \\"),
+        }, CAT, "Each arg in the arguments is treated as a string, unless it starts with \\"),
     )
 
     registerCommand(
@@ -976,7 +976,7 @@ export default function() {
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -992,7 +992,7 @@ export default function() {
                 return { content: `${file} created`, status: StatusCode.RETURN }
             },
             permCheck: m => ADMINS.includes(m.author.id),
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Create a database file"
             }
@@ -1012,7 +1012,7 @@ export default function() {
                 }
                 fs.rmSync(`./command-results/${file}`)
                 return { content: `${file} removed`, status: StatusCode.ERR }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             permCheck: m => ADMINS.includes(m.author.id),
             help: {
                 info: "Remove a database file"
@@ -1045,7 +1045,7 @@ export default function() {
                 const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
                 return { content: choice(lines), status: StatusCode.RETURN }
 
-        }, CommandCategory.META, "Get a random line from a file or pipe")
+        }, CAT, "Get a random line from a file or pipe")
     )
 
     registerCommand(
@@ -1057,7 +1057,7 @@ export default function() {
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "List all blacklists"
             }
@@ -1074,7 +1074,7 @@ export default function() {
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "List all whitelists"
             }
@@ -1089,7 +1089,7 @@ export default function() {
                 await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
                 return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Time how long a command takes",
                 arguments: {
@@ -1141,7 +1141,7 @@ export default function() {
                     status: StatusCode.INFO
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Run a command a certain number of times",
                 arguments: {
@@ -1202,7 +1202,7 @@ export default function() {
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -1235,7 +1235,7 @@ export default function() {
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Stop spams",
                 arguments: {
@@ -1259,7 +1259,7 @@ export default function() {
                 }).join("\n")
                 return { content: rv, status: StatusCode.RETURN }
 
-        }, CommandCategory.META, "List all variables")
+        }, CAT, "List all variables")
     )
 
     registerCommand(
@@ -1360,7 +1360,7 @@ export default function() {
                 }
                 delete globals.SPAMS[id]
                 return { noSend: true, status: StatusCode.INFO }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
             }
@@ -1386,7 +1386,7 @@ export default function() {
                 if (v)
                     return { content: String(v), status: StatusCode.RETURN }
                 else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Get the value of a variable"
             }
@@ -1439,7 +1439,7 @@ export default function() {
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -1531,7 +1531,7 @@ export default function() {
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -1586,7 +1586,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -1598,7 +1598,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                     return { content: "File does not exist", status: StatusCode.ERR }
                 }
                 return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.RETURN }
-            }, category: CommandCategory.META,
+            }, category: CAT,
             help: {
                 info: "Send names of all log files"
             }
@@ -1655,7 +1655,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -1668,7 +1668,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
         return { content: "None", status: StatusCode.ERR }
 
-    }, CommandCategory.META))
+    }, CAT))
 
     registerCommand("cmd-chainv2", createCommandV2(async ({ msg, args, opts }) => {
 
@@ -1708,7 +1708,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
-    }, CommandCategory.META))
+    }, CAT))
 
     registerCommand(
         "cmd-chain",
@@ -1766,7 +1766,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -1785,7 +1785,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         else {
             return { content: `You did not create ${cmdName}`, status: StatusCode.ERR }
         }
-    }, CommandCategory.META))
+    }, CAT))
 
     registerCommand(
         "rccmd",
@@ -1824,7 +1824,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Remove an aliasv1",
                 arguments: {
@@ -1962,7 +1962,7 @@ ${styles}
                 }
             }
         },
-        category: CommandCategory.META
+        category: CAT
 
     },
     )
@@ -2017,7 +2017,7 @@ ${styles}
             help: {
                 info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -2041,7 +2041,7 @@ ${styles}
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Gets a list of the most  used commands",
                 options: {
@@ -2053,6 +2053,8 @@ ${styles}
 
     registerCommand("aliasv2", createCommandV2(async ({ msg, args, opts }) => {
         let [name, ...command] = args
+
+        console.log(args)
 
         if (!name) {
             return { content: "No name", status: StatusCode.ERR }
@@ -2118,7 +2120,7 @@ ${styles}
         fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
         getAliasesV2(true)
         return { content: `added: ${alias.toJsonString()}`, status: StatusCode.RETURN }
-    }, CommandCategory.META, "Create an aliasv2<br>By default, the user arguments will be appended to the end of exec<br>To access an option in the exec, use \${%:-option-name}, for args use \${%:\\_\\_arg[&lt;i&gt;]}<br>raw args are also accessable with \\_\\_rawarg instead of \\_\\_arg.<br>To access all args, use \${%:\\_\\_arg[...]}", {
+    }, CAT, "Create an aliasv2<br>By default, the user arguments will be appended to the end of exec<br>To access an option in the exec, use \${%:-option-name}, for args use \${%:\\_\\_arg[&lt;i&gt;]}<br>raw args are also accessable with \\_\\_rawarg instead of \\_\\_arg.<br>To access all args, use \${%:\\_\\_arg[...]}", {
         "name": createHelpArgument("the alias name", true),
         exec: createHelpArgument("The command to run", true, "name")
     }, {
@@ -2162,7 +2164,7 @@ ${styles}
                     status: StatusCode.RETURN
                 }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "Create an alias",
                 arguments: {
@@ -2196,7 +2198,7 @@ ${styles}
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -2204,7 +2206,7 @@ ${styles}
         "ping", createCommand(async (msg, _args, sendCallback) => {
             return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`, status: StatusCode.RETURN }
         },
-            CommandCategory.META,
+            CAT,
             "Gets the bot's ping (very accurate)"
         )
     )
@@ -2252,7 +2254,7 @@ ${styles}
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -2297,7 +2299,7 @@ ${styles}
                     }
                 }
             },
-            category: CommandCategory.META
+            category: CAT
         },
     )
 
@@ -2311,7 +2313,7 @@ ${styles}
                 }
                 return { content: data || "No spams", status: StatusCode.RETURN }
             },
-            category: CommandCategory.META,
+            category: CAT,
             help: {
                 info: "List the ongoing spam ids"
             }
