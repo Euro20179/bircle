@@ -83,7 +83,7 @@ export default function() {
 
         return { content: processedStory, status: StatusCode.RETURN }
 
-    }, CommandCategory.GAME))
+    }, CommandCategory.GAME, "Play madlibs"))
 
     registerCommand("know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
 
