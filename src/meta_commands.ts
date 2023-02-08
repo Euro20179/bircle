@@ -1270,9 +1270,7 @@ export default function() {
     )
 
     registerCommand(
-        "vars",
-        {
-            run: async (_msg, _args, sendCallback) => {
+        "vars", createCommandV2(async() => {
                 let rv = Object.entries(vars).map(([prefix, varData]) => {
                     return `**${prefix.replaceAll("_", "\\_")}**:\n` +
                             Object.keys(varData)
@@ -1281,13 +1279,10 @@ export default function() {
                             "\n-------------------------"
                 }).join("\n")
                 return { content: rv, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.META,
-            help: {
-                info: "List all variables"
-            }
-        },
+
+        }, CommandCategory.META, "List all variables")
     )
+
     registerCommand(
         "run",
         {
