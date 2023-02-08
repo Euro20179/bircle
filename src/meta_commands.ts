@@ -16,6 +16,27 @@ import { performance } from 'perf_hooks'
 
 export default function() {
 
+    registerCommand("raw", createCommandV2(async({rawArgs}) => {
+        console.log(rawArgs)
+        let data;
+        try{
+            data = JSON.parse(rawArgs.join(" "))
+            if(data["files"]){
+                delete data["files"]
+            }
+            if(data["attachments"]){
+                delete data["attachments"]
+            }
+        }
+        catch(err){
+            return {content: "Could not parse json", status: StatusCode.ERR}
+        }
+        return data as CommandReturn
+
+    }, CommandCategory.META, "Return the data raw", {
+        json: createHelpArgument("The return json")
+    }))
+
     registerCommand(
         "```bircle", createCommandV2(async ({ msg, args, commandBans: bans }) => {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
