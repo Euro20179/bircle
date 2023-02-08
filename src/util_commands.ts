@@ -47,7 +47,9 @@ export default function() {
             content = content.split("\n").reverse().join("\n")
         }
         return {content: content, status: StatusCode.RETURN}
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN, "Concatinate files from pipe, and from file names", {
+        files: createHelpArgument("The files", false)
+    }))
 
     registerCommand("rev", createCommandV2(async ({stdin, args, opts}) => {
         let content = "";
@@ -66,7 +68,9 @@ export default function() {
             content = content.split("\n").reverse().join("\n")
         }
         return {content: content, status: StatusCode.RETURN}
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN, "Take input from pipe and reverse it", undefined, {
+        r: createHelpOption("reverse the order of the lines")
+    }))
 
     registerCommand("pet-info", createCommandV2(async ({ msg, args }) => {
         let pet_type = pet.hasPetByNameOrType(msg.author.id, args.join(" "))
