@@ -20,7 +20,6 @@ export enum StatusCode {
     ERR = 2,
 }
 
-
 export enum CommandCategory {
     UTIL,
     GAME,

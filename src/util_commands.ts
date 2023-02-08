@@ -3434,20 +3434,15 @@ valid formats:<br>
     )
 
     registerCommand(
-        "nl",
-        {
-            run: async (msg, args, sendCallback) => {
-                let text = args.join(" ").split('\n')
+        "nl", createCommandV2(async({msg, args, stdin}) => {
+                let text = stdin ? getContentFromResult(stdin) : args.join(" ").split('\n')
                 let rv = ""
                 for (let i = 1; i < text.length + 1; i++) {
                     rv += `${i}: ${text[i - 1]}\n`
                 }
                 return { content: rv, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Number the lines of text"
-            }
-        },
+
+        }, CommandCategory.UTIL, "Number the lines of text")
     )
 
     registerCommand(
