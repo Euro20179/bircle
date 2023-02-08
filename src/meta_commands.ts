@@ -16,20 +16,20 @@ import { performance } from 'perf_hooks'
 
 export default function() {
 
-    registerCommand("raw", createCommandV2(async({rawArgs}) => {
+    registerCommand("raw", createCommandV2(async ({ rawArgs }) => {
         console.log(rawArgs)
         let data;
-        try{
+        try {
             data = JSON.parse(rawArgs.join(" "))
-            if(data["files"]){
+            if (data["files"]) {
                 delete data["files"]
             }
-            if(data["attachments"]){
+            if (data["attachments"]) {
                 delete data["attachments"]
             }
         }
-        catch(err){
-            return {content: "Could not parse json", status: StatusCode.ERR}
+        catch (err) {
+            return { content: "Could not parse json", status: StatusCode.ERR }
         }
         return data as CommandReturn
 
@@ -1687,14 +1687,14 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
     )
 
-    registerCommand("alias-type", createCommandV2(async ({args}) => {
-        if(getAliases()[args[0]]){
-            return {content: "V1", status: StatusCode.RETURN}
+    registerCommand("alias-type", createCommandV2(async ({ args }) => {
+        if (getAliases()[args[0]]) {
+            return { content: "V1", status: StatusCode.RETURN }
         }
-        else if(getAliasesV2()[args[0]]){
-            return {content: "V2", status: StatusCode.RETURN}
+        else if (getAliasesV2()[args[0]]) {
+            return { content: "V2", status: StatusCode.RETURN }
         }
-        return {content: "None", status: StatusCode.ERR}
+        return { content: "None", status: StatusCode.ERR }
 
     }, CommandCategory.META))
 
@@ -1712,30 +1712,29 @@ ${fs.readdirSync("./command-results").join("\n")}
         let expand = true
         let a = ""
         let chain: string[] = [args[0]]
-        if (v2) {
-            let result = v2.expand((alias: any, preArgs: any) => {
-                if (expand) {
-                    a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
-                }
-                else {
-                    a = preArgs.join(" ") + " " + a + " "
-                }
-                if (showArgs) {
-                    chain.push(`${alias} ${a}`)
-                }
-                else {
-                    chain.push(alias)
-                }
-                return true
-            })
-            if (!result) {
-                return { content: "failed to expand alias", status: StatusCode.ERR }
-            }
-            return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
-
+        if (!v2) {
+            return { noSend: true, status: StatusCode.RETURN }
         }
 
-        return { noSend: true, status: StatusCode.RETURN }
+        let result = v2.expand((alias: any, preArgs: any) => {
+            if (expand) {
+                a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
+            }
+            else {
+                a = preArgs.join(" ") + " " + a + " "
+            }
+            if (showArgs) {
+                chain.push(`${alias} ${a}`)
+            }
+            else {
+                chain.push(alias)
+            }
+            return true
+        })
+        if (!result) {
+            return { content: "failed to expand alias", status: StatusCode.ERR }
+        }
+        return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
     }, CommandCategory.META))
 
@@ -1799,20 +1798,20 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
     )
 
-    registerCommand("rccmdv2", createCommandV2(async ({msg, args}) => {
+    registerCommand("rccmdv2", createCommandV2(async ({ msg, args }) => {
         let cmdName = args[0]
         let aliasesV2 = getAliasesV2()
-        if(aliasesV2[cmdName] && aliasesV2[cmdName].creator === msg.author.id){
+        if (aliasesV2[cmdName] && aliasesV2[cmdName].creator === msg.author.id) {
             delete aliasesV2[cmdName]
             fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
             getAliasesV2(true)
-            return {content: `Removed: ${cmdName}`, status: StatusCode.RETURN}
+            return { content: `Removed: ${cmdName}`, status: StatusCode.RETURN }
         }
-        else if(!aliasesV2[cmdName]){
-            return {content: `${cmdName} does not exist`, status: StatusCode.ERR}
+        else if (!aliasesV2[cmdName]) {
+            return { content: `${cmdName} does not exist`, status: StatusCode.ERR }
         }
-        else{
-            return {content: `You did not create ${cmdName}`, status: StatusCode.ERR}
+        else {
+            return { content: `You did not create ${cmdName}`, status: StatusCode.ERR }
         }
     }, CommandCategory.META))
 
@@ -2083,12 +2082,12 @@ ${styles}
     registerCommand("aliasv2", createCommandV2(async ({ msg, args, opts }) => {
         let [name, ...command] = args
 
-        if(!name){
-            return {content: "No name", status: StatusCode.ERR}
+        if (!name) {
+            return { content: "No name", status: StatusCode.ERR }
         }
 
-        if(!command.length){
-            return {content: "No command", status: StatusCode.ERR}
+        if (!command.length) {
+            return { content: "No command", status: StatusCode.ERR }
         }
 
         const helpInfo = opts.getString("help-info", "")
@@ -2101,15 +2100,15 @@ ${styles}
             "-default": (name: string, value: string) => commandHelpOptions[name].default = value,
         } as const
 
-            //go through each opt
-        for(let opt of opts.keys() as IterableIterator<string>){
+        //go through each opt
+        for (let opt of opts.keys() as IterableIterator<string>) {
             //if in the format of -<opt-name>-<possible-attr>
-            for(let possibleAttr in attrs){
-                if(opt.endsWith(possibleAttr)){
+            for (let possibleAttr in attrs) {
+                if (opt.endsWith(possibleAttr)) {
                     //get the option name
                     let oName = opt.slice(0, -(possibleAttr.length))
-                    if(!commandHelpOptions[oName]){
-                        commandHelpOptions[oName] = {description: oName}
+                    if (!commandHelpOptions[oName]) {
+                        commandHelpOptions[oName] = { description: oName }
                     }
                     //do the thing specified in $attrs with the vale of -<opt-name>-<possible-attr> as the value
                     attrs[possibleAttr as keyof typeof attrs](oName, opts.getString(opt, ""))
@@ -2120,10 +2119,10 @@ ${styles}
 
         const helpMetaData: CommandHelp = {}
 
-        if(helpInfo){
+        if (helpInfo) {
             helpMetaData.info = helpInfo
         }
-        if(Object.keys(commandHelpOptions).length !== 0){
+        if (Object.keys(commandHelpOptions).length !== 0) {
             helpMetaData.options = commandHelpOptions
         }
 
@@ -2139,7 +2138,7 @@ ${styles}
             return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
         }
 
-        if(opts.getBool("no-args", true)){
+        if (opts.getBool("no-args", true)) {
             alias.setAppendArgs(false)
         }
 
