@@ -243,27 +243,6 @@ export default function() {
         },
     )
 
-    registerCommand(
-        ".economy", createCommand(async (msg, _, sc, opts, args) => {
-            let rw = args[0]
-            let data = []
-            let econ = economy.getEconomy()
-            if (rw === "write") {
-                for (let user in econ) {
-                    let user_data = econ[user]
-                    data.push(Buffer.from(user))
-                    data.push(Buffer.from(Number(String(user_data.money).split(".")[0]).toString(16), "hex"))
-                    data.push(Buffer.from("."))
-                    data.push(Buffer.from(Number(String(user_data.money).split(".")[1]).toString(16), "hex"))
-                }
-            }
-            data.forEach(t => {
-                fs.appendFileSync("./test.economy", t)
-            })
-            return { noSend: true, status: StatusCode.RETURN }
-        }, CommandCategory.META),
-    )
-
     registerCommand("code-info", createCommandV2(async () => {
         let info = execSync("wc -l *.ts src/*.ts").toString("utf-8")
         return { content: info, status: StatusCode.RETURN }
