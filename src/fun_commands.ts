@@ -15,7 +15,7 @@ import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
 import timer from './timer'
-import { CommandCategory, createCommand, createCommandV2, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
 import { registerFont } from 'canvas';
 import { giveItem } from './shop';
 import { randomInt } from 'crypto';
@@ -1429,18 +1429,9 @@ export default function() {
     )
 
     registerCommand(
-        "choose",
-        {
-            run: async (_msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let times = 1
-                let sep = String(opts["sep"] || opts["s"] || "\n")
-                if (opts["t"]) {
-                    if (typeof opts['t'] == 'string')
-                        times = parseInt(opts["t"])
-                    else times = 3
-                }
+        "choose", createCommandV2(async({args, opts}) => {
+                let sep = String( opts.getString("sep", opts.getString("s", "\n")))
+                let times = opts.getNumber("t", 1)
                 let ans = []
                 args = args.join(" ").split("|")
                 for (let i = 0; i < times; i++) {
@@ -1450,12 +1441,13 @@ export default function() {
                     content: ans.join(sep) || "```invalid message```",
                     status: StatusCode.RETURN
                 }
-            },
-            category: CommandCategory.FUN,
-            help: {
-                info: "Choose a random item from a list of items seperated by a |"
-            }
-        },
+
+        }, CommandCategory.FUN, "Choose a random item from a list of items separated by a |", {
+            items: createHelpArgument("The items", true)
+        }, {
+            sep: createHelpOption("The seperator to seperate each chosen item by", ["s"], "\\n"),
+            t: createHelpOption("The amount of items to choose", undefined, "1")
+        })
     )
 
     registerCommand(
