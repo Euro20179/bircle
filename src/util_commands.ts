@@ -29,6 +29,49 @@ export default function() {
     //     return {components: [row], status: StatusCode.RETURN}
     // }, CommandCategory.UTIL))
     //
+
+    registerCommand("cat", createCommandV2(async ({stdin, opts, args}) => {
+        let content = "";
+        if(stdin){
+            content += getContentFromResult(stdin)
+        }
+        for(let arg of args){
+            if(fs.existsSync(`./command-results/${arg}`)){
+                content += fs.readFileSync(`./command-results/${arg}`, "utf-8")
+            }
+        }
+        if(!content){
+            return {content: "No content", status: StatusCode.ERR}
+        }
+        if(opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)){
+            content = content.split("\n").reverse().join("\n")
+        }
+        return {content: content, status: StatusCode.RETURN}
+    }, CommandCategory.FUN, "Concatinate files from pipe, and from file names", {
+        files: createHelpArgument("The files", false)
+    }))
+
+    registerCommand("rev", createCommandV2(async ({stdin, args, opts}) => {
+        let content = "";
+        if(stdin){
+            content += getContentFromResult(stdin).split("").reverse().join("")
+        }
+        for(let arg of args){
+            if(fs.existsSync(`./command-results/${arg}`)){
+                content += fs.readFileSync(`./command-results/${arg}`, "utf-8").split("").reverse().join("")
+            }
+        }
+        if(!content){
+            return {content: "No content", status: StatusCode.ERR}
+        }
+        if(opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)){
+            content = content.split("\n").reverse().join("\n")
+        }
+        return {content: content, status: StatusCode.RETURN}
+    }, CommandCategory.FUN, "Take input from pipe and reverse it", undefined, {
+        r: createHelpOption("reverse the order of the lines")
+    }))
+
     registerCommand("pet-info", createCommandV2(async ({ msg, args }) => {
         let pet_type = pet.hasPetByNameOrType(msg.author.id, args.join(" "))
         if (!pet_type[1]) {

@@ -901,10 +901,10 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     return [opts, newArgs]
 }
 
-function getContentFromResult(result: CommandReturn) {
+function getContentFromResult(result: CommandReturn, end="") {
     let res = ""
     if (result.content)
-        res += result.content + "\n"
+        res += result.content + end
     if (result.files) {
         for (let file of result.files) {
             res += fs.readFileSync(file.attachment, "base64") + "\n"

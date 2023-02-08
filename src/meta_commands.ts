@@ -59,7 +59,7 @@ export default function() {
 
     registerCommand(
         'tokenize', createCommandV2(async ({ msg, rawArgs: args }) => {
-            let parser = new Parser(msg, args.join(" ").trim())
+            let parser: Parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
             return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
         }, CommandCategory.META, "Tokenize command input"),
