@@ -29,13 +29,8 @@ function reloadList(list: string, listHolder: {[key: string]: string[]}){
     }
 }
 
-function reloadWhiteList() {
-    reloadList("whitelists", WHITELIST)
-}
-
-function reloadBlackList() {
-    reloadList("blacklists", BLACKLIST)
-}
+const reloadWhiteList = reloadList.bind(this, "whitelists", WHITELIST)
+const reloadBlackList = reloadList.bind(this, "blacklists", BLACKLIST)
 
 reloadBlackList()
 reloadWhiteList()
