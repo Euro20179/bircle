@@ -895,14 +895,11 @@ export default function() {
 
     registerCommand(
         "align-table",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let align = opts['align'] || "left"
-                let raw = opts['raw'] || false
-                let columnCounts = opts['cc'] || false
-                let table = args.join(" ")
+        createCommandV2(async({opts, args, stdin}) => {
+                let align = opts.getString("align", "left")
+                let raw = opts.getBool("raw", false)
+                let columnCounts = opts.getBool("cc", false)
+                let table = stdin ? getContentFromResult(stdin) : args.join(" ")
                 let columnLongestLengths: { [key: number]: number } = {}
                 let longestRow = 0
                 let rows = table.split("\n")
@@ -971,28 +968,15 @@ export default function() {
                     newText += '|\n'
                 }
                 return { content: newText + "```", status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Align a table",
-                arguments: {
-                    table: {
-                        description: "The markdown formatted table to align"
-                    }
-                },
-                options: {
-                    align: {
-                        description: "Align either: <code>left</code>, <code>center</code> or <code>right</code>"
-                    },
-                    raw: {
-                        description: "Give a javascript list containing lists of columns"
-                    },
-                    cc: {
-                        description: "Give the length of the longest column in each column"
-                    }
-                }
-            }
-        },
-    )
+
+        }, CommandCategory.UTIL, "Align a table", {
+            table: createHelpArgument("The markdown formatted table to align, can be given through pipe")
+            }, {
+                align: createHelpOption("Align either: <code>left</code>, <code>center</code> or <code>right</code>"),
+                raw: createHelpOption("Give a javascript list containing lists of columns"),
+                cc: createHelpOption("Give the length of the longest column in each column")
+            })
+        )
 
     registerCommand(
         "abattle",
