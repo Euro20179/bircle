@@ -3451,9 +3451,7 @@ valid formats:<br>
     )
 
     registerCommand(
-        "grep",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
+        "grep", createCommandV2(async({msg, rawArgs: args, stdin}) => {
                 let opts: Opts;
                 [opts, args] = getOpts(args)
                 let regex = args[0]
@@ -3464,6 +3462,10 @@ valid formats:<br>
                     }
                 }
                 let data = args.slice(1).join(" ").trim()
+                if(stdin){
+                    regex = args.join(" ")
+                    data = getContentFromResult(stdin)
+                }
                 if (!data) {
                     if (msg.attachments?.at(0)) {
                         data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
@@ -3495,24 +3497,11 @@ valid formats:<br>
                     content: finds,
                     status: StatusCode.RETURN
                 }
-            },
-            help: {
-                "info": "search through text with a search",
-                "arguments": {
-                    search: {
-                        description: "a regular expression search",
-                        required: true
-                    },
-                    data: {
-                        description: "either a file, or text to search through",
-                        required: true
-                    }
-                },
-                options: {
-                    "s": createHelpOption("dont give back the extra \"Foudn x at char...\" text")
-                }
-            },
-            category: CommandCategory.UTIL
-        },
+        }, CommandCategory.UTIL, "Search through text with a search", {
+            search: createHelpArgument("A regex search", true),
+            data: createHelpArgument("Text or a file to search through<br>If data is given through pipe, all arguments become the search")
+        }, {
+            s: createHelpOption("dont give back the extra \"found x at char...\" text")
+        })
     )
 }
