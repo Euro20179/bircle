@@ -1273,14 +1273,13 @@ export default function() {
         "vars",
         {
             run: async (_msg, _args, sendCallback) => {
-                let rv = ""
-                for (let prefix in vars) {
-                    rv += `${prefix}:\n`
-                    for (let v in vars[prefix]) {
-                        rv += `${v.replaceAll("_", "\\_")}\n`
-                    }
-                    rv += '-------------------------\n'
-                }
+                let rv = Object.entries(vars).map(([prefix, varData]) => {
+                    return `**${prefix.replaceAll("_", "\\_")}**:\n` +
+                            Object.keys(varData)
+                                .map(v => `${v.replaceAll("_", "\\_")}`)
+                                .join("\n") +
+                            "\n-------------------------"
+                }).join("\n")
                 return { content: rv, status: StatusCode.RETURN }
             },
             category: CommandCategory.META,
