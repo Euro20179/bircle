@@ -18,27 +18,25 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 let USER_SETTINGS = {}
 
 let WHITELIST: { [key: string]: string[] } = {}
-function reloadWhiteList() {
-    let wlF = readFileSync("command-perms/whitelists", "utf-8")
-    for (let line of wlF.split("\n")) {
-        if (!line) continue
-        let [user, cmdlist] = line.split(":")
-        cmdlist = cmdlist.trim()
-        user = user.trim()
-        WHITELIST[user] = cmdlist.split(" ")
-    }
-}
 let BLACKLIST: { [key: string]: string[] } = {}
-function reloadBlackList() {
-    let blF = readFileSync("command-perms/blacklists", "utf-8")
-    for (let line of blF.split("\n")) {
-        if (!line) continue
-        let [user, cmdlist] = line.split(":")
-        cmdlist = cmdlist.trim()
-        user = user.trim()
-        BLACKLIST[user] = cmdlist.split(" ")
+
+function reloadList(list: string, listHolder: {[key: string]: string[]}){
+    let lf = readFileSync(`command-perms/${list}`, "utf-8")
+    for(let line of lf.split("\n")){
+        if(!line) continue;
+        let [user, cmdlist] = line.split(":").map((v: any) => v.trim())
+        listHolder[user] = cmdlist.split(" ")
     }
 }
+
+function reloadWhiteList() {
+    reloadList("whitelists", WHITELIST)
+}
+
+function reloadBlackList() {
+    reloadList("blacklists", BLACKLIST)
+}
+
 reloadBlackList()
 reloadWhiteList()
 
