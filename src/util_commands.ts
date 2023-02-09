@@ -2180,11 +2180,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "rand",
-        {
-            run: async (_msg, _, _sendCallback, opts, args) => {
+        "rand", createCommandV2(async({opts, args}) => {
                 const low = parseFloat(args[0]) || 0
-                const high = parseFloat(args[1]) || 100
+                const high: number = parseFloat(args[1]) || 100
                 const count = parseInt(args[2]) || 1
                 if (count > 50000) {
                     return { content: "Too many numbers", status: StatusCode.ERR }
@@ -2192,40 +2190,23 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let answers = []
                 for (let i = 0; i < count; i++) {
                     let ans = Math.random() * (high - low) + low
-                    if (opts['round']) {
+                    if (opts.getBool("round", false)) {
                         ans = Math.floor(ans)
                     }
                     answers.push(ans)
                 }
                 return {
-                    content: answers.join(String(opts['s'] || ", ")),
+                    content: answers.join(String(opts.getString("s", ", "))),
                     status: StatusCode.RETURN
                 }
-            },
-            help: {
-                arguments: {
-                    low: {
-                        "description": "the lowest number (default: 0)"
-                    },
-                    high: {
-                        "description": "the highest number (default: 100)"
-                    },
-                    count: {
-                        description: "The amount of nubers to generate"
-                    }
-                },
-                options: {
-                    round: {
-                        description: "Round the number"
-                    },
-                    s: {
-                        description: "What to seperate each number by"
-                    }
-                }
-            },
-            category: CommandCategory.UTIL
-        },
-    )
+        }, CommandCategory.UTIL, "Generate random number", {
+            low: createHelpArgument("The lowest number", false, undefined, "0"),
+            high: createHelpArgument("The highest number", false, undefined, "100"),
+            count: createHelpArgument("The amount to generate", false)
+        }, {
+            round: createHelpOption("Round the number"),
+            s: createHelpOption("The seperator to seperate each number with")
+        }))
 
     registerCommand(
         "roles",
