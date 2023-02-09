@@ -13,7 +13,6 @@ import globals = require("./globals")
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
-
 class LengthUnit {
     value: number
 

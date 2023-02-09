@@ -2199,7 +2199,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 return {
                     content: answers.join(String(opts['s'] || ", ")),
-                    status: StatusCode.ERR
+                    status: StatusCode.RETURN
                 }
             },
             help: {
