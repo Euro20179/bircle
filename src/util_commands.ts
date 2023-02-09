@@ -1984,6 +1984,13 @@ middle
                                 embed.setDescription(description)
                             break
                         }
+                        case "url": {
+                            let url = typeArgs.join(" ")
+                            if(url){
+                                embed.setURL(url)
+                            }
+                            break
+                        }
                         default: {
                             continue
                         }
@@ -1999,6 +2006,7 @@ middle
                 "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:
 <pre>
 ${prefix}embed title this is the title
+url https://aurl.com
 description the description
 field name | value | (optional true or false)
 image https://....

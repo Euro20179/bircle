@@ -1177,7 +1177,6 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
     return `${html}</div><hr>`
 }
 
-
 function weirdMulStr(text: string[], ...count: string[]) {
     return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
