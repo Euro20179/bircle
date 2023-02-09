@@ -1,5 +1,6 @@
 import { User } from "discord.js"
 import fs = require("fs")
+import { listComprehension } from "./util"
 
 export const token = fs.readFileSync("./data/TOKEN", "utf-8").trim()
 export const CLIENT_ID = fs.readFileSync("./data/CLIENT", "utf-8").trim()
@@ -47,11 +48,7 @@ export let SCALLYWAG_TOKENS: {[key: string]: number} = loadScallyWagTokens()
 
 
 function _generateUsageFile(OBJECT: {[key: string]: string | number}){
-    let data = ""
-    for(let key in OBJECT){
-        data += `${key}:${OBJECT[key]}\n`
-    }
-    return data
+    return listComprehension<string, typeof OBJECT, string>(Object.keys(OBJECT), key => `${key}:${OBJECT[key]}`).join("\n")
 }
 
 export function generateCmdUseFile() {
