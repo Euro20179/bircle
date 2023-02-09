@@ -106,7 +106,6 @@ readVars()
 
 function delVar(varName: string, prefix?: string){
     delete vars[prefix ?? "__global__"][varName]
-
 }
 
 function setVar(varName: string, value: string, prefix?: string) {

@@ -508,12 +508,26 @@ class UTF8String {
     }
 }
 
+function* range(start: number, stop: number, step: number = 1){
+    for(let i = start; i < stop; i += step){
+        yield i
+    }
+}
+
+function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: (i: T) => TReturn): TReturn[]{
+    let newList = []
+    for(let item of l){
+        newList.push(fn(item))
+    }
+    return newList
+}
+
 /**
  * @param {Iterable} iter
  * @param {function(number):void} [onNext]
  * @returns {Iterable}
  */
-function* cycle(iter: any, onNext?: (n: number) => void) {
+function* cycle<T>(iter: Iterable<T> extends {length: number} ? Iterable<T> : never[], onNext?: (n: number) => void) {
     for (let i = 0; true; i++) {
         if (onNext)
             onNext(i)
@@ -528,11 +542,7 @@ function* cycle(iter: any, onNext?: (n: number) => void) {
  * @returns {Array} An array of three numbers representing the RGB values of the color
  */
 function randomColor() {
-    let colors = []
-    for (let i = 0; i < 3; i++) {
-        colors.push(Math.floor(Math.random() * 256))
-    }
-    return colors
+    return listComprehension(range(0, 3), () => Math.floor(Math.random() * 256))
 }
 
 
@@ -547,11 +557,7 @@ function choice<T>(list: Array<T>): T {
 }
 
 function mulStr(str: string, amount: number) {
-    let newStr = ""
-    for(let i = 0; i < amount; i++){
-        newStr += str
-    }
-    return newStr
+    return listComprehension(range(0, amount), () => str).join("")
 }
 
 async function fetchChannel(guild: Guild, find: string) {
