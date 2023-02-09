@@ -1259,6 +1259,8 @@ export {
     parsePercentFormat,
     formatBracePairs,
     ArgList,
-    searchList
+    searchList,
+    listComprehension,
+    range
 }
 
