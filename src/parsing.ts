@@ -113,6 +113,7 @@ class Parser {
     #hasCmd: boolean
 
     #pipeSign: string = ">pipe>"
+    #defaultPipeSign: string = ">pipe>"
 
 
     get specialChars() {
@@ -161,6 +162,7 @@ class Parser {
                     lastWasspace = true
                     break
                 }
+                case this.#defaultPipeSign[0]:
                 case this.#pipeSign[0]: {
                     lastWasspace = false
                     this.tokens.push(this.parseGTBracket())
@@ -207,13 +209,16 @@ class Parser {
     //parsegreaterthanbracket
     parseGTBracket () {
         let builtString = this.#curChar as string
-        while(this.advance() && this.#pipeSign.startsWith(builtString) && builtString !==this.#pipeSign){
+        while(this.advance() && (
+                this.#pipeSign.startsWith(builtString) && builtString !==this.#pipeSign) ||
+                this.#defaultPipeSign.startsWith(builtString) && builtString !== this.#defaultPipeSign
+             ){
             builtString += this.#curChar
         }
         if(this.#curChar !== undefined){
             this.back()
         }
-        if(builtString === this.#pipeSign){
+        if(builtString === this.#pipeSign || builtString === this.#defaultPipeSign){
             this.advance()
             //ensure that the command WILL have argNo -1
             //bit hacky though
@@ -225,7 +230,7 @@ class Parser {
                 this.#curArgNo = -1
             }
             this.back()
-            return new Token(T.pipe, this.#pipeSign, this.#curArgNo)
+            return new Token(T.pipe, this.#defaultPipeSign, this.#curArgNo)
         }
         else{
             return new Token(T.str, builtString, this.#curArgNo)
