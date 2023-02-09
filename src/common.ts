@@ -36,10 +36,7 @@ reloadBlackList()
 reloadWhiteList()
 
 function savePermList(list: { [key: string]: string[] }, listFile: string) {
-    let data = ""
-    for (let user in list) {
-        data += `${user}: ${list[user].join(" ")}\n`
-    }
+    let data = Object.entries(list).map(([user, perms]) => `${user}: ${perms.join(" ")}`).join("\n")
     writeFileSync(`command-perms/${listFile}`, data)
 }
 
