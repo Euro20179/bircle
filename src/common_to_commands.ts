@@ -579,7 +579,7 @@ export class Interpreter {
                         for (let i = start; i <= end; i++) {
                             this.addTokenToArgList(new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++))
                         }
-                        data = ""
+                        return true
                     }
                     else if (format_name.includes(",")) {
                         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
@@ -600,7 +600,7 @@ export class Interpreter {
                         for (let word of format_name.split(",")) {
                             this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
                         }
-                        data = ""
+                        return true
                     }
                     else {
                         data = `{${format_name}}`
