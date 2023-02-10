@@ -316,6 +316,7 @@ export default function(CAT: CommandCategory) {
                     prefix = msg.author.id
                 }
                 let names = args
+                console.log(prefix, names)
                 let deleted = []
                 for (let name of names) {
                     if (vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function') {

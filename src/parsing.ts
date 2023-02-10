@@ -130,7 +130,7 @@ class Parser {
         this.#msg = msg
         this.#isParsingCmd = isCmd
         this.modifiers = []
-        this.IFS = getVar(msg, "IFS", msg.author.id) || " "
+        this.IFS = getOpt(msg.author.id, "IFS", " ")
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     }
 
@@ -258,6 +258,7 @@ class Parser {
                 break
         }
         this.#hasCmd = true
+        console.log(cmd)
         return new Token(T.command, cmd, -1)
     }
 
