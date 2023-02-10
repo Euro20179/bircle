@@ -2726,16 +2726,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "b64",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let text = args.join(" ")
-                return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Encodes text to base64"
-            }
-        },
+        "b64", createCommandV2(async({args, stdin}) => {
+            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            return {content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN}
+        }, CAT, "Encodes text to base64")
     )
 
     registerCommand(
@@ -2796,7 +2790,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
         }
         return {content: text, status: StatusCode.RETURN}
-    }, CAT))
+    }, CAT, "translate characters", {
+        from: createHelpArgument("The chars to translate from (not required with -d)", false),
+        to: createHelpArgument("The chars to translate to (not required with -d)", false, "from")
+    }, {
+        d: createHelpOption("The chars to delete")
+    }))
 
     registerCommand(
         "timer", createCommand(async (msg, _, sc, opts, args) => {
