@@ -2776,16 +2776,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "b64d",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let text = args.join(" ")
+        "b64d", createCommandV2(async({args, stdin}) => {
+                let text = stdin ? getContentFromResult(stdin) : args.join(" ")
                 return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Decodes text from base64"
-            }
-        },
+
+        }, CommandCategory.UTIL, "Decodes base64")
     )
 
     registerCommand(
