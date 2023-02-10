@@ -885,6 +885,17 @@ export class Interpreter {
         }
     }
 
+    async handlePipes(commandReturn :CommandReturn){
+        let tks = this.getPipeTo()
+        while(tks.length){
+            tks[0].type = T.command
+            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, this.sendCallback, commandReturn)
+            commandReturn = await int.run() as CommandReturn
+            tks = int.getPipeTo()
+        }
+        return commandReturn
+    }
+
     async interprate() {
         if (this.#interprated) {
             return this.args
@@ -943,29 +954,16 @@ export class Interpreter {
 
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
         if(intPipeData){
-            let originalInt = int
             async function sendCallback(options: string | MessageOptions | MessagePayload){
-                let tks = originalInt.getPipeTo()
-                while(tks.length){
-                    tks[0].type = T.command
-                    let int = new Interpreter(msg, tks, modifiers, recursion, true, disable, sendCallback, options as CommandReturn)
-                    options = await int.run() as CommandReturn
-                    tks = int.getPipeTo()
-                }
+                options = await int.handlePipes(options as CommandReturn)
                 return handleSending(msg, options as CommandReturn, undefined)
             }
             int.sendCallback = sendCallback
         }
 
         let data = await int.run()
-        let tks = int.#pipeTo
         if(int.returnJson){
-            while(tks.length){
-                tks[0].type = T.command
-                let int = new Interpreter(msg, tks, modifiers, recursion, true, disable, sendCallback, data)
-                data = await int.run()
-                tks = int.getPipeTo()
-            }
+            data = await int.handlePipes(data as CommandReturn)
         }
         // while(intPipeData.length){
         //     let tks = intPipeData
