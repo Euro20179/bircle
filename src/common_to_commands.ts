@@ -47,8 +47,8 @@ export class AliasV2 {
     setAppendArgs(bool?: boolean){
         this.appendArgs = bool ?? false
     }
-    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
 
+    prepare (msg: Message, args: string[], opts: Opts) {
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
         for(let opt of Object.entries(opts)){
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
@@ -120,6 +120,13 @@ export class AliasV2 {
             tempExec += args.join(" ")
         }
 
+        return tempExec
+    }
+
+    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
+
+        let tempExec = this.prepare(msg, args, opts)
+
         let rv = await runCmd(msg, tempExec, recursionCount + 1, true)
 
         for(let opt of Object.entries(opts)){
@@ -133,12 +140,11 @@ export class AliasV2 {
     }
 
     
-    async expand(onExpand?: (alias: string, preArgs: string[]) => any): Promise<[AliasV2, string[]] | false> {
+    async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any): Promise<AliasV2 | false> {
         let expansions = 0
-        let [command, ...aliasPreArgs] = this.exec.split(" ")
-        if (aliasPreArgs.length === 0)
-            return [this, aliasPreArgs]
-        if (onExpand && !onExpand?.(command, aliasPreArgs)) {
+        let command = this.exec.split(" ")[0]
+        let preArgs = this.prepare(msg, args, opts)
+        if (onExpand && !onExpand?.(command, preArgs)) {
             return false
         }
         let curAlias: AliasV2;
@@ -147,14 +153,13 @@ export class AliasV2 {
             if (expansions > 1000) {
                 return false
             }
-            let newPreArgs = curAlias.exec.split(" ").slice(1)
-            aliasPreArgs = newPreArgs.concat(aliasPreArgs)
+            preArgs = curAlias.prepare(msg, preArgs.split(" "), opts)
             command = aliasesV2[command].name
-            if (onExpand && !onExpand?.(command, newPreArgs)) {
+            if (onExpand && !onExpand?.(command, preArgs)) {
                 return false
             }
         }
-        return [curAlias as AliasV2, aliasPreArgs]
+        return curAlias as AliasV2
     }
 
     static allToJson(aliases: AliasV2[]) {

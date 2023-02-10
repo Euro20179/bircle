@@ -1670,7 +1670,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     }, CAT))
 
-    registerCommand("cmd-chainv2", createCommandV2(async ({ msg, args, opts }) => {
+    registerCommand("cmd-chainv2", createCommandV2(async ({ msg, args, opts, rawArgs }) => {
 
         if (getAliases()[args[0]]) {
             return { content: `${args[0]} is an alias command, run \`cmd-chain\` instead`, status: StatusCode.ERR }
@@ -1681,24 +1681,16 @@ ${fs.readdirSync("./command-results").join("\n")}
         if (opts.getBool("n", false) || opts.getBool("no-args", false)) {
             showArgs = false
         }
-        let expand = true
-        let a = ""
         let chain: string[] = [args[0]]
         if (!v2) {
             return { noSend: true, status: StatusCode.RETURN }
         }
 
-        let result = v2.expand((alias: any, preArgs: any) => {
-            if (expand) {
-                a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
+        let result = v2.expand(msg, args.slice(1), getOpts(rawArgs)[0], (alias: any, preArgs: any) => {
+            if(showArgs){
+                chain.push(preArgs)
             }
-            else {
-                a = preArgs.join(" ") + " " + a + " "
-            }
-            if (showArgs) {
-                chain.push(`${alias} ${a}`)
-            }
-            else {
+            else{
                 chain.push(alias)
             }
             return true
