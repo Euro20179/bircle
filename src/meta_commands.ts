@@ -2326,20 +2326,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     )
 
     registerCommand(
-        "spams",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                let data = ""
-                for (let id in globals.SPAMS) {
-                    data += `${id}\n`
-                }
-                return { content: data || "No spams", status: StatusCode.RETURN }
-            },
-            category: CAT,
-            help: {
-                info: "List the ongoing spam ids"
-            }
-        }
+        "spams", createCommandV2(async() => {
+                return {content: listComprehension(Object.keys(globals.SPAMS), i => `${i}`).join("\n") || "No spams", status: StatusCode.RETURN }
+        }, CAT, "List the ongoing spam ids")
     )
 }
 
