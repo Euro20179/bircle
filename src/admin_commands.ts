@@ -223,7 +223,7 @@ export default function() {
                     }
                     catch (err) { }
                 }
-                await sendCallback("STOPPING")
+                await sendCallback({content: "STOPPING", status: StatusCode.RETURN})
                 economy.saveEconomy()
                 saveItems()
                 saveVars()
