@@ -30,45 +30,45 @@ const configuration = new Configuration({
 let openai = new OpenAIApi(configuration)
 
 
-export default function() {
+export default function(CAT: CommandCategory) {
 
-    registerCommand("give-scallywag-token", createCommandV2(async ({msg, args}) => {
+    registerCommand("give-scallywag-token", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0])
-        if(!user){
-            return {content: `${args[0]} not found`, status: StatusCode.ERR}
+        if (!user) {
+            return { content: `${args[0]} not found`, status: StatusCode.ERR }
         }
-        if(!globals.SCALLYWAG_TOKENS[user.id]){
+        if (!globals.SCALLYWAG_TOKENS[user.id]) {
             globals.SCALLYWAG_TOKENS[user.id] = 1
         }
-        else{
+        else {
             globals.SCALLYWAG_TOKENS[user.id]++
         }
 
         globals.saveScallywagTokens()
 
-        return {content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN}
+        return { content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Give a user another scallywag token"))
 
-    registerCommand("scallywag-token-count", createCommandV2(async ({msg, args}) => {
+    registerCommand("scallywag-token-count", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0] || msg.author.id)
-        if(!user){
-            return {content: `${args[0]} not found`, status: StatusCode.ERR}
+        if (!user) {
+            return { content: `${args[0]} not found`, status: StatusCode.ERR }
         }
 
-        return {content: `${globals.SCALLYWAG_TOKENS[user.id]}`, status: StatusCode.RETURN}
+        return { content: `${globals.SCALLYWAG_TOKENS[user.id]}`, status: StatusCode.RETURN }
 
     }, CommandCategory.FUN, "get the scallywag token count of a user"))
 
-    registerCommand("chat", createCommandV2(async ({msg, argList, opts}) => {
+    registerCommand("chat", createCommandV2(async ({ msg, argList, opts }) => {
         const modelToUse = opts.getString("m", "text-davinci-003")
         const temperature = opts.getNumber("t", 0.2)
         const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
         let text: string | undefined = argList.join(" ")
-        if(!text){
+        if (!text) {
             text = "\n"
         }
         let res = "No result"
-        if(requestType === "completion"){
+        if (requestType === "completion") {
             let resp = await openai.createCompletion({
                 model: modelToUse,
                 prompt: text,
@@ -78,7 +78,7 @@ export default function() {
             })
             res = resp.data.choices.slice(-1)[0].text || "no result"
         }
-        else if(requestType === "edit") {
+        else if (requestType === "edit") {
             let [instruction, ...input] = text.split("|").map(v => v.trim())
             let resp = await openai.createEdit({
                 input: input.join("|"),
@@ -89,7 +89,7 @@ export default function() {
             res = resp.data.choices[0].text || "No result"
 
         }
-        else if(requestType === "image") {
+        else if (requestType === "image") {
             let resp = await openai.createImage({
                 prompt: text || "Hello",
                 size: opts.getString("size", "256x256"),
@@ -97,10 +97,10 @@ export default function() {
             })
             res = resp.data.data[0].url || "No result"
         }
-        else{
-            return {content: "Invalid request type", status: StatusCode.ERR}
+        else {
+            return { content: "Invalid request type", status: StatusCode.ERR }
         }
-        return {content: res, status: StatusCode.RETURN}
+        return { content: res, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true))
 
     registerCommand("mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
@@ -121,9 +121,9 @@ export default function() {
             return { content: `Could not create dm channel with ${toUser.displayName}`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if(signature.slice(0, prefix.length) === prefix){
-            signature = getContentFromResult(await runCmd(msg, signature.slice(prefix.length), recursionCount, true, {...(commandBans || {}), ...generateDefaultRecurseBans()}) as CommandReturn)
-            if(signature.startsWith(prefix)){
+        if (signature.slice(0, prefix.length) === prefix) {
+            signature = getContentFromResult(await runCmd(msg, signature.slice(prefix.length), recursionCount, true, { ...(commandBans || {}), ...generateDefaultRecurseBans() }) as CommandReturn)
+            if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }
         }
@@ -137,10 +137,10 @@ export default function() {
         }, CommandCategory.FUN)
     )
 
-    registerCommand("hunting", createCommandV2(async({msg, args}) => {
+    registerCommand("hunting", createCommandV2(async ({ msg, args }) => {
         let activePet = pet.getActivePet(msg.author.id)
-        if(!activePet){
-            return {content: `You must activate a bird, dog, or cat to hunt`, status: StatusCode.ERR}
+        if (!activePet) {
+            return { content: `You must activate a bird, dog, or cat to hunt`, status: StatusCode.ERR }
         }
         let itemsToFind = {
             "bird": [
@@ -157,28 +157,28 @@ export default function() {
                 ["dead rat", 1]
             ]
         }[activePet] as [string, number][]
-        if(!itemsToFind){
-            return {content: `A ${activePet} cannot hunt`, status: StatusCode.ERR}
+        if (!itemsToFind) {
+            return { content: `A ${activePet} cannot hunt`, status: StatusCode.ERR }
         }
         let weightSum = itemsToFind.reduce((p, c) => p + c[1], 0)
         const threshold = Math.random() * weightSum
 
         let runningTotal = 0;
         let item;
-        for(let i = 0; i < itemsToFind.length; i++){
+        for (let i = 0; i < itemsToFind.length; i++) {
             runningTotal += itemsToFind[i][1]
 
-            if(runningTotal >= threshold){
+            if (runningTotal >= threshold) {
                 item = itemsToFind[i][0]
                 break
             }
         }
-        if(!item){
-            return {content: "Nothing was found :(", status: StatusCode.RETURN}
+        if (!item) {
+            return { content: "Nothing was found :(", status: StatusCode.RETURN }
         }
         let petName = pet.getUserPets(msg.author.id)[activePet].name || activePet
         giveItem(msg.author.id, item, 1)
-        return {content: `${petName} found a ${item}`, status: StatusCode.RETURN}
+        return { content: `${petName} found a ${item}`, status: StatusCode.RETURN }
 
     }, CommandCategory.FUN))
 
@@ -196,14 +196,14 @@ export default function() {
             timer.restartTimer(msg.author.id, "%fishing")
         }
 
-        if(!canfish){
-            return {content: "You can only fish every 30 seconds", status: StatusCode.ERR}
+        if (!canfish) {
+            return { content: "You can only fish every 30 seconds", status: StatusCode.ERR }
         }
 
         let mumboStink = hasItem(msg.author.id, "mumbo stink")
         //if random number is less than 1 / 2^x
-        if(mumboStink && Math.random() < (1 / Math.pow(2, mumboStink))){
-            return {content: "All that mumbo stink you had drove all the fish away", status: StatusCode.RETURN}
+        if (mumboStink && Math.random() < (1 / Math.pow(2, mumboStink))) {
+            return { content: "All that mumbo stink you had drove all the fish away", status: StatusCode.RETURN }
         }
 
         if (!rod) {
@@ -235,10 +235,10 @@ export default function() {
 
         let runningTotal = 0;
         let item;
-        for(let i = 0; i < possibleItems.length; i++){
+        for (let i = 0; i < possibleItems.length; i++) {
             runningTotal += possibleItems[i][1]
 
-            if(runningTotal >= threshold){
+            if (runningTotal >= threshold) {
                 item = possibleItems[i][0]
                 break
             }
@@ -267,12 +267,12 @@ export default function() {
             }
             ],
             [["mumbo stink"], () => {
-                if(Math.random() > .85){
+                if (Math.random() > .85) {
                     let amount = economy.playerLooseNetWorth(msg.author.id) * 0.01
                     economy.loseMoneyToBank(msg.author.id, amount)
-                    return {content: `You get sued for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount} for being so stinky`, status: StatusCode.RETURN}
+                    return { content: `You get sued for ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount} for being so stinky`, status: StatusCode.RETURN }
                 }
-                return {content: "You got rid of the mumbo stink", status: StatusCode.RETURN}
+                return { content: "You got rid of the mumbo stink", status: StatusCode.RETURN }
             }],
             [["ghostly's nose"], () => {
                 return {
@@ -292,7 +292,7 @@ export default function() {
             }],
             [["pirate's gold tooth", "a fine quarter"], () => {
                 giveItem(msg.author.id, "pawn shop", 1)
-                return {content: "With all of your valuables, you decide to open a pawn shop", status: StatusCode.RETURN}
+                return { content: "With all of your valuables, you decide to open a pawn shop", status: StatusCode.RETURN }
             }],
             [["a fine grain of sand"], () => {
                 economy.increaseSandCounter(msg.author.id, 1)
@@ -304,24 +304,24 @@ export default function() {
             }],
             [["amelia earhart"], () => {
                 giveItem(msg.author.id, "airplane", 1)
-                return {content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN}
+                return { content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN }
             }],
             [["the titanic"], () => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
                 let itemJ = JSON.parse(items)
                 let itemNames = Object.keys(itemJ)
-                let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
+                let randItemName = itemNames[Math.floor(Math.random() * itemNames.length)]
                 giveItem(msg.author.id, randItemName, 1)
                 let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
-                return {content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}
+                return { content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
             [["amelia earhart", "the titanic"], () => {
                 giveItem(msg.author.id, "conspiracy", 1)
-                return {content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN}
+                return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
             }],
             [["ship wreck"], () => {
                 let amount = Math.random() * economy.playerLooseNetWorth(msg.author.id) * 0.05
-                return {content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN}
+                return { content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
             [["item yoinker"], () => {
                 let inv = INVENTORY()
@@ -340,12 +340,12 @@ export default function() {
             }
             ]]
 
-        if(opts.getBool("l", false)){
+        if (opts.getBool("l", false)) {
             let text = ""
-            for(let recipe of recipes){
+            for (let recipe of recipes) {
                 text += recipe[0].join(" + ") + "\n"
             }
-            return {content: text, status: StatusCode.RETURN}
+            return { content: text, status: StatusCode.RETURN }
         }
 
         let items = args.join(" ").toLowerCase().replaceAll("+", "|").split("|").map(v => v.trim())
@@ -565,29 +565,30 @@ export default function() {
     )
 
     registerCommand(
-        "feed-pet",
-        {
-            run: async (msg, args, sendCallback) => {
-                let petName = args[0]
-                let item = args.slice(1).join(" ").toLowerCase()
-                let p = pet.hasPetByNameOrType(msg.author.id, petName)
-                if (!p[1]) {
-                    return { content: `You do not  have a ${petName}`, status: StatusCode.ERR }
-                }
-                if (!hasItem(msg.author.id, item)) {
-                    return { content: `You do not have the item: ${item}`, status: StatusCode.ERR }
-                }
-                useItem(msg.author.id, item)
-                let feedAmount = pet.feedPet(msg.author.id, p[0], item)
-                if (feedAmount) {
-                    return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`, status: StatusCode.RETURN }
-                }
-                return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "feed-peth <pet> <item>"
+        "feed-pet", createCommandV2(async ({ argList, msg }) => {
+            argList.beginIter()
+            let petName = argList.expectString()
+            if (!petName) {
+                return { content: "No pet name given", status: StatusCode.ERR }
             }
-        },
+            let item = argList.expectString(() => true)
+            if (!item) return { content: "No item", status: StatusCode.ERR }
+
+            let p = pet.hasPetByNameOrType(msg.author.id, petName)
+            if (!p[1]) {
+                return { content: `You do not  have a ${petName}`, status: StatusCode.ERR }
+            }
+            if (!hasItem(msg.author.id, item)) {
+                return { content: `You do not have the item: ${item}`, status: StatusCode.ERR }
+            }
+            useItem(msg.author.id, item)
+            let feedAmount = pet.feedPet(msg.author.id, p[0], item)
+            if (feedAmount) {
+                return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`, status: StatusCode.RETURN }
+            }
+            return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
+
+        }, CAT, "feed-pet <pet> <item>")
     )
 
     registerCommand(
@@ -839,7 +840,7 @@ export default function() {
                 if (path == "/wiki/Special:Random") {
                     resp = await fetch.default(`https://${baseurl}${path}`)
                 }
-                else{
+                else {
                     try {
                         resp = await fetch.default(`https://${baseurl}${path}`)
                     }
@@ -857,26 +858,28 @@ export default function() {
                     const fn = generateFileName("wikipedia", msg.author.id) + ".html"
                     const title = $("h1#firstHeading").text().trim()
                     fs.writeFileSync(fn, respText)
-                    if(opts['all']){
+                    if (opts['all']) {
                         rvText = renderHTML(respText)
                     }
-                    else{
+                    else {
                         let text = $(".mw-parser-output p").text().trim().split("\n")
                         if (!text.length) {
                             return { content: "nothing", status: StatusCode.ERR }
                         }
                         rvText = `**${title}**\n${text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")}`
                     }
-                    if(opts['nf']){
-                        return {content: rvText, status: StatusCode.RETURN}
+                    if (opts['nf']) {
+                        return { content: rvText, status: StatusCode.RETURN }
                     }
-                    return { content: rvText, status: StatusCode.RETURN, files: [
-                        {
-                            attachment: fn,
-                            name: `${title}.html`,
-                            delete: true
-                        }
-                    ]}
+                    return {
+                        content: rvText, status: StatusCode.RETURN, files: [
+                            {
+                                attachment: fn,
+                                name: `${title}.html`,
+                                delete: true
+                            }
+                        ]
+                    }
                 }
                 return { content: "how did we get here (wikipedia)", status: StatusCode.ERR }
             },
@@ -1429,18 +1432,18 @@ export default function() {
     )
 
     registerCommand(
-        "choose", createCommandV2(async({args, opts}) => {
-                let sep = String( opts.getString("sep", opts.getString("s", "\n")))
-                let times = opts.getNumber("t", 1)
-                let ans = []
-                args = args.join(" ").split("|")
-                for (let i = 0; i < times; i++) {
-                    ans.push(choice(args).trim())
-                }
-                return {
-                    content: ans.join(sep) || "```invalid message```",
-                    status: StatusCode.RETURN
-                }
+        "choose", createCommandV2(async ({ args, opts }) => {
+            let sep = String(opts.getString("sep", opts.getString("s", "\n")))
+            let times = opts.getNumber("t", 1)
+            let ans = []
+            args = args.join(" ").split("|")
+            for (let i = 0; i < times; i++) {
+                ans.push(choice(args).trim())
+            }
+            return {
+                content: ans.join(sep) || "```invalid message```",
+                status: StatusCode.RETURN
+            }
 
         }, CommandCategory.FUN, "Choose a random item from a list of items separated by a |", {
             items: createHelpArgument("The items", true)

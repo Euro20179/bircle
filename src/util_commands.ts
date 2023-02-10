@@ -89,28 +89,7 @@ export default function(CAT: CommandCategory) {
         return { embeds: [embed], status: StatusCode.RETURN }
     }, CommandCategory.FUN))
 
-    // registerCommand("gcc", createCommandV2(async ({msg, args}) => {
-    //     let file = msg.attachments.at(0)
-    //     let data = args.join(" ")
-    //     if(file){
-    //         data = await (await fetch.default(file.url)).text()
-    //     }
-    //     let fn = `${generateFileName("gcc", msg.author.id)}.c`
-    //     fs.writeFileSync(fn, data)
-    //     execSync(`gcc ${fn} -o ${fn}.executable`)
-    //     return {
-    //         files: [{
-    //             name: "out",
-    //             attachment: `${fn}.executable`,
-    //             delete: true
-    //         }],
-    //         status: StatusCode.RETURN
-    //     }
-    //     
-    // }, CommandCategory.UTIL))
-
     registerCommand("google", createCommandV2(async ({ args }) => {
-
         let baseUrl = "https://www.google.com/search?q=";
         let s: string = args.join("+");
         const url = baseUrl + s;
