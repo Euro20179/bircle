@@ -2247,12 +2247,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     }))
 
     registerCommand(
-        "version",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (opts['l']) {
+        "version", createCommandV2(async({args, opts}) => {
+                if (opts.getBool("l", false)) {
                     return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
                 }
                 let fmt = args[0] || "%v"
@@ -2280,17 +2276,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     }),
                     status: StatusCode.RETURN
                 }
-            },
-            help: {
-                info: "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>",
-                options: {
-                    l: {
-                        description: "List all versions"
-                    }
-                }
-            },
-            category: CAT
-        },
+
+        }, CAT, "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>", {fmt: createHelpArgument("The format", false)})
     )
 
     registerCommand(
