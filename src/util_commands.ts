@@ -30,44 +30,44 @@ export default function(CAT: CommandCategory) {
     // }, CommandCategory.UTIL))
     //
 
-    registerCommand("cat", createCommandV2(async ({stdin, opts, args}) => {
+    registerCommand("cat", createCommandV2(async ({ stdin, opts, args }) => {
         let content = "";
-        if(stdin){
+        if (stdin) {
             content += getContentFromResult(stdin)
         }
-        for(let arg of args){
-            if(fs.existsSync(`./command-results/${arg}`)){
+        for (let arg of args) {
+            if (fs.existsSync(`./command-results/${arg}`)) {
                 content += fs.readFileSync(`./command-results/${arg}`, "utf-8")
             }
         }
-        if(!content){
-            return {content: "No content", status: StatusCode.ERR}
+        if (!content) {
+            return { content: "No content", status: StatusCode.ERR }
         }
-        if(opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)){
+        if (opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)) {
             content = content.split("\n").reverse().join("\n")
         }
-        return {content: content, status: StatusCode.RETURN}
+        return { content: content, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Concatinate files from pipe, and from file names", {
         files: createHelpArgument("The files", false)
     }))
 
-    registerCommand("rev", createCommandV2(async ({stdin, args, opts}) => {
+    registerCommand("rev", createCommandV2(async ({ stdin, args, opts }) => {
         let content = "";
-        if(stdin){
+        if (stdin) {
             content += getContentFromResult(stdin).split("").reverse().join("")
         }
-        for(let arg of args){
-            if(fs.existsSync(`./command-results/${arg}`)){
+        for (let arg of args) {
+            if (fs.existsSync(`./command-results/${arg}`)) {
                 content += fs.readFileSync(`./command-results/${arg}`, "utf-8").split("").reverse().join("")
             }
         }
-        if(!content){
-            return {content: "No content", status: StatusCode.ERR}
+        if (!content) {
+            return { content: "No content", status: StatusCode.ERR }
         }
-        if(opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)){
+        if (opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)) {
             content = content.split("\n").reverse().join("\n")
         }
-        return {content: content, status: StatusCode.RETURN}
+        return { content: content, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Take input from pipe and reverse it", undefined, {
         r: createHelpOption("reverse the order of the lines")
     }))
@@ -109,7 +109,7 @@ export default function(CAT: CommandCategory) {
     //     
     // }, CommandCategory.UTIL))
 
-    registerCommand("google", createCommandV2(async ({args}) => {
+    registerCommand("google", createCommandV2(async ({ args }) => {
 
         let baseUrl = "https://www.google.com/search?q=";
         let s: string = args.join("+");
@@ -119,23 +119,23 @@ export default function(CAT: CommandCategory) {
         const $ = cheerio.load(html)
         const links = $(".egMi0 > a").toArray()
         const urls: string[] = []
-        for(let i = 0; i < links.length; i++){
+        for (let i = 0; i < links.length; i++) {
             let elem = links[i]
-            if(elem.type === 'tag' && elem.tagName === 'a'){
+            if (elem.type === 'tag' && elem.tagName === 'a') {
                 const href = elem.attribs.href
                 urls.push(href.slice(7).split("&sa=")[0])
             }
         }
         //return {content: links.text(), status: StatusCode.RETURN}
-        return {content: urls.join("\n"), status: StatusCode.RETURN}
+        return { content: urls.join("\n"), status: StatusCode.RETURN }
     }, CommandCategory.UTIL))
 
     registerCommand(
-        "has-role", createCommandV2(async ({msg, argList}) => {
+        "has-role", createCommandV2(async ({ msg, argList }) => {
             argList.beginIter()
             let user = argList.advance()
-            if(!user){
-                return {content: "No user given", status: StatusCode.ERR}
+            if (!user) {
+                return { content: "No user given", status: StatusCode.ERR }
             }
             let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
             if (!role) {
@@ -229,7 +229,7 @@ export default function(CAT: CommandCategory) {
                 return { content: rv, status: StatusCode.RETURN }
             }
             const aliasesV2 = getAliasesV2()
-            let commandsToUse = {...commands, ...getAliasesV2()}
+            let commandsToUse = { ...commands, ...getAliasesV2() }
             if (args[0]) {
                 commandsToUse = {}
                 if (args[0] == "?") {
@@ -237,13 +237,13 @@ export default function(CAT: CommandCategory) {
                 }
                 else {
                     for (let cmd of args) {
-                        if(commands[cmd]){
+                        if (commands[cmd]) {
                             commandsToUse[cmd] = commands[cmd]
                         }
-                        else if(aliasesV2[cmd]){
+                        else if (aliasesV2[cmd]) {
                             commandsToUse[cmd] = aliasesV2[cmd]
                         }
-                        else{ continue }
+                        else { continue }
                     }
                 }
             }
@@ -861,7 +861,7 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "surround-text", createCommandV2(async ({args, opts, stdin}) => {
+        "surround-text", createCommandV2(async ({ args, opts, stdin }) => {
             let maxWidth = opts.getNumber("max-width", 50)
             let vertChar = opts.getString("vert-char", "|")
             let horChar = opts.getString("hor-char", "-")
@@ -878,88 +878,88 @@ export default function(CAT: CommandCategory) {
 
     registerCommand(
         "align-table",
-        createCommandV2(async({opts, args, stdin}) => {
-                let align = opts.getString("align", "left")
-                let raw = opts.getBool("raw", false)
-                let columnCounts = opts.getBool("cc", false)
-                let table = stdin ? getContentFromResult(stdin) : args.join(" ")
-                let columnLongestLengths: { [key: number]: number } = {}
-                let longestRow = 0
-                let rows = table.split("\n")
-                let finalColumns: string[][] = []
-                for (let row of rows) {
-                    let columns = row.split("|")
-                    let nextColumn = []
-                    for (let i = 0; i < columns.length; i++) {
-                        nextColumn.push(columns[i])
-                        if (i > longestRow)
-                            longestRow = i
+        createCommandV2(async ({ opts, args, stdin }) => {
+            let align = opts.getString("align", "left")
+            let raw = opts.getBool("raw", false)
+            let columnCounts = opts.getBool("cc", false)
+            let table = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let columnLongestLengths: { [key: number]: number } = {}
+            let longestRow = 0
+            let rows = table.split("\n")
+            let finalColumns: string[][] = []
+            for (let row of rows) {
+                let columns = row.split("|")
+                let nextColumn = []
+                for (let i = 0; i < columns.length; i++) {
+                    nextColumn.push(columns[i])
+                    if (i > longestRow)
+                        longestRow = i
+                }
+                finalColumns.push(nextColumn)
+            }
+            for (let row of finalColumns) {
+                for (let i = row.length - 1; i < longestRow; i++) {
+                    row.push("")
+                }
+            }
+            if (raw) {
+                return { content: `\\${JSON.stringify(finalColumns)}`, status: StatusCode.RETURN }
+            }
+            for (let row of finalColumns) {
+                for (let i = 0; i < row.length; i++) {
+                    if (!columnLongestLengths[i]) {
+                        columnLongestLengths[i] = 0
                     }
-                    finalColumns.push(nextColumn)
-                }
-                for (let row of finalColumns) {
-                    for (let i = row.length - 1; i < longestRow; i++) {
-                        row.push("")
+                    if (row[i].length > columnLongestLengths[i]) {
+                        columnLongestLengths[i] = row[i].length
                     }
                 }
-                if (raw) {
-                    return { content: `\\${JSON.stringify(finalColumns)}`, status: StatusCode.RETURN }
+            }
+            if (columnCounts) {
+                let text = ""
+                for (let i = 0; i < finalColumns[0].length; i++) {
+                    text += `(col: ${i + 1}): ${columnLongestLengths[i]}\n`
                 }
-                for (let row of finalColumns) {
-                    for (let i = 0; i < row.length; i++) {
-                        if (!columnLongestLengths[i]) {
-                            columnLongestLengths[i] = 0
-                        }
-                        if (row[i].length > columnLongestLengths[i]) {
-                            columnLongestLengths[i] = row[i].length
-                        }
+                return { content: text, status: StatusCode.RETURN }
+            }
+            let newText = "```"
+            for (let row of finalColumns) {
+                for (let i = 0; i < row.length; i++) {
+                    let col = row[i].replace(/^\|/, "").replace(/\|$/, "")
+                    let maxLength = columnLongestLengths[i]
+                    if (maxLength == 0) {
+                        continue
                     }
-                }
-                if (columnCounts) {
-                    let text = ""
-                    for (let i = 0; i < finalColumns[0].length; i++) {
-                        text += `(col: ${i + 1}): ${columnLongestLengths[i]}\n`
+                    else {
+                        newText += "|"
                     }
-                    return { content: text, status: StatusCode.RETURN }
-                }
-                let newText = "```"
-                for (let row of finalColumns) {
-                    for (let i = 0; i < row.length; i++) {
-                        let col = row[i].replace(/^\|/, "").replace(/\|$/, "")
-                        let maxLength = columnLongestLengths[i]
-                        if (maxLength == 0) {
-                            continue
+                    if (col.length < maxLength) {
+                        if (col.match(/^-+$/)) {
+                            col = mulStr("-", maxLength)
                         }
                         else {
-                            newText += "|"
+                            if (align == "left")
+                                col = col + mulStr(" ", maxLength - col.length)
+                            else if (align == "right")
+                                col = mulStr(" ", maxLength - col.length) + col
+                            else if (align == "center")
+                                col = mulStr(" ", Math.floor((maxLength - col.length) / 2)) + col + mulStr(" ", Math.ceil((maxLength - col.length) / 2))
                         }
-                        if (col.length < maxLength) {
-                            if (col.match(/^-+$/)) {
-                                col = mulStr("-", maxLength)
-                            }
-                            else {
-                                if (align == "left")
-                                    col = col + mulStr(" ", maxLength - col.length)
-                                else if (align == "right")
-                                    col = mulStr(" ", maxLength - col.length) + col
-                                else if (align == "center")
-                                    col = mulStr(" ", Math.floor((maxLength - col.length) / 2)) + col + mulStr(" ", Math.ceil((maxLength - col.length) / 2))
-                            }
-                        }
-                        newText += `${col}`
                     }
-                    newText += '|\n'
+                    newText += `${col}`
                 }
-                return { content: newText + "```", status: StatusCode.RETURN }
+                newText += '|\n'
+            }
+            return { content: newText + "```", status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Align a table", {
             table: createHelpArgument("The markdown formatted table to align, can be given through pipe")
-            }, {
-                align: createHelpOption("Align either: <code>left</code>, <code>center</code> or <code>right</code>"),
-                raw: createHelpOption("Give a javascript list containing lists of columns"),
-                cc: createHelpOption("Give the length of the longest column in each column")
-            })
-        )
+        }, {
+            align: createHelpOption("Align either: <code>left</code>, <code>center</code> or <code>right</code>"),
+            raw: createHelpOption("Give a javascript list containing lists of columns"),
+            cc: createHelpOption("Give the length of the longest column in each column")
+        })
+    )
 
     registerCommand(
         "abattle",
@@ -1580,38 +1580,38 @@ middle
     )
 
     registerCommand(
-        "replace", createCommandV2(async({args, stdin, opts}) => {
-                let search = args[0]
-                let repl = args[1]
-                if (opts.getBool("n", false)) {
-                    let text = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
-                    if (!search) {
-                        return { content: "no search", status: StatusCode.ERR }
-                    }
-                    return { content: text.replaceAll(search, ""), status: StatusCode.RETURN }
-                }
-                else if (!repl) {
-                    return { content: "No replacement", status: StatusCode.ERR }
-                }
-
-                let text: string = stdin ? getContentFromResult(stdin) : args.slice(2).join(" ")
-
+        "replace", createCommandV2(async ({ args, stdin, opts }) => {
+            let search = args[0]
+            let repl = args[1]
+            if (opts.getBool("n", false)) {
+                let text = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
                 if (!search) {
                     return { content: "no search", status: StatusCode.ERR }
                 }
-                if (!text) {
-                    return { content: "no text to search through", status: StatusCode.ERR }
-                }
-                let s: string | RegExp = search
-                if(opts.getBool('r', false)){
-                    s = new RegExp(search, "g")
-                }
-                return { content: text.replaceAll(s, repl || ""), status: StatusCode.RETURN }
+                return { content: text.replaceAll(search, ""), status: StatusCode.RETURN }
+            }
+            else if (!repl) {
+                return { content: "No replacement", status: StatusCode.ERR }
+            }
+
+            let text: string = stdin ? getContentFromResult(stdin) : args.slice(2).join(" ")
+
+            if (!search) {
+                return { content: "no search", status: StatusCode.ERR }
+            }
+            if (!text) {
+                return { content: "no text to search through", status: StatusCode.ERR }
+            }
+            let s: string | RegExp = search
+            if (opts.getBool('r', false)) {
+                s = new RegExp(search, "g")
+            }
+            return { content: text.replaceAll(s, repl || ""), status: StatusCode.RETURN }
 
         }, CAT, "Replaces a string with another string", {
-                    search: createHelpArgument("The search (1 arg)", true),
-                    replace: createHelpArgument("The replacement (1 arg)<br>if the -n option is given, this argument is not required", false),
-                    "...text": createHelpArgument("The text to search/replace through", true)
+            search: createHelpArgument("The search (1 arg)", true),
+            replace: createHelpArgument("The replacement (1 arg)<br>if the -n option is given, this argument is not required", false),
+            "...text": createHelpArgument("The text to search/replace through", true)
         }, {
             n: createHelpOption("No replace value"),
             r: createHelpOption("Enable regex")
@@ -1824,9 +1824,9 @@ middle
                 filter = function(v: any, k: any) {
                     let search = filterInfo?.search
                     let val = v;
-                    for(let attr of filterInfo?.attribute.split(".") ?? ["__BIRCLE_UNDEFINED__"]){
+                    for (let attr of filterInfo?.attribute.split(".") ?? ["__BIRCLE_UNDEFINED__"]) {
                         val = val?.[attr]
-                        if(val === undefined)
+                        if (val === undefined)
                             break
                     }
                     //@ts-ignore
@@ -1970,7 +1970,7 @@ middle
                         }
                         case "url": {
                             let url = typeArgs.join(" ")
-                            if(url){
+                            if (url) {
                                 embed.setURL(url)
                             }
                             break
@@ -2007,31 +2007,31 @@ The order these are given does not matter, excpet for field, which will be added
         ),
     )
 
-    registerCommand("sh", createCommandV2(async({msg, argList, opts, sendCallback}) => {
+    registerCommand("sh", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
         const cmd = spawn("bash")
         let dataToSend = ""
         let sendingTimeout: NodeJS.Timeout | undefined = undefined;
         cmd.stdout.on("data", data => {
             dataToSend += data.toString("utf-8")
 
-            if(sendingTimeout) clearTimeout(sendingTimeout)
+            if (sendingTimeout) clearTimeout(sendingTimeout)
 
             sendingTimeout = setTimeout(() => {
-                handleSending(msg, {content: dataToSend, status: StatusCode.INFO}, sendCallback)
+                handleSending(msg, { content: dataToSend, status: StatusCode.INFO }, sendCallback)
                 dataToSend = ""
             }, 100)
         })
         cmd.stderr.on("data", data => {
             dataToSend += data.toString("utf-8")
 
-            if(sendingTimeout) clearTimeout(sendingTimeout)
+            if (sendingTimeout) clearTimeout(sendingTimeout)
 
             sendingTimeout = setTimeout(() => {
-                handleSending(msg, {content: dataToSend, status: StatusCode.INFO}, sendCallback)
+                handleSending(msg, { content: dataToSend, status: StatusCode.INFO }, sendCallback)
                 dataToSend = ""
             }, 100)
         })
-        const collector = msg.channel.createMessageCollector({filter: m => m.author.id === msg.author.id})
+        const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
         const TO_INTERVAL = 30000
         let timeout = setTimeout(cmd.kill, TO_INTERVAL)
         collector.on("collect", m => {
@@ -2039,11 +2039,11 @@ The order these are given does not matter, excpet for field, which will be added
             timeout = setTimeout(cmd.kill, TO_INTERVAL)
             cmd.stdin.write(m.content + "\n")
         })
-        return {noSend: true, status: StatusCode.ERR}
+        return { noSend: true, status: StatusCode.ERR }
     }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id)))
 
-    registerCommand("qalc", createCommandV2(async({msg, argList, opts}) => {
-        if(( opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false) ) && !globals.IN_QALC.includes(msg.author.id) ){
+    registerCommand("qalc", createCommandV2(async ({ msg, argList, opts }) => {
+        if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.IN_QALC.includes(msg.author.id)) {
             globals.IN_QALC.push(msg.author.id)
             const cmd = spawn("qalc", argList)
             cmd.stdout.on("data", data => {
@@ -2058,12 +2058,12 @@ The order these are given does not matter, excpet for field, which will be added
                 globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
             })
             cmd.on("exit", () => {
-                if(timeout){
+                if (timeout) {
                     clearTimeout(timeout)
                 }
                 globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
             })
-            const collector = msg.channel.createMessageCollector({filter: m => m.author.id === msg.author.id})
+            const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
             const TO_INTERVAL = 30000
             let timeout = setTimeout(cmd.kill, TO_INTERVAL)
             collector.on("collect", m => {
@@ -2073,7 +2073,7 @@ The order these are given does not matter, excpet for field, which will be added
             })
         }
         const cmd = spawnSync("qalc", ["-t"].concat(argList))
-        return {content: cmd.stdout.toString("utf-8"), status: StatusCode.RETURN}
+        return { content: cmd.stdout.toString("utf-8"), status: StatusCode.RETURN }
     }, CommandCategory.UTIL))
 
     registerCommand(
@@ -2172,25 +2172,25 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "rand", createCommandV2(async({opts, args}) => {
-                const low = parseFloat(args[0]) || 0
-                const high: number = parseFloat(args[1]) || 100
-                const count = parseInt(args[2]) || 1
-                if (count > 50000) {
-                    return { content: "Too many numbers", status: StatusCode.ERR }
+        "rand", createCommandV2(async ({ opts, args }) => {
+            const low = parseFloat(args[0]) || 0
+            const high: number = parseFloat(args[1]) || 100
+            const count = parseInt(args[2]) || 1
+            if (count > 50000) {
+                return { content: "Too many numbers", status: StatusCode.ERR }
+            }
+            let answers = []
+            for (let i = 0; i < count; i++) {
+                let ans = Math.random() * (high - low) + low
+                if (opts.getBool("round", false)) {
+                    ans = Math.floor(ans)
                 }
-                let answers = []
-                for (let i = 0; i < count; i++) {
-                    let ans = Math.random() * (high - low) + low
-                    if (opts.getBool("round", false)) {
-                        ans = Math.floor(ans)
-                    }
-                    answers.push(ans)
-                }
-                return {
-                    content: answers.join(String(opts.getString("s", ", "))),
-                    status: StatusCode.RETURN
-                }
+                answers.push(ans)
+            }
+            return {
+                content: answers.join(String(opts.getString("s", ", "))),
+                status: StatusCode.RETURN
+            }
         }, CommandCategory.UTIL, "Generate random number", {
             low: createHelpArgument("The lowest number", false, undefined, "0"),
             high: createHelpArgument("The highest number", false, undefined, "100"),
@@ -2760,9 +2760,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "b64d", createCommandV2(async({args, stdin}) => {
-                let text = stdin ? getContentFromResult(stdin) : args.join(" ")
-                return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
+        "b64d", createCommandV2(async ({ args, stdin }) => {
+            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Decodes base64")
     )
@@ -2954,22 +2954,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "role-info", createCommandV2(async({msg, argList}) => {
+        "role-info", createCommandV2(async ({ msg, argList }) => {
 
-                argList.beginIter()
-                let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
-                if (!role) {
-                    return { content: "Could not find role", status: StatusCode.ERR }
-                }
-                let embed = new MessageEmbed()
-                embed.setTitle(role.name)
-                embed.setColor(role.color)
-                embed.addField("id", String(role.id), true)
-                embed.addField("name", role.name, true)
-                embed.addField("emoji", role.unicodeEmoji || "None", true)
-                embed.addField("created", role.createdAt.toTimeString(), true)
-                embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
-                return { embeds: [embed] || "none", status: StatusCode.RETURN }
+            argList.beginIter()
+            let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
+            if (!role) {
+                return { content: "Could not find role", status: StatusCode.ERR }
+            }
+            let embed = new MessageEmbed()
+            embed.setTitle(role.name)
+            embed.setColor(role.color)
+            embed.addField("id", String(role.id), true)
+            embed.addField("name", role.name, true)
+            embed.addField("emoji", role.unicodeEmoji || "None", true)
+            embed.addField("created", role.createdAt.toTimeString(), true)
+            embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
+            return { embeds: [embed] || "none", status: StatusCode.RETURN }
 
         }, CAT, "Gets information about a role"))
 
@@ -3344,88 +3344,70 @@ valid formats:<br>
     )
 
     registerCommand(
-        "head",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let count = parseInt(String(opts['count'])) || 10
-                let argText = args.join(" ")
-                return { content: argText.split("\n").slice(0, count).join("\n"), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Say the first 10 lines of some text",
-                arguments: {
-                    text: {
-                        description: "Text"
-                    }
-                },
-                options: {
-                    count: {
-                        description: "The amount of lines to show"
-                    }
-                }
-            },
-            category: CommandCategory.UTIL
-        },
+        "head", createCommandV2(async ({ args, opts, stdin }) => {
+            let count = opts.getNumber("count", 10)
+            let argText = stdin ? getContentFromResult(stdin) : args.join(" ")
+            return { content: argText.split("\n").slice(0, count).join("\n"), status: StatusCode.RETURN }
+
+        }, CAT, "Say the first 10 lines of somet text", { text: createHelpArgument("Text also accepts pipe") }, { count: createHelpOption("The amount of lines to show") })
     )
 
     registerCommand(
-        "nl", createCommandV2(async({msg, args, stdin}) => {
-                let text = stdin ? getContentFromResult(stdin) : args.join(" ").split('\n')
-                let rv = ""
-                for (let i = 1; i < text.length + 1; i++) {
-                    rv += `${i}: ${text[i - 1]}\n`
-                }
-                return { content: rv, status: StatusCode.RETURN }
+        "nl", createCommandV2(async ({ msg, args, stdin }) => {
+            let text = stdin ? getContentFromResult(stdin) : args.join(" ").split('\n')
+            let rv = ""
+            for (let i = 1; i < text.length + 1; i++) {
+                rv += `${i}: ${text[i - 1]}\n`
+            }
+            return { content: rv, status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Number the lines of text")
     )
 
     registerCommand(
-        "grep", createCommandV2(async({msg, argList, stdin, opts, args}) => {
-                argList.beginIter()
-                let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
-                if (!regex) {
-                    return {
-                        content: "no search given",
-                        status: StatusCode.ERR
-                    }
+        "grep", createCommandV2(async ({ msg, argList, stdin, opts, args }) => {
+            argList.beginIter()
+            let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
+            if (!regex) {
+                return {
+                    content: "no search given",
+                    status: StatusCode.ERR
                 }
-                let data = stdin ? args.join(" ") : argList.expectString(() => true)
-                console.log(data)
+            }
+            let data = stdin ? args.join(" ") : argList.expectString(() => true)
+            console.log(data)
 
-                if (!data) {
-                    if (msg.attachments?.at(0)) {
-                        data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
-                    }
-                    else return { content: "no data given to search through", status: StatusCode.ERR }
+            if (!data) {
+                if (msg.attachments?.at(0)) {
+                    data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
                 }
-                let match = (<string>data).matchAll(new RegExp(regex, "gm"))
-                let finds = ""
-                for (let find of match) {
-                    if (opts.getBool("s", false)) {
-                        if (find[1]) {
-                            finds += find.slice(1).join(", ")
-                        }
-                        else {
-                            finds += find[0]
-                        }
-                        finds += '\n'
+                else return { content: "no data given to search through", status: StatusCode.ERR }
+            }
+            let match = (<string>data).matchAll(new RegExp(regex, "gm"))
+            let finds = ""
+            for (let find of match) {
+                if (opts.getBool("s", false)) {
+                    if (find[1]) {
+                        finds += find.slice(1).join(", ")
                     }
                     else {
-                        if (find[1]) {
-                            finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
-                        }
-                        else {
-                            finds += `Found \`${find[0]}\` at character ${(find?.index ?? 0) + 1}\n`
-                        }
+                        finds += find[0]
+                    }
+                    finds += '\n'
+                }
+                else {
+                    if (find[1]) {
+                        finds += `Found \`${find.slice(1).join(", ")}\` at character ${(find?.index ?? 0) + 1}\n`
+                    }
+                    else {
+                        finds += `Found \`${find[0]}\` at character ${(find?.index ?? 0) + 1}\n`
                     }
                 }
-                return {
-                    content: finds,
-                    status: StatusCode.RETURN
-                }
+            }
+            return {
+                content: finds,
+                status: StatusCode.RETURN
+            }
         }, CommandCategory.UTIL, "Search through text with a search", {
             search: createHelpArgument("A regex search", true),
             data: createHelpArgument("Text or a file to search through<br>If data is given through pipe, all arguments become the search")
