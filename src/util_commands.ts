@@ -876,13 +876,11 @@ export default function() {
     )
 
     registerCommand(
-        "surround-text", createCommand(async (msg, args, sendCB) => {
-            let opts;
-            [opts, args] = getOpts(args)
-            let maxWidth = Number(opts['max-width']) || 50
-            let vertChar = String(opts['vert-char'] || "|")
-            let horChar = String(opts['hor-char'] || "-")
-            let text = args.join(" ").split("\n")
+        "surround-text", createCommandV2(async ({args, opts, stdin}) => {
+            let maxWidth = opts.getNumber("max-width", 50)
+            let vertChar = opts.getString("vert-char", "|")
+            let horChar = opts.getString("hor-char", "-")
+            let text = stdin ? getContentFromResult(stdin).split("\n") : args.join(" ").split("\n")
             let lines = [horChar.repeat(maxWidth + 2)]
             for (let line_of_text of text) {
                 lines.push(`${vertChar}${" ".repeat((maxWidth - line_of_text.length) / 2)}${line_of_text}${" ".repeat((maxWidth - line_of_text.length) / 2)}${vertChar}`)
