@@ -849,6 +849,7 @@ class ArgList extends Array{
     #createArgList(amountOfArgs: AmountOfArgs){
         let argsToUse = []
         if(typeof amountOfArgs === 'number'){
+            this.advance()
             argsToUse = listComprehension(range(this.#i, this.#i + amountOfArgs), (i: number) => this[i])
         }
         else{

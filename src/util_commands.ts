@@ -2769,6 +2769,35 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
     )
 
+    registerCommand("tr", createCommandV2(async({argList, stdin, opts}) => {
+        let charsToDel = opts.getString("d", "")
+        argList.beginIter()
+        let from = argList.expectString()
+        if(!from && !charsToDel){
+            return {content: "Must have start chars", status: StatusCode.ERR}
+        }
+        let to = argList.expectString()
+        if(!to && !charsToDel){
+            return {content: "Must have end chars", status: StatusCode.ERR}
+        }
+        let text: string = stdin ? getContentFromResult(stdin) : argList.expectString(() => true) as string
+        if(!text){
+            return {content: "Must have text to translate on", status: StatusCode.ERR}
+        }
+        if(charsToDel){
+            for(let char of charsToDel){
+                text = text.replaceAll(char, "")
+            }
+        }
+        if(from && to){
+            for(let i = 0; i < from.length; i++){
+                let charTo = to[i] ?? to.slice(-1)[0]
+                text = text.replaceAll(from[i], charTo)
+            }
+        }
+        return {content: text, status: StatusCode.RETURN}
+    }, CAT))
+
     registerCommand(
         "timer", createCommand(async (msg, _, sc, opts, args) => {
             let action = args[0]?.toLowerCase()
