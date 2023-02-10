@@ -2,7 +2,7 @@ import { Message, User } from "discord.js";
 import { allowedOptions, getOpt } from "./user-options";
 
 const { readFileSync, writeFileSync, existsSync } = require("fs");
-const { Client, Intents } = require("discord.js")
+import { Client, Intents } from "discord.js"
 const economy = require("./economy");
 const prefix = readFileSync("./data/prefix", "utf-8").trim()
 

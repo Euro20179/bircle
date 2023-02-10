@@ -11,7 +11,7 @@ import economy = require("./economy")
 import pet = require("./pets")
 import timer from './timer'
 
-import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, TextChannel, User } from 'discord.js'
+import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2 } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
@@ -109,7 +109,7 @@ export default function(CAT: CommandCategory) {
     //     
     // }, CommandCategory.UTIL))
 
-    registerCommand("google", createCommandV2(async ({msg ,args}) => {
+    registerCommand("google", createCommandV2(async ({args}) => {
 
         let baseUrl = "https://www.google.com/search?q=";
         let s: string = args.join("+");
@@ -131,28 +131,13 @@ export default function(CAT: CommandCategory) {
     }, CommandCategory.UTIL))
 
     registerCommand(
-        "has-role", createCommand(async (msg, args) => {
-            let user = args[0]
-            let search = args.slice(1).join(" ")
-            if (!search) {
-                return { content: "No role given", status: StatusCode.ERR }
+        "has-role", createCommandV2(async ({msg, argList}) => {
+            argList.beginIter()
+            let user = argList.advance()
+            if(!user){
+                return {content: "No user given", status: StatusCode.ERR}
             }
-            if (!user) {
-                return { content: "No user given", status: StatusCode.ERR }
-            }
-            let roles = await msg.guild?.roles.fetch()
-            if (!roles) {
-                return { content: "No roles", status: StatusCode.ERR }
-            }
-            let foundRoles = roles.filter(r => r.name.toLowerCase() == search.toLowerCase() ? true : false)
-            if (!foundRoles.size) {
-                foundRoles = roles.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) ? true : false)
-            }
-            if (!foundRoles.size) {
-                foundRoles = roles.filter(r => r.id == search ? true : false)
-            }
-
-            let role = foundRoles?.at(0)
+            let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
             if (!role) {
                 return { content: "Could not find role", status: StatusCode.ERR }
             }
@@ -2969,23 +2954,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "role-info",
-        {
-            run: async (msg, args, sendCallback) => {
-                let search = args.join(" ").toLowerCase()
-                let roles = await msg.guild?.roles.fetch()
-                if (!roles) {
-                    return { content: "No roles found", status: StatusCode.ERR }
-                }
-                let foundRoles = roles.filter(r => r.name.toLowerCase() == search ? true : false)
-                if (!foundRoles.size) {
-                    foundRoles = roles.filter(r => r.name.toLowerCase().match(search) ? true : false)
-                }
-                if (!foundRoles.size) {
-                    foundRoles = roles.filter(r => r.id == search ? true : false)
-                }
+        "role-info", createCommandV2(async({msg, argList}) => {
 
-                let role = foundRoles.at(0)
+                argList.beginIter()
+                let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
                 if (!role) {
                     return { content: "Could not find role", status: StatusCode.ERR }
                 }
@@ -2998,13 +2970,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 embed.addField("created", role.createdAt.toTimeString(), true)
                 embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
                 return { embeds: [embed] || "none", status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Gets infromation about a role",
-            }
-        },
-    )
+
+        }, CAT, "Gets information about a role"))
 
     registerCommand(
         "channel-info",
@@ -3416,31 +3383,28 @@ valid formats:<br>
     )
 
     registerCommand(
-        "grep", createCommandV2(async({msg, rawArgs: args, stdin}) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let regex = args[0]
+        "grep", createCommandV2(async({msg, argList, stdin, opts, args}) => {
+                argList.beginIter()
+                let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
                 if (!regex) {
                     return {
                         content: "no search given",
                         status: StatusCode.ERR
                     }
                 }
-                let data = args.slice(1).join(" ").trim()
-                if(stdin){
-                    regex = args.join(" ")
-                    data = getContentFromResult(stdin)
-                }
+                let data = stdin ? args.join(" ") : argList.expectString(() => true)
+                console.log(data)
+
                 if (!data) {
                     if (msg.attachments?.at(0)) {
                         data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
                     }
                     else return { content: "no data given to search through", status: StatusCode.ERR }
                 }
-                let match = data.matchAll(new RegExp(regex, "gm"))
+                let match = (<string>data).matchAll(new RegExp(regex, "gm"))
                 let finds = ""
                 for (let find of match) {
-                    if (opts['s']) {
+                    if (opts.getBool("s", false)) {
                         if (find[1]) {
                             finds += find.slice(1).join(", ")
                         }

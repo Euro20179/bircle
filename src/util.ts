@@ -813,12 +813,117 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
     return img
 }
 
+const GOODVALUE = Symbol("GOODVALUE")
+const BADVALUE = Symbol("BADVALUE")
+
+type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => boolean)
 class ArgList extends Array{
+    #i: number
+    #curArg: string | null
     constructor(args: string[]) {
         super(args.length)
         for (let index in args) {
             Reflect.set(this, index, args[index])
         }
+        this.#i = NaN
+        this.#curArg = null
+    }
+    beginIter(){
+        this.#i = -1
+        this.#curArg = this[this.#i]
+    }
+    //mainly for semantics
+    reset(){
+        this.beginIter()
+    }
+    advance(){
+        this.#i++;
+        this.#curArg = this[this.#i]
+        return this.#curArg
+    }
+    back(){
+        this.#i--;
+        this.#curArg = this[this.#i]
+        return this.#curArg
+    }
+    #createArgList(amountOfArgs: AmountOfArgs){
+        let argsToUse = []
+        if(typeof amountOfArgs === 'number'){
+            argsToUse = listComprehension(range(this.#i, this.#i + amountOfArgs), (i: number) => this[i])
+        }
+        else{
+            while(this.advance() && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)){
+                argsToUse.push(this.#curArg)
+            }
+            this.back()
+        }
+        return argsToUse
+    }
+    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T){
+        if(this.#curArg === null){
+            throw new Error("beginIter must be run before this function")
+        }
+        let argsToUse = this.#createArgList(amountOfArgs)
+        let res;
+        if((res = filter(argsToUse)) !== BADVALUE){
+            return res === GOODVALUE ? this.#curArg : res
+        }
+        return null
+    }
+    async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T){
+        if(this.#curArg === null){
+            throw new Error("beginIter must be run before this function")
+        }
+        let argsToUse = this.#createArgList(amountOfArgs)
+        let res;
+        if((res = (await filter(argsToUse))) !== BADVALUE){
+            return res === GOODVALUE ? this.#curArg : res
+        }
+        return null
+    }
+    expectOneOf(amountOfArgs: AmountOfArgs, list: string[]){
+        return this.expect(amountOfArgs, i => {
+            list.includes(i.join(" "))
+        })
+    }
+    expectString(amountOfArgs: AmountOfArgs = 1){
+        return this.expect(amountOfArgs, i => i.join(" "))
+    }
+    expectInt(amountOfArgs: AmountOfArgs = 1){
+        return this.expect(amountOfArgs, i => i.join(" ").match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
+    }
+    expectBool(amountOfArgs: AmountOfArgs = 1){
+        return this.expect(amountOfArgs, i => {
+            let s = i.join(" ").toLowerCase()
+            if(s === 'true'){
+                return true
+            }
+            else if(s === 'false'){
+                return false
+            }
+            return BADVALUE
+        })
+    }
+    async expectRole(guild: Guild, amountOfArgs: AmountOfArgs = 1){
+        return await this.expectAsync(amountOfArgs, async(i) => {
+            let roles = await guild.roles.fetch()
+            if(!roles){
+                return BADVALUE
+            }
+            let s = i.join(" ")
+            let foundRoles = roles.filter(r => r.name.toLowerCase() === s ? true : false)
+            if (!foundRoles.size) {
+                foundRoles = roles.filter(r => r.name.toLowerCase().match(s) ? true : false)
+            }
+            if (!foundRoles.size) {
+                foundRoles = roles.filter(r => r.id == s ? true : false)
+            }
+            let role = foundRoles.at(0)
+            if (!role) {
+                return BADVALUE
+            }
+            return role
+        })
     }
     async assertIndexIs<T>(index: number, assertion: (data: string) => Promise<T | undefined>, fallback: T): Promise<T>{
         return await assertion(this.at(index)) ?? fallback
