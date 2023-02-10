@@ -18,7 +18,7 @@ import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
 import { exec, execSync, spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
-export default function() {
+export default function(CAT: CommandCategory) {
     // registerCommand("test", createCommandV2(async ({msg, args}) => {
     //     const row = new MessageActionRow()
     //     const button = new MessageButton()
@@ -1595,16 +1595,11 @@ middle
     )
 
     registerCommand(
-        "replace",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
+        "replace", createCommandV2(async({args, stdin, opts}) => {
                 let search = args[0]
                 let repl = args[1]
-                let text = args.slice(2).join(" ")
-                if (opts['n']) {
-                    text = args.slice(1).join(" ")
+                if (opts.getBool("n", false)) {
+                    let text = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
                     if (!search) {
                         return { content: "no search", status: StatusCode.ERR }
                     }
@@ -1613,23 +1608,29 @@ middle
                 else if (!repl) {
                     return { content: "No replacement", status: StatusCode.ERR }
                 }
+
+                let text: string = stdin ? getContentFromResult(stdin) : args.slice(2).join(" ")
+
                 if (!search) {
                     return { content: "no search", status: StatusCode.ERR }
                 }
                 if (!text) {
                     return { content: "no text to search through", status: StatusCode.ERR }
                 }
-                return { content: text.replaceAll(search, repl || ""), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Replaces a string with another string",
-                arguments: {
-                    search: createHelpArgument("The search (1 arg)", true),
-                    replace: createHelpArgument("The replacement (1 arg)", true),
-                    "...text": createHelpArgument("The text to search/replace through", true)
+                let s: string | RegExp = search
+                if(opts.getBool('r', false)){
+                    s = new RegExp(search, "g")
                 }
-            }
-        },
+                return { content: text.replaceAll(s, repl || ""), status: StatusCode.RETURN }
+
+        }, CAT, "Replaces a string with another string", {
+                    search: createHelpArgument("The search (1 arg)", true),
+                    replace: createHelpArgument("The replacement (1 arg)<br>if the -n option is given, this argument is not required", false),
+                    "...text": createHelpArgument("The text to search/replace through", true)
+        }, {
+            n: createHelpOption("No replace value"),
+            r: createHelpOption("Enable regex")
+        })
     )
 
     registerCommand(
