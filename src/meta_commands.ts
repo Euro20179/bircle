@@ -7,7 +7,7 @@ import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML } from "./util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr } from "./util"
 import { Guild, Message } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
@@ -2213,6 +2213,37 @@ ${styles}
             "Gets the bot's ping (very accurate)"
         )
     )
+
+    registerCommand("cmd-metadata", createCommandV2(async({args, opts}) => {
+        let cmds = {...getCommands(), ...getAliasesV2()}
+        let cmdObjs: [string, (typeof cmds[string])][] = listComprehension<string, ArgumentList, [string, typeof cmds[string]]>(args, (arg) => [arg, cmds[arg]]).filter(v => v[1])
+        let fmt: string = opts.getString("f", opts.getString("fmt", "%i"))
+        let av2fmt: string = opts.getString("fa", opts.getString("fmt-alias", "%i"))
+        return {content: listComprehension<typeof cmdObjs[number], typeof cmdObjs, string>(cmdObjs, ([name, cmd]) =>
+    cmd instanceof AliasV2 ?
+        formatPercentStr(av2fmt, {i: `${name}\nversion: alias\nhelp info: ${cmd.help?.info ? cmd.help.info : "unknown"}`, n: name, h: cmd.help?.info ? cmd.help.info : "unknown" })
+    :
+        formatPercentStr(fmt, {i: 
+    `${name}
+version: ${cmd.cmd_std_version ? cmd.cmd_std_version : "unknown"}
+help info: ${cmd.help?.info ? cmd.help.info : "unknown"}
+category: ${cmdCatToStr(cmd.category)}
+types: ${cmd.make_bot_type ? "true" : "false"}
+options: ${cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : ""}
+aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""}`,
+    n: name,
+    v: cmd.cmd_std_version ? String(cmd.cmd_std_version) : "unknown",
+    h: cmd.help?.info ? cmd.help.info : "unknown",
+    c: String(cmdCatToStr(cmd.category)),
+    t: cmd.make_bot_type ? "true" : "false",
+    o: cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : "",
+    a: cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""
+})
+).join("\n-------------------------\n"), status: StatusCode.RETURN}
+    }, CAT, "Get metadata about a commadn", {"...cmd": createHelpArgument("The command(s) to get metadata on", true)}, {
+        f: createHelpOption("Format specifier<br><lh>Formats:</lh><ul><li>n: name of command</li><li>v: cmd version</li><li>h: help info</li><li>c: category</li><li>t: types in chat</li><li>o: available options</li><li>a: available args</li></ul>", ["fmt"]),
+        "fa": createHelpOption("Format specifier for aliases<br><lh>Formats:</lh><ul><li>n: name of command</li><li>h: help info</li></ul>", ["fmt-alias"])
+    }))
 
     registerCommand(
         "version",
