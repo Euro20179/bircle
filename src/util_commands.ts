@@ -3322,25 +3322,12 @@ valid formats:<br>
     )
 
     registerCommand(
-        "tail",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let count = parseInt(String(opts['count'])) || 10
-                let argText = args.join(" ")
+        "tail", createCommandV2(async({args, opts, stdin}) => {
+                let count = opts.getNumber("count", 10)
+                let argText = stdin ? getContentFromResult(stdin) : args.join(" ")
                 return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n"), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Get the last 10 lines",
-                arguments: {
-                    text: createHelpArgument("The text to get the last lines of", true)
-                },
-                options: {
-                    count: createHelpOption("get the lats n lines instead of 1", undefined, "10")
-                }
-            }
-        },
+
+        }, CAT, "Get the last 10 lines", {text: createHelpArgument("The text to get the last lines of (also accepts pipe)", true)}, {count: createHelpOption("get the lats n lines instead of 1", undefined, "10")})
     )
 
     registerCommand(
