@@ -527,7 +527,7 @@ function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: 
  * @param {function(number):void} [onNext]
  * @returns {Iterable}
  */
-function* cycle<T>(iter: Iterable<T> extends {length: number} ? Iterable<T> : never[], onNext?: (n: number) => void) {
+function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T>{
     for (let i = 0; true; i++) {
         if (onNext)
             onNext(i)

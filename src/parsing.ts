@@ -210,8 +210,8 @@ class Parser {
     parseGTBracket () {
         let builtString = this.#curChar as string
         while(this.advance() && (
-                this.#pipeSign.startsWith(builtString) && builtString !==this.#pipeSign) ||
-                this.#defaultPipeSign.startsWith(builtString) && builtString !== this.#defaultPipeSign
+                this.#pipeSign.startsWith(builtString + this.#curChar) && builtString !==this.#pipeSign) ||
+                this.#defaultPipeSign.startsWith(builtString + this.#curChar) && builtString !== this.#defaultPipeSign
              ){
             builtString += this.#curChar
         }

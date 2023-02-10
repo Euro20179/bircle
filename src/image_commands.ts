@@ -131,9 +131,9 @@ export default function() {
                 let canv = new canvas.Canvas(image.width, image.height)
                 let ctx = canv.getContext("2d")
                 ctx.drawImage(image, 0, 0)
-                let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
+                let rgba_cycle = cycle<string>(["red", "green", "blue", "alpha"])
                 let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
-                    let cur_channel = rgba_cycle.next().value
+                    let cur_channel = rgba_cycle.next().value as string
                     if (idx % 4 === 3)
                         return v
                     if (channel.includes(cur_channel) && (v >= above && v <= below)) {
