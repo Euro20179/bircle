@@ -2215,69 +2215,72 @@ ${styles}
         )
     )
 
-    registerCommand("cmd-metadata", createCommandV2(async({args, opts}) => {
-        let cmds = {...getCommands(), ...getAliasesV2()}
+    registerCommand("cmd-metadata", createCommandV2(async ({ args, opts }) => {
+        let cmds = { ...getCommands(), ...getAliasesV2() }
         let cmdObjs: [string, (typeof cmds[string])][] = listComprehension<string, ArgumentList, [string, typeof cmds[string]]>(args, (arg) => [arg, cmds[arg]]).filter(v => v[1])
         let fmt: string = opts.getString("f", opts.getString("fmt", "%i"))
         let av2fmt: string = opts.getString("fa", opts.getString("fmt-alias", "%i"))
-        return {content: listComprehension<typeof cmdObjs[number], typeof cmdObjs, string>(cmdObjs, ([name, cmd]) =>
-    cmd instanceof AliasV2 ?
-        formatPercentStr(av2fmt, {i: `${name}\nversion: alias\nhelp info: ${cmd.help?.info ? cmd.help.info : "unknown"}`, n: name, h: cmd.help?.info ? cmd.help.info : "unknown" })
-    :
-        formatPercentStr(fmt, {i: 
-    `${name}
+        return {
+            content: listComprehension<typeof cmdObjs[number], typeof cmdObjs, string>(cmdObjs, ([name, cmd]) =>
+                cmd instanceof AliasV2 ?
+                    formatPercentStr(av2fmt, { i: `${name}\nversion: alias\nhelp info: ${cmd.help?.info ? cmd.help.info : "unknown"}`, n: name, h: cmd.help?.info ? cmd.help.info : "unknown" })
+                    :
+                    formatPercentStr(fmt, {
+                        i:
+                            `${name}
 version: ${cmd.cmd_std_version ? cmd.cmd_std_version : "unknown"}
 help info: ${cmd.help?.info ? cmd.help.info : "unknown"}
 category: ${cmdCatToStr(cmd.category)}
 types: ${cmd.make_bot_type ? "true" : "false"}
 options: ${cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : ""}
 aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""}`,
-    n: name,
-    v: cmd.cmd_std_version ? String(cmd.cmd_std_version) : "unknown",
-    h: cmd.help?.info ? cmd.help.info : "unknown",
-    c: String(cmdCatToStr(cmd.category)),
-    t: cmd.make_bot_type ? "true" : "false",
-    o: cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : "",
-    a: cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""
-})
-).join("\n-------------------------\n"), status: StatusCode.RETURN}
-    }, CAT, "Get metadata about a commadn", {"...cmd": createHelpArgument("The command(s) to get metadata on", true)}, {
+                        n: name,
+                        v: cmd.cmd_std_version ? String(cmd.cmd_std_version) : "unknown",
+                        h: cmd.help?.info ? cmd.help.info : "unknown",
+                        c: String(cmdCatToStr(cmd.category)),
+                        t: cmd.make_bot_type ? "true" : "false",
+                        o: cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : "",
+                        a: cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""
+                    })
+            ).join("\n-------------------------\n"), status: StatusCode.RETURN
+        }
+    }, CAT, "Get metadata about a commadn", { "...cmd": createHelpArgument("The command(s) to get metadata on", true) }, {
         f: createHelpOption("Format specifier<br><lh>Formats:</lh><ul><li>n: name of command</li><li>v: cmd version</li><li>h: help info</li><li>c: category</li><li>t: types in chat</li><li>o: available options</li><li>a: available args</li></ul>", ["fmt"]),
         "fa": createHelpOption("Format specifier for aliases<br><lh>Formats:</lh><ul><li>n: name of command</li><li>h: help info</li></ul>", ["fmt-alias"])
     }))
 
     registerCommand(
-        "version", createCommandV2(async({args, opts}) => {
-                if (opts.getBool("l", false)) {
-                    return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
-                }
-                let fmt = args[0] || "%v"
-                console.log(VERSION)
-                let { major, minor, bug, part, alpha, beta } = VERSION
-                let mainDisplay = (() => {
-                    let d = `${major}.${minor}.${bug}`
-                    if (part)
-                        d += `.${part}`
-                    if (alpha)
-                        d = `A.${d}`
-                    if (beta)
-                        d = `B.${d}`
-                    return d
-                })()
-                return {
-                    content: format(fmt, {
-                        v: mainDisplay,
-                        M: String(major),
-                        m: String(minor),
-                        b: String(bug),
-                        p: part,
-                        A: String(alpha),
-                        B: String(beta)
-                    }),
-                    status: StatusCode.RETURN
-                }
+        "version", createCommandV2(async ({ args, opts }) => {
+            if (opts.getBool("l", false)) {
+                return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
+            }
+            let fmt = args[0] || "%v"
+            console.log(VERSION)
+            let { major, minor, bug, part, alpha, beta } = VERSION
+            let mainDisplay = (() => {
+                let d = `${major}.${minor}.${bug}`
+                if (part)
+                    d += `.${part}`
+                if (alpha)
+                    d = `A.${d}`
+                if (beta)
+                    d = `B.${d}`
+                return d
+            })()
+            return {
+                content: format(fmt, {
+                    v: mainDisplay,
+                    M: String(major),
+                    m: String(minor),
+                    b: String(bug),
+                    p: part,
+                    A: String(alpha),
+                    B: String(beta)
+                }),
+                status: StatusCode.RETURN
+            }
 
-        }, CAT, "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>", {fmt: createHelpArgument("The format", false)})
+        }, CAT, "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>", { fmt: createHelpArgument("The format", false) })
     )
 
     registerCommand(
@@ -2326,8 +2329,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     )
 
     registerCommand(
-        "spams", createCommandV2(async() => {
-                return {content: listComprehension(Object.keys(globals.SPAMS), i => `${i}`).join("\n") || "No spams", status: StatusCode.RETURN }
+        "spams", createCommandV2(async () => {
+            return { content: Object.keys(globals.SPAMS).join("\n") || "No spams", status: StatusCode.RETURN }
         }, CAT, "List the ongoing spam ids")
     )
 }
