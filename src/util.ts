@@ -1172,59 +1172,72 @@ function renderHTML(text: string, indentation = 0) {
 }
 
 function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2) {
-    let text = `***${name}***:\n\n`
+    let text =""
     let helpData = command.help
     if (!helpData)
         return text
+
+    let nameInfo = `***${name}***`
+    let textInfo = "";
+    let aliasInfo = "";
+    let argInfo = "";
+    let optInfo = "";
+    let tagInfo = "";
+
     if (helpData.info) {
-        text += renderHTML(helpData.info) + "\n\n"
+        textInfo = "\n\n" + renderHTML(helpData.info) + "\n\n"
     }
     if (helpData.aliases) {
-        text += `Aliases: ${helpData.aliases.join(", ")}\n`
+        aliasInfo = `Aliases: ${helpData.aliases.join(", ")}\n`
     }
     if (helpData.arguments) {
-        text += "__Arguments__:\n"
+        argInfo += "__Arguments__:\n"
         for (let arg in helpData.arguments) {
-            text += `\t* **${arg}**`
+            argInfo += `\t* **${arg}**`
             if (helpData.arguments[arg].required !== false) {
-                text += " (required) "
+                argInfo += " (required) "
+                nameInfo += ` <${arg}>`
+            }
+            else{
+                nameInfo += ` [${arg}]`
             }
             if (helpData.arguments[arg].requires) {
-                text += ` (requires: ${helpData.arguments[arg].requires}) `
+                argInfo += ` (requires: ${helpData.arguments[arg].requires}) `
             }
             if (helpData.arguments[arg].default) {
-                text += ` (default: ${helpData.arguments[arg].default})`
+                argInfo += ` (default: ${helpData.arguments[arg].default})`
+                nameInfo += ` [${arg} (${helpData.arguments[arg].default})]`
             }
             let html = cheerio.load(helpData.arguments[arg].description)
-            text += `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`
+            argInfo += `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`
             //we want exactly 2 new lines
-            while (!text.endsWith("\n\n")) {
-                text += "\n"
+            while (!argInfo.endsWith("\n\n")) {
+                argInfo += "\n"
             }
         }
     }
     if (helpData.options) {
-        text += "__Options__:\n"
+        optInfo += "__Options__:\n"
         for (let op in helpData.options) {
-            text += `\t* **-${op}**`
+            optInfo += `\t* **-${op}**`
             if (helpData.options[op].default) {
-                text += ` (default: ${helpData.options[op].default})`
+                optInfo += ` (default: ${helpData.options[op].default})`
             }
-            text += ': '
-            text += renderHTML(helpData.options[op].description, 2).trim()
+            optInfo += ': '
+            optInfo += renderHTML(helpData.options[op].description, 2).trim()
             if (helpData.options[op].alternates) {
-                text += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
+                optInfo += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
             //we want exactly 2 new lines
-            while (!text.endsWith("\n\n")) {
-                text += "\n"
+            while (!optInfo.endsWith("\n\n")) {
+                optInfo += "\n"
             }
         }
     }
     if (helpData.tags?.length) {
-        text += `__Tags__:\n${helpData.tags.join(", ")}\n`
+        tagInfo += `__Tags__:\n${helpData.tags.join(", ")}\n`
     }
-    return text.replace("\n\n\n", "\n")
+    return (nameInfo + "\n\n" + textInfo + aliasInfo + argInfo + optInfo + tagInfo).replace("\n\n\n", "\n")
 }
 
 function generateHTMLFromCommandHelp(name: string, command: any) {
