@@ -908,8 +908,9 @@ export class Interpreter {
 
             while (this.advance()) {
                 if((this.#curTok as Token).type === T.pipe){
-                    this.#pipeTo = this.#originalTokens.slice(this.#i + 1)
-                    this.returnJson = true
+                    //dofirst tokens get removed, so we must filter them out here or offset errors occure
+                    this.#pipeTo = this.#originalTokens.filter(v => v.type !== T.dofirst).slice(this.#i + 1)
+                    //this.returnJson = true
                     break
                 }
                 await this.interprateCurrentAsToken((this.#curTok as Token).type)
@@ -936,13 +937,43 @@ export class Interpreter {
     static async run(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn){
 
         let int = new Interpreter(msg, tokens, modifiers, recursion, returnJson, disable, sendCallback, pipeData)
-        let data = await int.run()
-        while(int.getPipeTo().length){
-            let tks = int.getPipeTo()
-            tks[0].type = T.command
-            int = new Interpreter(msg, tks, modifiers, recursion, returnJson, disable, sendCallback, data)
-            data = await int.run()
+        await int.interprate()
+
+        let intPipeData = int.getPipeTo()
+
+        //if the pipe is open, all calls to handleSending, and returns should run through the pipe
+        if(intPipeData){
+            let originalInt = int
+            async function sendCallback(options: string | MessageOptions | MessagePayload){
+                let tks = originalInt.getPipeTo()
+                while(tks.length){
+                    tks[0].type = T.command
+                    let int = new Interpreter(msg, tks, modifiers, recursion, true, disable, sendCallback, options as CommandReturn)
+                    options = await int.run() as CommandReturn
+                    tks = int.getPipeTo()
+                }
+                return handleSending(msg, options as CommandReturn, undefined)
+            }
+            int.sendCallback = sendCallback
         }
+
+        let data = await int.run()
+        let tks = int.#pipeTo
+        if(int.returnJson){
+            while(tks.length){
+                tks[0].type = T.command
+                let int = new Interpreter(msg, tks, modifiers, recursion, true, disable, sendCallback, data)
+                data = await int.run()
+                tks = int.getPipeTo()
+            }
+        }
+        // while(intPipeData.length){
+        //     let tks = intPipeData
+        //     tks[0].type = T.command
+        //     let int = new Interpreter(msg, tks, modifiers, recursion, returnJson, disable, sendCallback, data)
+        //     data = await int.run()
+        //     intPipeData = int.getPipeTo()
+        // }
         return data
     }
 }

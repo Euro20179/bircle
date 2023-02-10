@@ -1,7 +1,7 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable }  from 'discord.js'
 import { getVar } from './common'
 
-import { runCmd } from "./common_to_commands"
+import { handleSending, runCmd, StatusCode } from "./common_to_commands"
 
 const { vars, prefix } = require( "./common.js")
 
@@ -673,7 +673,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (ans == undefined || ans == null) {
                     return { content: "Nothing to send", err: true }
                 }
-                stack.push(await msg.channel.send(String(ans)))
+                stack.push(await handleSending(msg, {content: String(ans), status: StatusCode.INFO}))
                 break
             }
             case "%edit": {
@@ -1387,7 +1387,7 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
         "random": async (low: number, high: number) => { low ??= 1; high ??= 10; return Math.random() * (high - low) + low },
         "input": async (prompt?: string, useFilter?: boolean | string | number, reqTimeout?: number) => {
             if (prompt && typeof prompt === 'string') {
-                await msg.channel.send(prompt)
+                handleSending(msg, {content: prompt, status: StatusCode.PROMPT})
             }
             let filter: CollectorFilter<[Message<boolean>]> | undefined = (m: any) => m.author.id === msg.author.id && !m.author.bot
             if (useFilter === false || useFilter === 0) {
