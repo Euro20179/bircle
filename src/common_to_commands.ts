@@ -790,7 +790,7 @@ export class Interpreter {
         }
         else if(this.aliasV2){
             let [opts, args2] = getOpts(args)
-            rv = await this.aliasV2.run({msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback as Function, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable}) as CommandReturn
+            rv = await this.aliasV2.run({msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable}) as CommandReturn
         }
         else if (!commands[this.real_cmd]) {
             //We dont want to keep running commands if the command doens't exist
@@ -965,13 +965,6 @@ export class Interpreter {
         if(int.returnJson){
             data = await int.handlePipes(data as CommandReturn)
         }
-        // while(intPipeData.length){
-        //     let tks = intPipeData
-        //     tks[0].type = T.command
-        //     let int = new Interpreter(msg, tks, modifiers, recursion, returnJson, disable, sendCallback, data)
-        //     data = await int.run()
-        //     intPipeData = int.getPipeTo()
-        // }
         return data
     }
 }

@@ -1021,29 +1021,29 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "rand-line", createCommandV2(async({args, stdin}) => {
-                let text;
-                if(args[0]){
-                    let file = args[0]
-                    if (file.match(/\./)) {
-                        return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
+        "rand-line", createCommandV2(async ({ args, stdin }) => {
+            let text;
+            if (args[0]) {
+                let file = args[0]
+                if (file.match(/\./)) {
+                    return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
+                }
+                if (!fs.existsSync(`./command-results/${file}`)) {
+                    return {
+                        content: "file does not exist",
+                        status: StatusCode.ERR
                     }
-                    if (!fs.existsSync(`./command-results/${file}`)) {
-                        return {
-                            content: "file does not exist",
-                            status: StatusCode.ERR
-                        }
-                    }
-                    text = fs.readFileSync(`./command-results/${file}`, "utf-8")
                 }
-                else if(stdin){
-                    text = getContentFromResult(stdin as CommandReturn)
-                }
-                else{
-                    return { content: "No file specified, and no pipe", status: StatusCode.ERR }
-                }
-                const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
-                return { content: choice(lines), status: StatusCode.RETURN }
+                text = fs.readFileSync(`./command-results/${file}`, "utf-8")
+            }
+            else if (stdin) {
+                text = getContentFromResult(stdin as CommandReturn)
+            }
+            else {
+                return { content: "No file specified, and no pipe", status: StatusCode.ERR }
+            }
+            const lines = text.split("\n").map((str) => str.split(": ").slice(1).join(": ").replace(/;END$/, "")).filter((v) => v)
+            return { content: choice(lines), status: StatusCode.RETURN }
 
         }, CAT, "Get a random line from a file or pipe")
     )
@@ -1249,15 +1249,15 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "vars", createCommandV2(async() => {
-                let rv = Object.entries(vars).map(([prefix, varData]) => {
-                    return `**${prefix.replaceAll("_", "\\_")}**:\n` +
-                            Object.keys(varData)
-                                .map(v => `${v.replaceAll("_", "\\_")}`)
-                                .join("\n") +
-                            "\n-------------------------"
-                }).join("\n")
-                return { content: rv, status: StatusCode.RETURN }
+        "vars", createCommandV2(async () => {
+            let rv = Object.entries(vars).map(([prefix, varData]) => {
+                return `**${prefix.replaceAll("_", "\\_")}**:\n` +
+                    Object.keys(varData)
+                        .map(v => `${v.replaceAll("_", "\\_")}`)
+                        .join("\n") +
+                    "\n-------------------------"
+            }).join("\n")
+            return { content: rv, status: StatusCode.RETURN }
 
         }, CAT, "List all variables")
     )
@@ -1687,10 +1687,10 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
 
         let result = v2.expand(msg, args.slice(1), getOpts(rawArgs)[0], (alias: any, preArgs: any) => {
-            if(showArgs){
+            if (showArgs) {
                 chain.push(preArgs)
             }
-            else{
+            else {
                 chain.push(alias)
             }
             return true
@@ -2059,12 +2059,16 @@ ${styles}
         const helpInfo = opts.getString("help-info", "")
 
         const commandHelpOptions: CommandHelpOptions = {}
+        const commandHelpArgs: CommandHelpArguments = {}
 
         let attrs = {
-            "-desc": (name: string, value: string) => commandHelpOptions[name].description = value,
-            "-alt": (name: string, value: string) => commandHelpOptions[name].alternates = value.split(","),
-            "-default": (name: string, value: string) => commandHelpOptions[name].default = value,
-        } as const
+            "-odesc": (name: string, value: string) => commandHelpOptions[name].description = value,
+            "-oalt": (name: string, value: string) => commandHelpOptions[name].alternates = value.split(","),
+            "-odefault": (name: string, value: string) => commandHelpOptions[name].default = value,
+            "-adesc": (name: string, value: string) => commandHelpArgs[name].description = value,
+            "-adefault": (name: string, value: string) => commandHelpArgs[name].default = value,
+            "-arequired": (name: string, value: string) => commandHelpArgs[name].required = value === "true" ? true : false
+        } as const;
 
         //go through each opt
         for (let opt of opts.keys() as IterableIterator<string>) {
@@ -2072,12 +2076,16 @@ ${styles}
             for (let possibleAttr in attrs) {
                 if (opt.endsWith(possibleAttr)) {
                     //get the option name
-                    let oName = opt.slice(0, -(possibleAttr.length))
-                    if (!commandHelpOptions[oName]) {
-                        commandHelpOptions[oName] = { description: oName }
+                    let name = opt.slice(0, -(possibleAttr.length));
+                    let objToModify = ({ 'o': commandHelpOptions, 'a': commandHelpArgs })[possibleAttr[1] as 'o' | 'a']
+                    if (!objToModify[name]) {
+                        objToModify[name] = { description: name }
                     }
-                    //do the thing specified in $attrs with the vale of -<opt-name>-<possible-attr> as the value
-                    attrs[possibleAttr as keyof typeof attrs](oName, opts.getString(opt, ""))
+                    if (attrs[possibleAttr as keyof typeof attrs]) {
+                        //do the thing specified in $attrs with the vale of -<opt-name>-<possible-attr> as the value
+                        attrs[possibleAttr as keyof typeof attrs](name, opts.getString(opt, ""))
+                    }
+                    else continue;
                     break
                 }
             }
