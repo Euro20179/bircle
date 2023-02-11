@@ -1600,7 +1600,6 @@ middle
     registerCommand(
         "string", createCommand(async (_msg, args) => {
             let operation = args[0]
-            console.log(args)
             let string = args.slice(1).join(" ")
             let operations: { [key: string]: (string: string) => string } = {
                 upper: string => string.toUpperCase(),
