@@ -148,7 +148,7 @@ export class AliasV2 {
         return rv
     }
     toJsonString() {
-        return JSON.stringify({ name: this.name, exec: this.exec, help: this.help })
+        return JSON.stringify({ name: this.name, exec: this.exec, help: this.help,  creator: this.creator, appendOpts: this.appendOpts, appendArgs: this.appendArgs})
     }
 
     
