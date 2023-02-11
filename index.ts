@@ -265,6 +265,13 @@ client.on("messageCreate", async (m: Message) => {
     if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
         await handleChatSearchCommandType(m, search)
     }
+    let rerunWithReplacement
+    if((rerunWithReplacement = content.match(/^\^([^\^]+)\^(.*)$/)) && command_commons.lastCommand[m.author.id]){
+        let find = rerunWithReplacement[1]
+        let replace = rerunWithReplacement[2]
+        command_commons.lastCommand[m.author.id] = command_commons.lastCommand[m.author.id].replaceAll(find, replace)
+        content = `${local_prefix}!!`
+    }
     if (content.slice(0, local_prefix.length) == local_prefix) {
         if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
             server.close()
