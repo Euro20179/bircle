@@ -37,12 +37,14 @@ export class AliasV2 {
     exec: string
     creator: string
     appendArgs: boolean
-    constructor(name: string, exec: string, creator: string, help: CommandHelp, appendArgs?: boolean) {
+    appendOpts: boolean
+    constructor(name: string, exec: string, creator: string, help: CommandHelp, appendArgs?: boolean, appendOpts?: boolean) {
         this.name = name
         this.exec = exec
         this.creator = creator
         this.help = help
         this.appendArgs = appendArgs ?? true
+        this.appendOpts = appendOpts ?? true
     }
     setAppendArgs(bool?: boolean){
         this.appendArgs = bool ?? false
@@ -116,9 +118,16 @@ export class AliasV2 {
             }
         }
 
+        if(this.appendOpts){
+            //if opt is true, we want it to JUST be -<opt> if it's anything else it should be -<opt>=<value>
+            tempExec += " " + Object.entries(opts).map(v => `-${v[0]}${v[1] === true ? "" : `=\\s{${v[1]}}`}`).join(" ")
+        }
+
         if(this.appendArgs){
             tempExec += args.join(" ")
         }
+
+        console.log(tempExec)
 
         return tempExec
     }
