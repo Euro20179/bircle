@@ -16,6 +16,20 @@ import { performance } from 'perf_hooks'
 
 export default function(CAT: CommandCategory) {
 
+    registerCommand("stdin", createCommandV2(async({stdin, args}) => {
+        let res: any = stdin
+        for(let arg of args){
+            if(res[arg]){
+                res = res[arg]
+            }
+            else{
+                break
+            }
+        }
+        return {content: typeof res === 'string' ? res : JSON.stringify(res), status: StatusCode.RETURN}
+
+    }, CAT, "get specific data from stdin/pipe"))
+
     registerCommand("raw", createCommandV2(async ({ rawArgs }) => {
         console.log(rawArgs)
         let data;
@@ -2227,6 +2241,7 @@ ${styles}
         formatPercentStr(fmt, {i: 
     `${name}
 version: ${cmd.cmd_std_version ? cmd.cmd_std_version : "unknown"}
+use cache: ${cmd.use_result_cache ? true : false}
 help info: ${cmd.help?.info ? cmd.help.info : "unknown"}
 category: ${cmdCatToStr(cmd.category)}
 types: ${cmd.make_bot_type ? "true" : "false"}
@@ -2236,6 +2251,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     v: cmd.cmd_std_version ? String(cmd.cmd_std_version) : "unknown",
     h: cmd.help?.info ? cmd.help.info : "unknown",
     c: String(cmdCatToStr(cmd.category)),
+    C: String(cmd.use_result_cache ? true : false),
     t: cmd.make_bot_type ? "true" : "false",
     o: cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : "",
     a: cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""
