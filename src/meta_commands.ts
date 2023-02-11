@@ -8,7 +8,7 @@ import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr } from "./util"
-import { Guild, Message } from "discord.js"
+import { Guild, Message, MessageEmbed } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
@@ -2137,6 +2137,23 @@ ${styles}
         "-<argname>-adefault": createHelpArgument("Set the default of <argname> i nthe help menu"),
         "-<argname>-arequried": createHelpArgument("Set whether or not the argument is required")
     }))
+
+    registerCommand("process", createCommandV2(async({args}) => {
+        let fmt = args.join(" ")
+        if(!fmt){
+            let embed = new MessageEmbed()
+            embed.setTitle(process.argv0)
+            embed.addFields([
+                {name: "Args", value: process.argv.join(" "), inline: true},
+                {name: "Arch", value: process.arch, inline: false},
+                {name: "PID", value: String(process.pid), inline: false},
+                {name: "Platform", value: process.platform, inline: false},
+                {name: "Heap memory (MiB)", value: String(process.memoryUsage().heapTotal / 1024 /1024), inline: false}
+            ])
+            return {embeds: [embed], status: StatusCode.RETURN}
+        } else return {content: formatPercentStr(fmt, {a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024)}), status: StatusCode.RETURN}
+    }, CAT, "Gets info about the process"))
+
     registerCommand(
         "alias",
         {
