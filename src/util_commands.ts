@@ -19,16 +19,6 @@ import { exec, execSync, spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function(CAT: CommandCategory) {
-    // registerCommand("test", createCommandV2(async ({msg, args}) => {
-    //     const row = new MessageActionRow()
-    //     const button = new MessageButton()
-    //     button.setURL("discord://discord.gg/test");
-    //     button.setStyle("LINK")
-    //     button.setLabel("HI")
-    //     row.addComponents(button)
-    //     return {components: [row], status: StatusCode.RETURN}
-    // }, CommandCategory.UTIL))
-    //
 
     registerCommand("cat", createCommandV2(async ({ stdin, opts, args }) => {
         let content = "";
@@ -89,25 +79,6 @@ export default function(CAT: CommandCategory) {
         return { embeds: [embed], status: StatusCode.RETURN }
     }, CommandCategory.FUN))
 
-    // registerCommand("gcc", createCommandV2(async ({msg, args}) => {
-    //     let file = msg.attachments.at(0)
-    //     let data = args.join(" ")
-    //     if(file){
-    //         data = await (await fetch.default(file.url)).text()
-    //     }
-    //     let fn = `${generateFileName("gcc", msg.author.id)}.c`
-    //     fs.writeFileSync(fn, data)
-    //     execSync(`gcc ${fn} -o ${fn}.executable`)
-    //     return {
-    //         files: [{
-    //             name: "out",
-    //             attachment: `${fn}.executable`,
-    //             delete: true
-    //         }],
-    //         status: StatusCode.RETURN
-    //     }
-    //     
-    // }, CommandCategory.UTIL))
 
     registerCommand("google", createCommandV2(async ({ args }) => {
 
@@ -867,7 +838,15 @@ export default function(CAT: CommandCategory) {
             let horChar = opts.getString("hor-char", "-")
             let text = stdin ? getContentFromResult(stdin).split("\n") : args.join(" ").split("\n")
             let lines = [horChar.repeat(maxWidth + 2)]
+            //FIXME: make sure each $line_of_text is at most $maxWidth
             for (let line_of_text of text) {
+                if(line_of_text.length > maxWidth){
+                    for(let i = 0; i < line_of_text.length + maxWidth; i+= maxWidth){
+                        let t = line_of_text.slice(i, i+maxWidth)
+                        lines.push(`${vertChar}${" ".repeat((maxWidth - t.length) / 2)}${t}${" ".repeat((maxWidth - t.length) / 2)}${vertChar}`)
+                    }
+                    continue
+                }
                 lines.push(`${vertChar}${" ".repeat((maxWidth - line_of_text.length) / 2)}${line_of_text}${" ".repeat((maxWidth - line_of_text.length) / 2)}${vertChar}`)
 
             }
