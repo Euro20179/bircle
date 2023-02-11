@@ -1564,6 +1564,7 @@ until you put a 0 in the box`)
             let dealerTotal = calculateTotal(dealerCards).total
             let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
             let status = "You won"
+            let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
             if (playerTotal > 21) {
                 status = `You lost: $${bet} (over 21)`
                 economy.loseMoneyToBank(msg.author.id, bet)
@@ -1611,11 +1612,11 @@ until you put a 0 in the box`)
                 }
             }
             else if (playerTotal < dealerTotal && dealerTotal < 22) {
-                status = `You lost: $${bet} (dealer won)`
+                status = `You lost: ${currency_sign}${bet} (dealer won)`
                 economy.loseMoneyToBank(msg.author.id, bet)
             }
             else {
-                status = `You won: $${bet}`
+                status = `You won: ${currency_sign}${bet}`
                 economy.addMoney(msg.author.id, bet)
             }
             delete globals.BLACKJACK_GAMES[msg.author.id]

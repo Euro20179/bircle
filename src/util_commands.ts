@@ -19,16 +19,6 @@ import { exec, execSync, spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
 export default function(CAT: CommandCategory) {
-    // registerCommand("test", createCommandV2(async ({msg, args}) => {
-    //     const row = new MessageActionRow()
-    //     const button = new MessageButton()
-    //     button.setURL("discord://discord.gg/test");
-    //     button.setStyle("LINK")
-    //     button.setLabel("HI")
-    //     row.addComponents(button)
-    //     return {components: [row], status: StatusCode.RETURN}
-    // }, CommandCategory.UTIL))
-    //
 
     registerCommand("cat", createCommandV2(async ({ stdin, opts, args }) => {
         let content = "";
@@ -846,7 +836,15 @@ export default function(CAT: CommandCategory) {
             let horChar = opts.getString("hor-char", "-")
             let text = stdin ? getContentFromResult(stdin).split("\n") : args.join(" ").split("\n")
             let lines = [horChar.repeat(maxWidth + 2)]
+            //FIXME: make sure each $line_of_text is at most $maxWidth
             for (let line_of_text of text) {
+                if(line_of_text.length > maxWidth){
+                    for(let i = 0; i < line_of_text.length + maxWidth; i+= maxWidth){
+                        let t = line_of_text.slice(i, i+maxWidth)
+                        lines.push(`${vertChar}${" ".repeat((maxWidth - t.length) / 2)}${t}${" ".repeat((maxWidth - t.length) / 2)}${vertChar}`)
+                    }
+                    continue
+                }
                 lines.push(`${vertChar}${" ".repeat((maxWidth - line_of_text.length) / 2)}${line_of_text}${" ".repeat((maxWidth - line_of_text.length) / 2)}${vertChar}`)
 
             }
@@ -1603,7 +1601,7 @@ middle
             let string = args.slice(1).join(" ")
             let operations: { [key: string]: (string: string) => string } = {
                 upper: string => string.toUpperCase(),
-                lower: string => string.toUpperCase(),
+                lower: string => string.toLowerCase(),
                 title: string => string.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" "),
                 lc: string => String(string.split("\n").length),
                 wc: string => String(string.split(" ").length),
@@ -2651,7 +2649,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         description: "Number 1 (can be a variable)"
                     },
                     "operator": {
-                        description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li>/</li><li>^</li><li>%</li></ul>"
+                        description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li><li>/</li><li>^</li><li>%</li></ul>"
                     },
                     "num2": {
                         description: "The other number (can be a variable)"
