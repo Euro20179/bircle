@@ -6,7 +6,7 @@ import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, delVar, prefix, setVar, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr } from './parsing';
+import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
@@ -99,6 +99,7 @@ export class AliasV2 {
         const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+)/
 
         let tempExec = this.exec
+        console.log(tempExec)
 
         for(let innerText of innerPairs){
             if(argsRegex.test(innerText)){
@@ -389,12 +390,13 @@ export class Interpreter {
                 break
             }
 
-            // case "token": {
-            //     let [tt, ...data] = args
-            //     let text = data.join("|")
-            //
-            //     return new Token(strToTT(tt), text, this.#curArgNo)
-            // }
+            case "token": {
+                let [tt, ...data] = args
+                let text = data.join("|")
+
+                this.interprateAsToken(new Token(strToTT(tt), text, this.#curTok?.argNo as number), strToTT(tt))
+                return true
+            }
 
             case "rev":
             case "reverse":
@@ -887,6 +889,9 @@ export class Interpreter {
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
+    async interprateAsToken(token: Token, t: T){
+        return await this[t](token)
+    }
     async interprateCurrentAsToken(t: T) {
         return await this[t](this.#curTok as Token)
     }
