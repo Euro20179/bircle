@@ -49,6 +49,9 @@ export class AliasV2 {
     setAppendArgs(bool?: boolean){
         this.appendArgs = bool ?? false
     }
+    setAppendOpts(bool?: boolean){
+        this.appendOpts = bool ?? false
+    }
 
     prepare (msg: Message, args: string[], opts: Opts) {
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
@@ -210,7 +213,7 @@ export function createAliasesV2(): {[key: string]: AliasV2} {
     if (fs.existsSync("./command-results/aliasV2")) {
         let j: {[key: string]: AliasV2} = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
         for(let aName in j){
-            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs)
+            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs, j[aName].appendOpts)
         }
         return j
     }

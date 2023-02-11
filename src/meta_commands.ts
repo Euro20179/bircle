@@ -2112,8 +2112,11 @@ ${styles}
             return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
         }
 
-        if (opts.getBool("no-args", true)) {
+        if (opts.getBool("no-args", false)) {
             alias.setAppendArgs(false)
+        }
+        if (opts.getBool("no-opts", false)) {
+            alias.setAppendOpts(false)
         }
 
         aliasesV2[name] = alias
@@ -2126,6 +2129,7 @@ ${styles}
     }, {
         "help-info": createHelpOption(`The information to say when ${prefix}help \${name} is run`, undefined, ""),
         "no-args": createHelpOption("Do not append user arguments to the end of exec", undefined, "false"),
+        "no-opts": createHelpOption("Do not append user opts to the end of exec", undefined, "false"),
         "-<optname>-odesc": createHelpOption("Set the description of <optname>", undefined),
         "-<optname>-oalt": createHelpOption("Set the alternate opts of <optname> seperated by commas", undefined),
         "-<optname>-odefault": createHelpOption("Set the default value of <optname>", undefined),
