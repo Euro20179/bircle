@@ -2672,7 +2672,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         description: "Number 1 (can be a variable)"
                     },
                     "operator": {
-                        description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li>/</li><li>^</li><li>%</li></ul>"
+                        description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li><li>/</li><li>^</li><li>%</li></ul>"
                     },
                     "num2": {
                         description: "The other number (can be a variable)"
