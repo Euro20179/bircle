@@ -3366,8 +3366,7 @@ valid formats:<br>
                     status: StatusCode.ERR
                 }
             }
-            let data = stdin ? args.join(" ") : argList.expectString(() => true)
-            console.log(data)
+            let data = stdin ? stdin.content : argList.expectString(() => true)
 
             if (!data) {
                 if (msg.attachments?.at(0)) {
