@@ -1168,9 +1168,7 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "spam",
-        {
-            run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
+        "spam", createCommandV2(async({msg, args, opts, sendCallback}) => {
                 let times = parseInt(args[0])
                 if (times) {
                     args.splice(0, 1)
@@ -1184,12 +1182,13 @@ export default function(CAT: CommandCategory) {
                 let id = String(Math.floor(Math.random() * 100000000))
                 await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
                 globals.SPAMS[id] = true
-                let delay: number | null = parseFloat(String(opts['delay'])) * 1000 || 0
+                //@ts-ignore
+                let delay: number | null = opts.getNumber("delay", null) * 1000
                 if (delay < 700 || delay > 0x7FFFFFFF) {
                     delay = null
                 }
                 while (globals.SPAMS[id] && times--) {
-                    await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN })
+                    await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
                     await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
 
                 }
@@ -1198,27 +1197,13 @@ export default function(CAT: CommandCategory) {
                     content: "done",
                     status: StatusCode.INFO
                 }
-            },
-            help: {
-                info: "This technically runs the echo command with the -D option in the background, so any special syntax such as $() should work (if preceded with a \\)",
-                arguments: {
-                    count: {
-                        description: "The amount of times to send a message",
-                        required: false
-                    },
-                    text: {
-                        description: "TThe text to send",
-                        required: true
-                    }
-                },
-                options: {
-                    delay: {
-                        description: "The time between each time a mesage is sent"
-                    }
-                }
-            },
-            category: CAT
-        },
+
+        }, CAT,  "Spam some text", {
+            count: createHelpArgument("The amount of times to spam", false),
+            "...text": createHelpArgument("The text to send", true)
+        }, {
+            delay: createHelpOption("The tiem to wait between each send")
+        })
     )
 
     registerCommand(

@@ -920,7 +920,7 @@ export class Interpreter {
             while (this.advance()) {
                 if((this.#curTok as Token).type === T.pipe){
                     //dofirst tokens get removed, so we must filter them out here or offset errors occure
-                    this.#pipeTo = this.#originalTokens.filter(v => v.type !== T.dofirst).slice(this.#i + 1)
+                    this.#pipeTo = this.#originalTokens.filter((v, i) => i < this.#i + 1 ? v.type !== T.dofirst : true).slice(this.#i + 1)
                     //this.returnJson = true
                     break
                 }
