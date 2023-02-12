@@ -50,7 +50,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
     let usedYoink: string[] = []
 
-    let usedTriple: string[] =[]
+    let usedTriple: string[] = []
 
     let negativeHpBonus: {[key: string]: number} = {}
 
