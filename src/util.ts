@@ -1011,6 +1011,9 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             }
         }
+        else{
+            break
+        }
     }
     newArgs = args.slice(idxOfFirstRealArg)
     return [opts, newArgs]
