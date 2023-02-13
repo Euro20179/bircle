@@ -235,7 +235,7 @@ export default function(CAT: CommandCategory) {
                     }
                 }
 
-                return { content: results.join("\n"), status: StatusCode.RETURN }
+                return { content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN }
             }, category: CAT,
             help: {
                 info: "Get the source code of a file, or a command",
