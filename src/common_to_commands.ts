@@ -141,6 +141,8 @@ export class AliasV2 {
 
         let tempExec = this.prepare(msg, args, opts)
 
+        globals.addToCmdUse(this.exec)
+
         let rv = await runCmd(msg, tempExec, recursionCount + 1, true)
 
         for(let opt of Object.entries(opts)){
@@ -865,7 +867,10 @@ export class Interpreter {
                 if (commands[this.real_cmd].use_result_cache === true) {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
-                globals.addToCmdUse(this.real_cmd)
+                //it will double add this if it's an alias
+                if(!this.alias){
+                    globals.addToCmdUse(this.real_cmd)
+                }
                 //if normal command, it counts as use
             }
             else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
