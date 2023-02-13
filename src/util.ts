@@ -758,7 +758,9 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         parsePercentFormat,
         formatPercentStr,
         formatBracePairs,
-        searchList
+        searchList,
+        renderHTML,
+        getOpts
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
