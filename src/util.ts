@@ -508,6 +508,12 @@ class UTF8String {
     }
 }
 
+function* enumerate<T>(iterable: T[]): Generator<[number, T]>{
+    for(let i = 0; i < iterable.length; i++){
+        yield [i, iterable[i]]
+    }
+}
+
 function* range(start: number, stop: number, step: number = 1){
     for(let i = start; i < stop; i += step){
         yield i
@@ -989,14 +995,13 @@ class Options extends Map{
     }
 }
 
-
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
     let newArgs = []
     let idxOfFirstRealArg = 0
     for (let arg of args) {
-        idxOfFirstRealArg++
         if (arg[0] == "-") {
+            idxOfFirstRealArg++;
             if (arg[1] && arg[1] === '-') {
                 break
             }
@@ -1005,14 +1010,9 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
                 //@ts-ignore
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             }
-        } else {
-            idxOfFirstRealArg--
-            break
         }
     }
-    for (let i = idxOfFirstRealArg; i < args.length; i++) {
-        newArgs.push(args[i])
-    }
+    newArgs = args.slice(idxOfFirstRealArg)
     return [opts, newArgs]
 }
 
@@ -1384,6 +1384,7 @@ export {
     ArgList,
     searchList,
     listComprehension,
-    range
+    range,
+    enumerate
 }
 
