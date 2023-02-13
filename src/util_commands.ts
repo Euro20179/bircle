@@ -13,8 +13,8 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands } from './common_to_commands'
-import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
-import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
+import { ADMINS, client, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { exec, execSync, spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
@@ -163,7 +163,7 @@ export default function(CAT: CommandCategory) {
         "help", createCommand(async (_msg, args) => {
 
             const matchCmds = getMatchCommands()
-            let commands = { ...getCommands(), ...matchCmds}
+            let commands = { ...getCommands(), ...matchCmds }
             let opts
             [opts, args] = getOpts(args)
             if (opts["g"]) {
@@ -201,7 +201,7 @@ export default function(CAT: CommandCategory) {
                 return { content: rv, status: StatusCode.RETURN }
             }
             const aliasesV2 = getAliasesV2()
-            let commandsToUse = { ...commands, ...matchCmds, ...aliasesV2}
+            let commandsToUse = { ...commands, ...matchCmds, ...aliasesV2 }
             if (args[0]) {
                 commandsToUse = {}
                 if (args[0] == "?") {
@@ -212,7 +212,7 @@ export default function(CAT: CommandCategory) {
                         if (commands[cmd]) {
                             commandsToUse[cmd] = commands[cmd]
                         }
-                        else if(matchCmds[cmd]){
+                        else if (matchCmds[cmd]) {
                             commandsToUse[cmd] = matchCmds[cmd]
                         }
                         else if (aliasesV2[cmd]) {
@@ -844,9 +844,9 @@ export default function(CAT: CommandCategory) {
             let lines = [horChar.repeat(maxWidth + 2)]
             //FIXME: make sure each $line_of_text is at most $maxWidth
             for (let line_of_text of text) {
-                if(line_of_text.length > maxWidth){
-                    for(let i = 0; i < line_of_text.length + maxWidth; i+= maxWidth){
-                        let t = line_of_text.slice(i, i+maxWidth)
+                if (line_of_text.length > maxWidth) {
+                    for (let i = 0; i < line_of_text.length + maxWidth; i += maxWidth) {
+                        let t = line_of_text.slice(i, i + maxWidth)
                         lines.push(`${vertChar}${" ".repeat((maxWidth - t.length) / 2)}${t}${" ".repeat((maxWidth - t.length) / 2)}${vertChar}`)
                     }
                     continue
@@ -2466,6 +2466,169 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
     )
 
+    registerCommand("printf", createCommandV2(async ({ argList, opts, msg }) => {
+        class Format {
+            /**
+            * @abstract
+            */
+            format(text: string): string { return text }
+
+            static parseFormatSpecifier(format: string): Format | string {
+                if (!format.startsWith("%")) {
+                    return format
+                }
+                format = format.slice(1)
+                let dataType = format.slice(-1)
+                switch (dataType) {
+                    case "x":
+                    case "X":
+                    case "o":
+                    case "d":
+                        return NumberFormat.parseFormatSpecifier(format)
+                    case "s":
+                        return StringFormat.parseFormatSpecifier(format)
+                    default:
+                        return format
+                }
+            }
+        }
+        class StringFormat extends Format {
+            format(text: string) {
+                return text
+            }
+            static parseFormatSpecifier(format: string): StringFormat | string {
+                return new StringFormat()
+            }
+        }
+        class NumberFormat extends Format {
+            numLength: number
+            type: "hex" | "octal" | "HEX" | "base10" | "x" | "o" | "X" | "d"
+            constructor(numLength?: number, type?: "HEX" | "octal" | "hex" | "base10" | "x" | "o" | "X" | "d") {
+                super()
+                this.numLength = numLength ?? 1
+                this.type = type ?? "base10"
+            }
+            format(text: string) {
+                let num = Number(text)
+                if (isNaN(num)) {
+                    return "0".repeat(this.numLength)
+                }
+                switch (this.type) {
+                    case "x":
+                    case "hex": {
+                        let hex = num.toString(16)
+                        if (hex.length < this.numLength) {
+                            hex = "0".repeat(this.numLength - hex.length) + hex
+                        }
+                        return hex;
+                    }
+                    case "X":
+                    case "HEX": {
+                        let hex = num.toString(16).toUpperCase()
+                        if (hex.length < this.numLength) {
+                            hex = "0".repeat(this.numLength - hex.length) + hex
+                        }
+                        return hex;
+                    }
+                    case "o":
+                    case "octal": {
+                        let o = num.toString(8)
+                        if (o.length < this.numLength) {
+                            o = "0".repeat(this.numLength - o.length) + o
+                        }
+                        return o;
+                    }
+                    case "d":
+                    case 'base10': {
+                        let n = num.toString(10)
+                        if (n.length < this.numLength) {
+                            n = "0".repeat(this.numLength - n.length) + n
+                        }
+                        return n;
+                    }
+                }
+            }
+
+            static parseFormatSpecifier(format: string): string | NumberFormat {
+                let base = format.slice(-1) as "x" | "X" | "o" | "d"
+                format = format.slice(0, -1)
+                if (format[0] === "0" && format.slice(1)?.match(/^[0-9]+$/)) {
+                    return new NumberFormat(Number(format.slice(1)), base)
+                }
+                return new NumberFormat(1, base)
+            }
+        }
+        let formatSpecifierList: (string | Format)[] = []
+        argList.beginIter()
+        let formatSpecifier = argList.expectString(1)
+        if (!formatSpecifier) {
+            return { content: "No specifier given", status: StatusCode.ERR }
+        }
+        let currentSpecifier = ""
+        for (let char of formatSpecifier) {
+            if ("sdXxo".includes(char)) {
+                formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier + char))
+                currentSpecifier = ""
+                continue;
+            }
+            if ("%".includes(char) && currentSpecifier) {
+                formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier))
+                currentSpecifier = ""
+            }
+            currentSpecifier += char
+        }
+        if (currentSpecifier) {
+            formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier))
+        }
+
+        let rv: CommandReturn = { status: StatusCode.RETURN }
+
+        let sendToVar: string | boolean = false
+
+        if (opts.getBool("d", false)) {
+            rv.delete = true
+        }
+        if (opts.getBool("dm", false)) {
+            rv.dm = true
+        }
+        if (sendToVar = opts.getString("v", "")) {
+            rv.noSend = true
+        }
+
+        if (formatSpecifierList.filter(v => typeof v === 'string').length === formatSpecifierList.length) {
+            rv.content = formatSpecifierList.join("")
+            if (sendToVar) {
+                setVarEasy(msg, sendToVar, rv.content)
+            }
+            return rv
+        }
+
+        let text = ""
+        let argNo = 1
+        //while there are arguments provided
+        while (argNo < argList.length) {
+            //go through each format specifier
+            for (let i = 0; i < formatSpecifierList.length; i++) {
+                let currentSpec = formatSpecifierList[i]
+                if (typeof currentSpec === 'string') {
+                    text += currentSpec
+                }
+                else {
+                    //when an arg is needed move to the next arg
+                    text += currentSpec.format(argList[argNo++])
+                }
+            }
+        }
+        rv.content = text
+        if (sendToVar) {
+            setVarEasy(msg, sendToVar, rv.content)
+        }
+        return rv
+    }, CAT, "Similar to echo", {
+        specifier: createHelpArgument("The format specifier<br>%[fmt]<s|d|x|X|o><br><ul><li>fmt: special information depending on which type to use</li></ul><lh>types</lh><ul><li>s: string (no fmt is used)</li><li>d,x,X,o: fmt is in the form of 0<count> to specify how many leading 0s<br>d: base 10, xX: base 16, o: base 8</li></ul>", true),
+        "...data": createHelpArgument("The data to fill the specifier with")
+    }))
+
     registerCommand(
         "pollify",
         {
@@ -2730,9 +2893,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "b64", createCommandV2(async({args, stdin}) => {
+        "b64", createCommandV2(async ({ args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
-            return {content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN}
+            return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
         }, CAT, "Encodes text to base64")
     )
 
@@ -2767,33 +2930,33 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
     )
 
-    registerCommand("tr", createCommandV2(async({argList, stdin, opts}) => {
+    registerCommand("tr", createCommandV2(async ({ argList, stdin, opts }) => {
         let charsToDel = opts.getString("d", "")
         argList.beginIter()
         let from = argList.expectString()
-        if(!from && !charsToDel){
-            return {content: "Must have start chars", status: StatusCode.ERR}
+        if (!from && !charsToDel) {
+            return { content: "Must have start chars", status: StatusCode.ERR }
         }
         let to = argList.expectString()
-        if(!to && !charsToDel){
-            return {content: "Must have end chars", status: StatusCode.ERR}
+        if (!to && !charsToDel) {
+            return { content: "Must have end chars", status: StatusCode.ERR }
         }
         let text: string = stdin ? getContentFromResult(stdin) : argList.expectString(() => true) as string
-        if(!text){
-            return {content: "Must have text to translate on", status: StatusCode.ERR}
+        if (!text) {
+            return { content: "Must have text to translate on", status: StatusCode.ERR }
         }
-        if(charsToDel){
-            for(let char of charsToDel){
+        if (charsToDel) {
+            for (let char of charsToDel) {
                 text = text.replaceAll(char, "")
             }
         }
-        if(from && to){
-            for(let i = 0; i < from.length; i++){
+        if (from && to) {
+            for (let i = 0; i < from.length; i++) {
                 let charTo = to[i] ?? to.slice(-1)[0]
                 text = text.replaceAll(from[i], charTo)
             }
         }
-        return {content: text, status: StatusCode.RETURN}
+        return { content: text, status: StatusCode.RETURN }
     }, CAT, "translate characters", {
         from: createHelpArgument("The chars to translate from (not required with -d)", false),
         to: createHelpArgument("The chars to translate to (not required with -d)", false, "from")
@@ -3333,12 +3496,12 @@ valid formats:<br>
     )
 
     registerCommand(
-        "tail", createCommandV2(async({args, opts, stdin}) => {
-                let count = opts.getNumber("count", 10)
-                let argText = stdin ? getContentFromResult(stdin) : args.join(" ")
-                return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n"), status: StatusCode.RETURN }
+        "tail", createCommandV2(async ({ args, opts, stdin }) => {
+            let count = opts.getNumber("count", 10)
+            let argText = stdin ? getContentFromResult(stdin) : args.join(" ")
+            return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n"), status: StatusCode.RETURN }
 
-        }, CAT, "Get the last 10 lines", {text: createHelpArgument("The text to get the last lines of (also accepts pipe)", true)}, {count: createHelpOption("get the lats n lines instead of 1", undefined, "10")})
+        }, CAT, "Get the last 10 lines", { text: createHelpArgument("The text to get the last lines of (also accepts pipe)", true) }, { count: createHelpOption("get the lats n lines instead of 1", undefined, "10") })
     )
 
     registerCommand(

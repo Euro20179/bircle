@@ -1062,7 +1062,7 @@ function renderLiElement(elem: cheerio.Element, indentation = 0, marker = "*\t")
         return ""
     }
     marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
-    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation) + "\n"
+    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation + 1) + "\n"
 }
 
 function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {

@@ -108,9 +108,34 @@ function delVar(varName: string, prefix?: string){
     delete vars[prefix ?? "__global__"][varName]
 }
 
+function setVarEasy(msg: Message, varName: string, value: string, prefix?: string){
+    if (!prefix) {
+        let v;
+        [prefix, ...v] = varName.split(":")
+        varName = v.join(":")
+        if(!varName){
+            varName = prefix
+            prefix = "__global__"
+        }
+    }
+    if(prefix.match(/\d{19}/)){
+        return false
+    }
+    if(prefix === "%"){
+        prefix = msg.author.id
+    }
+    return setVar(varName, value, prefix)
+}
+
 function setVar(varName: string, value: string, prefix?: string) {
     if (!prefix) {
-        prefix = "__global__"
+        let v;
+        [prefix, ...v] = varName.split(":")
+        varName = v.join(":")
+        if(!varName){
+            varName = prefix
+            prefix = "__global__"
+        }
     }
     if (!vars[prefix]) {
         vars[prefix] = { [varName]: value }
@@ -173,6 +198,7 @@ export {
     USER_SETTINGS,
     client,
     setVar,
+    setVarEasy,
     readVars,
     saveVars,
     getVar,
