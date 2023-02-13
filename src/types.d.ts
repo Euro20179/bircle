@@ -1,4 +1,4 @@
-import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload } from "discord.js"
+import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload, TextChannel } from "discord.js"
 
 import { ArgList, Options } from './util'
 
@@ -30,6 +30,7 @@ declare global {
         dm?: boolean,
         recurse?: boolean | { categories?: CommandCategory[], commands?: string[] },
         do_change_cmd_user_expansion?: boolean
+        channel?: TextChannel
     }
 
     interface CommandHelpArguments {

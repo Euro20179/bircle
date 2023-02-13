@@ -10,7 +10,7 @@ import { Configuration, OpenAIApi } from "openai"
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel } from "./util"
 import user_options = require("./user-options")
 import pet = require("./pets")
 import globals = require("./globals")
@@ -1176,7 +1176,19 @@ export default function(CAT: CommandCategory) {
                 let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
                 actionRow.addComponents(selection)
                 globals.POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
-                return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.PROMPT }
+                let channelToSendToSearch = opts['channel']
+                let chan = undefined;
+                if(channelToSendToSearch){
+                    chan = await fetchChannel(_msg.guild as Guild, String(channelToSendToSearch))
+                    if(!chan || chan.type !== 'GUILD_TEXT'){
+                        return {content: `Cannot send to ${chan}`, status: StatusCode.ERR}
+                    }
+                    else if(!_msg.member?.permissionsIn(chan).has("SEND_MESSAGES")){
+                        return {content: `You do not have permission to talk in ${chan}`, status: StatusCode.ERR}
+                    }
+                    return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN, channel: chan}
+                }
+                return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN}
             },
             help: {
                 info: "create a poll",
@@ -1184,7 +1196,8 @@ export default function(CAT: CommandCategory) {
                     options: { description: "Options separated by |" }
                 },
                 options: {
-                    title: { description: "Title of the poll, no spaces" }
+                    title: { description: "Title of the poll, no spaces" },
+                    channel: createHelpOption("The channel to send the poll to")
                 }
             },
             category: CommandCategory.FUN
