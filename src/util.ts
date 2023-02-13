@@ -789,6 +789,10 @@ function cmdCatToStr(cat: number) {
             return "economy"
         case 6:
             return "voice"
+        case 7:
+            return "admin"
+        case 8:
+            return "match"
     }
 }
 

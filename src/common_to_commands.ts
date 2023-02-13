@@ -28,7 +28,8 @@ export enum CommandCategory {
     IMAGES,
     ECONOMY,
     VOICE,
-    ADMIN
+    ADMIN,
+    MATCH
 }
 
 export class AliasV2 {
@@ -1123,6 +1124,15 @@ export function createHelpOption(description: string, alternatives?: string[], d
     }
 }
 
+export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand['match'], name: MatchCommand['name'], help?: MatchCommand['help']): MatchCommand{
+    return {
+        run: run,
+        match: match,
+        name: name,
+        help: help
+    }
+}
+
 export function createCommand(
     cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
     category: CommandCategory,
@@ -1178,6 +1188,7 @@ export function generateDefaultRecurseBans() {
 }
 
 export let commands: { [key: string]: Command | CommandV2 } = {}
+export let matchCommands: {[key: string]: MatchCommand} = {}
 
 export function registerCommand(name: string, command: Command | CommandV2) {
     if (!command.help) {
@@ -1186,8 +1197,17 @@ export function registerCommand(name: string, command: Command | CommandV2) {
     Reflect.set(commands, name, command)
 }
 
+export function registerMatchCommand(command: MatchCommand){
+    command.category = CommandCategory.MATCH
+    Reflect.set(matchCommands, command.name, command)
+}
+
 export function getCommands() {
     return commands
+}
+
+export function getMatchCommands(){
+    return matchCommands
 }
 
 export function getAliasesV2(refresh?: boolean) {

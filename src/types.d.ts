@@ -90,6 +90,14 @@ declare global {
         cmd_std_version?: 2
     }
 
+    interface MatchCommand{
+        run: ({msg, match}: {msg: Message, match: RegExpMatchArray}) => Promise<CommandReturn>,
+        match: RegExp,
+        name: string,
+        category: CommandCategory.MATCH
+        help?: CommandHelp
+    }
+
     interface CommandVersions {
         1: Command,
         2: CommandV2

@@ -12,7 +12,7 @@ import pet = require("./pets")
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2 } from './common_to_commands'
+import { StatusCode, lastCommand, snipes, purgeSnipe, createAliases, aliases, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands } from './common_to_commands'
 import { choice, cmdCatToStr, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
 import { ADMINS, client, getVar, prefix, setVar, vars } from './common'
 import { exec, execSync, spawn, spawnSync } from 'child_process'
@@ -162,7 +162,8 @@ export default function(CAT: CommandCategory) {
     registerCommand(
         "help", createCommand(async (_msg, args) => {
 
-            let commands = getCommands()
+            const matchCmds = getMatchCommands()
+            let commands = { ...getCommands(), ...matchCmds}
             let opts
             [opts, args] = getOpts(args)
             if (opts["g"]) {
@@ -189,6 +190,8 @@ export default function(CAT: CommandCategory) {
                     case "images": catNum = CommandCategory.IMAGES; break;
                     case "economy": catNum = CommandCategory.ECONOMY; break;
                     case "voice": catNum = CommandCategory.VOICE; break;
+                    case "admin": catNum = CommandCategory.ADMIN; break;
+                    case "match": catNum = CommandCategory.MATCH; break;
                 }
                 let rv = ""
                 for (let cmd in commands) {
@@ -198,7 +201,7 @@ export default function(CAT: CommandCategory) {
                 return { content: rv, status: StatusCode.RETURN }
             }
             const aliasesV2 = getAliasesV2()
-            let commandsToUse = { ...commands, ...getAliasesV2() }
+            let commandsToUse = { ...commands, ...matchCmds, ...aliasesV2}
             if (args[0]) {
                 commandsToUse = {}
                 if (args[0] == "?") {
@@ -208,6 +211,9 @@ export default function(CAT: CommandCategory) {
                     for (let cmd of args) {
                         if (commands[cmd]) {
                             commandsToUse[cmd] = commands[cmd]
+                        }
+                        else if(matchCmds[cmd]){
+                            commandsToUse[cmd] = matchCmds[cmd]
                         }
                         else if (aliasesV2[cmd]) {
                             commandsToUse[cmd] = aliasesV2[cmd]
