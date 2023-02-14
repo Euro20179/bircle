@@ -5,7 +5,7 @@ import economy = require("./economy")
 import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST, delVar, prefix, setVar, vars, WHITELIST } from './common';
+import { BLACKLIST, delVar, getVar, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair } from './util';
 import { create } from 'domain';
@@ -47,16 +47,16 @@ export class AliasV2 {
         this.appendArgs = appendArgs ?? true
         this.appendOpts = appendOpts ?? true
     }
-    setAppendArgs(bool?: boolean){
+    setAppendArgs(bool?: boolean) {
         this.appendArgs = bool ?? false
     }
-    setAppendOpts(bool?: boolean){
+    setAppendOpts(bool?: boolean) {
         this.appendOpts = bool ?? false
     }
 
-    prepare (msg: Message, args: string[], opts: Opts) {
+    prepare(msg: Message, args: string[], opts: Opts) {
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
-        for(let opt of Object.entries(opts)){
+        for (let opt of Object.entries(opts)) {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
@@ -65,35 +65,35 @@ export class AliasV2 {
         let escape = false
         let curPair = ""
         let bracketCount = 0
-        for(let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++){
+        for (let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++) {
             let ch = this.exec[i]
 
-            if(ch === "{" && !escape){
+            if (ch === "{" && !escape) {
                 bracketCount++;
                 continue
             }
-            else if(ch === "}" && !escape){
+            else if (ch === "}" && !escape) {
                 bracketCount--;
                 continue
             }
 
             //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
-            if(ch === "\\"){
+            if (ch === "\\") {
                 escape = true
             }
             else {
                 escape = false
             }
 
-            if(bracketCount === 0){
+            if (bracketCount === 0) {
                 innerPairs.push(curPair)
                 curPair = ""
             }
-            if(bracketCount !== 0){
+            if (bracketCount !== 0) {
                 curPair += ch
             }
         }
-        if(curPair){
+        if (curPair) {
             innerPairs.push(curPair)
         }
 
@@ -102,33 +102,33 @@ export class AliasV2 {
         let tempExec = this.exec
         console.log(tempExec)
 
-        for(let innerText of innerPairs){
-            if(argsRegex.test(innerText)){
+        for (let innerText of innerPairs) {
+            if (argsRegex.test(innerText)) {
                 let [left, right] = innerText.split("..")
-                if(left === "args"){
+                if (left === "args") {
                     tempExec = tempExec.replace(`{${innerText}}`, args.join(" "))
                     continue
                 }
                 let leftIndex = Number(left.replace("args", ""))
-                let rightIndex  = right ? Number(right) : NaN
-                if(!isNaN(rightIndex) ){
+                let rightIndex = right ? Number(right) : NaN
+                if (!isNaN(rightIndex)) {
                     tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex, rightIndex).join(" "))
                 }
-                else if(right === ""){
+                else if (right === "") {
                     tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex).join(" "))
                 }
-                else{
+                else {
                     tempExec = tempExec.replace(`{${innerText}}`, args[leftIndex])
                 }
             }
         }
 
-        if(this.appendOpts){
+        if (this.appendOpts) {
             //if opt is true, we want it to JUST be -<opt> if it's anything else it should be -<opt>=<value>
             tempExec += " " + Object.entries(opts).map(v => `-${v[0]}${v[1] === true ? "" : `=\\s{${v[1]}}`}`).join(" ")
         }
 
-        if(this.appendArgs){
+        if (this.appendArgs) {
             tempExec += args.join(" ")
         }
 
@@ -137,24 +137,24 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }}) {
+    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] } }) {
         let tempExec = this.prepare(msg, args, opts)
 
         globals.addToCmdUse(this.exec)
 
         let rv = await runCmd(msg, tempExec, recursionCount + 1, true)
 
-        for(let opt of Object.entries(opts)){
+        for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
         }
-        
+
         return rv
     }
     toJsonString() {
-        return JSON.stringify({ name: this.name, exec: this.exec, help: this.help,  creator: this.creator, appendOpts: this.appendOpts, appendArgs: this.appendArgs})
+        return JSON.stringify({ name: this.name, exec: this.exec, help: this.help, creator: this.creator, appendOpts: this.appendOpts, appendArgs: this.appendArgs })
     }
 
-    
+
     async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any): Promise<AliasV2 | false> {
         let expansions = 0
         let command = this.exec.split(" ")[0]
@@ -212,10 +212,10 @@ export function createAliases() {
     return a
 }
 
-export function createAliasesV2(): {[key: string]: AliasV2} {
+export function createAliasesV2(): { [key: string]: AliasV2 } {
     if (fs.existsSync("./command-results/aliasV2")) {
-        let j: {[key: string]: AliasV2} = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
-        for(let aName in j){
+        let j: { [key: string]: AliasV2 } = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
+        for (let aName in j) {
             j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs, j[aName].appendOpts)
         }
         return j
@@ -295,7 +295,7 @@ export class Interpreter {
         this.#aliasExpandSuccess = false
     }
 
-    getPipeTo(){
+    getPipeTo() {
         return this.#pipeTo
     }
 
@@ -360,7 +360,163 @@ export class Interpreter {
     }
     //esc sequence
     async [3](token: Token) {
-        this.addTokenToArgList(token)
+        let [char, ...seq] = token.data.split(":")
+        let sequence = seq.join(":")
+        switch (char) {
+            case "n":
+                this.addTokenToArgList(new Token(T.str, "\n", token.argNo))
+                break
+            case "t":
+                this.addTokenToArgList(new Token(T.str, "\t", token.argNo))
+                break
+            case "U":
+            case "u":
+                if (!sequence) {
+                    this.addTokenToArgList(new Token(T.str, "\\u", token.argNo))
+                    break
+                }
+                try {
+                    this.addTokenToArgList(new Token(T.str, String.fromCodePoint(parseInt(`0x${sequence}`)), token.argNo))
+                    break
+                }
+                catch (err) {
+                    this.addTokenToArgList(new Token(T.str, `\\u{${sequence}}`, token.argNo))
+                    break
+                }
+            case "s":
+                if (sequence) {
+                    this.addTokenToArgList(new Token(T.str, sequence, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, " ", token.argNo))
+                break
+            case "y": {
+                if (sequence) {
+                    this.addTokenToArgList(new Token(T.syntax, sequence, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, " ", token.argNo))
+                break
+            }
+            case "A":
+                if (sequence) {
+                    for (let i = 0; i < sequence.length; i++) {
+                        this.#argOffset++;
+                        this.addTokenToArgList(new Token(T.str, sequence[i], ++token.argNo))
+                    }
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, "", ++token.argNo))
+                break
+            case "b":
+                this.addTokenToArgList(new Token(T.str, `**${sequence}**`, token.argNo))
+            case "i":
+                this.addTokenToArgList(new Token(T.str, `*${sequence}*`, token.argNo))
+                break
+            case "S":
+                this.addTokenToArgList(new Token(T.str, `~~${sequence}~~`, token.argNo))
+                break
+            case "d":
+                let date = new Date(sequence)
+                if (date.toString() === "Invalid Date") {
+                    if (sequence) {
+                        this.addTokenToArgList(new Token(T.str, `\\d{${sequence}}`, token.argNo))
+                        break
+                    }
+                    else {
+                        this.addTokenToArgList(new Token(T.str, `\\d`, token.argNo))
+                        break
+                    }
+                }
+                this.addTokenToArgList(new Token(T.str, date.toString(), token.argNo))
+                break
+            case "D":
+                if (isNaN(parseInt(sequence))) {
+                    if (sequence) {
+                        this.addTokenToArgList(new Token(T.str, `\\D{${sequence}}`, token.argNo))
+                        break
+                    }
+                    this.addTokenToArgList(new Token(T.str, `\\D`, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, (new Date(parseInt(sequence))).toString(), token.argNo))
+                break
+            case "T": {
+                let ts = Date.now()
+                if (parseFloat(sequence)) {
+                    this.addTokenToArgList(new Token(T.str, String(ts / parseFloat(sequence)), token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, String(Date.now()), token.argNo))
+                break
+            }
+            case "V": {
+                let [scope, ...n] = sequence.split(":")
+                //@ts-ignore
+                let name = n.join(":")
+                if (scope == "%") {
+                    scope = this.#msg.author.id
+                }
+                else if (scope == ".") {
+                    let v = getVar(this.#msg, name)
+                    if (v !== false) {
+                        this.addTokenToArgList(new Token(T.str, v, token.argNo))
+                        break
+                    }
+                    this.addTokenToArgList(new Token(T.str, `\\V{${sequence}}`, token.argNo))
+                    break
+                }
+                else if (!name) {
+                    //@ts-ignore
+                    name = scope
+                    let v = getVar(this.#msg, name)
+                    if (v !== false) {
+                        this.addTokenToArgList(new Token(T.str, v, token.argNo))
+                        break
+                    }
+                    this.addTokenToArgList(new Token(T.str, `\\V{${sequence}}`, token.argNo))
+                    break
+                }
+                let v = getVar(this.#msg, name, scope)
+                if (v !== false) {
+                    this.addTokenToArgList(new Token(T.str, v, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, `\\V{${sequence}}`, token.argNo))
+                break
+            }
+            case "v":
+                let num = Number(sequence)
+                //basically checks if it's a n
+                if (!isNaN(num)) {
+                    let args = this.#msg.content.split(" ")
+                    this.addTokenToArgList(new Token(T.str, String(args[num]), token.argNo))
+                    break
+                }
+                let v = getVar(this.#msg, sequence, this.#msg.author.id)
+                if (v === false)
+                    v = getVar(this.#msg, sequence)
+                if (v !== false) {
+                    this.addTokenToArgList(new Token(T.str, v, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, `\\v{${sequence}}`, token.argNo))
+                break
+            case "\\":
+                if (sequence) {
+                    this.addTokenToArgList(new Token(T.str, `\\{${sequence}}`, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, "\\", token.argNo))
+                break
+            default:
+                if (sequence) {
+                    this.addTokenToArgList(new Token(T.str, `${char}{${sequence}}`, token.argNo))
+                    break
+                }
+                this.addTokenToArgList(new Token(T.str, `${char}`, token.argNo))
+                break
+        }
         return true
     }
     //fmt
@@ -369,10 +525,10 @@ export class Interpreter {
         let data = ""
         switch (format_name) {
             case "%":
-                if(this.#pipeData){
+                if (this.#pipeData) {
                     data = getContentFromResult(this.#pipeData)
                 }
-                else{
+                else {
                     data = "{%}"
                 }
                 break
@@ -569,59 +725,62 @@ export class Interpreter {
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
                 }
-                else {
-                    let rangeMatch = format_name.match(/^(\d+)(?:\.\.|-)(\d+)$/)
-                    if (rangeMatch) {
-                        let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
-                        let beforeNumber = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-
-                        //if we dont do this, there will be extra text
-                        if (beforeNumber) {
-                            this.removeLastTokenFromArgList()
-                        }
-
-                        let afterNumber = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-
-                        if (afterNumber) {
-                            //dont let these tokens get parsed
-                            this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
-                        }
-
-                        let start = parseInt(rangeMatch[1])
-                        let end = parseInt(rangeMatch[2])
-                        if (end - start > 1000000) {
-                            end = start + 1
-                        }
-                        for (let i = start; i <= end; i++) {
-                            this.addTokenToArgList(new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++))
-                        }
-                        return true
-                    }
-                    else if (format_name.includes(",")) {
-                        let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
-                        let beforeWord = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-
-                        //if we dont do this, there will be extra text
-                        if (beforeWord) {
-                            this.removeLastTokenFromArgList()
-                        }
-
-                        let afterWord = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-
-                        if (afterWord) {
-                            //dont let these tokens get parsed
-                            this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
-                        }
-
-                        for (let word of format_name.split(",")) {
-                            this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
-                        }
-                        return true
-                    }
-                    else {
-                        data = `{${format_name}}`
-                    }
-                }
+                // else {
+                //     let rangeMatch = format_name.match(/^(\d+)(?:\.\.|-)(\d+)$/)
+                //     if (rangeMatch) {
+                //         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
+                //
+                //         let argsBeforeNumber = this.args.slice(0, )
+                //
+                //         let beforeNumber = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+                //
+                //         //if we dont do this, there will be extra text
+                //         if (beforeNumber) {
+                //             this.removeLastTokenFromArgList()
+                //         }
+                //
+                //         let afterNumber = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+                //
+                //         if (afterNumber) {
+                //             //dont let these tokens get parsed
+                //             this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
+                //         }
+                //
+                //         let start = parseInt(rangeMatch[1])
+                //         let end = parseInt(rangeMatch[2])
+                //         if (end - start > 1000000) {
+                //             end = start + 1
+                //         }
+                //         for (let i = start; i <= end; i++) {
+                //             this.addTokenToArgList(new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++))
+                //         }
+                //         return true
+                //     }
+                //     else if (format_name.includes(",")) {
+                //         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
+                //         let beforeWord = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+                //
+                //         //if we dont do this, there will be extra text
+                //         if (beforeWord) {
+                //             this.removeLastTokenFromArgList()
+                //         }
+                //
+                //         let afterWord = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
+                //
+                //         if (afterWord) {
+                //             //dont let these tokens get parsed
+                //             this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
+                //         }
+                //
+                //         for (let word of format_name.split(",")) {
+                //             this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
+                //         }
+                //         return true
+                //     }
+                //     else {
+                //         data = `{${format_name}}`
+                //     }
+                // }
             }
         }
         this.addTokenToArgList(new Token(T.str, data, token.argNo))
@@ -694,7 +853,7 @@ export class Interpreter {
     }
 
     //pipe
-    async[8](token: Token){
+    async[8](token: Token) {
         return false
     }
 
@@ -804,9 +963,9 @@ export class Interpreter {
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
-        else if(this.aliasV2){
+        else if (this.aliasV2) {
             let [opts, args2] = getOpts(args)
-            rv = await this.aliasV2.run({msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable}) as CommandReturn
+            rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable }) as CommandReturn
         }
         else if (!commands[this.real_cmd]) {
             //We dont want to keep running commands if the command doens't exist
@@ -867,7 +1026,7 @@ export class Interpreter {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 //it will double add this if it's an alias
-                if(!this.alias){
+                if (!this.alias) {
                     globals.addToCmdUse(this.real_cmd)
                 }
                 //if normal command, it counts as use
@@ -894,7 +1053,7 @@ export class Interpreter {
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
-    async interprateAsToken(token: Token, t: T){
+    async interprateAsToken(token: Token, t: T) {
         return await this[t](token)
     }
     async interprateCurrentAsToken(t: T) {
@@ -907,9 +1066,9 @@ export class Interpreter {
         }
     }
 
-    async handlePipes(commandReturn :CommandReturn){
+    async handlePipes(commandReturn: CommandReturn) {
         let tks = this.getPipeTo()
-        while(tks.length){
+        while (tks.length) {
             tks[0].type = T.command
             let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, this.sendCallback, commandReturn)
             commandReturn = await int.run() as CommandReturn
@@ -940,7 +1099,7 @@ export class Interpreter {
             this.tokens = this.tokens.slice(this.#i === -1 ? 0 : this.#i, pipeIndex === -1 ? undefined : pipeIndex + 1).filter(v => v.type !== T.dofirst)
 
             while (this.advance()) {
-                if((this.#curTok as Token).type === T.pipe){
+                if ((this.#curTok as Token).type === T.pipe) {
                     //dofirst tokens get removed, so we must filter them out here or offset errors occure
                     this.#pipeTo = this.#originalTokens.filter((v, i) => i < this.#i + 1 ? v.type !== T.dofirst : true).slice(this.#i + 1)
                     //this.returnJson = true
@@ -967,7 +1126,7 @@ export class Interpreter {
         return this.args
     }
 
-    static async run(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn){
+    static async run(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
 
         let int = new Interpreter(msg, tokens, modifiers, recursion, returnJson, disable, sendCallback, pipeData)
         await int.interprate()
@@ -975,8 +1134,8 @@ export class Interpreter {
         let intPipeData = int.getPipeTo()
 
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
-        if(intPipeData){
-            async function sendCallback(options: string | MessageOptions | MessagePayload){
+        if (intPipeData) {
+            async function sendCallback(options: string | MessageOptions | MessagePayload) {
                 options = await int.handlePipes(options as CommandReturn)
                 return handleSending(msg, options as CommandReturn, undefined)
             }
@@ -984,7 +1143,7 @@ export class Interpreter {
         }
 
         let data = await int.run()
-        if(int.returnJson){
+        if (int.returnJson) {
             data = await int.handlePipes(data as CommandReturn)
         }
         return data
@@ -1022,7 +1181,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (!sendCallback && rv.dm) {
         sendCallback = msg.author.send.bind(msg.author.dmChannel)
     }
-    else if(!sendCallback && rv.channel){
+    else if (!sendCallback && rv.channel) {
         sendCallback = rv.channel.send.bind(rv.channel)
     }
     else if (!sendCallback) {
@@ -1131,7 +1290,7 @@ export function createHelpOption(description: string, alternatives?: string[], d
     }
 }
 
-export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand['match'], name: MatchCommand['name'], help?: MatchCommand['help']): MatchCommand{
+export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand['match'], name: MatchCommand['name'], help?: MatchCommand['help']): MatchCommand {
     return {
         run: run,
         match: match,
@@ -1199,7 +1358,7 @@ export function generateDefaultRecurseBans() {
 }
 
 export let commands: { [key: string]: Command | CommandV2 } = {}
-export let matchCommands: {[key: string]: MatchCommand} = {}
+export let matchCommands: { [key: string]: MatchCommand } = {}
 
 export function registerCommand(name: string, command: Command | CommandV2) {
     if (!command.help) {
@@ -1208,7 +1367,7 @@ export function registerCommand(name: string, command: Command | CommandV2) {
     Reflect.set(commands, name, command)
 }
 
-export function registerMatchCommand(command: MatchCommand){
+export function registerMatchCommand(command: MatchCommand) {
     command.category = CommandCategory.MATCH
     Reflect.set(matchCommands, command.name, command)
 }
@@ -1217,7 +1376,7 @@ export function getCommands() {
     return commands
 }
 
-export function getMatchCommands(){
+export function getMatchCommands() {
     return matchCommands
 }
 
@@ -1301,7 +1460,7 @@ export const slashCommands = [
         createChatCommandOption(STRING, "title", "The title of the poll", { required: false }),
     ]),
     createChatCommand("md", "say markdown", [
-        createChatCommandOption(STRING, "text", "The text to say", {required: true})
+        createChatCommandOption(STRING, "text", "The text to say", { required: true })
     ]),
     {
         name: 'aheist',

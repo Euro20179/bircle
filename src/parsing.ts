@@ -284,6 +284,7 @@ class Parser {
                 this.back()
             }
         }
+        return new Token(T.esc, `${char}:${sequence}`, this.#curArgNo)
         switch (char) {
             case "n":
                 return new Token(T.str, "\n", this.#curArgNo)
