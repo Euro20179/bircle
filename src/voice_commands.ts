@@ -149,7 +149,7 @@ export default function() {
             fs.rmSync(currently_playing?.filename as string)
             play_next_in_queue_or_destroy_connection(vc_queue)
             return { content: "next", status: StatusCode.RETURN }
-        }, CommandCategory.VOICE),
+        }, CommandCategory.VOICE, "Play the next song in queue"),
     )
 
     registerCommand(
