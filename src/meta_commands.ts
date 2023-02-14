@@ -13,6 +13,8 @@ import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
+import fetch from 'node-fetch'
+
 
 export default function(CAT: CommandCategory) {
 
