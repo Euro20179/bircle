@@ -1390,6 +1390,8 @@ export {
     searchList,
     listComprehension,
     range,
-    enumerate
+    enumerate,
+    BADVALUE,
+    GOODVALUE
 }
 

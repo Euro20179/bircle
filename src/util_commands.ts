@@ -13,7 +13,7 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands } from './common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units } from './util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE } from './util'
 import { ADMINS, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
@@ -2408,31 +2408,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "whohas",
-        {
-            run: async (msg, args, sendCallback) => {
-                let role = args.join(" ")
-                if (!role) {
-                    return { content: "No role given", status: StatusCode.ERR }
-                }
-                await msg.guild?.members.fetch()
-                let roleRef = await msg.guild?.roles.fetch()
-                if (!roleRef) {
-                    return { content: "no roles found somehow", status: StatusCode.ERR }
-                }
-                let realRole = roleRef.filter(v => v.name.toLowerCase() == role.toLowerCase())?.at(0)
-                if (!realRole) {
-                    realRole = roleRef.filter(v => v.name.toLowerCase().match(role.toLowerCase()) ? true : false)?.at(0)
-                }
-                if (!realRole) {
-                    realRole = roleRef.filter(v => v.id == role.toLowerCase() ? true : false)?.at(0)
-                }
-                if (!realRole) {
+        "whohas", createCommandV2(async({msg, argList}) => {
+                argList.beginIter()
+                let realRole = await argList.expectRole(msg.guild as Guild, () => true) as Role | typeof BADVALUE
+                if (realRole == BADVALUE) {
                     return {
                         content: "Could not find role",
                         status: StatusCode.ERR
                     }
                 }
+                await msg.guild?.members.fetch()
                 let memberTexts = [""]
                 let embed = new MessageEmbed()
                 embed.setTitle(realRole.name)
@@ -2455,15 +2440,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 embed.addField("Member count", String(memberCount))
                 return { embeds: [embed], status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Gets a list of users with a specific role",
-                arguments: {
-                    "...role": createHelpArgument("The role to search for")
-                }
-            }
-        },
+
+        }, CAT, "Gets a list of users with a specific role", {
+            "...role": createHelpArgument("The role to search for")
+        })
     )
 
     registerCommand("printf", createCommandV2(async ({ argList, opts, msg }) => {
