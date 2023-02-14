@@ -137,7 +137,7 @@ export default function() {
             embed.setTitle("queue")
             embed.setDescription(String(currently_playing?.link) || "None")
             return { content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN }
-        }, CommandCategory.VOICE),
+        }, CommandCategory.VOICE, "See the music queue"),
     )
 
     registerCommand(
