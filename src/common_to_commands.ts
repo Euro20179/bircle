@@ -398,15 +398,26 @@ export class Interpreter {
                 this.addTokenToArgList(new Token(T.str, " ", token.argNo))
                 break
             }
+            case "Y": {
+                if (sequence) {
+                    let p = new Parser(this.#msg, sequence, false)
+                    await p.parse()
+                    let i = new Interpreter(this.#msg, p.tokens, p.modifiers, this.recursion + 1)
+                    let args = await i.interprate()
+                    for (let arg of args.join(" ").split(" ")) {
+                        this.addTokenToArgList(new Token(T.str, arg, this.args.length + 1))
+                    }
+                }
+                break;
+            }
             case "A":
                 if (sequence) {
                     for (let i = 0; i < sequence.length; i++) {
-                        this.#argOffset++;
                         this.addTokenToArgList(new Token(T.str, sequence[i], ++token.argNo))
                     }
                     break
                 }
-                this.addTokenToArgList(new Token(T.str, "", ++token.argNo))
+                this.addTokenToArgList(new Token(T.str, "", token.argNo))
                 break
             case "b":
                 this.addTokenToArgList(new Token(T.str, `**${sequence}**`, token.argNo))
@@ -520,7 +531,7 @@ export class Interpreter {
         return true
     }
     //fmt
-    async [4](token: Token) {
+    async[4](token: Token) {
         let [format_name, ...args] = token.data.split("|")
         let data = ""
         switch (format_name) {
@@ -787,7 +798,7 @@ export class Interpreter {
         return true
     }
     //dofirstrepl
-    async [5](token: Token) {
+    async[5](token: Token) {
         let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
         if (doFirstResultNo === undefined) {
             doFirstResultNo = doFirstArgNo
@@ -808,7 +819,7 @@ export class Interpreter {
         return true
     }
     //command
-    async [6](token: Token) {
+    async[6](token: Token) {
         this.cmd = token.data
         this.real_cmd = token.data
 
@@ -841,7 +852,7 @@ export class Interpreter {
         return true
     }
     //syntax
-    async [7](token: Token) {
+    async[7](token: Token) {
         let parse = new Parser(this.#msg, token.data, false)
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
