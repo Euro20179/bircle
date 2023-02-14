@@ -23,7 +23,7 @@ export default function(CAT: CommandCategory) {
     registerCommand("cat", createCommandV2(async ({ stdin, opts, args }) => {
         let content = "";
         if (stdin) {
-            content += getContentFromResult(stdin)
+            content += getContentFromResult(stdin, "\n")
         }
         for (let arg of args) {
             if (fs.existsSync(`./command-results/${arg}`)) {
@@ -44,7 +44,7 @@ export default function(CAT: CommandCategory) {
     registerCommand("rev", createCommandV2(async ({ stdin, args, opts }) => {
         let content = "";
         if (stdin) {
-            content += getContentFromResult(stdin).split("").reverse().join("")
+            content += getContentFromResult(stdin, "\n").split("").reverse().join("")
         }
         for (let arg of args) {
             if (fs.existsSync(`./command-results/${arg}`)) {
@@ -522,7 +522,7 @@ export default function(CAT: CommandCategory) {
                             let textAtLine = text[commandLines[i]]
                             setVar("__ed_line", textAtLine, msg.author.id)
                             let rv = await runCmd(msg, args, rec, true, bans)
-                            let t = getContentFromResult(rv as CommandReturn).trim()
+                            let t = getContentFromResult(rv as CommandReturn, "\n").trim()
                             delete vars[msg.author.id]["__ed_line"]
                             text[commandLines[i]] = t
                         }
@@ -840,7 +840,7 @@ export default function(CAT: CommandCategory) {
             let maxWidth = opts.getNumber("max-width", 50)
             let vertChar = opts.getString("vert-char", "|")
             let horChar = opts.getString("hor-char", "-")
-            let text = stdin ? getContentFromResult(stdin).split("\n") : args.join(" ").split("\n")
+            let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split("\n")
             let lines = [horChar.repeat(maxWidth + 2)]
             //FIXME: make sure each $line_of_text is at most $maxWidth
             for (let line_of_text of text) {
@@ -865,7 +865,7 @@ export default function(CAT: CommandCategory) {
             let align = opts.getString("align", "left")
             let raw = opts.getBool("raw", false)
             let columnCounts = opts.getBool("cc", false)
-            let table = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let table = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             let columnLongestLengths: { [key: number]: number } = {}
             let longestRow = 0
             let rows = table.split("\n")
@@ -1567,7 +1567,7 @@ middle
             let search = args[0]
             let repl = args[1]
             if (opts.getBool("n", false)) {
-                let text = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
+                let text = stdin ? getContentFromResult(stdin, "\n") : args.slice(1).join(" ")
                 if (!search) {
                     return { content: "no search", status: StatusCode.ERR }
                 }
@@ -1577,7 +1577,7 @@ middle
                 return { content: "No replacement", status: StatusCode.ERR }
             }
 
-            let text: string = stdin ? getContentFromResult(stdin) : args.slice(2).join(" ")
+            let text: string = stdin ? getContentFromResult(stdin, "\n") : args.slice(2).join(" ")
 
             if (!search) {
                 return { content: "no search", status: StatusCode.ERR }
@@ -2894,14 +2894,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     registerCommand(
         "b64", createCommandV2(async ({ args, stdin }) => {
-            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
         }, CAT, "Encodes text to base64")
     )
 
     registerCommand(
         "b64d", createCommandV2(async ({ args, stdin }) => {
-            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Decodes base64")
@@ -2941,7 +2941,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (!to && !charsToDel) {
             return { content: "Must have end chars", status: StatusCode.ERR }
         }
-        let text: string = stdin ? getContentFromResult(stdin) : argList.expectString(() => true) as string
+        let text: string = stdin ? getContentFromResult(stdin, "\n") : argList.expectString(() => true) as string
         if (!text) {
             return { content: "Must have text to translate on", status: StatusCode.ERR }
         }
@@ -3498,7 +3498,7 @@ valid formats:<br>
     registerCommand(
         "tail", createCommandV2(async ({ args, opts, stdin }) => {
             let count = opts.getNumber("count", 10)
-            let argText = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let argText = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n"), status: StatusCode.RETURN }
 
         }, CAT, "Get the last 10 lines", { text: createHelpArgument("The text to get the last lines of (also accepts pipe)", true) }, { count: createHelpOption("get the lats n lines instead of 1", undefined, "10") })
@@ -3507,7 +3507,7 @@ valid formats:<br>
     registerCommand(
         "head", createCommandV2(async ({ args, opts, stdin }) => {
             let count = opts.getNumber("count", 10)
-            let argText = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let argText = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: argText.split("\n").slice(0, count).join("\n"), status: StatusCode.RETURN }
 
         }, CAT, "Say the first 10 lines of somet text", { text: createHelpArgument("Text also accepts pipe") }, { count: createHelpOption("The amount of lines to show") })
@@ -3515,7 +3515,7 @@ valid formats:<br>
 
     registerCommand(
         "nl", createCommandV2(async ({ msg, args, stdin }) => {
-            let text = stdin ? getContentFromResult(stdin) : args.join(" ").split('\n')
+            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ").split('\n')
             let rv = ""
             for (let i = 1; i < text.length + 1; i++) {
                 rv += `${i}: ${text[i - 1]}\n`

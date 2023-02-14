@@ -337,12 +337,12 @@ export class Interpreter {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
         let rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
-        let data = getContentFromResult(rv as CommandReturn).trim()
+        let data = getContentFromResult(rv as CommandReturn, "\n").trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data)
             await parser.parse()
             rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
-            data = getContentFromResult(rv as CommandReturn).trim()
+            data = getContentFromResult(rv as CommandReturn, "\n").trim()
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
@@ -888,7 +888,7 @@ export class Interpreter {
             let [place, name] = redir
             //set the variable to the response
             //@ts-ignore
-            place[name] = () => getContentFromResult(rv)
+            place[name] = () => getContentFromResult(rv, "\n")
             return
         }
         //handles the rv protocol

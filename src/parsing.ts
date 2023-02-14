@@ -131,6 +131,7 @@ class Parser {
         this.#isParsingCmd = isCmd
         this.modifiers = []
         this.IFS = getOpt(msg.author.id, "IFS", " ")
+        console.log(this.IFS)
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     }
 
@@ -240,7 +241,7 @@ class Parser {
     parseCmd() {
         let cmd = this.#curChar as string
         let modifiers = [/^n:/, /^s:/, /^t:/, /^d:/, /^redir(!)?\(([^:]*):([^:]+)\):/]
-        while (this.advance() && this.#curChar !== this.IFS && this.#curChar !== "\n") {
+        while (this.advance() && !this.IFS.includes(this.#curChar as string) && this.#curChar !== "\n") {
             cmd += this.#curChar as string
         }
         while (true) {
@@ -258,7 +259,6 @@ class Parser {
                 break
         }
         this.#hasCmd = true
-        console.log(cmd)
         return new Token(T.command, cmd, -1)
     }
 

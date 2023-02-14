@@ -1052,7 +1052,7 @@ export default function(CAT: CommandCategory) {
                 text = fs.readFileSync(`./command-results/${file}`, "utf-8")
             }
             else if (stdin) {
-                text = getContentFromResult(stdin as CommandReturn)
+                text = getContentFromResult(stdin as CommandReturn, "\n")
             }
             else {
                 return { content: "No file specified, and no pipe", status: StatusCode.ERR }
