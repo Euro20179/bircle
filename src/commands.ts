@@ -8,5 +8,6 @@ require("./image_commands").default(CommandCategory.IMAGES)
 require("./voice_commands").default(CommandCategory.VOICE)
 require("./economy_commands").default(CommandCategory.ECONOMY)
 require("./meta_commands").default(CommandCategory.META)
+require("./match_commands").default(CommandCategory.MATCH)
 
 export {}

@@ -119,17 +119,17 @@ export default function() {
     registerCommand("skip", createCommandV2(async({msg, args}) => {
         player.stop()
         return {content: "skipping", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE))
+    }, CommandCategory.VOICE, "Skip the current song"))
 
     registerCommand("pause", createCommandV2(async({msg, args}) => {
         player.pause()
         return {content: "Pausing", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE))
+    }, CommandCategory.VOICE, "Pause the current song"))
 
     registerCommand("unpause", createCommandV2(async({msg, args}) => {
         player.unpause()
         return {content: "UnPausing", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE))
+    }, CommandCategory.VOICE, "Unpause the current song"))
 
     registerCommand(
         'queue', createCommand(async (msg, args) => {
@@ -137,7 +137,7 @@ export default function() {
             embed.setTitle("queue")
             embed.setDescription(String(currently_playing?.link) || "None")
             return { content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN }
-        }, CommandCategory.VOICE),
+        }, CommandCategory.VOICE, "See the music queue"),
     )
 
     registerCommand(
@@ -149,7 +149,7 @@ export default function() {
             fs.rmSync(currently_playing?.filename as string)
             play_next_in_queue_or_destroy_connection(vc_queue)
             return { content: "next", status: StatusCode.RETURN }
-        }, CommandCategory.VOICE),
+        }, CommandCategory.VOICE, "Play the next song in queue"),
     )
 
     registerCommand(
@@ -168,6 +168,6 @@ export default function() {
         else {
             return { content: "Not in vc", status: StatusCode.ERR }
         }
-    }, CommandCategory.VOICE),
+    }, CommandCategory.VOICE, "Leave voice chat"),
     )
 }

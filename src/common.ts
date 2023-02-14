@@ -11,7 +11,7 @@ const ADMINS = ["334538784043696130"]
 
 const LOGFILE = "log.txt"
 
-const VERSION = { major: 5, minor: 8, bug: 9, part: "", beta: false, alpha: false }
+const VERSION = { major: 5, minor: 8, bug: 11, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
 
@@ -108,9 +108,34 @@ function delVar(varName: string, prefix?: string){
     delete vars[prefix ?? "__global__"][varName]
 }
 
+function setVarEasy(msg: Message, varName: string, value: string, prefix?: string){
+    if (!prefix) {
+        let v;
+        [prefix, ...v] = varName.split(":")
+        varName = v.join(":")
+        if(!varName){
+            varName = prefix
+            prefix = "__global__"
+        }
+    }
+    if(prefix.match(/\d{19}/)){
+        return false
+    }
+    if(prefix === "%"){
+        prefix = msg.author.id
+    }
+    return setVar(varName, value, prefix)
+}
+
 function setVar(varName: string, value: string, prefix?: string) {
     if (!prefix) {
-        prefix = "__global__"
+        let v;
+        [prefix, ...v] = varName.split(":")
+        varName = v.join(":")
+        if(!varName){
+            varName = prefix
+            prefix = "__global__"
+        }
     }
     if (!vars[prefix]) {
         vars[prefix] = { [varName]: value }
@@ -173,6 +198,7 @@ export {
     USER_SETTINGS,
     client,
     setVar,
+    setVarEasy,
     readVars,
     saveVars,
     getVar,

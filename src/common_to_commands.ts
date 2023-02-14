@@ -28,7 +28,8 @@ export enum CommandCategory {
     IMAGES,
     ECONOMY,
     VOICE,
-    ADMIN
+    ADMIN,
+    MATCH
 }
 
 export class AliasV2 {
@@ -139,6 +140,8 @@ export class AliasV2 {
     async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
 
         let tempExec = this.prepare(msg, args, opts)
+
+        globals.addToCmdUse(this.exec)
 
         let rv = await runCmd(msg, tempExec, recursionCount + 1, true)
 
@@ -334,12 +337,12 @@ export class Interpreter {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
         let rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
-        let data = getContentFromResult(rv as CommandReturn).trim()
+        let data = getContentFromResult(rv as CommandReturn, "\n").trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data)
             await parser.parse()
             rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
-            data = getContentFromResult(rv as CommandReturn).trim()
+            data = getContentFromResult(rv as CommandReturn, "\n").trim()
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
@@ -864,7 +867,10 @@ export class Interpreter {
                 if (commands[this.real_cmd].use_result_cache === true) {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
-                globals.addToCmdUse(this.real_cmd)
+                //it will double add this if it's an alias
+                if(!this.alias){
+                    globals.addToCmdUse(this.real_cmd)
+                }
                 //if normal command, it counts as use
             }
             else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
@@ -882,7 +888,7 @@ export class Interpreter {
             let [place, name] = redir
             //set the variable to the response
             //@ts-ignore
-            place[name] = () => getContentFromResult(rv)
+            place[name] = () => getContentFromResult(rv, "\n")
             return
         }
         //handles the rv protocol
@@ -1017,6 +1023,9 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (!sendCallback && rv.dm) {
         sendCallback = msg.author.send.bind(msg.author.dmChannel)
     }
+    else if(!sendCallback && rv.channel){
+        sendCallback = rv.channel.send.bind(rv.channel)
+    }
     else if (!sendCallback) {
         sendCallback = msg.channel.send.bind(msg.channel)
     }
@@ -1123,6 +1132,15 @@ export function createHelpOption(description: string, alternatives?: string[], d
     }
 }
 
+export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand['match'], name: MatchCommand['name'], help?: MatchCommand['help']): MatchCommand{
+    return {
+        run: run,
+        match: match,
+        name: name,
+        help: help
+    }
+}
+
 export function createCommand(
     cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
     category: CommandCategory,
@@ -1178,6 +1196,7 @@ export function generateDefaultRecurseBans() {
 }
 
 export let commands: { [key: string]: Command | CommandV2 } = {}
+export let matchCommands: {[key: string]: MatchCommand} = {}
 
 export function registerCommand(name: string, command: Command | CommandV2) {
     if (!command.help) {
@@ -1186,8 +1205,17 @@ export function registerCommand(name: string, command: Command | CommandV2) {
     Reflect.set(commands, name, command)
 }
 
+export function registerMatchCommand(command: MatchCommand){
+    command.category = CommandCategory.MATCH
+    Reflect.set(matchCommands, command.name, command)
+}
+
 export function getCommands() {
     return commands
+}
+
+export function getMatchCommands(){
+    return matchCommands
 }
 
 export function getAliasesV2(refresh?: boolean) {

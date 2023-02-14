@@ -13,6 +13,8 @@ import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
+import fetch from 'node-fetch'
+
 
 export default function(CAT: CommandCategory) {
 
@@ -235,7 +237,7 @@ export default function(CAT: CommandCategory) {
                     }
                 }
 
-                return { content: results.join("\n"), status: StatusCode.RETURN }
+                return { content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN }
             }, category: CAT,
             help: {
                 info: "Get the source code of a file, or a command",
@@ -1052,7 +1054,7 @@ export default function(CAT: CommandCategory) {
                 text = fs.readFileSync(`./command-results/${file}`, "utf-8")
             }
             else if (stdin) {
-                text = getContentFromResult(stdin as CommandReturn)
+                text = getContentFromResult(stdin as CommandReturn, "\n")
             }
             else {
                 return { content: "No file specified, and no pipe", status: StatusCode.ERR }
@@ -2268,7 +2270,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     }, CAT, "Get metadata about a commadn", {"...cmd": createHelpArgument("The command(s) to get metadata on", true)}, {
         f: createHelpOption("Format specifier<br><lh>Formats:</lh><ul><li>n: name of command</li><li>v: cmd version</li><li>h: help info</li><li>c: category</li><li>t: types in chat</li><li>o: available options</li><li>a: available args</li></ul>", ["fmt"]),
         "fa": createHelpOption("Format specifier for aliases<br><lh>Formats:</lh><ul><li>n: name of command</li><li>h: help info</li></ul>", ["fmt-alias"])
-    }))
+    }, undefined, undefined, false, true))
 
     registerCommand(
         "version", createCommandV2(async ({ args, opts }) => {
@@ -2301,7 +2303,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 status: StatusCode.RETURN
             }
 
-        }, CAT, "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>", { fmt: createHelpArgument("The format", false) })
+        }, CAT, "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>", { fmt: createHelpArgument("The format", false) },)
     )
 
     registerCommand(
@@ -2345,7 +2347,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     }
                 }
             },
-            category: CAT
+            category: CAT,
+            use_result_cache: true
         },
     )
 

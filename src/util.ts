@@ -508,6 +508,12 @@ class UTF8String {
     }
 }
 
+function* enumerate<T>(iterable: T[]): Generator<[number, T]>{
+    for(let i = 0; i < iterable.length; i++){
+        yield [i, iterable[i]]
+    }
+}
+
 function* range(start: number, stop: number, step: number = 1){
     for(let i = start; i < stop; i += step){
         yield i
@@ -752,7 +758,9 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         parsePercentFormat,
         formatPercentStr,
         formatBracePairs,
-        searchList
+        searchList,
+        renderHTML,
+        getOpts
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
@@ -789,6 +797,10 @@ function cmdCatToStr(cat: number) {
             return "economy"
         case 6:
             return "voice"
+        case 7:
+            return "admin"
+        case 8:
+            return "match"
     }
 }
 
@@ -985,14 +997,13 @@ class Options extends Map{
     }
 }
 
-
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
     let newArgs = []
     let idxOfFirstRealArg = 0
     for (let arg of args) {
-        idxOfFirstRealArg++
         if (arg[0] == "-") {
+            idxOfFirstRealArg++;
             if (arg[1] && arg[1] === '-') {
                 break
             }
@@ -1001,14 +1012,12 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
                 //@ts-ignore
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             }
-        } else {
-            idxOfFirstRealArg--
+        }
+        else{
             break
         }
     }
-    for (let i = idxOfFirstRealArg; i < args.length; i++) {
-        newArgs.push(args[i])
-    }
+    newArgs = args.slice(idxOfFirstRealArg)
     return [opts, newArgs]
 }
 
@@ -1053,7 +1062,7 @@ function renderLiElement(elem: cheerio.Element, indentation = 0, marker = "*\t")
         return ""
     }
     marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
-    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation) + "\n"
+    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation + 1) + "\n"
 }
 
 function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
@@ -1380,6 +1389,7 @@ export {
     ArgList,
     searchList,
     listComprehension,
-    range
+    range,
+    enumerate
 }
 

@@ -57,6 +57,7 @@ log.txt
 
 make-changelog
 *.js
+*.map
 
 ###############
 #     MISC    #

@@ -1,4 +1,4 @@
-import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload } from "discord.js"
+import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload, TextChannel } from "discord.js"
 
 import { ArgList, Options } from './util'
 
@@ -30,6 +30,7 @@ declare global {
         dm?: boolean,
         recurse?: boolean | { categories?: CommandCategory[], commands?: string[] },
         do_change_cmd_user_expansion?: boolean
+        channel?: TextChannel
     }
 
     interface CommandHelpArguments {
@@ -88,6 +89,14 @@ declare global {
         make_bot_type?: boolean,
         use_result_cache?: boolean
         cmd_std_version?: 2
+    }
+
+    interface MatchCommand{
+        run: ({msg, match}: {msg: Message, match: RegExpMatchArray}) => Promise<CommandReturn>,
+        match: RegExp,
+        name: string,
+        category: CommandCategory.MATCH
+        help?: CommandHelp
     }
 
     interface CommandVersions {

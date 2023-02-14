@@ -47,7 +47,6 @@ Object.defineProperty(User.prototype, "loan", {
         return economy.calculateLoanAmountFromString(this.id, "100%")
     }
 });
-
 Object.defineProperty(User.prototype, "economyData", {
     "get": function() {
         return economy.getEconomy()[this.id]
@@ -116,69 +115,6 @@ client.on("messageDeleteBulk", async (m: any) => {
     if (purgeSnipe.length > 5)
         purgeSnipe.length = 5
 })
-
-async function handleChatSearchCommandType(m: Message, search: RegExpMatchArray) {
-    let count = Number(search[1]) || Infinity
-    let regexSearch = search[2]
-    let rangeSearch = search[3]
-    if (!regexSearch && !rangeSearch) {
-        return false
-    }
-
-    let after = search[4]
-    let messages = await m.channel.messages.fetch({ limit: 100 })
-    let index = -1
-    let finalMessages: string[] = []
-    if (regexSearch) {
-        let regexpSearch: RegExp
-        try {
-            regexpSearch = new RegExp(regexSearch.slice(1).slice(0, regexSearch.length - 2))
-        }
-        catch (err) {
-            await m.channel.send("Bad regex")
-            return false
-        }
-        let success = 0
-        messages.forEach(async (msg) => {
-            index++
-            if (index == 0 || success >= count) return
-            if (msg.content.match(regexpSearch)) {
-                success++
-                finalMessages.push(msg.content)
-
-            }
-        })
-    }
-    else if (rangeSearch) {
-        let [num1, num2] = rangeSearch.split(",")
-        messages.forEach(async (msg) => {
-            index++
-            if (!isNaN(Number(num2)) && index == Number(num1)) {
-                finalMessages.push(msg.content)
-                return
-            }
-            if (index >= Number(num1) && index < Number(num2)) {
-                finalMessages.push(msg.content)
-            }
-        })
-    }
-    if (after) {
-        let cmds = after.split("/")
-        let result = finalMessages.join("\n")
-        let oldSend = m.channel.send
-        m.channel.send = async (_data) => {
-            return m
-        }
-        for (let cmd of cmds) {
-            let rv = await command_commons.runCmd(m, `${cmd} ${result}`, 0, true)
-            //@ts-ignore
-            if (rv?.content) result = rv.content
-        }
-        m.channel.send = oldSend
-        finalMessages = [result]
-    }
-    command_commons.handleSending(m, { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: 0 })
-}
 
 function messageContainsText(msg: Message, text: string) {
     text = text.toLowerCase()
@@ -261,17 +197,6 @@ client.on("messageCreate", async (m: Message) => {
         content = m.content
     }
 
-    let search;
-    if ((search = content.match(/^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/)) && !m.author.bot) {
-        await handleChatSearchCommandType(m, search)
-    }
-    let rerunWithReplacement
-    if((rerunWithReplacement = content.match(/^\^([^\^]+)\^(.*)$/)) && command_commons.lastCommand[m.author.id]){
-        let find = rerunWithReplacement[1]
-        let replace = rerunWithReplacement[2]
-        command_commons.lastCommand[m.author.id] = command_commons.lastCommand[m.author.id].replaceAll(find, replace)
-        content = `${local_prefix}!!`
-    }
     if (content.slice(0, local_prefix.length) == local_prefix) {
         if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
             server.close()
@@ -288,6 +213,16 @@ client.on("messageCreate", async (m: Message) => {
             }
         }
         globals.writeCmdUse()
+    }
+    else{
+        for(let cmd in command_commons.getMatchCommands()){
+            let obj = command_commons.getMatchCommands()[cmd]
+            let match;
+            if(match = m.content.match(obj.match)){
+                command_commons.handleSending(m, await obj.run({msg: m, match}))
+                break;
+            }
+        }
     }
     if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
