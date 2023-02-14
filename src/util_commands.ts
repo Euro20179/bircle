@@ -3249,20 +3249,21 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 if (!args[0]) {
                     return {
-                        content: "no member given!"
+                        content: "no member given!",
+                        status: StatusCode.ERR
                     }
                 }
                 //@ts-ignore
                 let member = await fetchUser(msg.guild, args[0])
                 return Pipe.start(member)
-                    .default({ content: "member not found" })
+                    .default({ content: "member not found", status: StatusCode.ERR })
                     .next((member: GuildMember) => {
                         if (!member.user) {
                             return
                         }
                         return [member, member.user]
                     })
-                    .default({ content: "user not found" })
+                    .default({ content: "user not found", status: StatusCode.ERR })
                     .next((member: GuildMember, user: User) => {
                         if (args[1]) {
                             const fmt = args.slice(1).join(" ")
@@ -3294,14 +3295,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         let embed = new MessageEmbed()
                         embed.setColor(member.displayColor)
                         embed.setThumbnail(user.avatarURL() || "")
-                        embed.addField("Id", user.id || "#!N/A", true)
-                        embed.addField("Username", user.username || "#!N/A", true)
-                        embed.addField("Nickname", member.nickname || "#!N/A", true)
-                        embed.addField("0xColor", member.displayHexColor.toString() || "#!N/A", true)
-                        embed.addField("Color", member.displayColor.toString() || "#!N/A", true)
-                        embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
-                        embed.addField("Joined at", member.joinedAt?.toString() || "#!N/A", true)
-                        embed.addField("Boosting since", member.premiumSince?.toString() || "#!N/A", true)
+                        let fields = [ {name: "Id", value: user.id || "#!N/A", inline: true}, {name: "Username", value: user.username || "#!N/A", inline: true}, {name: "Nickname", value: member.nickname || "#!N/A", inline: true}, {name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true}, {name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true}, {name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true}, {name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true}, {name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true}, ]
+                        embed.addFields(fields)
                         return {
                             embeds: [embed]
                         }
