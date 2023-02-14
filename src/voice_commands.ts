@@ -124,7 +124,7 @@ export default function() {
     registerCommand("pause", createCommandV2(async({msg, args}) => {
         player.pause()
         return {content: "Pausing", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE))
+    }, CommandCategory.VOICE, "Pause the current song"))
 
     registerCommand("unpause", createCommandV2(async({msg, args}) => {
         player.unpause()
