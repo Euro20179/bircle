@@ -6,7 +6,7 @@ import { Stream } from 'stream'
 import { ColorResolvable, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
 import fetch = require("node-fetch")
 
-import { Configuration, OpenAIApi } from "openai"
+import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
@@ -92,7 +92,7 @@ export default function(CAT: CommandCategory) {
         else if (requestType === "image") {
             let resp = await openai.createImage({
                 prompt: text || "Hello",
-                size: opts.getString("size", "256x256"),
+                size: opts.getString("size", "256x256") as CreateImageRequestSizeEnum,
                 user: msg.author.id
             })
             res = resp.data.data[0].url || "No result"

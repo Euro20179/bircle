@@ -1181,7 +1181,7 @@ function renderHTML(text: string, indentation = 0) {
     return renderELEMENT(h, indentation)
 }
 
-function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2) {
+function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let text =""
     let helpData = command.help
     if (!helpData)

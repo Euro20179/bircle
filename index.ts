@@ -1,27 +1,23 @@
 ///<reference path="src/types.d.ts" />
-import fs = require("fs")
+import fs from 'fs'
 
 //TODO: add ArgumentList class to interact with args
 //can be added to commandV2 as arguments in the object given to the fn
 
 import http from 'http'
 
-const translate = require("@iamtraction/google-translate")
-
-
-import { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } from "discord.js"
+const { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } = require("discord.js")
 
 const { REST } = require('@discordjs/rest')
 const { Routes } = require("discord-api-types/v9")
 
-import pet = require("./src/pets")
+const pet = require("./src/pets")
 require("./src/commands")
 import command_commons = require("./src/common_to_commands")
 
 let commands = command_commons.getCommands()
 
 import globals = require("./src/globals")
-import timer from "./src/timer"
 import { URLSearchParams } from "url"
 import { format } from "./src/util"
 import { getOpt } from "./src/user-options"
@@ -357,8 +353,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
         else if(interaction.commandName === 'md'){
             interaction.reply({
+                //@ts-ignore
                 type: InteractionResponseTypes.CHANNEL_MESSAGE_WITH_SOURCE,
-                content: interaction.options.get("text")?.value ?? "Hi"
+                content: interaction.options.get("text")?.value as string ?? "Hi"
             })
         }
         else if (interaction.commandName == 'aheist') {

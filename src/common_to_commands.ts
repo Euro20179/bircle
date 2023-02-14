@@ -137,8 +137,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, argList}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList }) {
-
+    async run({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }}) {
         let tempExec = this.prepare(msg, args, opts)
 
         globals.addToCmdUse(this.exec)
@@ -1137,10 +1136,14 @@ export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand
         run: run,
         match: match,
         name: name,
-        help: help
+        help: help,
+        category: CommandCategory.MATCH
     }
 }
 
+/**
+    * @deprecated use createCommandV2
+*/
 export function createCommand(
     cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
     category: CommandCategory,
