@@ -168,6 +168,6 @@ export default function() {
         else {
             return { content: "Not in vc", status: StatusCode.ERR }
         }
-    }, CommandCategory.VOICE),
+    }, CommandCategory.VOICE, "Leave voice chat"),
     )
 }
