@@ -119,7 +119,7 @@ export default function() {
     registerCommand("skip", createCommandV2(async({msg, args}) => {
         player.stop()
         return {content: "skipping", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE))
+    }, CommandCategory.VOICE, "Skip the current song"))
 
     registerCommand("pause", createCommandV2(async({msg, args}) => {
         player.pause()
