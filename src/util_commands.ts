@@ -2408,38 +2408,38 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     )
 
     registerCommand(
-        "whohas", createCommandV2(async({msg, argList}) => {
-                argList.beginIter()
-                let realRole = await argList.expectRole(msg.guild as Guild, () => true) as Role | typeof BADVALUE
-                if (realRole == BADVALUE) {
-                    return {
-                        content: "Could not find role",
-                        status: StatusCode.ERR
-                    }
+        "whohas", createCommandV2(async ({ msg, argList }) => {
+            argList.beginIter()
+            let realRole = await argList.expectRole(msg.guild as Guild, () => true) as Role | typeof BADVALUE
+            if (realRole == BADVALUE) {
+                return {
+                    content: "Could not find role",
+                    status: StatusCode.ERR
                 }
-                await msg.guild?.members.fetch()
-                let memberTexts = [""]
-                let embed = new MessageEmbed()
-                embed.setTitle(realRole.name)
-                let i = 0
-                let memberCount = 0
-                for (let member of realRole.members) {
-                    memberTexts[i] += `<@${member[1].id}> `
-                    memberCount += 1
-                    if (memberTexts[i].length > 1000) {
-                        embed.addField(`members`, memberTexts[i])
-                        i++
-                        memberTexts.push("")
-                    }
+            }
+            await msg.guild?.members.fetch()
+            let memberTexts = [""]
+            let embed = new MessageEmbed()
+            embed.setTitle(realRole.name)
+            let i = 0
+            let memberCount = 0
+            for (let member of realRole.members) {
+                memberTexts[i] += `<@${member[1].id}> `
+                memberCount += 1
+                if (memberTexts[i].length > 1000) {
+                    embed.addField(`members`, memberTexts[i])
+                    i++
+                    memberTexts.push("")
                 }
-                if (!memberTexts[0].length) {
-                    return { content: "No one", status: StatusCode.RETURN }
-                }
-                if (embed.fields.length < 1) {
-                    embed.addField(`members: ${i}`, memberTexts[i])
-                }
-                embed.addField("Member count", String(memberCount))
-                return { embeds: [embed], status: StatusCode.RETURN }
+            }
+            if (!memberTexts[0].length) {
+                return { content: "No one", status: StatusCode.RETURN }
+            }
+            if (embed.fields.length < 1) {
+                embed.addField(`members: ${i}`, memberTexts[i])
+            }
+            embed.addField("Member count", String(memberCount))
+            return { embeds: [embed], status: StatusCode.RETURN }
 
         }, CAT, "Gets a list of users with a specific role", {
             "...role": createHelpArgument("The role to search for")
@@ -2451,7 +2451,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             /**
             * @abstract
             */
-            format(text: string): string { return text }
+            async format(text: string): Promise<string> { return text }
 
             static parseFormatSpecifier(format: string): Format | string {
                 if (!format.startsWith("%")) {
@@ -2460,6 +2460,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 format = format.slice(1)
                 let dataType = format.slice(-1)
                 switch (dataType) {
+                    case "f":
                     case "x":
                     case "X":
                     case "o":
@@ -2467,6 +2468,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         return NumberFormat.parseFormatSpecifier(format)
                     case "s":
                         return StringFormat.parseFormatSpecifier(format)
+                    case "u":
+                        return UserFormat.parseFormatSpecifier(format)
+                    case "c":
+                        return CommandFormat.parseFormatSpecifier(format)
                     case "%":
                         return "%"
                     default:
@@ -2474,54 +2479,108 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
         }
+
+        class CommandFormat extends Format{
+            async format(text: string){
+                let cmds = {...getCommands(), ...getMatchCommands(), ...getAliasesV2()}
+                let cmd = cmds[text]
+                if(!cmd?.help?.info){
+                    return text
+                }
+                return renderHTML(cmd.help?.info as string)
+            }
+            static parseFormatSpecifier(format: string): string | Format {
+                //TODO:
+                //$ for args
+                //- for opts
+                //# for tags
+                return new CommandFormat()
+            }
+        }
+
+        class UserFormat extends Format{
+            async format(text: string){
+                let user = await fetchUser(msg.guild as Guild, text)
+                if(user)
+                    return `<@${user.id}>`
+                return text
+            }
+            static parseFormatSpecifier(format: string): string | Format {
+                return new UserFormat()
+            }
+        }
+
         class StringFormat extends Format {
-            format(text: string) {
+            async format(text: string) {
                 return text
             }
             static parseFormatSpecifier(format: string): StringFormat | string {
                 return new StringFormat()
             }
         }
+
+        type NumberType = "base10" | "x" | "o" | "X" | "d" | "f"
+
         class NumberFormat extends Format {
             numLength: number
-            type: "hex" | "octal" | "HEX" | "base10" | "x" | "o" | "X" | "d"
+            type: NumberType
             addCommas: boolean
-            constructor(numLength?: number, type?: "HEX" | "octal" | "hex" | "base10" | "x" | "o" | "X" | "d", addCommas?: boolean) {
+            decimalCount: number
+            constructor(numLength?: number, type?: NumberType, addCommas?: boolean, decimalCount?: number) {
                 super()
                 this.numLength = numLength ?? 1
                 this.type = type ?? "base10"
                 this.addCommas = addCommas ?? false
+                this.decimalCount = decimalCount ?? (this.type === "f" ? 2 : 0)
             }
             _formatBase(num: number, base: number) {
                 let nS = num.toString(base)
-                if(this.addCommas){
-                    nS = [...nS].reverse().join("").replace(/(...)/g, "$1,").split("").reverse().join("")
-                    if(nS.startsWith(",")) nS = nS.slice(1)
+                let [numberBit, decBit] = nS.split(".")
+                if (this.addCommas) {
+                    numberBit = [...numberBit].reverse().join("").replace(/(...)/g, "$1,").split("").reverse().join("")
+                    console.log(numberBit)
+                    if (numberBit.startsWith(",")) numberBit = numberBit.slice(1)
                 }
-                if (nS.length < this.numLength) {
-                    nS = "0".repeat(this.numLength - nS.length) + nS
+                if (numberBit.length < this.numLength) {
+                    numberBit = "0".repeat(this.numLength - numberBit.length) + numberBit
                 }
+                if (this.decimalCount) {
+                    if (!decBit) {
+                        decBit = "0".repeat(this.decimalCount)
+                    }
+                    else if (decBit.length < this.decimalCount) {
+                        decBit += "0".repeat(this.decimalCount - decBit.length)
+                    }
+                    else if (decBit.length > this.decimalCount) {
+                        decBit = decBit.slice(0, this.decimalCount)
+                    }
+                }
+                if(decBit)
+                    nS = `${numberBit}.${decBit}`
+                else nS = numberBit
                 return nS;
             }
-            format(text: string) {
+            async format(text: string) {
                 let num = Number(text)
                 if (isNaN(num)) {
-                    return "0".repeat(this.numLength)
+                    let text = "0".repeat(this.numLength)
+                    if (this.decimalCount) {
+                        text += `.${"0".repeat(this.decimalCount)}`
+                    }
+                    return text
                 }
                 let fn = this._formatBase.bind(this, num)
                 switch (this.type) {
-                    case "x":
-                    case "hex": {
+                    case "x": {
                         return fn(16);
                     }
-                    case "X":
-                    case "HEX": {
+                    case "X": {
                         return fn(16).toUpperCase()
                     }
-                    case "o":
-                    case "octal": {
+                    case "o": {
                         return fn(8);
                     }
+                    case "f":
                     case "d":
                     case 'base10': {
                         return fn(10)
@@ -2534,15 +2593,21 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 format = format.slice(0, -1)
                 let digits;
                 let paddingCount = 0;
+                let decPaddingCount = 0;
                 let addCommas = false
                 if (format[0] === "0" && (digits = format.slice(1)?.match(/^[0-9]+/))) {
-                    paddingCount = Number(format.slice(1, digits[0].length))
-                    format = format.slice(1, digits[0].length)
+                    console.log(format.slice(1, digits[0].length + 1))
+                    paddingCount = Number(format.slice(1, digits[0].length + 1))
+                    format = format.slice(1 + digits[0].length)
                 }
-                if(format[0] === "'"){
+                if (format[0] === "." && (digits = format.slice(1)?.match(/^[0-9]+/))) {
+                    decPaddingCount = Number(format.slice(1, digits[0].length + 1))
+                    format = format.slice(1 + digits[0].length)
+                }
+                if (format[0] === "'") {
                     addCommas = true
                 }
-                return new NumberFormat(1, base, addCommas)
+                return new NumberFormat(paddingCount, base, addCommas, decPaddingCount)
             }
         }
         let formatSpecifierList: (string | Format)[] = []
@@ -2553,7 +2618,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         let currentSpecifier = ""
         for (let char of formatSpecifier) {
-            if ("sdXxo".includes(char)) {
+            if ("sdXxofuc".includes(char)) {
                 formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier + char))
                 currentSpecifier = ""
                 continue;
@@ -2567,8 +2632,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (currentSpecifier) {
             formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier))
         }
+        console.log(formatSpecifierList)
 
-        let rv: CommandReturn = { status: StatusCode.RETURN }
+        let rv: CommandReturn = { status: StatusCode.RETURN, allowedMentions: {parse: []} }
 
         let sendToVar: string | boolean = false
 
@@ -2602,7 +2668,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 else {
                     //when an arg is needed move to the next arg
-                    text += currentSpec.format(argList[argNo++])
+                    text += await currentSpec.format(argList[argNo++])
                 }
             }
         }
@@ -2612,7 +2678,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         return rv
     }, CAT, "Similar to echo", {
-        specifier: createHelpArgument("The format specifier<br>%[fmt]<s|d|x|X|o><br><ul><li>fmt: special information depending on which type to use</li></ul><lh>types</lh><ul><li>s: string (no fmt is used)</li><li>d,x,X,o: fmt is in the form of [0<count>][']<br>0: to specify how many leading 0s<br>': to add commas<br>d: base 10, xX: base 16, o: base 8</li></ul>", true),
+        specifier: createHelpArgument("The format specifier<br>%[fmt]<s|d|x|X|o|f|u><br><ul><li>fmt: special information depending on which type to use</li></ul><lh>types</lh><ul><li>s: string (no fmt is used)</li><li>d,x,X,o,f: fmt is in the form of [0<count>][.<count>][']<br>0: to specify how many leading 0s<br>.: to specify the decimal place count<br>': to add commas<br>d: base 10, xX: base 16, o: base 8</li><li>u: format a user mention</li><li>c: command format</li></ul>", true),
         "...data": createHelpArgument("The data to fill the specifier with")
     }))
 
@@ -3295,7 +3361,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         let embed = new MessageEmbed()
                         embed.setColor(member.displayColor)
                         embed.setThumbnail(user.avatarURL() || "")
-                        let fields = [ {name: "Id", value: user.id || "#!N/A", inline: true}, {name: "Username", value: user.username || "#!N/A", inline: true}, {name: "Nickname", value: member.nickname || "#!N/A", inline: true}, {name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true}, {name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true}, {name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true}, {name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true}, {name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true}, ]
+                        let fields = [{ name: "Id", value: user.id || "#!N/A", inline: true }, { name: "Username", value: user.username || "#!N/A", inline: true }, { name: "Nickname", value: member.nickname || "#!N/A", inline: true }, { name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true }, { name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true }, { name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true }, { name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true }, { name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true },]
                         embed.addFields(fields)
                         return {
                             embeds: [embed]

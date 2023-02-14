@@ -921,6 +921,24 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
+        "argv", createCommandV2(async({rawArgs: args}) => {
+            return {content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN}
+        }, CAT, "prints the argvalues")
+    )
+
+    registerCommand(
+        "$argc", createCommandV2(async({args}) => {
+            return {content: String(args.length), status: StatusCode.RETURN}
+        }, CAT, "Prints the number of arguments excluding opts")
+    )
+
+    registerCommand(
+        "$argv", createCommandV2(async({args}) => {
+            return {content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN}
+        }, CAT, "prints the argvalues, exccluding opts")
+    )
+
+    registerCommand(
         "opts",
         {
             run: async (_msg, _args, _sendCallback, opts) => {
@@ -1401,6 +1419,7 @@ export default function(CAT: CommandCategory) {
                 let opts;
                 [opts, args] = getOpts(args)
                 let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
+                console.log(name, value)
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
                 }

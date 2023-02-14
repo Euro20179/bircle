@@ -154,7 +154,14 @@ class Parser {
 
     async parse() {
         let lastWasspace = false
-        parseLoop: while (this.advance()) {
+        while (this.advance()) {
+            if (!this.#hasCmd && this.#isParsingCmd) {
+                this.tokens.push(this.parseCmd())
+                if (this.modifiers.filter(v => v.type === Modifiers.skip).length) {
+                    this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).map((v, i) => new Token(T.str, v, i)))
+                    break
+                }
+            }
             switch (this.#curChar) {
                 case this.IFS: {
                     if (!lastWasspace) {
@@ -191,16 +198,7 @@ class Parser {
                 }
                 default: {
                     lastWasspace = false
-                    if (!this.#hasCmd && this.#isParsingCmd) {
-                        this.tokens.push(this.parseCmd())
-                        if (this.modifiers.filter(v => v.type === Modifiers.skip).length) {
-                            this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).map((v, i) => new Token(T.str, v, i)))
-                            break parseLoop
-                        }
-                    }
-                    else {
-                        this.tokens.push(this.parseString())
-                    }
+                    this.tokens.push(this.parseString())
                     break
                 }
             }

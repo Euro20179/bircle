@@ -999,26 +999,19 @@ class Options extends Map{
 
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
-    let newArgs = []
-    let idxOfFirstRealArg = 0
-    for (let arg of args) {
-        if (arg[0] == "-") {
-            idxOfFirstRealArg++;
-            if (arg[1] && arg[1] === '-') {
+    let arg, idxOfFirstRealArg = -1;
+    while((arg = args[++idxOfFirstRealArg])?.startsWith("-")){
+        console.log(arg)
+        if (arg[1]) {
+            let [opt, ...value] = arg.slice(1).split("=")
+            if(opt === '-'){
                 break
             }
-            if (arg[1]) {
-                let [opt, ...value] = arg.slice(1).split("=")
-                //@ts-ignore
-                opts[opt] = value[0] == undefined ? true : value.join("=");
-            }
-        }
-        else{
-            break
+            //@ts-ignore
+            opts[opt] = value[0] == undefined ? true : value.join("=");
         }
     }
-    newArgs = args.slice(idxOfFirstRealArg)
-    return [opts, newArgs]
+    return [opts, args.slice(idxOfFirstRealArg)]
 }
 
 function getContentFromResult(result: CommandReturn, end="") {
