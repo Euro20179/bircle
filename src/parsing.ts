@@ -125,7 +125,8 @@ class Parser {
         this.string = string
         this.#i = -1
         this.#curChar = undefined
-        this.#curArgNo = 0
+        //starts at negative one for commands
+        this.#curArgNo = isCmd ? -1 : 0
         this.#hasCmd = false
         this.#msg = msg
         this.#isParsingCmd = isCmd
@@ -256,7 +257,7 @@ class Parser {
                 break
         }
         this.#hasCmd = true
-        return new Token(T.command, cmd, -1)
+        return new Token(T.command, cmd, this.#curArgNo)
     }
 
     get lastToken() {
@@ -269,7 +270,7 @@ class Parser {
         }
         let char = this.#curChar
         let sequence = ""
-        if (this.advance()) {
+        if (char !== ' ' && this.advance()) {
             if (this.#curChar === "{") {
                 if (this.advance()) {
                     sequence = parseBracketPair(this.string, "{}", this.#i)

@@ -2148,12 +2148,12 @@ ${styles}
         "help-info": createHelpOption(`The information to say when ${prefix}help \${name} is run`, undefined, ""),
         "no-args": createHelpOption("Do not append user arguments to the end of exec", undefined, "false"),
         "no-opts": createHelpOption("Do not append user opts to the end of exec", undefined, "false"),
-        "-<optname>-odesc": createHelpOption("Set the description of <optname>", undefined),
-        "-<optname>-oalt": createHelpOption("Set the alternate opts of <optname> seperated by commas", undefined),
-        "-<optname>-odefault": createHelpOption("Set the default value of <optname>", undefined),
-        "-<argname>-adesc": createHelpArgument("Set the description of <argname>"),
-        "-<argname>-adefault": createHelpArgument("Set the default of <argname> i nthe help menu"),
-        "-<argname>-arequried": createHelpArgument("Set whether or not the argument is required")
+        "<optname>-odesc": createHelpOption("Set the description of <optname>", undefined),
+        "<optname>-oalt": createHelpOption("Set the alternate opts of <optname> seperated by commas", undefined),
+        "<optname>-odefault": createHelpOption("Set the default value of <optname>", undefined),
+        "<argname>-adesc": createHelpArgument("Set the description of <argname>"),
+        "<argname>-adefault": createHelpArgument("Set the default of <argname> i nthe help menu"),
+        "<argname>-arequried": createHelpArgument("Set whether or not the argument is required")
     }))
 
     registerCommand("process", createCommandV2(async({args}) => {

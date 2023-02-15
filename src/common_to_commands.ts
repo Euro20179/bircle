@@ -100,7 +100,6 @@ export class AliasV2 {
         const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+)/
 
         let tempExec = this.exec
-        console.log(tempExec)
 
         for (let innerText of innerPairs) {
             if (argsRegex.test(innerText)) {
@@ -132,7 +131,6 @@ export class AliasV2 {
             tempExec += args.join(" ")
         }
 
-        console.log(tempExec)
 
         return tempExec
     }
@@ -327,12 +325,11 @@ export class Interpreter {
         this.args = this.args.slice(0, -1)
     }
     //str token
-    async [0](token: Token) {
-        this.addTokenToArgList(token)
-        return true
+    async [0](token: Token): Promise<Token[] | false>  {
+        return [token]
     }
     //dofirst token
-    async [1](token: Token) {
+    async [1](token: Token): Promise<Token[] | false>  {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
         let rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
@@ -345,58 +342,48 @@ export class Interpreter {
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
-        return true
+        return []
     }
     //calc
-    async [2](token: Token) {
+    async [2](token: Token): Promise<Token[] | false>  {
         let parser = new Parser(this.#msg, token.data, false)
         await parser.parse()
         let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
         await int.interprate()
         token.data = int.args.join(" ")
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars["__global__"] }, { timeout: 1000 })), token.argNo)
-        this.addTokenToArgList(t)
-        return true
+        return [t]
     }
     //esc sequence
-    async [3](token: Token) {
+    async [3](token: Token): Promise<Token[] | false>  {
         let [char, ...seq] = token.data.split(":")
         let sequence = seq.join(":")
         switch (char) {
             case "n":
-                this.addTokenToArgList(new Token(T.str, "\n", token.argNo))
-                break
+                return [new Token(T.str, "\n", token.argNo)]
             case "t":
-                this.addTokenToArgList(new Token(T.str, "\t", token.argNo))
-                break
+                return [new Token(T.str, "\t", token.argNo)]
             case "U":
             case "u":
                 if (!sequence) {
-                    this.addTokenToArgList(new Token(T.str, "\\u", token.argNo))
-                    break
+                    return [new Token(T.str, "\\u", token.argNo)]
                 }
                 try {
-                    this.addTokenToArgList(new Token(T.str, String.fromCodePoint(parseInt(`0x${sequence}`)), token.argNo))
-                    break
+                    return [new Token(T.str, String.fromCodePoint(parseInt(`0x${sequence}`)), token.argNo)]
                 }
                 catch (err) {
-                    this.addTokenToArgList(new Token(T.str, `\\u{${sequence}}`, token.argNo))
-                    break
+                    return [new Token(T.str, `\\u{${sequence}}`, token.argNo)]
                 }
             case "s":
                 if (sequence) {
-                    this.addTokenToArgList(new Token(T.str, sequence, token.argNo))
-                    break
+                    return [new Token(T.str, sequence, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, " ", token.argNo))
-                break
+                return [new Token(T.str, " ", token.argNo)]
             case "y": {
                 if (sequence) {
-                    this.addTokenToArgList(new Token(T.syntax, sequence, token.argNo))
-                    break
+                    return [new Token(T.syntax, sequence, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, " ", token.argNo))
-                break
+                return [new Token(T.str, " ", token.argNo)]
             }
             case "Y": {
                 if (sequence) {
@@ -405,61 +392,49 @@ export class Interpreter {
                     let i = new Interpreter(this.#msg, p.tokens, p.modifiers, this.recursion + 1)
                     let args = await i.interprate()
                     for (let arg of args.join(" ").split(" ")) {
-                        this.addTokenToArgList(new Token(T.str, arg, this.args.length + 1))
+                        return [new Token(T.str, arg, this.args.length + 1)]
                     }
                 }
-                break;
+                return [];
             }
             case "A":
                 if (sequence) {
                     for (let i = 0; i < sequence.length; i++) {
-                        this.addTokenToArgList(new Token(T.str, sequence[i], ++token.argNo))
+                        return [new Token(T.str, sequence[i], ++token.argNo)]
                     }
-                    break
                 }
-                this.addTokenToArgList(new Token(T.str, "", token.argNo))
-                break
+                return [new Token(T.str, "", token.argNo)]
             case "b":
-                this.addTokenToArgList(new Token(T.str, `**${sequence}**`, token.argNo))
+                return [new Token(T.str, `**${sequence}**`, token.argNo)]
             case "i":
-                this.addTokenToArgList(new Token(T.str, `*${sequence}*`, token.argNo))
-                break
+                return [new Token(T.str, `*${sequence}*`, token.argNo)]
             case "S":
-                this.addTokenToArgList(new Token(T.str, `~~${sequence}~~`, token.argNo))
-                break
+                return [new Token(T.str, `~~${sequence}~~`, token.argNo)]
             case "d":
                 let date = new Date(sequence)
                 if (date.toString() === "Invalid Date") {
                     if (sequence) {
-                        this.addTokenToArgList(new Token(T.str, `\\d{${sequence}}`, token.argNo))
-                        break
+                        return [new Token(T.str, `\\d{${sequence}}`, token.argNo)]
                     }
                     else {
-                        this.addTokenToArgList(new Token(T.str, `\\d`, token.argNo))
-                        break
+                        return [new Token(T.str, `\\d`, token.argNo)]
                     }
                 }
-                this.addTokenToArgList(new Token(T.str, date.toString(), token.argNo))
-                break
+                return [new Token(T.str, date.toString(), token.argNo)]
             case "D":
                 if (isNaN(parseInt(sequence))) {
                     if (sequence) {
-                        this.addTokenToArgList(new Token(T.str, `\\D{${sequence}}`, token.argNo))
-                        break
+                        return [new Token(T.str, `\\D{${sequence}}`, token.argNo)]
                     }
-                    this.addTokenToArgList(new Token(T.str, `\\D`, token.argNo))
-                    break
+                    return [new Token(T.str, `\\D`, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, (new Date(parseInt(sequence))).toString(), token.argNo))
-                break
+                return [new Token(T.str, (new Date(parseInt(sequence))).toString(), token.argNo)]
             case "T": {
                 let ts = Date.now()
                 if (parseFloat(sequence)) {
-                    this.addTokenToArgList(new Token(T.str, String(ts / parseFloat(sequence)), token.argNo))
-                    break
+                    return [new Token(T.str, String(ts / parseFloat(sequence)), token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, String(Date.now()), token.argNo))
-                break
+                return [new Token(T.str, String(Date.now()), token.argNo)]
             }
             case "V": {
                 let [scope, ...n] = sequence.split(":")
@@ -471,67 +446,58 @@ export class Interpreter {
                 else if (scope == ".") {
                     let v = getVar(this.#msg, name)
                     if (v !== false) {
-                        this.addTokenToArgList(new Token(T.str, v, token.argNo))
-                        break
+                        return [new Token(T.str, v, token.argNo)]
                     }
-                    this.addTokenToArgList(new Token(T.str, `\\V{${sequence}}`, token.argNo))
-                    break
+                    return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
                 }
                 else if (!name) {
                     //@ts-ignore
                     name = scope
                     let v = getVar(this.#msg, name)
                     if (v !== false) {
-                        this.addTokenToArgList(new Token(T.str, v, token.argNo))
-                        break
+                        return [new Token(T.str, v, token.argNo)]
                     }
-                    this.addTokenToArgList(new Token(T.str, `\\V{${sequence}}`, token.argNo))
-                    break
+                    return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
                 }
                 let v = getVar(this.#msg, name, scope)
                 if (v !== false) {
-                    this.addTokenToArgList(new Token(T.str, v, token.argNo))
-                    break
+                    return [new Token(T.str, v, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, `\\V{${sequence}}`, token.argNo))
-                break
+                return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
             }
             case "v":
                 let num = Number(sequence)
                 //basically checks if it's a n
                 if (!isNaN(num)) {
                     let args = this.#msg.content.split(" ")
-                    this.addTokenToArgList(new Token(T.str, String(args[num]), token.argNo))
-                    break
+                    return [new Token(T.str, String(args[num]), token.argNo)]
                 }
                 let v = getVar(this.#msg, sequence, this.#msg.author.id)
                 if (v === false)
                     v = getVar(this.#msg, sequence)
                 if (v !== false) {
-                    this.addTokenToArgList(new Token(T.str, v, token.argNo))
-                    break
+                    return [new Token(T.str, v, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, `\\v{${sequence}}`, token.argNo))
-                break
+                return [new Token(T.str, `\\v{${sequence}}`, token.argNo)]
             case "\\":
                 if (sequence) {
-                    this.addTokenToArgList(new Token(T.str, `\\{${sequence}}`, token.argNo))
-                    break
+                    return [new Token(T.str, `\\{${sequence}}`, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, "\\", token.argNo))
-                break
+                return [new Token(T.str, "\\", token.argNo)]
+            case " ":
+                if (sequence) {
+                    return [new Token(T.str, sequence, token.argNo)]
+                }
+                return [new Token(T.str, " ", token.argNo)]
             default:
                 if (sequence) {
-                    this.addTokenToArgList(new Token(T.str, `${char}{${sequence}}`, token.argNo))
-                    break
+                    return [new Token(T.str, `${char}{${sequence}}`, token.argNo)]
                 }
-                this.addTokenToArgList(new Token(T.str, `${char}`, token.argNo))
-                break
+                return [new Token(T.str, `${char}`, token.argNo)]
         }
-        return true
     }
     //fmt
-    async[4](token: Token) {
+    async[4](token: Token): Promise<Token[] | false>  {
         let [format_name, ...args] = token.data.split("|")
         let data = ""
         switch (format_name) {
@@ -563,8 +529,7 @@ export class Interpreter {
                 let [tt, ...data] = args
                 let text = data.join("|")
 
-                this.interprateAsToken(new Token(strToTT(tt), text, this.#curTok?.argNo as number), strToTT(tt))
-                return true
+                return this.interprateAsToken(new Token(strToTT(tt), text, this.#curTok?.argNo as number), strToTT(tt))
             }
 
             case "rev":
@@ -708,9 +673,7 @@ export class Interpreter {
                 })
                 break
             case "arg": {
-                this.addTokenToArgList(new Token(T.str, this.args[this.args.length - 1], token.argNo))
-                data = ""
-                break
+                return [new Token(T.str, this.args[this.args.length - 1], token.argNo)]
             }
             case "channel":
                 data = format(args.join("|"), {
@@ -753,7 +716,7 @@ export class Interpreter {
                 //             end = start + 1
                 //         }
                 //         for (let i = start; i <= end; i++) {
-                //             this.addTokenToArgList(new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++))
+                //return [new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++)]
                 //         }
                 //         return true
                 //     }
@@ -774,7 +737,7 @@ export class Interpreter {
                 //         }
                 //
                 //         for (let word of format_name.split(",")) {
-                //             this.addTokenToArgList(new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++))
+                //return [new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++)]
                 //         }
                 //         return true
                 //     }
@@ -784,11 +747,10 @@ export class Interpreter {
                 // }
             }
         }
-        this.addTokenToArgList(new Token(T.str, data, token.argNo))
-        return true
+        return [new Token(T.str, data, token.argNo)]
     }
     //dofirstrepl
-    async[5](token: Token) {
+    async[5](token: Token): Promise<Token[] | false>  {
         let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
         if (doFirstResultNo === undefined) {
             doFirstResultNo = doFirstArgNo
@@ -803,13 +765,13 @@ export class Interpreter {
             else {
                 text = doFirst.split(" ")[Number(doFirstResultNo)] ?? null
             }
-            this.addTokenToArgList(new Token(T.str, text, token.argNo))
+            return [new Token(T.str, text, token.argNo)]
         }
         //TODO: %{...} spreads  args into  multiple arguments
-        return true
+        return []
     }
     //command
-    async[6](token: Token) {
+    async[6](token: Token): Promise<Token[] | false>  {
         this.cmd = token.data
         this.real_cmd = token.data
 
@@ -838,23 +800,22 @@ export class Interpreter {
             this.aliasV2 = aliasesV2[this.cmd]
         }
 
-        this.addTokenToArgList(new Token(T.str, Interpreter.commandUndefined as string, token.argNo))
-        return true
+        return [new Token(T.str, Interpreter.commandUndefined as string, token.argNo)]
     }
     //syntax
-    async[7](token: Token) {
+    async[7](token: Token): Promise<Token[] | false> {
         let parse = new Parser(this.#msg, token.data, false)
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
         let args = await int.interprate()
         for (let i = 0; i < args.length; i++) {
-            this.addTokenToArgList(new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo))
+            return [new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo)]
         }
-        return true
+        return []
     }
 
     //pipe
-    async[8](token: Token) {
+    async[8](token: Token): Promise<Token[] | false> {
         return false
     }
 
@@ -1063,7 +1024,12 @@ export class Interpreter {
 
     async interprateAllAsToken(t: T) {
         while (this.advance()) {
-            await this.interprateCurrentAsToken(t)
+            let tokList = await this.interprateCurrentAsToken(t)
+            if(tokList && tokList.length){
+                for(let tok of tokList){
+                    this.addTokenToArgList(tok)
+                }
+            }
         }
     }
 
@@ -1106,7 +1072,12 @@ export class Interpreter {
                     //this.returnJson = true
                     break
                 }
-                await this.interprateCurrentAsToken((this.#curTok as Token).type)
+                let tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type)
+                if(tokList && tokList.length){
+                    for(let tok of tokList){
+                        this.addTokenToArgList(tok)
+                    }
+                }
             }
         }
 
