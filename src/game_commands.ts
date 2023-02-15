@@ -1160,7 +1160,7 @@ until you put a 0 in the box`)
                             if (row.components.length > 0) {
                                 rows.push(row)
                             }
-                            let m = await sendCallback({ content: response, components: rows })
+                            let m = await handleSending(msg,{ content: response, components: rows, status: StatusCode.INFO }, sendCallback)
                             let choice = ""
                             try {
                                 let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
@@ -1203,7 +1203,7 @@ until you put a 0 in the box`)
                         if (!await handleStage(stage)) {
                             stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
                             let oldStage = stage
-                            await sendCallback(`FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`)
+                            await handleSending(msg,{content: `FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`, status: StatusCode.ERR}, sendCallback)
                             current_location = '__generic__'
                         }
                         else {
@@ -1474,7 +1474,7 @@ until you put a 0 in the box`)
                 else {
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
-                let _message = await sendCallback({ embeds: [embed] })
+                let _message = await handleSending(msg, {embeds: [embed], status: StatusCode.INFO}, sendCallback)
                 let response
                 while (!response) {
                     let collectedMessages
@@ -1503,7 +1503,7 @@ until you put a 0 in the box`)
                 let choice = response.content.toLowerCase()
                 if (choice === 'double bet') {
                     if (!economy.canBetAmount(msg.author.id, bet * 2)) {
-                        await sendCallback({ content: "That bet is too high for you" })
+                        await handleSending(msg, { content: "That bet is too high for you", status: StatusCode.ERR }, sendCallback)
                         continue
                     }
                     bet *= 2

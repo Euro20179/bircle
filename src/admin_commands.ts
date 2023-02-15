@@ -224,7 +224,7 @@ export default function() {
                     catch (err) { }
                 }
                 //@ts-ignore
-                await sendCallback({content: "STOPPING", status: StatusCode.RETURN})
+                await handleSending(msg, {content: "STOPPING", status: StatusCode.RETURN}, sendCallback)
                 economy.saveEconomy()
                 saveItems()
                 saveVars()

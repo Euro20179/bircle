@@ -1819,7 +1819,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                         let [user, _] = line.trim().split(":")
                         user = user.trim()
                         if (user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                            await sendCallback(`Cannot remove ${command}`)
+                            await handleSending(msg, {content: `Cannot remove ${command}`, status: StatusCode.INFO}, sendCallback)
                         }
                         else {
                             successfullyRemoved.push(command)
@@ -1876,7 +1876,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
             if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
-                await sendCallback("generating new help file")
+                await handleSending(msg, {content: "Generating new help file", status: StatusCode.INFO}, sendCallback)
                 delete opts['n']
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
