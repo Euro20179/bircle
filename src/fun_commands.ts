@@ -22,7 +22,7 @@ import { randomInt } from 'crypto';
 
 const { useItem, hasItem, INVENTORY } = require("./shop")
 
-const [key, orgid] = fs.readFileSync(__dirname + "/../data/openai.key", "utf-8").split("\n")
+const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
     organization: orgid,
     apiKey: key
