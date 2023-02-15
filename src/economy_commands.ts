@@ -446,7 +446,6 @@ export default function() {
             let e = new MessageEmbed()
             e.setTitle(`${user.user.username}'s pets`)
             let activePet = pet.getActivePet(msg.author.id)
-            console.log(activePet)
             e.setDescription(`active pet: ${activePet}`)
             for (let pet in pets) {
                 e.addField(pets[pet].name, `${pets[pet].health} hunger`, true)

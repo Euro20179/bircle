@@ -5,7 +5,6 @@ export default function(CAT: CommandCategory) {
         let find = match[1]
         let replace = match[2]
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        console.log(lastCommand[msg.author.id])
         return await runCmd(msg, lastCommand[msg.author.id].slice(1), 1, true) as CommandReturn
 
     }, /^\^([^\^]+)\^(.*)$/, "match:run-replace", {

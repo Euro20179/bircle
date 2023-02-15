@@ -451,7 +451,6 @@ export default function(CAT: CommandCategory) {
             let scores_per_year_since_first = score.count / years_since_first
             let drought = new Date(Date.now() - (new Date(score.last_date)).getTime())
             let years = drought.getFullYear() - 1970
-            console.log(drought)
             info_embed.addFields([
                 { inline: true, name: "Times per year", value: String(scores_per_year) },
                 { inline: true, name: "Times per year since first occurance", value: String(scores_per_year_since_first) },

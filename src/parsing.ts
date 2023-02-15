@@ -131,7 +131,6 @@ class Parser {
         this.#isParsingCmd = isCmd
         this.modifiers = []
         this.IFS = getOpt(msg.author.id, "IFS", " ")
-        console.log(this.IFS)
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
     }
 

@@ -33,7 +33,6 @@ export default function(CAT: CommandCategory) {
     }, CAT, "get specific data from stdin/pipe"))
 
     registerCommand("raw", createCommandV2(async ({ rawArgs }) => {
-        console.log(rawArgs)
         let data;
         try {
             data = JSON.parse(rawArgs.join(" "))
@@ -693,13 +692,11 @@ export default function(CAT: CommandCategory) {
             text = text.slice(trueBlock.length + 2)
 
 
-            console.log(isTrue)
             if (isTrue) {
 
 
                 for (let line of trueBlock.split(";\n")) {
                     line = line.trim()
-                    console.log(line)
                     if (!line) continue
                     await runCmd(msg, line, rec + 1, false, bans)
                 }

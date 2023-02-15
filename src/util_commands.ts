@@ -340,7 +340,6 @@ export default function(CAT: CommandCategory) {
                         let rgx
                         try {
                             rgx = new RegExp(search, "g")
-                            console.log(rgx)
                         }
                         catch (err) {
                             handleSending(msg, { status: StatusCode.ERR, content: "? Invalid regex'" })
@@ -2538,7 +2537,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let [numberBit, decBit] = nS.split(".")
                 if (this.addCommas) {
                     numberBit = [...numberBit].reverse().join("").replace(/(...)/g, "$1,").split("").reverse().join("")
-                    console.log(numberBit)
                     if (numberBit.startsWith(",")) numberBit = numberBit.slice(1)
                 }
                 if (numberBit.length < this.numLength) {

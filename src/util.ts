@@ -1001,7 +1001,6 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
     let arg, idxOfFirstRealArg = -1;
     while((arg = args[++idxOfFirstRealArg])?.startsWith("-")){
-        console.log(arg)
         if (arg[1]) {
             let [opt, ...value] = arg.slice(1).split("=")
             if(opt === '-'){

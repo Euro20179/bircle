@@ -1319,7 +1319,6 @@ until you put a 0 in the box`)
                     fmt += `\n{earnings}`
                     fs.writeFileSync("./command-results/last-run", String(Date.now()))
                 }
-                console.log(fmt)
                 return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}` }), status: StatusCode.RETURN }
             },
             help: {
@@ -1929,7 +1928,6 @@ until you put a 0 in the box`)
                             await player.send("Pick a color\nred, green, yellow, or blue")
                             try {
                                 let colorM = (await m.channel.awaitMessages({ max: 1, time: 20000 })).at(0)
-                                console.log(colorM?.content)
                                 if (!colorM) {
                                     await handleSending(msg, { content: "User picked incorrect color, using red", status: StatusCode.ERR })
                                     selectedCard.color = "red"
