@@ -671,8 +671,8 @@ server.on("request", (req, res) => {
                 command = `${prefix}${command}`
             }
             let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: TextChannel) => {
-                let msg: Message = {
+            client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
+                let msg: typeof Message = {
                     activity: null,
                     applicationId: client.id,
                     id: "_1033110249244213260",
@@ -708,7 +708,7 @@ server.on("request", (req, res) => {
                         repliedUser: null,
                         roles: new Collection(),
                         users: new Collection(),
-                        has: (data, options) => false,
+                        has: (data: any, options: any) => false,
                         _channels: null,
                         _content: command as string,
                         _members: null,
