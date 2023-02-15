@@ -1169,6 +1169,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     else if (!sendCallback) {
         sendCallback = msg.channel.send.bind(msg.channel)
     }
+
     //by default delete files that are being sent from local storage
     if (rv.deleteFiles === undefined) {
         rv.deleteFiles = true
@@ -1179,10 +1180,16 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (rv.noSend) {
         return msg
     }
+    //we only want to do this if the return cant expand into a cmd
+    if(rv.do_change_cmd_user_expansion !== false){
+        setVar("?", rv.status, msg.author.id)
+        let c = getContentFromResult(rv, "\n")
+        setVar("_!", c, msg.author.id)
+        setVar("_!", c)
+    }
     if (rv.content && rv.do_change_cmd_user_expansion !== false) {
         //if not empty, save in the _! variable
-        setVar("_!", rv.content, msg.author.id)
-        setVar("_!", rv.content)
+
 
         //@ts-ignore
         let optionToGet: user_options.UserOption = {
