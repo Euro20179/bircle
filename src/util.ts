@@ -1201,14 +1201,17 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 nameInfo += ` <${arg}>`
             }
             else{
-                nameInfo += ` [${arg}]`
+                nameInfo += ` [${arg}`
             }
             if (helpData.arguments[arg].requires) {
                 argInfo += ` (requires: ${helpData.arguments[arg].requires}) `
             }
             if (helpData.arguments[arg].default) {
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
-                nameInfo += ` [${arg} (${helpData.arguments[arg].default})]`
+                nameInfo += ` (${helpData.arguments[arg].default})]`
+            }
+            else{
+                nameInfo += "]"
             }
             let html = cheerio.load(helpData.arguments[arg].description)
             argInfo += `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`

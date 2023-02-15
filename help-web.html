@@ -5,13 +5,27 @@
         font-family: Arial, Helvetica, sans-serif;
     }
 
+    body{
+        background-color: #1E1E2E;
+        color: white;
+    }
+
     code {
         font-family: monospace;
         font-size: .9rem;
         background: #dddddd;
+        color: black;
         padding: .2rem;
         border: 1px solid transparent;
         border-radius: 3px;
+    }
+
+    a{
+        color: pink;
+    }
+
+    a:visited{
+        color: pink;
     }
 
     .space-li>li:not(:last-of-type) {
@@ -560,6 +574,19 @@
     <br>
     To get a list of options run <code>[options -l</code>
     </p>
+
+    <h1 id="Stdin">Stdin</h1>
+    <p>Stdin is recieved when a pipe is used on a command</p>
+
+    <h1 id="Pipes">Pipes</h1>
+    <code>[command1 ... &gt;pipe&gt; command2</code>
+    <p>
+    The result from command1 will be given to command2 as stdin
+    <br>
+    stdin is read seperately from args, and thus only some commands support it.
+    <br>
+    {%} can be used to be replaced with the content of stdin.
+
 
     <h1 id="Special-prefixes">Special prefixes</h1>
     <p>
