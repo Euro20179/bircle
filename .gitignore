@@ -65,6 +65,7 @@ make-changelog
 
 out
 *.bircle
+tags
 
 ###############
 #   INCLUDE   #
