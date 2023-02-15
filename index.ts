@@ -734,7 +734,7 @@ server.on("request", (req, res) => {
                     url: "http://localhost:8222/",
                     webhookId: null,
                     _cacheType: false,
-                    _patch: (_data) => { }
+                    _patch: (_data: any) => { }
                 }
                 command_commons.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
                     command_commons.handleSending(msg, rv as CommandReturn).then(_done => {
