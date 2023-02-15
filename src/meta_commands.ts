@@ -18,17 +18,17 @@ import fetch from 'node-fetch'
 
 export default function(CAT: CommandCategory) {
 
-    registerCommand("stdin", createCommandV2(async({stdin, args}) => {
+    registerCommand("stdin", createCommandV2(async ({ stdin, args }) => {
         let res: any = stdin
-        for(let arg of args){
-            if(res[arg]){
+        for (let arg of args) {
+            if (res[arg]) {
                 res = res[arg]
             }
-            else{
+            else {
                 break
             }
         }
-        return {content: typeof res === 'string' ? res : JSON.stringify(res), status: StatusCode.RETURN}
+        return { content: typeof res === 'string' ? res : JSON.stringify(res), status: StatusCode.RETURN }
 
     }, CAT, "get specific data from stdin/pipe"))
 
@@ -81,7 +81,7 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "interprate", createCommandV2(async ({ msg, rawArgs: args }) => {
+        "interprate", createCommandV2(async ({ msg, rawArgs: args, stdin }) => {
             let parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
             let int = new Interpreter(msg, parser.tokens, parser.modifiers)
@@ -918,20 +918,20 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "argv", createCommandV2(async({rawArgs: args}) => {
-            return {content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN}
+        "argv", createCommandV2(async ({ rawArgs: args }) => {
+            return { content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN }
         }, CAT, "prints the argvalues")
     )
 
     registerCommand(
-        "$argc", createCommandV2(async({args}) => {
-            return {content: String(args.length), status: StatusCode.RETURN}
+        "$argc", createCommandV2(async ({ args }) => {
+            return { content: String(args.length), status: StatusCode.RETURN }
         }, CAT, "Prints the number of arguments excluding opts")
     )
 
     registerCommand(
-        "$argv", createCommandV2(async({args}) => {
-            return {content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN}
+        "$argv", createCommandV2(async ({ args }) => {
+            return { content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN }
         }, CAT, "prints the argvalues, exccluding opts")
     )
 
@@ -1185,37 +1185,37 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "spam", createCommandV2(async({msg, args, opts, sendCallback}) => {
-                let times = parseInt(args[0])
-                if (times) {
-                    args.splice(0, 1)
-                } else times = 10
-                let send = args.join(" ").trim()
-                if (send == "") {
-                    send = String(times)
-                    times = 10
-                }
-                let totalTimes = times
-                let id = String(Math.floor(Math.random() * 100000000))
-                await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
-                globals.SPAMS[id] = true
-                //@ts-ignore
-                let delay: number | null = opts.getNumber("delay", null) * 1000
-                if (delay < 700 || delay > 0x7FFFFFFF) {
-                    delay = null
-                }
-                while (globals.SPAMS[id] && times--) {
-                    await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
-                    await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
+        "spam", createCommandV2(async ({ msg, args, opts, sendCallback }) => {
+            let times = parseInt(args[0])
+            if (times) {
+                args.splice(0, 1)
+            } else times = 10
+            let send = args.join(" ").trim()
+            if (send == "") {
+                send = String(times)
+                times = 10
+            }
+            let totalTimes = times
+            let id = String(Math.floor(Math.random() * 100000000))
+            await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
+            globals.SPAMS[id] = true
+            //@ts-ignore
+            let delay: number | null = opts.getNumber("delay", null) * 1000
+            if (delay < 700 || delay > 0x7FFFFFFF) {
+                delay = null
+            }
+            while (globals.SPAMS[id] && times--) {
+                await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
+                await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
 
-                }
-                delete globals.SPAMS[id]
-                return {
-                    content: "done",
-                    status: StatusCode.INFO
-                }
+            }
+            delete globals.SPAMS[id]
+            return {
+                content: "done",
+                status: StatusCode.INFO
+            }
 
-        }, CAT,  "Spam some text", {
+        }, CAT, "Spam some text", {
             count: createHelpArgument("The amount of times to spam", false),
             "...text": createHelpArgument("The text to send", true)
         }, {
@@ -1819,7 +1819,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                         let [user, _] = line.trim().split(":")
                         user = user.trim()
                         if (user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                            await handleSending(msg, {content: `Cannot remove ${command}`, status: StatusCode.INFO}, sendCallback)
+                            await handleSending(msg, { content: `Cannot remove ${command}`, status: StatusCode.INFO }, sendCallback)
                         }
                         else {
                             successfullyRemoved.push(command)
@@ -1876,7 +1876,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
             if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
-                await handleSending(msg, {content: "Generating new help file", status: StatusCode.INFO}, sendCallback)
+                await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
                 delete opts['n']
                 let styles = fs.readFileSync("help-styles.css")
                 let html = `<style>
@@ -2156,20 +2156,20 @@ ${styles}
         "<argname>-arequried": createHelpArgument("Set whether or not the argument is required")
     }))
 
-    registerCommand("process", createCommandV2(async({args}) => {
+    registerCommand("process", createCommandV2(async ({ args }) => {
         let fmt = args.join(" ")
-        if(!fmt){
+        if (!fmt) {
             let embed = new MessageEmbed()
             embed.setTitle(process.argv0)
             embed.addFields([
-                {name: "Args", value: process.argv.join(" "), inline: true},
-                {name: "Arch", value: process.arch, inline: false},
-                {name: "PID", value: String(process.pid), inline: false},
-                {name: "Platform", value: process.platform, inline: false},
-                {name: "Heap memory (MiB)", value: String(process.memoryUsage().heapTotal / 1024 /1024), inline: false}
+                { name: "Args", value: process.argv.join(" "), inline: true },
+                { name: "Arch", value: process.arch, inline: false },
+                { name: "PID", value: String(process.pid), inline: false },
+                { name: "Platform", value: process.platform, inline: false },
+                { name: "Heap memory (MiB)", value: String(process.memoryUsage().heapTotal / 1024 / 1024), inline: false }
             ])
-            return {embeds: [embed], status: StatusCode.RETURN}
-        } else return {content: formatPercentStr(fmt, {a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024)}), status: StatusCode.RETURN}
+            return { embeds: [embed], status: StatusCode.RETURN }
+        } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024) }), status: StatusCode.RETURN }
     }, CAT, "Gets info about the process"))
 
     registerCommand(
@@ -2273,17 +2273,18 @@ category: ${cmdCatToStr(cmd.category)}
 types: ${cmd.make_bot_type ? "true" : "false"}
 options: ${cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : ""}
 aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""}`,
-    n: name,
-    v: cmd.cmd_std_version ? String(cmd.cmd_std_version) : "unknown",
-    h: cmd.help?.info ? cmd.help.info : "unknown",
-    c: String(cmdCatToStr(cmd.category)),
-    C: String(cmd.use_result_cache ? true : false),
-    t: cmd.make_bot_type ? "true" : "false",
-    o: cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : "",
-    a: cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""
-})
-).join("\n-------------------------\n"), status: StatusCode.RETURN}
-    }, CAT, "Get metadata about a commadn", {"...cmd": createHelpArgument("The command(s) to get metadata on", true)}, {
+                        n: name,
+                        v: cmd.cmd_std_version ? String(cmd.cmd_std_version) : "unknown",
+                        h: cmd.help?.info ? cmd.help.info : "unknown",
+                        c: String(cmdCatToStr(cmd.category)),
+                        C: String(cmd.use_result_cache ? true : false),
+                        t: cmd.make_bot_type ? "true" : "false",
+                        o: cmd.help?.options ? Object.keys(cmd.help.options).join(", ") : "",
+                        a: cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : ""
+                    })
+            ).join("\n-------------------------\n"), status: StatusCode.RETURN
+        }
+    }, CAT, "Get metadata about a commadn", { "...cmd": createHelpArgument("The command(s) to get metadata on", true) }, {
         f: createHelpOption("Format specifier<br><lh>Formats:</lh><ul><li>n: name of command</li><li>v: cmd version</li><li>h: help info</li><li>c: category</li><li>t: types in chat</li><li>o: available options</li><li>a: available args</li></ul>", ["fmt"]),
         "fa": createHelpOption("Format specifier for aliases<br><lh>Formats:</lh><ul><li>n: name of command</li><li>h: help info</li></ul>", ["fmt-alias"])
     }, undefined, undefined, false, true))

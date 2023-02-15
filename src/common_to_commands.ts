@@ -509,6 +509,16 @@ export class Interpreter {
                     data = "{%}"
                 }
                 break
+            case "-%": {
+                if(this.#pipeData){
+                    data = getContentFromResult(this.#pipeData)
+                    this.#pipeData = undefined
+                }
+                else{
+                    data = "{-%}"
+                }
+                break;
+            }
             case "cmd":
                 data = this.cmd
                 break
