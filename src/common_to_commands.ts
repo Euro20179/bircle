@@ -696,8 +696,54 @@ export class Interpreter {
                 })
                 break
             default: {
+
+                let rangeMatch;
+
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
+                }
+                else if(format_name.includes(",")){
+                    //if it's 0, then the only thing in args is either nothing, or the command at position -1
+                    let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
+                    this.args[token.argNo]= ""
+                    let after: Token[ ] = []
+                    while(this.advance() && this.#curTok?.argNo === token.argNo){
+                        after = after.concat(await this.interprateAsToken(this.#curTok, this.#curTok.type) as Token[])
+                    }
+                    this.back()
+                    let afterText = after.map(v => v.data).join("")
+                    let toks = []
+                    let offset = 0
+                    for(let word of format_name.split(",")){
+                        toks.push(new Token(T.str, `${beforeText}${word}${afterText}`, token.argNo + offset++))
+                    }
+                    return toks
+                }
+                else if(rangeMatch = format_name.match(/(\d+)\.\.(\d+)/)){
+                    let start = parseInt(rangeMatch[1])
+                    let end = parseInt(rangeMatch[2])
+                    console.log(start, end)
+                    if(start - end > 10000){
+                        [start, end] = [0, 1]
+                    }
+                    //if it's 0, then the only thing in args is either nothing, or the command at position -1
+                    let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
+                    this.args[token.argNo]= ""
+                    let after: Token[ ] = []
+                    while(this.advance() && this.#curTok?.argNo === token.argNo){
+                        after = after.concat(await this.interprateAsToken(this.#curTok, this.#curTok.type) as Token[])
+                    }
+                    this.back()
+                    let afterText = after.map(v => v.data).join("")
+                    let toks = []
+                    let offset = 0;
+                    for(let i = start; i < end + 1; i++){
+                        toks.push(new Token(T.str, `${beforeText}${i}${afterText}`, token.argNo + offset++))
+                    }
+                    return toks
+                }
+                else{
+                    data = `{${format_name}}`
                 }
                 // else {
                 //     let rangeMatch = format_name.match(/^(\d+)(?:\.\.|-)(\d+)$/)
