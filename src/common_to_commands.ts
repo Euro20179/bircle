@@ -544,7 +544,7 @@ export class Interpreter {
                 }
                 break
             case "cmd":
-                data = this.#msg.content.split(" ")[0].slice(user_options.getOpt(this.#msg.author.id, "prefix", prefix).length)
+                data = this.cmd
                 break
             case "fhex":
             case "fbase": {
@@ -575,13 +575,6 @@ export class Interpreter {
                     data = [...args.join(" ")].reverse().join("")
                 }
                 break
-            case "channel": {
-                let fmt = args.join(" ") || "<#%i>"
-                let channel = this.#msg.channel
-                //@ts-ignore
-                data = format(fmt, { i: channel.id, n: channel.name ?? `{${channel.type}}` })
-                break
-            }
             case '$': {
                 data = String(economy.calculateAmountFromString(this.#msg.author.id, args.join(" ") || "100%"))
                 break
@@ -715,10 +708,7 @@ export class Interpreter {
                 })
                 break
             case "arg": {
-                for (let i = 0; i < this.tokens.filter(v => v.argNo === token.argNo).length; i++) {
-                    if (this.tokens[i].id === token.id || this.tokens[i].type === T.format) continue
-                    this.addTokenToArgList(this.tokens[i])
-                }
+                this.addTokenToArgList(new Token(T.str, this.args[this.args.length - 1], token.argNo))
                 data = ""
                 break
             }

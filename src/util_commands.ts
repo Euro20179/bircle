@@ -167,7 +167,7 @@ export default function(CAT: CommandCategory) {
             let opts
             [opts, args] = getOpts(args)
             if (opts["g"]) {
-                let text = fs.readFileSync("./help.txt", "utf-8")
+                let text = fs.readFileSync("./help-web.html", "utf-8")
                 return {
                     status: StatusCode.RETURN,
                     content: text

@@ -78,5 +78,5 @@ export default function(CAT: CommandCategory) {
         }
         return { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
-    }, /^(\d*):(\/[^\/]+\/)?(\d+,[\d\$]*)?(?:(.*)\/)*/, "match:find-run"))
+    }, /^(\d*):(\/[^\/]+\/)(?:(.*)\/)*/, "match:find-run"))
 }

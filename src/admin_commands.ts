@@ -223,6 +223,7 @@ export default function() {
                     }
                     catch (err) { }
                 }
+                //@ts-ignore
                 await sendCallback({content: "STOPPING", status: StatusCode.RETURN})
                 economy.saveEconomy()
                 saveItems()

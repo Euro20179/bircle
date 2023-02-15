@@ -206,32 +206,32 @@ class Parser {
     }
 
     //parsegreaterthanbracket
-    parseGTBracket () {
+    parseGTBracket() {
         let builtString = this.#curChar as string
-        while(this.advance() && (
-                this.#pipeSign.startsWith(builtString + this.#curChar) && builtString !==this.#pipeSign) ||
-                this.#defaultPipeSign.startsWith(builtString + this.#curChar) && builtString !== this.#defaultPipeSign
-             ){
+        while (this.advance() && (
+            this.#pipeSign.startsWith(builtString + this.#curChar) && builtString !== this.#pipeSign) ||
+            this.#defaultPipeSign.startsWith(builtString + this.#curChar) && builtString !== this.#defaultPipeSign
+        ) {
             builtString += this.#curChar
         }
-        if(this.#curChar !== undefined){
+        if (this.#curChar !== undefined) {
             this.back()
         }
-        if(builtString === this.#pipeSign || builtString === this.#defaultPipeSign){
+        if (builtString === this.#pipeSign || builtString === this.#defaultPipeSign) {
             this.advance()
             //ensure that the command WILL have argNo -1
             //bit hacky though
-            if(this.#curChar === this.IFS){
+            if (this.#curChar === this.IFS) {
                 this.#curArgNo = -2
             }
-            else{
+            else {
                 //command Argno should start at -1
                 this.#curArgNo = -1
             }
             this.back()
             return new Token(T.pipe, this.#defaultPipeSign, this.#curArgNo)
         }
-        else{
+        else {
             return new Token(T.str, builtString, this.#curArgNo)
         }
     }
@@ -285,123 +285,6 @@ class Parser {
             }
         }
         return new Token(T.esc, `${char}:${sequence}`, this.#curArgNo)
-        switch (char) {
-            case "n":
-                return new Token(T.str, "\n", this.#curArgNo)
-            case "t":
-                return new Token(T.str, "\t", this.#curArgNo)
-            case "U":
-            case "u":
-                if (!sequence) {
-                    return new Token(T.str, "\\u", this.#curArgNo)
-                }
-                try {
-                    return new Token(T.str, String.fromCodePoint(parseInt(`0x${sequence}`)), this.#curArgNo)
-                }
-                catch (err) {
-                    return new Token(T.str, `\\u{${sequence}}`, this.#curArgNo)
-                }
-            case "s":
-                if (sequence) {
-                    return new Token(T.str, sequence, this.#curArgNo)
-                }
-                return new Token(T.str, this.IFS, this.#curArgNo)
-            case "y": {
-                if(sequence){
-                    return new Token(T.syntax, sequence, this.#curArgNo)
-                }
-                return new Token(T.str, this.IFS, this.#curArgNo)
-            }
-            case "A":
-                if (sequence) {
-                    for (let i = 0; i < sequence.length - 1; i++) {
-                        this.tokens.push(new Token(T.str, sequence[i], ++this.#curArgNo))
-                    }
-                    return new Token(T.str, sequence[sequence.length - 1], ++this.#curArgNo)
-                }
-                return new Token(T.str, "", ++this.#curArgNo)
-            case "b":
-                return new Token(T.str, `**${sequence}**`, this.#curArgNo)
-            case "i":
-                return new Token(T.str, `*${sequence}*`, this.#curArgNo)
-            case "S":
-                return new Token(T.str, `~~${sequence}~~`, this.#curArgNo)
-            case "d":
-                let date = new Date(sequence)
-                if (date.toString() === "Invalid Date") {
-                    if (sequence) {
-                        return new Token(T.str, `\\d{${sequence}}`, this.#curArgNo)
-                    }
-                    else {
-                        return new Token(T.str, `\\d`, this.#curArgNo)
-                    }
-                }
-                return new Token(T.str, date.toString(), this.#curArgNo)
-            case "D":
-                if (isNaN(parseInt(sequence))) {
-                    if (sequence) {
-                        return new Token(T.str, `\\D{${sequence}}`, this.#curArgNo)
-                    }
-                    return new Token(T.str, `\\D`, this.#curArgNo)
-                }
-                return new Token(T.str, (new Date(parseInt(sequence))).toString(), this.#curArgNo)
-            case "T": {
-                let ts = Date.now()
-                if (parseFloat(sequence)) {
-                    return new Token(T.str, String(ts / parseFloat(sequence)), this.#curArgNo)
-                }
-                return new Token(T.str, String(Date.now()), this.#curArgNo)
-            }
-            case "V": {
-                let [scope, ...name] = sequence.split(":")
-                //@ts-ignore
-                name = name.join(":")
-                if (scope == "%") {
-                    scope = msg.author.id
-                }
-                else if (scope == ".") {
-                    let v = getVar(msg, name)
-                    if (v !== false)
-                        return new Token(T.str, v, this.#curArgNo)
-                    else return new Token(T.str, `\\V{${sequence}}`, this.#curArgNo)
-                }
-                else if (!name) {
-                    //@ts-ignore
-                    name = scope
-                    let v = getVar(msg, name)
-                    if (v !== false)
-                        return new Token(T.str, v, this.#curArgNo)
-                    return new Token(T.str, `\\V{${sequence}}`, this.#curArgNo)
-                }
-                let v = getVar(msg, name, scope)
-                if (v !== false)
-                    return new Token(T.str, v, this.#curArgNo)
-                else return new Token(T.str, `\\V{${sequence}}`, this.#curArgNo)
-            }
-            case "v":
-                let num = Number(sequence)
-                //basically checks if it's a n
-                if (!isNaN(num)) {
-                    let args = msg.content.split(" ")
-                    return new Token(T.str, String(args[num]), this.#curArgNo)
-                }
-                let v = getVar(msg, sequence, msg.author.id)
-                if (v === false)
-                    v = getVar(msg, sequence)
-                if (v !== false)
-                    return new Token(T.str, v, this.#curArgNo)
-                else return new Token(T.str, `\\v{${sequence}}`, this.#curArgNo)
-            case "\\":
-                if(sequence){
-                    return new Token(T.str, `\\{${sequence}}`, this.#curArgNo)
-                }
-                return new Token(T.str, "\\", this.#curArgNo)
-            default:
-                if (sequence) {
-                    return new Token(T.str, `${char}{${sequence}}`, this.#curArgNo)
-                }
-                return new Token(T.str, `${char}`, this.#curArgNo)
-        }
     }
 
     async parseFormat(msg: Message) {
@@ -471,7 +354,7 @@ class Parser {
             let ifNull = _ifNull.join("||")
             let var_ = getVar(this.#msg, inner)
             if (var_ === false) {
-                if(ifNull){
+                if (ifNull) {
                     return new Token(T.str, ifNull, this.#curArgNo)
                 }
                 return new Token(T.str, `\${${inner}}`, this.#curArgNo)

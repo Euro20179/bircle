@@ -73,7 +73,7 @@ Object.defineProperty(User.prototype, "netWorth", {
 //as the name implies this  function does  a command based on the contents of a  message
 //TODO: Eventually I would  like to make it so that all that is necessary here, is to pass a command
 
-client.on("guildMemberAdd", async (m: Message) => {
+client.on("guildMemberAdd", async (m: typeof Message) => {
     try {
         let role = await m.guild?.roles.fetch("427570287232417793")
         if (role)
@@ -97,7 +97,7 @@ client.on('ready', async () => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async (m: Message) => {
+client.on("messageDelete", async (m: typeof Message) => {
     if (m.author?.id != client.user?.id) {
         for (let i = 3; i >= 0; i--) {
             command_commons.snipes[i + 1] = command_commons.snipes[i]
@@ -112,24 +112,9 @@ client.on("messageDeleteBulk", async (m: any) => {
         purgeSnipe.length = 5
 })
 
-function messageContainsText(msg: Message, text: string) {
-    text = text.toLowerCase()
-    if (msg.content.toLowerCase().includes(text))
-        return true
-    if (msg.components.some(value => {
-        return value.components.some(com => {
-            if (com.type === "BUTTON") {
-                return com.label?.toLowerCase().includes(text)
-            }
-            return false
-        })
-    })) {
-        return true
-    }
-}
 
-client.on("messageCreate", async (m: Message) => {
-    if (m.member?.roles.cache.find(v => v.id == '1031064812995760233')) {
+client.on("messageCreate", async (m: typeof Message) => {
+    if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {
         return
     }
     if (m.channel.type !== "DM" && m.guild && m.guild?.id !== globals.GUILD_ID)
@@ -244,7 +229,7 @@ client.on("messageCreate", async (m: Message) => {
     }
 })
 
-client.on("interactionCreate", async (interaction: Interaction) => {
+client.on("interactionCreate", async (interaction: typeof Interaction) => {
     if (interaction?.user?.username === undefined) {
         return
     }
@@ -424,7 +409,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         else if (interaction.commandName == 'img') {
             //@ts-ignore
             let rv = await command_commons.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
             if (rv.files) {
                 for (let file of rv.files) {
                     fs.rmSync(file.attachment)
@@ -451,7 +436,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'poll') {
             //@ts-ignore
@@ -476,14 +461,14 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'rccmd') {
             //@ts-ignore
             interaction.author = interaction.member?.user
             //@ts-ignore
             let rv = await command_commons.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'say') {
             interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here").catch(console.error)
@@ -493,7 +478,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member?.user
             //@ts-ignore
             let rv = await command_commons.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == "add-8") {
             //@ts-ignore
@@ -501,7 +486,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             let resp = interaction.options.get("response")?.value as string
             //@ts-ignore
             let rv = await command_commons.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == "add-wordle") {
             //@ts-ignore
@@ -513,7 +498,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             }
             //@ts-ignore
             let rv = await command_commons.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'rps') {
             let opponent = interaction.options.get("opponent")?.value
@@ -554,7 +539,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.author = interaction.member.user
             //@ts-ignore
             let rv = await command_commons.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
     }
     else if (interaction.isUserContextMenu() && !interaction.replied) {
@@ -564,7 +549,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
         else if (interaction.commandName == 'info') {
             const user = interaction.targetUser
-            const member: GuildMember = interaction.targetMember as GuildMember
+            const member: typeof GuildMember = interaction.targetMember as typeof GuildMember
             let embed = new MessageEmbed()
             embed.setColor(member.displayColor)
             if (user.avatarURL())
@@ -664,8 +649,8 @@ server.on("request", (req, res) => {
                 break
             }
             let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: TextChannel) => {
-                channel.send({ content: text }).then((msg) => {
+            client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
+                channel.send({ content: text }).then((msg: any) => {
                     res.writeHead(200)
                     res.end(JSON.stringify(msg.toJSON()))
                 })
