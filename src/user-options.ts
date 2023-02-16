@@ -1,4 +1,5 @@
 import fs = require("fs")
+import { GLOBAL_CURRENCY_SIGN } from "./common"
 
 export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "change-cmd-return", "change-cmd-info", "change-cmd-prompt", "change-cmd-warning", "change-cmd-error", "dm-when-online", "currency-sign", "puffle-find", "enable-mail", "mail-signature", "no-pingresponse", "pipe-symbol", "IFS"] as const
 
@@ -22,11 +23,8 @@ export function saveUserOptions(){
     fs.writeFileSync("./user-options.json", JSON.stringify(USER_OPTIONS))
 }
 
-export function getOpt(user: string, opt: UserOption, fallback: string){
-    if(USER_OPTIONS[user]){
-        return USER_OPTIONS[user][opt] ?? fallback
-    }
-    return fallback
+export function getOpt(user: string | number, opt: UserOption, fallback: string){
+    return USER_OPTIONS[String(user)]?.[opt] ?? fallback
 }
 
 export function setOpt(user: string, opt: string, value: string){
@@ -46,4 +44,8 @@ export function unsetOpt(user: string, opt: string){
 
 export function isValidOption(opt: string){
     return allowedOptions.includes(opt as UserOption)
+}
+
+export function formatMoney(user: string, amount: string | number){
+    return `${getOpt(user, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount}`
 }

@@ -2,6 +2,7 @@ import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable } 
 import { getVar } from './common'
 
 import { handleSending, runCmd, StatusCode } from "./common_to_commands"
+import { efd } from './util'
 
 const { vars, prefix } = require( "./common.js")
 
@@ -784,7 +785,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (!(e instanceof MessageEmbed)) {
                     return { err: true, content: `${e} is not an embed` }
                 }
-                e.addField(title, value, Boolean(inline))
+                e.addFields(efd([title, value, Boolean(inline)]))
                 stack.push(e)
                 break
             }

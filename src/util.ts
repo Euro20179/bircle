@@ -4,14 +4,26 @@ import { spawnSync } from "child_process"
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { Client, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
 import { client } from "./common"
 import { AliasV2 } from "./common_to_commands"
 
 import globals = require("./globals")
+import { formatMoney, getOpt } from "./user-options"
 
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
+
+function createEmbedFieldData(name: string, value: string, inline?: boolean): EmbedFieldData{
+    return {name: name, value: value, inline: inline ?? false}
+}
+
+/**
+    * @description Creates an array of embedfielddata
+*/
+function efd(...data: [string, string, boolean?][]){
+    return listComprehension<[string, string, boolean?], [string, string, boolean?][], EmbedFieldData>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
+}
 
 class LengthUnit {
     value: number
@@ -760,7 +772,11 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         formatBracePairs,
         searchList,
         renderHTML,
-        getOpts
+        getOpts,
+        user_options: {
+            formatMoney: formatMoney,
+            getOpt: getOpt
+        }
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
@@ -1387,6 +1403,8 @@ export {
     range,
     enumerate,
     BADVALUE,
-    GOODVALUE
+    GOODVALUE,
+    createEmbedFieldData,
+    efd
 }
 

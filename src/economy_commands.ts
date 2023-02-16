@@ -8,7 +8,7 @@ import timer from './timer'
 
 import { GLOBAL_CURRENCY_SIGN, prefix } from './common'
 import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
-import { ArgList, fetchUser, format, getOpts } from './util'
+import { ArgList, fetchUser, format, getOpts, efd } from './util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from './shop'
 import { randomInt } from 'crypto'
@@ -361,7 +361,7 @@ export default function() {
             if (au)
                 e.setThumbnail(au)
             for (let item in INVENTORY()[user.id]) {
-                e.addField(item, `${INVENTORY()[user.id][item]}`, true)
+                e.addFields(efd([item, `${INVENTORY()[user.id][item]}`, true]))
             }
             return { embeds: [e], status: StatusCode.RETURN }
         }, category: CommandCategory.ECONOMY,
@@ -385,7 +385,7 @@ export default function() {
                 for (let cost of data.cost) {
                     totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
                 }
-                embed.addField(`${pet}\n${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`, `${data.description}`, true)
+                embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
             }
             embed.setFooter({ text: `To buy a pet, do ${prefix}bpet <pet name>` })
             return { embeds: [embed], status: StatusCode.RETURN }

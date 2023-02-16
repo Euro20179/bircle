@@ -1,6 +1,6 @@
 import { Message, MessageEmbed } from 'discord.js'
 
-import pet = require('./pets')
+import pet from './pets'
 
 import fs = require("fs")
 
@@ -9,6 +9,7 @@ const { getOpts } = require("./util.js")
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy = require("./economy")
 import { StatusCode, handleSending } from './common_to_commands'
+import { efd } from './util'
 const { hasItem } = require("./shop.js")
 
 let BATTLEGAME: boolean = false;
@@ -435,10 +436,10 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             //@ts-ignore
             let mem = msg.guild.members.cache.find((v) => v.id == player)
             if(!mem){
-                embed.addField(`${player}`, `${players[player]}`, true)
+                embed.addFields(efd([`${player}`, `${players[player]}`, true]))
             }
             else{
-                embed.addField(`${mem.user.username}`, `${players[player]}`, true)
+                embed.addFields(efd([`${mem.user.username}`, `${players[player]}`, true]))
             }
             if(players[player] < 0){
                 if(negativeHpBonus[player] && negativeHpBonus[player] > players[player]){

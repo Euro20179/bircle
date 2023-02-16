@@ -21,7 +21,7 @@ let commands = command_commons.getCommands()
 
 import globals = require("./src/globals")
 import { URLSearchParams } from "url"
-import { format } from "./src/util"
+import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
 
@@ -197,12 +197,12 @@ client.on("messageCreate", async (m: typeof Message) => {
         }
         globals.writeCmdUse()
     }
-    else{
-        for(let cmd in command_commons.getMatchCommands()){
+    else {
+        for (let cmd in command_commons.getMatchCommands()) {
             let obj = command_commons.getMatchCommands()[cmd]
             let match;
-            if(match = m.content.match(obj.match)){
-                command_commons.handleSending(m, await obj.run({msg: m, match}))
+            if (match = m.content.match(obj.match)) {
+                command_commons.handleSending(m, await obj.run({ msg: m, match }))
                 break;
             }
         }
@@ -338,7 +338,7 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             interaction.reply(`Attacking ${user}...`).catch(console.error)
             interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
         }
-        else if(interaction.commandName === 'md'){
+        else if (interaction.commandName === 'md') {
             interaction.reply({
                 //@ts-ignore
                 type: InteractionResponseTypes.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -557,14 +557,16 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             if (user.avatarURL())
                 //@ts-ignore
                 embed.setThumbnail(user.avatarURL())
-            embed.addField("Id", user.id || "#!N/A", true)
-            embed.addField("Username", user.username || "#!N/A", true)
-            embed.addField("Nickname", member?.nickname || "#!N/A", true)
-            embed.addField("0xColor", member?.displayHexColor?.toString() || "#!N/A", true)
-            embed.addField("Color", member?.displayColor?.toString() || "#!N/A", true)
-            embed.addField("Created at", user.createdAt.toString() || "#!N/A", true)
-            embed.addField("Joined at", member?.joinedAt?.toString() || "#!N/A", true)
-            embed.addField("Boosting since", member?.premiumSince?.toString() || "#!N/A", true)
+            embed.addFields(efd(
+                ["Id", user.id || "#!N/A", true],
+                ["Username", user.username || "#!N/A", true],
+                ["Nickname", member?.nickname || "#!N/A", true],
+                ["0xColor", member?.displayHexColor?.toString() || "#!N/A", true],
+                ["Color", member?.displayColor?.toString() || "#!N/A", true],
+                ["Created at", user.createdAt.toString() || "#!N/A", true],
+                ["Joined at", member?.joinedAt?.toString() || "#!N/A", true],
+                ["Boosting since", member?.premiumSince?.toString() || "#!N/A", true])
+                           )
             interaction.reply({ embeds: [embed] }).catch(console.error)
         }
     }
