@@ -757,6 +757,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     Object.entries({
         yes: true,
         false: false,
+        efd,
         rgbToHex,
         escapeRegex,
         escapeShell,
@@ -776,7 +777,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
-        }
+        },
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)

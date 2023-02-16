@@ -46,8 +46,8 @@ export default function(CAT: CommandCategory) {
         catch (err) {
             return { content: "Could not parse json", status: StatusCode.ERR }
         }
-        if(!data.status){
-            return {content: "No status code", status: StatusCode.ERR}
+        if (!data.status) {
+            return { content: "No status code", status: StatusCode.ERR }
         }
         return data as CommandReturn
 
@@ -444,72 +444,64 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "api",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                if (opts['l']) {
-                    let text = ""
-                    for (let fn in API.APICmds) {
-                        let requirements = API.APICmds[fn].requirements
-                        let optional = API.APICmds[fn].optional
-                        text += `${fn}: `
-                        if (optional) {
-                            //@ts-ignore
-                            requirements = requirements.filter(v => !optional.includes(v))
-                        }
-                        text += `${requirements.join(", ")} `
-                        if (optional) {
-                            text += `${optional.map(v => `[${v}]`).join(", ")}`
-                        }
-                        text += `\n--------------------\n`
+        "api", createCommandV2(async ({ msg, args, opts }) => {
+            if (opts.getBool('l', false)) {
+                let text = ""
+                for (let fn in API.APICmds) {
+                    let requirements = API.APICmds[fn].requirements
+                    let optional = API.APICmds[fn].optional
+                    text += `${fn}: `
+                    if (optional) {
+                        //@ts-ignore
+                        requirements = requirements.filter(v => !optional.includes(v))
                     }
-                    return { content: text, status: StatusCode.RETURN }
-                }
-                let fn = args.join(" ")
-                if (!Object.keys(API.APICmds).includes(fn)) {
-                    return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`, status: StatusCode.ERR }
-                }
-                let apiFn = API.APICmds[fn]
-                let argsForFn: { [key: string]: any } = {}
-                for (let i in opts) {
-                    if (!apiFn.requirements.includes(i))
-                        continue;
-                    else {
-                        argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts[i]))
+                    text += `${requirements.join(", ")} `
+                    if (optional) {
+                        text += `${optional.map(v => `[${v}]`).join(", ")}`
                     }
+                    text += `\n--------------------\n`
                 }
-                let missing = []
-                for (let req of apiFn.requirements.filter(v => !(apiFn.optional || []).includes(v))) {
-                    if (argsForFn[req] === undefined) {
-                        missing.push(req)
-                    }
-                }
-                if (missing.length) {
-                    return { content: `You are missing the following options: ${missing.join(", ")}`, status: StatusCode.ERR }
-                }
-                if (apiFn.extra) {
-                    let extraArgs: { [key: string]: any } = {}
-                    for (let arg of apiFn.extra) {
-                        if (arg === "msg") {
-                            extraArgs[arg] = msg
-                        }
-                    }
-                    return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })), status: StatusCode.RETURN }
-                }
-                return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
-            }, category: CAT,
-            help: {
-                info: "Run low level bot commands<br>To see a list of api commands run <code>api -l</api>",
-                arguments: {
-                    command: createHelpArgument("The command to run", true),
-                },
-                options: {
-                    "<opt>": createHelpOption("Each command will require different options")
+                return { content: text, status: StatusCode.RETURN }
+            }
+            let fn = args.join(" ")
+            if (!Object.keys(API.APICmds).includes(fn)) {
+                return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`, status: StatusCode.ERR }
+            }
+            let apiFn = API.APICmds[fn]
+            let argsForFn: { [key: string]: any } = {}
+            for (let i in opts) {
+                if (!apiFn.requirements.includes(i))
+                    continue;
+                else {
+                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined)))
                 }
             }
-        },
+            let missing = []
+            for (let req of apiFn.requirements.filter(v => !(apiFn.optional || []).includes(v))) {
+                if (argsForFn[req] === undefined) {
+                    missing.push(req)
+                }
+            }
+            if (missing.length) {
+                return { content: `You are missing the following options: ${missing.join(", ")}`, status: StatusCode.ERR }
+            }
+            if (apiFn.extra) {
+                let extraArgs: { [key: string]: any } = {}
+                for (let arg of apiFn.extra) {
+                    if (arg === "msg") {
+                        extraArgs[arg] = msg
+                    }
+                }
+                return { content: String(await apiFn.exec({ ...extraArgs, ...argsForFn })), status: StatusCode.RETURN }
+            }
+            return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
+
+        }, CAT, "Run low level bot commands<br>To see a list of api commands run <code>api -l</api>", {
+            command: createHelpArgument("The command to run", true),
+        }, {
+            "<opt>": createHelpOption("Each command will require different options")
+
+        })
     )
 
     registerCommand(

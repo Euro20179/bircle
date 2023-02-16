@@ -3,6 +3,8 @@ import economy = require("./economy")
 import pet from './pets'
 import shop = require("./shop")
 import fetch = require('node-fetch')
+import { runCmd } from "./common_to_commands"
+import { RECURSION_LIMIT } from "./globals"
 
 const { fetchUser, getFonts } = require("./util.js")
 
@@ -50,6 +52,14 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
             if(data)
                 return JSON.stringify(data)
             return false
+        }
+    },
+    run: {
+        requirements: ["cmd"],
+        extra: ['msg'],
+        exec: async({msg, cmd}: {msg: Message, cmd: string}) => {
+            console.log(cmd)
+            return JSON.stringify(await runCmd(msg, cmd, RECURSION_LIMIT - 1, true))
         }
     },
     economyLooseGrandTotal: {
@@ -158,10 +168,11 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
         case "url":
         case "prompt":
         case "data":
+        case "cmd":
         case "symbol": {
             return argument
         }
         default:
-            return false
+            throw new Error(`${t} not implemented in handleApiArgumentType`)
     }
 }
