@@ -378,19 +378,6 @@ export default function(CAT: CommandCategory) {
     )
 
     registerCommand(
-        "nothappening",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                return { content: ["reddit - impossible to set up api", "socialblade - socialblade blocks automated web requests", "donate/work command -boring (use last-run)"].join("\n"), status: StatusCode.RETURN }
-            },
-            category: CAT,
-            help: {
-                info: "<b><i>NOT HAPPENING</i></b>"
-            }
-        },
-    )
-
-    registerCommand(
         "cmd-search",
         {
             run: async (_msg, args, sendCallback) => {
