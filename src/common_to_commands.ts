@@ -702,7 +702,8 @@ export class Interpreter {
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
                 }
-                else if(format_name.includes(",")){
+                else if(format_name.startsWith(",:")){
+                    format_name = format_name.slice(2)
                     //if it's 0, then the only thing in args is either nothing, or the command at position -1
                     let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
                     this.args[token.argNo]= ""
@@ -714,7 +715,7 @@ export class Interpreter {
                     let afterText = after.map(v => v.data).join("")
                     let toks = []
                     let offset = 0
-                    for(let word of format_name.split(",")){
+                    for(let word of (format_name).split(",")){
                         toks.push(new Token(T.str, `${beforeText}${word}${afterText}`, token.argNo + offset++))
                     }
                     return toks
