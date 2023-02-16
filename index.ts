@@ -8,10 +8,12 @@ import http from 'http'
 
 const { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } = require("discord.js")
 
-const { REST } = require('@discordjs/rest')
-const { Routes } = require("discord-api-types/v9")
+import { REST } from '@discordjs/rest'
 
-const pet = require("./src/pets")
+import { Routes } from "discord-api-types/v9"
+
+import pet from './src/pets'
+
 require("./src/commands")
 import command_commons = require("./src/common_to_commands")
 

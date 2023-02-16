@@ -1,7 +1,7 @@
 import fs from 'fs'
 import fetch = require("node-fetch")
 import economy = require('./economy')
-import pet = require("./pets")
+import pet from "./pets"
 import user_options = require("./user-options")
 import timer from './timer'
 

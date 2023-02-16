@@ -12,7 +12,7 @@ import economy = require("./economy")
 import { client, prefix } from "./common";
 import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel } from "./util"
 import user_options = require("./user-options")
-import pet = require("./pets")
+import pet from "./pets"
 import globals = require("./globals")
 import timer from './timer'
 import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";

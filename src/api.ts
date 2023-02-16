@@ -1,6 +1,6 @@
 import { Message, CollectorFilter } from "discord.js"
 import economy = require("./economy")
-import pet = require('./pets')
+import pet from './pets'
 import shop = require("./shop")
 import fetch = require('node-fetch')
 

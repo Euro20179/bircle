@@ -8,7 +8,7 @@ import { Stream } from 'stream'
 
 import globals = require("./globals")
 import economy = require("./economy")
-import pet = require("./pets")
+import pet from "./pets"
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'

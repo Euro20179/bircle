@@ -7,7 +7,7 @@ import globals = require("./globals")
 import economy = require("./economy")
 import user_options = require("./user-options")
 import battle = require("./battle")
-import pet = require("./pets")
+import pet from "./pets"
 
 import uno = require("./uno")
 

@@ -1,7 +1,7 @@
 const fs = require("fs")
 import fetch = require("node-fetch")
 
-import pet = require("./pets")
+import pet from "./pets"
 
 
 type Stock = {buyPrice:  number, shares: number}

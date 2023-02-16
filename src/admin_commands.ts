@@ -3,7 +3,7 @@ import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars 
 import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, registerCommand, StatusCode } from './common_to_commands'
 import economy = require("./economy")
 import user_options = require("./user-options")
-import pet = require("./pets")
+import pet from "./pets"
 import timer from './timer'
 import { saveItems } from './shop'
 import { Message } from 'discord.js'

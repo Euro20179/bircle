@@ -252,7 +252,7 @@ function namePet(id: string, pet: string, name: string){
 
 loadPets()
 
-export{
+export default{
     getPetInventory,
     getPetShop,
     buyPet,
