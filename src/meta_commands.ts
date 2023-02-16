@@ -46,6 +46,9 @@ export default function(CAT: CommandCategory) {
         catch (err) {
             return { content: "Could not parse json", status: StatusCode.ERR }
         }
+        if(!data.status){
+            return {content: "No status code", status: StatusCode.ERR}
+        }
         return data as CommandReturn
 
     }, CAT, "Return the data raw", {
