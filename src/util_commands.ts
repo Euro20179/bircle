@@ -2505,11 +2505,31 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
 
         class StringFormat extends Format {
+            lPadding: number
+            constructor(lPadding: number){
+                super()
+                this.lPadding = lPadding
+            }
             async format(text: string) {
-                return text
+                let newText = text
+                if(text.length < this.lPadding){
+                    newText = text + " ".repeat(this.lPadding - text.length)
+                }
+                return newText
             }
             static parseFormatSpecifier(format: string): StringFormat | string {
-                return new StringFormat()
+                let lpad = 0
+                let lpadstr = ""
+                if(format[0] === '-'){
+                    let i = -0
+                    let char;
+                    while(!isNaN(Number(char = format[++i]))){
+                        lpadstr += char
+
+                    }
+                    lpad = Number(lpadstr)
+                }
+                return new StringFormat(lpad)
             }
         }
 
@@ -2671,7 +2691,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         return rv
     }, CAT, "Similar to echo", {
-        specifier: createHelpArgument("The format specifier<br>%[fmt]<s|d|x|X|o|f|u><br><ul><li>fmt: special information depending on which type to use</li></ul><lh>types</lh><ul><li>s: string (no fmt is used)</li><li>d,x,X,o,f: fmt is in the form of [0<count>][.<count>][']<br>0: to specify how many leading 0s<br>.: to specify the decimal place count<br>': to add commas<br>d: base 10, xX: base 16, o: base 8</li><li>u: format a user mention</li><li>c: command format</li></ul>", true),
+        specifier: createHelpArgument("The format specifier<br>%[fmt]<s|d|x|X|o|f|u><br><ul><li>fmt: special information depending on which type to use</li></ul><lh>types</lh><ul><li>[-leftpad]s: string</li><li>d,x,X,o,f: fmt is in the form of [0<count>][.<count>][']<br>0: to specify how many leading 0s<br>.: to specify the decimal place count<br>': to add commas<br>d: base 10, xX: base 16, o: base 8</li><li>u: format a user mention</li><li>c: command format</li></ul>", true),
         "...data": createHelpArgument("The data to fill the specifier with")
     }))
 

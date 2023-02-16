@@ -7,14 +7,14 @@
 
     body{
         background-color: #1E1E2E;
-        color: white;
+        color: #b8b8b8ff;
     }
 
     code {
         font-family: monospace;
-        font-size: .9rem;
+        font-size: .8rem;
         background: #dddddd;
-        color: black;
+        color: #312325ff;
         padding: .2rem;
         border: 1px solid transparent;
         border-radius: 3px;
@@ -171,6 +171,12 @@
             <code>%</code>
             : Gets replaced with the content from stdin<br>
             see <a href="#Stdin">stdin</a> for more information.
+        </li>
+        <li>
+            <code>-%</code>
+            : Gets replaced with the content from stdin
+            <br>
+            and sets stdin to undefined
         </li>
         <li>
             <code>cmd</code>
@@ -422,6 +428,16 @@
     </ul>
     </p>
 
+    <h1 id="Brace-expansion">Brace expansion</h1>
+    <code>[start]{word1,word2}[end]</code>
+    <p>
+    each word will split into a different argument, and <code>start</code>, and <code>end</code> will attach to each word.
+    </p>
+
+    <h1 id="Range-brace-expansion"> Range brace expansion</h1>
+    <code>[start]{x..y}[end]</code>
+    <p>Works similarly to <a href="#Brace-expansion">brace expansion</a> but works on a range of numbers</p>
+
     <h1 id="Calc">Calculate</h1>
     <code>$[javascript expression]</code>
     <p>
@@ -560,6 +576,10 @@
         <li>
             <code>_!</code>
             : the result of the last command ran
+        </li>
+        <li>
+            <code>?</code>
+            : The status code of the last command run
         </li>
         <li>
             <code>_</code>
