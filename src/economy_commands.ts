@@ -448,7 +448,7 @@ export default function() {
             let activePet = pet.getActivePet(msg.author.id)
             e.setDescription(`active pet: ${activePet}`)
             for (let pet in pets) {
-                e.addField(pets[pet].name, `${pets[pet].health} hunger`, true)
+                e.addFields(efd([pets[pet].name, `${pets[pet].health} hunger`, true]))
             }
             if (!activePet) {
                 e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
@@ -464,18 +464,18 @@ export default function() {
     },
     )
 
-    registerCommand("name-pet", createCommandV2(async({args, msg}) => {
+    registerCommand("name-pet", createCommandV2(async ({ args, msg }) => {
         let [p, ...name] = args
         let realName = name.join(" ")
         let type = pet.getPetTypeByName(msg.author.id, p)
         console.log(type)
-        if(type)
+        if (type)
             p = type
-        if(pet.namePet(msg.author.id, p, realName)){
-        
-            return {content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN}
+        if (pet.namePet(msg.author.id, p, realName)) {
+
+            return { content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN }
         }
-        return {content: `You do not have a ${p}`, status: StatusCode.ERR}
+        return { content: `You do not have a ${p}`, status: StatusCode.ERR }
     }, CommandCategory.ECONOMY))
 
     registerCommand(
@@ -519,7 +519,7 @@ export default function() {
                 if (itemJ[item]['puffle-banned']) {
                     text += '\n**buy only**'
                 }
-                e.addField(item.toUpperCase(), text, true)
+                e.addFields(efd([item.toUpperCase(), text, true]))
                 if (i % 25 == 0) {
                     pages.push(e)
                     e = new MessageEmbed()
@@ -612,7 +612,7 @@ export default function() {
     )
 
     registerCommand(
-    "profit", {
+        "profit", {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
                 return { content: "You own no stocks", status: StatusCode.ERR }
@@ -642,12 +642,7 @@ export default function() {
             else {
                 embed.setColor("RED")
             }
-            embed.addField("Price", String(data.price), true)
-            embed.addField("Change", String(data.change) || "N/A", true)
-            embed.addField("Change %", String(data["%change"]) || "N/A", true)
-            embed.addField("Profit", String(profit), true)
-            embed.addField("Today's Profit", String(todaysProfit), true)
-            embed.addField("Value", String(data.price * stockInfo.info.shares))
+            embed.addFields(efd(["Price", String(data.price), true], ["Change", String(data.change) || "N/A", true], ["Change %", String(data["%change"]) || "N/A", true], ["Profit", String(profit), true], ["Today's Profit", String(todaysProfit), true], ["Value", String(data.price * stockInfo.info.shares)]))
             if (fmt == "{embed}") {
                 return { embeds: [embed], status: StatusCode.ERR }
             }
@@ -675,7 +670,7 @@ export default function() {
     )
 
     registerCommand(
-    "sell", {
+        "sell", {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
                 return { content: "You own no stocks", status: StatusCode.ERR }
@@ -751,81 +746,81 @@ export default function() {
     )
 
     registerCommand(
-    "nw", createCommand(async (msg, args) => {
-        let user;
+        "nw", createCommand(async (msg, args) => {
+            let user;
 
-        if (!args.join(" ")) {
-            user = msg.member
-        }
-        else {
+            if (!args.join(" ")) {
+                user = msg.member
+            }
+            else {
+                //@ts-ignore
+                user = await fetchUser(msg.guild, args.join(" "))
+            }
             //@ts-ignore
-            user = await fetchUser(msg.guild, args.join(" "))
-        }
-        //@ts-ignore
-        if (!user) user = msg.member
-        if (!user) return { content: "No user found", status: StatusCode.ERR }
-        let amount = economy.playerLooseNetWorth(user.id)
-        let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-        return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-    }, CommandCategory.ECONOMY, "gets the net worth of a user", {
-        user: createHelpArgument("The user to get the net worth of")
-    }),
+            if (!user) user = msg.member
+            if (!user) return { content: "No user found", status: StatusCode.ERR }
+            let amount = economy.playerLooseNetWorth(user.id)
+            let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
+            return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+        }, CommandCategory.ECONOMY, "gets the net worth of a user", {
+            user: createHelpArgument("The user to get the net worth of")
+        }),
     )
 
     registerCommand(
-    "money", createCommand(async (msg, args) => {
-        let opts;
-        [opts, args] = getOpts(args)
-        let user = msg.member
-        if (args.join(" "))
-            //@ts-ignore
-            user = await fetchUser(msg.guild, args.join(" "))
-        if (!user)
-            user = msg.member
-        if (!user) {
-            return { content: "How are you not a member?", status: StatusCode.ERR }
-        }
-        let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', "$")}{amount}`)
-        let text = ""
-        if (economy.getEconomy()[user.id]) {
-            if (opts['m']) {
-                text += `${economy.getEconomy()[user.id].money}\n`
+        "money", createCommand(async (msg, args) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let user = msg.member
+            if (args.join(" "))
+                //@ts-ignore
+                user = await fetchUser(msg.guild, args.join(" "))
+            if (!user)
+                user = msg.member
+            if (!user) {
+                return { content: "How are you not a member?", status: StatusCode.ERR }
             }
-            if (opts['l']) {
-                text += `${economy.getEconomy()[user.id].lastTalk}\n`
+            let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', "$")}{amount}`)
+            let text = ""
+            if (economy.getEconomy()[user.id]) {
+                if (opts['m']) {
+                    text += `${economy.getEconomy()[user.id].money}\n`
+                }
+                if (opts['l']) {
+                    text += `${economy.getEconomy()[user.id].lastTalk}\n`
+                }
+                if (opts['t']) {
+                    text += `${economy.getEconomy()[user.id].lastTaxed}\n`
+                }
+                if (opts['nw']) {
+                    text += `${economy.playerLooseNetWorth(user.id)}\n`
+                }
+                if (text) {
+                    return { content: text, status: StatusCode.RETURN }
+                }
+                if (opts['no-round']) {
+                    return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                }
+                return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
-            if (opts['t']) {
-                text += `${economy.getEconomy()[user.id].lastTaxed}\n`
+            return { content: "none", status: StatusCode.RETURN }
+        }, CommandCategory.ECONOMY,
+            "Get the money of a user",
+            {
+                "user": createHelpArgument("The user to get the money of", false)
+            },
+            {
+                "m": createHelpOption("Show money only"),
+                "l": createHelpOption("Show the last time they got money from talking"),
+                "t": createHelpOption("Show the  last time they got taxed"),
+                "nw": createHelpOption("Get the raw networth of a player"),
+                "no-round": createHelpOption("No rounding"),
             }
-            if (opts['nw']) {
-                text += `${economy.playerLooseNetWorth(user.id)}\n`
-            }
-            if (text) {
-                return { content: text, status: StatusCode.RETURN }
-            }
-            if (opts['no-round']) {
-                return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-            }
-            return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-        }
-        return { content: "none", status: StatusCode.RETURN }
-    }, CommandCategory.ECONOMY,
-        "Get the money of a user",
-        {
-            "user": createHelpArgument("The user to get the money of", false)
-        },
-        {
-            "m": createHelpOption("Show money only"),
-            "l": createHelpOption("Show the last time they got money from talking"),
-            "t": createHelpOption("Show the  last time they got taxed"),
-            "nw": createHelpOption("Get the raw networth of a player"),
-            "no-round": createHelpOption("No rounding"),
-        }
-    ),
+        ),
     )
 
     registerCommand(
-    "give", {
+        "give", {
         run: async (msg, args, sendCallback) => {
             let [amount, ...user] = args
             let userSearch = user.join(" ")
@@ -865,67 +860,67 @@ export default function() {
     )
 
     registerCommand(
-    "give-stock", createCommand(async (msg, args) => {
-        let stock = args[0]
-        let a = args[1]
-        let sn = stock
-        let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
-        if (!userStockData) {
-            return { content: "You do not own that stock", status: StatusCode.ERR }
-        }
-        let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
-        if (amount <= 0) {
-            return { content: `Invalid share count`, status: StatusCode.ERR }
-        }
-        if (amount > userStockData.info.shares) {
-            return { content: "You dont have that many shares", status: StatusCode.ERR }
-        }
-        let player = args.slice(2).join(" ")
-        //@ts-ignore
-        let member = await fetchUser(msg.guild, player)
-        if (!member) {
-            return { content: `Member: ${player} not found`, status: StatusCode.ERR }
-        }
-        if (!economy.getEconomy()[member.id]) {
-            return { content: "Cannot give stocks to this player", status: StatusCode.ERR }
-        }
-        userStockData.info.shares -= amount
-        //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
-        let otherStockInfo = economy.userHasStockSymbol(member.id, sn)
-        if (!otherStockInfo) {
-            otherStockInfo = {
-                name: sn, info: {
-                    buyPrice: userStockData.info.buyPrice,
-                    shares: amount
+        "give-stock", createCommand(async (msg, args) => {
+            let stock = args[0]
+            let a = args[1]
+            let sn = stock
+            let userStockData = economy.userHasStockSymbol(msg.author.id, sn)
+            if (!userStockData) {
+                return { content: "You do not own that stock", status: StatusCode.ERR }
+            }
+            let amount = economy.calculateStockAmountFromString(msg.author.id, userStockData.info.shares, a) as number
+            if (amount <= 0) {
+                return { content: `Invalid share count`, status: StatusCode.ERR }
+            }
+            if (amount > userStockData.info.shares) {
+                return { content: "You dont have that many shares", status: StatusCode.ERR }
+            }
+            let player = args.slice(2).join(" ")
+            //@ts-ignore
+            let member = await fetchUser(msg.guild, player)
+            if (!member) {
+                return { content: `Member: ${player} not found`, status: StatusCode.ERR }
+            }
+            if (!economy.getEconomy()[member.id]) {
+                return { content: "Cannot give stocks to this player", status: StatusCode.ERR }
+            }
+            userStockData.info.shares -= amount
+            //let otherStockInfo = economy.getEconomy()[member.id]?.stocks?.[stockName] || {}
+            let otherStockInfo = economy.userHasStockSymbol(member.id, sn)
+            if (!otherStockInfo) {
+                otherStockInfo = {
+                    name: sn, info: {
+                        buyPrice: userStockData.info.buyPrice,
+                        shares: amount
+                    }
                 }
             }
-        }
-        else {
-            let oldShareCount = otherStockInfo.info.shares
-            let newShareCount = otherStockInfo.info.shares + amount
-            otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
-            otherStockInfo.info.shares += amount
-        }
-        //@ts-ignore
-        //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-        economy.setUserStockSymbol(msg.author.id, sn, userStockData)
-        economy.setUserStockSymbol(member.id, sn, otherStockInfo)
-        if (userStockData.info.shares == 0) {
-            economy.removeStock(msg.author.id, sn)
-        }
-        return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-    }, CommandCategory.ECONOMY,
-        "Give a stock to a user",
-        {
-            stock: createHelpArgument("The stock to give"),
-            shares: createHelpArgument("The amount of shares to give"),
-            user: createHelpArgument("The user to give the shares to"),
-        }
-    ),
+            else {
+                let oldShareCount = otherStockInfo.info.shares
+                let newShareCount = otherStockInfo.info.shares + amount
+                otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
+                otherStockInfo.info.shares += amount
+            }
+            //@ts-ignore
+            //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
+            economy.setUserStockSymbol(msg.author.id, sn, userStockData)
+            economy.setUserStockSymbol(member.id, sn, otherStockInfo)
+            if (userStockData.info.shares == 0) {
+                economy.removeStock(msg.author.id, sn)
+            }
+            return { content: `<@${msg.author.id}> gave ${member} ${amount} shares of ${sn}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+        }, CommandCategory.ECONOMY,
+            "Give a stock to a user",
+            {
+                stock: createHelpArgument("The stock to give"),
+                shares: createHelpArgument("The amount of shares to give"),
+                user: createHelpArgument("The user to give the shares to"),
+            }
+        ),
     )
 
     registerCommand(
-    "give-item", {
+        "give-item", {
         run: async (msg, args, sendCallback) => {
             let alist = new ArgList(args)
             let [i, user] = args.join(" ").split("|").map(v => v.trim())
@@ -967,108 +962,108 @@ export default function() {
     )
 
     registerCommand(
-    "tax", createCommand(async (msg, args, sendCallback) => {
-        if (msg.author.bot) {
-            return { content: "Bots cannot steal", status: StatusCode.ERR }
-        }
-        let canTax = false
-        if (!timer.getTimer(msg.author.id, "%tax")) {
-            canTax = true
-            timer.createTimer(msg.author.id, "%tax")
-        }
-
-        if (timer.has_x_s_passed(msg.author.id, "%tax", 1.7)) {
-            canTax = true
-            timer.restartTimer(msg.author.id, "%tax")
-        }
-
-        if(!canTax){
-            return {content: "You can only tax every 1.7 seconds", status: StatusCode.ERR}
-        }
-
-        let m = new Map();
-
-        let opts;
-        [opts, args] = getOpts(args)
-        if (!args.length) {
-            await handleSending(msg, { content: "No user specified, erasing balance", status: StatusCode.INFO }, sendCallback)
-            await new Promise(res => setTimeout(res, 1000))
-            return { content: "Balance erased", status: StatusCode.RETURN }
-        }
-        //@ts-ignore
-        let user = await fetchUser(msg.guild, args.join(" "))
-        if (!user)
-            return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
-        if (user.user.bot) {
-            return { content: "Looks like ur taxing a fake person", status: StatusCode.ERR }
-        }
-        let ct = economy.canTax(user.id)
-        if (hasItem(user.id, "tax evasion")) {
-            ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
-        }
-        let embed = new MessageEmbed()
-        if (ct) {
-            embed.setTitle("Taxation Time")
-            let userBeingTaxed = user.id
-            let userGainingMoney = msg.author.id
-            let taxAmount;
-            let reflected = false
-            let max = Infinity
-            if (hasItem(userBeingTaxed, "tax shield")) {
-                max = economy.getEconomy()[userBeingTaxed].money
+        "tax", createCommand(async (msg, args, sendCallback) => {
+            if (msg.author.bot) {
+                return { content: "Bots cannot steal", status: StatusCode.ERR }
             }
-            if(hasItem(userGainingMoney, "the irs")){
-                taxAmount = economy.taxPlayer(userBeingTaxed, max, Math.random() * (.03 - .01) + .01)
+            let canTax = false
+            if (!timer.getTimer(msg.author.id, "%tax")) {
+                canTax = true
+                timer.createTimer(msg.author.id, "%tax")
             }
-            else{
-                taxAmount = economy.taxPlayer(userBeingTaxed, max)
+
+            if (timer.has_x_s_passed(msg.author.id, "%tax", 1.7)) {
+                canTax = true
+                timer.restartTimer(msg.author.id, "%tax")
             }
-            if (taxAmount.amount == max) {
-                useItem(userBeingTaxed, "tax shield")
+
+            if (!canTax) {
+                return { content: "You can only tax every 1.7 seconds", status: StatusCode.ERR }
             }
-            if (pet.getActivePet(userBeingTaxed) === 'frog' && userBeingTaxed !== userGainingMoney) {
-                let text = `<@${userBeingTaxed}> has a ${pet.hasPet(msg.author.id, "frog").name}!\n`
-                let playersToFrog = Object.entries(economy.getEconomy()).filter((a) => economy.playerLooseNetWorth(a[0]) > economy.playerLooseNetWorth(userBeingTaxed))
-                for (let player of playersToFrog) {
-                    let amount = economy.playerLooseNetWorth(player[0]) * 0.001
-                    economy.loseMoneyToPlayer(player[0], amount, userBeingTaxed)
-                    text += `<@${player[0]}> has  been frogged for ${amount}\n`
+
+            let m = new Map();
+
+            let opts;
+            [opts, args] = getOpts(args)
+            if (!args.length) {
+                await handleSending(msg, { content: "No user specified, erasing balance", status: StatusCode.INFO }, sendCallback)
+                await new Promise(res => setTimeout(res, 1000))
+                return { content: "Balance erased", status: StatusCode.RETURN }
+            }
+            //@ts-ignore
+            let user = await fetchUser(msg.guild, args.join(" "))
+            if (!user)
+                return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
+            if (user.user.bot) {
+                return { content: "Looks like ur taxing a fake person", status: StatusCode.ERR }
+            }
+            let ct = economy.canTax(user.id)
+            if (hasItem(user.id, "tax evasion")) {
+                ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
+            }
+            let embed = new MessageEmbed()
+            if (ct) {
+                embed.setTitle("Taxation Time")
+                let userBeingTaxed = user.id
+                let userGainingMoney = msg.author.id
+                let taxAmount;
+                let reflected = false
+                let max = Infinity
+                if (hasItem(userBeingTaxed, "tax shield")) {
+                    max = economy.getEconomy()[userBeingTaxed].money
                 }
-                await handleSending(msg, { content: text, allowedMentions: { parse: [] }, status: StatusCode.INFO }, sendCallback)
+                if (hasItem(userGainingMoney, "the irs")) {
+                    taxAmount = economy.taxPlayer(userBeingTaxed, max, Math.random() * (.03 - .01) + .01)
+                }
+                else {
+                    taxAmount = economy.taxPlayer(userBeingTaxed, max)
+                }
+                if (taxAmount.amount == max) {
+                    useItem(userBeingTaxed, "tax shield")
+                }
+                if (pet.getActivePet(userBeingTaxed) === 'frog' && userBeingTaxed !== userGainingMoney) {
+                    let text = `<@${userBeingTaxed}> has a ${pet.hasPet(msg.author.id, "frog").name}!\n`
+                    let playersToFrog = Object.entries(economy.getEconomy()).filter((a) => economy.playerLooseNetWorth(a[0]) > economy.playerLooseNetWorth(userBeingTaxed))
+                    for (let player of playersToFrog) {
+                        let amount = economy.playerLooseNetWorth(player[0]) * 0.001
+                        economy.loseMoneyToPlayer(player[0], amount, userBeingTaxed)
+                        text += `<@${player[0]}> has  been frogged for ${amount}\n`
+                    }
+                    await handleSending(msg, { content: text, allowedMentions: { parse: [] }, status: StatusCode.INFO }, sendCallback)
+                }
+                economy.addMoney(userGainingMoney, taxAmount.amount)
+                if (opts['no-round'])
+                    embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
+                else
+                    embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
+                if (reflected) {
+                    return { content: "REFLECTED", embeds: [embed], status: StatusCode.RETURN }
+                }
             }
-            economy.addMoney(userGainingMoney, taxAmount.amount)
-            if (opts['no-round'])
-                embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${taxAmount.amount} (${taxAmount.percent}% of their money)`)
-            else
-                embed.setDescription(`<@${userBeingTaxed}> has been taxed for ${Math.round(taxAmount.amount * 100) / 100} (${Math.round(taxAmount.percent * 10000) / 100}% of their money)`)
-            if (reflected) {
-                return { content: "REFLECTED", embeds: [embed], status: StatusCode.RETURN }
+            else if (economy.playerEconomyLooseTotal(msg.author.id) - (economy.getEconomy()[msg.author.id]?.loanUsed || 0) > 0) {
+                embed.setTitle("REVERSE Taxation time")
+                let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
+                embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
+                economy.loseMoneyToPlayer(msg.author.id, amount, user.user.id)
             }
-        }
-        else if (economy.playerEconomyLooseTotal(msg.author.id) - (economy.getEconomy()[msg.author.id]?.loanUsed || 0) > 0) {
-            embed.setTitle("REVERSE Taxation time")
-            let amount = economy.calculateAmountFromStringIncludingStocks(msg.author.id, ".1%")
-            embed.setDescription(`<@${user.user.id}> cannot be taxed yet, you are forced to give them: ${amount}`)
-            economy.loseMoneyToPlayer(msg.author.id, amount, user.user.id)
-        }
-        else {
-            embed.setTitle("TAX FAILURE")
-            embed.setDescription(`<@${user.user.id}> cannot be taxed yet`)
-        }
-        return { embeds: [embed], status: StatusCode.RETURN }
-    }, CommandCategory.ECONOMY,
-        "Tax someone evily",
-        {
-            "no-round": createHelpOption("Dont round numbers"),
-        },
-        {
-            user: createHelpArgument("The player to tax", true)
-        }
-    ),
+            else {
+                embed.setTitle("TAX FAILURE")
+                embed.setDescription(`<@${user.user.id}> cannot be taxed yet`)
+            }
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, CommandCategory.ECONOMY,
+            "Tax someone evily",
+            {
+                "no-round": createHelpOption("Dont round numbers"),
+            },
+            {
+                user: createHelpArgument("The player to tax", true)
+            }
+        ),
     )
 
     registerCommand(
-    "leaderboard", {
+        "leaderboard", {
         run: async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -1130,7 +1125,7 @@ export default function() {
                     text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)\n`
                 }
                 else {
-                    embed.addField(`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true)
+                    embed.addFields(efd([`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true]))
                 }
                 place++
             }
@@ -1168,7 +1163,7 @@ export default function() {
     )
 
     registerCommand(
-    "savee", {
+        "savee", {
         run: async (_msg, _args, sendCallback) => {
             economy.saveEconomy()
             saveItems()

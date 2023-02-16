@@ -13,7 +13,7 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands } from './common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE } from './util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd } from './util'
 import { ADMINS, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
@@ -608,8 +608,8 @@ export default function(CAT: CommandCategory) {
                         embed.setColor("RED")
                     }
                     embed.setTitle(stockName)
-                    embed.addField("Price", price)
-                    embed.addField("Price change", change, true)
+                    embed.addFields(efd(["Price", price]))
+                    embed.addFields(efd(["Price change", change, true]))
                     await handleSending(msg, { status: StatusCode.RETURN, embeds: [embed] }, sendCallback)
                 })
             }).end()
@@ -1341,10 +1341,7 @@ export default function(CAT: CommandCategory) {
                     elementsNamesList.push(`${element.Name} (${element.Symbol})`)
                     embed.setTitle(`${element.Name} (${element.Symbol})`)
                     embed.setDescription(`Discovered in ${element.DiscoveryYear == "0" ? "Unknown" : element.DiscoveryYear} by ${element.DiscoveredBy == "-" ? "Unknown" : element.DiscoveredBy}`)
-                    embed.addField("Atomic Number", String(element.AtomicNumber),)
-                    embed.addField("Atomic Mass", String(element.RelativeAtomicMass))
-                    embed.addField("Melting Point C", String(element.MeltingPointC) || "N/A", true)
-                    embed.addField("Boiling Point C", String(element.BoilingPointC) || "N/A", true)
+                    embed.addFields(efd(["Atomic Number", String(element.AtomicNumber),], ["Atomic Mass", String(element.RelativeAtomicMass)], ["Melting Point C", String(element.MeltingPointC) || "N/A", true], ["Boiling Point C", String(element.BoilingPointC) || "N/A", true]))
                     embeds.push(embed)
                 }
                 if (embeds.length > 10 || opts['list-names']) {
@@ -1901,7 +1898,7 @@ middle
                                 value = "value"
                             if (inline === 'true')
                                 inlined = true
-                            embed.addField(name, value, inlined)
+                            embed.addFields(efd([name, value, inlined]))
                             break
                         }
                         case "color": {
@@ -2206,17 +2203,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }
                     let embed = new MessageEmbed()
                     embed.setTitle(`Roles for: ${user?.user.username}`)
-                    embed.addField("Role count", String(roles.cache.size))
+                    embed.addFields(efd(["Role count", String(roles.cache.size)]))
                     let text = roles.cache.toJSON().join(" ")
                     let backup_text = roles.cache.map(v => v.name).join(" ")
                     if (text.length <= 1024) {
-                        embed.addField("Roles", roles.cache.toJSON().join(" "))
+                        embed.addFields(efd(["Roles", roles.cache.toJSON().join(" ")]))
                     }
                     else if (backup_text.length <= 1024) {
-                        embed.addField("Roles", backup_text)
+                        embed.addFields(efd(["Roles", backup_text]))
                     }
                     else {
-                        embed.addField("Roles", "Too many to list")
+                        embed.addFields(efd(["Roles", "Too many to list"]))
                     }
                     embeds.push(embed)
                 }
@@ -2331,9 +2328,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 else {
                     embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
                 }
-                embed.addField("Same Roles", same || "No same")
-                embed.addField(`${realUser1.displayName} unique roles`, user1U || "No unique roles")
-                embed.addField(`${realUser2.displayName} unique roles`, user2U || "No unique roles");
+                embed.addFields(efd(["Same Roles", same || "No same"], [`${realUser1.displayName} unique roles`, user1U || "No unique roles"], [`${realUser2.displayName} unique roles`, user2U || "No unique roles"]))
                 return { embeds: [embed], status: StatusCode.RETURN }
             },
             category: CommandCategory.UTIL,
@@ -2372,7 +2367,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 for (let i = 0; i < times; i++) {
                     let member = sortedMembers?.at(i)
                     ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
-                    embed.addField(String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true)
+                    embed.addFields(efd([String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true]))
                 }
                 let rv: CommandReturn = { allowedMentions: { parse: [] }, status: StatusCode.RETURN }
                 if (!opts['E'] && !opts['c!'])
@@ -2426,7 +2421,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 memberTexts[i] += `<@${member[1].id}> `
                 memberCount += 1
                 if (memberTexts[i].length > 1000) {
-                    embed.addField(`members`, memberTexts[i])
+                    embed.addFields(efd([`members`, memberTexts[i]]))
                     i++
                     memberTexts.push("")
                 }
@@ -2435,9 +2430,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 return { content: "No one", status: StatusCode.RETURN }
             }
             if (embed.fields.length < 1) {
-                embed.addField(`members: ${i}`, memberTexts[i])
+                embed.addFields(efd([`members: ${i}`, memberTexts[i]]))
             }
-            embed.addField("Member count", String(memberCount))
+            embed.addFields(efd(["Member count", String(memberCount)]))
             return { embeds: [embed], status: StatusCode.RETURN }
 
         }, CAT, "Gets a list of users with a specific role", {
@@ -3189,11 +3184,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let embed = new MessageEmbed()
             embed.setTitle(role.name)
             embed.setColor(role.color)
-            embed.addField("id", String(role.id), true)
-            embed.addField("name", role.name, true)
-            embed.addField("emoji", role.unicodeEmoji || "None", true)
-            embed.addField("created", role.createdAt.toTimeString(), true)
-            embed.addField("Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true)
+            embed.addFields(efd(["id", String(role.id), true]))
+            embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
             return { embeds: [embed] || "none", status: StatusCode.RETURN }
 
         }, CAT, "Gets information about a role"))
@@ -3218,27 +3210,23 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 if (pinned) {
                     let pinCount = pinned.size
                     let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
-                    embed.addField("Pin Count", String(pinCount), true)
-                    embed.addField("Days till full", String(daysTillFull), true)
+                    embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", String(daysTillFull), true]))
                 }
-                embed.addField("Created", channel.createdAt?.toString() || "N/A", true)
-                embed.addField("Days since Creation", String(daysSinceCreation), true)
-                embed.addField("Id", channel.id.toString(), true)
-                embed.addField("Type", channel.type, true)
+                embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type, true]))
                 //@ts-ignore
                 if (channel.topic) {
                     //@ts-ignore
-                    embed.addField("Topic", channel.topic, true)
+                    embed.addFields(efd(["Topic", channel.topic, true]))
                 }
                 //@ts-ignore
                 if (channel.nsfw) {
                     //@ts-ignore
-                    embed.addField("NSFW?", channel.nsfw, true)
+                    embed.addFields(efd(["NSFW?", channel.nsfw, true]))
                 }
                 //@ts-ignore
                 if (channel.position) {
                     //@ts-ignore
-                    embed.addField("Position", channel.position.toString(), true)
+                    embed.addFields(efd(["Position", channel.position.toString(), true]))
                 }
                 return { embeds: [embed], status: StatusCode.RETURN }
             },
@@ -3266,13 +3254,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 let embed = new MessageEmbed()
                 embed.setTitle(String(e.name))
-                embed.addField("id", e.id, true)
-                embed.addField("created Date", e?.createdAt.toDateString(), true)
-                embed.addField("Creation time", e?.createdAt.toTimeString(), true)
-                embed.addField("THE CREATOR", String(e?.author), true)
+                embed.addFields(efd(["id", e.id, true], ["created Date", e?.createdAt.toDateString(), true], ["Creation time", e?.createdAt.toTimeString(), true], ["THE CREATOR", String(e?.author), true]))
                 if (e.url)
                     embed.setThumbnail(e.url)
-                embed.addField("URL", e?.url, true)
+                embed.addFields(efd(["URL", e?.url, true]))
                 return { embeds: [embed], status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {

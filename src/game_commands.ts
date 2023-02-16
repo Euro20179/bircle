@@ -11,7 +11,7 @@ import pet from "./pets"
 
 import uno = require("./uno")
 
-import { choice, cycle, fetchUser, format, getOpts, mulStr, strlen } from "./util"
+import { choice, cycle, efd, fetchUser, format, getOpts, mulStr, strlen } from "./util"
 import { client, getVar, setVar } from "./common"
 
 const { useItem, hasItem } = require("./shop")
@@ -1246,10 +1246,10 @@ until you put a 0 in the box`)
                                     let gain = netWorth * (data[player] / 100)
                                     gain += data_floor[player] ? data_floor[player] : 0
                                     if (member) {
-                                        e.addField(String(member.nickname || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`)
+                                        e.addFields(efd([String(member.nickname || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`]))
                                     }
                                     else {
-                                        e.addField(String(data[player]), `<@${player}>`)
+                                        e.addFields(efd([String(data[player]), `<@${player}>`]))
                                     }
                                     economy.addMoney(player, gain)
                                 }
@@ -1462,11 +1462,11 @@ until you put a 0 in the box`)
                 }
                 let playerTotal = calculateTotal(playersCards)
                 if (playerTotal.soft) {
-                    embed.addField("Your cards", `value: **${playerTotal.total}** (soft)`, true)
+                    embed.addFields(efd(["Your cards", `value: **${playerTotal.total}** (soft)`, true]))
                 }
-                else embed.addField("Your cards", `value: **${playerTotal.total}**`, true)
+                else embed.addFields(efd(["Your cards", `value: **${playerTotal.total}**`, true]))
                 //FIXME: edge case where dealerCards[0] is "A", this could be wrong
-                embed.addField("Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true)
+                embed.addFields(efd(["Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true]))
                 embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
                 if (hasItem(msg.author.id, "reset")) {
                     embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)

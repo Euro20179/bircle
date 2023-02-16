@@ -10,7 +10,7 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd } from "./util"
 import user_options = require("./user-options")
 import pet from "./pets"
 import globals = require("./globals")
@@ -523,10 +523,7 @@ export default function(CAT: CommandCategory) {
                     let nChange = Number(data.change)
                     let nPChange = Number(data["%change"]) * 100
                     embed.setTitle(stock.toUpperCase().trim() || "N/A")
-                    embed.addField("price", String(data.price).trim() || "N/A", true)
-                    embed.addField("change", String(data.change).trim() || "N/A", true)
-                    embed.addField("%change", String(nPChange).trim() || "N/A", true)
-                    embed.addField("volume", data.volume?.trim() || "N/A")
+                    embed.addFields(efd(["price", String(data.price).trim() || "N/A", true], ["change", String(data.change).trim() || "N/A", true], ["%change", String(nPChange).trim() || "N/A", true], ["volume", data.volume?.trim() || "N/A"]))
                     if (nChange < 0) {
                         embed.setColor("RED")
                     }
@@ -689,13 +686,7 @@ export default function(CAT: CommandCategory) {
                         let hex = rgbToHex(redness, greenness, 0)
                         embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
                         embed.setColor(hex as ColorResolvable)
-                        embed.addField("Level", String(user1Data.level - user2Data.level), true)
-                        embed.addField("XP", String(user1Data.xp - user2Data.xp), true)
-                        embed.addField("Message Count", String(user1Data.message_count - user2Data.message_count), true)
-                        embed.addField("XP for next level", String(xp_needed1 - xp_needed2))
-                        embed.addField("Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true)
-                        embed.addField("Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true)
-                        embed.addField("Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true)
+                        embed.addFields(efd(["Level", String(user1Data.level - user2Data.level), true], ["XP", String(user1Data.xp - user2Data.xp), true], ["Message Count", String(user1Data.message_count - user2Data.message_count), true], ["XP for next level", String(xp_needed1 - xp_needed2)], ["Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true], ["Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true], ["Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true]))
                         embeds.push(embed)
                         continue
                     }
@@ -725,13 +716,7 @@ export default function(CAT: CommandCategory) {
                     }
                     embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
                     embed.setColor(member.displayColor)
-                    embed.addField("Level", String(userData.level), true)
-                    embed.addField("XP", String(userData.xp), true)
-                    embed.addField("Message Count", String(userData.message_count), true)
-                    embed.addField("XP for next level", String(xp_needed))
-                    embed.addField("Minimum messages for next level", String(min_messages_for_next_level), true)
-                    embed.addField("Maximum messages for next level", String(max_messages_for_next_level), true)
-                    embed.addField("Average messages for next level", String(avg_messages_for_next_level), true)
+                    embed.addFields(efd(["Level", String(userData.level), true], ["XP", String(userData.xp), true], ["Message Count", String(userData.message_count), true], ["XP for next level", String(xp_needed)], ["Minimum messages for next level", String(min_messages_for_next_level), true], ["Maximum messages for next level", String(max_messages_for_next_level), true], ["Average messages for next level", String(avg_messages_for_next_level), true]))
                     embeds.push(embed)
                 }
                 return { embeds: embeds, status: StatusCode.RETURN }
@@ -1345,9 +1330,7 @@ export default function(CAT: CommandCategory) {
                             homeScore = `***${homeScore}***`
                             embed.setColor("#00ff00")
                         }
-                        embed.addField("Time", inning)
-                        embed.addField(`${homeTeam}`, String(homeScore))
-                        embed.addField(`${awayTeam}`, String(awayScore))
+                        embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
                         await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN }, sendCallback)
                     })
                 }).end()
@@ -1510,9 +1493,7 @@ export default function(CAT: CommandCategory) {
                 let embed = new MessageEmbed()
                 embed.setTitle(town)
                 embed.setColor(color as ColorResolvable)
-                embed.addField("condition", condition, false)
-                embed.addField("Temp F", `${tempF}F`, true)
-                embed.addField("Temp C", `${tempC}C`, true)
+                embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
                 embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
                 if (opts['fmt']) {
                     return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
@@ -1756,14 +1737,14 @@ Valid formats:
                 const embed = new MessageEmbed()
                 embed.setTitle("Distances")
                 if (drivingDist) {
-                    embed.addField("Driving distance", `${drivingDist} miles`)
+                    embed.addFields(efd(["Driving distance", `${drivingDist} miles`]))
                     if (speed)
-                        embed.addField("Driving distance time", `${drivingDist / speed} hours`)
+                        embed.addFields(efd(["Driving distance time", `${drivingDist / speed} hours`]))
                 }
                 if (straightLineDist) {
-                    embed.addField("Straight line distance", `${straightLineDist} miles`)
+                    embed.addFields(efd(["Straight line distance", `${straightLineDist} miles`]))
                     if (speed)
-                        embed.addField("Straight line distance time", `${straightLineDist / speed} hours`)
+                        embed.addFields(efd(["Straight line distance time", `${straightLineDist / speed} hours`]))
                 }
                 if (!drivingDist && !straightLineDist) {
                     let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
