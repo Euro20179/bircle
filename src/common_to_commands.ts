@@ -1341,6 +1341,7 @@ export let commands: Map<string, (Command | CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
 export function registerCommand(name: string, command: Command | CommandV2) {
+    console.log(name, command)
     if (!command.help) {
         console.warn(name, `(${cmdCatToStr(command.category)})`, "does not have help")
     }

@@ -1,7 +1,7 @@
 import { CommandCategory, createHelpArgument, createMatchCommand, handleSending, lastCommand, registerCommand, registerMatchCommand, runCmd, StatusCode } from "./common_to_commands"
 
-export default function(CAT: CommandCategory) {
-    registerMatchCommand(createMatchCommand(async ({ msg, match }) => {
+export default function*(CAT: CommandCategory) {
+    yield [createMatchCommand(async ({ msg, match }) => {
         let find = match[1]
         let replace = match[2]
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
@@ -13,9 +13,9 @@ export default function(CAT: CommandCategory) {
             find: createHelpArgument("The text to find for replacing", true),
             replace: createHelpArgument("The text to replace find with", false)
         }
-    }))
+    })]
 
-    registerMatchCommand(createMatchCommand(async ({ msg: m, match: search }) => {
+    yield [createMatchCommand(async ({ msg: m, match: search }) => {
         let count = Number(search[1]) || Infinity
         let regexSearch = search[2]
         let rangeSearch = search[3]
@@ -77,5 +77,5 @@ export default function(CAT: CommandCategory) {
         }
         return { content: finalMessages.join("\n"), allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
-    }, /^(\d*):(\/[^\/]+\/)(?:(.*)\/)*/, "match:find-run"))
+    }, /^(\d*):(\/[^\/]+\/)(?:(.*)\/)*/, "match:find-run")]
 }

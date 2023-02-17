@@ -13,8 +13,8 @@ import { getVar, prefix } from './common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
 
-export default function() {
-    registerCommand(
+export default function*() {
+    yield [
         "img-diff",
         {
             run: async (msg, args) => {
@@ -70,9 +70,9 @@ export default function() {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "picsum.photos", createCommand(async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -109,9 +109,9 @@ export default function() {
             {
                 "url": createHelpOption("Print the image url instead of giving back the image")
             }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         'invert',
         {
             run: async (msg, args) => {
@@ -172,9 +172,9 @@ export default function() {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "img-channel",
         {
             run: async (msg, args) => {
@@ -219,9 +219,9 @@ export default function() {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "draw", createCommand(async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -753,9 +753,9 @@ The commands below, only work after **path** has been run:
                 ], status: StatusCode.RETURN
             }
         }, CommandCategory.IMAGES),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "img",
         {
             run: async (_msg: Message, args: ArgumentList, sendCallback) => {
@@ -858,9 +858,9 @@ The commands below, only work after **path** has been run:
             },
             category: CommandCategory.IMAGES
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "polygon",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -932,9 +932,9 @@ The commands below, only work after **path** has been run:
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rect",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1097,9 +1097,9 @@ The commands below, only work after **path** has been run:
             },
             category: CommandCategory.IMAGES
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "scale",
         {
             run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
@@ -1160,9 +1160,9 @@ The commands below, only work after **path** has been run:
             },
             category: CommandCategory.IMAGES
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "filter",
         {
             run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
@@ -1219,9 +1219,9 @@ The commands below, only work after **path** has been run:
             },
             category: CommandCategory.IMAGES
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "img-info", createCommand(async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -1233,9 +1233,9 @@ The commands below, only work after **path** has been run:
 
             return { content: `width: ${image.width}\nheight: ${image.height}`, status: StatusCode.RETURN }
         }, CommandCategory.IMAGES),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "overlay", createCommand(async (msg, _, sc, opts, args) => {
             let [img1, img2] = args.join(" ").split("|")
             img1 = img1.trim()
@@ -1300,9 +1300,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             {
                 alpha: createHelpOption("The alpha to use, defaults to 0.5")
             }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "text", {
         //text command
         run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1489,9 +1489,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
         },
         category: CommandCategory.IMAGES
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rotate",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1530,9 +1530,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 info: "Rotates an image by an angle (degrees)"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "color",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1623,5 +1623,5 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             category: CommandCategory.IMAGES
 
         },
-    )
+    ]
 }

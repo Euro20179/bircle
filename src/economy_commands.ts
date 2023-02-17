@@ -16,9 +16,9 @@ const { buyItem, hasItem, useItem } = require('./shop')
 
 const { ITEMS, INVENTORY } = require("./shop")
 
-export default function() {
+export default function*() {
 
-    registerCommand(
+    yield [
         "buy", {
         run: async (msg, args, sendCallback, _, _2, recursion) => {
             let allowedTypes = ["stock", "pet", "item"]
@@ -137,9 +137,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "bstock", {
         run: async (msg, args, sendCallback) => {
             let stock = args[0]
@@ -193,9 +193,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "stocks", {
         run: async (msg, args, sendCallback) => {
             let user = args[0]
@@ -231,9 +231,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "loan", {
         run: async (msg, _args, sendCallback) => {
             if (economy.getEconomy()[msg.author.id].loanUsed) {
@@ -261,9 +261,9 @@ export default function() {
 <br>A loan can only be used if you have payed off previous loans, and you are in debt`
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "pay-loan", {
         run: async (msg, args, sendCallback) => {
             let amount = args[0] || "all!"
@@ -286,9 +286,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "bitem", {
         run: async (msg, args, sendCallback) => {
             let opts;
@@ -346,9 +346,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "inventory", {
         run: async (msg, args, sendCallback) => {
             //@ts-ignore
@@ -372,9 +372,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "pet-shop", {
         run: async (msg, _args, sendCallback) => {
             let embed = new MessageEmbed()
@@ -394,9 +394,9 @@ export default function() {
             info: "See the pet shop"
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         'bpet', {
         run: async (msg, args, sendCallback) => {
             let requested_pet = args[0]
@@ -430,9 +430,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "pets", {
         run: async (msg, args, sendCallback) => {
             //@ts-ignore
@@ -462,9 +462,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand("name-pet", createCommandV2(async ({ args, msg }) => {
+    yield ["name-pet", createCommandV2(async ({ args, msg }) => {
         let [p, ...name] = args
         let realName = name.join(" ")
         let type = pet.getPetTypeByName(msg.author.id, p)
@@ -476,9 +476,9 @@ export default function() {
             return { content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN }
         }
         return { content: `You do not have a ${p}`, status: StatusCode.ERR }
-    }, CommandCategory.ECONOMY))
+    }, CommandCategory.ECONOMY)]
 
-    registerCommand(
+    yield [
         "shop", {
         run: async (msg, args, sendCallback) => {
             let opts;
@@ -542,9 +542,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "profits", {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
@@ -609,9 +609,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "profit", {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
@@ -667,9 +667,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "sell", {
         run: async (msg, args, sendCallback) => {
             if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
@@ -743,9 +743,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "nw", createCommand(async (msg, args) => {
             let user;
 
@@ -765,9 +765,9 @@ export default function() {
         }, CommandCategory.ECONOMY, "gets the net worth of a user", {
             user: createHelpArgument("The user to get the net worth of")
         }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "money", createCommand(async (msg, args) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -817,9 +817,9 @@ export default function() {
                 "no-round": createHelpOption("No rounding"),
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "give", {
         run: async (msg, args, sendCallback) => {
             let [amount, ...user] = args
@@ -857,9 +857,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "give-stock", createCommand(async (msg, args) => {
             let stock = args[0]
             let a = args[1]
@@ -917,9 +917,9 @@ export default function() {
                 user: createHelpArgument("The user to give the shares to"),
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "give-item", {
         run: async (msg, args, sendCallback) => {
             let alist = new ArgList(args)
@@ -959,9 +959,9 @@ export default function() {
             }
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "tax", createCommand(async (msg, args, sendCallback) => {
             if (msg.author.bot) {
                 return { content: "Bots cannot steal", status: StatusCode.ERR }
@@ -1060,9 +1060,9 @@ export default function() {
                 user: createHelpArgument("The player to tax", true)
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "leaderboard", {
         run: async (msg, args, sendCallback) => {
             let opts;
@@ -1160,9 +1160,9 @@ export default function() {
             },
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "savee", {
         run: async (_msg, _args, sendCallback) => {
             economy.saveEconomy()
@@ -1174,5 +1174,5 @@ export default function() {
             info: "Saves the economy (by default, on every message send, there is a 45% chance to save the economy)"
         }
     },
-    )
+    ]
 }

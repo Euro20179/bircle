@@ -10,9 +10,9 @@ import { Message } from 'discord.js'
 import { fetchUser } from './util'
 const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('./shop')
 
-export default function() {
+export default function*() {
 
-    registerCommand(
+    yield [
         "eval",
         {
             run: async (msg, args, sendCallback) => {
@@ -24,9 +24,9 @@ export default function() {
                 info: "run javascript"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "REGISTER_COMMAND", createCommandV2(
             async({rawArgs: args}) => {
                 let name = args[0]
@@ -46,9 +46,9 @@ export default function() {
             undefined,
             m => ADMINS.includes(m.author.id)
         )
-    )
+    ]
 
-    registerCommand(
+    yield [
         "RESET_ECONOMY",
         {
             run: async (msg, _args, sendCallback) => {
@@ -66,9 +66,9 @@ export default function() {
                 info: "Resets the economy"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "RESET_LOTTERY",
         {
             run: async (msg, args, sb) => {
@@ -80,9 +80,9 @@ export default function() {
                 info: "Resets the lottery"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "RESET_PLAYER",
         {
             run: async (msg, args, sendCallback) => {
@@ -99,9 +99,9 @@ export default function() {
                 info: "Resets a player's money"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "RESET_PLAYER_ITEMS",
         {
             run: async (msg, args, sendCallback) => {
@@ -118,9 +118,9 @@ export default function() {
                 info: "Reset's a players inventory"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "RESET_ITEMS",
         {
             run: async (_msg, _args, sendCallback) => {
@@ -133,9 +133,9 @@ export default function() {
                 info: "Resets all inventories"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "SETMONEY",
         {
             run: async (msg, args, sendCallback) => {
@@ -156,9 +156,9 @@ export default function() {
                 info: "Sets a player's money to an amount"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "BLACKLIST",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -211,9 +211,9 @@ export default function() {
             category: CommandCategory.ADMIN
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "END",
         {
             run: async (msg: Message, _args: ArgumentList, sendCallback) => {
@@ -246,5 +246,5 @@ export default function() {
             }
 
         },
-    )
+    ]
 }

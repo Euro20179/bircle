@@ -18,9 +18,9 @@ import { ADMINS, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
-export default function(CAT: CommandCategory) {
+export default function*(CAT: CommandCategory) {
 
-    registerCommand("cat", createCommandV2(async ({ stdin, opts, args }) => {
+    yield ["cat", createCommandV2(async ({ stdin, opts, args }) => {
         let content = "";
         if (stdin) {
             content += getContentFromResult(stdin, "\n")
@@ -39,9 +39,9 @@ export default function(CAT: CommandCategory) {
         return { content: content, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Concatinate files from pipe, and from file names", {
         files: createHelpArgument("The files", false)
-    }))
+    })]
 
-    registerCommand("rev", createCommandV2(async ({ stdin, args, opts }) => {
+    yield ["rev", createCommandV2(async ({ stdin, args, opts }) => {
         let content = "";
         if (stdin) {
             content += getContentFromResult(stdin, "\n").split("").reverse().join("")
@@ -60,9 +60,9 @@ export default function(CAT: CommandCategory) {
         return { content: content, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Take input from pipe and reverse it", undefined, {
         r: createHelpOption("reverse the order of the lines")
-    }))
+    })]
 
-    registerCommand("pet-info", createCommandV2(async ({ msg, args }) => {
+    yield ["pet-info", createCommandV2(async ({ msg, args }) => {
         let pet_type = pet.hasPetByNameOrType(msg.author.id, args.join(" "))
         if (!pet_type[1]) {
             return { content: `${args.join(" ").toLowerCase()} is not a pet`, status: StatusCode.RETURN }
@@ -77,9 +77,9 @@ export default function(CAT: CommandCategory) {
             { name: "HP", value: `${petInfo.health} / ${petTypeInfo['max-hunger']}`, inline: true }
         ])
         return { embeds: [embed], status: StatusCode.RETURN }
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN)]
 
-    registerCommand("google", createCommandV2(async ({ args }) => {
+    yield ["google", createCommandV2(async ({ args }) => {
         let baseUrl = "https://www.google.com/search?q=";
         let s: string = args.join("+");
         const url = baseUrl + s;
@@ -97,9 +97,9 @@ export default function(CAT: CommandCategory) {
         }
         //return {content: links.text(), status: StatusCode.RETURN}
         return { content: urls.join("\n"), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL))
+    }, CommandCategory.UTIL)]
 
-    registerCommand(
+    yield [
         "has-role", createCommandV2(async ({ msg, argList }) => {
             argList.beginIter()
             let user = argList.advance()
@@ -116,9 +116,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
         }, CommandCategory.UTIL)
-    )
+    ]
 
-    registerCommand(
+    yield [
         "units", createCommandV2(async ({ args, opts }) => {
             let roundTo = opts.getNumber("round-to", 10)
             if (opts.get("l", false)) {
@@ -157,9 +157,9 @@ export default function(CAT: CommandCategory) {
             l: createHelpOption("List units and compare them to a unit", undefined, "yd"),
             "round-to": createHelpOption("Round to a certain number of decimals", undefined, "10")
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "help", createCommand(async (_msg, args) => {
 
             const matchCmds = getMatchCommands()
@@ -233,9 +233,9 @@ export default function(CAT: CommandCategory) {
                 "g": createHelpOption("List the bot syntax")
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "clear-logs",
         {
             run: async (_msg, _args, sendCallback) => {
@@ -254,9 +254,9 @@ export default function(CAT: CommandCategory) {
                 info: "Clears logs"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ed", createCommand(async (msg, args, _, __, ___, rec, bans) => {
             if (globals.EDS[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
@@ -558,9 +558,9 @@ export default function(CAT: CommandCategory) {
             return { content: text.join("\n"), status: StatusCode.RETURN }
         }, CommandCategory.UTIL
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "stk", createCommand(async (msg, args, sendCallback) => {
             https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
                 let data = new Stream.Transform()
@@ -611,9 +611,9 @@ export default function(CAT: CommandCategory) {
         }, CommandCategory.UTIL,
             "Gets the stock symbol for a stock"
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "heist-info",
         {
             run: async (_msg, args, sendCallback) => {
@@ -719,9 +719,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ustock",
         {
             run: async (msg, args, sendCallback) => {
@@ -745,9 +745,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "work",
         {
             run: async (msg, _args, sendCallback) => {
@@ -787,9 +787,9 @@ export default function(CAT: CommandCategory) {
                 info: `Earn money (.1% of the economy) if your net worth is below 0 or if you graduated #school\nYou can work once per hour`
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "gapet",
         {
             run: async (msg, args, sendCallback) => {
@@ -804,9 +804,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "sapet",
         {
             run: async (msg, args, sendCallback) => {
@@ -826,9 +826,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "surround-text", createCommandV2(async ({ args, opts, stdin }) => {
             let maxWidth = opts.getNumber("max-width", 50)
             let vertChar = opts.getString("vert-char", "|")
@@ -850,9 +850,9 @@ export default function(CAT: CommandCategory) {
             lines.push(horChar.repeat(maxWidth + 2))
             return { content: `\`\`\`\n${lines.join("\n")}\n\`\`\``, status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Surrounds text with a character"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "align-table",
         createCommandV2(async ({ opts, args, stdin }) => {
             let align = opts.getString("align", "left")
@@ -935,9 +935,9 @@ export default function(CAT: CommandCategory) {
             raw: createHelpOption("Give a javascript list containing lists of columns"),
             cc: createHelpOption("Give the length of the longest column in each column")
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "abattle",
         {
             run: async (msg, args, sendCallback) => {
@@ -1002,9 +1002,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "calcet",
         {
             run: async (msg, args, sendCallback) => {
@@ -1028,9 +1028,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "calcm",
         {
             run: async (msg, args, sendCallback) => {
@@ -1065,9 +1065,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "calcl",
         {
             run: async (msg, args, sendCallback) => {
@@ -1101,10 +1101,10 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
 
-    registerCommand(
+    yield [
         "calcms",
         {
             run: async (msg, args, sendCallback) => {
@@ -1136,9 +1136,9 @@ export default function(CAT: CommandCategory) {
             }
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "calcam",
         {
             run: async (msg, args, sendCallback) => {
@@ -1169,9 +1169,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "aheist", createCommand(async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -1265,9 +1265,9 @@ export default function(CAT: CommandCategory) {
                 "if": createHelpOption("Specify a condition in the form of >x, <x or =x, where x is the total amount of money gained/lost from heist<br>This response will only happen if the total amount of money is >, <, or = to x"),
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "periodic-table",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1360,9 +1360,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rand-arg", createCommandV2(
             async ({ args }) => {
                 return { content: choice(args), status: StatusCode.RETURN }
@@ -1370,9 +1370,9 @@ export default function(CAT: CommandCategory) {
             CommandCategory.UTIL,
             "Sends a random argument"
         )
-    )
+    ]
 
-    registerCommand(
+    yield [
         "yt",
         {
             run: async (msg, _, sc, opts, args) => {
@@ -1530,9 +1530,9 @@ middle
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         'fetch-time',
         {
             run: async (msg, args) => {
@@ -1550,9 +1550,9 @@ middle
                 info: "Getss the ping to an ip (timeout after 1.5s)"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "replace", createCommandV2(async ({ args, stdin, opts }) => {
             let search = args[0]
             let repl = args[1]
@@ -1589,9 +1589,9 @@ middle
             n: createHelpOption("No replace value"),
             r: createHelpOption("Enable regex")
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "string", createCommand(async (_msg, args) => {
             let operation = args[0]
             let string = args.slice(1).join(" ")
@@ -1626,9 +1626,9 @@ middle
                 text: createHelpArgument("The text to operate on")
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "map",
         {
             run: async (msg, args, sendCallback, _, __, rec, bans) => {
@@ -1660,9 +1660,9 @@ middle
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "format-seconds", createCommandV2(async ({ args }) => {
             let amountOfTime = parseFloat(args[0])
             if (isNaN(amountOfTime)) {
@@ -1675,9 +1675,9 @@ middle
                 format: createHelpArgument("The format to use<br><b>Possible formats</b><ul><li>d: The amount of days</li><li>H: The amount of hours</li><li>M: The amount of minutes</li><li>S: The amount of seconds</li></ul>", false, undefined, "%H:%M:%S")
             }
         )
-    )
+    ]
 
-    registerCommand(
+    yield [
         "time",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1717,9 +1717,9 @@ middle
             },
             category: CommandCategory.UTIL
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rand-role",
         {
             run: async (msg, args, sendCallback) => {
@@ -1742,9 +1742,9 @@ middle
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "render-html", createCommand(async (msg, _, sc, opts, args) => {
             return { content: renderHTML(args.join(" "), 0), status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Renders <code>html</code>", {
@@ -1753,9 +1753,9 @@ middle
                 required: true
             }
         }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "htmlq",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1782,9 +1782,9 @@ middle
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "get", createCommand(async (msg, _, sendCallback, cmd_opts, opts) => {
             let operator = opts[0]
             let object = opts[1]
@@ -1869,9 +1869,9 @@ middle
         }, {
             n: createHelpOption("If <code>operator</code> is <code>#</code>, gets the n'th item<br>if <code>operator</code> is <code>rand</code>, gets n random items")
         }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "embed", createCommand(
             async (msg, args) => {
                 let opts;
@@ -1980,9 +1980,9 @@ The order these are given does not matter, excpet for field, which will be added
                 "json": createHelpOption("Return the json that makes up the embed")
             }
         ),
-    )
+    ]
 
-    registerCommand("sh", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
+    yield ["sh", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
         const cmd = spawn("bash")
         let dataToSend = ""
         let sendingTimeout: NodeJS.Timeout | undefined = undefined;
@@ -2015,9 +2015,9 @@ The order these are given does not matter, excpet for field, which will be added
             cmd.stdin.write(m.content + "\n")
         })
         return { noSend: true, status: StatusCode.ERR }
-    }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id)))
+    }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id))]
 
-    registerCommand("qalc", createCommandV2(async ({ msg, argList, opts }) => {
+    yield ["qalc", createCommandV2(async ({ msg, argList, opts }) => {
         if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.IN_QALC.includes(msg.author.id)) {
             globals.IN_QALC.push(msg.author.id)
             const cmd = spawn("qalc", argList)
@@ -2049,9 +2049,9 @@ The order these are given does not matter, excpet for field, which will be added
         }
         const cmd = spawnSync("qalc", ["-t"].concat(argList))
         return { content: cmd.stdout.toString("utf-8"), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL))
+    }, CommandCategory.UTIL)]
 
-    registerCommand(
+    yield [
         "calc",
         {
             run: async (msg, args, sendCallback) => {
@@ -2119,9 +2119,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             },
             category: CommandCategory.UTIL
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "pcount",
         {
             run: async (_msg, args) => {
@@ -2144,9 +2144,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             },
             category: CommandCategory.UTIL
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rand", createCommandV2(async ({ opts, args }) => {
             const low = parseFloat(args[0]) || 0
             const high: number = parseFloat(args[1]) || 100
@@ -2173,9 +2173,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }, {
             round: createHelpOption("Round the number"),
             s: createHelpOption("The seperator to seperate each number with")
-        }))
+        })]
 
-    registerCommand(
+    yield [
         "roles",
         {
             run: async (msg, args) => {
@@ -2226,9 +2226,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "search-cmd-file",
         {
             run: async (_msg, _, sendCallback, opts, args) => {
@@ -2277,9 +2277,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "comp-roles",
         {
             run: async (msg, args, sendCallback) => {
@@ -2343,9 +2343,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "most-roles",
         {
             run: async (msg, args, sendCallback) => {
@@ -2395,9 +2395,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             },
             category: CommandCategory.UTIL
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "whohas", createCommandV2(async ({ msg, argList }) => {
             argList.beginIter()
             let realRole = await argList.expectRole(msg.guild as Guild, () => true) as Role | typeof BADVALUE
@@ -2434,9 +2434,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }, CAT, "Gets a list of users with a specific role", {
             "...role": createHelpArgument("The role to search for")
         })
-    )
+    ]
 
-    registerCommand("printf", createCommandV2(async ({ argList, opts, msg }) => {
+    yield ["printf", createCommandV2(async ({ argList, opts, msg }) => {
         class Format {
             /**
             * @abstract
@@ -2689,9 +2689,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     }, CAT, "Similar to echo", {
         specifier: createHelpArgument("The format specifier<br>%[fmt]<s|d|x|X|o|f|u><br><ul><li>fmt: special information depending on which type to use</li></ul><lh>types</lh><ul><li>[-leftpad]s: string</li><li>d,x,X,o,f: fmt is in the form of [0<count>][.<count>][']<br>0: to specify how many leading 0s<br>.: to specify the decimal place count<br>': to add commas<br>d: base 10, xX: base 16, o: base 8</li><li>u: format a user mention</li><li>c: command format</li></ul>", true),
         "...data": createHelpArgument("The data to fill the specifier with")
-    }))
+    })]
 
-    registerCommand(
+    yield [
         "pollify",
         {
             run: async (msg, args, sendCallback) => {
@@ -2708,9 +2708,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 info: "Idk it pollifies what do you want"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         'stackl',
         {
             run: async (msg, args, sendCallback) => {
@@ -2773,9 +2773,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "expr",
         {
             run: async (msg, args, sendCallback) => {
@@ -2890,9 +2890,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             category: CommandCategory.UTIL
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "file",
         {
             run: async (msg, _, sendCallback, opts, args) => {
@@ -2916,9 +2916,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "b64m", createCommand(async (msg, _, sc, opts, args) => {
             let table: { [key: number]: string } = {}
             let j = 0;
@@ -2952,24 +2952,24 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             return { content: encoded, status: StatusCode.RETURN }
         }, CommandCategory.UTIL),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "b64", createCommandV2(async ({ args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: Buffer.from(text).toString("base64"), status: StatusCode.RETURN }
         }, CAT, "Encodes text to base64")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "b64d", createCommandV2(async ({ args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Decodes base64")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rfile",
         {
             run: async (msg, args, sendCallback) => {
@@ -2990,9 +2990,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
             }
         },
-    )
+    ]
 
-    registerCommand("tr", createCommandV2(async ({ argList, stdin, opts }) => {
+    yield ["tr", createCommandV2(async ({ argList, stdin, opts }) => {
         let charsToDel = opts.getString("d", "")
         argList.beginIter()
         let from = argList.expectString()
@@ -3024,9 +3024,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         to: createHelpArgument("The chars to translate to (not required with -d)", false, "from")
     }, {
         d: createHelpOption("The chars to delete")
-    }))
+    })]
 
-    registerCommand(
+    yield [
         "timer", createCommand(async (msg, _, sc, opts, args) => {
             let action = args[0]?.toLowerCase()
             let actions = ["create", "delete", "get", "list", "lap"]
@@ -3080,9 +3080,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
             }
         }, CommandCategory.UTIL),
-    )
+    ]
 
-    registerCommand(
+    yield [
         'blacklist',
         {
             run: async (msg, args, sendCallback) => {
@@ -3122,9 +3122,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 info: "Blacklist/unblacklist yourself from an alias"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rand-user",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -3187,9 +3187,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             },
             category: CommandCategory.UTIL
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "role-info", createCommandV2(async ({ msg, argList }) => {
 
             argList.beginIter()
@@ -3204,9 +3204,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
             return { embeds: [embed] || "none", status: StatusCode.RETURN }
 
-        }, CAT, "Gets information about a role"))
+        }, CAT, "Gets information about a role")]
 
-    registerCommand(
+    yield [
         "channel-info",
         {
             run: async (msg, args, sendCallback) => {
@@ -3251,9 +3251,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 info: "Gets info about a channel"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "emote-info",
         {
             run: async (msg, args, sendCallback) => {
@@ -3280,9 +3280,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 info: "Get a random emote"
             }
         },
-    )
+    ]
 
-    registerCommand("sticker-info", createCommandV2(async ({ msg, opts, args }) => {
+    yield ["sticker-info", createCommandV2(async ({ msg, opts, args }) => {
         let sticker = msg.stickers.at(0)
         if (opts.getBool("r", false)) {
             sticker = (await msg.guild?.stickers.fetch())?.random()
@@ -3306,9 +3306,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             return { embeds: [embed], status: StatusCode.RETURN }
         }
         return { content: format(fmt, { "t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A" }), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL))
+    }, CommandCategory.UTIL)]
 
-    registerCommand(
+    yield [
         "user-info",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -3400,9 +3400,9 @@ valid formats:<br>
             category: CommandCategory.UTIL
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rand-emote",
         {
             run: async (msg, args, sendCallback) => {
@@ -3457,9 +3457,9 @@ valid formats:<br>
             category: CommandCategory.UTIL
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "emote-use",
         {
             run: async (msg, args, sendCallback) => {
@@ -3503,9 +3503,9 @@ valid formats:<br>
             },
             category: CommandCategory.UTIL
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "invite",
         {
             run: async (msg, _args, sendCallback) => {
@@ -3520,9 +3520,9 @@ valid formats:<br>
                 info: "Gets an invite link for the server"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "non-assigned-roles",
         {
             run: async (msg, _args, sendCallback) => {
@@ -3540,27 +3540,27 @@ valid formats:<br>
                 info: "Gets a list of non-assigned-roles"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "tail", createCommandV2(async ({ args, opts, stdin }) => {
             let count = opts.getNumber("count", 10)
             let argText = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: argText.split("\n").reverse().slice(0, count).reverse().join("\n"), status: StatusCode.RETURN }
 
         }, CAT, "Get the last 10 lines", { text: createHelpArgument("The text to get the last lines of (also accepts pipe)", true) }, { count: createHelpOption("get the lats n lines instead of 1", undefined, "10") })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "head", createCommandV2(async ({ args, opts, stdin }) => {
             let count = opts.getNumber("count", 10)
             let argText = stdin ? getContentFromResult(stdin, "\n") : args.join(" ")
             return { content: argText.split("\n").slice(0, count).join("\n"), status: StatusCode.RETURN }
 
         }, CAT, "Say the first 10 lines of somet text", { text: createHelpArgument("Text also accepts pipe") }, { count: createHelpOption("The amount of lines to show") })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "nl", createCommandV2(async ({ msg, args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split('\n')
             let rv = ""
@@ -3570,9 +3570,9 @@ valid formats:<br>
             return { content: rv, status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Number the lines of text")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "grep", createCommandV2(async ({ msg, argList, stdin, opts, args }) => {
             argList.beginIter()
             let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
@@ -3621,5 +3621,5 @@ valid formats:<br>
         }, {
             s: createHelpOption("dont give back the extra \"found x at char...\" text")
         })
-    )
+    ]
 }

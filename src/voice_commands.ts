@@ -87,8 +87,8 @@ player.on(AudioPlayerStatus.Idle, (err) => {
     play_next_in_queue_or_destroy_connection(vc_queue)
 })
 
-export default function() {
-    registerCommand(
+export default function*() {
+    yield [
         'play', createCommand(async (msg, args) => {
             let link = args.join(" ")
             let attachment = msg.attachments.at(0)
@@ -114,33 +114,33 @@ export default function() {
             play_link(vc_queue.shift() as { link: string, filename: string })
             return { content: `loading: ${link}`, status: StatusCode.RETURN }
         }, CommandCategory.VOICE),
-    )
+    ]
 
-    registerCommand("skip", createCommandV2(async({msg, args}) => {
+    yield ["skip", createCommandV2(async({msg, args}) => {
         player.stop()
         return {content: "skipping", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE, "Skip the current song"))
+    }, CommandCategory.VOICE, "Skip the current song")]
 
-    registerCommand("pause", createCommandV2(async({msg, args}) => {
+    yield ["pause", createCommandV2(async({msg, args}) => {
         player.pause()
         return {content: "Pausing", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE, "Pause the current song"))
+    }, CommandCategory.VOICE, "Pause the current song")]
 
-    registerCommand("unpause", createCommandV2(async({msg, args}) => {
+    yield ["unpause", createCommandV2(async({msg, args}) => {
         player.unpause()
         return {content: "UnPausing", status: StatusCode.RETURN}
-    }, CommandCategory.VOICE, "Unpause the current song"))
+    }, CommandCategory.VOICE, "Unpause the current song")]
 
-    registerCommand(
+    yield [
         'queue', createCommand(async (msg, args) => {
             let embed = new MessageEmbed()
             embed.setTitle("queue")
             embed.setDescription(String(currently_playing?.link) || "None")
             return { content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN }
         }, CommandCategory.VOICE, "See the music queue"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         'next', createCommand(async (msg, args) => {
             let voice_state = msg.member?.voice
             if (!voice_state?.channelId) {
@@ -150,9 +150,9 @@ export default function() {
             play_next_in_queue_or_destroy_connection(vc_queue)
             return { content: "next", status: StatusCode.RETURN }
         }, CommandCategory.VOICE, "Play the next song in queue"),
-    )
+    ]
 
-    registerCommand(
+    yield [
     'leave', createCommand(async (msg, args) => {
         vc_queue = []
         let voice_state = msg.member?.voice
@@ -169,5 +169,5 @@ export default function() {
             return { content: "Not in vc", status: StatusCode.ERR }
         }
     }, CommandCategory.VOICE, "Leave voice chat"),
-    )
+    ]
 }

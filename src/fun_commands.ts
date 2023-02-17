@@ -30,9 +30,9 @@ const configuration = new Configuration({
 let openai = new OpenAIApi(configuration)
 
 
-export default function(CAT: CommandCategory) {
+export default function*(CAT: CommandCategory) {
 
-    registerCommand("give-scallywag-token", createCommandV2(async ({ msg, args }) => {
+    yield ["give-scallywag-token", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0])
         if (!user) {
             return { content: `${args[0]} not found`, status: StatusCode.ERR }
@@ -47,9 +47,9 @@ export default function(CAT: CommandCategory) {
         globals.saveScallywagTokens()
 
         return { content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Give a user another scallywag token"))
+    }, CommandCategory.FUN, "Give a user another scallywag token")]
 
-    registerCommand("scallywag-token-count", createCommandV2(async ({ msg, args }) => {
+    yield ["scallywag-token-count", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0] || msg.author.id)
         if (!user) {
             return { content: `${args[0]} not found`, status: StatusCode.ERR }
@@ -57,9 +57,9 @@ export default function(CAT: CommandCategory) {
 
         return { content: `${globals.SCALLYWAG_TOKENS[user.id]}`, status: StatusCode.RETURN }
 
-    }, CommandCategory.FUN, "get the scallywag token count of a user"))
+    }, CommandCategory.FUN, "get the scallywag token count of a user")]
 
-    registerCommand("chat", createCommandV2(async ({ msg, argList, opts }) => {
+    yield ["chat", createCommandV2(async ({ msg, argList, opts }) => {
         const modelToUse = opts.getString("m", "text-davinci-003")
         const temperature = opts.getNumber("t", 0.2)
         const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
@@ -101,9 +101,9 @@ export default function(CAT: CommandCategory) {
             return { content: "Invalid request type", status: StatusCode.ERR }
         }
         return { content: res, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true))
+    }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
-    registerCommand("mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
+    yield ["mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: "You must set the 'enable-mail' option to true in order to use mail", status: StatusCode.ERR }
         }
@@ -129,15 +129,15 @@ export default function(CAT: CommandCategory) {
         }
         handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, toUser.user.send.bind(toUser.user.dmChannel), recursionCount)
         return { noSend: true, status: StatusCode.RETURN, delete: true }
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN)]
 
-    registerCommand(
+    yield [
         "the secret command", createCommandV2(async () => {
             return { content: "Congrats, you found the secret command", status: StatusCode.RETURN }
         }, CommandCategory.FUN)
-    )
+    ]
 
-    registerCommand("hunting", createCommandV2(async ({ msg, args }) => {
+    yield ["hunting", createCommandV2(async ({ msg, args }) => {
         let activePet = pet.getActivePet(msg.author.id)
         if (!activePet) {
             return { content: `You must activate a bird, dog, or cat to hunt`, status: StatusCode.ERR }
@@ -180,9 +180,9 @@ export default function(CAT: CommandCategory) {
         giveItem(msg.author.id, item, 1)
         return { content: `${petName} found a ${item}`, status: StatusCode.RETURN }
 
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN)]
 
-    registerCommand("fishing", createCommandV2(async ({ msg, args }) => {
+    yield ["fishing", createCommandV2(async ({ msg, args }) => {
         let rod = hasItem(msg.author.id, "fishing rod")
 
         let canfish = false
@@ -250,10 +250,10 @@ export default function(CAT: CommandCategory) {
         giveItem(msg.author.id, item, 1)
         useItem(msg.author.id, "fishing rod", Math.floor(Math.random() * 2))
         return { content: `You fished up ${item}!!`, status: StatusCode.RETURN }
-    }, CommandCategory.FUN))
+    }, CommandCategory.FUN)]
 
 
-    registerCommand("use-item", createCommandV2(async ({ args, msg, opts }) => {
+    yield ["use-item", createCommandV2(async ({ args, msg, opts }) => {
         let recipes: [[string, string?], () => CommandReturn][] = [
             [["balanced breakfast"], () => {
                 let pets = pet.getUserPets(msg.author.id)
@@ -369,9 +369,9 @@ export default function(CAT: CommandCategory) {
             useItem(msg.author.id, item, 1)
         }
         return chosen_recipe[1]()
-    }, CommandCategory.FUN, "Use and combine items to do something!<br>See `[use-item -l` to see a list of recipes<br>usage: `[use-item <item1> + <item2> `"))
+    }, CommandCategory.FUN, "Use and combine items to do something!<br>See `[use-item -l` to see a list of recipes<br>usage: `[use-item <item1> + <item2> `")]
 
-    registerCommand(
+    yield [
 
         'scorigami', createCommandV2(async ({ args, opts }) => {
             let data
@@ -459,9 +459,9 @@ export default function(CAT: CommandCategory) {
 
             return { embeds: [info_embed, first_time_embed, last_time_embed], status: StatusCode.RETURN }
         }, CommandCategory.FUN),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "count", createCommand(async (msg, args, _, __, ___, rec, disable) => {
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
@@ -500,9 +500,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: count_text, delete: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
         }, CommandCategory.FUN),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "stock",
         {
             run: async (msg, args, sendCallback) => {
@@ -558,9 +558,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "feed-pet", createCommandV2(async ({ argList, msg }) => {
             argList.beginIter()
             let petName = argList.expectString()
@@ -585,9 +585,9 @@ export default function(CAT: CommandCategory) {
             return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
 
         }, CAT, "feed-pet <pet> <item>")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "lottery",
         {
             run: async (msg, _args, sendCallback) => {
@@ -597,9 +597,9 @@ export default function(CAT: CommandCategory) {
                 info: "Get the current lottery pool"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "6",
         {
             run: async (msg, args, sendCallback) => {
@@ -737,9 +737,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "wiki", createCommandV2(async ({ args }) => {
             let search = args.join(" ").toLowerCase().replaceAll("/", "%2f")
             for (let file of fs.readdirSync("./wiki")) {
@@ -753,9 +753,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: "No results", status: StatusCode.ERR }
         }, CommandCategory.FUN, "Look at a page on the server wiki"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "search-wiki", createCommand(async (msg, _, sb, opts, args) => {
             let search = args.join(" ").toLowerCase()
             let results: { [key: string]: number } = searchList(search, fs.readdirSync("./wiki").map(v => v.replaceAll("%2f", "/").slice(0, -4).toLowerCase()))
@@ -764,9 +764,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN }
         }, CommandCategory.FUN),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "awiki", createCommand(async (msg, args) => {
             let [title, ...txt] = args.join(" ").split("|")
             title = title.trim().replaceAll("/", "%2f")
@@ -778,9 +778,9 @@ export default function(CAT: CommandCategory) {
             return { content: `created a page called: ${title}`, status: StatusCode.RETURN }
 
         }, CommandCategory.FUN),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ewiki", createCommand(async (msg, _, cb, opts, args) => {
             let [page, type, ...text] = args
             let valid_types = ["new", "n", "append", "a"]
@@ -802,9 +802,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: "How did we get here (ewiki)", status: StatusCode.ERR }
         }, CommandCategory.FUN),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "wikipedia",
         {
             run: async (msg, args, sendCallback) => {
@@ -889,9 +889,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "piglatin",
         {
             run: async (_msg, args, sendCallback) => {
@@ -941,9 +941,9 @@ export default function(CAT: CommandCategory) {
             category: CommandCategory.FUN,
             use_result_cache: true
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "echo",
         {
             run: async (msg: Message, _, __, opts, args) => {
@@ -1072,9 +1072,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "button",
         {
             run: async (msg, _, sendCallback, opts, args) => {
@@ -1138,9 +1138,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "poll",
         {
             run: async (_msg, _, _sendCallback, opts, args) => {
@@ -1186,9 +1186,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "pfp",
         {
             run: async (msg, _, _sendCallback, opts, args) => {
@@ -1216,9 +1216,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rt",
         {
             run: async (msg, _, sendCallback, opts, args) => {
@@ -1253,9 +1253,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "nick", {
         //@ts-ignore
         run: async (msg, _, sendCallback, opts, args) => {
@@ -1280,9 +1280,9 @@ export default function(CAT: CommandCategory) {
             info: "Change the nickname of the bot"
         }
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "sport",
         {
             run: async (msg, args, sendCallback) => {
@@ -1349,9 +1349,9 @@ export default function(CAT: CommandCategory) {
             category: CommandCategory.FUN
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "edit",
         {
             run: async (msg, args, sendCallback) => {
@@ -1424,9 +1424,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "choose", createCommandV2(async ({ args, opts }) => {
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
@@ -1446,9 +1446,9 @@ export default function(CAT: CommandCategory) {
             sep: createHelpOption("The seperator to seperate each chosen item by", ["s"], "\\n"),
             t: createHelpOption("The amount of items to choose", undefined, "1")
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "weather",
         {
             run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
@@ -1522,9 +1522,9 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ship",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1547,9 +1547,9 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "aship",
         {
             run: async (msg, args, sendCallback) => {
@@ -1560,9 +1560,9 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "spasm",
         {
             run: async (msg, args, sendCallback) => {
@@ -1591,9 +1591,9 @@ Valid formats:
                 info: "Repeatedly send and delete a message"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "udict",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1614,9 +1614,9 @@ Valid formats:
             },
             use_result_cache: true
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "reddit",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1655,9 +1655,9 @@ Valid formats:
                 info: "Gets a random post  from a subreddit"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "8",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1682,9 +1682,9 @@ Valid formats:
             category: CommandCategory.FUN
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "distance",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1778,9 +1778,9 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "list-cmds",
         {
             run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
@@ -1808,9 +1808,9 @@ Valid formats:
             },
             use_result_cache: true
         }
-    )
+    ]
 
-    registerCommand(
+    yield [
         "psnipe",
         {
             run: async (_msg, _args, sendCallback) => {
@@ -1839,9 +1839,9 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "snipe",
         {
             run: async (_msg: Message, args: ArgumentList, sendCallback) => {
@@ -1879,7 +1879,7 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
-    )
+    ]
 }
 
 

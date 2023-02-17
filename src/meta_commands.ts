@@ -16,9 +16,9 @@ import { performance } from 'perf_hooks'
 import fetch from 'node-fetch'
 
 
-export default function(CAT: CommandCategory) {
+export default function*(CAT: CommandCategory) {
 
-    registerCommand("stdin", createCommandV2(async ({ stdin, args }) => {
+    yield ["stdin", createCommandV2(async ({ stdin, args }) => {
         let res: any = stdin
         for (let arg of args) {
             if (res[arg]) {
@@ -30,9 +30,9 @@ export default function(CAT: CommandCategory) {
         }
         return { content: typeof res === 'string' ? res : JSON.stringify(res), status: StatusCode.RETURN }
 
-    }, CAT, "get specific data from stdin/pipe"))
+    }, CAT, "get specific data from stdin/pipe")]
 
-    registerCommand("raw", createCommandV2(async ({ rawArgs }) => {
+    yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;
         try {
             data = JSON.parse(rawArgs.join(" "))
@@ -53,9 +53,9 @@ export default function(CAT: CommandCategory) {
 
     }, CAT, "Return the data raw", {
         json: createHelpArgument("The return json")
-    }))
+    })]
 
-    registerCommand(
+    yield [
         "```bircle", createCommandV2(async ({ msg, args, commandBans: bans }) => {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
@@ -64,26 +64,26 @@ export default function(CAT: CommandCategory) {
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "Run some commands"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "(", createCommandV2(async ({ msg, rawArgs: args, commandBans: bans, recursionCount: rec }) => {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
             return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans)), status: StatusCode.RETURN }
         }, CAT),
-    )
+    ]
 
-    registerCommand(
+    yield [
         'tokenize', createCommandV2(async ({ msg, rawArgs: args }) => {
             let parser: Parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
             return { content: parser.tokens.map(v => JSON.stringify(v)).join(";\n") + ";", status: StatusCode.RETURN }
         }, CAT, "Tokenize command input"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "interprate", createCommandV2(async ({ msg, rawArgs: args, stdin }) => {
             let parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
@@ -91,9 +91,9 @@ export default function(CAT: CommandCategory) {
             await int.interprate()
             return { content: JSON.stringify(int), status: StatusCode.RETURN }
         }, CAT, "Interprate args"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "is-alias", createCommand(async (msg, args) => {
             let res = []
             for (let cmd of args) {
@@ -106,9 +106,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: res.join(","), status: StatusCode.RETURN }
         }, CAT, "Checks if a command is an alias"),
-    )
+    ]
 
-    registerCommand(
+    yield [
 
         "option", createCommand(async (msg, args) => {
             let [optname, ...value] = args
@@ -135,9 +135,9 @@ export default function(CAT: CommandCategory) {
             null,
             null,
             (m) => !m.author.bot),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "UNSET", createCommand(async (msg, args) => {
             let [user, optname] = args
             if (!user_options.isValidOption(optname)) {
@@ -152,9 +152,9 @@ export default function(CAT: CommandCategory) {
             return { content: `<@${member.id}> unset ${optname}`, status: StatusCode.RETURN }
 
         }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "options", createCommand(async (msg, _, __, opts, args) => {
             let user = msg.author.id
             if (opts['of']) {
@@ -178,9 +178,9 @@ export default function(CAT: CommandCategory) {
             {
                 "option": createHelpArgument("The option to check the value of", false)
             }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         'get-source',
         {
             run: async (_msg, args, sendCallback) => {
@@ -259,14 +259,14 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand("code-info", createCommandV2(async () => {
+    yield ["code-info", createCommandV2(async () => {
         let info = execSync("wc -l *.ts src/*.ts").toString("utf-8")
         return { content: info, status: StatusCode.RETURN }
-    }, CAT))
+    }, CAT)]
 
-    registerCommand("pet-inventory", createCommandV2(async () => {
+    yield ["pet-inventory", createCommandV2(async () => {
         return {
             files: [
                 {
@@ -276,9 +276,9 @@ export default function(CAT: CommandCategory) {
                 }
             ], status: StatusCode.RETURN
         }
-    }, CAT))
+    }, CAT)]
 
-    registerCommand(
+    yield [
         "economy",
         {
             run: async (_msg, _args, sendCallback) => {
@@ -299,9 +299,9 @@ export default function(CAT: CommandCategory) {
                 info: "Get the database economy.json file"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "inventory.json",
         {
             run: async (_msg, _args, sendCallback) => {
@@ -321,9 +321,9 @@ export default function(CAT: CommandCategory) {
                 info: "Sends the raw inventory.json database file"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "del-var",
         {
             run: async (msg, args, sendCallback) => {
@@ -362,9 +362,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "savev",
         {
             run: async (_msg, _args, sendCallback) => {
@@ -375,9 +375,9 @@ export default function(CAT: CommandCategory) {
                 info: "Save all variables"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "cmd-search",
         {
             run: async (_msg, args, sendCallback) => {
@@ -418,9 +418,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "dwiki", createCommand(async (msg, args) => {
             if (fs.existsSync(`./wiki/${args.join(" ")}.txt`)) {
                 fs.rmSync(`./wiki/${args.join(" ")}.txt`)
@@ -428,9 +428,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
         }, CAT, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "api", createCommandV2(async ({ msg, args, opts }) => {
             if (opts.getBool('l', false)) {
                 let text = ""
@@ -489,9 +489,9 @@ export default function(CAT: CommandCategory) {
             "<opt>": createHelpOption("Each command will require different options")
 
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "del", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, opts }) => {
             if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
             await runCmd(msg, args.join(" "), rec + 1, false, bans)
@@ -501,9 +501,9 @@ export default function(CAT: CommandCategory) {
         }, {
             N: createHelpOption("Treat text as a command")
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "analyze-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
             let results = []
 
@@ -543,9 +543,9 @@ export default function(CAT: CommandCategory) {
             }
             return { content: results.map(v => String(JSON.stringify(v))).join(";\n") + ";", status: StatusCode.RETURN }
         }, CAT),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "for", createCommandV2(async ({ msg, args, recursionCount, commandBans }) => {
             const var_name = args[0]
             const range = args[1]
@@ -579,9 +579,9 @@ export default function(CAT: CommandCategory) {
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT)
-    )
+    ]
 
-    registerCommand(
+    yield [
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
             let text = args.join(" ")
 
@@ -718,9 +718,9 @@ export default function(CAT: CommandCategory) {
 `, true),
                 "(value)": createHelpArgument("The value to compare against surrounded by ()", true)
             }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "if",
         {
             run: async (msg, args, sendCallback, opts, deopedArgs, recursion_count, command_bans) => {
@@ -859,9 +859,9 @@ export default function(CAT: CommandCategory) {
                 info: "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent",
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "getimg",
         {
             run: async (msg, _, sendCallback, opts, args) => {
@@ -884,9 +884,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "argc",
         {
             run: async (_msg, args) => {
@@ -897,27 +897,27 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "argv", createCommandV2(async ({ rawArgs: args }) => {
             return { content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN }
         }, CAT, "prints the argvalues")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "$argc", createCommandV2(async ({ args }) => {
             return { content: String(args.length), status: StatusCode.RETURN }
         }, CAT, "Prints the number of arguments excluding opts")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "$argv", createCommandV2(async ({ args }) => {
             return { content: args.map((v, i) => `**${i}**: ${v}`).join("\n"), status: StatusCode.RETURN }
         }, CAT, "prints the argvalues, exccluding opts")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "opts",
         {
             run: async (_msg, _args, _sendCallback, opts) => {
@@ -932,9 +932,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "variablize", createCommand(async (msg, _, sc, opts, args) => {
             let vars = args
             let str = vars.map(v => {
@@ -945,9 +945,9 @@ export default function(CAT: CommandCategory) {
             }).join(" ")
             return { content: str, status: StatusCode.RETURN }
         }, CAT, "Each arg in the arguments is treated as a string, unless it starts with \\"),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "uptime",
         {
             run: async (_msg: Message, args: ArgumentList) => {
@@ -992,9 +992,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "create-file",
         {
             run: async (_msg, args, sendCallback) => {
@@ -1011,9 +1011,9 @@ export default function(CAT: CommandCategory) {
                 info: "Create a database file"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "remove-file",
         {
             run: async (msg, args, sendCallback) => {
@@ -1032,9 +1032,9 @@ export default function(CAT: CommandCategory) {
                 info: "Remove a database file"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "rand-line", createCommandV2(async ({ args, stdin }) => {
             let text;
             if (args[0]) {
@@ -1060,9 +1060,9 @@ export default function(CAT: CommandCategory) {
             return { content: choice(lines), status: StatusCode.RETURN }
 
         }, CAT, "Get a random line from a file or pipe")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "l-bl",
         {
             run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
@@ -1077,9 +1077,9 @@ export default function(CAT: CommandCategory) {
             }
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "l-wl",
         {
             run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
@@ -1093,9 +1093,9 @@ export default function(CAT: CommandCategory) {
                 info: "List all whitelists"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "timeit",
         {
             run: async (msg, args, sendCallback, _, __, rec, bans) => {
@@ -1111,9 +1111,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "do",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback, opts, deopedArgs, recursion, bans) => {
@@ -1164,9 +1164,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "spam", createCommandV2(async ({ msg, args, opts, sendCallback }) => {
             let times = parseInt(args[0])
             if (times) {
@@ -1203,9 +1203,9 @@ export default function(CAT: CommandCategory) {
         }, {
             delay: createHelpOption("The tiem to wait between each send")
         })
-    )
+    ]
 
-    registerCommand(
+    yield [
         "stop",
         {
             run: async (_msg: Message, args: ArgumentList, sendCallback) => {
@@ -1245,9 +1245,9 @@ export default function(CAT: CommandCategory) {
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "vars", createCommandV2(async () => {
             let rv = Object.entries(vars).map(([prefix, varData]) => {
                 return `**${prefix.replaceAll("_", "\\_")}**:\n` +
@@ -1259,9 +1259,9 @@ export default function(CAT: CommandCategory) {
             return { content: rv, status: StatusCode.RETURN }
 
         }, CAT, "List all variables")
-    )
+    ]
 
-    registerCommand(
+    yield [
         "run",
         {
             run: async (msg: Message, args, sendCallback, _, _2, recursion, bans) => {
@@ -1364,9 +1364,9 @@ export default function(CAT: CommandCategory) {
                 info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "gvar",
         {
             run: async (msg, args, sendCallback) => {
@@ -1390,8 +1390,8 @@ export default function(CAT: CommandCategory) {
                 info: "Get the value of a variable"
             }
         },
-    )
-    registerCommand(
+    ]
+    yield [
         "var",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1441,9 +1441,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "remove",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1533,9 +1533,9 @@ export default function(CAT: CommandCategory) {
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "command-file",
         {
             run: async (_msg: Message, args: ArgumentList, sendCallback) => {
@@ -1588,9 +1588,9 @@ ${fs.readdirSync("./command-results").join("\n")}
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         'send-log',
         {
             run: async (_msg, args, sendCallback) => {
@@ -1603,9 +1603,9 @@ ${fs.readdirSync("./command-results").join("\n")}
                 info: "Send names of all log files"
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "add",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -1657,9 +1657,9 @@ ${fs.readdirSync("./command-results").join("\n")}
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand("alias-type", createCommandV2(async ({ args }) => {
+    yield ["alias-type", createCommandV2(async ({ args }) => {
         if (getAliases()[args[0]]) {
             return { content: "V1", status: StatusCode.RETURN }
         }
@@ -1668,9 +1668,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
         return { content: "None", status: StatusCode.ERR }
 
-    }, CAT))
+    }, CAT)]
 
-    registerCommand("cmd-chainv2", createCommandV2(async ({ msg, args, opts, rawArgs }) => {
+    yield ["cmd-chainv2", createCommandV2(async ({ msg, args, opts, rawArgs }) => {
 
         if (getAliases()[args[0]]) {
             return { content: `${args[0]} is an alias command, run \`cmd-chain\` instead`, status: StatusCode.ERR }
@@ -1700,9 +1700,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
-    }, CAT))
+    }, CAT)]
 
-    registerCommand(
+    yield [
         "cmd-chain",
         {
             run: async (msg, args, sendCallback) => {
@@ -1760,9 +1760,9 @@ ${fs.readdirSync("./command-results").join("\n")}
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand("rccmdv2", createCommandV2(async ({ msg, args }) => {
+    yield ["rccmdv2", createCommandV2(async ({ msg, args }) => {
         let cmdName = args[0]
         let aliasesV2 = getAliasesV2()
         if (aliasesV2[cmdName] && aliasesV2[cmdName].creator === msg.author.id) {
@@ -1777,9 +1777,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         else {
             return { content: `You did not create ${cmdName}`, status: StatusCode.ERR }
         }
-    }, CAT))
+    }, CAT)]
 
-    registerCommand(
+    yield [
         "rccmd",
         {
             run: async (msg, args, sendCallback) => {
@@ -1824,9 +1824,9 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ht", {
         //help command
         run: async (msg, args, sendCallback) => {
@@ -1952,9 +1952,9 @@ ${styles}
         category: CAT
 
     },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "WHITELIST",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -2006,9 +2006,9 @@ ${styles}
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "cmd-use",
         {
             run: async (_msg: Message, args: ArgumentList, sendCallback) => {
@@ -2036,9 +2036,9 @@ ${styles}
                 }
             }
         },
-    )
+    ]
 
-    registerCommand("aliasv2", createCommandV2(async ({ msg, args, opts }) => {
+    yield ["aliasv2", createCommandV2(async ({ msg, args, opts }) => {
 
         if (!opts.getBool('no-easy', false)) {
             let [name, ...cmd] = args
@@ -2180,9 +2180,9 @@ ${styles}
         "no-args": createHelpOption("Do not append user arguments to the end of exec (does not requre -no-easy)", undefined, "false"),
         "no-opts": createHelpOption("Do not append user opts to the end of exec (does not require -no-easy)", undefined, "false"),
         "no-easy": createHelpArgument("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;")
-    }))
+    })]
 
-    registerCommand("process", createCommandV2(async ({ args }) => {
+    yield ["process", createCommandV2(async ({ args }) => {
         let fmt = args.join(" ")
         if (!fmt) {
             let embed = new MessageEmbed()
@@ -2196,9 +2196,9 @@ ${styles}
             ])
             return { embeds: [embed], status: StatusCode.RETURN }
         } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024) }), status: StatusCode.RETURN }
-    }, CAT, "Gets info about the process"))
+    }, CAT, "Gets info about the process")]
 
-    registerCommand(
+    yield [
         "alias",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
@@ -2242,9 +2242,9 @@ ${styles}
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "!!",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback, _, __, rec, bans) => {
@@ -2268,18 +2268,18 @@ ${styles}
             },
             category: CAT
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ping", createCommand(async (msg, _args, sendCallback) => {
             return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`, status: StatusCode.RETURN }
         },
             CAT,
             "Gets the bot's ping (very accurate)"
         )
-    )
+    ]
 
-    registerCommand("cmd-metadata", createCommandV2(async ({ args, opts }) => {
+    yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...getCommands(), ...getAliasesV2() }
         let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, ArgumentList, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds.get(arg) as Command | CommandV2 | AliasV2]).filter(v => v[1])
         let fmt: string = opts.getString("f", opts.getString("fmt", "%i"))
@@ -2313,9 +2313,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     }, CAT, "Get metadata about a commadn", { "...cmd": createHelpArgument("The command(s) to get metadata on", true) }, {
         f: createHelpOption("Format specifier<br><lh>Formats:</lh><ul><li>n: name of command</li><li>v: cmd version</li><li>h: help info</li><li>c: category</li><li>t: types in chat</li><li>o: available options</li><li>a: available args</li></ul>", ["fmt"]),
         "fa": createHelpOption("Format specifier for aliases<br><lh>Formats:</lh><ul><li>n: name of command</li><li>h: help info</li></ul>", ["fmt-alias"])
-    }, undefined, undefined, false, true))
+    }, undefined, undefined, false, true)]
 
-    registerCommand(
+    yield [
         "version", createCommandV2(async ({ args, opts }) => {
             if (opts.getBool("l", false)) {
                 return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
@@ -2347,9 +2347,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             }
 
         }, CAT, "Says the version<br>formats:<br><ul><li>v: full version</li><li>M: major</li><li>m: minor</li><li>b: bug</li><li>A: alpha</li><li>B: beta</li></ul>", { fmt: createHelpArgument("The format", false) },)
-    )
+    ]
 
-    registerCommand(
+    yield [
         "changelog",
         {
             run: async (_msg, args, sendCallback) => {
@@ -2393,12 +2393,12 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             category: CAT,
             use_result_cache: true
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "spams", createCommandV2(async () => {
             return { content: Object.keys(globals.SPAMS).join("\n") || "No spams", status: StatusCode.RETURN }
         }, CAT, "List the ongoing spam ids")
-    )
+    ]
 }
 

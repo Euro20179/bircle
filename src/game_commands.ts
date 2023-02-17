@@ -16,9 +16,9 @@ import { client, getVar, setVar } from "./common"
 
 const { useItem, hasItem } = require("./shop")
 
-export default function() {
+export default function*() {
 
-    registerCommand("madlibs", createCommandV2(async ({ sendCallback, msg }) => {
+    yield ["madlibs", createCommandV2(async ({ sendCallback, msg }) => {
 
         const stories = fs.readFileSync("./command-results/madlibs", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim()).filter(v => v)
 
@@ -83,9 +83,9 @@ export default function() {
 
         return { content: processedStory, status: StatusCode.RETURN }
 
-    }, CommandCategory.GAME, "Play madlibs"))
+    }, CommandCategory.GAME, "Play madlibs")]
 
-    registerCommand("know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
+    yield ["know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
 
         const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
 
@@ -206,9 +206,9 @@ export default function() {
     }, CommandCategory.GAME, "Know your meme", undefined, {
         rounds: createHelpOption("Number of rounds", undefined, "1"),
         r: createHelpOption("Number of rounds", undefined, "1")
-    }))
+    })]
 
-    registerCommand(
+    yield [
         "yahtzee", createCommand(async (msg, _, sc, opts, args) => {
 
             let new_rules = Boolean(opts['new-rules'])
@@ -700,9 +700,9 @@ If it's multiplayer, it's just the amount you want to bet
 If enabled, full houses, small straights, and large straights may be played an infinite number of times
 until you put a 0 in the box`)
             }),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "battle",
         {
             run: async (msg, args, sendCallback) => {
@@ -784,9 +784,9 @@ until you put a 0 in the box`)
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "ticket",
         {
             run: async (msg, args, sendCallback) => {
@@ -851,9 +851,9 @@ until you put a 0 in the box`)
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "heist", createCommand(async (msg, args, sendCallback) => {
             let opts: Opts;
             [opts, args] = getOpts(args)
@@ -1278,9 +1278,9 @@ until you put a 0 in the box`)
                 "no-total": createHelpOption("Do not display the amount gained/lost", ["nt"]),
             }
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "last-run",
         {
             run: async (msg, args, sendCallback) => {
@@ -1332,9 +1332,9 @@ until you put a 0 in the box`)
             category: CommandCategory.GAME
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "blackjack", createCommand(async (msg, args, sendCallback) => {
             let opts;
             [opts, args] = getOpts(args)
@@ -1626,9 +1626,9 @@ until you put a 0 in the box`)
                 "hard": createHelpOption("You can only stand if you have 17+"),
             },
         ),
-    )
+    ]
 
-    registerCommand(
+    yield [
         "coin",
         {
             run: async (msg, args, sendCallback) => {
@@ -1666,9 +1666,9 @@ until you put a 0 in the box`)
                 }
             }
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "uno",
         {
             run: async (msg, _, sendCallback, opts, args) => {
@@ -2020,9 +2020,9 @@ until you put a 0 in the box`)
             category: CommandCategory.GAME
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "wordle",
         {
             run: async (msg, args, sendCallback) => {
@@ -2113,9 +2113,9 @@ until you put a 0 in the box`)
             category: CommandCategory.GAME
 
         },
-    )
+    ]
 
-    registerCommand(
+    yield [
         "hangman",
         {
             run: async (msg, args, sendCallback) => {
@@ -2317,5 +2317,5 @@ until you put a 0 in the box`)
             },
             category: CommandCategory.GAME
         },
-    )
+    ]
 }
