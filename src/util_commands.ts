@@ -3560,7 +3560,7 @@ valid formats:<br>
 
     registerCommand(
         "nl", createCommandV2(async ({ msg, args, stdin }) => {
-            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(" ").split('\n')
+            let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split('\n')
             let rv = ""
             for (let i = 1; i < text.length + 1; i++) {
                 rv += `${i}: ${text[i - 1]}\n`
