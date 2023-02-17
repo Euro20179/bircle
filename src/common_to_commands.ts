@@ -879,11 +879,11 @@ export class Interpreter {
         let rv: CommandReturn = { status: StatusCode.RETURN };
 
 
+        //these modifiers are incompatible
         if (this.hasModifier(Modifiers.silent)) {
             this.sendCallback = async (_data) => this.#msg
         }
-
-        if (this.hasModifier(Modifiers.redir)) {
+        else if (this.hasModifier(Modifiers.redir)) {
             let m = this.modifiers.filter(v => v.type === Modifiers.redir)[0].data
             //whether or not to redirect *all* message sends to the variable, or just the return value from the command
             let all = m[1] //this matches the ! after redir
