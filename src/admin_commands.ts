@@ -1,6 +1,6 @@
 import fs from 'fs'
 import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars } from './common'
-import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, registerCommand, StatusCode } from './common_to_commands'
+import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, handleSending, registerCommand, StatusCode } from './common_to_commands'
 import economy = require("./economy")
 import user_options = require("./user-options")
 import pet from "./pets"
@@ -223,7 +223,6 @@ export default function*() {
                     }
                     catch (err) { }
                 }
-                //@ts-ignore
                 await handleSending(msg, {content: "STOPPING", status: StatusCode.RETURN}, sendCallback)
                 economy.saveEconomy()
                 saveItems()
