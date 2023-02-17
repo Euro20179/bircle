@@ -689,7 +689,8 @@ export class Interpreter {
                     "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
                     "m": `${date.getMonth() + 1}`,
                     "Y": `${date.getFullYear()}`,
-                    "w": `${date.getDay()}`
+                    "w": `${date.getDay()}`,
+                    "s": `${Date.now()}`
                 })
                 break
             case "arg": {
