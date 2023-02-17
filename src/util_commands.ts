@@ -12,7 +12,7 @@ import pet from "./pets"
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands } from './common_to_commands'
+import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2 } from './common_to_commands'
 import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd } from './util'
 import { ADMINS, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
@@ -1827,7 +1827,9 @@ middle
                 "member": async () => await msg.guild?.members.fetch(),
                 "user": async () => (await msg.guild?.members.fetch())?.mapValues(v => v.user),
                 "bot": async () => (await msg.guild?.members.fetch())?.filter(u => u.user.bot),
-                "command": async () => new Collection<string, Command | CommandV2>(Object.entries(getCommands()))
+                "command": async () => new Collection<string, Command | CommandV2>(getCommands().entries()),
+                "aliasv2": async () => new Collection<string, AliasV2>(Object.entries(aliasesV2)),
+                "cmd+av2": async() => new Collection<string, AliasV2 | Command | CommandV2>(Object.entries({...Object.fromEntries(getCommands().entries()), ...aliasesV2})),
             }[object as "channel" | "role" | "member" | "user" | "bot" | "command"]()
             data = data?.filter(filter)
             if (!data) {
@@ -1855,7 +1857,7 @@ middle
             return { content: "Not a valid option", status: StatusCode.ERR }
         }, CommandCategory.UTIL, "gets stuff :+1:", {
             operator: createHelpArgument(`Can either be # or rand<ul><li><code>#</code>: will get a number of something</li><li><code>rand</code>: will get a random of something</li></ul>`, true),
-            of: createHelpArgument("Will get either a <code>rand</code> or <code>#</code> of one of the following<ul><li>channel</li><li>role</li><li>member</li><li>user</li><li>bot</li><li>command</li></ul>", true),
+            of: createHelpArgument("Will get either a <code>rand</code> or <code>#</code> of one of the following<ul><li>channel</li><li>role</li><li>member</li><li>user</li><li>bot</li><li>command</li><li>aliasv2</li><li>cmd+av2</li></ul>", true),
             filter: createHelpArgument(`The filter type to use, <lh>can be one of the following</lh>
 <ul><li>with: checks if <code>property</code> is on the object and includes <code>search</code></li>
 <li>with!: checks if <code>property</code> is on the object and equals <code>search</code></li>
