@@ -198,14 +198,7 @@ client.on("messageCreate", async (m: typeof Message) => {
         globals.writeCmdUse()
     }
     else {
-        for (let cmd in command_commons.getMatchCommands()) {
-            let obj = command_commons.getMatchCommands()[cmd]
-            let match;
-            if (match = m.content.match(obj.match)) {
-                command_commons.handleSending(m, await obj.run({ msg: m, match }))
-                break;
-            }
-        }
+        await command_commons.Interpreter.handleMatchCommands(m, m.content)
     }
     if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)

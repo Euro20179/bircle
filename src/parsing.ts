@@ -265,10 +265,16 @@ class Parser {
     }
 
     parseEscape(msg: Message) {
+
+        const escChars = "ntUusyYAbiSdDTVv\\ "
+
         if (!this.advance()) {
             return new Token(T.str, "\\", this.#curArgNo)
         }
         let char = this.#curChar
+        if(!escChars.includes(char as string)){
+            return new Token(T.str, char as string, this.#curArgNo)
+        }
         let sequence = ""
         if (char !== ' ' && this.advance()) {
             if (this.#curChar === "{") {

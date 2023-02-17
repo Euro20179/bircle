@@ -231,7 +231,12 @@ export function isCmd(text: string, prefix: string) {
 export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
-    return Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable)
+    let rv: CommandReturn | false;
+    //@ts-ignore
+    if(!(rv = await Interpreter.handleMatchCommands(msg, command_excluding_prefix))){
+        rv = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable) as CommandReturn
+    }
+    return rv
 }
 
 export class Interpreter {
@@ -1122,6 +1127,18 @@ export class Interpreter {
             data = await int.handlePipes(data as CommandReturn)
         }
         return data
+    }
+
+    static async handleMatchCommands(msg: Message, content: string){
+        let matchCommands = getMatchCommands()
+        for (let cmd in matchCommands) {
+            let obj = matchCommands[cmd]
+            let match;
+            if (match = content.match(obj.match)) {
+                return handleSending(msg, await obj.run({ msg, match }))
+            }
+        }
+        return false
     }
 }
 

@@ -1,4 +1,6 @@
-import { CommandCategory, createHelpArgument, createMatchCommand, handleSending, lastCommand, registerCommand, registerMatchCommand, runCmd, StatusCode } from "./common_to_commands"
+import { setVarEasy } from "./common"
+import { CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, registerCommand, registerMatchCommand, runCmd, StatusCode } from "./common_to_commands"
+import { Parser } from "./parsing"
 
 export default function*(CAT: CommandCategory) {
     yield [createMatchCommand(async ({ msg, match }) => {
@@ -12,6 +14,29 @@ export default function*(CAT: CommandCategory) {
         arguments: {
             find: createHelpArgument("The text to find for replacing", true),
             replace: createHelpArgument("The text to replace find with", false)
+        }
+    })]
+
+    yield [createMatchCommand(async ({ msg, match }) => {
+        let prefix = match[1]
+        let name = match[2]
+        let data = match[3]
+
+        console.log(data)
+
+        let p = new Parser(msg, data, false)
+        await p.parse()
+        console.log(p.tokens)
+        let int = new Interpreter(msg, p.tokens, p.modifiers, 10)
+        data = (await int.interprate()).join(" ")
+
+        setVarEasy(msg, name, data, prefix)
+        return {noSend: true, status: StatusCode.RETURN}
+    }, /^(?:([%A-Za-z-_]):)?([A-za-z-_]+)="(.*)"$/m, "match:create-var", {
+        info: "var=\"data\"",
+            arguments: {
+            name: createHelpArgument("Name of the variable", true),
+            data: createHelpArgument("Data for the variable surrounded by \"\"", true)
         }
     })]
 
@@ -37,6 +62,7 @@ export default function*(CAT: CommandCategory) {
                 return { noSend: true, status: StatusCode.RETURN }
             }
             let success = 0
+            //FIXME: dont rely on msg.content, possibly take in a {content} argument
             messages.forEach(async (msg) => {
                 index++
                 if (index == 0 || success >= count) return

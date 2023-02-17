@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
+import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -2408,13 +2408,13 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "shell", ccmdV2(async ({ args, msg, recursionCount }) => {
+        "shell", ccmdV2(async ({ args, msg, recursionCount, commandBans, sendCallback }) => {
             const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
 
             const timeoutInterval = 30000
             let to = setTimeout(collector.stop.bind(collector), timeoutInterval)
 
-            collector.on("collect", m => {
+            collector.on("collect", async(m) => {
                 clearTimeout(to)
                 to = setTimeout(collector.stop.bind(collector), timeoutInterval)
 
@@ -2424,7 +2424,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                runCmd(m, m.content, recursionCount + 1)
+                let rv = await runCmd(m, m.content, recursionCount + 1, true, commandBans)
+                console.log(rv)
+                await handleSending(m, rv, sendCallback, recursionCount + 1)
             })
 
             return { noSend: true, status: StatusCode.RETURN }
