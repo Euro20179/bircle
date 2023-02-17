@@ -201,8 +201,9 @@ export default function*(CAT: CommandCategory) {
                 return { content: rv, status: StatusCode.RETURN }
             }
             const aliasesV2 = getAliasesV2()
-            let commandsToUse = { ...commands, ...matchCmds, ...aliasesV2 }
+            let commandsToUse = { ...commands, ...aliasesV2 }
             if (args[0] && args[0] !== '?') {
+                commandsToUse = {}
                 for (let cmd of args) {
                     if (commands[cmd]) {
                         commandsToUse[cmd] = commands[cmd] as Command | CommandV2

@@ -1360,7 +1360,7 @@ export function ccmdV2(cb: (arg0: CommandV2RunArg) => Promise<CommandReturn>, he
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
     use_result_cache?: boolean
-}) {
+}): CommandV2 {
     return {
         run: cb,
         help: {

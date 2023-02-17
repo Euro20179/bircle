@@ -16,7 +16,7 @@ import { performance } from 'perf_hooks'
 import fetch from 'node-fetch'
 
 
-export default function*(CAT: CommandCategory) {
+export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield ["stdin", createCommandV2(async ({ stdin, args }) => {
         let res: any = stdin

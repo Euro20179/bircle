@@ -1192,13 +1192,36 @@ function renderHTML(text: string, indentation = 0) {
     return renderELEMENT(h, indentation)
 }
 
-function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
-    let text = ""
-    let helpData = command.help
-    if (!helpData)
-        return text
+function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+    let summary = `***${name}***`
 
-    let nameInfo = `***${name}***`
+    if(command.help?.options){
+        summary += ` [-options...]`
+    }
+
+    for(let arg in command.help?.arguments){
+        let argData = command.help?.arguments[arg]
+        if(argData?.required !== false){
+            summary += ` <${arg}>`
+        }
+        else{
+            summary += ` [${arg}`;
+            if(argData.default){
+                summary += ` (${argData.default})`
+            }
+            summary += ']'
+        }
+    }
+    return summary
+}
+
+function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+    let helpData = command.help
+
+    let nameInfo = generateCommandSummary(name, command)
+
+    if (!helpData)
+        return nameInfo + "\n"
     let textInfo = "";
     let aliasInfo = "";
     let argInfo = "";
@@ -1217,20 +1240,12 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
             argInfo += `\t* **${arg}**`
             if (helpData.arguments[arg].required !== false) {
                 argInfo += " (required) "
-                nameInfo += ` <${arg}>`
-            }
-            else {
-                nameInfo += ` [${arg}`
             }
             if (helpData.arguments[arg].requires) {
                 argInfo += ` (requires: ${helpData.arguments[arg].requires}) `
             }
             if (helpData.arguments[arg].default) {
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
-                nameInfo += ` (${helpData.arguments[arg].default})]`
-            }
-            else if (helpData.arguments[arg].required === false) {
-                nameInfo += "]"
             }
             let html = cheerio.load(helpData.arguments[arg].description)
             argInfo += `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`
