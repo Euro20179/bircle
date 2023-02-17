@@ -833,7 +833,7 @@ export default function(CAT: CommandCategory) {
                     }
                 }
                 if (resp.headers.get("location")) {
-                    await (getCommands()['wikipedia'] as Command).run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args, 1)
+                    await (getCommands().get('wikipedia') as Command).run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args, 1)
                 }
                 else {
                     let respText = await resp.text()
@@ -1553,7 +1553,7 @@ Valid formats:
         "aship",
         {
             run: async (msg, args, sendCallback) => {
-                return await (getCommands()['add'] as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
+                return await (getCommands().get('add') as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
             },
             help: {
                 info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"

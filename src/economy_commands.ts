@@ -35,7 +35,7 @@ export default function() {
                 //if is in format of old [buy <stock> <shares>
                 if (Number(item) && !allowedTypes.includes(type)) {
                     await handleSending(msg, { content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING }, sendCallback)
-                    return await (getCommands()['bstock'] as Command).run(msg, args, sendCallback, {}, args, recursion)
+                    return await (getCommands().get('bstock') as Command).run(msg, args, sendCallback, {}, args, recursion)
                 }
                 //else
                 return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }

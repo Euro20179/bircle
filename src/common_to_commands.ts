@@ -1,4 +1,4 @@
-import { Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { Collection, Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
 import economy = require("./economy")
@@ -746,62 +746,6 @@ export class Interpreter {
                 else{
                     data = `{${format_name}}`
                 }
-                // else {
-                //     let rangeMatch = format_name.match(/^(\d+)(?:\.\.|-)(\d+)$/)
-                //     if (rangeMatch) {
-                //         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
-                //
-                //         let argsBeforeNumber = this.args.slice(0, )
-                //
-                //         let beforeNumber = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-                //
-                //         //if we dont do this, there will be extra text
-                //         if (beforeNumber) {
-                //             this.removeLastTokenFromArgList()
-                //         }
-                //
-                //         let afterNumber = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-                //
-                //         if (afterNumber) {
-                //             //dont let these tokens get parsed
-                //             this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
-                //         }
-                //
-                //         let start = parseInt(rangeMatch[1])
-                //         let end = parseInt(rangeMatch[2])
-                //         if (end - start > 1000000) {
-                //             end = start + 1
-                //         }
-                //         for (let i = start; i <= end; i++) {
-                //return [new Token(T.str, `${beforeNumber}${i}${afterNumber}`, token.argNo + this.#argOffset++)]
-                //         }
-                //         return true
-                //     }
-                //     else if (format_name.includes(",")) {
-                //         let indexOfThisToken = this.tokens.findIndex((v) => v.id === token.id)
-                //         let beforeWord = this.tokens.filter((v, i) => i < indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-                //
-                //         //if we dont do this, there will be extra text
-                //         if (beforeWord) {
-                //             this.removeLastTokenFromArgList()
-                //         }
-                //
-                //         let afterWord = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo).reduce((p, v) => p + v.data, "")
-                //
-                //         if (afterWord) {
-                //             //dont let these tokens get parsed
-                //             this.tokens = this.tokens.filter((v, i) => i > indexOfThisToken && v.argNo === token.argNo)
-                //         }
-                //
-                //         for (let word of format_name.split(",")) {
-                //return [new Token(T.str, `${beforeWord}${word}${afterWord}`, token.argNo + this.#argOffset++)]
-                //         }
-                //         return true
-                //     }
-                //     else {
-                //         data = `{${format_name}}`
-                //     }
-                // }
             }
         }
         return [new Token(T.str, data, token.argNo)]
@@ -832,7 +776,7 @@ export class Interpreter {
         this.cmd = token.data
         this.real_cmd = token.data
 
-        if (!commands[this.cmd] && aliases[this.cmd]) {
+        if (!commands.get(this.cmd) && aliases[this.cmd]) {
             let expansion = await expandAlias(this.cmd, (alias: any) => {
                 globals.addToCmdUse(alias) //for every expansion, add to cmd use
                 if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
@@ -853,7 +797,7 @@ export class Interpreter {
             }
         }
 
-        else if (!commands[this.cmd] && aliasesV2[this.cmd]) {
+        else if (!commands.get(this.cmd) && aliasesV2[this.cmd]) {
             this.aliasV2 = aliasesV2[this.cmd]
         }
 
@@ -986,7 +930,7 @@ export class Interpreter {
             let [opts, args2] = getOpts(args)
             rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable }) as CommandReturn
         }
-        else if (!commands[this.real_cmd]) {
+        else if (!commands.get(this.real_cmd)) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
             if (this.real_cmd.startsWith(prefix)) {
@@ -997,8 +941,8 @@ export class Interpreter {
         }
         else if (exists) {
             //make sure it passes the command's perm check if it has one
-            if (commands[this.real_cmd].permCheck) {
-                canRun = commands[this.real_cmd].permCheck?.(this.#msg) ?? true
+            if (commands.get(this.real_cmd)?.permCheck) {
+                canRun = commands.get(this.real_cmd)?.permCheck?.(this.#msg) ?? true
             }
             //is whitelisted
             if (WHITELIST[this.#msg.author.id]?.includes(this.real_cmd)) {
@@ -1011,19 +955,19 @@ export class Interpreter {
             if (this.disable?.commands && this.disable.commands.includes(this.real_cmd)) {
                 canRun = false
             }
-            if (this.disable?.categories && this.disable.categories.includes(commands[this.real_cmd].category)) {
+            if (this.disable?.categories && this.disable.categories.includes(commands.get(this.real_cmd)?.category)) {
                 canRun = false
             }
             if (canRun) {
-                if (typing || commands[this.real_cmd].make_bot_type)
+                if (typing || commands.get(this.real_cmd)?.make_bot_type)
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
 
-                if (commands[this.real_cmd].use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
+                if (commands.get(this.real_cmd)?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
                     rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
                 }
 
-                else if (commands[this.real_cmd].cmd_std_version == 2) {
+                else if (commands.get(this.real_cmd)?.cmd_std_version == 2) {
                     let obj: CommandV2RunArg = {
                         msg: this.#msg,
                         rawArgs: args,
@@ -1035,13 +979,13 @@ export class Interpreter {
                         argList: new ArgList(args2),
                         stdin: this.#pipeData
                     }
-                    rv = await (commands[this.real_cmd] as CommandV2).run(obj)
+                    rv = await (commands.get(this.real_cmd) as CommandV2).run(obj)
                 }
                 else {
 
-                    rv = await (commands[this.real_cmd] as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                    rv = await (commands.get(this.real_cmd) as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
-                if (commands[this.real_cmd].use_result_cache === true) {
+                if (commands.get(this.real_cmd)?.use_result_cache === true) {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 //it will double add this if it's an alias
@@ -1393,14 +1337,14 @@ export function generateDefaultRecurseBans() {
     return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas"] }
 }
 
-export let commands: { [key: string]: Command | CommandV2 } = {}
+export let commands: Map<string, (Command | CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
 export function registerCommand(name: string, command: Command | CommandV2) {
     if (!command.help) {
         console.warn(name, `(${cmdCatToStr(command.category)})`, "does not have help")
     }
-    Reflect.set(commands, name, command)
+    commands.set(name, command)
 }
 
 export function registerMatchCommand(command: MatchCommand) {

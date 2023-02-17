@@ -7,7 +7,7 @@ import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, readLine } from "./util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr } from "./util"
 import { Guild, Message, MessageEmbed } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
@@ -97,7 +97,7 @@ export default function(CAT: CommandCategory) {
         "is-alias", createCommand(async (msg, args) => {
             let res = []
             for (let cmd of args) {
-                if (getCommands()[cmd] === undefined) {
+                if (getCommands().get(cmd) === undefined) {
                     res.push(true)
                 }
                 else {
@@ -393,18 +393,18 @@ export default function(CAT: CommandCategory) {
                 let results = []
                 for (let cmd in commands) {
                     if (cmd.match(regexp)) {
-                        if (commands[cmd].help?.info) {
-                            results.push(`**${cmd}**: ${renderHTML(commands[cmd].help?.info || "")}`)
+                        if (commands.get(cmd)?.help?.info) {
+                            results.push(`**${cmd}**: ${renderHTML(commands.get(cmd)?.help?.info || "")}`)
                         }
                         else results.push(cmd)
                     }
-                    else if (commands[cmd].help) {
-                        let help = commands[cmd].help
+                    else if (commands.get(cmd)?.help) {
+                        let help = commands.get(cmd)?.help
                         if (help?.info?.match(search)) {
-                            results.push(`**${cmd}**: ${renderHTML(commands[cmd].help?.info || "")}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands.get(cmd)?.help?.info || "")}`)
                         }
                         else if (help?.tags?.includes(search)) {
-                            results.push(`**${cmd}**: ${renderHTML(commands[cmd].help?.info || "")}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands.get(cmd)?.help?.info || "")}`)
                         }
                     }
                 }
@@ -1835,17 +1835,12 @@ ${fs.readdirSync("./command-results").join("\n")}
             let opts
             [opts, args] = getOpts(args)
             let files = []
-            let commandsToUse = commands
-            if (args[0]) {
+            let commandsToUse = Object.fromEntries(commands.entries())
+            if (args[0] && args[0] !== "?") {
                 commandsToUse = {}
-                if (args[0] == "?") {
-                    commandsToUse = commands
-                }
-                else {
-                    for (let cmd of args) {
-                        if (!commands[cmd]) continue
-                        commandsToUse[cmd] = commands[cmd]
-                    }
+                for (let cmd of args) {
+                    if (!commands.get(cmd)) continue
+                    commandsToUse[cmd] = commands.get(cmd) as Command | CommandV2
                 }
             }
             if (opts['json']) {
@@ -1865,7 +1860,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 ${styles}
 </style>`
                 for (let command in commandsToUse) {
-                    html += generateHTMLFromCommandHelp(command, commands[command])
+                    html += generateHTMLFromCommandHelp(command, commands.get(command))
                 }
                 fs.writeFileSync("help.html", html)
             }
@@ -2160,7 +2155,7 @@ ${styles}
         else if (getAliasesV2()[name]) {
             return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
         }
-        else if (getCommands()[name]) {
+        else if (getCommands().get(name)) {
             return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
         }
 
@@ -2227,7 +2222,7 @@ ${styles}
                 if (getAliasesV2()[cmd]) {
                     return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
                 }
-                if (getCommands()[cmd]) {
+                if (getCommands().get(cmd)) {
                     return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
                 }
                 fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
@@ -2286,7 +2281,7 @@ ${styles}
 
     registerCommand("cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...getCommands(), ...getAliasesV2() }
-        let cmdObjs: [string, (typeof cmds[string])][] = listComprehension<string, ArgumentList, [string, typeof cmds[string]]>(args, (arg) => [arg, cmds[arg]]).filter(v => v[1])
+        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, ArgumentList, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds.get(arg) as Command | CommandV2 | AliasV2]).filter(v => v[1])
         let fmt: string = opts.getString("f", opts.getString("fmt", "%i"))
         let av2fmt: string = opts.getString("fa", opts.getString("fmt-alias", "%i"))
         return {

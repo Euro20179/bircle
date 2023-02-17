@@ -163,7 +163,7 @@ export default function(CAT: CommandCategory) {
         "help", createCommand(async (_msg, args) => {
 
             const matchCmds = getMatchCommands()
-            let commands = { ...getCommands(), ...matchCmds }
+            let commands = { ...Object.fromEntries(getCommands().entries()), ...matchCmds }
             let opts
             [opts, args] = getOpts(args)
             if (opts["g"]) {
@@ -195,31 +195,25 @@ export default function(CAT: CommandCategory) {
                 }
                 let rv = ""
                 for (let cmd in commands) {
-                    if (catNum == -1 || commands[cmd].category == catNum)
-                        rv += `${cmd}: ${cmdCatToStr(commands[cmd].category)}\n`
+                    if (catNum == -1 || commands[cmd]?.category == catNum)
+                        rv += `${cmd}: ${cmdCatToStr(commands[cmd]?.category)}\n`
                 }
                 return { content: rv, status: StatusCode.RETURN }
             }
             const aliasesV2 = getAliasesV2()
             let commandsToUse = { ...commands, ...matchCmds, ...aliasesV2 }
-            if (args[0]) {
-                commandsToUse = {}
-                if (args[0] == "?") {
-                    commandsToUse = commands
-                }
-                else {
-                    for (let cmd of args) {
-                        if (commands[cmd]) {
-                            commandsToUse[cmd] = commands[cmd]
-                        }
-                        else if (matchCmds[cmd]) {
-                            commandsToUse[cmd] = matchCmds[cmd]
-                        }
-                        else if (aliasesV2[cmd]) {
-                            commandsToUse[cmd] = aliasesV2[cmd]
-                        }
-                        else { continue }
+            if (args[0] && args[0] !== '?') {
+                for (let cmd of args) {
+                    if (commands[cmd]) {
+                        commandsToUse[cmd] = commands[cmd] as Command | CommandV2
                     }
+                    else if (matchCmds[cmd]) {
+                        commandsToUse[cmd] = matchCmds[cmd]
+                    }
+                    else if (aliasesV2[cmd]) {
+                        commandsToUse[cmd] = aliasesV2[cmd]
+                    }
+                    else { continue }
                 }
             }
             if (opts['json']) {
@@ -2477,7 +2471,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         class CommandFormat extends Format{
             async format(text: string){
                 let cmds = {...getCommands(), ...getMatchCommands(), ...getAliasesV2()}
-                let cmd = cmds[text]
+                let cmd = cmds.get(text)
                 if(!cmd?.help?.info){
                     return text
                 }
@@ -3097,14 +3091,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         status: StatusCode.ERR
                     }
                 }
-                let cmds = args.slice(1)
+                let cmds: string[] = args.slice(1)
                 if (!cmds.length) {
                     return {
                         content: "no cmd given",
                         status: StatusCode.ERR
                     }
                 }
-                cmds = cmds.filter(v => !commands[v])
+                cmds = cmds.filter(v => !commands.get(v))
                 if (addOrRemove == "a") {
                     //@ts-ignore
                     addToPermList(BLACKLIST, "blacklists", msg.member, cmds)
