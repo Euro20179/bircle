@@ -20,19 +20,19 @@ export default function*(CAT: CommandCategory) {
     yield [createMatchCommand(async ({ msg, match }) => {
         let prefix = match[1]
         let name = match[2]
-        let data = match[3]
+        let quoteType = match[3]
+        let data = match[4]
 
-        console.log(data)
-
-        let p = new Parser(msg, data, false)
-        await p.parse()
-        console.log(p.tokens)
-        let int = new Interpreter(msg, p.tokens, p.modifiers, 10)
-        data = (await int.interprate()).join(" ")
+        if(quoteType === '"'){
+            let p = new Parser(msg, data, false)
+            await p.parse()
+            let int = new Interpreter(msg, p.tokens, p.modifiers, 10)
+            data = (await int.interprate()).join(" ")
+        }
 
         setVarEasy(msg, name, data, prefix)
         return {noSend: true, status: StatusCode.RETURN}
-    }, /^(?:([%A-Za-z-_]):)?([A-za-z-_]+)="(.*)"$/m, "match:create-var", {
+    }, /(?:([%A-Za-z-_]):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
         info: "var=\"data\"",
             arguments: {
             name: createHelpArgument("Name of the variable", true),

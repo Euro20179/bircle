@@ -144,7 +144,8 @@ export class AliasV2 {
 
         globals.addToCmdUse(this.exec)
 
-        let rv = await runCmd(msg, tempExec, recursionCount + 1, true)
+                                    //prevent double interpretation
+        let rv = await runCmd(msg, `n:${tempExec}`, recursionCount + 1, true)
 
         for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
