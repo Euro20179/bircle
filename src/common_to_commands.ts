@@ -699,6 +699,8 @@ export class Interpreter {
 
                 let rangeMatch;
 
+                console.log(format_name)
+
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
                 }

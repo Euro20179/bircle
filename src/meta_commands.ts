@@ -46,7 +46,7 @@ export default function*(CAT: CommandCategory) {
         catch (err) {
             return { content: "Could not parse json", status: StatusCode.ERR }
         }
-        if (!data.status) {
+        if (typeof data.status !== 'number') {
             return { content: "No status code", status: StatusCode.ERR }
         }
         return data as CommandReturn
@@ -1828,130 +1828,130 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     yield [
         "ht", {
-        //help command
-        run: async (msg, args, sendCallback) => {
+            //help command
+            run: async (msg, args, sendCallback) => {
 
-            let commands = getCommands()
-            let opts
-            [opts, args] = getOpts(args)
-            let files = []
-            let commandsToUse = Object.fromEntries(commands.entries())
-            if (args[0] && args[0] !== "?") {
-                commandsToUse = {}
-                for (let cmd of args) {
-                    if (!commands.get(cmd)) continue
-                    commandsToUse[cmd] = commands.get(cmd) as Command | CommandV2
+                let commands = getCommands()
+                let opts
+                [opts, args] = getOpts(args)
+                let files = []
+                let commandsToUse = Object.fromEntries(commands.entries())
+                if (args[0] && args[0] !== "?") {
+                    commandsToUse = {}
+                    for (let cmd of args) {
+                        if (!commands.get(cmd)) continue
+                        commandsToUse[cmd] = commands.get(cmd) as Command | CommandV2
+                    }
                 }
-            }
-            if (opts['json']) {
-                return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
-            }
-            if (Object.keys(commandsToUse).length < 1) {
-                return {
-                    content: "No help can be given :(",
-                    status: StatusCode.ERR
+                if (opts['json']) {
+                    return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
                 }
-            }
-            if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
-                await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
-                delete opts['n']
-                let styles = fs.readFileSync("help-styles.css")
-                let html = `<style>
+                if (Object.keys(commandsToUse).length < 1) {
+                    return {
+                        content: "No help can be given :(",
+                        status: StatusCode.ERR
+                    }
+                }
+                if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
+                    await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
+                    delete opts['n']
+                    let styles = fs.readFileSync("help-styles.css")
+                    let html = `<style>
 ${styles}
 </style>`
-                for (let command in commandsToUse) {
-                    html += generateHTMLFromCommandHelp(command, commands.get(command))
+                    for (let command in commandsToUse) {
+                        html += generateHTMLFromCommandHelp(command, commands.get(command))
+                    }
+                    fs.writeFileSync("help.html", html)
                 }
-                fs.writeFileSync("help.html", html)
-            }
-            if (opts["p"] || opts['t']) {
-                opts["plain"] = true
-            }
-            if (opts["m"]) {
-                opts["markdown"] = true
-            }
-            if (opts["h"] || opts["html"] || Object.keys(opts).length === 0) {
-                files.push({
-                    attachment: "help.html",
-                    name: "help.html",
-                    description: "help",
-                    delete: false
-                })
-                if (opts["h"])
-                    delete opts["h"]
-                if (opts["html"])
-                    delete opts["html"]
-            }
-            const exts = {
-                "plain": "txt",
-                "markdown": "md",
-                "man": "1",
-                "commonmark": "md"
-            }
-            for (let fmt in opts) {
-                if (fmt.length == 1) continue
-                if (!fmt.match(/^\w+$/)) continue
-                //@ts-ignore
-                const ext = exts[fmt] || fmt
-                try {
-                    execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
+                if (opts["p"] || opts['t']) {
+                    opts["plain"] = true
                 }
-                catch (err) {
-                    continue
+                if (opts["m"]) {
+                    opts["markdown"] = true
                 }
-                files.push({
-                    attachment: `output.${ext}`,
-                    name: `help.${ext}`,
-                    description: "help"
-                })
-            }
-            if (fs.existsSync("output.txt")) {
-                let content = fs.readFileSync("output.txt", "utf-8")
-                fs.rmSync('output.txt')
+                if (opts["h"] || opts["html"] || Object.keys(opts).length === 0) {
+                    files.push({
+                        attachment: "help.html",
+                        name: "help.html",
+                        description: "help",
+                        delete: false
+                    })
+                    if (opts["h"])
+                        delete opts["h"]
+                    if (opts["html"])
+                        delete opts["html"]
+                }
+                const exts = {
+                    "plain": "txt",
+                    "markdown": "md",
+                    "man": "1",
+                    "commonmark": "md"
+                }
+                for (let fmt in opts) {
+                    if (fmt.length == 1) continue
+                    if (!fmt.match(/^\w+$/)) continue
+                    //@ts-ignore
+                    const ext = exts[fmt] || fmt
+                    try {
+                        execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
+                    }
+                    catch (err) {
+                        continue
+                    }
+                    files.push({
+                        attachment: `output.${ext}`,
+                        name: `help.${ext}`,
+                        description: "help"
+                    })
+                }
+                if (fs.existsSync("output.txt")) {
+                    let content = fs.readFileSync("output.txt", "utf-8")
+                    fs.rmSync('output.txt')
+                    return {
+                        content: `\`\`\`\n${content}\n\`\`\``,
+                        status: StatusCode.RETURN
+                    }
+                }
+                if (files.length > 0) {
+                    return {
+                        files: files,
+                        status: StatusCode.RETURN
+                    }
+                }
                 return {
-                    content: `\`\`\`\n${content}\n\`\`\``,
-                    status: StatusCode.RETURN
+                    content: "cannot send an empty file",
+                    status: StatusCode.ERR
                 }
-            }
-            if (files.length > 0) {
-                return {
-                    files: files,
-                    status: StatusCode.RETURN
+            },
+            help: {
+                options: {
+                    "json": {
+                        description: "return the json of help"
+                    },
+                    "l": {
+                        description: "List all commands<br>set this equal to a category to list commands in a specific category",
+                    },
+                    "p": {
+                        "description": "give a plain text file intead of html"
+                    },
+                    "m": {
+                        "description": "give a markdown file instead of html"
+                    },
+                    "n": {
+                        "description": "forcefully generate a new help file"
+                    },
+                    "g": {
+                        "description": "show the syntax of the bot"
+                    },
+                    "*": {
+                        "description": "any format that pandoc allows, if you're curious, look up \"pandoc formats\""
+                    }
                 }
-            }
-            return {
-                content: "cannot send an empty file",
-                status: StatusCode.ERR
-            }
-        },
-        help: {
-            options: {
-                "json": {
-                    description: "return the json of help"
-                },
-                "l": {
-                    description: "List all commands<br>set this equal to a category to list commands in a specific category",
-                },
-                "p": {
-                    "description": "give a plain text file intead of html"
-                },
-                "m": {
-                    "description": "give a markdown file instead of html"
-                },
-                "n": {
-                    "description": "forcefully generate a new help file"
-                },
-                "g": {
-                    "description": "show the syntax of the bot"
-                },
-                "*": {
-                    "description": "any format that pandoc allows, if you're curious, look up \"pandoc formats\""
-                }
-            }
-        },
-        category: CAT
+            },
+            category: CAT
 
-    },
+        },
     ]
 
     yield [
@@ -2047,6 +2047,12 @@ ${styles}
             }
             let command = cmd.join(" ")
             const alias = new AliasV2(name, command, msg.author.id, { info: command })
+            if (opts.getBool("no-args", false)) {
+                alias.setAppendArgs(false)
+            }
+            if (opts.getBool("no-opts", false)) {
+                alias.setAppendOpts(false)
+            }
             aliasesV2[name] = alias
             fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
             getAliasesV2(true)
@@ -2399,6 +2405,30 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
         "spams", createCommandV2(async () => {
             return { content: Object.keys(globals.SPAMS).join("\n") || "No spams", status: StatusCode.RETURN }
         }, CAT, "List the ongoing spam ids")
+    ]
+
+    yield [
+        "shell", ccmdV2(async ({ args, msg, recursionCount }) => {
+            const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
+
+            const timeoutInterval = 30000
+            let to = setTimeout(collector.stop.bind(collector), timeoutInterval)
+
+            collector.on("collect", m => {
+                clearTimeout(to)
+                to = setTimeout(collector.stop.bind(collector), timeoutInterval)
+
+                if (m.content === 'exit') {
+                    collector.stop()
+                    clearTimeout(to)
+                    return
+                }
+
+                runCmd(m, m.content, recursionCount + 1)
+            })
+
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Run commands without having to do a prefix")
     ]
 }
 
