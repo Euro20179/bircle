@@ -7,7 +7,7 @@ import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr } from "./util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, readLine } from "./util"
 import { Guild, Message, MessageEmbed } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
@@ -2044,51 +2044,100 @@ ${styles}
     )
 
     registerCommand("aliasv2", createCommandV2(async ({ msg, args, opts }) => {
-        let [name, ...command] = args
 
-        console.log(args)
-
-        if (!name) {
-            return { content: "No name", status: StatusCode.ERR }
+        if (!opts.getBool('no-easy', false)) {
+            let [name, ...cmd] = args
+            if (!name) {
+                return { content: "No name given", status: StatusCode.RETURN }
+            }
+            let command = cmd.join(" ")
+            const alias = new AliasV2(name, command, msg.author.id, { info: command })
+            aliasesV2[name] = alias
+            fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
+            getAliasesV2(true)
+            return { content: `added: ${alias.toJsonString()}`, status: StatusCode.RETURN }
         }
 
-        if (!command.length) {
-            return { content: "No command", status: StatusCode.ERR }
-        }
+        let name: string = ""
 
-        const helpInfo = opts.getString("help-info", "")
+        let helpInfo: string = "";
 
         const commandHelpOptions: CommandHelpOptions = {}
         const commandHelpArgs: CommandHelpArguments = {}
 
         let attrs = {
-            "-odesc": (name: string, value: string) => commandHelpOptions[name].description = value,
-            "-oalt": (name: string, value: string) => commandHelpOptions[name].alternates = value.split(","),
-            "-odefault": (name: string, value: string) => commandHelpOptions[name].default = value,
-            "-adesc": (name: string, value: string) => commandHelpArgs[name].description = value,
-            "-adefault": (name: string, value: string) => commandHelpArgs[name].default = value,
-            "-arequired": (name: string, value: string) => commandHelpArgs[name].required = value === "true" ? true : false
+            "odesc": (name: string, value: string) => commandHelpOptions[name].description = value,
+            "oalt": (name: string, value: string) => commandHelpOptions[name].alternates = value.split(","),
+            "odefault": (name: string, value: string) => commandHelpOptions[name].default = value,
+            "adesc": (name: string, value: string) => commandHelpArgs[name].description = value,
+            "adefault": (name: string, value: string) => commandHelpArgs[name].default = value,
+            "arequired": (name: string, value: string) => commandHelpArgs[name].required = value === "true" ? true : false
         } as const;
 
-        //go through each opt
-        for (let opt of opts.keys() as IterableIterator<string>) {
-            //if in the format of -<opt-name>-<possible-attr>
-            for (let possibleAttr in attrs) {
-                if (opt.endsWith(possibleAttr)) {
-                    //get the option name
-                    let name = opt.slice(0, -(possibleAttr.length));
-                    let objToModify = ({ 'o': commandHelpOptions, 'a': commandHelpArgs })[possibleAttr[1] as 'o' | 'a']
-                    if (!objToModify[name]) {
-                        objToModify[name] = { description: name }
-                    }
-                    if (attrs[possibleAttr as keyof typeof attrs]) {
-                        //do the thing specified in $attrs with the vale of -<opt-name>-<possible-attr> as the value
-                        attrs[possibleAttr as keyof typeof attrs](name, opts.getString(opt, ""))
-                    }
-                    else continue;
+        let currentAction = ""
+        let command: string = ""
+        for (let line of args.join(" ").split("\n")) {
+            if (currentAction === 'cmd') {
+                command += `\n${line}`
+                continue
+            }
+            let [action, ...textA] = line.split(" ")
+            let text = textA.join(" ")
+            switch (action) {
+                case "name": {
+                    name = text
                     break
                 }
+                case "command":
+                case "cmd": {
+                    currentAction = "cmd"
+                    command += text;
+                    break
+                }
+                case "help-info": {
+                    helpInfo = text
+                    break;
+                }
+                case "o":
+                case "option":
+                case "opt": {
+                    let [optName, property, ...data] = text.split("|").map((v: string) => v.trim())
+                    let propertyText = data.join("|")
+                    if (property === 'description') property = 'desc';
+                    if (attrs[`o${property}` as keyof typeof attrs]) {
+                        if (!commandHelpOptions[optName]) {
+                            commandHelpOptions[optName] = { description: "" }
+                        }
+                        attrs[`o${property}` as keyof typeof attrs](optName, propertyText)
+                    }
+                    break;
+                }
+                case 'a':
+                case "argument":
+                case "arg": {
+                    let [argName, property, ...data] = text.split("|").map((v: string) => v.trim())
+                    let propertyText = data.join("|")
+                    if (property === 'description') property = 'desc';
+                    if (attrs[`a${property}` as keyof typeof attrs]) {
+                        if (!commandHelpArgs[argName]) {
+                            commandHelpArgs[argName] = { description: "" }
+                        }
+                        attrs[`a${property}` as keyof typeof attrs](argName, propertyText)
+                    }
+                    break;
+
+                }
+                default: {
+                    return {
+                        content: `${action} is not a valid action`,
+                        status: StatusCode.RETURN
+                    }
+                }
             }
+        }
+
+        if (!name) {
+            return { content: "No name given", status: StatusCode.ERR }
         }
 
         const helpMetaData: CommandHelp = {}
@@ -2100,7 +2149,7 @@ ${styles}
             helpMetaData.options = commandHelpOptions
         }
 
-        const alias = new AliasV2(name, command.join(" "), msg.author.id, helpMetaData)
+        const alias = new AliasV2(name, command, msg.author.id, helpMetaData)
 
         if (getAliases()[name]) {
             return { content: `Failed to add ${name} it already exists as an alias`, status: StatusCode.ERR }
@@ -2123,19 +2172,16 @@ ${styles}
         fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
         getAliasesV2(true)
         return { content: `added: ${alias.toJsonString()}`, status: StatusCode.RETURN }
-    }, CAT, "Create an aliasv2<br>By default, the user arguments will be appended to the end of exec<br>To access an option in the exec, use \${%:-option-name}, for args use \${%:\\_\\_arg[&lt;i&gt;]}<br>raw args are also accessable with \\_\\_rawarg instead of \\_\\_arg.<br>To access all args, use \${%:\\_\\_arg[...]}", {
-        "name": createHelpArgument("the alias name", true),
-        exec: createHelpArgument("The command to run", true, "name")
+    }, CAT, "<b>There are 2 Modes</b><ul><li>default: How alias has always worked &lt;name&gt; &lt;command&gt;</li><li>no-easy: use the -no-easy option enable this</li></ul><br>Create an aliasv2<br>By default, the user arguments will be appended to the end of exec<br>To access an option in the exec, use \${%:-option-name}, for args use \${%:\\_\\_arg[&lt;i&gt;]}<br>raw args are also accessable with \\_\\_rawarg instead of \\_\\_arg.<br>To access all args, use \${%:\\_\\_arg[...]}<br><br><b>THE REST ONLY APPLIES TO no-easy MODE</b><br>Each argument should be on its own line", {
+        "name": createHelpArgument("<code>name</code> followed by the alias name", true),
+        "help-info": createHelpArgument("<code>help-info</code> followed by some help information for the command", false),
+        "option": createHelpArgument("<code>option</code> followed by the name of the option, followed by a |, then <code>desc|alt|default</code>, followed by another | and lastly the text<br>if desc is chosen, text is a description of the option<br>if alt is chosen, text is a comma separated list of options that do the same thing<br>if default is chosen, text is the default if option is not given.", false),
+        "argument": createHelpArgument("<code>argument</code> followed by the name of the option, followed by a |, then <code>desc|required|default</code>, followed by another | and lastly the text<br>if desc is chosen, text is a description of the argument<br>if required is chosen, text is true/false<br>if default is chosen, text is the default if argument is not given.", false),
+        "cmd": createHelpArgument("<code>cmd</code> followed by the command to run <b>THIS SHOULD BE LAST</b>", true),
     }, {
-        "help-info": createHelpOption(`The information to say when ${prefix}help \${name} is run`, undefined, ""),
-        "no-args": createHelpOption("Do not append user arguments to the end of exec", undefined, "false"),
-        "no-opts": createHelpOption("Do not append user opts to the end of exec", undefined, "false"),
-        "<optname>-odesc": createHelpOption("Set the description of <optname>", undefined),
-        "<optname>-oalt": createHelpOption("Set the alternate opts of <optname> seperated by commas", undefined),
-        "<optname>-odefault": createHelpOption("Set the default value of <optname>", undefined),
-        "<argname>-adesc": createHelpArgument("Set the description of <argname>"),
-        "<argname>-adefault": createHelpArgument("Set the default of <argname> i nthe help menu"),
-        "<argname>-arequried": createHelpArgument("Set whether or not the argument is required")
+        "no-args": createHelpOption("Do not append user arguments to the end of exec (does not requre -no-easy)", undefined, "false"),
+        "no-opts": createHelpOption("Do not append user opts to the end of exec (does not require -no-easy)", undefined, "false"),
+        "no-easy": createHelpArgument("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;")
     }))
 
     registerCommand("process", createCommandV2(async ({ args }) => {

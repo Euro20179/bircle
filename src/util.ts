@@ -1227,7 +1227,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
                 nameInfo += ` (${helpData.arguments[arg].default})]`
             }
-            else{
+            else if(helpData.arguments[arg].required === false){
                 nameInfo += "]"
             }
             let html = cheerio.load(helpData.arguments[arg].description)
@@ -1406,6 +1406,6 @@ export {
     BADVALUE,
     GOODVALUE,
     createEmbedFieldData,
-    efd
+    efd,
 }
 
