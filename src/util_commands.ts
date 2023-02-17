@@ -1771,11 +1771,15 @@ middle
     yield [
         "htmlq",
         {
-            run: async (_msg, args, sendCallback) => {
+            run: async (_msg, _, sendCallback, opts, args) => {
                 let [query, ...html] = args.join(" ").split("|")
                 let realHTML = html.join("|")
-                let $ = cheerio.load(realHTML)(query).text()
-                return { content: $, status: StatusCode.RETURN }
+                let $ = cheerio.load(realHTML)(query)
+                if(opts['h']){
+                    let innerHTML = String($.html())
+                    return { content: innerHTML, status: StatusCode.RETURN }
+                }
+                return { content: $.text(), status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {
                 info: "Query html",
@@ -1792,6 +1796,9 @@ middle
                         description: "Anything after the bar is the html to query",
                         required: true
                     }
+                },
+                options: {
+                    h: createHelpOption("Get the inner html instead of inner text")
                 }
             }
         },
