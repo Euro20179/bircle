@@ -2148,6 +2148,9 @@ ${styles}
         if (Object.keys(commandHelpOptions).length !== 0) {
             helpMetaData.options = commandHelpOptions
         }
+        if (Object.keys(commandHelpArgs).length !== 0) {
+            helpMetaData.arguments = commandHelpArgs
+        }
 
         const alias = new AliasV2(name, command, msg.author.id, helpMetaData)
 

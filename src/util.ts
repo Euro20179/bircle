@@ -1020,7 +1020,10 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     while((arg = args[++idxOfFirstRealArg])?.startsWith("-")){
         if (arg[1]) {
             let [opt, ...value] = arg.slice(1).split("=")
+            console.log(opt, value)
             if(opt === '-'){
+                //needs to be increased one more time
+                idxOfFirstRealArg++
                 break
             }
             //@ts-ignore
