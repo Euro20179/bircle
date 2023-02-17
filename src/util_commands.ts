@@ -13,12 +13,12 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2 } from './common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd } from './util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary } from './util'
 import { ADMINS, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
-export default function*(CAT: CommandCategory) {
+export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield ["cat", createCommandV2(async ({ stdin, opts, args }) => {
         let content = "";
@@ -221,8 +221,9 @@ export default function*(CAT: CommandCategory) {
                 return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
             }
             let text = ""
-            for (let command in commandsToUse) {
-                text += generateTextFromCommandHelp(command, commandsToUse[command]) + "--------------------------------------\n"
+            let fn = opts['s'] ? function(){ return generateCommandSummary(arguments[0], arguments[1]) + "\n" } : generateTextFromCommandHelp
+            for(let command in commandsToUse){
+                text += fn(command, commandsToUse[command]) + "---------------------------------------\n"
             }
             return { content: text, status: StatusCode.RETURN }
         }, CommandCategory.UTIL,
@@ -231,7 +232,8 @@ export default function*(CAT: CommandCategory) {
                 commands: createHelpArgument("The commands to get help on, seperated by a space<br>If command is ?, it will do all commands", false)
             },
             {
-                "g": createHelpOption("List the bot syntax")
+                "g": createHelpOption("List the bot syntax"),
+                "s": createHelpOption("Only show a summary")
             }
         ),
     ]
@@ -1578,7 +1580,12 @@ middle
             }
             let s: string | RegExp = search
             if (opts.getBool('r', false)) {
-                s = new RegExp(search, "g")
+                try{
+                    s = new RegExp(search, opts.getString("flags", "g"))
+                }
+                catch(err){
+                    return {content: `Invalid regex\n${err}`, status: StatusCode.ERR}
+                }
             }
             return { content: text.replaceAll(s, repl || ""), status: StatusCode.RETURN }
 

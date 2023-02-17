@@ -1449,5 +1449,6 @@ export {
     GOODVALUE,
     createEmbedFieldData,
     efd,
+    generateCommandSummary
 }
 

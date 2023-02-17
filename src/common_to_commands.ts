@@ -97,7 +97,7 @@ export class AliasV2 {
             innerPairs.push(curPair)
         }
 
-        const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+)/
+        const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)/
 
         let tempExec = this.exec
 
@@ -106,6 +106,10 @@ export class AliasV2 {
                 let [left, right] = innerText.split("..")
                 if (left === "args") {
                     tempExec = tempExec.replace(`{${innerText}}`, args.join(" "))
+                    continue
+                }
+                else if(left === '#args'){
+                    tempExec = tempExec.replace(`{${innerText}}`, String(args.length))
                     continue
                 }
                 let leftIndex = Number(left.replace("args", ""))
