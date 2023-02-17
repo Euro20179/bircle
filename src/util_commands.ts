@@ -1558,19 +1558,21 @@ middle
     yield [
         "replace", createCommandV2(async ({ args, stdin, opts }) => {
             let search = args[0]
-            let repl = args[1]
+            let repl: string = args[1]
             if (opts.getBool("n", false)) {
-                let text = stdin ? getContentFromResult(stdin, "\n") : args.slice(1).join(" ")
-                if (!search) {
-                    return { content: "no search", status: StatusCode.ERR }
-                }
-                return { content: text.replaceAll(search, ""), status: StatusCode.RETURN }
+                repl = '\0'
             }
             else if (!repl) {
                 return { content: "No replacement", status: StatusCode.ERR }
             }
 
-            let text: string = stdin ? getContentFromResult(stdin, "\n") : args.slice(2).join(" ")
+            let restOfArgs = args.slice(1)
+            if(repl !== '\0'){
+                //remove one more time if there is a replacement
+                restOfArgs = restOfArgs.slice(1)
+            }
+
+            let text: string = stdin ? getContentFromResult(stdin, "\n") : restOfArgs.join(" ")
 
             if (!search) {
                 return { content: "no search", status: StatusCode.ERR }
@@ -1586,6 +1588,9 @@ middle
                 catch(err){
                     return {content: `Invalid regex\n${err}`, status: StatusCode.ERR}
                 }
+            }
+            if(repl === '\0'){
+                repl = ""
             }
             return { content: text.replaceAll(s, repl || ""), status: StatusCode.RETURN }
 
