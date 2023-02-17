@@ -6,7 +6,7 @@ const fs = require('fs')
 
 import { Client, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
 import { client } from "./common"
-import { AliasV2 } from "./common_to_commands"
+import { AliasV2, CommandCategory } from "./common_to_commands"
 
 import globals = require("./globals")
 import { formatMoney, getOpt } from "./user-options"
@@ -14,14 +14,14 @@ import { formatMoney, getOpt } from "./user-options"
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
-function createEmbedFieldData(name: string, value: string, inline?: boolean): EmbedFieldData{
-    return {name: name, value: value, inline: inline ?? false}
+function createEmbedFieldData(name: string, value: string, inline?: boolean): EmbedFieldData {
+    return { name: name, value: value, inline: inline ?? false }
 }
 
 /**
     * @description Creates an array of embedfielddata
 */
-function efd(...data: [string, string, boolean?][]){
+function efd(...data: [string, string, boolean?][]) {
     return listComprehension<[string, string, boolean?], [string, string, boolean?][], EmbedFieldData>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
 }
 
@@ -520,21 +520,21 @@ class UTF8String {
     }
 }
 
-function* enumerate<T>(iterable: T[]): Generator<[number, T]>{
-    for(let i = 0; i < iterable.length; i++){
+function* enumerate<T>(iterable: T[]): Generator<[number, T]> {
+    for (let i = 0; i < iterable.length; i++) {
         yield [i, iterable[i]]
     }
 }
 
-function* range(start: number, stop: number, step: number = 1){
-    for(let i = start; i < stop; i += step){
+function* range(start: number, stop: number, step: number = 1) {
+    for (let i = start; i < stop; i += step) {
         yield i
     }
 }
 
-function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: (i: T) => TReturn): TReturn[]{
+function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: (i: T) => TReturn): TReturn[] {
     let newList = []
-    for(let item of l){
+    for (let item of l) {
         newList.push(fn(item))
     }
     return newList
@@ -545,7 +545,7 @@ function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: 
  * @param {function(number):void} [onNext]
  * @returns {Iterable}
  */
-function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T>{
+function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
     for (let i = 0; true; i++) {
         if (onNext)
             onNext(i)
@@ -617,7 +617,7 @@ async function fetchUser(guild: Guild, find: string) {
         if (!user) {
             user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
         }
-        if(!user){
+        if (!user) {
             fetchUserFromClient(client, find)
         }
     }
@@ -827,7 +827,7 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
         //@ts-ignore
         img = msg.attachments.at(0)?.attachment
     }
-    else if(msg.stickers?.at(0)){
+    else if (msg.stickers?.at(0)) {
         //@ts-ignore
         img = msg.stickers.at(0).url as string
     }
@@ -846,7 +846,7 @@ const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
 type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => boolean)
-class ArgList extends Array{
+class ArgList extends Array {
     #i: number
     #curArg: string | null
     constructor(args: string[]) {
@@ -857,87 +857,87 @@ class ArgList extends Array{
         this.#i = NaN
         this.#curArg = null
     }
-    beginIter(){
+    beginIter() {
         this.#i = -1
         this.#curArg = this[this.#i]
     }
     //mainly for semantics
-    reset(){
+    reset() {
         this.beginIter()
     }
-    advance(){
+    advance() {
         this.#i++;
         this.#curArg = this[this.#i]
         return this.#curArg
     }
-    back(){
+    back() {
         this.#i--;
         this.#curArg = this[this.#i]
         return this.#curArg
     }
-    #createArgList(amountOfArgs: AmountOfArgs){
+    #createArgList(amountOfArgs: AmountOfArgs) {
         let argsToUse = []
-        if(typeof amountOfArgs === 'number'){
+        if (typeof amountOfArgs === 'number') {
             this.advance()
             argsToUse = listComprehension(range(this.#i, this.#i + amountOfArgs), (i: number) => this[i])
         }
-        else{
-            while(this.advance() && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)){
+        else {
+            while (this.advance() && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)) {
                 argsToUse.push(this.#curArg)
             }
             this.back()
         }
         return argsToUse
     }
-    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T){
-        if(this.#curArg === null){
+    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
+        if (this.#curArg === null) {
             throw new Error("beginIter must be run before this function")
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if((res = filter(argsToUse)) !== BADVALUE){
+        if ((res = filter(argsToUse)) !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return null
     }
-    async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T){
-        if(this.#curArg === null){
+    async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
+        if (this.#curArg === null) {
             throw new Error("beginIter must be run before this function")
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if((res = (await filter(argsToUse))) !== BADVALUE){
+        if ((res = (await filter(argsToUse))) !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return null
     }
-    expectOneOf(amountOfArgs: AmountOfArgs, list: string[]){
+    expectOneOf(amountOfArgs: AmountOfArgs, list: string[]) {
         return this.expect(amountOfArgs, i => {
             list.includes(i.join(" "))
         })
     }
-    expectString(amountOfArgs: AmountOfArgs = 1){
+    expectString(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.join(" "))
     }
-    expectInt(amountOfArgs: AmountOfArgs = 1){
+    expectInt(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.join(" ").match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
     }
-    expectBool(amountOfArgs: AmountOfArgs = 1){
+    expectBool(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {
             let s = i.join(" ").toLowerCase()
-            if(s === 'true'){
+            if (s === 'true') {
                 return true
             }
-            else if(s === 'false'){
+            else if (s === 'false') {
                 return false
             }
             return BADVALUE
         })
     }
-    async expectRole(guild: Guild, amountOfArgs: AmountOfArgs = 1){
-        return await this.expectAsync(amountOfArgs, async(i) => {
+    async expectRole(guild: Guild, amountOfArgs: AmountOfArgs = 1) {
+        return await this.expectAsync(amountOfArgs, async (i) => {
             let roles = await guild.roles.fetch()
-            if(!roles){
+            if (!roles) {
                 return BADVALUE
             }
             let s = i.join(" ")
@@ -955,16 +955,16 @@ class ArgList extends Array{
             return role
         })
     }
-    async assertIndexIs<T>(index: number, assertion: (data: string) => Promise<T | undefined>, fallback: T): Promise<T>{
+    async assertIndexIs<T>(index: number, assertion: (data: string) => Promise<T | undefined>, fallback: T): Promise<T> {
         return await assertion(this.at(index)) ?? fallback
     }
 
-    async assertIndexIsUser(guild: Guild, index: number, fallback: GuildMember){
-        return await this.assertIndexIs(index, async(data) => await fetchUser(guild, data), fallback)
+    async assertIndexIsUser(guild: Guild, index: number, fallback: GuildMember) {
+        return await this.assertIndexIs(index, async (data) => await fetchUser(guild, data), fallback)
     }
 }
 
-class Options extends Map{
+class Options extends Map {
     constructor(opts: Opts) {
         super()
         for (let op in opts) {
@@ -1017,10 +1017,10 @@ class Options extends Map{
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts = {}
     let arg, idxOfFirstRealArg = -1;
-    while((arg = args[++idxOfFirstRealArg])?.startsWith("-")){
+    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
         if (arg[1]) {
             let [opt, ...value] = arg.slice(1).split("=")
-            if(opt === '-'){
+            if (opt === '-') {
                 //needs to be increased one more time
                 idxOfFirstRealArg++
                 break
@@ -1032,7 +1032,7 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     return [opts, args.slice(idxOfFirstRealArg)]
 }
 
-function getContentFromResult(result: CommandReturn, end="") {
+function getContentFromResult(result: CommandReturn, end = "") {
     let res = ""
     if (result.content)
         res += result.content + end
@@ -1052,9 +1052,9 @@ function getContentFromResult(result: CommandReturn, end="") {
 function renderElementChildren(elem: cheerio.Element, indentation = 0) {
     let text = ""
 
-    if(elem.type == "text")
+    if (elem.type == "text")
         return elem.data
-    else if(elem.type == "comment")
+    else if (elem.type == "comment")
         return ""
 
     for (let child of elem.children) {
@@ -1069,7 +1069,7 @@ function renderElementChildren(elem: cheerio.Element, indentation = 0) {
 }
 
 function renderLiElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
-    if(elem.type === "text" || elem.type === "comment"){
+    if (elem.type === "text" || elem.type === "comment") {
         return ""
     }
     marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
@@ -1078,7 +1078,7 @@ function renderLiElement(elem: cheerio.Element, indentation = 0, marker = "*\t")
 
 function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
     let text = ""
-    if(elem.type === "text" || elem.type === "comment"){
+    if (elem.type === "text" || elem.type === "comment") {
         return ""
     }
 
@@ -1111,18 +1111,18 @@ function renderSElement(elem: cheerio.Element, indentation = 0) {
     return `~~${renderElementChildren(elem, indentation)}~~`
 }
 
-function renderAElement(elem: cheerio.TagElement, indentation = 0){
+function renderAElement(elem: cheerio.TagElement, indentation = 0) {
     let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? ""
     return `[${renderElementChildren(elem)}](${href})`
 }
 
-function renderBlockcodeElement(elem: cheerio.TagElement, indentation = 0){
+function renderBlockcodeElement(elem: cheerio.TagElement, indentation = 0) {
     return `> ${renderElementChildren(elem)}`
 }
 
 function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     let text = "`"
-    if(elem.type === "text" || elem.type === "comment"){
+    if (elem.type === "text" || elem.type === "comment") {
         return ""
     }
 
@@ -1137,7 +1137,7 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
     return text + "`"
 }
 
-function renderPElement(elem: cheerio.TagElement, indentation = 0){
+function renderPElement(elem: cheerio.TagElement, indentation = 0) {
     return `\n${renderElementChildren(elem, indentation)}\n`
 }
 
@@ -1150,7 +1150,7 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         else if (elem.name === "ul") {
             text += `\n${renderUlElement(elem, indentation)}${"\t".repeat(indentation)}`
         }
-        else if(elem.name === "a"){
+        else if (elem.name === "a") {
             text += renderAElement(elem, indentation)
         }
         else if (elem.name === "lh") {
@@ -1159,7 +1159,7 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         else if (elem.name === "code") {
             text += renderCodeElement(elem, indentation)
         }
-        else if(elem.name === "blockquote") {
+        else if (elem.name === "blockquote") {
             text += renderBlockcodeElement(elem, indentation)
         }
         else if (["strong", "b"].includes(elem.name)) {
@@ -1171,7 +1171,7 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         else if (["del"].includes(elem.name)) {
             text += renderSElement(elem, indentation)
         }
-        else if(elem.name === "p"){
+        else if (elem.name === "p") {
             text += renderPElement(elem, indentation)
         }
         else {
@@ -1193,7 +1193,7 @@ function renderHTML(text: string, indentation = 0) {
 }
 
 function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
-    let text =""
+    let text = ""
     let helpData = command.help
     if (!helpData)
         return text
@@ -1219,7 +1219,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 argInfo += " (required) "
                 nameInfo += ` <${arg}>`
             }
-            else{
+            else {
                 nameInfo += ` [${arg}`
             }
             if (helpData.arguments[arg].requires) {
@@ -1229,7 +1229,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
                 nameInfo += ` (${helpData.arguments[arg].default})]`
             }
-            else if(helpData.arguments[arg].required === false){
+            else if (helpData.arguments[arg].required === false) {
                 nameInfo += "]"
             }
             let html = cheerio.load(helpData.arguments[arg].description)
@@ -1330,8 +1330,8 @@ function weirdMulStr(text: string[], ...count: string[]) {
 }
 
 function searchList(search: string, list_of_strings: string[]) {
-    let results: { [key: string]: number } =  { }
-    for(let str of list_of_strings){
+    let results: { [key: string]: number } = {}
+    for (let str of list_of_strings) {
         let lastMatch = 0;
         let matchIndicies: number[] = []
         for (let i = 0; i < search.length; i++) {
@@ -1365,7 +1365,32 @@ function searchList(search: string, list_of_strings: string[]) {
     return results
 }
 
+function strToCommandCat(category: string) {
+    let catNum;
+
+    switch (category.toLowerCase()) {
+        case "meta":
+            catNum = CommandCategory.META
+            break;
+        case "util":
+            catNum = CommandCategory.UTIL
+            break;
+        case "game":
+            catNum = CommandCategory.GAME; break;
+        case "fun":
+            catNum = CommandCategory.FUN; break;
+        case "image": catNum = CommandCategory.IMAGES; break;
+        case "economy": catNum = CommandCategory.ECONOMY; break;
+        case "voice": catNum = CommandCategory.VOICE; break;
+        case "admin": catNum = CommandCategory.ADMIN; break;
+        case "match": catNum = CommandCategory.MATCH; break;
+        default: catNum = -1
+    }
+    return catNum
+}
+
 export {
+    strToCommandCat,
     fetchUser,
     fetchChannel,
     generateFileName,

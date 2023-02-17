@@ -325,11 +325,11 @@ export class Interpreter {
         this.args = this.args.slice(0, -1)
     }
     //str token
-    async [0](token: Token): Promise<Token[] | false>  {
+    async [0](token: Token): Promise<Token[] | false> {
         return [token]
     }
     //dofirst token
-    async [1](token: Token): Promise<Token[] | false>  {
+    async [1](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
         let rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
@@ -345,7 +345,7 @@ export class Interpreter {
         return []
     }
     //calc
-    async [2](token: Token): Promise<Token[] | false>  {
+    async [2](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data, false)
         await parser.parse()
         let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
@@ -355,7 +355,7 @@ export class Interpreter {
         return [t]
     }
     //esc sequence
-    async [3](token: Token): Promise<Token[] | false>  {
+    async [3](token: Token): Promise<Token[] | false> {
         let [char, ...seq] = token.data.split(":")
         let sequence = seq.join(":")
         switch (char) {
@@ -497,7 +497,7 @@ export class Interpreter {
         }
     }
     //fmt
-    async[4](token: Token): Promise<Token[] | false>  {
+    async[4](token: Token): Promise<Token[] | false> {
         let [format_name, ...args] = token.data.split("|")
         let data = ""
         switch (format_name) {
@@ -510,11 +510,11 @@ export class Interpreter {
                 }
                 break
             case "-%": {
-                if(this.#pipeData){
+                if (this.#pipeData) {
                     data = getContentFromResult(this.#pipeData)
                     this.#pipeData = undefined
                 }
-                else{
+                else {
                     data = "{-%}"
                 }
                 break;
@@ -702,48 +702,48 @@ export class Interpreter {
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
                 }
-                else if(format_name.startsWith(",:")){
+                else if (format_name.startsWith(",:")) {
                     format_name = format_name.slice(2)
                     //if it's 0, then the only thing in args is either nothing, or the command at position -1
                     let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
-                    this.args[token.argNo]= ""
-                    let after: Token[ ] = []
-                    while(this.advance() && this.#curTok?.argNo === token.argNo){
+                    this.args[token.argNo] = ""
+                    let after: Token[] = []
+                    while (this.advance() && this.#curTok?.argNo === token.argNo) {
                         after = after.concat(await this.interprateAsToken(this.#curTok, this.#curTok.type) as Token[])
                     }
                     this.back()
                     let afterText = after.map(v => v.data).join("")
                     let toks = []
                     let offset = 0
-                    for(let word of (format_name).split(",")){
+                    for (let word of (format_name).split(",")) {
                         toks.push(new Token(T.str, `${beforeText}${word}${afterText}`, token.argNo + offset++))
                     }
                     return toks
                 }
-                else if(rangeMatch = format_name.match(/(\d+)\.\.(\d+)/)){
+                else if (rangeMatch = format_name.match(/(\d+)\.\.(\d+)/)) {
                     let start = parseInt(rangeMatch[1])
                     let end = parseInt(rangeMatch[2])
                     console.log(start, end)
-                    if(start - end > 10000){
+                    if (start - end > 10000) {
                         [start, end] = [0, 1]
                     }
                     //if it's 0, then the only thing in args is either nothing, or the command at position -1
                     let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
-                    this.args[token.argNo]= ""
-                    let after: Token[ ] = []
-                    while(this.advance() && this.#curTok?.argNo === token.argNo){
+                    this.args[token.argNo] = ""
+                    let after: Token[] = []
+                    while (this.advance() && this.#curTok?.argNo === token.argNo) {
                         after = after.concat(await this.interprateAsToken(this.#curTok, this.#curTok.type) as Token[])
                     }
                     this.back()
                     let afterText = after.map(v => v.data).join("")
                     let toks = []
                     let offset = 0;
-                    for(let i = start; i < end + 1; i++){
+                    for (let i = start; i < end + 1; i++) {
                         toks.push(new Token(T.str, `${beforeText}${i}${afterText}`, token.argNo + offset++))
                     }
                     return toks
                 }
-                else{
+                else {
                     data = `{${format_name}}`
                 }
             }
@@ -751,7 +751,7 @@ export class Interpreter {
         return [new Token(T.str, data, token.argNo)]
     }
     //dofirstrepl
-    async[5](token: Token): Promise<Token[] | false>  {
+    async[5](token: Token): Promise<Token[] | false> {
         let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
         if (doFirstResultNo === undefined) {
             doFirstResultNo = doFirstArgNo
@@ -772,7 +772,7 @@ export class Interpreter {
         return []
     }
     //command
-    async[6](token: Token): Promise<Token[] | false>  {
+    async[6](token: Token): Promise<Token[] | false> {
         this.cmd = token.data
         this.real_cmd = token.data
 
@@ -1026,8 +1026,8 @@ export class Interpreter {
     async interprateAllAsToken(t: T) {
         while (this.advance()) {
             let tokList = await this.interprateCurrentAsToken(t)
-            if(tokList && tokList.length){
-                for(let tok of tokList){
+            if (tokList && tokList.length) {
+                for (let tok of tokList) {
                     this.addTokenToArgList(tok)
                 }
             }
@@ -1074,8 +1074,8 @@ export class Interpreter {
                     break
                 }
                 let tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type)
-                if(tokList && tokList.length){
-                    for(let tok of tokList){
+                if (tokList && tokList.length) {
+                    for (let tok of tokList) {
                         this.addTokenToArgList(tok)
                     }
                 }
@@ -1172,7 +1172,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         return msg
     }
     //we only want to do this if the return cant expand into a cmd
-    if(rv.do_change_cmd_user_expansion !== false){
+    if (rv.do_change_cmd_user_expansion !== false) {
         setVar("?", rv.status, msg.author.id)
         let c = getContentFromResult(rv, "\n")
         setVar("_!", c, msg.author.id)
@@ -1333,6 +1333,32 @@ export function createCommandV2(
     }
 }
 
+export function ccmdV2(cb: (arg0: CommandV2RunArg) => Promise<CommandReturn>, helpInfo: string, options?: {
+    category?: CommandCategory,
+    helpArguments?: CommandHelpArguments,
+    helpOptions?: CommandHelpOptions,
+    tags?: string[],
+    permCheck?: (m: Message) => boolean,
+    shouldType?: boolean,
+    use_result_cache?: boolean
+}) {
+    return {
+        run: cb,
+        help: {
+            info: helpInfo,
+            arguments: options?.helpArguments ? options?.helpArguments : undefined,
+            options: options?.helpOptions ? options?.helpOptions : undefined,
+            tags: options?.tags ? options?.tags : undefined
+        },
+        category: options?.category,
+        permCheck: options?.permCheck,
+        make_bot_type: options?.shouldType,
+        cmd_std_version: 2,
+        use_result_cache: options?.use_result_cache
+    }
+
+}
+
 export function generateDefaultRecurseBans() {
     return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas"] }
 }
@@ -1341,8 +1367,7 @@ export let commands: Map<string, (Command | CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
 export function registerCommand(name: string, command: Command | CommandV2) {
-    console.log(name, command)
-    if (!command.help) {
+    if (!command.help?.info) {
         console.warn(name, `(${cmdCatToStr(command.category)})`, "does not have help")
     }
     commands.set(name, command)
