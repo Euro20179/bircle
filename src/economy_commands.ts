@@ -16,7 +16,7 @@ const { buyItem, hasItem, useItem } = require('./shop')
 
 const { ITEMS, INVENTORY } = require("./shop")
 
-export default function*() {
+export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "buy", {

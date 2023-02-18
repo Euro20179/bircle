@@ -30,7 +30,7 @@ const configuration = new Configuration({
 let openai = new OpenAIApi(configuration)
 
 
-export default function*(CAT: CommandCategory) {
+export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield ["give-scallywag-token", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0])

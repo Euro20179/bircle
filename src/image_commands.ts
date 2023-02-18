@@ -13,7 +13,7 @@ import { getVar, prefix } from './common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
 
-export default function*() {
+export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "img-diff",
         {

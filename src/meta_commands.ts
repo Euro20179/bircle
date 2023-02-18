@@ -2410,6 +2410,12 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
 
     yield [
         "shell", ccmdV2(async ({ args, msg, recursionCount, commandBans, sendCallback }) => {
+
+            if(globals.userUsingCommand(msg.author.id, "shell")){
+                return {content: "You are already using this command", status: StatusCode.ERR}
+            }
+
+            globals.startCommand(msg.author.id, "shell")
             const collector = msg.channel.createMessageCollector({ filter: m => m.author.id === msg.author.id })
 
             const timeoutInterval = 30000
@@ -2428,6 +2434,10 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 let rv = await runCmd(m, m.content, recursionCount + 1, true, commandBans)
                 console.log(rv)
                 await handleSending(m, rv, sendCallback, recursionCount + 1)
+            })
+
+            collector.on("end", () => {
+                globals.endCommand(msg.author.id, "shell")
             })
 
             return { noSend: true, status: StatusCode.RETURN }

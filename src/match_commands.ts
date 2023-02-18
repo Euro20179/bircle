@@ -33,10 +33,10 @@ export default function*(CAT: CommandCategory) {
         setVarEasy(msg, name, data, prefix)
         return {noSend: true, status: StatusCode.RETURN}
     }, /(?:([%A-Za-z-_]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
-        info: "var=\"data\"",
+        info: "var=\"data\" or var='data'",
             arguments: {
             name: createHelpArgument("Name of the variable", true),
-            data: createHelpArgument("Data for the variable surrounded by \"\"", true)
+            data: createHelpArgument("Data for the variable surrounded by \"\" or '', if \"\" is used, the text will be interpreted", true)
         }
     })]
 

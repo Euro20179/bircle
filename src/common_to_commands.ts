@@ -108,7 +108,7 @@ export class AliasV2 {
                     tempExec = tempExec.replace(`{${innerText}}`, args.join(" "))
                     continue
                 }
-                else if(left === '#args'){
+                else if (left === '#args') {
                     tempExec = tempExec.replace(`{${innerText}}`, String(args.length))
                     continue
                 }
@@ -144,7 +144,7 @@ export class AliasV2 {
 
         globals.addToCmdUse(this.exec)
 
-                                    //prevent double interpretation
+        //prevent double interpretation
         let rv = await runCmd(msg, `n:${tempExec}`, recursionCount + 1, true)
 
         for (let opt of Object.entries(opts)) {
@@ -238,7 +238,7 @@ export async function runCmd(msg: Message, command_excluding_prefix: string, rec
     await parser.parse()
     let rv: CommandReturn | false;
     //@ts-ignore
-    if(!(rv = await Interpreter.handleMatchCommands(msg, command_excluding_prefix))){
+    if (!(rv = await Interpreter.handleMatchCommands(msg, command_excluding_prefix))) {
         rv = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable) as CommandReturn
     }
     return rv
@@ -616,6 +616,44 @@ export class Interpreter {
                     data = "{rand}"
                 }
                 break
+            // case "glob": {
+            //     if (!args?.length) {
+            //         data = "{glob}"
+            //         break
+            //     }
+            //     const glob = args.join("|")
+            //     let matchingCmds = [...getCommands().keys(), ...Object.keys(getAliasesV2()), ...Object.keys(getMatchCommands())]
+            //     //TODO:
+            //     //to do this properly we would need a class for each type of glob
+            //     //eg: basic string, star, questionmark
+            //     //each class would have a filter function that takes in the currently matching strings and filters out the ones that dont match
+            //     //we would parse the glob and create a list of instances of these classes and go through them one at a time
+            //     let strings = glob.split("*")
+            //
+            //     if (strings.length === 0) {
+            //         matchingCmds = matchingCmds.filter(v => v === strings[0])
+            //     }
+            //     else {
+            //
+            //         for (let i = 0; i < strings.length; i++) {
+            //
+            //             if (i === 0) {
+            //                 matchingCmds = matchingCmds.filter(v => v.startsWith(strings[i]))
+            //             }
+            //
+            //             else if (i === strings.length - 1) {
+            //                 matchingCmds = matchingCmds.filter(v => v.endsWith(strings[i]))
+            //             }
+            //
+            //             else {
+            //                 matchingCmds = matchingCmds.filter(v => v.includes(strings[i]))
+            //             }
+            //         }
+            //     }
+            //
+            //     data = matchingCmds.join(",")
+            //     break
+            // }
             case "num":
             case "number":
                 if (args && args?.length > 0) {
@@ -1135,7 +1173,7 @@ export class Interpreter {
         return data
     }
 
-    static async handleMatchCommands(msg: Message, content: string){
+    static async handleMatchCommands(msg: Message, content: string) {
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]

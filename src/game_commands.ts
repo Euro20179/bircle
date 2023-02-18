@@ -16,7 +16,7 @@ import { client, getVar, setVar } from "./common"
 
 const { useItem, hasItem } = require("./shop")
 
-export default function*() {
+export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield ["madlibs", createCommandV2(async ({ sendCallback, msg }) => {
 

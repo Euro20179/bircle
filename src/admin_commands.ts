@@ -10,7 +10,7 @@ import { Message } from 'discord.js'
 import { fetchUser } from './util'
 const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('./shop')
 
-export default function*() {
+export default function*(): Generator<[string, Command| CommandV2]> {
 
     yield [
         "eval",
