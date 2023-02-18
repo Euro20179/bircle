@@ -622,8 +622,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
             let text = args.join(" ")
 
-            console.log(text)
-
             let cmd = parseBracketPair(text, "()")
             text = text.slice(cmd.length + 2)
 
@@ -700,14 +698,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             let trueBlock = parseBracketPair(text, "{}")
-            text = text.slice(trueBlock.length + 2).trim()
+            text = text.slice(text.indexOf("}") + 1).trim()
+
+            console.log(text)
 
             //optional else
             let falseBlock = ""
             if (text.startsWith("else")) {
                 text = text.slice("else".length)
                 falseBlock = parseBracketPair(text, "{}")
-                text = text.slice(trueBlock.length + 2)
+                text = text.slice(text.indexOf("}") + 1).trim()
             }
 
 
