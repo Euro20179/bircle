@@ -221,8 +221,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
             }
             let text = ""
-            let fn = opts['s'] ? function(){ return generateCommandSummary(arguments[0], arguments[1]) + "\n" } : generateTextFromCommandHelp
-            for(let command in commandsToUse){
+            let fn = opts['s'] ? function() { return generateCommandSummary(arguments[0], arguments[1]) + "\n" } : generateTextFromCommandHelp
+            for (let command in commandsToUse) {
                 text += fn(command, commandsToUse[command]) + "---------------------------------------\n"
             }
             return { content: text, status: StatusCode.RETURN }
@@ -1567,7 +1567,7 @@ middle
             }
 
             let restOfArgs = args.slice(1)
-            if(repl !== '\0'){
+            if (repl !== '\0') {
                 //remove one more time if there is a replacement
                 restOfArgs = restOfArgs.slice(1)
             }
@@ -1582,14 +1582,14 @@ middle
             }
             let s: string | RegExp = search
             if (opts.getBool('r', false)) {
-                try{
+                try {
                     s = new RegExp(search, opts.getString("flags", "g"))
                 }
-                catch(err){
-                    return {content: `Invalid regex\n${err}`, status: StatusCode.ERR}
+                catch (err) {
+                    return { content: `Invalid regex\n${err}`, status: StatusCode.ERR }
                 }
             }
-            if(repl === '\0'){
+            if (repl === '\0') {
                 repl = ""
             }
             return { content: text.replaceAll(s, repl || ""), status: StatusCode.RETURN }
@@ -1775,7 +1775,7 @@ middle
                 let [query, ...html] = args.join(" ").split("|")
                 let realHTML = html.join("|")
                 let $ = cheerio.load(realHTML)(query)
-                if(opts['h']){
+                if (opts['h']) {
                     let innerHTML = String($.html())
                     return { content: innerHTML, status: StatusCode.RETURN }
                 }
@@ -1849,7 +1849,7 @@ middle
                 "bot": async () => (await msg.guild?.members.fetch())?.filter(u => u.user.bot),
                 "command": async () => new Collection<string, Command | CommandV2>(getCommands().entries()),
                 "aliasv2": async () => new Collection<string, AliasV2>(Object.entries(aliasesV2)),
-                "cmd+av2": async() => new Collection<string, AliasV2 | Command | CommandV2>(Object.entries({...Object.fromEntries(getCommands().entries()), ...aliasesV2})),
+                "cmd+av2": async () => new Collection<string, AliasV2 | Command | CommandV2>(Object.entries({ ...Object.fromEntries(getCommands().entries()), ...aliasesV2 })),
             }[object as "channel" | "role" | "member" | "user" | "bot" | "command"]()
             data = data?.filter(filter)
             if (!data) {
@@ -2490,28 +2490,55 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
         }
 
-        class CommandFormat extends Format{
-            async format(text: string){
-                let cmds = {...getCommands(), ...getMatchCommands(), ...getAliasesV2()}
-                let cmd = cmds.get(text)
-                if(!cmd?.help?.info){
+        class CommandFormat extends Format {
+            showType: "$" | "-" | "#" | "?" | "0" | "()"
+            joinChar: string
+            constructor(showType: "$" | "-" | "#" | "?" | "0" | "()", joinChar?: string) {
+                super()
+                this.showType = showType
+                this.joinChar = joinChar ?? " "
+            }
+            async format(text: string) {
+                let cmds = { ...Object.fromEntries(getCommands().entries()), ...getMatchCommands(), ...getAliasesV2() }
+                let cmd = cmds[text]
+                if (!cmd) {
                     return text
                 }
-                return renderHTML(cmd.help?.info as string)
+                switch (this.showType) {
+                    case "0":
+                        return text
+                    case "$":
+                        return Object.keys(cmd?.help?.arguments || []).join(this.joinChar)
+                    case "-":
+                        return Object.keys(cmd?.help?.options || []).join(this.joinChar)
+                    case "#":
+                        return cmd?.help?.tags?.join(this.joinChar) || ""
+                    case "?":
+                        return generateCommandSummary(text, cmd)
+                    case "()":
+                        return String(cmd.run)
+                    default:
+                        if (!cmd?.help?.info) {
+                            return text
+                        }
+                        return renderHTML(cmd.help?.info as string)
+                }
             }
             static parseFormatSpecifier(format: string): string | Format {
-                //TODO:
-                //$ for args
-                //- for opts
-                //# for tags
-                return new CommandFormat()
+                let [char, ...rest] = format
+                let showType = char
+                if (rest[0] === ')'){
+                    showType += rest[0]
+                    rest = rest.slice(1)
+                }
+                return new CommandFormat(showType as "$" | "-" | "#" | "?" | "0" | "()")
             }
         }
 
-        class UserFormat extends Format{
-            async format(text: string){
+        class UserFormat extends Format {
+            async format(text: string) {
                 let user = await fetchUser(msg.guild as Guild, text)
-                if(user)
+                if (user)
                     return `<@${user.id}>`
                 return text
             }
@@ -2522,13 +2549,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
         class StringFormat extends Format {
             lPadding: number
-            constructor(lPadding: number){
+            constructor(lPadding: number) {
                 super()
                 this.lPadding = lPadding
             }
             async format(text: string) {
                 let newText = text
-                if(text.length < this.lPadding){
+                if (text.length < this.lPadding) {
                     newText = text + " ".repeat(this.lPadding - text.length)
                 }
                 return newText
@@ -2536,10 +2563,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             static parseFormatSpecifier(format: string): StringFormat | string {
                 let lpad = 0
                 let lpadstr = ""
-                if(format[0] === '-'){
+                if (format[0] === '-') {
                     let i = -0
                     let char;
-                    while(!isNaN(Number(char = format[++i]))){
+                    while (!isNaN(Number(char = format[++i]))) {
                         lpadstr += char
 
                     }
@@ -2584,7 +2611,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         decBit = decBit.slice(0, this.decimalCount)
                     }
                 }
-                if(decBit)
+                if (decBit)
                     nS = `${numberBit}.${decBit}`
                 else nS = numberBit
                 return nS;
@@ -2663,7 +2690,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         console.log(formatSpecifierList)
 
-        let rv: CommandReturn = { status: StatusCode.RETURN, allowedMentions: {parse: []} }
+        let rv: CommandReturn = { status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
         let sendToVar: string | boolean = false
 
