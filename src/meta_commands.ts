@@ -2403,14 +2403,14 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "spams", createCommandV2(async () => {
+        "spams", createCommandV2(async function () {
             return { content: Object.keys(globals.SPAMS).join("\n") || "No spams", status: StatusCode.RETURN }
         }, CAT, "List the ongoing spam ids")
     ]
 
     yield [
-        "shell", ccmdV2(async ({ args, msg, recursionCount, commandBans, sendCallback }) => {
-
+        "shell", ccmdV2(async function ({ args, msg, recursionCount, commandBans, sendCallback }) {
+            console.log(this)
             if(globals.userUsingCommand(msg.author.id, "shell")){
                 return {content: "You are already using this command", status: StatusCode.ERR}
             }

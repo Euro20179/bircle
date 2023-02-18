@@ -1029,8 +1029,9 @@ export class Interpreter {
                         opts: new Options(opts),
                         argList: new ArgList(args2),
                         stdin: this.#pipeData
-                    }
-                    rv = await (commands.get(this.real_cmd) as CommandV2).run(obj)
+                    };
+                    let cmd = commands.get(this.real_cmd) as CommandV2
+                    rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
                 }
                 else {
 
@@ -1371,7 +1372,7 @@ export function createCommand(
 }
 
 export function createCommandV2(
-    cb: (arg0: CommandV2RunArg) => Promise<CommandReturn>,
+    cb: (this: [string, CommandV2], arg0: CommandV2RunArg) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -1396,7 +1397,7 @@ export function createCommandV2(
     }
 }
 
-export function ccmdV2(cb: (arg0: CommandV2RunArg) => Promise<CommandReturn>, helpInfo: string, options?: {
+export function ccmdV2(cb: (this: [string, CommandV2], arg0: CommandV2RunArg) => Promise<CommandReturn>, helpInfo: string, options?: {
     category?: CommandCategory,
     helpArguments?: CommandHelpArguments,
     helpOptions?: CommandHelpOptions,
