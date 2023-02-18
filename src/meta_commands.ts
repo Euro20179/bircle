@@ -94,6 +94,43 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
+        "typeof", ccmdV2(async function({ args }) {
+            let res = []
+            let aliasV2s = getAliasesV2()
+            let matches = getMatchCommands()
+            let cmds = getCommands()
+            for (let cmd of args) {
+                if (aliasV2s[cmd]) {
+                    res.push("av2")
+                }
+                else if (matches[cmd]) {
+                    res.push("match")
+                }
+                else if (cmds.get(cmd)) {
+                    switch (cmds.get(cmd)?.cmd_std_version) {
+                        case 1:
+                            res.push("cmdv1")
+                            break
+                        case 2:
+                            res.push("cmdv2")
+                            break
+                        default:
+                            res.push("cmdv1")
+                    }
+                }
+                else if (await expandAlias(cmd)) {
+                    res.push("av1")
+                }
+                else {
+                    res.push("undefined")
+                }
+            }
+
+            return { content: res.join(","), status: StatusCode.RETURN }
+        }, "Gets the type of a command")
+    ]
+
+    yield [
         "is-alias", createCommand(async (msg, args) => {
             let res = []
             for (let cmd of args) {
@@ -666,12 +703,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             text = text.slice(trueBlock.length + 2).trim()
 
             //optional else
+            let falseBlock = ""
             if (text.startsWith("else")) {
                 text = text.slice("else".length)
+                falseBlock = parseBracketPair(text, "{}")
+                text = text.slice(trueBlock.length + 2)
             }
-
-            let falseBlock = parseBracketPair(text, "{}")
-            text = text.slice(trueBlock.length + 2)
 
 
             if (isTrue) {
