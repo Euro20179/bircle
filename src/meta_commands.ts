@@ -1096,21 +1096,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "timeit",
-        {
-            run: async (msg, args, sendCallback, _, __, rec, bans) => {
-                let start = performance.now()
-                await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
-                return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
-            },
-            category: CAT,
-            help: {
-                info: "Time how long a command takes",
-                arguments: {
-                    "...command": createHelpArgument("The command to run", true)
-                }
+        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans }) {
+
+            //TODO: add performance markers throughout the different steps of runninga  command
+            let start = performance.now()
+            await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
+            return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
+        }, "Time how long a command takes", {
+            helpArguments: {
+                "...command": createHelpArgument("The command to run", true)
             }
-        },
+        })
     ]
 
     yield [
@@ -1673,7 +1669,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     yield ["cmd-chainv2", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
 
         if (getAliases()[args[0]]) {
-            await handleSending(msg, {content: `${args[0]} is an alias command, running \`cmd-chain\` instead`, status: StatusCode.INFO}, sendCallback);
+            await handleSending(msg, { content: `${args[0]} is an alias command, running \`cmd-chain\` instead`, status: StatusCode.INFO }, sendCallback);
             return (getCommands().get('cmd-chain') as Command).run(msg, rawArgs, sendCallback, getOpts(rawArgs)[0], args, recursionCount, commandBans)
         }
 
@@ -2289,7 +2285,7 @@ ${styles}
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
         let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, ArgumentList, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
-        if(opts.getBool("raw", false)){
+        if (opts.getBool("raw", false)) {
             return {
                 content: listComprehension<typeof cmdObjs[number], typeof cmdObjs, string>(cmdObjs, ([name, cmd]) => `\\["${name}", ${JSON.stringify(cmd)}]`).join("\n"),
                 status: StatusCode.RETURN
@@ -2409,16 +2405,16 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "spams", createCommandV2(async function () {
+        "spams", createCommandV2(async function() {
             return { content: Object.keys(globals.SPAMS).join("\n") || "No spams", status: StatusCode.RETURN }
         }, CAT, "List the ongoing spam ids")
     ]
 
     yield [
-        "shell", ccmdV2(async function ({ args, msg, recursionCount, commandBans, sendCallback }) {
+        "shell", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
             console.log(this)
-            if(globals.userUsingCommand(msg.author.id, "shell")){
-                return {content: "You are already using this command", status: StatusCode.ERR}
+            if (globals.userUsingCommand(msg.author.id, "shell")) {
+                return { content: "You are already using this command", status: StatusCode.ERR }
             }
 
             globals.startCommand(msg.author.id, "shell")
@@ -2427,7 +2423,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             const timeoutInterval = 30000
             let to = setTimeout(collector.stop.bind(collector), timeoutInterval)
 
-            collector.on("collect", async(m) => {
+            collector.on("collect", async (m) => {
                 clearTimeout(to)
                 to = setTimeout(collector.stop.bind(collector), timeoutInterval)
 
