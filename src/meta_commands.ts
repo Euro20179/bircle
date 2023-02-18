@@ -2287,8 +2287,14 @@ ${styles}
     ]
 
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
-        let cmds = { ...getCommands(), ...getAliasesV2() }
-        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, ArgumentList, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds.get(arg) as Command | CommandV2 | AliasV2]).filter(v => v[1])
+        let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
+        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, ArgumentList, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
+        if(opts.getBool("raw", false)){
+            return {
+                content: listComprehension<typeof cmdObjs[number], typeof cmdObjs, string>(cmdObjs, ([name, cmd]) => `\\["${name}", ${JSON.stringify(cmd)}]`).join("\n"),
+                status: StatusCode.RETURN
+            }
+        }
         let fmt: string = opts.getString("f", opts.getString("fmt", "%i"))
         let av2fmt: string = opts.getString("fa", opts.getString("fmt-alias", "%i"))
         return {

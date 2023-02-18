@@ -1372,7 +1372,7 @@ export function createCommand(
 }
 
 export function createCommandV2(
-    cb: (this: [string, CommandV2], arg0: CommandV2RunArg) => Promise<CommandReturn>,
+    cb: CommandV2Run,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,
@@ -1397,7 +1397,7 @@ export function createCommandV2(
     }
 }
 
-export function ccmdV2(cb: (this: [string, CommandV2], arg0: CommandV2RunArg) => Promise<CommandReturn>, helpInfo: string, options?: {
+export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     category?: CommandCategory,
     helpArguments?: CommandHelpArguments,
     helpOptions?: CommandHelpOptions,
@@ -1430,7 +1430,10 @@ export function generateDefaultRecurseBans() {
 export let commands: Map<string, (Command | CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
-export function registerCommand(name: string, command: Command | CommandV2) {
+export function registerCommand(name: string, command: Command | CommandV2, cat: CommandCategory) {
+    if(!command.category){
+        command.category = cat
+    }
     if (!command.help?.info) {
         console.warn(name, `(${cmdCatToStr(command.category)})`, "does not have help")
     }

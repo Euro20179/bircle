@@ -4,7 +4,7 @@ import { strToCommandCat } from "./util"
 
 for(let path of ["util", "fun", "game", "admin", "voice", "economy", "meta", "image"]){
     for(let [name, cmd] of require(`./${path}_commands`).default(strToCommandCat(path))){
-        registerCommand(name, cmd)
+        registerCommand(name, cmd, strToCommandCat(path))
     }
 }
 

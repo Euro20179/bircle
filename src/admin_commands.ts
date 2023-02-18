@@ -33,7 +33,7 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 args = args.slice(1)
                 let func = new (Object.getPrototypeOf(async function(){})).constructor("msg", "rawArgs", "sendCallback", "opts", "args", "recursion_count", "command_bans", args.join(" "))
 
-                registerCommand(name, createCommandV2(func, CommandCategory.FUN))
+                registerCommand(name, createCommandV2(func, CommandCategory.FUN), CommandCategory.FUN)
                 return {content: "test", status: StatusCode.RETURN}
             },
             CommandCategory.META,
