@@ -19,16 +19,9 @@ import fetch from 'node-fetch'
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield ["stdin", createCommandV2(async ({ stdin, args }) => {
-        let res: any = stdin
-        for (let arg of args) {
-            if (res[arg]) {
-                res = res[arg]
-            }
-            else {
-                break
-            }
-        }
-        return { content: typeof res === 'string' ? res : JSON.stringify(res), status: StatusCode.RETURN }
+        let result: any = stdin
+        args.forEach(arg => result = result[arg] ?? result)
+        return { content: typeof result === 'string' ? result : JSON.stringify(result), status: StatusCode.RETURN }
 
     }, CAT, "get specific data from stdin/pipe")]
 
