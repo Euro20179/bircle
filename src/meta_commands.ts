@@ -253,7 +253,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     attrs.push("run")
                 }
 
-                let command = Object.entries(commands).filter(v => v[0] === cmd)[0]?.[1]
+                let command = Array.from(commands.entries()).filter(v => v[0] === cmd)[0]?.[1]
                 if (!command)
                     return { content: "no command found", status: StatusCode.ERR }
 
