@@ -62,19 +62,31 @@ export class AliasV2 {
 
         let innerPairs = []
 
+        const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)/
+
         let escape = false
         let curPair = ""
-        let bracketCount = 0
+        let inBracket = false
+        let validBracket = false
         for (let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++) {
             let ch = this.exec[i]
 
             if (ch === "{" && !escape) {
-                bracketCount++;
+                inBracket = true
+                validBracket = true
                 continue
             }
-            else if (ch === "}" && !escape) {
-                bracketCount--;
+            else if (![..."#args.1234567890"].includes(ch) && !escape && validBracket) {
+                inBracket = false
+                validBracket = false
+                if(argsRegex.test(curPair)){
+                    innerPairs.push(curPair)
+                }
+                curPair = ""
                 continue
+            }
+            if (validBracket) {
+                curPair += ch
             }
 
             //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
@@ -85,19 +97,10 @@ export class AliasV2 {
                 escape = false
             }
 
-            if (bracketCount === 0) {
-                innerPairs.push(curPair)
-                curPair = ""
-            }
-            if (bracketCount !== 0) {
-                curPair += ch
-            }
         }
         if (curPair) {
             innerPairs.push(curPair)
         }
-
-        const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)/
 
         let tempExec = this.exec
 

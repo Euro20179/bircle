@@ -1740,6 +1740,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         if (!result) {
             return { content: "failed to expand alias", status: StatusCode.ERR }
         }
+        for (let opt of Object.entries(opts)) {
+            delVar(`-${opt[0]}`, msg.author.id)
+        }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
     }, CAT)]
