@@ -32,7 +32,7 @@ function createEmbedFieldData(name: string, value: string, inline?: boolean): Em
     * @description Creates an array of embedfielddata
 */
 function efd(...data: [string, string, boolean?][]) {
-    return listComprehension<[string, string, boolean?], [string, string, boolean?][], EmbedFieldData>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
+    return listComprehension<[string, string, boolean?], EmbedFieldData>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
 }
 
 class LengthUnit {
