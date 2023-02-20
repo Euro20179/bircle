@@ -2253,7 +2253,7 @@ ${styles}
                     return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
                 }
                 if (getAliasesV2()[cmd]) {
-                    return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
+                    return { content: `Failed to add ${realCmd} it already exists as an aliasv2`, status: StatusCode.ERR }
                 }
                 if (getCommands().get(cmd)) {
                     return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
