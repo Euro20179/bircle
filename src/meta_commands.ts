@@ -2087,6 +2087,9 @@ ${styles}
             if (!name) {
                 return { content: "No name given", status: StatusCode.RETURN }
             }
+            if(getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]){
+                return {content: `${name} already exists`, status: StatusCode.ERR}
+            }
             let command = cmd.join(" ")
             const alias = new AliasV2(name, command, msg.author.id, { info: command })
             if (opts.getBool("no-args", false)) {
@@ -2129,6 +2132,9 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
+                    if(getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]){
+                        return {content: `${name} already exists`, status: StatusCode.ERR}
+                    }
                     break
                 }
                 case "command":
