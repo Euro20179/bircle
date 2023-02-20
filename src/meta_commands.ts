@@ -1057,7 +1057,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: `${file} does not exist`, status: StatusCode.ERR }
                 }
                 fs.rmSync(`./command-results/${file}`)
-                return { content: `${file} removed`, status: StatusCode.ERR }
+                return { content: `${file} removed`, status: StatusCode.RETURN }
             }, category: CAT,
             permCheck: m => ADMINS.includes(m.author.id),
             help: {
