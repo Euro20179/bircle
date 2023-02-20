@@ -7,7 +7,7 @@ import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr } from "./util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath } from "./util"
 import { Guild, Message, MessageEmbed } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
@@ -1027,15 +1027,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "create-file",
         {
-            run: async (_msg, args, sendCallback) => {
+            run: async (_msg, args) => {
                 let file = args[0]
                 if (!file) {
                     return { content: "No file specified", status: StatusCode.ERR }
                 }
+                if(!isSafeFilePath(file)){
+                    return {content: `cannot create a file called ${file}`, status: StatusCode.ERR}
+                }
                 fs.writeFileSync(`./command-results/${file}`, "")
                 return { content: `${file} created`, status: StatusCode.RETURN }
             },
-            permCheck: m => ADMINS.includes(m.author.id),
             category: CAT,
             help: {
                 info: "Create a database file"

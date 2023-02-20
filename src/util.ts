@@ -14,6 +14,16 @@ import { formatMoney, getOpt } from "./user-options"
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
+function isSafeFilePath(fp: string) {
+    if (fp.match(/\/?\.\.\//)) {
+        return false
+    }
+    else if (fp.match(/[^A-Z_a-z0-9\.,-]/)) {
+        return false
+    }
+    return true
+}
+
 function createEmbedFieldData(name: string, value: string, inline?: boolean): EmbedFieldData {
     return { name: name, value: value, inline: inline ?? false }
 }
@@ -1195,18 +1205,18 @@ function renderHTML(text: string, indentation = 0) {
 function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let summary = `***${name}***`
 
-    if(command.help?.options){
+    if (command.help?.options) {
         summary += ` [-options...]`
     }
 
-    for(let arg in command.help?.arguments){
+    for (let arg in command.help?.arguments) {
         let argData = command.help?.arguments[arg]
-        if(argData?.required !== false){
+        if (argData?.required !== false) {
             summary += ` <${arg}>`
         }
-        else{
+        else {
             summary += ` [${arg}`;
-            if(argData.default){
+            if (argData.default) {
                 summary += ` (${argData.default})`
             }
             summary += ']'
@@ -1449,6 +1459,7 @@ export {
     GOODVALUE,
     createEmbedFieldData,
     efd,
-    generateCommandSummary
+    generateCommandSummary,
+    isSafeFilePath
 }
 
