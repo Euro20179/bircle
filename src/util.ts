@@ -542,10 +542,12 @@ function* range(start: number, stop: number, step: number = 1) {
     }
 }
 
-function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: (i: T) => TReturn): TReturn[] {
+function listComprehension<T, TReturn>(l: Iterable<T>, fn: (i: T, index: number) => TReturn): TReturn[] {
     let newList = []
+    let i = 0
     for (let item of l) {
-        newList.push(fn(item))
+        newList.push(fn(item, i))
+        i++
     }
     return newList
 }

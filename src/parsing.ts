@@ -238,7 +238,7 @@ class Parser {
                 break
             }
         }
-        return new Token(T.str, text, this.#curArgNo)
+        return new Token(T.syntax, text, this.#curArgNo)
     }
 
     //parsegreaterthanbracket

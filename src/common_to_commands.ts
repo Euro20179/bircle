@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, delVar, getVar, prefix, setVar, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
 
@@ -861,10 +861,7 @@ export class Interpreter {
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
         let args = await int.interprate()
-        for (let i = 0; i < args.length; i++) {
-            return [new Token(T.str, i < args.length - 1 ? `${args[i]} ` : args[i], token.argNo)]
-        }
-        return []
+        return listComprehension(args, (arg, index) => new Token(T.str, index < args.length ? `${arg} ` : arg, token.argNo))
     }
 
     //pipe
