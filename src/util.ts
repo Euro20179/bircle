@@ -878,7 +878,7 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
 const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
-type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => boolean)
+type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
 class ArgList extends Array {
     #i: number
     #curArg: string | null
@@ -928,7 +928,7 @@ class ArgList extends Array {
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if ((res = filter(argsToUse)) !== BADVALUE) {
+        if ((res = filter(argsToUse)) !== false && res !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return BADVALUE
@@ -939,7 +939,7 @@ class ArgList extends Array {
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if ((res = (await filter(argsToUse))) !== BADVALUE) {
+        if ((res = (await filter(argsToUse))) !== BADVALUE && res !== false) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return BADVALUE
