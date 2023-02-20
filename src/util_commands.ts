@@ -2421,7 +2421,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         "whohas", createCommandV2(async ({ msg, argList }) => {
             argList.beginIter()
             let realRole = await argList.expectRole(msg.guild as Guild, () => true) as Role | typeof BADVALUE
-            if (realRole == BADVALUE) {
+            if (realRole === BADVALUE) {
                 return {
                     content: "Could not find role",
                     status: StatusCode.ERR
@@ -2669,7 +2669,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         let formatSpecifierList: (string | Format)[] = []
         argList.beginIter()
         let formatSpecifier = argList.expectString(1)
-        if (!formatSpecifier) {
+        if (formatSpecifier === BADVALUE) {
             return { content: "No specifier given", status: StatusCode.ERR }
         }
         let currentSpecifier = ""
@@ -3043,11 +3043,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         let charsToDel = opts.getString("d", "")
         argList.beginIter()
         let from = argList.expectString()
-        if (!from && !charsToDel) {
+        if (from === BADVALUE && !charsToDel) {
             return { content: "Must have start chars", status: StatusCode.ERR }
         }
         let to = argList.expectString()
-        if (!to && !charsToDel) {
+        if (to === BADVALUE && !charsToDel) {
             return { content: "Must have end chars", status: StatusCode.ERR }
         }
         let text: string = stdin ? getContentFromResult(stdin, "\n") : argList.expectString(() => true) as string
@@ -3059,7 +3059,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 text = text.replaceAll(char, "")
             }
         }
-        if (from && to) {
+        if (from !== BADVALUE && to !== BADVALUE) {
             for (let i = 0; i < from.length; i++) {
                 let charTo = to[i] ?? to.slice(-1)[0]
                 text = text.replaceAll(from[i], charTo)
@@ -3623,7 +3623,7 @@ valid formats:<br>
         "grep", createCommandV2(async ({ msg, argList, stdin, opts, args }) => {
             argList.beginIter()
             let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
-            if (!regex) {
+            if (regex === BADVALUE) {
                 return {
                     content: "no search given",
                     status: StatusCode.ERR

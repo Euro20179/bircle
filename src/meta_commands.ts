@@ -2237,12 +2237,11 @@ ${styles}
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 let cmd
                 [cmd, ...args] = args
-                let realCmd = args[0]
-                if (!realCmd) {
+                if (!cmd) {
                     return { content: "No  alias name given", status: StatusCode.ERR }
                 }
-                realCmd = realCmd.trim()
-                if (realCmd.includes(" ") || realCmd.includes("\n")) {
+                cmd = cmd.trim()
+                if (cmd.includes(" ") || cmd.includes("\n")) {
                     return { content: "Name cannot have space or new lines", status: StatusCode.ERR }
                 }
                 args = args.slice(1)
@@ -2253,15 +2252,15 @@ ${styles}
                     return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
                 }
                 if (getAliasesV2()[cmd]) {
-                    return { content: `Failed to add ${realCmd} it already exists as an aliasv2`, status: StatusCode.ERR }
+                    return { content: `Failed to add ${cmd} it already exists as an aliasv2`, status: StatusCode.ERR }
                 }
                 if (getCommands().get(cmd)) {
                     return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
                 }
-                fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${realCmd} ${args.join(" ")};END\n`)
+                fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${cmd} ${args.join(" ")};END\n`)
                 getAliases(true)
                 return {
-                    content: `Added \`${cmd}\` = \`${realCmd}\` \`${args.join(" ")}\``,
+                    content: `Added \`${cmd}\` = \`${cmd}\` \`${args.join(" ")}\``,
                     status: StatusCode.RETURN
                 }
             },

@@ -908,7 +908,7 @@ class ArgList extends Array {
         if ((res = filter(argsToUse)) !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
-        return null
+        return BADVALUE
     }
     async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
         if (this.#curArg === null) {
@@ -919,7 +919,7 @@ class ArgList extends Array {
         if ((res = (await filter(argsToUse))) !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
-        return null
+        return BADVALUE
     }
     expectOneOf(amountOfArgs: AmountOfArgs, list: string[]) {
         return this.expect(amountOfArgs, i => {

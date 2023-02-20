@@ -10,7 +10,7 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy = require("./economy")
 import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd } from "./util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE } from "./util"
 import user_options = require("./user-options")
 import pet from "./pets"
 import globals = require("./globals")
@@ -564,11 +564,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "feed-pet", createCommandV2(async ({ argList, msg }) => {
             argList.beginIter()
             let petName = argList.expectString()
-            if (!petName) {
+            if (petName === BADVALUE) {
                 return { content: "No pet name given", status: StatusCode.ERR }
             }
-            let item = argList.expectString(() => true)
-            if (!item) return { content: "No item", status: StatusCode.ERR }
+            let item: string | typeof BADVALUE = argList.expectString(() => true)
+            if (item === BADVALUE) return { content: "No item", status: StatusCode.ERR }
 
             let p = pet.hasPetByNameOrType(msg.author.id, petName)
             if (!p[1]) {
