@@ -3462,7 +3462,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     }).done()
             },
             help: {
-                info: `[user-info &lt;user&gt; [format]<br>
+                info: `Gets info on a member<br>[user-info &lt;user&gt; [format]<br>
 valid formats:<br>
 <ul>
     <li>
