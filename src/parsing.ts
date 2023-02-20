@@ -115,6 +115,8 @@ class Parser {
     #pipeSign: string = ">pipe>"
     #defaultPipeSign: string = ">pipe>"
 
+    #parseQuotedString: boolean
+
 
     get specialChars() {
         return `\\\$${this.IFS}{%>`
@@ -133,6 +135,8 @@ class Parser {
         this.modifiers = []
         this.IFS = getOpt(msg.author.id, "IFS", " ")
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
+
+        this.#parseQuotedString = getOpt(msg.author.id, "1-arg-string", "false") === "true" ? true : false
     }
 
     advance(amount = 1) {
@@ -196,6 +200,16 @@ class Parser {
                     this.tokens.push(await this.parseFormat(this.#msg))
                     break
                 }
+                case '"': {
+                    lastWasspace = false
+                    if (this.#parseQuotedString) {
+                        this.tokens.push(this.parseQuotedString())
+                    }
+                    else {
+                        this.tokens.push(new Token(T.str, '"', this.#curArgNo))
+                    }
+                    break
+                }
                 default: {
                     lastWasspace = false
                     this.tokens.push(this.parseString())
@@ -203,6 +217,28 @@ class Parser {
                 }
             }
         }
+    }
+
+    parseQuotedString() {
+        let text = ""
+        let escape = false
+        while (this.advance()) {
+            if (this.#curChar === '\\') {
+                escape = true
+            }
+            else if(this.#curChar !== '"'){
+                text += this.#curChar
+                escape = false
+            }
+            else if(this.#curChar === '"' && escape){
+                text += '"'
+                escape = false
+            }
+            else{
+                break
+            }
+        }
+        return new Token(T.str, text, this.#curArgNo)
     }
 
     //parsegreaterthanbracket
@@ -272,7 +308,7 @@ class Parser {
             return new Token(T.str, "\\", this.#curArgNo)
         }
         let char = this.#curChar
-        if(!escChars.includes(char as string)){
+        if (!escChars.includes(char as string)) {
             return new Token(T.str, char as string, this.#curArgNo)
         }
         let sequence = ""

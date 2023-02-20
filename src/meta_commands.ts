@@ -480,6 +480,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 return { content: text, status: StatusCode.RETURN }
             }
+
             let fn = args.join(" ")
             if (!Object.keys(API.APICmds).includes(fn)) {
                 return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`, status: StatusCode.ERR }
