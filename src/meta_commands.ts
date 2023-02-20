@@ -1580,7 +1580,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                         status: StatusCode.ERR
                     }
                 }
-                if (file.match(/\./)) {
+                if (!isSafeFilePath(file)) {
                     return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
                 }
                 if (!fs.existsSync(`./command-results/${file}`)) {
