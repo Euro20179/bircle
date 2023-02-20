@@ -806,6 +806,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         searchList,
         renderHTML,
         getOpts,
+        generateCommandSummary,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
