@@ -208,8 +208,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 let text = `<@${discordUser.id}>\n` +
                     listComprehension(Object.entries(economy.getEconomy()[discordUser.id].stocks ?? {}), ([stock, stockInfo]) => {
-                    return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
-                }).join(`\n-------------------------\n`)
+                        return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
+                    }).join(`\n-------------------------\n`)
                 return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }
             }, category: CommandCategory.ECONOMY,
             help: {
@@ -342,13 +342,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "inventory", {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
-                let user = await fetchUser(msg.guild, args[0] || msg.author.id)
+                let user = await fetchUserFromClient(client, args[0] ?? msg.author.id)
                 if (!user)
                     return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
                 let e = new MessageEmbed()
                 e.setTitle("ITEMS")
-                let au = user.user.avatarURL()
+                let au = user.avatarURL()
                 if (au)
                     e.setThumbnail(au)
                 for (let item in INVENTORY()[user.id]) {

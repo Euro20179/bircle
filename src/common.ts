@@ -119,7 +119,7 @@ function setVarEasy(msg: Message, varName: string, value: string, prefix?: strin
             prefix = "__global__"
         }
     }
-    if(prefix.match(/\d{19}/)){
+    if(prefix.match(/\d{18}/)){
         return false
     }
     if(prefix === "%"){

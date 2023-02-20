@@ -595,13 +595,34 @@ async function fetchChannel(guild: Guild, find: string) {
     return channel
 }
 
+/**
+    * @description Finds a user from the client cache
+*/
 async function fetchUserFromClient(client: Client, find: string) {
+    let res;
+    if(res = find.match(/<@!?(\d{18})>/)){
+        find = res[1]
+    }
+    find = find.toLowerCase()
     let user = client.users.cache.find((v, k) => {
-        return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find || `<@${v.id}>` === find || `<@!${v.id}>` === find
+        return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find
     })
+    console.log(user)
+    if(!user){
+        try{
+            user = await client.users.fetch(find)
+        }
+        catch(err){
+            return user
+        }
+    }
     return user
 }
 
+/**
+    * @deprecated use fetchUserFromClient
+    * @description finds the member in a guild
+*/
 async function fetchUser(guild: Guild, find: string) {
     let res;
     if (res = find?.match(/<@!?(\d{18})>/)) {

@@ -1020,7 +1020,7 @@ export class Interpreter {
                     let obj: CommandV2RunArg = {
                         msg: this.#msg,
                         rawArgs: args,
-                        args: args2,
+                        args: new ArgList(args2),
                         sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,

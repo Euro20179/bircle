@@ -12,9 +12,9 @@ import pet from "./pets"
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2 } from './common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary } from './util'
-import { ADMINS, getVar, prefix, setVar, setVarEasy, vars } from './common'
+import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2 } from './common_to_commands'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient } from './util'
+import { ADMINS, client, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
@@ -3354,6 +3354,53 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         return { content: format(fmt, { "t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A" }), status: StatusCode.RETURN }
     }, CommandCategory.UTIL)]
+
+    yield [
+        "user-info!", ccmdV2(async function({msg, args}){
+            args.beginIter()
+
+            let search = args.expectString(1)
+            if(search === BADVALUE){
+                return {content: "No search given", status: StatusCode.RETURN}
+            }
+
+            let user = await fetchUserFromClient(client, search)
+
+            if(!user){
+                return {content: `${search} not found`, status: StatusCode.ERR}
+            }
+
+            let fmt = args.expectString(i => i ? true : false)
+            if(typeof fmt === 'string'){
+                return {
+                    content: format(fmt, {
+                        i: user.id || "#!N/A",
+                        u: user.username || "#!N/A",
+                        c: user.createdAt.toString() || "#!N/A",
+                        a: user.avatarURL() || "#!N/A"
+                    }),
+                    status: StatusCode.RETURN
+                }
+            }
+            let e = new MessageEmbed()
+            e.setTitle(user.username)
+            let aurl = user.avatarURL()
+            if(aurl)
+                e.setThumbnail(aurl)
+            e.addFields(efd(["id", user.id], ["created at", user.createdAt.toString()], ["avatar url", String(aurl)]))
+
+            return {
+                embeds: [e],
+                status: StatusCode.RETURN
+            }
+
+        }, "gets the user info of a user", {
+            helpArguments: {
+                user: createHelpArgument("The user to search for"),
+                '...fmt': createHelpArgument("The format to use<br><lh>formats</lh><ul><li>i: user id</li><li>u: username</li><li>c: created at timestamp</li><li>a: avatar url</li></ul>", false, undefined, "an embed")
+            },
+        })
+    ]
 
     yield [
         "user-info",
