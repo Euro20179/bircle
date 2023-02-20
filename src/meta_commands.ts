@@ -1475,79 +1475,73 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 //@ts-ignore
                 const file = FILE_SHORTCUTS[args[0]] || args[0]
+
                 if (!file) {
                     return {
                         content: "Nothing given to add to",
                         status: StatusCode.ERR
                     }
                 }
-                if (file.match(/[\.]/)) {
+
+                if (file.match(/\/?\.\.\//)) {
                     return {
-                        content: "invalid command",
+                        content: "invalid file",
                         status: StatusCode.ERR
                     }
                 }
+
                 if (!fs.existsSync(`./command-results/${file}`)) {
                     return {
                         content: "file does not exist",
                         status: StatusCode.ERR
                     }
                 }
+
                 let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
-                let options = data.map((value, i) => value.trim() ? `${i + 1}:\t${value.trim()}` : "")
-                let fn = generateFileName("remove", msg.author.id)
-                fs.writeFileSync(fn, options.join("\n"))
-                await handleSending(msg, {
-                    files: [{
-                        attachment: fn,
-                        name: "remove.txt"
-                    }],
-                    status: StatusCode.PROMPT
-                }, sendCallback)
-                try {
-                    let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 30000 })
-                    collector.on("collect", async (m) => {
-                        if (['cancel', 'c'].includes(m.content || "c")) {
-                            collector.stop()
-                            return
-                        }
-                        let removedList = []
-                        for (let numStr of m.content.split(" ")) {
-                            let num = parseInt(numStr || "0")
-                            if (!num) {
-                                await handleSending(msg, { content: `${num} is not a valid number`, status: StatusCode.ERR }, sendCallback)
-                                return
-                            }
-                            let removal = data[num - 1]
-                            if (!removal)
-                                return
-                            let userCreated = removal.split(":")[0].trim()
-                            if (userCreated != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                                await handleSending(msg, {
-                                    content: "You did not create that message, and are not a bot admin",
-                                    status: StatusCode.ERR
-                                }, sendCallback)
-                                continue
-                            }
-                            removedList.push(data[num - 1])
-                            delete data[num - 1]
-                        }
-                        data = data.filter(v => typeof v != 'undefined')
-                        fs.writeFileSync(`command-results/${file}`, data.join(";END"))
-                        await handleSending(msg, {
-                            status: StatusCode.RETURN,
-                            content: `removed ${removedList.join("\n")} from ${file}`
-                        }, sendCallback)
-                        collector.stop()
-                    })
+                //gets a list of indecies of the items that the user can remove
+                let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
+                    return v.trim() === msg.author.id || ADMINS.includes(msg.author.id) ? i : undefined
+                }).filter(v => v !== undefined)
+
+                let options = data.map((value, i) => [i, value] as const).filter(v => allowedIndicies.includes(v[0]))
+
+                handleSending(msg, { content: options.map(v => `${v[0] + 1}: ${v[1].replace(/^\n/, "")}`).join("\n"), status: StatusCode.INFO }, sendCallback)
+
+                await handleSending(msg, { content: "Say the number of the items you want to remove", status: StatusCode.PROMPT })
+                let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id && !isNaN(Number(m.content)), time: 30000, max: 1 })
+                let responseMessage = msgs.at(0)
+                if (!responseMessage) {
+                    return { content: "Timeout", status: StatusCode.ERR }
                 }
-                catch (err) {
-                    return {
-                        content: "didnt respond in time",
-                        status: StatusCode.ERR
+                let removedList = []
+                for (let numStr of responseMessage.content.split(" ")) {
+                    let num = parseInt(numStr)
+                    if (isNaN(num)) {
+                        await handleSending(msg, { content: `${num} is not a valid number`, status: StatusCode.ERR }, sendCallback)
+                        continue;
                     }
+
+                    if (!allowedIndicies.includes(num -1)) {
+                        await handleSending(msg, { content: `You do not have permissions to remove ${num}`, status: StatusCode.ERR }, sendCallback)
+                        continue;
+                    }
+
+                    let removal = data[num - 1]
+                    if (!removal) {
+                        await handleSending(msg, { content: `Not a valid index`, status: StatusCode.ERR }, sendCallback)
+                        continue;
+                    }
+                    removedList.push(removal)
+                    delete data[num - 1]
                 }
-                return { content: 'Say the number of what you want to remove or type cancel', status: StatusCode.PROMPT }
+
+                data = data.filter(v => typeof v != 'undefined')
+
+                fs.writeFileSync(`command-results/${file}`, data.join(";END"))
+
+                if(removedList.length)
+                    return { content: `removed ${removedList.join("\n")} from file`, status: StatusCode.RETURN }
+                return {content: "Nothing removed from file", status: StatusCode.RETURN}
             },
             help: {
                 arguments: {
