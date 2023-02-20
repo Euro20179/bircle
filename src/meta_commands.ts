@@ -1617,6 +1617,18 @@ ${fs.readdirSync("./command-results").join("\n")}
     ]
 
     yield [
+        'get-source()', ccmdV2(async function({args}){
+            let data = safeEval(args.join(" "), {
+                util: require("./util"),
+                common_to_commands: require("./common_to_commands"),
+                globals: require("./globals"),
+                common: require("./common")
+            }, {})
+            return {content: String(data), status: StatusCode.RETURN}
+        }, "Stringifies an internal function")
+    ]
+
+    yield [
         'send-log',
         {
             run: async (_msg, args, sendCallback) => {
