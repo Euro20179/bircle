@@ -125,10 +125,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "is-alias", createCommand(async (msg, args) => {
+        "is-alias", ccmdV2(async function ({args}) {
             let res = []
+            let av1;
             for (let cmd of args) {
-                if (getCommands().get(cmd) === undefined) {
+                if (getAliasesV2()[cmd] || ((av1 = await expandAlias(cmd)) && typeof av1 === 'object' && av1[0] && av1[0] !== cmd)) {
                     res.push(true)
                 }
                 else {
@@ -136,7 +137,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             return { content: res.join(","), status: StatusCode.RETURN }
-        }, CAT, "Checks if a command is an alias"),
+        }, "Checks if a command is an alias"),
     ]
 
     yield [
