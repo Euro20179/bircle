@@ -1071,7 +1071,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let text;
             if (args[0]) {
                 let file = args[0]
-                if (file.match(/\./)) {
+                if(!isSafeFilePath(file)){
                     return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
                 }
                 if (!fs.existsSync(`./command-results/${file}`)) {
