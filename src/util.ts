@@ -530,9 +530,10 @@ class UTF8String {
     }
 }
 
-function* enumerate<T>(iterable: T[]): Generator<[number, T]> {
-    for (let i = 0; i < iterable.length; i++) {
-        yield [i, iterable[i]]
+function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
+    let i = 0
+    for (let item of iterable) {
+        yield [i++, item]
     }
 }
 
@@ -544,10 +545,8 @@ function* range(start: number, stop: number, step: number = 1) {
 
 function listComprehension<T, TReturn>(l: Iterable<T>, fn: (i: T, index: number) => TReturn): TReturn[] {
     let newList = []
-    let i = 0
-    for (let item of l) {
+    for (let [i, item] of enumerate(l)) {
         newList.push(fn(item, i))
-        i++
     }
     return newList
 }
