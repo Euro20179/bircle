@@ -92,6 +92,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let aliasV2s = getAliasesV2()
             let matches = getMatchCommands()
             let cmds = getCommands()
+            let av1;
             for (let cmd of args) {
                 if (aliasV2s[cmd]) {
                     res.push("av2")
@@ -111,7 +112,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                             res.push("cmdv1")
                     }
                 }
-                else if (await expandAlias(cmd)) {
+                else if ((av1 = await expandAlias(cmd)) && typeof av1 === 'object' && av1[0] && av1[0] !== cmd) {
                     res.push("av1")
                 }
                 else {

@@ -849,7 +849,7 @@ export class Interpreter {
             }
         }
 
-        else if (!commands.get(this.cmd) && aliasesV2[this.cmd]) {
+        else if (!commands.get(this.cmd) && getAliasesV2()[this.cmd]) {
             this.aliasV2 = aliasesV2[this.cmd]
         }
 
