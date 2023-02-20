@@ -40,6 +40,10 @@ export default function*(CAT: CommandCategory) {
         }
     })]
 
+    yield [createMatchCommand(async function({msg, match}) {
+        return {content: 'https://media.discordapp.net/attachments/969326196733136906/1035812838813474836/Screenshot_20221029-001015.png?width=278&height=602', status: StatusCode.RETURN}
+    }, /Screenshot \(Oct 29, 2022 00:10:15\)/, "match:img")]
+
     yield [createMatchCommand(async ({ msg: m, match: search }) => {
         let count = Number(search[1]) || Infinity
         let regexSearch = search[2]

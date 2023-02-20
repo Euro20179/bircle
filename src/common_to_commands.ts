@@ -144,8 +144,9 @@ export class AliasV2 {
 
         globals.addToCmdUse(this.exec)
 
-        //prevent double interpretation
-        let rv = await runCmd(msg, `n:${tempExec}`, recursionCount + 1, true)
+        //it is not possible to fix double interpretation
+        //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
+        let rv = await runCmd(msg, `${tempExec}`, recursionCount + 1, true)
 
         for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
