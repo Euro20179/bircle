@@ -1500,6 +1500,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
 
                 let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
+                let users_data = data.map(v => v.split(":").map(v => v.trim()))
+                if(!users_data[0][0]?.match(/\d{19}/)){
+                    return {content: "Not a database file", status: StatusCode.ERR}
+                }
                 //gets a list of indecies of the items that the user can remove
                 let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
                     return v.trim() === msg.author.id || ADMINS.includes(msg.author.id) ? i : undefined
