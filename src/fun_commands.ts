@@ -1431,7 +1431,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
             let ans = []
-            args = args.join(" ").split("|")
+            args = new ArgList(args.join(" ").split("|"))
             for (let i = 0; i < times; i++) {
                 ans.push(choice(args).trim())
             }

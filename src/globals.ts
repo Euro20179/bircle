@@ -69,7 +69,7 @@ export let SCALLYWAG_TOKENS: {[key: string]: number} = loadScallyWagTokens()
 
 
 function _generateUsageFile(OBJECT: {[key: string]: string | number}){
-    return listComprehension<string, string[], string>(Object.keys(OBJECT), key => `${key}:${OBJECT[key]}`).join("\n")
+    return listComprehension(Object.keys(OBJECT), key => `${key}:${OBJECT[key]}`).join("\n")
 }
 
 export function generateCmdUseFile() {

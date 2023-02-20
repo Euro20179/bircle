@@ -13,7 +13,7 @@ import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2 } from './common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient } from './util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList } from './util'
 import { ADMINS, client, getVar, prefix, setVar, setVarEasy, vars } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
@@ -138,10 +138,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 unit = Units.LengthUnit.fromUnitRepr(args[0] as `${number}${string}`)
             }
             else {
-                args = args.slice(1)
+                args = new ArgList(args.slice(1))
                 unit = new (Units.LengthUnit.fromUnitName(args[0]))(number)
             }
-            args = args.slice(1)
+            args = new ArgList(args.slice(1))
             for (let i = 0; i < args.length; i += 1) {
                 //@ts-ignore
                 unit = unit.toUnit(Units.LengthUnit.fromUnitName(args[i]))
