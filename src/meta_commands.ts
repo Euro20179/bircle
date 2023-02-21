@@ -1386,8 +1386,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (line.startsWith(prefix)) {
                         line = line.slice(prefix.length)
                     }
-                    let rv = await runCmd(msg, parseRunLine(line), recursion + 1, true, bans)
-                    await handleSending(msg, rv, sendCallback, recursion + 1)
+                    let rv = await runCmd(msg, parseRunLine(line), recursion + 1, true, bans, sendCallback)
+                    await handleSending(msg, rv, sendCallback)
                 }
                 delete globals.SPAMS[id]
                 return { noSend: true, status: StatusCode.INFO }
@@ -1396,6 +1396,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
             }
         },
+    ]
+
+    yield [
+        "silent", ccmdV2(async function({args, msg, recursionCount, commandBans, sendCallback}){
+            await runCmd(msg, `s:${args.join(" ")}`, recursionCount, false, commandBans, sendCallback)
+            return {noSend: true, status: StatusCode.RETURN}
+        }, "Run a command silently")
     ]
 
     yield [
