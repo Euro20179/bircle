@@ -263,13 +263,13 @@ export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
-export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }) {
+export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
     let rv: CommandReturn | false;
     //@ts-ignore
     if (!(rv = await Interpreter.handleMatchCommands(msg, command_excluding_prefix))) {
-        rv = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable) as CommandReturn
+        rv = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as CommandReturn
     }
     return rv
 }

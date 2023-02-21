@@ -49,22 +49,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     })]
 
     yield [
-        "```bircle", createCommandV2(async ({ msg, args, commandBans: bans }) => {
+        "```bircle", createCommandV2(async ({ msg, args, commandBans: bans, sendCallback }) => {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                await runCmd(msg, line, globals.RECURSION_LIMIT - 1, false, bans)
+                await runCmd(msg, line, globals.RECURSION_LIMIT - 1, false, bans, sendCallback)
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "Run some commands"),
     ]
 
     yield [
-        "(", createCommandV2(async ({ msg, rawArgs: args, commandBans: bans, recursionCount: rec }) => {
+        "(", createCommandV2(async ({ msg, rawArgs: args, commandBans: bans, recursionCount: rec, sendCallback }) => {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
-            return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans)), status: StatusCode.RETURN }
+            return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans, sendCallback)), status: StatusCode.RETURN}
         }, CAT),
     ]
 
@@ -524,9 +524,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "del", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, opts }) => {
+        "del", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, opts, sendCallback }) => {
             if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
-            await runCmd(msg, args.join(" "), rec + 1, false, bans)
+            await runCmd(msg, args.join(" "), rec + 1, false, bans, sendCallback)
             return { noSend: true, delete: true, status: StatusCode.RETURN }
         }, CAT, "delete your message", {
             "...text": createHelpArgument("text"),
@@ -544,7 +544,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             text = text.slice(command.length + 2)
 
-            let rv = await runCmd(msg, command, rec + 1, true, bans)
+            let rv = await runCmd(msg, command, rec + 1, true, bans, sc)
             for (let line of text.split("\n")) {
                 line = line.trim()
                 if (!line) continue
@@ -578,7 +578,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "for", createCommandV2(async ({ msg, args, recursionCount, commandBans }) => {
+        "for", createCommandV2(async ({ msg, args, recursionCount, commandBans, sendCallback }) => {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
@@ -597,7 +597,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             outer: for (let i = start; i < end; i++) {
                 setVar(var_name, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    await runCmd(msg, line, recursionCount + 1, false, commandBans)
+                    let rv = await runCmd(msg, line, recursionCount + 1, true, commandBans)
+                    await handleSending(msg, rv, sendCallback, recursionCount + 1)
                     await new Promise(res => setTimeout(res, 1000))
                     if (!globals.SPAMS[id]) {
                         break outer
@@ -1133,7 +1134,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             //TODO: add performance markers throughout the different steps of runninga  command
             let start = performance.now()
-            await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans)
+            await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans, sendCallback)
             return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
@@ -1175,7 +1176,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 globals.SPAMS[id] = true
                 while (globals.SPAMS[id] && times--) {
-                    await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, false, bans)
+                    let rv = await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, true, bans)
+                    await handleSending(msg, rv, sendCallback, globals.RECURSION_LIMIT - 1)
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
                 delete globals.SPAMS[id]
@@ -1384,7 +1386,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (line.startsWith(prefix)) {
                         line = line.slice(prefix.length)
                     }
-                    await runCmd(msg, parseRunLine(line), recursion + 1, false, bans)
+                    let rv = await runCmd(msg, parseRunLine(line), recursion + 1, true, bans)
+                    await handleSending(msg, rv, sendCallback, recursion + 1)
                 }
                 delete globals.SPAMS[id]
                 return { noSend: true, status: StatusCode.INFO }
@@ -2326,7 +2329,7 @@ ${styles}
                     return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
                 }
                 msg.content = lastCommand[msg.author.id]
-                return await runCmd(msg, lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), rec + 1, true, bans) as CommandReturn
+                return await runCmd(msg, lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), rec + 1, true, bans, sendCallback) as CommandReturn
             },
             help: {
                 info: "Run the last command that was run",
@@ -2498,7 +2501,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                let rv = await runCmd(m, m.content, recursionCount + 1, true, commandBans)
+                let rv = await runCmd(m, m.content, recursionCount + 1, true, commandBans, sendCallback)
                 await handleSending(m, rv, sendCallback, recursionCount + 1)
             })
 
