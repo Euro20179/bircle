@@ -2107,6 +2107,10 @@ ${styles}
 
     yield ["aliasv2", createCommandV2(async ({ msg, args, opts }) => {
 
+        let appendArgs = !opts.getBool("no-args", false)
+        let appendOpts = !opts.getBool("no-opts", false)
+        let standardizeOpts = !opts.getBool("no-standardize", false)
+
         if (!opts.getBool('no-easy', false)) {
             let [name, ...cmd] = args
             if (!name) {
@@ -2116,13 +2120,7 @@ ${styles}
                 return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
-            const alias = new AliasV2(name, command, msg.author.id, { info: command })
-            if (opts.getBool("no-args", false)) {
-                alias.setAppendArgs(false)
-            }
-            if (opts.getBool("no-opts", false)) {
-                alias.setAppendOpts(false)
-            }
+            const alias = new AliasV2(name, command, msg.author.id, { info: command }, appendArgs, appendOpts, standardizeOpts)
             aliasesV2[name] = alias
             fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
             getAliasesV2(true)
@@ -2226,7 +2224,7 @@ ${styles}
             helpMetaData.arguments = commandHelpArgs
         }
 
-        const alias = new AliasV2(name, command, msg.author.id, helpMetaData)
+        const alias = new AliasV2(name, command, msg.author.id, helpMetaData, appendArgs, appendOpts, standardizeOpts)
 
         if (getAliases()[name]) {
             return { content: `Failed to add ${name} it already exists as an alias`, status: StatusCode.ERR }
@@ -2236,13 +2234,6 @@ ${styles}
         }
         else if (getCommands().get(name)) {
             return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
-        }
-
-        if (opts.getBool("no-args", false)) {
-            alias.setAppendArgs(false)
-        }
-        if (opts.getBool("no-opts", false)) {
-            alias.setAppendOpts(false)
         }
 
         aliasesV2[name] = alias
@@ -2258,7 +2249,8 @@ ${styles}
     }, {
         "no-args": createHelpOption("Do not append user arguments to the end of exec (does not requre -no-easy)", undefined, "false"),
         "no-opts": createHelpOption("Do not append user opts to the end of exec (does not require -no-easy)", undefined, "false"),
-        "no-easy": createHelpArgument("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;")
+        "no-easy": createHelpOption("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;"),
+        "no-standardize": createHelpOption("Do not standardize the options, IFS, pipe-symbol, and 1-arg-string", undefined, "false")
     })]
 
     yield ["process", createCommandV2(async ({ args }) => {

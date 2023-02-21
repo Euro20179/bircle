@@ -39,19 +39,24 @@ export class AliasV2 {
     creator: string
     appendArgs: boolean
     appendOpts: boolean
-    constructor(name: string, exec: string, creator: string, help: CommandHelp, appendArgs?: boolean, appendOpts?: boolean) {
+    standardizeOpts: boolean
+    constructor(name: string, exec: string, creator: string, help: CommandHelp, appendArgs?: boolean, appendOpts?: boolean, standardizeOpts?: boolean) {
         this.name = name
         this.exec = exec
         this.creator = creator
         this.help = help
         this.appendArgs = appendArgs ?? true
         this.appendOpts = appendOpts ?? true
+        this.standardizeOpts = standardizeOpts ?? true
     }
     setAppendArgs(bool?: boolean) {
         this.appendArgs = bool ?? false
     }
     setAppendOpts(bool?: boolean) {
         this.appendOpts = bool ?? false
+    }
+    setStandardizeOpts(bool?: boolean){
+        this.standardizeOpts = bool ?? false
     }
 
     prepare(msg: Message, args: string[], opts: Opts) {
@@ -147,12 +152,31 @@ export class AliasV2 {
 
         globals.addToCmdUse(this.exec)
 
+        const optsThatNeedStandardizing = [
+            ["IFS", " "],
+            ["pipe-symbol", ">pipe>"],
+            ["1-arg-string", ""]
+        ] as const
+        let oldOpts = optsThatNeedStandardizing.map(([name, def]) => [name, user_options.getOpt(msg.author.id, name, def)])
+
+        if(this.standardizeOpts){
+            for(let [name, def] of optsThatNeedStandardizing){
+                user_options.setOpt(msg.author.id, name, def)
+            }
+        }
+
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
         let rv = await runCmd(msg, `${tempExec}`, recursionCount + 1, true)
 
         for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
+        }
+
+        if(this.standardizeOpts){
+            for(let [name, val] of oldOpts){
+                user_options.setOpt(msg.author.id, name, val)
+            }
         }
 
         return rv
@@ -223,7 +247,7 @@ export function createAliasesV2(): { [key: string]: AliasV2 } {
     if (fs.existsSync("./command-results/aliasV2")) {
         let j: { [key: string]: AliasV2 } = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
         for (let aName in j) {
-            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs, j[aName].appendOpts)
+            j[aName] = new AliasV2(j[aName].name, j[aName].exec, j[aName].creator, j[aName].help, j[aName].appendArgs, j[aName].appendOpts, j[aName].standardizeOpts)
         }
         return j
     }
