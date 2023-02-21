@@ -125,7 +125,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "is-alias", ccmdV2(async function ({args}) {
+        "is-alias", ccmdV2(async function({ args }) {
             let res = []
             let av1;
             for (let cmd of args) {
@@ -1033,8 +1033,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!file) {
                     return { content: "No file specified", status: StatusCode.ERR }
                 }
-                if(!isSafeFilePath(file)){
-                    return {content: `cannot create a file called ${file}`, status: StatusCode.ERR}
+                if (!isSafeFilePath(file)) {
+                    return { content: `cannot create a file called ${file}`, status: StatusCode.ERR }
                 }
                 fs.writeFileSync(`./command-results/${file}`, "")
                 return { content: `${file} created`, status: StatusCode.RETURN }
@@ -1072,7 +1072,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let text;
             if (args[0]) {
                 let file = args[0]
-                if(!isSafeFilePath(file)){
+                if (!isSafeFilePath(file)) {
                     return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
                 }
                 if (!fs.existsSync(`./command-results/${file}`)) {
@@ -1502,8 +1502,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                 let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
                 let users_data = data.map(v => v.split(":").map(v => v.trim()))
-                if(!users_data[0][0]?.match(/\d{18}/)){
-                    return {content: "Not a database file", status: StatusCode.ERR}
+                if (!users_data[0][0]?.match(/\d{18}/)) {
+                    return { content: "Not a database file", status: StatusCode.ERR }
                 }
                 //gets a list of indecies of the items that the user can remove
                 let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
@@ -1528,7 +1528,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         continue;
                     }
 
-                    if (!allowedIndicies.includes(num -1)) {
+                    if (!allowedIndicies.includes(num - 1)) {
                         await handleSending(msg, { content: `You do not have permissions to remove ${num}`, status: StatusCode.ERR }, sendCallback)
                         continue;
                     }
@@ -1546,9 +1546,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                 fs.writeFileSync(`command-results/${file}`, data.join(";END"))
 
-                if(removedList.length)
+                if (removedList.length)
                     return { content: `removed ${removedList.join("\n")} from file`, status: StatusCode.RETURN }
-                return {content: "Nothing removed from file", status: StatusCode.RETURN}
+                return { content: "Nothing removed from file", status: StatusCode.RETURN }
             },
             help: {
                 arguments: {
@@ -1618,15 +1618,40 @@ ${fs.readdirSync("./command-results").join("\n")}
     ]
 
     yield [
-        'get-source()', ccmdV2(async function({args}){
+        'get-source()', ccmdV2(async function({ args, opts }) {
+            if (opts.getBool("l", false)) {
+                return { content: `modules:\`\`\`\nutil\ncommon_to_commands\nglobals\ncommon\n\`\`\``, status: StatusCode.RETURN }
+            }
+
+            let mod;
+
+            if (mod = opts.getString("of", "")) {
+                let keyValues: string[] = []
+                switch (mod) {
+                    case 'util':
+                        keyValues = Object.keys(require("./util"))
+                        break
+                }
+                console.log(keyValues)
+                return {
+                    content: keyValues.join('\n'),
+                        status: StatusCode.RETURN
+                }
+            }
+
             let data = safeEval(args.join(" "), {
                 util: require("./util"),
                 common_to_commands: require("./common_to_commands"),
                 globals: require("./globals"),
                 common: require("./common")
             }, {})
-            return {content: String(data), status: StatusCode.RETURN}
-        }, "Stringifies an internal function")
+            return { content: String(data), status: StatusCode.RETURN }
+        }, "Stringifies an internal function", {
+            helpOptions: {
+                l: createHelpOption("List the different modules"),
+                of: createHelpOption("List the different functions in a module")
+            }
+        })
     ]
 
     yield [
@@ -2088,8 +2113,8 @@ ${styles}
             if (!name) {
                 return { content: "No name given", status: StatusCode.RETURN }
             }
-            if(getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]){
-                return {content: `${name} already exists`, status: StatusCode.ERR}
+            if (getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]) {
+                return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
             const alias = new AliasV2(name, command, msg.author.id, { info: command })
@@ -2133,8 +2158,8 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
-                    if(getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]){
-                        return {content: `${name} already exists`, status: StatusCode.ERR}
+                    if (getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]) {
+                        return { content: `${name} already exists`, status: StatusCode.ERR }
                     }
                     break
                 }
@@ -2335,7 +2360,7 @@ ${styles}
 
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
-        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string,  [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
+        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
         if (opts.getBool("raw", false)) {
             return {
                 content: listComprehension<typeof cmdObjs[number], string>(cmdObjs, ([name, cmd]) => `\\["${name}", ${JSON.stringify(cmd)}]`).join("\n"),
