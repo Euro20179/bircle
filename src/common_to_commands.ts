@@ -67,6 +67,7 @@ export class AliasV2 {
 
         let innerPairs = []
 
+        //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)/
 
         let escape = false
@@ -140,7 +141,7 @@ export class AliasV2 {
         }
 
         if (this.appendArgs) {
-            tempExec += args.join(" ")
+            tempExec += " " + args.join(" ")
         }
 
 
@@ -148,6 +149,7 @@ export class AliasV2 {
     }
 
     async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] } }) {
+
         let tempExec = this.prepare(msg, args, opts)
 
         globals.addToCmdUse(this.exec)
