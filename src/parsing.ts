@@ -333,7 +333,10 @@ class Parser {
         this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
         this.advance(inner.length)
-        return new Token(T.format, inner, this.#curArgNo)
+        if(this.#curChar === '}'){
+            return new Token(T.format, inner, this.#curArgNo)
+        }
+        return new Token(T.str, `{${inner}`, this.#curArgNo)
     }
 
     parsePercent() {

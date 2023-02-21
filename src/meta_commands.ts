@@ -694,14 +694,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             let trueBlock = parseBracketPair(text, "{}")
-            text = text.slice(trueBlock.length + 2).trim()
+            text = text.slice(trueBlock.length).trim().slice(1)
 
             //optional else
             let falseBlock = ""
             if (text.startsWith("else")) {
                 text = text.slice("else".length)
                 falseBlock = parseBracketPair(text, "{}")
-                text = text.slice(falseBlock.length + 2).trim()
+                text = text.slice(falseBlock.length).trim().slice(1)
             }
 
 
