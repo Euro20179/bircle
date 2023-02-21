@@ -366,7 +366,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     prefix = msg.author.id
                 }
                 let names = args
-                console.log(prefix, names)
                 let deleted = []
                 for (let name of names) {
                     if (vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function') {
@@ -694,14 +693,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             let trueBlock = parseBracketPair(text, "{}")
-            text = text.slice(trueBlock.length).trim().slice(1)
+            text = text.slice(text.indexOf("{") + trueBlock.length).trim().slice(2).trim()
 
             //optional else
             let falseBlock = ""
+        console.log(text)
             if (text.startsWith("else")) {
                 text = text.slice("else".length)
                 falseBlock = parseBracketPair(text, "{}")
-                text = text.slice(falseBlock.length).trim().slice(1)
+                text = text.slice(text.indexOf("{") + falseBlock.length).trim().slice(2).trim()
             }
 
 
@@ -1632,7 +1632,6 @@ ${fs.readdirSync("./command-results").join("\n")}
                         keyValues = Object.keys(require("./util"))
                         break
                 }
-                console.log(keyValues)
                 return {
                     content: keyValues.join('\n'),
                         status: StatusCode.RETURN
@@ -2406,7 +2405,6 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
             }
             let fmt = args[0] || "%v"
-            console.log(VERSION)
             let { major, minor, bug, part, alpha, beta } = VERSION
             let mainDisplay = (() => {
                 let d = `${major}.${minor}.${bug}`
@@ -2488,7 +2486,6 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
 
     yield [
         "shell", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
-            console.log(this)
             if (globals.userUsingCommand(msg.author.id, "shell")) {
                 return { content: "You are already using this command", status: StatusCode.ERR }
             }
@@ -2510,7 +2507,6 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 }
 
                 let rv = await runCmd(m, m.content, recursionCount + 1, true, commandBans)
-                console.log(rv)
                 await handleSending(m, rv, sendCallback, recursionCount + 1)
             })
 

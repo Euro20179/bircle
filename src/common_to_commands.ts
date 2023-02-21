@@ -752,8 +752,6 @@ export class Interpreter {
 
                 let rangeMatch;
 
-                console.log(format_name)
-
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
                 }
@@ -778,7 +776,6 @@ export class Interpreter {
                 else if (rangeMatch = format_name.match(/(\d+)\.\.(\d+)/)) {
                     let start = parseInt(rangeMatch[1])
                     let end = parseInt(rangeMatch[2])
-                    console.log(start, end)
                     if (start - end > 10000) {
                         [start, end] = [0, 1]
                     }
