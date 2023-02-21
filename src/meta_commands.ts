@@ -1400,7 +1400,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "silent", ccmdV2(async function({args, msg, recursionCount, commandBans, sendCallback}){
-            await runCmd(msg, `s:${args.join(" ")}`, recursionCount, false, commandBans, sendCallback)
+            await runCmd(msg, args.join(" "), recursionCount, true, commandBans, async() => msg)
             return {noSend: true, status: StatusCode.RETURN}
         }, "Run a command silently")
     ]
