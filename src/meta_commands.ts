@@ -1277,8 +1277,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "vars", createCommandV2(async () => {
-            let rv = Object.entries(vars).map(([prefix, varData]) => {
+        "vars", createCommandV2(async ({args, opts}) => {
+            if(opts.getBool("p", false)){
+                return {content: Object.keys(vars).join("\n"), status: StatusCode.RETURN}
+            }
+            let inPrefix = args[0] ?? ""
+            let rv = Object.entries(vars).filter(([prefix, _data]) => inPrefix ? inPrefix === prefix : true).map(([prefix, varData]) => {
                 return `**${prefix.replaceAll("_", "\\_")}**:\n` +
                     Object.keys(varData)
                         .map(v => `${v.replaceAll("_", "\\_")}`)
@@ -1287,7 +1291,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }).join("\n")
             return { content: rv, status: StatusCode.RETURN }
 
-        }, CAT, "List all variables")
+        }, CAT, "List all variables", {
+            prefix: createHelpArgument("The name of the prefix to look at", false)
+        }, {
+            p: createHelpArgument("List all the prefixes")
+        })
     ]
 
     yield [
