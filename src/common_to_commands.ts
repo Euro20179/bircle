@@ -55,7 +55,7 @@ export class AliasV2 {
     setAppendOpts(bool?: boolean) {
         this.appendOpts = bool ?? false
     }
-    setStandardizeOpts(bool?: boolean){
+    setStandardizeOpts(bool?: boolean) {
         this.standardizeOpts = bool ?? false
     }
 
@@ -85,7 +85,7 @@ export class AliasV2 {
             else if (![..."#args.1234567890"].includes(ch) && !escape && validBracket) {
                 inBracket = false
                 validBracket = false
-                if(argsRegex.test(curPair)){
+                if (argsRegex.test(curPair)) {
                     innerPairs.push(curPair)
                 }
                 curPair = ""
@@ -161,22 +161,25 @@ export class AliasV2 {
         ] as const
         let oldOpts = optsThatNeedStandardizing.map(([name, def]) => [name, user_options.getOpt(msg.author.id, name, def)])
 
-        if(this.standardizeOpts){
-            for(let [name, def] of optsThatNeedStandardizing){
+        if (this.standardizeOpts) {
+            for (let [name, def] of optsThatNeedStandardizing) {
                 user_options.setOpt(msg.author.id, name, def)
             }
         }
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let rv = await runCmd(msg, `${tempExec}`, recursionCount + 1, true)
+        let {rv, interpreter} = await cmd({msg, command_excluding_prefix: `${tempExec}`, recursion: recursionCount + 1, returnJson: true})
+
+        if(interpreter?.sendCallback)
+            rv.sendCallback = interpreter?.sendCallback
 
         for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
         }
 
-        if(this.standardizeOpts){
-            for(let [name, val] of oldOpts){
+        if (this.standardizeOpts) {
+            for (let [name, val] of oldOpts) {
                 user_options.setOpt(msg.author.id, name, val)
             }
         }
@@ -266,11 +269,35 @@ export function isCmd(text: string, prefix: string) {
 export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
-    let rv: CommandReturn | false = {noSend: true, status: StatusCode.RETURN};
+    let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix))) {
-        rv = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as CommandReturn
+        let _;
+        [rv, _] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
     }
     return rv
+}
+
+export async function cmd({
+    msg,
+    command_excluding_prefix,
+    recursion = 0,
+    returnJson = false,
+    disable,
+    sendCallback,
+    pipeData,
+
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean }){
+    let parser = new Parser(msg, command_excluding_prefix)
+    await parser.parse()
+    let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
+    let int;
+    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix))) {
+        [rv, int] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
+    }
+    return {
+        rv: rv,
+        interpreter: int
+    }
 }
 
 export class Interpreter {
@@ -371,12 +398,12 @@ export class Interpreter {
     async [1](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data)
         await parser.parse()
-        let rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
+        let [rv, _] = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as [CommandReturn, Interpreter]
         let data = getContentFromResult(rv as CommandReturn, "\n").trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data)
-            await parser.parse()
-            rv = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as CommandReturn
+            await parser.parse();
+            [rv, _] = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as [CommandReturn, Interpreter]
             data = getContentFromResult(rv as CommandReturn, "\n").trim()
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
@@ -1178,11 +1205,12 @@ export class Interpreter {
 
         let int = new Interpreter(msg, tokens, modifiers, recursion, returnJson, disable, sendCallback, pipeData)
         await int.interprate()
+        console.log(int.getPipeTo())
 
         let intPipeData = int.getPipeTo()
 
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
-        if (intPipeData) {
+        if (intPipeData.length) {
             async function sendCallback(options: string | MessageOptions | MessagePayload) {
                 options = await int.handlePipes(options as CommandReturn)
                 return handleSending(msg, options as CommandReturn, undefined)
@@ -1194,7 +1222,7 @@ export class Interpreter {
         if (int.returnJson) {
             data = await int.handlePipes(data as CommandReturn)
         }
-        return data
+        return [data, int] as const
     }
 
     static async handleMatchCommands(msg: Message, content: string) {
@@ -1237,6 +1265,9 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
 export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
     if (!Object.keys(rv).length) {
         return msg
+    }
+    if (!sendCallback && rv.sendCallback) {
+        sendCallback = rv.sendCallback
     }
     if (!sendCallback && rv.dm) {
         sendCallback = msg.author.send.bind(msg.author.dmChannel)
@@ -1454,7 +1485,7 @@ export let commands: Map<string, (Command | CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
 export function registerCommand(name: string, command: Command | CommandV2, cat: CommandCategory) {
-    if(!command.category){
+    if (!command.category) {
         command.category = cat
     }
     if (!command.help?.info) {

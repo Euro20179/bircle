@@ -64,7 +64,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
-            return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans, sendCallback)), status: StatusCode.RETURN}
+            return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans, sendCallback)), status: StatusCode.RETURN }
         }, CAT),
     ]
 
@@ -597,8 +597,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             outer: for (let i = start; i < end; i++) {
                 setVar(var_name, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    let rv = await runCmd(msg, line, recursionCount + 1, true, commandBans)
-                    await handleSending(msg, rv, sendCallback, recursionCount + 1)
+                    await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
                     await new Promise(res => setTimeout(res, 1000))
                     if (!globals.SPAMS[id]) {
                         break outer
@@ -698,7 +697,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             //optional else
             let falseBlock = ""
-        console.log(text)
+            console.log(text)
             if (text.startsWith("else")) {
                 text = text.slice("else".length)
                 falseBlock = parseBracketPair(text, "{}")
@@ -1176,8 +1175,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 globals.SPAMS[id] = true
                 while (globals.SPAMS[id] && times--) {
-                    let rv = await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, true, bans)
-                    await handleSending(msg, rv, sendCallback, globals.RECURSION_LIMIT - 1)
+                    await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, false, bans, sendCallback)
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
                 delete globals.SPAMS[id]
@@ -1386,8 +1384,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (line.startsWith(prefix)) {
                         line = line.slice(prefix.length)
                     }
-                    let rv = await runCmd(msg, parseRunLine(line), recursion + 1, true, bans, sendCallback)
-                    await handleSending(msg, rv, sendCallback)
+                    await runCmd(msg, parseRunLine(line), recursion + 1, false, bans, sendCallback)
                 }
                 delete globals.SPAMS[id]
                 return { noSend: true, status: StatusCode.INFO }
@@ -1399,9 +1396,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "silent", ccmdV2(async function({args, msg, recursionCount, commandBans, sendCallback}){
-            await runCmd(msg, args.join(" "), recursionCount, true, commandBans, async() => msg)
-            return {noSend: true, status: StatusCode.RETURN}
+        "silent", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
+            await runCmd(msg, args.join(" "), recursionCount, true, commandBans, async () => msg)
+            return { noSend: true, status: StatusCode.RETURN }
         }, "Run a command silently")
     ]
 
@@ -1644,7 +1641,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
                 return {
                     content: keyValues.join('\n'),
-                        status: StatusCode.RETURN
+                    status: StatusCode.RETURN
                 }
             }
 
@@ -2508,8 +2505,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                let rv = await runCmd(m, m.content, recursionCount + 1, true, commandBans, sendCallback)
-                await handleSending(m, rv, sendCallback, recursionCount + 1)
+                await runCmd(m, m.content, recursionCount + 1, false, commandBans, sendCallback)
             })
 
             collector.on("end", () => {

@@ -33,7 +33,8 @@ declare global {
         dm?: boolean,
         recurse?: boolean | { categories?: CommandCategory[], commands?: string[] },
         do_change_cmd_user_expansion?: boolean
-        channel?: TextChannel | DMChannel
+        channel?: TextChannel | DMChannel,
+        sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>
     }
 
     interface CommandHelpArguments {
