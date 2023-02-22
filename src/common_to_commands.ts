@@ -218,6 +218,7 @@ export class AliasV2 {
     }
 }
 
+
 export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
 export let purgeSnipe: (Message | PartialMessage)[];

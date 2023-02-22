@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
+import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, expandCommand, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -1277,9 +1277,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "vars", createCommandV2(async ({args, opts}) => {
-            if(opts.getBool("p", false)){
-                return {content: Object.keys(vars).join("\n"), status: StatusCode.RETURN}
+        "vars", createCommandV2(async ({ args, opts }) => {
+            if (opts.getBool("p", false)) {
+                return { content: Object.keys(vars).join("\n"), status: StatusCode.RETURN }
             }
             let inPrefix = args[0] ?? ""
             let rv = Object.entries(vars).filter(([prefix, _data]) => inPrefix ? inPrefix === prefix : true).map(([prefix, varData]) => {
@@ -1748,7 +1748,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
     }, CAT)]
 
-    yield ["cmd-chainv2", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
+    yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
 
         if (getAliases()[args[0]]) {
             await handleSending(msg, { content: `${args[0]} is an alias command, running \`cmd-chain\` instead`, status: StatusCode.INFO }, sendCallback);
@@ -1785,7 +1785,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     }, CAT)]
 
     yield [
-        "cmd-chain",
+        "cmd-chainv1",
         {
             run: async (msg, args, sendCallback) => {
                 let opts;
@@ -1844,7 +1844,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         },
     ]
 
-    yield ["rccmdv2", createCommandV2(async ({ msg, args }) => {
+    yield ["rccmd", createCommandV2(async ({ msg, args }) => {
         let cmdName = args[0]
         let aliasesV2 = getAliasesV2()
         if (aliasesV2[cmdName] && aliasesV2[cmdName].creator === msg.author.id) {
@@ -1862,7 +1862,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     }, CAT)]
 
     yield [
-        "rccmd",
+        "rccmdv1",
         {
             run: async (msg, args, sendCallback) => {
                 let name = args[0]
@@ -2120,7 +2120,7 @@ ${styles}
         },
     ]
 
-    yield ["aliasv2", createCommandV2(async ({ msg, args, opts }) => {
+    yield ["alias", createCommandV2(async ({ msg, args, opts }) => {
 
         let appendArgs = !opts.getBool("no-args", false)
         let appendOpts = !opts.getBool("no-opts", false)
@@ -2130,6 +2130,9 @@ ${styles}
             let [name, ...cmd] = args
             if (!name) {
                 return { content: "No name given", status: StatusCode.RETURN }
+            }
+            else if (aliases[name]) {
+                return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
             }
             if (getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]) {
                 return { content: `${name} already exists`, status: StatusCode.ERR }
@@ -2226,6 +2229,9 @@ ${styles}
         if (!name) {
             return { content: "No name given", status: StatusCode.ERR }
         }
+        else if (aliases[name]) {
+            return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
+        }
 
         const helpMetaData: CommandHelp = {}
 
@@ -2285,36 +2291,37 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "alias",
+        "aliasv1",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let cmd, cmd2
-                [cmd, cmd2, ...args] = args
-                if (!cmd) {
-                    return { content: "No  alias name given", status: StatusCode.ERR }
-                }
-                cmd = cmd.trim()
-                if (cmd.includes(" ") || cmd.includes("\n")) {
-                    return { content: "Name cannot have space or new lines", status: StatusCode.ERR }
-                }
-                if (!args) {
-                    return { content: "No command given", status: StatusCode.ERR }
-                }
-                if (getAliases()[cmd]) {
-                    return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
-                }
-                if (getAliasesV2()[cmd]) {
-                    return { content: `Failed to add ${cmd} it already exists as an aliasv2`, status: StatusCode.ERR }
-                }
-                if (getCommands().get(cmd)) {
-                    return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
-                }
-                fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${cmd2} ${args.join(" ")};END\n`)
-                getAliases(true)
-                return {
-                    content: `Added \`${cmd}\` = \`${cmd2}\` \`${args.join(" ")}\``,
-                    status: StatusCode.RETURN
-                }
+                return { content: "Creating new aliasv1s is disabled, use aliasv2 instead", status: StatusCode.ERR }
+                // let cmd, cmd2
+                // [cmd, cmd2, ...args] = args
+                // if (!cmd) {
+                //     return { content: "No  alias name given", status: StatusCode.ERR }
+                // }
+                // cmd = cmd.trim()
+                // if (cmd.includes(" ") || cmd.includes("\n")) {
+                //     return { content: "Name cannot have space or new lines", status: StatusCode.ERR }
+                // }
+                // if (!args) {
+                //     return { content: "No command given", status: StatusCode.ERR }
+                // }
+                // if (getAliases()[cmd]) {
+                //     return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
+                // }
+                // if (getAliasesV2()[cmd]) {
+                //     return { content: `Failed to add ${cmd} it already exists as an aliasv2`, status: StatusCode.ERR }
+                // }
+                // if (getCommands().get(cmd)) {
+                //     return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
+                // }
+                // fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${cmd2} ${args.join(" ")};END\n`)
+                // getAliases(true)
+                // return {
+                //     content: `Added \`${cmd}\` = \`${cmd2}\` \`${args.join(" ")}\``,
+                //     status: StatusCode.RETURN
+                // }
             },
             category: CAT,
             help: {
