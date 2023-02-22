@@ -208,7 +208,7 @@ export class AliasV2 {
             if (expansions > 1000) {
                 return false
             }
-            preArgs = curAlias.prepare(msg, preArgs.split(" "), opts)
+            preArgs = curAlias.prepare(msg, preArgs.split(" ").slice(1), opts)
             command = aliasesV2[command].exec.split(" ")[0]
             if (onExpand && !onExpand?.(command, preArgs)) {
                 return false
