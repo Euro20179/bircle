@@ -150,6 +150,10 @@ export class AliasV2 {
 
     async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] } }) {
 
+        if(BLACKLIST[msg.author.id]?.includes(this.name)){
+            return {content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR}
+        }
+
         let tempExec = this.prepare(msg, args, opts)
 
         globals.addToCmdUse(this.exec)
