@@ -615,6 +615,77 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
+
+            async function runIf(cmd: string, operator: string, value: string) {
+                let rv = await runCmd(msg, cmd, rec + 1, true, bans) as CommandReturn
+                let isTrue = false
+                switch (operator) {
+                    case "==": {
+                        isTrue = rv.content === value
+                        break
+                    }
+                    case "!=": {
+                        isTrue = rv.content !== value
+                        break
+                    }
+                    case "<": {
+                        if (!rv.content)
+                            isTrue = false
+                        else
+                            isTrue = parseFloat(rv.content) < parseFloat(value)
+                        break
+                    }
+                    case ">": {
+                        if (!rv.content)
+                            isTrue = false
+                        else
+                            isTrue = parseFloat(rv.content) > parseFloat(value)
+                        break
+                    }
+                    case "<=": {
+                        if (!rv.content)
+                            isTrue = false
+                        else
+                            isTrue = parseFloat(rv.content) <= parseFloat(value)
+                        break
+                    }
+                    case ">=": {
+                        if (!rv.content)
+                            isTrue = false
+                        else
+                            isTrue = parseFloat(rv.content) >= parseFloat(value)
+                        break
+                    }
+                    case "*=":
+                    case "includes": {
+                        isTrue = Boolean(rv.content?.includes(value))
+                        break
+                    }
+                    case ":": {
+                        try {
+                            isTrue = !!rv.content?.match(value)
+                        }
+                        catch (err) {
+                            isTrue = false
+                        }
+                        break
+                    }
+                    case "^=":
+                    case "starts-with":
+                    case "sw": {
+                        isTrue = rv.content?.startsWith(value) ?? false
+                        break
+                    }
+                    case "$=":
+                    case "ends-with":
+                    case "ew": {
+                        isTrue = rv.content?.endsWith(value) ?? false
+                        break
+                    }
+                }
+                return isTrue
+            }
+
             let text = args.join(" ")
 
             let cmd = parseBracketPair(text, "()")
@@ -626,78 +697,34 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let value = parseBracketPair(text, "()")
             text = text.slice(value.length + 2)
 
-            let rv = await runCmd(msg, cmd, rec + 1, true, bans) as CommandReturn
-            let isTrue = false
-            switch (operator) {
-                case "==": {
-                    isTrue = rv.content === value
-                    break
-                }
-                case "!=": {
-                    isTrue = rv.content !== value
-                    break
-                }
-                case "<": {
-                    if (!rv.content)
-                        isTrue = false
-                    else
-                        isTrue = parseFloat(rv.content) < parseFloat(value)
-                    break
-                }
-                case ">": {
-                    if (!rv.content)
-                        isTrue = false
-                    else
-                        isTrue = parseFloat(rv.content) > parseFloat(value)
-                    break
-                }
-                case "<=": {
-                    if (!rv.content)
-                        isTrue = false
-                    else
-                        isTrue = parseFloat(rv.content) <= parseFloat(value)
-                    break
-                }
-                case ">=": {
-                    if (!rv.content)
-                        isTrue = false
-                    else
-                        isTrue = parseFloat(rv.content) >= parseFloat(value)
-                    break
-                }
-                case "*=":
-                case "includes": {
-                    isTrue = Boolean(rv.content?.includes(value))
-                    break
-                }
-                case ":": {
-                    try {
-                        isTrue = !!rv.content?.match(value)
-                    }
-                    catch (err) {
-                        isTrue = false
-                    }
-                    break
-                }
-                case "^=":
-                case "starts-with":
-                case "sw": {
-                    isTrue = rv.content?.startsWith(value) ?? false
-                    break
-                }
-                case "$=":
-                case "ends-with":
-                case "ew": {
-                    isTrue = rv.content?.endsWith(value) ?? false
-                    break
-                }
-            }
+            let isTrue = await runIf(cmd, operator, value)
+
             let trueBlock = parseBracketPair(text, "{}")
             text = text.slice(text.indexOf("{") + trueBlock.length).trim().slice(2).trim()
 
+            let elifBlocks: { cmd: string, operator: string, value: string, block: string }[] = []
+
+            console.log(text)
+            while (text.startsWith("elif")) {
+                text = text.slice('elif'.length)
+
+                let cmd = parseBracketPair(text, "()")
+                text = text.slice(cmd.length + 2)
+
+                let operator = parseBracketPair(text, "  ")
+                text = text.slice(operator.length + 2)
+
+                let value = parseBracketPair(text, "()")
+                text = text.slice(value.length + 2)
+
+                let block = parseBracketPair(text, "{}")
+                text = text.slice(text.indexOf("{") + block.length).trim().slice(2).trim()
+
+                elifBlocks.push({ cmd, operator, value, block })
+            }
+
             //optional else
             let falseBlock = ""
-            console.log(text)
             if (text.startsWith("else")) {
                 text = text.slice("else".length)
                 falseBlock = parseBracketPair(text, "{}")
@@ -716,11 +743,21 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { noSend: true, status: StatusCode.RETURN }
             }
             else {
-                for (let line of falseBlock.split(";\n")) {
-                    let oldC = msg.content
-                    line = line.trim()
-                    if (!line) continue
-                    await runCmd(msg, line, rec + 1, false, bans)
+                let foundElse = false
+                for (let elif of elifBlocks) {
+                    if (await runIf(elif.cmd, elif.operator, elif.value)) {
+                        if(!elif.block.trim()) continue
+                        await runCmd(msg, elif.block.trim(), rec + 1, false, bans)
+                        foundElse = true
+                        break;
+                    }
+                }
+                if(!foundElse){
+                    for (let line of falseBlock.split(";\n")) {
+                        line = line.trim()
+                        if (!line) continue
+                        await runCmd(msg, line, rec + 1, false, bans)
+                    }
                 }
                 return { noSend: true, status: StatusCode.RETURN }
             }
