@@ -14,7 +14,7 @@ import timer from './timer'
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2 } from './common_to_commands'
 import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE } from './util'
-import { ADMINS, client, getVar, prefix, setVar, setVarEasy, vars } from './common'
+import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
 
@@ -3149,16 +3149,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 cmds = cmds.filter(v => !commands.get(v))
                 if (addOrRemove == "a") {
-                    //@ts-ignore
-                    addToPermList(BLACKLIST, "blacklists", msg.member, cmds)
+                    addToPermList(BLACKLIST, "blacklists", msg.author, cmds)
 
                     return {
                         content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
                     }
                 } else {
-                    //@ts-ignore
-                    removeFromPermList(BLACKLIST, "blacklists", msg.member, cmds)
+                    removeFromPermList(BLACKLIST, "blacklists", msg.author, cmds)
                     return {
                         content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
