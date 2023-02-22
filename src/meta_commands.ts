@@ -2131,7 +2131,7 @@ ${styles}
             if (!name) {
                 return { content: "No name given", status: StatusCode.RETURN }
             }
-            else if (aliases[name]) {
+            else if (aliases[cmd[0]]) {
                 return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
             }
             if (getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]) {
@@ -2229,7 +2229,7 @@ ${styles}
         if (!name) {
             return { content: "No name given", status: StatusCode.ERR }
         }
-        else if (aliases[name]) {
+        else if (aliases[command.split(" ")[0]]) {
             return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
         }
 

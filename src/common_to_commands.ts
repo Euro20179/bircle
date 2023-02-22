@@ -205,7 +205,7 @@ export class AliasV2 {
                 return false
             }
             preArgs = curAlias.prepare(msg, preArgs.split(" "), opts)
-            command = aliasesV2[command].name
+            command = aliasesV2[command].exec.split(" ")[0]
             if (onExpand && !onExpand?.(command, preArgs)) {
                 return false
             }
