@@ -201,13 +201,13 @@ class Parser {
                     break
                 }
                 case '"': {
-                    lastWasspace = false
-                    if (this.#parseQuotedString) {
+                    if (this.#parseQuotedString && !lastWasspace) {
                         this.tokens.push(this.parseQuotedString())
                     }
                     else {
                         this.tokens.push(new Token(T.str, '"', this.#curArgNo))
                     }
+                    lastWasspace = false
                     break
                 }
                 default: {
