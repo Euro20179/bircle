@@ -492,7 +492,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!apiFn.requirements.includes(i))
                     continue;
                 else {
-                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined, (i) => i)))
+                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined)))
                 }
             }
             let missing = []

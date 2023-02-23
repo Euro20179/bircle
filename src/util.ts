@@ -1009,8 +1009,8 @@ class Options extends Map {
     */
     //overriding the default map.get
     //@ts-ignore
-    get<T>(key: string, default_: T, assert: (v: any) => undefined | any = (_v) => _v) {
-        let rv = Reflect.get(this, key, this)
+    get<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
+        let rv = super.get(key)
         return assert(rv) ?? default_
     }
 
