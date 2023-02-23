@@ -488,11 +488,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             let apiFn = API.APICmds[fn]
             let argsForFn: { [key: string]: any } = {}
-            for (let i in opts) {
+            for (let i of opts.keys()) {
                 if (!apiFn.requirements.includes(i))
                     continue;
                 else {
-                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined)))
+                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined, (i) => i)))
                 }
             }
             let missing = []
