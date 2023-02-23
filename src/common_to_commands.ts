@@ -154,7 +154,12 @@ export class AliasV2 {
             return {content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR}
         }
 
-        let tempExec = this.prepare(msg, args, opts)
+        let tempExec = ""
+        await this.expand(msg, args, opts, ((a, preArgs) => {
+            tempExec = `${preArgs}`
+        }))
+
+        console.log(tempExec)
 
         globals.addToCmdUse(this.exec)
 
@@ -1210,7 +1215,7 @@ export class Interpreter {
 
         let int = new Interpreter(msg, tokens, modifiers, recursion, returnJson, disable, sendCallback, pipeData)
         await int.interprate()
-        console.log(int.getPipeTo())
+
 
         let intPipeData = int.getPipeTo()
 
