@@ -164,6 +164,8 @@ export class AliasV2 {
             lastCmd = a
             tempExec = `${preArgs}`
         }))
+
+        console.log(tempExec)
         
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
         globals.removeFromCmdUse(lastCmd)
