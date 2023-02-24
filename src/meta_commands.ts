@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, expandCommand, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, runCmd, StatusCode } from "./common_to_commands"
+import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, expandCommand, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -743,7 +743,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                 for (let line of trueBlock.split(";\n")) {
                     line = line.trim()
-                    if (!line) continue
+                    if (!line || line.startsWith("}")) continue
                     await runCmd(msg, line, rec + 1, false, bans)
                 }
                 return { noSend: true, status: StatusCode.RETURN }
@@ -752,7 +752,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let foundElse = false
                 for (let elif of elifBlocks) {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
-                        if(!elif.block.trim()) continue
+                        if(!elif.block.trim() || elif.block.trim().startsWith("}")) continue
                         await runCmd(msg, elif.block.trim(), rec + 1, false, bans)
                         foundElse = true
                         break;
@@ -761,7 +761,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if(!foundElse){
                     for (let line of falseBlock.split(";\n")) {
                         line = line.trim()
-                        if (!line) continue
+                        if (!line || line.startsWith("}")) continue
                         await runCmd(msg, line, rec + 1, false, bans)
                     }
                 }
