@@ -2154,6 +2154,16 @@ ${styles}
     ]
 
     yield [
+        "RESET_CMDUSE", ccmdV2(async function(){
+            fs.writeFileSync("data/cmduse", "")
+            globals.CMDUSE = globals.loadCmdUse()
+            return {content: "cmd use reset", status: StatusCode.RETURN}
+        }, "Resets cmduse", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
+    ]
+
+    yield [
         "cmd-use",
         {
             run: async (_msg: Message, args: ArgumentList, sendCallback) => {
