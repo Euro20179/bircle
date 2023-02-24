@@ -20,6 +20,23 @@ export enum StatusCode {
     ERR = 2,
 }
 
+export function statusCodeToStr(code: StatusCode){
+    switch(code){
+        case StatusCode.PROMPT:
+            return "-2"
+        case StatusCode.INFO:
+            return "-1"
+        case StatusCode.RETURN:
+            return "0"
+        case StatusCode.WARNING:
+            return "1"
+        case StatusCode.ERR:
+            return "2"
+        default:
+            return "NaN"
+    }
+}
+
 export enum CommandCategory {
     UTIL,
     GAME,
@@ -150,8 +167,8 @@ export class AliasV2 {
 
     async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] } }) {
 
-        if(BLACKLIST[msg.author.id]?.includes(this.name)){
-            return {content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR}
+        if (BLACKLIST[msg.author.id]?.includes(this.name)) {
+            return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
         }
 
         let tempExec = ""
@@ -165,8 +182,6 @@ export class AliasV2 {
             tempExec = `${preArgs}`
         }))
 
-        console.log(tempExec)
-        
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
         globals.removeFromCmdUse(lastCmd)
 
@@ -185,7 +200,7 @@ export class AliasV2 {
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let {rv, interpreter} = await cmd({msg, command_excluding_prefix: `${tempExec}`, recursion: recursionCount + 1, returnJson: true})
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${tempExec}`, recursion: recursionCount + 1, returnJson: true })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -306,7 +321,7 @@ export async function cmd({
     sendCallback,
     pipeData,
 
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean }){
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
@@ -379,6 +394,24 @@ export class Interpreter {
         this.#aliasExpandSuccess = false
     }
 
+    #initializePipeDataVars() {
+        if (this.#pipeData) {
+            //FIXME: using stdin as prefix can lead to race condition where if 2 people run pipes at the same time, the data may get jumbled.
+            //possible solution: make all prefixes user based instead of accessed globally, then have just one __global__ prefix
+            setVar("content", this.#pipeData.content ?? "", "stdin")
+            setVar("status", statusCodeToStr(this.#pipeData.status), "stdin")
+            setVar("raw", JSON.stringify(this.#pipeData), "stdin")
+        }
+    }
+
+    #deletePipeDataVars() {
+        if (this.#pipeData) {
+            delVar("content", "stdin")
+            delVar("status", "stdin")
+            delVar("raw", "stdin")
+        }
+    }
+
     getPipeTo() {
         return this.#pipeTo
     }
@@ -400,6 +433,12 @@ export class Interpreter {
         return true
     }
     addTokenToArgList(token: Token) {
+        if(token.data === Interpreter.commandUndefined){
+            return;
+        }
+        if(typeof token.data === 'object'){
+            throw Error(`Invalid token data, expected string not array (${token.data.join(" + ")})`)
+        }
         if (this.args[token.argNo + this.#argOffset] === undefined) {
             this.args[token.argNo + this.#argOffset] = token.data
         }
@@ -416,12 +455,12 @@ export class Interpreter {
     }
     //dofirst token
     async [1](token: Token): Promise<Token[] | false> {
-        let parser = new Parser(this.#msg, token.data)
+        let parser = new Parser(this.#msg, token.data as string)
         await parser.parse()
         let [rv, _] = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as [CommandReturn, Interpreter]
         let data = getContentFromResult(rv as CommandReturn, "\n").trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            let parser = new Parser(this.#msg, token.data)
+            let parser = new Parser(this.#msg, token.data as string)
             await parser.parse();
             [rv, _] = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as [CommandReturn, Interpreter]
             data = getContentFromResult(rv as CommandReturn, "\n").trim()
@@ -432,7 +471,7 @@ export class Interpreter {
     }
     //calc
     async [2](token: Token): Promise<Token[] | false> {
-        let parser = new Parser(this.#msg, token.data, false)
+        let parser = new Parser(this.#msg, token.data as string, false)
         await parser.parse()
         let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
         await int.interprate()
@@ -442,8 +481,7 @@ export class Interpreter {
     }
     //esc sequence
     async [3](token: Token): Promise<Token[] | false> {
-        let [char, ...seq] = token.data.split(":")
-        let sequence = seq.join(":")
+        let [char, sequence] = token.data
         switch (char) {
             case "n":
                 return [new Token(T.str, "\n", token.argNo)]
@@ -584,7 +622,7 @@ export class Interpreter {
     }
     //fmt
     async[4](token: Token): Promise<Token[] | false> {
-        let [format_name, ...args] = token.data.split("|")
+        let [format_name, ...args] = (token.data as string).split("|")
         let data = ""
         switch (format_name) {
             case "%":
@@ -876,7 +914,7 @@ export class Interpreter {
     }
     //dofirstrepl
     async[5](token: Token): Promise<Token[] | false> {
-        let [doFirstArgNo, doFirstResultNo] = token.data.split(":")
+        let [doFirstArgNo, doFirstResultNo] = (token.data as string).split(":")
         if (doFirstResultNo === undefined) {
             doFirstResultNo = doFirstArgNo
             doFirstArgNo = String(this.#doFirstNoFromArgNo[token.argNo])
@@ -897,8 +935,11 @@ export class Interpreter {
     }
     //command
     async[6](token: Token): Promise<Token[] | false> {
-        this.cmd = token.data
-        this.real_cmd = token.data
+        if(typeof token.data === 'object'){
+            token.data = token.data[0]
+        }
+        this.cmd = token.data as string
+        this.real_cmd = token.data as string
 
         if (!commands.get(this.cmd) && aliases[this.cmd]) {
             let expansion = await expandAlias(this.cmd, (alias: any) => {
@@ -929,7 +970,7 @@ export class Interpreter {
     }
     //syntax
     async[7](token: Token): Promise<Token[] | false> {
-        let parse = new Parser(this.#msg, token.data, false)
+        let parse = new Parser(this.#msg, token.data as string, false)
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
         let args = await int.interprate()
@@ -939,6 +980,19 @@ export class Interpreter {
     //pipe
     async[8](token: Token): Promise<Token[] | false> {
         return false
+    }
+
+    //variable
+    async [9](token: Token): Promise<Token[] | false> {
+        let [varName, ifNull] = token.data
+        let _var = getVar(this.#msg, varName)
+        if(_var === false){
+            if (ifNull) {
+                return [new Token(T.str, ifNull, token.argNo)]
+            }
+            return [new Token(T.str, `\${${varName}}`, token.argNo)]
+        }
+        return [new Token(T.str, _var, token.argNo)]
     }
 
     hasModifier(mod: Modifiers) {
@@ -1159,7 +1213,7 @@ export class Interpreter {
     async handlePipes(commandReturn: CommandReturn) {
         let tks = this.getPipeTo()
         while (tks.length) {
-            tks[0].type = T.command
+            tks[0] = tks[0].convertToCommand()
             let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, this.sendCallback, commandReturn)
             commandReturn = await int.run() as CommandReturn
             tks = int.getPipeTo()
@@ -1179,6 +1233,8 @@ export class Interpreter {
             await this.interprateAllAsToken(T.str)
         }
         else {
+
+            this.#initializePipeDataVars()
 
             for (let doFirst of this.tokens.slice(this.#i === -1 ? 0 : this.#i).filter(v => v.type === T.dofirst)) {
                 await this[1](doFirst)
@@ -1202,6 +1258,8 @@ export class Interpreter {
                     }
                 }
             }
+
+            this.#deletePipeDataVars()
         }
 
         //null comes from %{-1}doFirsts
