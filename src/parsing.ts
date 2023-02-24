@@ -201,7 +201,7 @@ class Parser {
                     break
                 }
                 case '"': {
-                    if (this.#parseQuotedString && !lastWasspace) {
+                    if (this.#parseQuotedString) {
                         this.tokens.push(this.parseQuotedString())
                     }
                     else {
