@@ -156,12 +156,11 @@ export class AliasV2 {
 
         let tempExec = ""
         await this.expand(msg, args, opts, ((a, preArgs) => {
+            globals.addToCmdUse(a)
             tempExec = `${preArgs}`
         }))
 
-        console.log(tempExec)
-
-        globals.addToCmdUse(this.exec)
+        globals.addToCmdUse(this.exec.split(" ")[0])
 
         const optsThatNeedStandardizing = [
             ["IFS", " "],
