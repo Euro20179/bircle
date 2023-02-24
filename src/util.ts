@@ -1071,7 +1071,8 @@ function getContentFromResult(result: CommandReturn, end = "") {
         res += result.content + end
     if (result.files) {
         for (let file of result.files) {
-            res += fs.readFileSync(file.attachment, "base64") + "\n"
+            if(fs.existsSync(file))
+                res += fs.readFileSync(file.attachment, "base64") + "\n"
         }
     }
     if (result.embeds) {

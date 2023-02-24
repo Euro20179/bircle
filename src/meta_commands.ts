@@ -25,6 +25,32 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     }, CAT, "get specific data from stdin/pipe")]
 
+    yield [".bircle", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback, args }) {
+        let file = msg.attachments.at(0)
+        let url;
+        if(file)
+            url = file.url
+        if (!file) {
+            if (args[0].match(/https?:\/\/.*/)) {
+                url = args[0]
+            }
+        }
+        else {
+            return {content: "No file url or attachment given", status: StatusCode.RETURN}
+        }
+        let resp = await fetch(url)
+        let text = await resp.text()
+
+        for (let line of text.split("\n[;")) {
+            line = line.trim()
+            if (line.startsWith(prefix)) {
+                line = line.slice(prefix.length)
+            }
+            await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
+        }
+        return { noSend: true, status: StatusCode.RETURN }
+    }, "Runs a .bircle file")]
+
     yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;
         try {
@@ -194,8 +220,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             if (opts['l']) {
                 let name = opts['l']
-                if(name && name !== true){
-                    return {content: user_options.getOpt(user, name as any, "__unset__"), status: StatusCode.RETURN}
+                if (name && name !== true) {
+                    return { content: user_options.getOpt(user, name as any, "__unset__"), status: StatusCode.RETURN }
                 }
                 return { content: user_options.allowedOptions.join("\n"), status: StatusCode.RETURN }
             }
@@ -214,8 +240,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             {
                 "option": createHelpArgument("The option to check the value of", false)
             }, {
-                l: createHelpOption("List the options and values, if a value is given, get the value of that option")
-            }),
+            l: createHelpOption("List the options and values, if a value is given, get the value of that option")
+        }),
     ]
 
     yield [
@@ -752,13 +778,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let foundElse = false
                 for (let elif of elifBlocks) {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
-                        if(!elif.block.trim() || elif.block.trim().startsWith("}")) continue
+                        if (!elif.block.trim() || elif.block.trim().startsWith("}")) continue
                         await runCmd(msg, elif.block.trim(), rec + 1, false, bans)
                         foundElse = true
                         break;
                     }
                 }
-                if(!foundElse){
+                if (!foundElse) {
                     for (let line of falseBlock.split(";\n")) {
                         line = line.trim()
                         if (!line || line.startsWith("}")) continue
@@ -1489,8 +1515,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
                 }
-                if(name.includes(":")){
-                    return {content: "Variable name cannot include :", status: StatusCode.ERR}
+                if (name.includes(":")) {
+                    return { content: "Variable name cannot include :", status: StatusCode.ERR }
                 }
                 let realVal = value.join("=")
                 if (opts['u']) {
