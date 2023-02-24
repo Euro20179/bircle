@@ -367,7 +367,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg, args, sendCallback) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let prefix = String(opts['prefix'] || "__global__")
+                let prefix = "__global__"
                 if (opts['u']) {
                     prefix = msg.author.id
                 }
@@ -1489,17 +1489,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
                 }
-                let realVal = value.join("=")
-                if (opts['prefix']) {
-                    let prefix = String(opts['prefix'])
-                    if (prefix.match(/^\d{18}/)) {
-                        return { content: "No ids allowed", status: StatusCode.ERR }
-                    }
-                    setVar(name, realVal, prefix)
-                    if (!opts['silent'])
-                        return { content: getVar(msg, name, prefix), status: StatusCode.RETURN }
+                if(name.includes(":")){
+                    return {content: "Variable name cannot include :", status: StatusCode.ERR}
                 }
-                else if (opts['u']) {
+                let realVal = value.join("=")
+                if (opts['u']) {
                     setVar(name, realVal, msg.author.id)
                     if (!opts['silent'])
                         return {
@@ -2030,7 +2024,7 @@ ${styles}
                         description: "help"
                     })
                 }
-                if (fs.existsSync("output.txt")) {
+                if (fs.existsSync(`output.txt`)) {
                     let content = fs.readFileSync("output.txt", "utf-8")
                     fs.rmSync('output.txt')
                     return {
