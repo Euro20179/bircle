@@ -1890,8 +1890,8 @@ ${fs.readdirSync("./command-results").join("\n")}
     yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
 
         if (getAliases()[args[0]]) {
-            await handleSending(msg, { content: `${args[0]} is an alias command, running \`cmd-chain\` instead`, status: StatusCode.INFO }, sendCallback);
-            return (getCommands().get('cmd-chain') as Command).run(msg, rawArgs, sendCallback, getOpts(rawArgs)[0], args, recursionCount, commandBans)
+            await handleSending(msg, { content: `${args[0]} is an alias command, running \`cmd-chainv1\` instead`, status: StatusCode.INFO }, sendCallback);
+            return (getCommands().get('cmd-chainv1') as Command).run(msg, rawArgs, sendCallback, getOpts(rawArgs)[0], args, recursionCount, commandBans)
         }
 
         let v2 = getAliasesV2()[args[0]]
