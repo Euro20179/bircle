@@ -193,6 +193,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
             }
             if (opts['l']) {
+                let name = opts['l']
+                if(name && name !== true){
+                    return {content: user_options.getOpt(user, name as any, "__unset__"), status: StatusCode.RETURN}
+                }
                 return { content: user_options.allowedOptions.join("\n"), status: StatusCode.RETURN }
             }
             let userOpts = user_options.getUserOptions()[user]
@@ -209,6 +213,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }, CAT, "Prints the options for [option, and your values for them",
             {
                 "option": createHelpArgument("The option to check the value of", false)
+            }, {
+                l: createHelpOption("List the options and values, if a value is given, get the value of that option")
             }),
     ]
 
