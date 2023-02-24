@@ -182,6 +182,10 @@ export class AliasV2 {
             tempExec = `${preArgs}`
         }))
 
+        if(lastCmd === this.name){
+            return {content: `Failed to expand ${this.name} (infinitely recursive)`}
+        }
+
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
         globals.removeFromCmdUse(lastCmd)
 

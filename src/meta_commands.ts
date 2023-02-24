@@ -1798,7 +1798,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 globals: require("./globals"),
                 common: require("./common")
             }, {})
-            return { content: String(data), status: StatusCode.RETURN }
+            return { content: `\`\`\`javascript\n${String(data)}\n\`\`\``, status: StatusCode.RETURN }
         }, "Stringifies an internal function", {
             helpOptions: {
                 l: createHelpOption("List the different modules"),
