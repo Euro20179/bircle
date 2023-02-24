@@ -135,12 +135,12 @@ export class AliasV2 {
             }
         }
 
-        if (this.appendOpts) {
+        if (this.appendOpts && Object.keys(opts).length) {
             //if opt is true, we want it to JUST be -<opt> if it's anything else it should be -<opt>=<value>
             tempExec += " " + Object.entries(opts).map(v => `-${v[0]}${v[1] === true ? "" : `=\\s{${v[1]}}`}`).join(" ")
         }
 
-        if (this.appendArgs) {
+        if (this.appendArgs && args.length) {
             tempExec += " " + args.join(" ")
         }
 
