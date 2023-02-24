@@ -165,7 +165,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin: CommandReturn }) {
+    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin: CommandReturn, modifiers: Modifier[] }) {
 
         if (BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -202,9 +202,14 @@ export class AliasV2 {
             }
         }
 
+        let modifierText = ""
+        for(let modText of modifiers.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))){
+            modifierText += modText as string
+        }
+
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin })
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -1107,7 +1112,7 @@ export class Interpreter {
         }
         else if (this.aliasV2) {
             let [opts, args2] = getOpts(args)
-            rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData }) as CommandReturn
+            rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
         }
         else if (!commands.get(this.real_cmd)) {
             //We dont want to keep running commands if the command doens't exist
