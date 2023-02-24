@@ -452,22 +452,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 catch (err) {
                     return { content: "Invalid regex", status: StatusCode.ERR }
                 }
-                let commands = getCommands()
+                let commands = {...Object.fromEntries(getCommands().entries()), ...getAliasesV2()}
                 let results = []
                 for (let cmd in commands) {
                     if (cmd.match(regexp)) {
-                        if (commands.get(cmd)?.help?.info) {
-                            results.push(`**${cmd}**: ${renderHTML(commands.get(cmd)?.help?.info || "")}`)
+                        if (commands[cmd]?.help?.info) {
+                            results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
                         }
                         else results.push(cmd)
                     }
-                    else if (commands.get(cmd)?.help) {
-                        let help = commands.get(cmd)?.help
+                    else if (commands[cmd]?.help) {
+                        let help = commands[cmd]?.help
                         if (help?.info?.match(search)) {
-                            results.push(`**${cmd}**: ${renderHTML(commands.get(cmd)?.help?.info || "")}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
                         }
                         else if (help?.tags?.includes(search)) {
-                            results.push(`**${cmd}**: ${renderHTML(commands.get(cmd)?.help?.info || "")}`)
+                            results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
                         }
                     }
                 }
@@ -2294,6 +2294,8 @@ ${styles}
 
         let helpInfo: string = "";
 
+        let tags: string[] = []
+
         const commandHelpOptions: CommandHelpOptions = {}
         const commandHelpArgs: CommandHelpArguments = {}
 
@@ -2322,6 +2324,14 @@ ${styles}
                         return { content: `${name} already exists`, status: StatusCode.ERR }
                     }
                     break
+                }
+                case "tag": {
+                    tags.push(text)
+                    break
+                }
+                case "tags": {
+                    tags = tags.concat(text.split("|").map(v => v.trim()))
+                    break;
                 }
                 case "command":
                 case "cmd": {
@@ -2390,6 +2400,10 @@ ${styles}
             helpMetaData.arguments = commandHelpArgs
         }
 
+        if(tags.length){
+            helpMetaData.tags = tags
+        }
+
         const alias = new AliasV2(name, command, msg.author.id, helpMetaData, appendArgs, appendOpts, standardizeOpts)
 
         if (getAliases()[name]) {
@@ -2409,6 +2423,8 @@ ${styles}
     }, CAT, "<b>There are 2 Modes</b><ul><li>default: How alias has always worked &lt;name&gt; &lt;command&gt;</li><li>no-easy: use the -no-easy option enable this</li></ul><br>Create an aliasv2<br>By default, the user arguments will be appended to the end of exec<br>To access an option in the exec, use \${%:-option-name}, for args use \${%:\\_\\_arg[&lt;i&gt;]}<br>raw args are also accessable with \\_\\_rawarg instead of \\_\\_arg.<br>To access all args, use \${%:\\_\\_arg[...]}<br><br><b>THE REST ONLY APPLIES TO no-easy MODE</b><br>Each argument should be on its own line", {
         "name": createHelpArgument("<code>name</code> followed by the alias name", true),
         "help-info": createHelpArgument("<code>help-info</code> followed by some help information for the command", false),
+        "tag": createHelpArgument("<code>tag</code> followed by a tag for the command", false),
+        "tags": createHelpArgument("<code>tags</code> followed by tags for the command seperated by |", false),
         "option": createHelpArgument("<code>option</code> followed by the name of the option, followed by a |, then <code>desc|alt|default</code>, followed by another | and lastly the text<br>if desc is chosen, text is a description of the option<br>if alt is chosen, text is a comma separated list of options that do the same thing<br>if default is chosen, text is the default if option is not given.", false),
         "argument": createHelpArgument("<code>argument</code> followed by the name of the option, followed by a |, then <code>desc|required|default</code>, followed by another | and lastly the text<br>if desc is chosen, text is a description of the argument<br>if required is chosen, text is true/false<br>if default is chosen, text is the default if argument is not given.", false),
         "cmd": createHelpArgument("<code>cmd</code> followed by the command to run <b>THIS SHOULD BE LAST</b>", true),
