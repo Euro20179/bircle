@@ -85,7 +85,7 @@ export class AliasV2 {
         let innerPairs = []
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
-        const argsRegex = /(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)/
+        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)$/
 
         let escape = false
         let curPair = ""
