@@ -7,7 +7,7 @@ import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
 import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath } from "./util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE } from "./util"
 import { Guild, Message, MessageEmbed } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
@@ -643,6 +643,82 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT)
+    ]
+
+    yield [
+        "switch", ccmdV2(async function({args, msg, commandBans, recursionCount, sendCallback}) {
+            args.beginIter()
+            let switchOn = args.expectString(1)
+            if(switchOn === BADVALUE){
+                return {content: "No text to switch on", status: StatusCode.ERR}
+            }
+            let text = args.expectString(() => true)
+            if(text === BADVALUE){
+                return {content: "No cases", status: StatusCode.ERR}
+            }
+
+            console.log(text)
+
+            let switchBlock = parseBracketPair(text, "{}")
+
+            let cases = []
+
+            let curCaseText = ""
+            let justParsedBlock = false
+            for(let i = 0; i < switchBlock.length; i++){
+                if(justParsedBlock && " \t\n".includes(switchBlock[i])){
+                    continue;
+                }
+                else if(switchBlock[i] === "{"){
+                    let block =  parseBracketPair(switchBlock, '{}', i + 1)
+                    cases.push([curCaseText.trim(), block.trim()])
+                    console.log(block)
+                    i += block.length + 2
+                    curCaseText = ""
+                    justParsedBlock = true
+                }
+                else{
+                    justParsedBlock = false
+                }
+                curCaseText += switchBlock[i]
+            }
+            for(let caseBlock of cases){
+                let regex;
+                try{
+                    regex = new RegExp(caseBlock[0])
+                }
+                catch(err){
+                    await handleSending(msg, {content: `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING})
+                }
+                let shouldContinueTesting = false;
+                if((regex as RegExp).test(switchOn)){
+                    for(let line of caseBlock[1].split(";\n")){
+                        line = line.trim()
+                        if(line === "}") break;
+                        if(line === "&&"){
+                            shouldContinueTesting = true;
+                            continue;
+                        }
+                        else {
+                            shouldContinueTesting = false;
+                        }
+                        await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
+                    }
+                }
+                if(!shouldContinueTesting){
+                    break
+                }
+            }
+            return {noSend: true, status: 0}
+
+        }, "Does different things depending on what the initial argument is", {
+            helpArguments: {
+                "value": createHelpArgument("The value to switch on", true),
+                "{": createHelpArgument("Start the block of cases", true),
+                "...cases": createHelpArgument("the case is a regular expression followed by a block of commands seperated by <code>;&lt;newline&gt;</code>, surrounded by {}<br>if the last command is &&, it will continue testing the cases", true),
+                "}": createHelpArgument("End the block of cases", true),
+            }
+        })
     ]
 
     yield [

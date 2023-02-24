@@ -16,6 +16,7 @@ enum T {
     command,
     syntax,
     pipe,
+    variable,
 }
 
 function strToTT(str: string) {
@@ -54,14 +55,34 @@ function strToTT(str: string) {
 
 class Token {
     type: T
-    data: string
+    data: string | string[]
     argNo: number
     id: number
-    constructor(type: T, data: string, argNo: number) {
+    constructor(type: T, data: string | string[], argNo: number) {
         this.type = type
         this.data = data
         this.argNo = argNo
         this.id = Math.random()
+    }
+
+    convertToCommand() {
+        switch (this.type) {
+            case T.esc:
+                let str = `\\${this.data[0]}`
+                if (this.data[1]) {
+                    str += `{${this.data[1]}}`
+                }
+                return new Token(T.command, str, -1)
+            case T.variable: {
+                let str = `\${${this.data[0]}`
+                if (this.data[1]) {
+                    str += `||${this.data[1]}`
+                }
+                //extra } is to close braces
+                return new Token(T.command, `${str}}`, -1)
+            }
+            default: return new Token(T.command, this.data, -1)
+        }
     }
 }
 
@@ -162,7 +183,7 @@ class Parser {
             if (!this.#hasCmd && this.#isParsingCmd) {
                 this.tokens.push(this.parseCmd())
                 if (this.modifiers.filter(v => v.type === Modifiers.skip).length) {
-                    this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).map((v, i) => new Token(T.str, v, i)))
+                    this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).filter(v => v !== '').map((v, i) => new Token(T.str, v, i)))
                     break
                 }
             }
@@ -226,15 +247,15 @@ class Parser {
             if (this.#curChar === '\\') {
                 escape = true
             }
-            else if(this.#curChar !== '"'){
+            else if (this.#curChar !== '"') {
                 text += this.#curChar
                 escape = false
             }
-            else if(this.#curChar === '"' && escape){
+            else if (this.#curChar === '"' && escape) {
                 text += '"'
                 escape = false
             }
-            else{
+            else {
                 break
             }
         }
@@ -326,14 +347,14 @@ class Parser {
                 this.back()
             }
         }
-        return new Token(T.esc, `${char}:${sequence}`, this.#curArgNo)
+        return new Token(T.esc, [char ?? "", sequence], this.#curArgNo)
     }
 
     async parseFormat(msg: Message) {
         this.advance()
         let inner = parseBracketPair(this.string, "{}", this.#i)
         this.advance(inner.length)
-        if(this.#curChar === '}'){
+        if (this.#curChar === '}') {
             return new Token(T.format, inner, this.#curArgNo)
         }
         return new Token(T.str, `{${inner}`, this.#curArgNo)
@@ -397,14 +418,7 @@ class Parser {
             let _ifNull
             [inner, ..._ifNull] = inner.split("||")
             let ifNull = _ifNull.join("||")
-            let var_ = getVar(this.#msg, inner)
-            if (var_ === false) {
-                if (ifNull) {
-                    return new Token(T.str, ifNull, this.#curArgNo)
-                }
-                return new Token(T.str, `\${${inner}}`, this.#curArgNo)
-            }
-            return new Token(T.str, var_, this.#curArgNo)
+            return new Token(T.variable, [inner, ifNull], this.#curArgNo)
         }
         else if (this.#curChar == ' ') {
             let tok = new Token(T.str, "$", this.#curArgNo)
