@@ -187,8 +187,11 @@ export class AliasV2 {
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
         let {rv, interpreter} = await cmd({msg, command_excluding_prefix: `${tempExec}`, recursion: recursionCount + 1, returnJson: true})
 
-        if(interpreter?.sendCallback)
-            rv.sendCallback = interpreter?.sendCallback
+        //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
+        //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
+
+        // if(interpreter?.sendCallback)
+        //     rv.sendCallback = interpreter?.sendCallback
 
         for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
