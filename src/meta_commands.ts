@@ -690,7 +690,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 catch(err){
                     await handleSending(msg, {content: `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING})
                 }
-                let shouldContinueTesting = false;
+                let shouldContinueTesting = true;
                 if((regex as RegExp).test(switchOn)){
                     for(let line of caseBlock[1].split(";\n")){
                         line = line.trim()
