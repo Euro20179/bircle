@@ -209,7 +209,7 @@ export class AliasV2 {
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin })
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING

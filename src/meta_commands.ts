@@ -657,8 +657,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return {content: "No cases", status: StatusCode.ERR}
             }
 
-            console.log(text)
-
             let switchBlock = parseBracketPair(text, "{}")
 
             let cases = []
@@ -672,7 +670,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 else if(switchBlock[i] === "{"){
                     let block =  parseBracketPair(switchBlock, '{}', i + 1)
                     cases.push([curCaseText.trim(), block.trim()])
-                    console.log(block)
                     i += block.length + 2
                     curCaseText = ""
                     justParsedBlock = true
@@ -812,7 +809,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let elifBlocks: { cmd: string, operator: string, value: string, block: string }[] = []
 
-            console.log(text)
             while (text.startsWith("elif")) {
                 text = text.slice('elif'.length)
 
