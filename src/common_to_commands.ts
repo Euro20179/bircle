@@ -20,8 +20,8 @@ export enum StatusCode {
     ERR = 2,
 }
 
-export function statusCodeToStr(code: StatusCode){
-    switch(code){
+export function statusCodeToStr(code: StatusCode) {
+    switch (code) {
         case StatusCode.PROMPT:
             return "-2"
         case StatusCode.INFO:
@@ -165,7 +165,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] } }) {
+    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin: CommandReturn, modifiers: Modifier[] }) {
 
         if (BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -181,6 +181,10 @@ export class AliasV2 {
             lastCmd = a
             tempExec = `${preArgs}`
         }))
+
+        if (lastCmd === this.name) {
+            return { content: `Failed to expand ${this.name} (infinitely recursive)` }
+        }
 
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
         globals.removeFromCmdUse(lastCmd)
@@ -198,9 +202,14 @@ export class AliasV2 {
             }
         }
 
+        let modifierText = ""
+        for(let modText of modifiers.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))){
+            modifierText += modText as string
+        }
+
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${tempExec}`, recursion: recursionCount + 1, returnJson: true })
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -433,10 +442,10 @@ export class Interpreter {
         return true
     }
     addTokenToArgList(token: Token) {
-        if(token.data === Interpreter.commandUndefined){
+        if (token.data === Interpreter.commandUndefined) {
             return;
         }
-        if(typeof token.data === 'object'){
+        if (typeof token.data === 'object') {
             throw Error(`Invalid token data, expected string not array (${token.data.join(" + ")})`)
         }
         if (this.args[token.argNo + this.#argOffset] === undefined) {
@@ -935,7 +944,7 @@ export class Interpreter {
     }
     //command
     async[6](token: Token): Promise<Token[] | false> {
-        if(typeof token.data === 'object'){
+        if (typeof token.data === 'object') {
             token.data = token.data[0]
         }
         this.cmd = token.data as string
@@ -986,7 +995,7 @@ export class Interpreter {
     async [9](token: Token): Promise<Token[] | false> {
         let [varName, ifNull] = token.data
         let _var = getVar(this.#msg, varName)
-        if(_var === false){
+        if (_var === false) {
             if (ifNull) {
                 return [new Token(T.str, ifNull, token.argNo)]
             }
@@ -1103,7 +1112,7 @@ export class Interpreter {
         }
         else if (this.aliasV2) {
             let [opts, args2] = getOpts(args)
-            rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable }) as CommandReturn
+            rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
         }
         else if (!commands.get(this.real_cmd)) {
             //We dont want to keep running commands if the command doens't exist
@@ -1214,7 +1223,17 @@ export class Interpreter {
         let tks = this.getPipeTo()
         while (tks.length) {
             tks[0] = tks[0].convertToCommand()
-            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, this.sendCallback, commandReturn)
+            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn)
+            await int.interprate()
+            if (int.getPipeTo().length) {
+                //using this.sendCallback directly breaks for some reason, so i'm redefining the function and only applying it if there is a pipe
+                async function sendCallback(this: Interpreter, options: string | MessageOptions | MessagePayload) {
+                    options = await int.handlePipes(options as CommandReturn)
+                    return handleSending(this.#msg, options as CommandReturn, undefined)
+                }
+                int.sendCallback = sendCallback.bind(this)
+            }
+
             commandReturn = await int.run() as CommandReturn
             tks = int.getPipeTo()
         }
@@ -1295,6 +1314,7 @@ export class Interpreter {
             }
             int.sendCallback = sendCallback
         }
+
 
         let data = await int.run()
         if (int.returnJson) {
