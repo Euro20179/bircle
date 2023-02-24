@@ -155,12 +155,18 @@ export class AliasV2 {
         }
 
         let tempExec = ""
+        let lastCmd = ""
+
+        globals.addToCmdUse(this.name)
+
         await this.expand(msg, args, opts, ((a, preArgs) => {
             globals.addToCmdUse(a)
+            lastCmd = a
             tempExec = `${preArgs}`
         }))
-
-        globals.addToCmdUse(this.exec.split(" ")[0])
+        
+        //if this doesnt happen it will be added twice because of the fact that running it will add it again
+        globals.removeFromCmdUse(lastCmd)
 
         const optsThatNeedStandardizing = [
             ["IFS", " "],
@@ -1100,7 +1106,7 @@ export class Interpreter {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 //it will double add this if it's an alias
-                if (!this.alias) {
+                if (!this.alias && !this.aliasV2) {
                     globals.addToCmdUse(this.real_cmd)
                 }
                 //if normal command, it counts as use

@@ -98,6 +98,10 @@ export function addToCmdUse(cmd: string) {
     }
 }
 
+export function removeFromCmdUse(cmd: string){
+    CMDUSE[cmd] -= 1
+}
+
 export function writeCmdUse() {
     fs.writeFileSync("data/cmduse", generateCmdUseFile())
 }
