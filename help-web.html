@@ -542,6 +542,18 @@
             : Generate a random number
         </li>
         <li>
+            <code>stdin:content</code>
+            : Gets the content from stdin
+        </li>
+        <li>
+            <code>stdin:status</code>
+            : Gets the status from stdin
+        </li>
+        <li>
+            <code>stdin:raw</code>
+            : Gets the json from stdin
+        </li>
+        <li>
             <code>rand</code>
             : Generate a random number
         </li>
@@ -636,8 +648,15 @@
                 <br>
                 <code>name</code> is the name of the variable
                 <br>
-                <code>value</code> is the value and MUST be surrounded in quotes
+                <code>value</code> is the value and MUST be surrounded in quotes, it will also be interpreted.
             </p>
+        </li>
+        <li>
+            <b>[prefix:]name='value'</b>
+            <p>
+                Same as using double quotes, but <code>value</code> will not be interpreted.
+            </p>
+        </li>
         <li>
             <b>[count]:/(search|start,[end])/[commands/[...]]</b>
             <p>
