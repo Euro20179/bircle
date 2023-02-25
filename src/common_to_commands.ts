@@ -188,7 +188,7 @@ export class AliasV2 {
 
         let warnings = user_options.getOpt(msg.author.id, "alias-warn-cmds", "").split(" ")
 
-        if(warnings.includes(lastCmd)){
+        if(warnings.includes(lastCmd.slice(lastCmd.lastIndexOf(":") + 1))){
             await handleSending(msg, {content: `You are about to run the ${lastCmd} with args "${tempExec.split(" ").slice(1)}"\nAre you sure you watn to do this **(y/n)**`, status: StatusCode.PROMPT})
              let msgs = await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, time: 30000, max: 1})
              let m = msgs.at(0)
