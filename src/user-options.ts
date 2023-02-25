@@ -1,7 +1,7 @@
 import fs = require("fs")
 import { GLOBAL_CURRENCY_SIGN } from "./common"
 
-export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "change-cmd-return", "change-cmd-info", "change-cmd-prompt", "change-cmd-warning", "change-cmd-error", "dm-when-online", "currency-sign", "puffle-find", "enable-mail", "mail-signature", "no-pingresponse", "pipe-symbol", "IFS", "1-arg-string", "alias-warn-cmds"] as const
+export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "change-cmd-return", "change-cmd-info", "change-cmd-prompt", "change-cmd-warning", "change-cmd-error", "dm-when-online", "currency-sign", "puffle-find", "enable-mail", "mail-signature", "no-pingresponse", "pipe-symbol", "IFS", "1-arg-string", "warn-cmds"] as const
 
 export type UserOption = typeof allowedOptions[number]
 
