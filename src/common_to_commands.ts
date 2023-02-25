@@ -314,7 +314,7 @@ export async function runCmd(msg: Message, command_excluding_prefix: string, rec
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix))) {
+    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, undefined, recursion))) {
         let _;
         [rv, _] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
     }
@@ -336,7 +336,7 @@ export async function cmd({
     await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, disableUserMatch))) {
+    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, disableUserMatch, recursion))) {
         [rv, int] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
     }
     return {
@@ -1346,7 +1346,7 @@ export class Interpreter {
         return [data, int] as const
     }
 
-    static async handleMatchCommands(msg: Message, content: string, disableUserMatch?: boolean) {
+    static async handleMatchCommands(msg: Message, content: string, disableUserMatch?: boolean, recursion?: number) {
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]
@@ -1413,7 +1413,7 @@ export class Interpreter {
                     }
                 }
 
-                await cmd({ msg, command_excluding_prefix: tempExec, disableUserMatch: true })
+                await cmd({ msg, command_excluding_prefix: tempExec, disableUserMatch: true, recursion: (recursion ?? 0) + 1 })
                 return false
             }
         }
