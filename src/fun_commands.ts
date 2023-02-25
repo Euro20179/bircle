@@ -3,7 +3,7 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
-import { ColorResolvable, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } from "discord.js";
+import { ColorResolvable, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, User } from "discord.js";
 import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
@@ -107,18 +107,30 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: "You must set the 'enable-mail' option to true in order to use mail", status: StatusCode.ERR }
         }
+        let toUser: User | GuildMember | undefined = undefined;
         if (!msg.guild) {
-            return { content: "cannot send from dms", status: StatusCode.ERR }
+            toUser = await fetchUserFromClient(client, argList[0])
         }
-        let toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
-        if (user_options.getOpt(toUser.user.id, "enable-mail", "false").toLowerCase() !== "true") {
-            return { content: `${toUser?.displayName} does not have mail enabled`, status: StatusCode.ERR }
+        else{
+            toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
+        }
+        if(!toUser){
+            return {content: `Could not find user`, status: StatusCode.ERR}
+        }
+        if (user_options.getOpt(toUser.id, "enable-mail", "false").toLowerCase() !== "true") {
+            return { content: `${toUser instanceof GuildMember ? toUser.displayName : toUser.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         try {
-            await toUser.user.createDM()
+            if(toUser instanceof GuildMember){
+                await toUser.user.createDM()
+            }
+            else{
+
+                await toUser.createDM()
+            }
         }
         catch (err) {
-            return { content: `Could not create dm channel with ${toUser.displayName}`, status: StatusCode.ERR }
+            return { content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username}`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
@@ -127,7 +139,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 signature = "\\" + signature
             }
         }
-        handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, toUser.user.send.bind(toUser.user.dmChannel), recursionCount)
+
+        let user = toUser instanceof GuildMember ? toUser.user : toUser
+        handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, user.send.bind(user.dmChannel), recursionCount)
         return { noSend: true, status: StatusCode.RETURN, delete: true }
     }, CommandCategory.FUN)]
 
