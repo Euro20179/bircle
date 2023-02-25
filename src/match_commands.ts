@@ -59,7 +59,7 @@ export default function*(CAT: CommandCategory) {
 
 
 
-    }, /@([^\s]+) (.*)/, "match:send-mail-from-dms")]
+    }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
 
     yield [createMatchCommand(async ({ msg, match }) => {
         let prefix = match[1]

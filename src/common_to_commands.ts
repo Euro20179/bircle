@@ -1112,13 +1112,13 @@ export class Interpreter {
 
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
-            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
+            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT})
             let msgs = await this.#msg.channel.awaitMessages({ filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1 })
             let m = msgs.at(0)
             if (!m) {
                 declined = true
             }
-            else if (m.content.toLowerCase() === 'n') {
+            else if (m.content.toLowerCase() !== 'y') {
                 declined = true
             }
         }
@@ -1428,6 +1428,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             [StatusCode.RETURN]: "change-cmd-return",
             [StatusCode.WARNING]: "change-cmd-warning"
         }[rv.status] as user_options.UserOption
+
 
         let opt = user_options.getOpt(msg.author.id, optionToGet, "")
         if (opt !== "") {
