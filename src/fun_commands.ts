@@ -997,6 +997,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (dm) {
                     rv['dm'] = true
                 }
+                if(opts['mail']){
+                    let search = String(opts['mail'])
+                    let user = await fetchUserFromClient(client, search)
+                    if(!user){
+                        return {content: `${search} not found`, status: StatusCode.ERR}
+                    }
+                    //TODO: finish this
+                }
                 if (stringArgs) {
                     rv["content"] = stringArgs
                 }
