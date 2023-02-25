@@ -514,10 +514,11 @@ export class Interpreter {
                 return [new Token(T.str, " ", token.argNo)]
             case "y": {
                 if (sequence) {
-                    return [new Token(T.syntax, sequence, token.argNo)]
+                    return await this.interprateAsToken(new Token(T.str, sequence, token.argNo), T.syntax)
                 }
                 return [new Token(T.str, " ", token.argNo)]
             }
+            //this is different from \y because it splits the args whereas \y keeps everything as 1 arg
             case "Y": {
                 if (sequence) {
                     let p = new Parser(this.#msg, sequence, false)
