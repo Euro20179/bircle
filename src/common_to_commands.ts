@@ -1112,7 +1112,7 @@ export class Interpreter {
 
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
-            await handleSending(this.#msg, { content: `You are about to run the ${this.real_cmd} with args "${this.args.join(" ")}"\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
+            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
             let msgs = await this.#msg.channel.awaitMessages({ filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1 })
             let m = msgs.at(0)
             if (!m) {
