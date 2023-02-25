@@ -1,6 +1,10 @@
-import { setVarEasy } from "./common"
+import { client, prefix, setVarEasy } from "./common"
 import { CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, registerCommand, registerMatchCommand, runCmd, StatusCode } from "./common_to_commands"
 import { Parser } from "./parsing"
+import { fetchUserFromClient, getContentFromResult } from "./util"
+
+import user_options = require("./user-options")
+import { DMChannel } from "discord.js"
 
 export default function*(CAT: CommandCategory) {
     yield [createMatchCommand(async ({ msg, match }) => {
@@ -16,6 +20,46 @@ export default function*(CAT: CommandCategory) {
             replace: createHelpArgument("The text to replace find with", false)
         }
     })]
+
+    yield [createMatchCommand(async ({msg, match}) => {
+
+        if(msg.guild){
+            return {noSend: true, status: StatusCode.RETURN}
+        }
+
+        let searchUser: string = match[1]
+        let textToSend = match[2]
+
+        let user = await fetchUserFromClient(client, searchUser)
+
+        if(!user){
+            return {content: `${searchUser} not found`, status: StatusCode.ERR}
+        }
+        if (user_options.getOpt(user.id, "enable-mail", "false").toLowerCase() !== "true") {
+            return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
+        }
+        let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
+        if (signature.slice(0, prefix.length) === prefix) {
+            signature = getContentFromResult(await runCmd(msg, signature.slice(prefix.length), 19, true))
+            if (signature.startsWith(prefix)) {
+                signature = "\\" + signature
+            }
+        }
+        if(!user.dmChannel){
+            try{
+                await user.createDM()
+            }
+            catch(err){
+                return {content: `Cannot send to ${user.username}`}
+            }
+        }
+        await handleSending(msg, { content: textToSend + `\n${signature}` ||`${msg.member?.displayName || msg.author.username} says hi` , status: StatusCode.RETURN, delete: true, channel: user.dmChannel as DMChannel })
+
+        return {content: `Message sent to ${user.username}`, status: StatusCode.RETURN}
+
+
+
+    }, /@([^\s]+) (.*)/, "match:send-mail-from-dms")]
 
     yield [createMatchCommand(async ({ msg, match }) => {
         let prefix = match[1]
