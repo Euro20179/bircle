@@ -186,6 +186,20 @@ export class AliasV2 {
             return { content: `Failed to expand ${this.name} (infinitely recursive)` }
         }
 
+        let warnings = user_options.getOpt(msg.author.id, "alias-warn-cmds", "").split(" ")
+
+        if(warnings.includes(lastCmd)){
+            await handleSending(msg, {content: `You are about to run the ${lastCmd} with args "${tempExec.split(" ").slice(1)}"\nAre you sure you watn to do this **(y/n)**`, status: StatusCode.PROMPT})
+             let msgs = await msg.channel.awaitMessages({filter: m => m.author.id === msg.author.id, time: 30000, max: 1})
+             let m = msgs.at(0)
+             if(!m){
+                 return {content: `Declined to run ${this.name}`, status: StatusCode.ERR}
+             }
+             else if(m.content.toLowerCase() === 'n'){
+                 return {content: `Declined to run ${this.name}`, status: StatusCode.RETURN}
+             }
+        }
+
         //if this doesnt happen it will be added twice because of the fact that running it will add it again
         globals.removeFromCmdUse(lastCmd)
 
