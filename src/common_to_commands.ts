@@ -5,7 +5,7 @@ import economy = require("./economy")
 import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST, delVar, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
+import { BLACKLIST, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension } from './util';
 import { create } from 'domain';
@@ -329,13 +329,14 @@ export async function cmd({
     disable,
     sendCallback,
     pipeData,
+    disableUserMatch
 
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean }) {
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, disableUserMatch: boolean }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix))) {
+    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, disableUserMatch))) {
         [rv, int] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
     }
     return {
@@ -1112,7 +1113,7 @@ export class Interpreter {
 
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
-            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT})
+            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
             let msgs = await this.#msg.channel.awaitMessages({ filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1 })
             let m = msgs.at(0)
             if (!m) {
@@ -1123,8 +1124,8 @@ export class Interpreter {
             }
         }
 
-        if(declined){
-                rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
+        if (declined) {
+            rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
         }
         else if (this.alias && this.#aliasExpandSuccess) {
             rv = await this.runAlias()
@@ -1207,7 +1208,7 @@ export class Interpreter {
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
         if (!illegalLastCmds.includes(this.real_cmd)) {
             //this is for the !! command
-            lastCommand[this.#msg.author.id] = this.#msg.content
+            lastCommand[this.#msg.author.id] = `[${this.cmd} ${this.args.join(" ")}`
         }
         if (this.returnJson) {
             return rv;
@@ -1345,7 +1346,7 @@ export class Interpreter {
         return [data, int] as const
     }
 
-    static async handleMatchCommands(msg: Message, content: string) {
+    static async handleMatchCommands(msg: Message, content: string, disableUserMatch?: boolean) {
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]
@@ -1354,7 +1355,68 @@ export class Interpreter {
                 return handleSending(msg, await obj.run({ msg, match }))
             }
         }
-        return false
+        if (disableUserMatch) {
+            return false
+        }
+        let userMatchCmds = getUserMatchCommands()?.get(msg.author.id) ?? []
+        for (let [_name, [regex, run]] of userMatchCmds) {
+            let m;
+            if (m = content.match(regex)) {
+                const argsRegex = /^(match\d+)$/
+
+                let escape = false
+                let curPair = ""
+                let inBracket = false
+                let validBracket = false
+                let innerPairs = []
+
+                for (let i = run.indexOf("{"); i < run.lastIndexOf("}") + 1; i++) {
+                    let ch = run[i]
+
+                    if (ch === "{" && !escape) {
+                        inBracket = true
+                        validBracket = true
+                        continue
+                    }
+                    else if (![..."match1234567890"].includes(ch) && !escape && validBracket) {
+                        inBracket = false
+                        validBracket = false
+                        if (argsRegex.test(curPair)) {
+                            innerPairs.push(curPair)
+                        }
+                        curPair = ""
+                        continue
+                    }
+                    if (validBracket) {
+                        curPair += ch
+                    }
+
+                    //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
+                    if (ch === "\\") {
+                        escape = true
+                    }
+                    else {
+                        escape = false
+                    }
+
+                }
+                if (curPair) {
+                    innerPairs.push(curPair)
+                }
+
+                let tempExec = run
+
+                for (let innerText of innerPairs) {
+                    if (argsRegex.test(innerText)) {
+                        let n = Number(innerText.slice("match".length))
+                        tempExec = tempExec.replace(`{${innerText}}`, m[n])
+                    }
+                }
+
+                await cmd({ msg, command_excluding_prefix: tempExec, disableUserMatch: true })
+                return false
+            }
+        }
     }
 }
 
