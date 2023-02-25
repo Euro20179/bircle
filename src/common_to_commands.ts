@@ -203,7 +203,7 @@ export class AliasV2 {
         }
 
         let modifierText = ""
-        for(let modText of modifiers.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))){
+        for (let modText of modifiers.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))) {
             modifierText += modText as string
         }
 
@@ -1110,19 +1110,23 @@ export class Interpreter {
 
         console.log(this.real_cmd, this.real_cmd.slice(this.real_cmd.indexOf(":")))
 
-        if(warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))){
-            await handleSending(this.#msg, {content: `You are about to run the ${this.real_cmd} with args "${this.args.join(" ")}"\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT})
-             let msgs = await this.#msg.channel.awaitMessages({filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1})
-             let m = msgs.at(0)
-             if(!m){
-                 return {content: `Declined to run ${this.real_cmd}`, status: StatusCode.ERR}
-             }
-             else if(m.content.toLowerCase() === 'n'){
-                 return {content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN}
-             }
+        let declined = false
+        if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
+            await handleSending(this.#msg, { content: `You are about to run the ${this.real_cmd} with args "${this.args.join(" ")}"\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
+            let msgs = await this.#msg.channel.awaitMessages({ filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1 })
+            let m = msgs.at(0)
+            if (!m) {
+                declined = true
+            }
+            else if (m.content.toLowerCase() === 'n') {
+                declined = true
+            }
         }
 
-        if (this.alias && this.#aliasExpandSuccess) {
+        if(declined){
+                rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
+        }
+        else if (this.alias && this.#aliasExpandSuccess) {
             rv = await this.runAlias()
         }
         else if (this.alias && !this.#aliasExpandSuccess) {
