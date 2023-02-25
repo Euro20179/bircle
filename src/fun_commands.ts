@@ -3,7 +3,7 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
-import { ColorResolvable, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, User } from "discord.js";
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, User } from "discord.js";
 import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
@@ -997,16 +997,33 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (dm) {
                     rv['dm'] = true
                 }
+                if (stringArgs) {
+                    rv["content"] = stringArgs
+                }
                 if(opts['mail']){
                     let search = String(opts['mail'])
                     let user = await fetchUserFromClient(client, search)
                     if(!user){
                         return {content: `${search} not found`, status: StatusCode.ERR}
                     }
+                    else{
+                        if(!user.dmChannel){
+                            try{
+                                await user.createDM()
+                            }
+                            catch(err){
+                                return {content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR}
+                            }
+                        }
+                        rv['channel'] = user.dmChannel as DMChannel
+                        if(rv['content']){
+                            rv['content'] += user_options.getOpt(msg.author.id, "mail-signature", "")
+                        }
+                        else{
+                            rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
+                        }
+                    }
                     //TODO: finish this
-                }
-                if (stringArgs) {
-                    rv["content"] = stringArgs
                 }
                 if (files.length) {
                     rv["files"] = files as CommandFile[]
@@ -1047,6 +1064,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     },
                     "dm": {
                         description: "Will dm you, instead of sending to channel"
+                    },
+                    "mail": {
+                        description: "Send the result as mail to someone"
                     },
                     "no-del": {
                         description: "same as -D"
