@@ -6,9 +6,9 @@ import user_options = require("./user-options")
 import economy = require("./economy")
 import API = require("./api")
 import { parseAliasReplacement, Parser } from "./parsing"
-import { addToPermList, ADMINS, client, delVar, FILE_SHORTCUTS, getVar, prefix, removeFromPermList, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE } from "./util"
-import { Guild, Message, MessageEmbed } from "discord.js"
+import { addToPermList, addUserMatchCommand, ADMINS, client, delVar, FILE_SHORTCUTS, getUserMatchCommands, getVar, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient } from "./util"
+import { Guild, Message, MessageEmbed, User } from "discord.js"
 import { registerCommand } from "./common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
@@ -28,7 +28,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [".bircle", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback, args }) {
         let file = msg.attachments.at(0)
         let url;
-        if(file)
+        if (file)
             url = file.url
         if (!file) {
             if (args[0].match(/https?:\/\/.*/)) {
@@ -36,7 +36,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
         }
         else {
-            return {content: "No file url or attachment given", status: StatusCode.RETURN}
+            return { content: "No file url or attachment given", status: StatusCode.RETURN }
         }
         let resp = await fetch(url)
         let text = await resp.text()
@@ -452,7 +452,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 catch (err) {
                     return { content: "Invalid regex", status: StatusCode.ERR }
                 }
-                let commands = {...Object.fromEntries(getCommands().entries()), ...getAliasesV2()}
+                let commands = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
                 let results = []
                 for (let cmd in commands) {
                     if (cmd.match(regexp)) {
@@ -646,15 +646,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "switch", ccmdV2(async function({args, msg, commandBans, recursionCount, sendCallback}) {
+        "switch", ccmdV2(async function({ args, msg, commandBans, recursionCount, sendCallback }) {
             args.beginIter()
             let switchOn = args.expectString(1)
-            if(switchOn === BADVALUE){
-                return {content: "No text to switch on", status: StatusCode.ERR}
+            if (switchOn === BADVALUE) {
+                return { content: "No text to switch on", status: StatusCode.ERR }
             }
             let text = args.expectString(() => true)
-            if(text === BADVALUE){
-                return {content: "No cases", status: StatusCode.ERR}
+            if (text === BADVALUE) {
+                return { content: "No cases", status: StatusCode.ERR }
             }
 
             let switchBlock = parseBracketPair(text, "{}")
@@ -663,36 +663,36 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let curCaseText = ""
             let justParsedBlock = false
-            for(let i = 0; i < switchBlock.length; i++){
-                if(justParsedBlock && " \t\n".includes(switchBlock[i])){
+            for (let i = 0; i < switchBlock.length; i++) {
+                if (justParsedBlock && " \t\n".includes(switchBlock[i])) {
                     continue;
                 }
-                else if(switchBlock[i] === "{"){
-                    let block =  parseBracketPair(switchBlock, '{}', i + 1)
+                else if (switchBlock[i] === "{") {
+                    let block = parseBracketPair(switchBlock, '{}', i + 1)
                     cases.push([curCaseText.trim(), block.trim()])
                     i += block.length + 2
                     curCaseText = ""
                     justParsedBlock = true
                 }
-                else{
+                else {
                     justParsedBlock = false
                 }
                 curCaseText += switchBlock[i]
             }
-            for(let caseBlock of cases){
+            for (let caseBlock of cases) {
                 let regex;
-                try{
+                try {
                     regex = new RegExp(caseBlock[0])
                 }
-                catch(err){
-                    await handleSending(msg, {content: `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING})
+                catch (err) {
+                    await handleSending(msg, { content: `${caseBlock[0]} is not a valid regex, skipping case`, status: StatusCode.WARNING })
                 }
                 let shouldContinueTesting = true;
-                if((regex as RegExp).test(switchOn)){
-                    for(let line of caseBlock[1].split(";\n")){
+                if ((regex as RegExp).test(switchOn)) {
+                    for (let line of caseBlock[1].split(";\n")) {
                         line = line.trim()
-                        if(line === "}") break;
-                        if(line === "&&"){
+                        if (line === "}") break;
+                        if (line === "&&") {
                             shouldContinueTesting = true;
                             continue;
                         }
@@ -702,11 +702,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
                     }
                 }
-                if(!shouldContinueTesting){
+                if (!shouldContinueTesting) {
                     break
                 }
             }
-            return {noSend: true, status: 0}
+            return { noSend: true, status: 0 }
 
         }, "Does different things depending on what the initial argument is", {
             helpArguments: {
@@ -1415,6 +1415,88 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
         },
+    ]
+
+    yield [
+        "match-cmd", ccmdV2(async function({ msg, args }) {
+            let name = args[0]
+            let searchRegex = args[1]
+            let run = args.slice(2).join(" ")
+            if (!name) {
+                return { content: `No name given`, status: StatusCode.RETURN }
+            }
+            if (!searchRegex) {
+                return { content: "No search regex given", status: StatusCode.RETURN }
+            }
+            if (!run) {
+                return { content: "Does not run anything", status: StatusCode.RETURN }
+            }
+
+            name = `user-match:${name}`
+
+            let r: RegExp;
+            try {
+                r = new RegExp(searchRegex)
+            }
+            catch (err) {
+                return { content: `Failed to turn ${searchRegex} into a regex`, status: StatusCode.RETURN }
+            }
+
+            addUserMatchCommand(msg.author.id, name, r, run)
+
+            saveMatchCommands()
+
+            return { content: `Created match command that searches for ${searchRegex}`, status: StatusCode.RETURN }
+        }, "Create a user match command")
+    ]
+
+    yield [
+        "list-match-cmds", ccmdV2(async function({ msg, args }) {
+            let user: User | undefined = msg.author
+            if (args[0]) {
+                user = await fetchUserFromClient(client, args[0])
+            }
+            let userCmds = getUserMatchCommands().get(user?.id || msg.author.id)
+            if (!userCmds?.size) {
+                return { content: "You have no match cmds", status: StatusCode.RETURN }
+            }
+            return {
+                content: Array.from(userCmds.entries()).map(([name, [search, run]]) => `**${name}**:\n\`${search}\`\n\`${run}\``).join("\n"),
+                status: StatusCode.RETURN
+            }
+        }, "List Your match commands")
+    ]
+
+    yield [
+        "remove-match-cmd", ccmdV2(async function({ msg, args }) {
+            let name = args[0]
+            let userCmds = getUserMatchCommands().get(msg.author.id)
+            if (!userCmds) {
+                return { content: "No command", status: StatusCode.RETURN }
+            }
+            if (!name) {
+                await handleSending(msg, { content: `Type the number to remove\n${Array.from(userCmds.entries()).map(([name, _], i) => `**${i + 1}**: ${name}`).join("\n")}`, status: StatusCode.PROMPT })
+                let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id && !isNaN(Number(m.content)), max: 1 })
+                let m = msgs.at(0)
+                if (!m) {
+                    return { content: "Did not respond", status: StatusCode.ERR }
+                }
+
+                let name = Array.from(userCmds.entries()).filter((_, i) => i + 1 === Number(m?.content))[0][0]
+                removeUserMatchCommand(msg.author.id, name)
+                saveMatchCommands()
+                return { content: `Successfully removed: ${name}`, status: StatusCode.RETURN }
+            }
+            else {
+                name = `user-match:${name}`
+                if (userCmds.get(name)) {
+                    removeUserMatchCommand(msg.author.id, name)
+                    saveMatchCommands()
+                    return { content: `Successfully removed: ${name}`, status: StatusCode.RETURN }
+                }
+            }
+            return { content: `Could not remove: ${name}`, status: StatusCode.ERR }
+        }, "Removes a user match command")
     ]
 
     yield [
@@ -2226,10 +2308,10 @@ ${styles}
     ]
 
     yield [
-        "RESET_CMDUSE", ccmdV2(async function(){
+        "RESET_CMDUSE", ccmdV2(async function() {
             fs.writeFileSync("data/cmduse", "")
             globals.CMDUSE = globals.loadCmdUse()
-            return {content: "cmd use reset", status: StatusCode.RETURN}
+            return { content: "cmd use reset", status: StatusCode.RETURN }
         }, "Resets cmduse", {
             permCheck: m => ADMINS.includes(m.author.id)
         })
@@ -2400,7 +2482,7 @@ ${styles}
             helpMetaData.arguments = commandHelpArgs
         }
 
-        if(tags.length){
+        if (tags.length) {
             helpMetaData.tags = tags
         }
 

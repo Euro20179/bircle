@@ -50,7 +50,7 @@ export default function*(CAT: CommandCategory) {
                 await user.createDM()
             }
             catch(err){
-                return {content: `Cannot send to ${user.username}`}
+                return {content: `Cannot send to ${user.username}`, status: StatusCode.ERR}
             }
         }
         await handleSending(msg, { content: textToSend + `\n${signature}` ||`${msg.member?.displayName || msg.author.username} says hi` , status: StatusCode.RETURN, delete: true, channel: user.dmChannel as DMChannel })
