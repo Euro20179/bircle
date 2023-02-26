@@ -165,7 +165,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin: CommandReturn, modifiers: Modifier[] }) {
+    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[] }) {
 
         if (BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -203,7 +203,7 @@ export class AliasV2 {
         }
 
         let modifierText = ""
-        for (let modText of modifiers.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))) {
+        for (let modText of (modifiers?.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))) ?? []) {
             modifierText += modText as string
         }
 
