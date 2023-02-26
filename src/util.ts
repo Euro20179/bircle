@@ -619,7 +619,6 @@ async function fetchUserFromClient(client: Client, find: string) {
 }
 
 /**
-    * @deprecated use fetchUserFromClient
     * @description finds the member in a guild
 */
 async function fetchUser(guild: Guild, find: string) {
@@ -628,7 +627,7 @@ async function fetchUser(guild: Guild, find: string) {
         find = res[1]
     }
     find = find.toLowerCase()
-    let user = guild.members.cache.find((v, k) => {
+    let user = guild.members.cache.find((v) => {
         return v.user.username.toLowerCase().startsWith(find) ||
             v.nickname?.toLowerCase().startsWith(find) ||
             v.id === find ||
