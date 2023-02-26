@@ -24,7 +24,7 @@ import { URLSearchParams } from "url"
 import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
-import { getUserMatchCommands } from './src/common'
+import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -219,7 +219,7 @@ client.on("messageCreate", async (m: typeof Message) => {
             let stuff = await pet.PETACTIONS['puffle'](m)
             if (stuff) {
                 let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
-                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
+                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
         }
     }

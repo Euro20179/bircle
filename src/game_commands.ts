@@ -12,7 +12,7 @@ import pet from "./pets"
 import uno = require("./uno")
 
 import { choice, cycle, efd, fetchUser, format, getOpts, mulStr, strlen } from "./util"
-import { client, getVar, setVar } from "./common"
+import { client, getVar, GLOBAL_CURRENCY_SIGN, setVar } from "./common"
 
 const { useItem, hasItem } = require("./shop")
 
@@ -1319,7 +1319,7 @@ until you put a 0 in the box`)
                     fmt += `\n{earnings}`
                     fs.writeFileSync("./command-results/last-run", String(Date.now()))
                 }
-                return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}` }), status: StatusCode.RETURN }
+                return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
             },
             help: {
                 arguments: {
@@ -1563,7 +1563,7 @@ until you put a 0 in the box`)
             let dealerTotal = calculateTotal(dealerCards).total
             let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
             let status = "You won"
-            let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
+            let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
             if (playerTotal > 21) {
                 status = `You lost: $${bet} (over 21)`
                 economy.loseMoneyToBank(msg.author.id, bet)
