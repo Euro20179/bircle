@@ -2167,7 +2167,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 ${styles}
 </style>`
                     for (let command in commandsToUse) {
-                        html += generateHTMLFromCommandHelp(command, commands.get(command))
+                        html += generateHTMLFromCommandHelp(command, commands.get(command) as Command | CommandV2)
                     }
                     fs.writeFileSync("help.html", html)
                 }

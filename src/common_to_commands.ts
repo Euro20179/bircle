@@ -1645,7 +1645,7 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
     use_result_cache?: boolean,
-    accepts_stdin: CommandHelp['accepts_stdin']
+    accepts_stdin?: CommandHelp['accepts_stdin']
 }): CommandV2 {
     return {
         run: cb,

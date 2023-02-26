@@ -1359,7 +1359,7 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for (let option in options) {
                 let desc = options[option].description || ""
-                let alternates = options[option].alternates || 0
+                let alternates = options[option].alternates
                 // let requiresValue = options[option].requiresValue || false
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
