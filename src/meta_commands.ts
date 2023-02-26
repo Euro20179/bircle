@@ -1419,6 +1419,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "match-cmd", ccmdV2(async function({ msg, args }) {
+            if(msg.author.bot){
+                return {content: `I dont like match commands dont force me to use them 😩`, status: StatusCode.ERR}
+            }
             let name = args[0]
             let searchRegex = args[1]
             let run = args.slice(2).join(" ")

@@ -209,7 +209,7 @@ export class AliasV2 {
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback, disableUserMatch: true })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -1413,8 +1413,13 @@ export class Interpreter {
                     }
                 }
 
-                await cmd({ msg, command_excluding_prefix: tempExec, disableUserMatch: true, recursion: (recursion ?? 0) + 1 })
-                return false
+                try {
+                    await cmd({ msg, command_excluding_prefix: tempExec, disableUserMatch: true, recursion: 0 })
+                }
+                catch (err) {
+                    console.error(err)
+                    await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+                }
             }
         }
     }
@@ -1513,7 +1518,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     //only do this if content
     else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, prefix.length) === prefix) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
-        rv = await runCmd(msg, rv.content.slice(prefix.length), recursion + 1, true, rv.recurse === true ? undefined : rv.recurse) as CommandReturn
+
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse, disableUserMatch: true })
+
+        rv = ret.rv
         //we only want to override it if the command doens't explicitly want to do it
         if (rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false) {
             rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion

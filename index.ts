@@ -24,6 +24,7 @@ import { URLSearchParams } from "url"
 import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
+import { getUserMatchCommands } from './src/common'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -181,6 +182,7 @@ client.on("messageCreate", async (m: typeof Message) => {
     }
 
     if (content.slice(0, local_prefix.length) == local_prefix) {
+        let msg = m
         if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
             server.close()
         }
@@ -559,7 +561,7 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
                 ["Created at", user.createdAt.toString() || "#!N/A", true],
                 ["Joined at", member?.joinedAt?.toString() || "#!N/A", true],
                 ["Boosting since", member?.premiumSince?.toString() || "#!N/A", true])
-                           )
+            )
             interaction.reply({ embeds: [embed] }).catch(console.error)
         }
     }
