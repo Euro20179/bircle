@@ -1238,7 +1238,8 @@ export class Interpreter {
 
     async handlePipes(commandReturn: CommandReturn) {
         let tks = this.getPipeTo()
-        while (tks.length) {
+        //if noSend is given, we dont want to pipe it
+        while (tks.length && !commandReturn.noSend) {
             tks[0] = tks[0].convertToCommand()
             let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn)
             await int.interprate()
