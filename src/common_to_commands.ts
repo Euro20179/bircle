@@ -1157,6 +1157,12 @@ export class Interpreter {
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
 
+                if(opts['?']){
+                    args = [this.real_cmd]
+                    args2 = [this.real_cmd]
+                    this.real_cmd = "help"
+                }
+
                 if (commands.get(this.real_cmd)?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
                     rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
                 }
