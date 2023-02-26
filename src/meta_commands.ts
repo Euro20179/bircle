@@ -1450,7 +1450,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             saveMatchCommands()
 
             return { content: `Created match command that searches for ${searchRegex}`, status: StatusCode.RETURN }
-        }, "Create a user match command")
+        }, "Create a user match command", {
+            helpArguments: {
+                name: createHelpArgument("Name of the command", true),
+                match: createHelpArgument("The regex to match against", true),
+                "...run": createHelpArgument("The command to run<br>{match$x} where $x is a number will be replaced with the capture group that it corresponds to, eg: {match1} will be replaced with the first capture group", true)
+            }
+        })
     ]
 
     yield [
