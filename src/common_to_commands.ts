@@ -1348,7 +1348,6 @@ export class Interpreter {
                 return handleSending(msg, await obj.run({ msg, match }))
             }
         }
-        console.log(enableUserMatch)
         if (!enableUserMatch) {
             return false
         }
