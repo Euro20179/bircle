@@ -1,7 +1,7 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable }  from 'discord.js'
 import { getVar } from './common'
 
-import { handleSending, runCmd, StatusCode } from "./common_to_commands"
+import { cmd, handleSending, StatusCode } from "./common_to_commands"
 import { efd } from './util'
 
 const { vars, prefix } = require( "./common.js")
@@ -521,7 +521,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if(typeof text !== 'string'){
                     return {err: true, content: "Cannot run a non-string"}
                 }
-                let data = await runCmd(msg, text, 19, true)
+                let data = (await cmd({ msg, command_excluding_prefix: text, recursion: 19, returnJson: true })).rv
                 if(data === undefined){
                     stack.push(0)
                 }

@@ -12,7 +12,7 @@ import pet from "./pets"
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2 } from './common_to_commands'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd } from './common_to_commands'
 import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE } from './util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from './common'
 import { spawn, spawnSync } from 'child_process'
@@ -517,8 +517,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         for (let i = 0; i < commandLines.length; i++) {
                             let textAtLine = text[commandLines[i]]
                             setVar("__ed_line", textAtLine, msg.author.id)
-                            let rv = await runCmd(msg, args, rec, true, bans)
-                            let t = getContentFromResult(rv as CommandReturn, "\n").trim()
+                            let rv = (await cmd({ msg, command_excluding_prefix: args, recursion: rec, returnJson: true, disable: bans })).rv
+                            let t = getContentFromResult(rv, "\n").trim()
                             delete vars[msg.author.id]["__ed_line"]
                             text[commandLines[i]] = t
                         }
@@ -1656,7 +1656,7 @@ middle
                         replacedFn = `${fn} ${string}`
                     }
 
-                    string = getContentFromResult(await runCmd(msg, replacedFn, rec + 1, true, bans) as CommandReturn).trim()
+                    string = getContentFromResult((await cmd({msg, command_excluding_prefix: replacedFn, recursion: rec + 1, returnJson: true, disable: bans})).rv).trim()
                 }
                 return { content: string, status: StatusCode.RETURN }
             },

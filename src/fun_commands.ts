@@ -15,7 +15,7 @@ import user_options = require("./user-options")
 import pet from "./pets"
 import globals = require("./globals")
 import timer from './timer'
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, runCmd, slashCommands, snipes, StatusCode } from "./common_to_commands";
+import { cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "./common_to_commands";
 import { registerFont } from 'canvas';
 import { giveItem } from './shop';
 import { randomInt } from 'crypto';
@@ -134,7 +134,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult(await runCmd(msg, signature.slice(prefix.length), recursionCount, true, { ...(commandBans || {}), ...generateDefaultRecurseBans() }) as CommandReturn)
+            signature = getContentFromResult((await cmd({msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() }})).rv)
             if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }
@@ -505,7 +505,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             count_text = count_text.replaceAll("{count}", `.${numeric}.`)
             if (count_text.startsWith(prefix)) {
-                let rv = await runCmd(msg, count_text.slice(prefix.length), rec, true, disable)
+                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(prefix.length), recursion: rec, returnJson: true, disable })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
                 }

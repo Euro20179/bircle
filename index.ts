@@ -136,7 +136,7 @@ client.on("messageCreate", async (m: typeof Message) => {
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if (command_commons.isCmd(pingresponse, prefix)) {
-                    await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans())
+                    await command_commons.cmd({msg: m, command_excluding_prefix: pingresponse.slice(prefix.length), disable: command_commons.generateDefaultRecurseBans()})
                 }
                 else {
                     m.channel.send(pingresponse)
@@ -734,8 +734,8 @@ server.on("request", (req, res) => {
                     _cacheType: false,
                     _patch: (_data: any) => { }
                 }
-                command_commons.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
-                    command_commons.handleSending(msg, rv as CommandReturn).then(_done => {
+                command_commons.cmd({msg, command_excluding_prefix: (command as string).slice(prefix), returnJson: true}).then(rv => {
+                    command_commons.handleSending(msg, rv.rv as CommandReturn).then(_done => {
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))
                     }).catch(_err => {

@@ -3,7 +3,7 @@ import economy = require("./economy")
 import pet from './pets'
 import shop = require("./shop")
 import fetch = require('node-fetch')
-import { runCmd } from "./common_to_commands"
+import { cmd } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 
 const { fetchUser, getFonts } = require("./util.js")
@@ -57,9 +57,8 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     run: {
         requirements: ["cmd"],
         extra: ['msg'],
-        exec: async({msg, cmd}: {msg: Message, cmd: string}) => {
-            console.log(cmd)
-            return JSON.stringify(await runCmd(msg, cmd, RECURSION_LIMIT - 1, true))
+        exec: async({msg, cmd: command}: {msg: Message, cmd: string}) => {
+            return JSON.stringify((await cmd({msg, command_excluding_prefix: command, recursion: RECURSION_LIMIT - 1, returnJson: true})).rv)
         }
     },
     economyLooseGrandTotal: {

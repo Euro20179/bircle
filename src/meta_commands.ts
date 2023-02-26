@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, runCmd, StatusCode } from "./common_to_commands"
+import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -46,7 +46,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (line.startsWith(prefix)) {
                 line = line.slice(prefix.length)
             }
-            await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
+            await cmd({msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback})
         }
         return { noSend: true, status: StatusCode.RETURN }
     }, "Runs a .bircle file")]
@@ -79,7 +79,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                await runCmd(msg, line, globals.RECURSION_LIMIT - 1, false, bans, sendCallback)
+                await cmd({msg, command_excluding_prefix: line, recursion: globals.RECURSION_LIMIT - 1, disable: bans, sendCallback})
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "Run some commands"),
@@ -90,7 +90,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
-            return { content: JSON.stringify(await runCmd(msg, args.slice(0, -1).join(" "), rec + 1, true, bans, sendCallback)), status: StatusCode.RETURN }
+            return { content: JSON.stringify((await cmd({msg, command_excluding_prefix: args.slice(0, -1).join(" "), recursion: rec + 1, returnJson: true, disable: bans, sendCallback})).rv), status: StatusCode.RETURN }
         }, CAT),
     ]
 
@@ -558,7 +558,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "del", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, opts, sendCallback }) => {
             if (!opts.getBool("N", false)) return { noSend: true, delete: true, status: StatusCode.RETURN }
-            await runCmd(msg, args.join(" "), rec + 1, false, bans, sendCallback)
+            await cmd({msg, command_excluding_prefix: args.join(" "), recursion: rec + 1, disable: bans, sendCallback})
             return { noSend: true, delete: true, status: StatusCode.RETURN }
         }, CAT, "delete your message", {
             "...text": createHelpArgument("text"),
@@ -576,7 +576,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             text = text.slice(command.length + 2)
 
-            let rv = await runCmd(msg, command, rec + 1, true, bans, sc)
+            let rv = (await cmd({msg, command_excluding_prefix: command, recursion: rec + 1, returnJson: true, disable: bans, sendCallback: sc})).rv
             for (let line of text.split("\n")) {
                 line = line.trim()
                 if (!line) continue
@@ -629,7 +629,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             outer: for (let i = start; i < end; i++) {
                 setVar(var_name, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
+                    await cmd({msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback})
                     await new Promise(res => setTimeout(res, 1000))
                     if (!globals.SPAMS[id]) {
                         break outer
@@ -699,7 +699,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         else {
                             shouldContinueTesting = false;
                         }
-                        await runCmd(msg, line, recursionCount + 1, false, commandBans, sendCallback)
+                        await cmd({msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback})
                     }
                 }
                 if (!shouldContinueTesting) {
@@ -721,8 +721,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
 
-            async function runIf(cmd: string, operator: string, value: string) {
-                let rv = await runCmd(msg, cmd, rec + 1, true, bans) as CommandReturn
+            async function runIf(c: string, operator: string, value: string) {
+                let rv = (await cmd({msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans})).rv
                 let isTrue = false
                 switch (operator) {
                     case "==": {
@@ -793,8 +793,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let text = args.join(" ")
 
-            let cmd = parseBracketPair(text, "()")
-            text = text.slice(cmd.length + 2)
+            let cmdToCheck = parseBracketPair(text, "()")
+            text = text.slice(cmdToCheck.length + 2)
 
             let operator = parseBracketPair(text, "  ")
             text = text.slice(operator.length + 2)
@@ -802,7 +802,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let value = parseBracketPair(text, "()")
             text = text.slice(value.length + 2)
 
-            let isTrue = await runIf(cmd, operator, value)
+            let isTrue = await runIf(cmdToCheck, operator, value)
 
             let trueBlock = parseBracketPair(text, "{}")
             text = text.slice(text.indexOf("{") + trueBlock.length).trim().slice(2).trim()
@@ -842,7 +842,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 for (let line of trueBlock.split(";\n")) {
                     line = line.trim()
                     if (!line || line.startsWith("}")) continue
-                    await runCmd(msg, line, rec + 1, false, bans)
+                    await cmd({msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans})
                 }
                 return { noSend: true, status: StatusCode.RETURN }
             }
@@ -851,7 +851,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 for (let elif of elifBlocks) {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
                         if (!elif.block.trim() || elif.block.trim().startsWith("}")) continue
-                        await runCmd(msg, elif.block.trim(), rec + 1, false, bans)
+                        await cmd({msg, command_excluding_prefix: elif.block.trim(), recursion: rec + 1, disable: bans})
                         foundElse = true
                         break;
                     }
@@ -860,7 +860,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     for (let line of falseBlock.split(";\n")) {
                         line = line.trim()
                         if (!line || line.startsWith("}")) continue
-                        await runCmd(msg, line, rec + 1, false, bans)
+                        await cmd({msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans})
                     }
                 }
                 return { noSend: true, status: StatusCode.RETURN }
@@ -896,11 +896,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "if",
         {
             run: async (msg, args, sendCallback, opts, deopedArgs, recursion_count, command_bans) => {
-                let [condition, cmd] = args.join(" ").split(";")
-                if (!cmd) {
+                let [condition, cmdToCheck] = args.join(" ").split(";")
+                if (!cmdToCheck) {
                     return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
                 }
-                cmd = cmd.split(";end")[0]
+                cmdToCheck = cmdToCheck.split(";end")[0]
                 let success;
                 if (condition.trim().startsWith(`(${prefix}`)) {
                     let command_to_run = ""
@@ -947,7 +947,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                         expected += ch;
                     }
-                    let content = getContentFromResult(await runCmd(msg, command_to_run.slice(prefix.length), recursion_count + 1, true, command_bans) as CommandReturn).trim();
+                    let content = getContentFromResult((await cmd({msg, command_excluding_prefix: command_to_run.slice(prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans})).rv).trim()
                     expected = expected.trim()
                     switch (check.trim().toLowerCase()) {
                         case "==": {
@@ -1018,11 +1018,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 }
                 if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                    return await runCmd(msg, cmd.trim(), recursion_count + 1, true, command_bans) as CommandReturn
+                    return (await cmd({msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans})).rv
                 }
                 let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
                 if (elseCmd) {
-                    return await runCmd(msg, elseCmd.trim(), recursion_count, true, command_bans) as CommandReturn
+                    return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv
                 }
                 return { content: "?", status: StatusCode.ERR }
             },
@@ -1274,7 +1274,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             //TODO: add performance markers throughout the different steps of runninga  command
             let start = performance.now()
-            await runCmd(msg, args.join(" ").trim(), rec + 1, false, bans, sendCallback)
+            await cmd({msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback})
             return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
@@ -1303,8 +1303,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let totalTimes = times
                 let id = String(Math.floor(Math.random() * 100000000))
                 await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
-                let cmd = cmdArgs.split(" ")[0]
-                let expansion = await expandAlias(cmd, (alias) => {
+                let cmdToDo = cmdArgs.split(" ")[0]
+                let expansion = await expandAlias(cmdToDo, (alias) => {
                     console.log(alias)
                     if (alias === "do" || alias === "spam" || alias === "run") {
                         return false
@@ -1316,7 +1316,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 globals.SPAMS[id] = true
                 while (globals.SPAMS[id] && times--) {
-                    await runCmd(msg, format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), globals.RECURSION_LIMIT, false, bans, sendCallback)
+                    await cmd({ msg, command_excluding_prefix: format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), recursion: globals.RECURSION_LIMIT, disable: bans, sendCallback })
                     await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
                 }
                 delete globals.SPAMS[id]
@@ -1624,7 +1624,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (line.startsWith(prefix)) {
                         line = line.slice(prefix.length)
                     }
-                    await runCmd(msg, parseRunLine(line), recursion + 1, false, bans, sendCallback)
+                    await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback})
                 }
                 delete globals.SPAMS[id]
                 return { noSend: true, status: StatusCode.INFO }
@@ -1636,8 +1636,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "silent", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
-            await runCmd(msg, args.join(" "), recursionCount, true, commandBans, async () => msg)
+        "silent", ccmdV2(async function({ args, msg, recursionCount, commandBans }) {
+            await cmd({msg, command_excluding_prefix: args.join(" "), recursion: recursionCount, returnJson: true, disable: commandBans, sendCallback: async () => msg})
             return { noSend: true, status: StatusCode.RETURN }
         }, "Run a command silently")
     ]
@@ -2599,7 +2599,7 @@ ${styles}
                     return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
                 }
                 msg.content = lastCommand[msg.author.id]
-                return await runCmd(msg, lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), rec + 1, true, bans, sendCallback) as CommandReturn
+                return (await cmd({msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback})).rv
             },
             help: {
                 info: "Run the last command that was run",
@@ -2771,7 +2771,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                await runCmd(m, m.content, recursionCount + 1, false, commandBans, sendCallback)
+                await cmd({ msg: m, command_excluding_prefix: m.content, recursion: recursionCount + 1, disable: commandBans, sendCallback })
             })
 
             collector.on("end", () => {

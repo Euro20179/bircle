@@ -1,5 +1,5 @@
 import { client, prefix, setVarEasy } from "./common"
-import { CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, registerCommand, registerMatchCommand, runCmd, StatusCode } from "./common_to_commands"
+import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "./common_to_commands"
 import { Parser } from "./parsing"
 import { fetchUserFromClient, getContentFromResult } from "./util"
 
@@ -11,7 +11,7 @@ export default function*(CAT: CommandCategory) {
         let find = match[1]
         let replace = match[2]
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        return await runCmd(msg, lastCommand[msg.author.id].slice(1), 1, true) as CommandReturn
+        return (await cmd({msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true})).rv
 
     }, /^\^([^\^]+)\^(.*)$/, "match:run-replace", {
         info: "^&lt;find&gt;^&lt;replace&gt;",
@@ -40,7 +40,7 @@ export default function*(CAT: CommandCategory) {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult(await runCmd(msg, signature.slice(prefix.length), 19, true))
+            signature = getContentFromResult((await cmd({msg, command_excluding_prefix: signature.slice(prefix.length), recursion: 19, returnJson: true})).rv)
             if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }
@@ -141,8 +141,8 @@ export default function*(CAT: CommandCategory) {
             m.channel.send = async (_data) => {
                 return m
             }
-            for (let cmd of cmds) {
-                let rv = await runCmd(m, `${cmd} ${result}`, 0, true)
+            for (let c of cmds) {
+                let rv = await cmd({msg: m, command_excluding_prefix: `${c} ${result}`, returnJson: true})
                 //@ts-ignore
                 if (rv?.content) result = rv.content
             }

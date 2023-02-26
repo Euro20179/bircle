@@ -310,17 +310,6 @@ export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
-export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
-    let parser = new Parser(msg, command_excluding_prefix)
-    await parser.parse()
-    let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, undefined, recursion))) {
-        let _;
-        [rv, _] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
-    }
-    return rv
-}
-
 export async function cmd({
     msg,
     command_excluding_prefix,
@@ -1032,7 +1021,7 @@ export class Interpreter {
             content = modifierToStr(mod.type) + content
         }
 
-        return await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
+        return (await cmd({msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable})).rv
     }
 
     async run(): Promise<CommandReturn | undefined> {
