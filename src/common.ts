@@ -11,8 +11,6 @@ const prefix = readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const LOGFILE = "log.txt"
-
 const VERSION = { major: 5, minor: 12, bug: 2, part: "", beta: false, alpha: false }
 
 //@ts-ignore
@@ -250,7 +248,6 @@ export {
     reloadWhiteList,
     addToPermList,
     removeFromPermList,
-    LOGFILE,
     VERSION,
     USER_SETTINGS,
     client,
