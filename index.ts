@@ -182,7 +182,6 @@ client.on("messageCreate", async (m: typeof Message) => {
     }
 
     if (content.slice(0, local_prefix.length) == local_prefix) {
-        let msg = m
         if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
             server.close()
         }
@@ -190,7 +189,7 @@ client.on("messageCreate", async (m: typeof Message) => {
             m.content = `${cmd}`
             let c = m.content.slice(local_prefix.length)
             try {
-                await command_commons.runCmd(m, c)
+                await command_commons.cmd({msg: m, command_excluding_prefix: c})
             }
             catch (err) {
                 console.error(err)
@@ -200,7 +199,7 @@ client.on("messageCreate", async (m: typeof Message) => {
         globals.writeCmdUse()
     }
     else {
-        await command_commons.Interpreter.handleMatchCommands(m, m.content)
+        await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
     }
     if (economy.canEarn(m.author.id)) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)

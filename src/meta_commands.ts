@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, expandCommand, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, runCmd, StatusCode } from "./common_to_commands"
+import { aliases, aliasesV2, AliasV2, ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, runCmd, StatusCode } from "./common_to_commands"
 import globals = require("./globals")
 import user_options = require("./user-options")
 import economy = require("./economy")
@@ -1450,7 +1450,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             saveMatchCommands()
 
             return { content: `Created match command that searches for ${searchRegex}`, status: StatusCode.RETURN }
-        }, "Create a user match command")
+        }, "Create a user match command", {
+            helpArguments: {
+                name: createHelpArgument("Name of the command", true),
+                match: createHelpArgument("The regex to match against", true),
+                "...run": createHelpArgument("The command to run<br>{match$x} where $x is a number will be replaced with the capture group that it corresponds to, eg: {match1} will be replaced with the first capture group", true)
+            }
+        })
     ]
 
     yield [
