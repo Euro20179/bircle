@@ -117,8 +117,8 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 const GLOBAL_CURRENCY_SIGN = "$"
 
 let defaultVars = {
-    random: () => Math.random(),
-    rand: () => Math.random(),
+    random: () => String(Math.random()),
+    rand: () => String(Math.random()),
     prefix: (msg: Message) => getOpt(msg.author.id, "prefix", prefix),
     scopecount: () => Object.keys(vars).length,
     sender: (msg: Message) => `<@${msg.author.id}>`,
