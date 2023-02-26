@@ -1263,7 +1263,6 @@ The commands below, only work after **path** has been run:
             if (!img2 || !img2.startsWith("http")) {
                 img2 = getImgFromMsgAndOpts(opts, msg) as string
             }
-            console.log(img1, img2)
             if (!img2 || !img1) {
                 return { content: `Must provide 2 images\nimg1: ${img1}\nimg2: ${img2}`, status: StatusCode.ERR }
             }

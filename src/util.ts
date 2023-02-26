@@ -607,7 +607,6 @@ async function fetchUserFromClient(client: Client, find: string) {
     let user = client.users.cache.find((v, k) => {
         return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find
     })
-    console.log(user)
     if(!user){
         try{
             user = await client.users.fetch(find)

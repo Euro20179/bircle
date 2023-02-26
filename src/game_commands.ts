@@ -1207,7 +1207,6 @@ until you put a 0 in the box`)
                             current_location = '__generic__'
                         }
                         else {
-                            console.log("fallback", lastLegacyStage, stage)
                             //@ts-ignore
                             if (legacyNextStages[lastLegacyStage]) {
                                 //@ts-ignore

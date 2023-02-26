@@ -1427,7 +1427,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     e.setTitle(String(res['title']))
 
                     if (res.description) {
-                        console.log(res.description)
                         e.setDescription(res.description)
                     }
 
@@ -2043,7 +2042,6 @@ The order these are given does not matter, excpet for field, which will be added
             const cmd = spawn("qalc", argList)
             cmd.stdout.on("data", data => {
                 let text = data.toString("utf-8").replaceAll(/\[[\d;]+m/g, "")
-                console.log(text)
                 msg.channel.send(text)
             })
             cmd.stderr.on("data", data => {
@@ -2652,7 +2650,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let decPaddingCount = 0;
                 let addCommas = false
                 if (format[0] === "0" && (digits = format.slice(1)?.match(/^[0-9]+/))) {
-                    console.log(format.slice(1, digits[0].length + 1))
                     paddingCount = Number(format.slice(1, digits[0].length + 1))
                     format = format.slice(1 + digits[0].length)
                 }
@@ -2688,7 +2685,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (currentSpecifier) {
             formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier))
         }
-        console.log(formatSpecifierList)
 
         let rv: CommandReturn = { status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 

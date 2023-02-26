@@ -458,7 +458,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let [p, ...name] = args
         let realName = name.join(" ")
         let type = pet.getPetTypeByName(msg.author.id, p)
-        console.log(type)
         if (type)
             p = type
         if (pet.namePet(msg.author.id, p, realName)) {

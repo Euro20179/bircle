@@ -1442,7 +1442,6 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
     if (word)
         stacklArgs.push(word)
     args = stacklArgs.filter(a => a ? true : false)
-    console.log(args)
     let recursionC = 0
 
     for (let i = 0; i < args.length; i++) {

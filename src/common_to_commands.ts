@@ -1098,8 +1098,6 @@ export class Interpreter {
 
         let warnings = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
 
-        console.log(this.real_cmd, this.real_cmd.slice(this.real_cmd.indexOf(":")))
-
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
             await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })

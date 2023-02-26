@@ -766,6 +766,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         isTrue = Boolean(rv.content?.includes(value))
                         break
                     }
+                    case "=~":
                     case ":": {
                         try {
                             isTrue = !!rv.content?.match(value)
@@ -879,6 +880,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 <li><b>&gt;=</b>: greater than or equal</li>
 <li><b>*=</b>: result includes value</li>
 <li><b>includes</b>: result includes value</li>
+<li><b>=~</b>: do a regex match with value in result</li>
 <li><b>:</b>: do a regex match with value in result</li>
 <li><b>^=</b>: result starts with value</li>
 <li><b>starts-with</b>: result starts with value</li>
@@ -1305,7 +1307,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
                 let cmdToDo = cmdArgs.split(" ")[0]
                 let expansion = await expandAlias(cmdToDo, (alias) => {
-                    console.log(alias)
                     if (alias === "do" || alias === "spam" || alias === "run") {
                         return false
                     }
@@ -1674,7 +1675,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let opts;
                 [opts, args] = getOpts(args)
                 let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
-                console.log(name, value)
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
                 }
@@ -1692,7 +1692,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 else {
                     setVar(name, realVal)
-                    console.log(getVar(msg, name))
                     if (!opts['silent'])
                         return {
                             content: getVar(msg, name),
