@@ -2140,6 +2140,33 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
+        "read-lines", ccmdV2(async function({msg, args, sendCallback, stdin, pipeTo, opts}){
+            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let lines = text.split("\n")
+            if(!pipeTo){
+                await handleSending(msg, {content: `Warning: you are not piping the result to anything`, status: StatusCode.WARNING}, sendCallback)
+            }
+            let waitTime = opts.getNumber("w", 1000)
+            if(waitTime < 700){
+                waitTime = 1000
+            }
+            let id = Math.random()
+            globals.SPAMS[id] = true
+            for(let line of lines){
+                if(!globals.SPAMS[id])
+                    break;
+
+                await handleSending(msg, {content: line, status: StatusCode.INFO, do_change_cmd_user_expansion: false}, sendCallback)
+                await new Promise(res => setTimeout(res, waitTime))
+            }
+            delete globals.SPAMS[id]
+            return {noSend: true, status: StatusCode.RETURN}
+        }, "Read each line one at a time and send to sendCallback", {
+            accepts_stdin: "The text to read one line at a time"
+        })
+    ]
+
+    yield [
         "pcount",
         {
             run: async (_msg, args) => {

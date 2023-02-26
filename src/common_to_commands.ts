@@ -1177,7 +1177,8 @@ export class Interpreter {
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                         opts: new Options(opts),
                         argList: new ArgList(args2),
-                        stdin: this.#pipeData
+                        stdin: this.#pipeData,
+                        pipeTo: this.#pipeTo
                     };
                     let cmd = commands.get(this.real_cmd) as CommandV2
                     rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
@@ -1642,21 +1643,23 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     tags?: string[],
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
-    use_result_cache?: boolean
+    use_result_cache?: boolean,
+    accepts_stdin: CommandHelp['accepts_stdin']
 }): CommandV2 {
     return {
         run: cb,
         help: {
             info: helpInfo,
-            arguments: options?.helpArguments ? options?.helpArguments : undefined,
-            options: options?.helpOptions ? options?.helpOptions : undefined,
-            tags: options?.tags ? options?.tags : undefined
+            arguments: options?.helpArguments,
+            options: options?.helpOptions,
+            tags: options?.tags,
+            accepts_stdin: options?.accepts_stdin
         },
         category: options?.category,
         permCheck: options?.permCheck,
         make_bot_type: options?.shouldType,
         cmd_std_version: 2,
-        use_result_cache: options?.use_result_cache
+        use_result_cache: options?.use_result_cache,
     }
 
 }

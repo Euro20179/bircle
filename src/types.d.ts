@@ -62,7 +62,11 @@ declare global {
         aliases?: string[],
         arguments?: CommandHelpArguments,
         options?: CommandHelpOptions,
-        tags?: string[]
+        tags?: string[],
+        /**
+            * @description a string for a description, boolean if it just does/does not accept stdin
+        */
+        accepts_stdin?: string | boolean
     }
 
     interface ValidationReturn extends CommandReturn {
