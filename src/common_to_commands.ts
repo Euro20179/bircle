@@ -209,7 +209,7 @@ export class AliasV2 {
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback, disableUserMatch: true })
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback})
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -329,14 +329,14 @@ export async function cmd({
     disable,
     sendCallback,
     pipeData,
-    disableUserMatch
+    enableUserMatch
 
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, disableUserMatch: boolean }) {
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, disableUserMatch, recursion))) {
+    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
         [rv, int] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
     }
     return {
@@ -1346,7 +1346,7 @@ export class Interpreter {
         return [data, int] as const
     }
 
-    static async handleMatchCommands(msg: Message, content: string, disableUserMatch?: boolean, recursion?: number) {
+    static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean, recursion?: number) {
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]
@@ -1355,7 +1355,8 @@ export class Interpreter {
                 return handleSending(msg, await obj.run({ msg, match }))
             }
         }
-        if (disableUserMatch) {
+        console.log(enableUserMatch)
+        if (!enableUserMatch) {
             return false
         }
         let userMatchCmds = getUserMatchCommands()?.get(msg.author.id) ?? []
@@ -1414,7 +1415,7 @@ export class Interpreter {
                 }
 
                 try {
-                    await cmd({ msg, command_excluding_prefix: tempExec, disableUserMatch: true, recursion: 0 })
+                    await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })
                 }
                 catch (err) {
                     console.error(err)
@@ -1519,7 +1520,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, prefix.length) === prefix) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse, disableUserMatch: true })
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse})
 
         rv = ret.rv
         //we only want to override it if the command doens't explicitly want to do it
