@@ -1,0 +1,44 @@
+prefix:Your prefix for the bot ([ by default)
+
+default-bj-bet:The default bet for blackjack when no bet is given (0 by default)
+
+pingresponse:When you are pinged the bot will say this (none by default)
+
+IFS:The splitter character between args (space by default)
+
+bj-screen:When you get blackjack, this is what will be said<br>&nbsp;<b>{amount}</b> will be replaced with the amount you won
+
+warn-cmds:A list of commands that when you run, will confirm that you want to run them (none by default)
+
+heist-join:What is said when you join a heist
+
+count-text:The text to send when running [count<br>&nbsp;<b>count</b> will be replaced with the current number ({count} by default)
+
+lottery-win:The text that is said when you get a winning ticket from [ticket<br><ul><li><b>{numbers}</b> will be replaced with the winning numbers</li><li><b>{amount}</b> will be replaced with the amount you won</li></ul>
+
+puffle-find:The text that is said when your puffle pet finds something<br><ul><li><b>{name}</b> will be replaced with your puffle's name</li><li><b>{stuff}</b> will be replaced with what the puffle finds</li></ul>
+
+enable-mail:Whether or not to enable the [mail command (true/false)
+
+pipe-symbol:The symbol to use for piping commands (>pipe> by default)
+
+money-format:The text to send when someone checks your balance with [money<br>&nbsp;<b>{amount}</b> will be replaced with the amount of money you have
+
+currency-sign:The symbol to use for your currency (${GLOBAL_CURRENCY_SIGN} by default)
+
+1-arg-string:Whether or not quoting text will count it as 1 argument (false by default)
+
+dm-when-online:The text to send to dms when the bot comes online
+
+mail-signature:The text to append when you send mail to someone
+
+change-cmd-info:When something is sent to chat with the INFO status, say this instead
+
+change-cmd-return:When something is sent to chat with the RETURN status, say this instead
+
+change-cmd-prompt:When something is sent to chat with the PROMPT status, say this instead
+
+change-cmd-error:When something is sent to chat with the ERROR status, say this instead
+
+change-cmd-warning:When something is sent to chat with the WARNING status, say this instead
+

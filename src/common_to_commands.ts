@@ -82,7 +82,7 @@ export class AliasV2 {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
-        let innerPairs = []
+        let innerPairs: [string, string][] = []
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)$/
@@ -91,6 +91,8 @@ export class AliasV2 {
         let curPair = ""
         let inBracket = false
         let validBracket = false
+        let buildingOr = false
+        let currentOr = ""
         for (let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++) {
             let ch = this.exec[i]
 
@@ -99,16 +101,34 @@ export class AliasV2 {
                 validBracket = true
                 continue
             }
-            else if (![..."#args.1234567890"].includes(ch) && !escape && validBracket) {
+            else if(ch === "|" && this.exec[i + 1] === "|"){
+                i++;
+                buildingOr = true;
+                currentOr = "||"
+                continue;
+            }
+            //checks if the character is not valid, and we're not escaping the char, and we're still inside of an {args} bracket, and we're not building the default
+            //OR if the character is a } and we're not building the default, and we're not escaped THEN
+            //we're no longer in a valid bracket, we're not in a bracket, and we're not building a default value
+            //
+            //checking the char is } in this same else if, and not in a seperate else if above is important,
+                //otherwise this if statement will be skipped,
+                //and } will be appended to the end of curPair,
+            //which is no longer a valid args bracket. messing up for loop 
+            else if ((!"#args.1234567890".includes(ch) && !escape && validBracket && !buildingOr) || (ch === "}" && buildingOr && !escape)) {
                 inBracket = false
                 validBracket = false
+                buildingOr = false
                 if (argsRegex.test(curPair)) {
-                    innerPairs.push(curPair)
+                    innerPairs.push([curPair, currentOr])
                 }
                 curPair = ""
                 continue
             }
-            if (validBracket) {
+            if(buildingOr){
+                currentOr += ch
+            }
+            else if (validBracket) {
                 curPair += ch
             }
 
@@ -122,32 +142,48 @@ export class AliasV2 {
 
         }
         if (curPair) {
-            innerPairs.push(curPair)
+            innerPairs.push([curPair, currentOr])
         }
 
         let tempExec = this.exec
 
-        for (let innerText of innerPairs) {
+        for (let [innerText, innerOr] of innerPairs) {
+            let toReplace = `{${innerText}${innerOr}}`
+            //remove the leading ||
+            //the leading || is there to make the above line easier
+            innerOr = innerOr.slice(2)
             if (argsRegex.test(innerText)) {
                 let [left, right] = innerText.split("..")
                 if (left === "args") {
-                    tempExec = tempExec.replace(`{${innerText}}`, args.join(" "))
+                    tempExec = tempExec.replace(toReplace, args.join(" ") || innerOr)
                     continue
                 }
                 else if (left === '#args') {
-                    tempExec = tempExec.replace(`{${innerText}}`, String(args.length))
+                    tempExec = tempExec.replace(toReplace, String(args.length))
                     continue
                 }
                 let leftIndex = Number(left.replace("args", ""))
                 let rightIndex = right ? Number(right) : NaN
                 if (!isNaN(rightIndex)) {
-                    tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex, rightIndex).join(" "))
+                    let slice = args.slice(leftIndex, rightIndex)
+                    let text = ""
+                    if(!slice.length)
+                        text = innerOr
+                    else
+                        text = slice.join(" ")
+                    tempExec = tempExec.replace(toReplace, text)
                 }
                 else if (right === "") {
-                    tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex).join(" "))
+                    let slice = args.slice(leftIndex)
+                    let text = ""
+                    if(!slice.length)
+                        text = innerOr
+                    else
+                        text = slice.join(" ")
+                    tempExec = tempExec.replace(toReplace, text)
                 }
                 else {
-                    tempExec = tempExec.replace(`{${innerText}}`, args[leftIndex])
+                    tempExec = tempExec.replace(toReplace, args[leftIndex] ?? innerOr)
                 }
             }
         }
