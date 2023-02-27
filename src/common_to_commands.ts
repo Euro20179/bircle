@@ -101,7 +101,7 @@ export class AliasV2 {
                 validBracket = true
                 continue
             }
-            else if(ch === "|" && this.exec[i + 1] === "|"){
+            else if (ch === "|" && this.exec[i + 1] === "|") {
                 i++;
                 buildingOr = true;
                 currentOr = "||"
@@ -112,8 +112,8 @@ export class AliasV2 {
             //we're no longer in a valid bracket, we're not in a bracket, and we're not building a default value
             //
             //checking the char is } in this same else if, and not in a seperate else if above is important,
-                //otherwise this if statement will be skipped,
-                //and } will be appended to the end of curPair,
+            //otherwise this if statement will be skipped,
+            //and } will be appended to the end of curPair,
             //which is no longer a valid args bracket. messing up for loop 
             else if ((!"#args.1234567890".includes(ch) && !escape && validBracket && !buildingOr) || (ch === "}" && buildingOr && !escape)) {
                 inBracket = false
@@ -125,7 +125,7 @@ export class AliasV2 {
                 curPair = ""
                 continue
             }
-            if(buildingOr){
+            if (buildingOr) {
                 currentOr += ch
             }
             else if (validBracket) {
@@ -167,7 +167,7 @@ export class AliasV2 {
                 if (!isNaN(rightIndex)) {
                     let slice = args.slice(leftIndex, rightIndex)
                     let text = ""
-                    if(!slice.length)
+                    if (!slice.length)
                         text = innerOr
                     else
                         text = slice.join(" ")
@@ -176,7 +176,7 @@ export class AliasV2 {
                 else if (right === "") {
                     let slice = args.slice(leftIndex)
                     let text = ""
-                    if(!slice.length)
+                    if (!slice.length)
                         text = innerOr
                     else
                         text = slice.join(" ")
@@ -245,7 +245,7 @@ export class AliasV2 {
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback})
+        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -1057,7 +1057,7 @@ export class Interpreter {
             content = modifierToStr(mod.type) + content
         }
 
-        return (await cmd({msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable})).rv
+        return (await cmd({ msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable })).rv
     }
 
     async run(): Promise<CommandReturn | undefined> {
@@ -1147,6 +1147,16 @@ export class Interpreter {
             }
         }
 
+        let [opts, args2] = getOpts(args)
+
+        if (opts['?']) {
+            args = [this.real_cmd]
+            args2 = [this.real_cmd]
+            this.real_cmd = "help"
+            this.alias = false
+            this.aliasV2 = false
+        }
+
         if (declined) {
             rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
         }
@@ -1157,7 +1167,6 @@ export class Interpreter {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
         else if (this.aliasV2) {
-            let [opts, args2] = getOpts(args)
             rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
         }
         else if (!commands.get(this.real_cmd)) {
@@ -1191,13 +1200,6 @@ export class Interpreter {
             if (canRun) {
                 if (typing || commands.get(this.real_cmd)?.make_bot_type)
                     await this.#msg.channel.sendTyping()
-                let [opts, args2] = getOpts(args)
-
-                if(opts['?']){
-                    args = [this.real_cmd]
-                    args2 = [this.real_cmd]
-                    this.real_cmd = "help"
-                }
 
                 if (commands.get(this.real_cmd)?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
                     rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
@@ -1550,7 +1552,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, prefix.length) === prefix) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse})
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
 
         rv = ret.rv
         //we only want to override it if the command doens't explicitly want to do it
