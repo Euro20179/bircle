@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
 
@@ -1569,14 +1569,18 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     //if the content is > 2000 (discord limit), send a file instead
     if ((rv.content?.length || 0) >= 2000) {
+        if(rv.onOver2kLimit){
+            rv = rv.onOver2kLimit(msg, rv)
+        }
         //@ts-ignore
         fs.writeFileSync("out", rv.content)
+        let extension = rv.mimetype ? mimeTypeToFileExtension(rv.mimetype) || "txt" : "txt"
         delete rv["content"]
         if (rv.files) {
-            rv.files.push({ attachment: "out", name: "cmd.txt", description: "command output too long" })
+            rv.files.push({ attachment: "out", name: `cmd.${extension}`, description: "command output too long" })
         } else {
             rv.files = [{
-                attachment: "out", name: "cmd.txt", description: "command output too long"
+                attachment: "out", name: `cmd.${extension}`, description: "command output too long"
             }]
         }
     }

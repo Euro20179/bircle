@@ -227,13 +227,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             if (opts['h']) {
                 let requestedNames = opts['h'] as string | true | undefined ?? args.join(" ")
-                if(requestedNames === true){
+                if (requestedNames === true) {
                     requestedNames = args.join(" ")
                 }
                 requestedNames ||= user_options.allowedOptions.join(" ")
                 let text = []
                 for (let n of requestedNames.split(" ")) {
-                    if(!user_options.userOptionsInfo[n]){
+                    if (!user_options.userOptionsInfo[n]) {
                         console.warn(`${n} no info`)
                     }
                     text.push(`${n}: ${renderHTML(user_options.userOptionsInfo[n] ?? "")}`)
@@ -281,7 +281,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                                     name: `${file}.ts`,
                                 }
                             ],
-                            status: StatusCode.RETURN
+                            status: StatusCode.RETURN,
+                            mimetype: "application/typescript"
                         }
                     }
                     return { content: `./${file}.ts not found`, status: StatusCode.ERR }
@@ -320,7 +321,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 }
 
-                return { content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN }
+                return {
+                    content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
+                        rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
+                        return rv
+                    }
+                }
             }, category: CAT,
             help: {
                 info: "Get the source code of a file, or a command",
@@ -1901,7 +1907,12 @@ ${fs.readdirSync("./command-results").join("\n")}
                 globals: require("./globals"),
                 common: require("./common")
             }, {})
-            return { content: `\`\`\`javascript\n${String(data)}\n\`\`\``, status: StatusCode.RETURN }
+            return {
+                content: `\`\`\`javascript\n${String(data)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
+                    rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
+                    return rv
+                }
+            }
         }, "Stringifies an internal function", {
             helpOptions: {
                 l: createHelpOption("List the different modules"),

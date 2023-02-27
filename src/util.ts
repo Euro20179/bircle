@@ -14,6 +14,18 @@ import { formatMoney, getOpt } from "./user-options"
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
+function mimeTypeToFileExtension(mime: `${string}/${string}`){
+    let [_, specific] = mime.split("/")
+    switch(specific){
+        case "typescript":
+            return "ts"
+        case "javascript":
+            return "js"
+        default:
+            return ""
+    }
+}
+
 function isSafeFilePath(fp: string) {
     if (fp.match(/\/?\.\.\//)) {
         return false
@@ -801,6 +813,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         parsePercentFormat,
         formatPercentStr,
         formatBracePairs,
+        mimeTypeToFileExtension,
         searchList,
         renderHTML,
         getOpts,
@@ -1498,6 +1511,7 @@ export {
     createEmbedFieldData,
     efd,
     generateCommandSummary,
-    isSafeFilePath
+    isSafeFilePath,
+    mimeTypeToFileExtension
 }
 

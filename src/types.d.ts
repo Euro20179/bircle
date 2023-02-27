@@ -34,7 +34,9 @@ declare global {
         recurse?: boolean | { categories?: CommandCategory[], commands?: string[] },
         do_change_cmd_user_expansion?: boolean
         channel?: TextChannel | DMChannel,
-        sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>
+        sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>,
+        mimetype?: `${string}/${string}`,
+        onOver2kLimit?: (msg: Message, rv: CommandReturn) => CommandReturn
     }
 
     interface CommandHelpArguments {
