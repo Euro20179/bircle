@@ -20,7 +20,7 @@ import { getOpt } from './user-options'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ["cat", createCommandV2(async ({ stdin, opts, args }) => {
+    yield ["cat", ccmdV2(async ({ stdin, opts, args }) => {
         let content = "";
         if (stdin) {
             content += getContentFromResult(stdin, "\n")
@@ -37,11 +37,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Concatinate files from pipe, and from file names", {
-        files: createHelpArgument("The files", false)
+    }, "Concatinate files from pipe, and from file names", {
+        helpArguments: {
+            files: createHelpArgument("Files listed in <code>command-file -l</code> to act on", false)
+        },
+        helpOptions: {
+            r: createHelpOption("Reverse order of the lines")
+        },
+        accepts_stdin: "Instead of files, act on the text from pipe"
     })]
 
-    yield ["rev", createCommandV2(async ({ stdin, args, opts }) => {
+    yield ["rev", ccmdV2(async ({ stdin, args, opts }) => {
         let content = "";
         if (stdin) {
             content += getContentFromResult(stdin, "\n").split("").reverse().join("")
@@ -58,8 +64,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Take input from pipe and reverse it", undefined, {
-        r: createHelpOption("reverse the order of the lines")
+    }, "Take input from pipe and reverse it", {
+        helpArguments: {
+            files: createHelpOption("Files listed in <code>command-file -l</code> to act on")
+        },
+        helpOptions:{
+            r: createHelpOption("reverse the order of the lines")
+        },
+        accepts_stdin: "Instead of files, reverse content from stdin"
     })]
 
     yield ["pet-info", createCommandV2(async ({ msg, args }) => {
