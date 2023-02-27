@@ -1260,6 +1260,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
+    yield ["name-pet", createCommandV2(async ({ args, msg }) => {
+        let [p, ...name] = args
+        let realName = name.join(" ")
+        let type = pet.getPetTypeByName(msg.author.id, p)
+        if (type)
+            p = type
+        if (pet.namePet(msg.author.id, p, realName)) {
+
+            return { content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN }
+        }
+        return { content: `You do not have a ${p}`, status: StatusCode.ERR }
+    }, CommandCategory.FUN, "Name a pet", {
+        pet: createHelpArgument("The base pet to name, eg: <code>cat</code>", true),
+        "...name": createHelpArgument("The name to give the pet", true)
+    })]
+
     yield [
         "rt",
         {
