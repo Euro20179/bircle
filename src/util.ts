@@ -21,6 +21,8 @@ function mimeTypeToFileExtension(mime: `${string}/${string}`){
             return "ts"
         case "javascript":
             return "js"
+        case "text":
+            return ".txt"
         default:
             return ""
     }

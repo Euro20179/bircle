@@ -35,6 +35,9 @@ declare global {
         do_change_cmd_user_expansion?: boolean
         channel?: TextChannel | DMChannel,
         sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>,
+        /**
+        * @description The mimetype of the content
+        */
         mimetype?: `${string}/${string}`,
         onOver2kLimit?: (msg: Message, rv: CommandReturn) => CommandReturn
     }
