@@ -42,3 +42,4 @@ change-cmd-error:When something is sent to chat with the ERROR status, say this 
 
 change-cmd-warning:When something is sent to chat with the WARNING status, say this instead
 
+no-pingresponse:When pinging someone, do not show their pingresponse if they have one (default false)
