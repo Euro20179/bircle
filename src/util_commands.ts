@@ -2382,7 +2382,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
                 }
                 embed.addFields(efd(["Same Roles", same || "No same"], [`${realUser1.displayName} unique roles`, user1U || "No unique roles"], [`${realUser2.displayName} unique roles`, user2U || "No unique roles"]))
-                return { embeds: [embed], status: StatusCode.RETURN }
+                return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: {parse: []} }
             },
             category: CommandCategory.UTIL,
             help: {
@@ -2486,7 +2486,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 embed.addFields(efd([`members: ${i}`, memberTexts[i]]))
             }
             embed.addFields(efd(["Member count", String(memberCount)]))
-            return { embeds: [embed], status: StatusCode.RETURN }
+            return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: {parse: []} }
 
         }, CAT, "Gets a list of users with a specific role", {
             "...role": createHelpArgument("The role to search for")
@@ -3282,7 +3282,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.setColor(role.color)
             embed.addFields(efd(["id", String(role.id), true]))
             embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
-            return { embeds: [embed] || "none", status: StatusCode.RETURN }
+            return { embeds: [embed] || "none", status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
         }, CAT, "Gets information about a role")]
 

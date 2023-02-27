@@ -1153,7 +1153,6 @@ export class Interpreter {
             args = [this.real_cmd]
             args2 = [this.real_cmd]
             this.real_cmd = "help"
-            this.alias = false
             this.aliasV2 = false
         }
 
@@ -1276,6 +1275,7 @@ export class Interpreter {
 
     async handlePipes(commandReturn: CommandReturn) {
         let tks = this.getPipeTo()
+        let allowedMentions = commandReturn.allowedMentions
         //if noSend is given, we dont want to pipe it
         while (tks.length && !commandReturn.noSend) {
             tks[0] = tks[0].convertToCommand()
@@ -1291,6 +1291,10 @@ export class Interpreter {
             }
 
             commandReturn = await int.run() as CommandReturn
+            if(allowedMentions){
+                //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
+                commandReturn.allowedMentions = {parse: []}
+            }
             tks = int.getPipeTo()
         }
         return commandReturn

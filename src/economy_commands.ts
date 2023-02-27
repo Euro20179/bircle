@@ -443,7 +443,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (!activePet) {
                     e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
                 }
-                return { embeds: [e], status: StatusCode.RETURN }
+                return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: []} }
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "Get the pets of a user",
@@ -453,22 +453,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
         },
     ]
-
-    yield ["name-pet", createCommandV2(async ({ args, msg }) => {
-        let [p, ...name] = args
-        let realName = name.join(" ")
-        let type = pet.getPetTypeByName(msg.author.id, p)
-        if (type)
-            p = type
-        if (pet.namePet(msg.author.id, p, realName)) {
-
-            return { content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN }
-        }
-        return { content: `You do not have a ${p}`, status: StatusCode.ERR }
-    }, CommandCategory.ECONOMY, "Name a pet", {
-        pet: createHelpArgument("The base pet to name, eg: <code>cat</code>", true),
-        "...name": createHelpArgument("The name to give the pet", true)
-    })]
 
     yield [
         "shop", {
