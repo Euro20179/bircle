@@ -465,7 +465,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             return { content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN }
         }
         return { content: `You do not have a ${p}`, status: StatusCode.ERR }
-    }, CommandCategory.ECONOMY)]
+    }, CommandCategory.ECONOMY, "Name a pet", {
+        pet: createHelpArgument("The base pet to name, eg: <code>cat</code>", true),
+        "...name": createHelpArgument("The name to give the pet", true)
+    })]
 
     yield [
         "shop", {
