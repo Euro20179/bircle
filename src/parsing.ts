@@ -441,10 +441,6 @@ class Parser {
     }
 }
 
-function getCommand(content: string) {
-    return content.split(" ")[0]
-}
-
 function parseAliasReplacement(msg: Message, cmdContent: string, args: string[]) {
     let finalText = ""
     let isEscaped = false

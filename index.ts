@@ -24,7 +24,7 @@ import { URLSearchParams } from "url"
 import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
-import { getUserMatchCommands } from './src/common'
+import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -136,7 +136,7 @@ client.on("messageCreate", async (m: typeof Message) => {
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if (command_commons.isCmd(pingresponse, prefix)) {
-                    await command_commons.runCmd(m, pingresponse.slice(prefix.length), 0, false, command_commons.generateDefaultRecurseBans())
+                    await command_commons.cmd({msg: m, command_excluding_prefix: pingresponse.slice(prefix.length), disable: command_commons.generateDefaultRecurseBans()})
                 }
                 else {
                     m.channel.send(pingresponse)
@@ -219,7 +219,7 @@ client.on("messageCreate", async (m: typeof Message) => {
             let stuff = await pet.PETACTIONS['puffle'](m)
             if (stuff) {
                 let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
-                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", "$")}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
+                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
         }
     }
@@ -734,8 +734,8 @@ server.on("request", (req, res) => {
                     _cacheType: false,
                     _patch: (_data: any) => { }
                 }
-                command_commons.runCmd(msg, (command as string).slice(prefix), 0, true).then(rv => {
-                    command_commons.handleSending(msg, rv as CommandReturn).then(_done => {
+                command_commons.cmd({msg, command_excluding_prefix: (command as string).slice(prefix), returnJson: true}).then(rv => {
+                    command_commons.handleSending(msg, rv.rv as CommandReturn).then(_done => {
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))
                     }).catch(_err => {

@@ -458,7 +458,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let [p, ...name] = args
         let realName = name.join(" ")
         let type = pet.getPetTypeByName(msg.author.id, p)
-        console.log(type)
         if (type)
             p = type
         if (pet.namePet(msg.author.id, p, realName)) {
@@ -770,7 +769,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (!user) {
                 return { content: "How are you not a member?", status: StatusCode.ERR }
             }
-            let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', "$")}{amount}`)
+            let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', GLOBAL_CURRENCY_SIGN)}{amount}`)
             let text = ""
             if (economy.getEconomy()[user.id]) {
                 if (opts['m']) {

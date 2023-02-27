@@ -82,7 +82,7 @@ export class AliasV2 {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
-        let innerPairs = []
+        let innerPairs: [string, string][] = []
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)$/
@@ -91,6 +91,8 @@ export class AliasV2 {
         let curPair = ""
         let inBracket = false
         let validBracket = false
+        let buildingOr = false
+        let currentOr = ""
         for (let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++) {
             let ch = this.exec[i]
 
@@ -99,16 +101,34 @@ export class AliasV2 {
                 validBracket = true
                 continue
             }
-            else if (![..."#args.1234567890"].includes(ch) && !escape && validBracket) {
+            else if(ch === "|" && this.exec[i + 1] === "|"){
+                i++;
+                buildingOr = true;
+                currentOr = "||"
+                continue;
+            }
+            //checks if the character is not valid, and we're not escaping the char, and we're still inside of an {args} bracket, and we're not building the default
+            //OR if the character is a } and we're not building the default, and we're not escaped THEN
+            //we're no longer in a valid bracket, we're not in a bracket, and we're not building a default value
+            //
+            //checking the char is } in this same else if, and not in a seperate else if above is important,
+                //otherwise this if statement will be skipped,
+                //and } will be appended to the end of curPair,
+            //which is no longer a valid args bracket. messing up for loop 
+            else if ((!"#args.1234567890".includes(ch) && !escape && validBracket && !buildingOr) || (ch === "}" && buildingOr && !escape)) {
                 inBracket = false
                 validBracket = false
+                buildingOr = false
                 if (argsRegex.test(curPair)) {
-                    innerPairs.push(curPair)
+                    innerPairs.push([curPair, currentOr])
                 }
                 curPair = ""
                 continue
             }
-            if (validBracket) {
+            if(buildingOr){
+                currentOr += ch
+            }
+            else if (validBracket) {
                 curPair += ch
             }
 
@@ -122,32 +142,48 @@ export class AliasV2 {
 
         }
         if (curPair) {
-            innerPairs.push(curPair)
+            innerPairs.push([curPair, currentOr])
         }
 
         let tempExec = this.exec
 
-        for (let innerText of innerPairs) {
+        for (let [innerText, innerOr] of innerPairs) {
+            let toReplace = `{${innerText}${innerOr}}`
+            //remove the leading ||
+            //the leading || is there to make the above line easier
+            innerOr = innerOr.slice(2)
             if (argsRegex.test(innerText)) {
                 let [left, right] = innerText.split("..")
                 if (left === "args") {
-                    tempExec = tempExec.replace(`{${innerText}}`, args.join(" "))
+                    tempExec = tempExec.replace(toReplace, args.join(" ") || innerOr)
                     continue
                 }
                 else if (left === '#args') {
-                    tempExec = tempExec.replace(`{${innerText}}`, String(args.length))
+                    tempExec = tempExec.replace(toReplace, String(args.length))
                     continue
                 }
                 let leftIndex = Number(left.replace("args", ""))
                 let rightIndex = right ? Number(right) : NaN
                 if (!isNaN(rightIndex)) {
-                    tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex, rightIndex).join(" "))
+                    let slice = args.slice(leftIndex, rightIndex)
+                    let text = ""
+                    if(!slice.length)
+                        text = innerOr
+                    else
+                        text = slice.join(" ")
+                    tempExec = tempExec.replace(toReplace, text)
                 }
                 else if (right === "") {
-                    tempExec = tempExec.replace(`{${innerText}}`, args.slice(leftIndex).join(" "))
+                    let slice = args.slice(leftIndex)
+                    let text = ""
+                    if(!slice.length)
+                        text = innerOr
+                    else
+                        text = slice.join(" ")
+                    tempExec = tempExec.replace(toReplace, text)
                 }
                 else {
-                    tempExec = tempExec.replace(`{${innerText}}`, args[leftIndex])
+                    tempExec = tempExec.replace(toReplace, args[leftIndex] ?? innerOr)
                 }
             }
         }
@@ -308,17 +344,6 @@ export let aliasesV2 = createAliasesV2()
 
 export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
-}
-
-export async function runCmd(msg: Message, command_excluding_prefix: string, recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
-    let parser = new Parser(msg, command_excluding_prefix)
-    await parser.parse()
-    let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, undefined, recursion))) {
-        let _;
-        [rv, _] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
-    }
-    return rv
 }
 
 export async function cmd({
@@ -1032,7 +1057,7 @@ export class Interpreter {
             content = modifierToStr(mod.type) + content
         }
 
-        return await runCmd(this.#msg, content, this.recursion + 1, true, this.disable) as CommandReturn
+        return (await cmd({msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable})).rv
     }
 
     async run(): Promise<CommandReturn | undefined> {
@@ -1109,8 +1134,6 @@ export class Interpreter {
 
         let warnings = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
 
-        console.log(this.real_cmd, this.real_cmd.slice(this.real_cmd.indexOf(":")))
-
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
             await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
@@ -1170,6 +1193,12 @@ export class Interpreter {
                     await this.#msg.channel.sendTyping()
                 let [opts, args2] = getOpts(args)
 
+                if(opts['?']){
+                    args = [this.real_cmd]
+                    args2 = [this.real_cmd]
+                    this.real_cmd = "help"
+                }
+
                 if (commands.get(this.real_cmd)?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
                     rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
                 }
@@ -1184,7 +1213,8 @@ export class Interpreter {
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                         opts: new Options(opts),
                         argList: new ArgList(args2),
-                        stdin: this.#pipeData
+                        stdin: this.#pipeData,
+                        pipeTo: this.#pipeTo
                     };
                     let cmd = commands.get(this.real_cmd) as CommandV2
                     rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
@@ -1244,7 +1274,8 @@ export class Interpreter {
 
     async handlePipes(commandReturn: CommandReturn) {
         let tks = this.getPipeTo()
-        while (tks.length) {
+        //if noSend is given, we dont want to pipe it
+        while (tks.length && !commandReturn.noSend) {
             tks[0] = tks[0].convertToCommand()
             let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn)
             await int.interprate()
@@ -1355,7 +1386,6 @@ export class Interpreter {
                 return handleSending(msg, await obj.run({ msg, match }))
             }
         }
-        console.log(enableUserMatch)
         if (!enableUserMatch) {
             return false
         }
@@ -1650,21 +1680,23 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     tags?: string[],
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
-    use_result_cache?: boolean
+    use_result_cache?: boolean,
+    accepts_stdin?: CommandHelp['accepts_stdin']
 }): CommandV2 {
     return {
         run: cb,
         help: {
             info: helpInfo,
-            arguments: options?.helpArguments ? options?.helpArguments : undefined,
-            options: options?.helpOptions ? options?.helpOptions : undefined,
-            tags: options?.tags ? options?.tags : undefined
+            arguments: options?.helpArguments,
+            options: options?.helpOptions,
+            tags: options?.tags,
+            accepts_stdin: options?.accepts_stdin
         },
         category: options?.category,
         permCheck: options?.permCheck,
         make_bot_type: options?.shouldType,
         cmd_std_version: 2,
-        use_result_cache: options?.use_result_cache
+        use_result_cache: options?.use_result_cache,
     }
 
 }

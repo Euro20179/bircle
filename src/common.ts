@@ -11,7 +11,7 @@ const prefix = readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 5, minor: 12, bug: 3, part: "", beta: false, alpha: false }
+const VERSION = { major: 5, minor: 12, bug: 4, part: "", beta: false, alpha: false }
 
 //@ts-ignore
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
@@ -117,8 +117,8 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 const GLOBAL_CURRENCY_SIGN = "$"
 
 let defaultVars = {
-    random: () => Math.random(),
-    rand: () => Math.random(),
+    random: () => String(Math.random()),
+    rand: () => String(Math.random()),
     prefix: (msg: Message) => getOpt(msg.author.id, "prefix", prefix),
     scopecount: () => Object.keys(vars).length,
     sender: (msg: Message) => `<@${msg.author.id}>`,

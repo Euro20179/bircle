@@ -12,7 +12,7 @@ import pet from "./pets"
 import timer from './timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, runCmd, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2 } from './common_to_commands'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd } from './common_to_commands'
 import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE } from './util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from './common'
 import { spawn, spawnSync } from 'child_process'
@@ -20,7 +20,7 @@ import { getOpt } from './user-options'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ["cat", createCommandV2(async ({ stdin, opts, args }) => {
+    yield ["cat", ccmdV2(async ({ stdin, opts, args }) => {
         let content = "";
         if (stdin) {
             content += getContentFromResult(stdin, "\n")
@@ -37,11 +37,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Concatinate files from pipe, and from file names", {
-        files: createHelpArgument("The files", false)
+    }, "Concatinate files from pipe, and from file names", {
+        helpArguments: {
+            files: createHelpArgument("Files listed in <code>command-file -l</code> to act on", false)
+        },
+        helpOptions: {
+            r: createHelpOption("Reverse order of the lines")
+        },
+        accepts_stdin: "Instead of files, act on the text from pipe"
     })]
 
-    yield ["rev", createCommandV2(async ({ stdin, args, opts }) => {
+    yield ["rev", ccmdV2(async ({ stdin, args, opts }) => {
         let content = "";
         if (stdin) {
             content += getContentFromResult(stdin, "\n").split("").reverse().join("")
@@ -58,8 +64,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Take input from pipe and reverse it", undefined, {
-        r: createHelpOption("reverse the order of the lines")
+    }, "Take input from pipe and reverse it", {
+        helpArguments: {
+            files: createHelpOption("Files listed in <code>command-file -l</code> to act on")
+        },
+        helpOptions:{
+            r: createHelpOption("reverse the order of the lines")
+        },
+        accepts_stdin: "Instead of files, reverse content from stdin"
     })]
 
     yield ["pet-info", createCommandV2(async ({ msg, args }) => {
@@ -517,8 +529,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         for (let i = 0; i < commandLines.length; i++) {
                             let textAtLine = text[commandLines[i]]
                             setVar("__ed_line", textAtLine, msg.author.id)
-                            let rv = await runCmd(msg, args, rec, true, bans)
-                            let t = getContentFromResult(rv as CommandReturn, "\n").trim()
+                            let rv = (await cmd({ msg, command_excluding_prefix: args, recursion: rec, returnJson: true, disable: bans })).rv
+                            let t = getContentFromResult(rv, "\n").trim()
                             delete vars[msg.author.id]["__ed_line"]
                             text[commandLines[i]] = t
                         }
@@ -1427,7 +1439,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     e.setTitle(String(res['title']))
 
                     if (res.description) {
-                        console.log(res.description)
                         e.setDescription(res.description)
                     }
 
@@ -1656,7 +1667,7 @@ middle
                         replacedFn = `${fn} ${string}`
                     }
 
-                    string = getContentFromResult(await runCmd(msg, replacedFn, rec + 1, true, bans) as CommandReturn).trim()
+                    string = getContentFromResult((await cmd({msg, command_excluding_prefix: replacedFn, recursion: rec + 1, returnJson: true, disable: bans})).rv).trim()
                 }
                 return { content: string, status: StatusCode.RETURN }
             },
@@ -2043,7 +2054,6 @@ The order these are given does not matter, excpet for field, which will be added
             const cmd = spawn("qalc", argList)
             cmd.stdout.on("data", data => {
                 let text = data.toString("utf-8").replaceAll(/\[[\d;]+m/g, "")
-                console.log(text)
                 msg.channel.send(text)
             })
             cmd.stderr.on("data", data => {
@@ -2139,6 +2149,33 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             },
             category: CommandCategory.UTIL
         },
+    ]
+
+    yield [
+        "read-lines", ccmdV2(async function({msg, args, sendCallback, stdin, pipeTo, opts}){
+            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            let lines = text.split("\n")
+            if(!pipeTo){
+                await handleSending(msg, {content: `Warning: you are not piping the result to anything`, status: StatusCode.WARNING}, sendCallback)
+            }
+            let waitTime = opts.getNumber("w", 1000)
+            if(waitTime < 700){
+                waitTime = 1000
+            }
+            let id = Math.random()
+            globals.SPAMS[id] = true
+            for(let line of lines){
+                if(!globals.SPAMS[id])
+                    break;
+
+                await handleSending(msg, {content: line, status: StatusCode.INFO, do_change_cmd_user_expansion: false}, sendCallback)
+                await new Promise(res => setTimeout(res, waitTime))
+            }
+            delete globals.SPAMS[id]
+            return {noSend: true, status: StatusCode.RETURN}
+        }, "Read each line one at a time and send to sendCallback", {
+            accepts_stdin: "The text to read one line at a time"
+        })
     ]
 
     yield [
@@ -2652,7 +2689,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let decPaddingCount = 0;
                 let addCommas = false
                 if (format[0] === "0" && (digits = format.slice(1)?.match(/^[0-9]+/))) {
-                    console.log(format.slice(1, digits[0].length + 1))
                     paddingCount = Number(format.slice(1, digits[0].length + 1))
                     format = format.slice(1 + digits[0].length)
                 }
@@ -2688,7 +2724,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (currentSpecifier) {
             formatSpecifierList.push(Format.parseFormatSpecifier(currentSpecifier))
         }
-        console.log(formatSpecifierList)
 
         let rv: CommandReturn = { status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 

@@ -607,7 +607,6 @@ async function fetchUserFromClient(client: Client, find: string) {
     let user = client.users.cache.find((v, k) => {
         return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find
     })
-    console.log(user)
     if(!user){
         try{
             user = await client.users.fetch(find)
@@ -620,7 +619,6 @@ async function fetchUserFromClient(client: Client, find: string) {
 }
 
 /**
-    * @deprecated use fetchUserFromClient
     * @description finds the member in a guild
 */
 async function fetchUser(guild: Guild, find: string) {
@@ -629,7 +627,7 @@ async function fetchUser(guild: Guild, find: string) {
         find = res[1]
     }
     find = find.toLowerCase()
-    let user = guild.members.cache.find((v, k) => {
+    let user = guild.members.cache.find((v) => {
         return v.user.username.toLowerCase().startsWith(find) ||
             v.nickname?.toLowerCase().startsWith(find) ||
             v.id === find ||
@@ -1214,7 +1212,7 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         }
     }
     if (elem.type === "text") {
-        text += elem.data?.replaceAll(/\s+/g, " ")
+        text += "\t".repeat(indentation) + elem.data?.replaceAll(/\s+/g, " ")
     }
     return text
 
@@ -1227,6 +1225,10 @@ function renderHTML(text: string, indentation = 0) {
 
 function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let summary = `***${name}***`
+
+    if(command.help?.accepts_stdin){
+        summary = `\\[<command> >pipe>] ${summary}`
+    }
 
     if (command.help?.options) {
         summary += ` [-options...]`
@@ -1266,6 +1268,16 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     }
     if (helpData.aliases) {
         aliasInfo = `Aliases: ${helpData.aliases.join(", ")}\n`
+    }
+    if(helpData.accepts_stdin){
+        argInfo += "__stdin__:\n"
+        if(typeof helpData.accepts_stdin === 'string'){
+            argInfo += renderHTML(helpData.accepts_stdin, 2)
+        }
+        else{
+            argInfo += 'true'
+        }
+        argInfo += '\n'
     }
     if (helpData.arguments) {
         argInfo += "__Arguments__:\n"
@@ -1312,7 +1324,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     return (nameInfo + "\n\n" + textInfo + aliasInfo + argInfo + optInfo + tagInfo).replace("\n\n\n", "\n")
 }
 
-function generateHTMLFromCommandHelp(name: string, command: any) {
+function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2) {
     let html = `<div class="command-section"><h1 class="command-title">${name}</h1>`
     let help = command["help"]
     if (help) {
@@ -1322,6 +1334,9 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
         let args = help["arguments"] || {}
         if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
+        }
+        if(help["accepts_stdin"]){
+            html += `<h2 class="command-stdin">Stdin</h2><p class="stdin-text">${help['accepts_stdin']}</p>`
         }
         if (args && Object.keys(args).length) {
             html += `<h2 class="command-arguments">Arguments</h2><ul class="command-argument-list">`
@@ -1344,7 +1359,7 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for (let option in options) {
                 let desc = options[option].description || ""
-                let alternates = options[option].alternates || 0
+                let alternates = options[option].alternates
                 // let requiresValue = options[option].requiresValue || false
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
