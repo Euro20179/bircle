@@ -804,6 +804,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         searchList,
         renderHTML,
         getOpts,
+        getOptsUnix,
         generateCommandSummary,
         user_options: {
             formatMoney: formatMoney,
@@ -1043,6 +1044,31 @@ class Options extends Map {
         }
         return default_
     }
+}
+
+function getOptsUnix(args: ArgumentList): [Opts, ArgumentList]{
+    let opts: Opts = {}
+    let arg, idxOfFirstRealArg = -1
+    while((arg = args[++idxOfFirstRealArg])?.startsWith("-")){
+        if(arg === '--'){
+            idxOfFirstRealArg++;
+            break;
+        }
+        else if(arg.startsWith("--")){
+            let name = arg.slice(2)
+            let value = args[++idxOfFirstRealArg];
+            opts[name] = value
+        }
+        else if(arg.startsWith("-")){
+            for(let char of arg.slice(1)){
+                opts[char] = true
+            }
+        }
+        else{
+            break;
+        }
+    }
+    return [opts, args.slice(idxOfFirstRealArg)]
 }
 
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
@@ -1472,6 +1498,7 @@ export {
     cmdCatToStr,
     getImgFromMsgAndOpts,
     getOpts,
+    getOptsUnix,
     fetchUserFromClient,
     generateSafeEvalContextFromMessage,
     choice,

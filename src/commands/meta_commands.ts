@@ -7,7 +7,7 @@ import economy = require("../economy")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, delVar, FILE_SHORTCUTS, getUserMatchCommands, getVar, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, saveVars, setVar, vars, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix } from "../util"
 import { Guild, Message, MessageEmbed, User } from "discord.js"
 import { registerCommand } from "../common_to_commands"
 import { execSync } from 'child_process'
