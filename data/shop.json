@@ -51,5 +51,5 @@
         "description": "Combine this with a stinky ol' boot to give all your pets full health",
         "uses": 1,
         "cost": ["0.80"]
-    },
+    }
 }
