@@ -592,7 +592,16 @@ client.login(globals.token)
 const server = http.createServer()
 server.listen(8222)
 
-server.on("request", (req, res) => {
+function handlePost(req: http.IncomingMessage, res: http.ServerResponse){
+    let body = ''
+    req.on("data", chunk => body += chunk.toString())
+    req.on("end", () => {
+        console.log(body)
+        res.end()
+    })
+}
+
+function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
     let url = req.url
     if (!url) {
         res.writeHead(404)
@@ -766,5 +775,14 @@ server.on("request", (req, res) => {
         default:
             res.writeHead(404)
             res.end(JSON.stringify({ error: "Route not found" }))
+    }
+}
+
+server.on("request", (req, res) => {
+    if(req.method === 'POST'){
+        return handlePost(req, res)
+    }
+    else if(req.method === 'GET'){
+        return handleGet(req, res)
     }
 })

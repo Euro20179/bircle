@@ -362,7 +362,8 @@ export async function cmd({
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
-        [rv, int] = await Interpreter.run(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData) as [CommandReturn, Interpreter]
+        let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData)
+        rv = await int.run() ?? false;
     }
     return {
         rv: rv,
@@ -492,12 +493,14 @@ export class Interpreter {
     async [1](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data as string)
         await parser.parse()
-        let [rv, _] = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as [CommandReturn, Interpreter]
+        let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, true, this.disable)
+        let rv = await int.run() as CommandReturn;
         let data = getContentFromResult(rv as CommandReturn, "\n").trim()
         if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
             let parser = new Parser(this.#msg, token.data as string)
             await parser.parse();
-            [rv, _] = await Interpreter.run(this.#msg, parser.tokens, parser.modifiers, this.recursion, true, this.disable) as [CommandReturn, Interpreter]
+            let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, true, this.disable)
+            let rv = await int.run() as CommandReturn;
             data = getContentFromResult(rv as CommandReturn, "\n").trim()
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
@@ -1242,7 +1245,7 @@ export class Interpreter {
             lastCommand[this.#msg.author.id] = `[${this.cmd} ${this.args.join(" ")}`
         }
         if (this.returnJson) {
-            return rv;
+            return this.handlePipes(rv)
         }
         if (redir) {
             let [place, name] = redir
@@ -1355,32 +1358,17 @@ export class Interpreter {
         }
 
         this.#interprated = true
-        return this.args
-    }
 
-    static async run(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
-
-        let int = new Interpreter(msg, tokens, modifiers, recursion, returnJson, disable, sendCallback, pipeData)
-        await int.interprate()
-
-
-        let intPipeData = int.getPipeTo()
+        let intPipeData = this.getPipeTo()
 
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
         if (intPipeData.length) {
-            async function sendCallback(options: string | MessageOptions | MessagePayload) {
-                options = await int.handlePipes(options as CommandReturn)
-                return handleSending(msg, options as CommandReturn, undefined)
-            }
-            int.sendCallback = sendCallback
+            this.sendCallback = (async function(this: Interpreter, options: string | MessageOptions | MessagePayload) {
+                options = await this.handlePipes(options as CommandReturn)
+                return handleSending(this.#msg, options as CommandReturn, undefined)
+            }).bind(this)
         }
-
-
-        let data = await int.run()
-        if (int.returnJson) {
-            data = await int.handlePipes(data as CommandReturn)
-        }
-        return [data, int] as const
+        return this.args
     }
 
     static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean, recursion?: number) {

@@ -20,6 +20,43 @@ import { getOpt } from '../user-options'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
+    yield ['school-stats', ccmdV2(async function({msg, args, opts}){
+        let ip;
+        if(fs.existsSync("./data/ip.key")){
+
+            ip = fs.readFileSync("./data/ip.key");
+        }
+        if(!ip){
+            return {content: "Euro has yet to add a special file", status: StatusCode.ERR}
+        }
+
+        let toFetch = opts.getString("of", msg.author.id)
+        let user: User | undefined = msg.author;
+        if(toFetch !== msg.author.id){
+            if(msg.guild){
+                user = (await fetchUser(msg.guild, toFetch))?.user
+            }
+            else{
+                user = await fetchUserFromClient(client, toFetch)
+            }
+            if(!user){
+                user = msg.author
+            }
+        }
+
+        let res = await fetch.default(`http://${ip}`, {method: "POST", body: JSON.stringify({"id": user.id}), headers: {"Content-Type": "application/json"}})
+        let data = await res.json()
+        let embed = new MessageEmbed()
+        embed.setTitle(`School stats of ${user.username}`)
+        embed.setColor(msg.member?.displayColor || "NOT_QUITE_BLACK")
+        embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["grade", String(data.grade)]))
+        return {embeds: [embed], status: StatusCode.RETURN}
+    }, "School stats", {
+        helpOptions: {
+            of: createHelpOption("The user to get stats of")
+        }
+    })]
+
     yield ["cat", ccmdV2(async ({ stdin, opts, args }) => {
         let content = "";
         if (stdin) {

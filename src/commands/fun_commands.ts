@@ -151,7 +151,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv)
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
             if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }

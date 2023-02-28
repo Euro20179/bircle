@@ -739,7 +739,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
 
             async function runIf(c: string, operator: string, value: string) {
-                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans })).rv
+                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans })).rv as CommandReturn
                 let isTrue = false
                 switch (operator) {
                     case "==": {
@@ -966,7 +966,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                         expected += ch;
                     }
-                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv).trim()
+                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
                     expected = expected.trim()
                     switch (check.trim().toLowerCase()) {
                         case "==": {

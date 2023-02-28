@@ -11,7 +11,7 @@ export default function*(CAT: CommandCategory) {
         let find = match[1]
         let replace = match[2]
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        return (await cmd({msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true})).rv
+        return (await cmd({msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true})).rv as CommandReturn
 
     }, /^\^([^\^]+)\^(.*)$/, "match:run-replace", {
         info: "^&lt;find&gt;^&lt;replace&gt;",
@@ -40,7 +40,7 @@ export default function*(CAT: CommandCategory) {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({msg, command_excluding_prefix: signature.slice(prefix.length), recursion: 19, returnJson: true})).rv)
+            signature = getContentFromResult((await cmd({msg, command_excluding_prefix: signature.slice(prefix.length), recursion: 19, returnJson: true})).rv as CommandReturn)
             if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }
