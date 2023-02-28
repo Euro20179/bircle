@@ -1440,8 +1440,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             help: {
                 info: "Stop spams",
                 arguments: {
-                    "spam": {
-                        description: "The spam to stop<br>If not given, will stop all spams",
+                    "...spams": {
+                        description: "The spams to stop<br>If not given, will stop all spams",
                         required: false
                     }
                 }
