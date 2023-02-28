@@ -1402,29 +1402,43 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "stop",
         {
-            run: async (_msg: Message, args: ArgumentList, sendCallback) => {
+            run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 if (!Object.keys(globals.SPAMS).length) {
                     return { content: "no spams to stop", status: StatusCode.ERR }
                 }
-                if (args[0]) {
-                    if (globals.SPAMS[args[0]]) {
-                        delete globals.SPAMS[args[0]]
-                        return {
-                            content: `stopping ${args[0]}`,
-                            status: StatusCode.RETURN
-                        }
+
+                globals.SPAM_ALLOWED = false;
+
+                if (!args.length) {
+                    for (let spam in globals.SPAMS) {
+                        delete globals.SPAMS[spam]
                     }
                     return {
-                        content: `${args[0]} is not a spam id`,
-                        status: StatusCode.ERR
+                        content: "stopping all",
+                        status: StatusCode.RETURN
                     }
                 }
-                globals.SPAM_ALLOWED = false;
-                for (let spam in globals.SPAMS) {
-                    delete globals.SPAMS[spam]
+
+                let invalidSpams = []
+                let clearedSpams = []
+                for (let arg of args) {
+                    let spamNo = Number(args)
+                    if (!isNaN(spamNo) && globals.SPAMS[arg]) {
+                        clearedSpams.push(arg)
+                        delete globals.SPAMS[arg]
+                    }
+                    else invalidSpams.push(arg)
                 }
+                let finalText = ""
+                if (invalidSpams.length) {
+                    finalText += `Failed to stop the following spams:\n${invalidSpams.join(", ")}\n`
+                }
+                if (clearedSpams.length) {
+                    finalText += `Stopped the following spams:\n${clearedSpams.join(", ")}\n`
+                }
+
                 return {
-                    content: "stopping all",
+                    content: finalText,
                     status: StatusCode.RETURN
                 }
             },
@@ -1432,8 +1446,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             help: {
                 info: "Stop spams",
                 arguments: {
-                    "spam": {
-                        description: "The spam to stop<br>If not given, will stop all spams",
+                    "...spams": {
+                        description: "The spams to stop<br>If not given, will stop all spams",
                         required: false
                     }
                 }
