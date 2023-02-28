@@ -36,14 +36,14 @@ function getTimersOfUser(user: string){
 }
 
 function do_lap(for_user: string, name: string){
-    if(!TIMERS[for_user]?.[name]){
+    if(TIMERS[for_user]?.[name] === undefined){
         return false
     }
     return Date.now() - TIMERS[for_user][name]
 }
 
 function has_x_ms_passed(for_user: string, name: string, x_ms: number){
-    if(!TIMERS[for_user]?.[name]){
+    if(TIMERS[for_user]?.[name] === undefined){
         return false
     }
     return (Date.now() - TIMERS[for_user][name]) > x_ms
