@@ -49,15 +49,32 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return { content: `${user} has ${globals.SCALLYWAG_TOKENS[user.id]} scallywag tokens.`, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Give a user another scallywag token")]
 
-    yield ["scallywag-token-count", createCommandV2(async ({ msg, args }) => {
-        let user = await fetchUser(msg.guild as Guild, args[0] || msg.author.id)
-        if (!user) {
-            return { content: `${args[0]} not found`, status: StatusCode.ERR }
+    yield ["scallywag-token-count", createCommandV2(async ({ msg, args, opts }) => {
+        let user: User | undefined = msg.author
+
+        if (args[0]) {
+            if (opts.getBool("f", false)) {
+                if (!msg.guild) {
+                    return { content: "You are not using this command from a guild", status: StatusCode.ERR }
+                }
+                user = (await fetchUser(msg.guild as Guild, args[0]))?.user
+            }
+            else {
+                user = await fetchUserFromClient(client, args[0])
+
+            }
+            if (!user) {
+                return { content: `${args[0]} not found`, status: StatusCode.ERR }
+            }
         }
 
         return { content: `${globals.SCALLYWAG_TOKENS[user.id]}`, status: StatusCode.RETURN }
 
-    }, CommandCategory.FUN, "get the scallywag token count of a user")]
+    }, CommandCategory.FUN, "get the scallywag token count of a user", {
+        user: createHelpArgument("The user to get the count of", false)
+    }, {
+        f: createHelpOption("Fetch user based on your current guild instead of the bot's known users")
+    })]
 
     yield ["chat", createCommandV2(async ({ msg, argList, opts }) => {
         const modelToUse = opts.getString("m", "text-davinci-003")
@@ -111,20 +128,20 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (!msg.guild) {
             toUser = await fetchUserFromClient(client, argList[0])
         }
-        else{
+        else {
             toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
         }
-        if(!toUser){
-            return {content: `Could not find user`, status: StatusCode.ERR}
+        if (!toUser) {
+            return { content: `Could not find user`, status: StatusCode.ERR }
         }
         if (user_options.getOpt(toUser.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: `${toUser instanceof GuildMember ? toUser.displayName : toUser.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         try {
-            if(toUser instanceof GuildMember){
+            if (toUser instanceof GuildMember) {
                 await toUser.user.createDM()
             }
-            else{
+            else {
 
                 await toUser.createDM()
             }
@@ -134,7 +151,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() }})).rv)
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv)
             if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }
@@ -142,7 +159,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         let user = toUser instanceof GuildMember ? toUser.user : toUser
         handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, user.send.bind(user.dmChannel), recursionCount)
-        return {content: "Message sent", status: StatusCode.RETURN}
+        return { content: "Message sent", status: StatusCode.RETURN }
     }, CommandCategory.FUN)]
 
     yield [
@@ -1000,26 +1017,26 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (stringArgs) {
                     rv["content"] = stringArgs
                 }
-                if(opts['mail']){
+                if (opts['mail']) {
                     let search = String(opts['mail'])
                     let user = await fetchUserFromClient(client, search)
-                    if(!user){
-                        return {content: `${search} not found`, status: StatusCode.ERR}
+                    if (!user) {
+                        return { content: `${search} not found`, status: StatusCode.ERR }
                     }
-                    else{
-                        if(!user.dmChannel){
-                            try{
+                    else {
+                        if (!user.dmChannel) {
+                            try {
                                 await user.createDM()
                             }
-                            catch(err){
-                                return {content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR}
+                            catch (err) {
+                                return { content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR }
                             }
                         }
                         rv['channel'] = user.dmChannel as DMChannel
-                        if(rv['content']){
+                        if (rv['content']) {
                             rv['content'] += user_options.getOpt(msg.author.id, "mail-signature", "")
                         }
-                        else{
+                        else {
                             rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
                         }
                     }
@@ -1204,17 +1221,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 globals.POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
                 let channelToSendToSearch = opts['channel']
                 let chan = undefined;
-                if(channelToSendToSearch){
+                if (channelToSendToSearch) {
                     chan = await fetchChannel(_msg.guild as Guild, String(channelToSendToSearch))
-                    if(!chan || chan.type !== 'GUILD_TEXT'){
-                        return {content: `Cannot send to ${chan}`, status: StatusCode.ERR}
+                    if (!chan || chan.type !== 'GUILD_TEXT') {
+                        return { content: `Cannot send to ${chan}`, status: StatusCode.ERR }
                     }
-                    else if(!_msg.member?.permissionsIn(chan).has("SEND_MESSAGES")){
-                        return {content: `You do not have permission to talk in ${chan}`, status: StatusCode.ERR}
+                    else if (!_msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
+                        return { content: `You do not have permission to talk in ${chan}`, status: StatusCode.ERR }
                     }
-                    return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN, channel: chan}
+                    return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN, channel: chan }
                 }
-                return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN}
+                return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN }
             },
             help: {
                 info: "create a poll",
@@ -1315,29 +1332,29 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "nick", {
-        //@ts-ignore
-        run: async (msg, _, sendCallback, opts, args) => {
-            if (args.join(" ").length > 31) {
-                return { content: "Too long", status: StatusCode.ERR }
-            }
-            try {
-                (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
-            }
-            catch (err) {
-                return { content: "Could not set name", statu: StatusCode.ERR }
-            }
-            return {
-                content: `Changed name to \`${args.join(" ")}\``,
-                //@ts-ignore
-                delete: opts['d'] || opts['delete'],
-                status: StatusCode.RETURN
+            //@ts-ignore
+            run: async (msg, _, sendCallback, opts, args) => {
+                if (args.join(" ").length > 31) {
+                    return { content: "Too long", status: StatusCode.ERR }
+                }
+                try {
+                    (await msg.guild?.members.fetch(client.user?.id || ""))?.setNickname(args.join(" "))
+                }
+                catch (err) {
+                    return { content: "Could not set name", statu: StatusCode.ERR }
+                }
+                return {
+                    content: `Changed name to \`${args.join(" ")}\``,
+                    //@ts-ignore
+                    delete: opts['d'] || opts['delete'],
+                    status: StatusCode.RETURN
+                }
+            },
+            category: CommandCategory.FUN,
+            help: {
+                info: "Change the nickname of the bot"
             }
         },
-        category: CommandCategory.FUN,
-        help: {
-            info: "Change the nickname of the bot"
-        }
-    },
     ]
 
     yield [
