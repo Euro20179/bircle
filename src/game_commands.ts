@@ -13,6 +13,7 @@ import uno = require("./uno")
 
 import { choice, cycle, efd, fetchUser, format, getOpts, mulStr, strlen } from "./util"
 import { client, getVar, GLOBAL_CURRENCY_SIGN, setVar } from "./common"
+import timer from './timer'
 
 const { useItem, hasItem } = require("./shop")
 
@@ -1300,7 +1301,18 @@ until you put a 0 in the box`)
                 let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
                 let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
                 let amount = 0
-                if (economy.canEarn(msg.author.id)) {
+
+                //solves a bug where the user has to run last-run once in order to create the timer
+                let bypassCheck = false
+                if(timer.getTimer(msg.author.id, "%last-run") === undefined){
+                    timer.createTimer(msg.author.id, "%last-run")
+                    timer.saveTimers()
+                    bypassCheck = true
+                }
+
+                if (timer.has_x_s_passed(msg.author.id, "%last-run", 60) || bypassCheck) {
+                    timer.restartTimer(msg.author.id, "%last-run")
+                    timer.saveTimers()
                     amount = diff / (1000 * 60 * 60)
                     if (hours == minutes) {
                         amount *= 1.1

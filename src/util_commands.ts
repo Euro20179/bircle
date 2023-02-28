@@ -17,6 +17,7 @@ import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, form
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from './common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from './user-options'
+import { isNaN } from 'lodash'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
@@ -3111,11 +3112,51 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     yield [
         "timer", createCommand(async (msg, _, sc, opts, args) => {
             let action = args[0]?.toLowerCase()
-            let actions = ["create", "delete", "get", "list", "lap"]
+            let actions = ["create", "delete", "get", "list", "lap", "has-x-units-passed"]
+
+            timer.saveTimers()
+
             if (!actions.includes(action)) {
-                return { content: `${action} is not a valid action\ncommand use: \`[timer <create | delete | get | list | lap> ...\``, status: StatusCode.ERR }
+                return { content: `${action} is not a valid action\ncommand use: \`[timer <${actions.join(" | ")}> ...\``, status: StatusCode.ERR }
             }
             switch (action) {
+                case "has-x-units-passed": {
+                    let name = args[1]?.trim()
+                    let t = timer.getTimer(msg.author.id, String(name))
+                    if(t === undefined){
+                        return {content: `You do not have a timer named ${name}`, status: StatusCode.ERR}
+                    }
+
+                    let number = Number(args[2]?.trim())
+
+                    if(isNaN(number)){
+                        return {content: `Must give a number`, status: StatusCode.ERR}
+                    }
+
+                    let unit = args[3]?.trim() || "MS"
+                    let ms = Date.now() - t
+                    let s = ms / 1000
+                    let m = s / 60
+                    let h = m / 60
+                    let d = h / 24
+                    let w = d / 7
+                    if(unit.startsWith("s")){
+                        return {content: `${s >= number}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("m")){
+                        return {content: `${m >= number}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("h")){
+                        return {content: `${h >= number}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("d")){
+                        return {content: `${d >= number}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("w")){
+                        return {content: `${w >= number}`, status: StatusCode.RETURN}
+                    }
+                    return { content: `${Date.now() - t >=  number}`, status: StatusCode.RETURN }
+                }
                 case "create": {
                     let name = String(args.slice(1).join(" ")).trim()
                     if (name[0] === "%") {
@@ -3149,12 +3190,34 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     return { content: Object.entries(timers).map((v) => `${v[0]}: ${Date.now() - v[1]}`).join("\n"), status: StatusCode.RETURN }
                 }
                 case "lap": {
-                    let name = args.slice(1).join(" ").trim()
+                    let name = args[1]?.trim()
+                    let unit = args[2]?.trim() || ""
                     let t = timer.getTimer(msg.author.id, name)
                     if (!t) {
                         return { content: `You do not have a timer called ${name}`, status: StatusCode.ERR }
                     }
-                    return { content: `${Date.now() - t}ms`, status: StatusCode.RETURN }
+                    let ms = Date.now() - t
+                    let s = ms / 1000
+                    let m = s / 60
+                    let h = m / 60
+                    let d = h / 24
+                    let w = d / 7
+                    if(unit.startsWith("s")){
+                        return {content: `${s}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("m")){
+                        return {content: `${m}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("h")){
+                        return {content: `${h}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("d")){
+                        return {content: `${d}`, status: StatusCode.RETURN}
+                    }
+                    else if(unit.startsWith("w")){
+                        return {content: `${w}`, status: StatusCode.RETURN}
+                    }
+                    return { content: `${Date.now() - t}`, status: StatusCode.RETURN }
                 }
                 default: {
                     return { content: "How did we get here", status: StatusCode.ERR }
