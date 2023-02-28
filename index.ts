@@ -25,6 +25,7 @@ import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
 import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
+import timer from './src/timer'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -88,6 +89,7 @@ client.on("guildMemberAdd", async (m: typeof Message) => {
 })
 
 client.on('ready', async () => {
+    economy.loadEconomy()
     Object.keys(user_options.USER_OPTIONS).forEach((v) => {
         if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
             client.users.fetch(v).then((u: any) => {
@@ -124,6 +126,10 @@ client.on("messageCreate", async (m: typeof Message) => {
         return
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
+    }
+    if(!timer.getTimer(m.author.id, "%can-earn") && !m.author.bot){
+        //for backwards compatibility
+        timer.createTimer(m.author.id, "%can-earn")
     }
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
@@ -201,20 +207,25 @@ client.on("messageCreate", async (m: typeof Message) => {
     else {
         await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
     }
-    if (economy.canEarn(m.author.id)) {
+    if (timer.has_x_s_passed(m.author.id, "%can-earn", 60) && !m.author.bot) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
         if (deaths.length)
             await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
+
         let ap = pet.getActivePet(m.author.id)
+
         let percent = 1.001
         let pcount = Number(hasItem(m.author.id, "puffle chat"))
+
         percent += .0001 * pcount
+
         if (ap == 'cat') {
             economy.earnMoney(m.author.id, percent + .002)
         }
         else {
             economy.earnMoney(m.author.id, percent)
         }
+
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
             if (stuff) {

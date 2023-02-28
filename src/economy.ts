@@ -2,11 +2,12 @@ const fs = require("fs")
 import fetch = require("node-fetch")
 
 import pet from "./pets"
+import timer from "./timer"
 
 
 type Stock = {buyPrice:  number, shares: number}
 
-export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
+export type EconomyData = { money: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -113,7 +114,8 @@ function newLottery() {
 }
 
 function createPlayer(id: string, startingCash = 100) {
-    ECONOMY[id] = { money: startingCash, lastTalk: 0, lastTaxed: 0, stocks: {} }
+    timer.createTimer(id, "%can-earn")
+    ECONOMY[id] = { money: startingCash, lastTaxed: 0, stocks: {} }
 }
 
 function addMoney(id: string, amount: number) {
@@ -141,7 +143,7 @@ function loseMoneyToPlayer(id: string, amount: number, otherId: string) {
 }
 
 function earnMoney(id: string, percent = 1.001) {
-    ECONOMY[id].lastTalk = Date.now()
+    timer.restartTimer(id, "%can-earn")
     ECONOMY[id].money *= percent
 }
 
@@ -195,16 +197,6 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
         amountTaxed = max
     ECONOMY[id].money -= amountTaxed
     return { amount: amountTaxed, percent: taxPercent as number }
-}
-
-function canEarn(id: string) {
-    if (!ECONOMY[id])
-        return false
-    let secondsDiff = (Date.now() - ECONOMY[id].lastTalk) / 1000
-    if (secondsDiff > 60) {
-        return true
-    }
-    return false
 }
 
 function canWork(id: string){
@@ -513,9 +505,6 @@ function _get_active_pet(id: string) {
     return ECONOMY[id].activePet
 }
 
-loadEconomy()
-
-
 function getEconomy() {
     return ECONOMY
 }
@@ -570,7 +559,6 @@ export {
     saveEconomy,
     createPlayer,
     earnMoney,
-    canEarn,
     addMoney,
     canBetAmount,
     canTax,
@@ -606,6 +594,6 @@ export {
     canWork,
     setUserStockSymbol,
     increaseSandCounter,
-    getSandCounter
+    getSandCounter,
     // tradeItems
 }
