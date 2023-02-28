@@ -1,5 +1,5 @@
-import { CommandCategory, registerCommand, registerMatchCommand } from "./common_to_commands"
-import { strToCommandCat } from "./util"
+import { CommandCategory, registerCommand, registerMatchCommand } from "../common_to_commands"
+import { strToCommandCat } from "../util"
 
 
 for(let path of ["util", "fun", "game", "admin", "voice", "economy", "meta", "image"]){

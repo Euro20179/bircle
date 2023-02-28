@@ -3,20 +3,20 @@ import fs from 'fs'
 import ytdl = require("ytdl-core")
 import fetch = require("node-fetch")
 
-import economy = require('./economy')
-import pet from "./pets"
-import user_options = require("./user-options")
+import economy = require('../economy')
+import pet from "../pets"
+import user_options = require("../user-options")
 
 
-import { prefix } from './common'
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, currently_playing, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, setCurrentlyPlaying, StatusCode } from './common_to_commands'
-import { format, generateFileName, getOpts } from './util'
+import { prefix } from '../common'
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, currently_playing, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, setCurrentlyPlaying, StatusCode } from '../common_to_commands'
+import { format, generateFileName, getOpts } from '../util'
 import { MessageEmbed } from 'discord.js'
-import { giveItem, saveItems } from './shop'
+import { giveItem, saveItems } from '../shop'
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
-const { buyItem, hasItem, useItem } = require('./shop')
+const { buyItem, hasItem, useItem } = require('../shop')
 
-const { ITEMS, INVENTORY } = require("./shop")
+const { ITEMS, INVENTORY } = require("../shop")
 let connection: VoiceConnection | undefined;
 let vc_queue: { link: string, filename: string }[] = []
 const player = createAudioPlayer({

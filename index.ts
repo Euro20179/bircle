@@ -14,7 +14,7 @@ import { Routes } from "discord-api-types/v9"
 
 import pet from './src/pets'
 
-require("./src/commands")
+require("./src/commands/commands")
 import command_commons = require("./src/common_to_commands")
 
 let commands = command_commons.getCommands()

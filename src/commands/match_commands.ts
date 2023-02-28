@@ -1,9 +1,9 @@
-import { client, prefix, setVarEasy } from "./common"
-import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "./common_to_commands"
-import { Parser } from "./parsing"
-import { fetchUserFromClient, getContentFromResult } from "./util"
+import { client, prefix, setVarEasy } from "../common"
+import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
+import { Parser } from "../parsing"
+import { fetchUserFromClient, getContentFromResult } from "../util"
 
-import user_options = require("./user-options")
+import user_options = require("../user-options")
 import { DMChannel } from "discord.js"
 
 export default function*(CAT: CommandCategory) {
