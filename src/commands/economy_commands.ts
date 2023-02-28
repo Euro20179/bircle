@@ -766,7 +766,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     text += `${timer.do_lap(msg.author.id, "%can-earn")}\n`
                 }
                 if (opts['t']) {
-                    text += `${economy.getEconomy()[user.id].lastTaxed}\n`
+                    text += `${timer.do_lap(msg.author.id, "%last-taxed")}\n`
                 }
                 if (opts['nw']) {
                     text += `${economy.playerLooseNetWorth(user.id)}\n`

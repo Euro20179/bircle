@@ -7,7 +7,7 @@ import timer from "./timer"
 
 type Stock = {buyPrice:  number, shares: number}
 
-export type EconomyData = { money: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
+export type EconomyData = { money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -115,7 +115,7 @@ function newLottery() {
 
 function createPlayer(id: string, startingCash = 100) {
     timer.createTimer(id, "%can-earn")
-    ECONOMY[id] = { money: startingCash, lastTaxed: 0, stocks: {} }
+    ECONOMY[id] = { money: startingCash, stocks: {} }
 }
 
 function addMoney(id: string, amount: number) {
@@ -184,7 +184,7 @@ function randInt(min: number, max: number) {
 }
 
 function taxPlayer(id: string, max: number, taxPercent: number | boolean = false) {
-    ECONOMY[id].lastTaxed = Date.now()
+    timer.restartTimer(id, "%last-taxed")
     let total = playerEconomyLooseTotal(id)
     if(taxPercent === false){
         taxPercent = randInt(0.001, 0.008)
@@ -257,24 +257,15 @@ function work(id: string){
 function canTax(id: string, bonusTime?: number) {
     if (!ECONOMY[id])
         return false
-    if (!ECONOMY[id].lastTaxed) {
-        ECONOMY[id].lastTaxed = 0
+    if (!timer.getTimer(id, "%last-taxed")) {
+        timer.createTimer(id, "%last-taxed")
         return true
     }
     let total = playerEconomyLooseTotal(id)
     if (total === 0) {
         return false
     }
-    //@ts-ignore
-    let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000
-    //5 minutes
-    if (bonusTime && secondsDiff > 900 + bonusTime) {
-        return true
-    }
-    else if (!bonusTime && secondsDiff > 900) {
-        return true
-    }
-    return false
+    return timer.has_x_s_passed(id, "%last-taxed", 900 + (bonusTime || 0))
 }
 
 function canBetAmount(id: string, amount: number) {
