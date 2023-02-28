@@ -615,6 +615,22 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
         urlParams = null
     }
     switch (path) {
+        case "/option": {
+            let userId = urlParams?.get("user-id")
+            if(!userId){
+                res.writeHead(400)
+                res.end('{"erorr": "No user id given"}')
+                break;
+            }
+            let option = urlParams?.get("option")
+            if(!option){
+                res.writeHead(400)
+                res.end('{"erorr": "No option given"}')
+                break;
+            }
+            res.end(JSON.stringify(user_options.getOpt(userId, option)))
+            break;
+        }
         case "/economy": {
             let userId = urlParams?.get("user-id")
             let econData = economy.getEconomy()
