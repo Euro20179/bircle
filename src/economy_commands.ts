@@ -988,12 +988,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (hasItem(userBeingTaxed, "tax shield")) {
                     max = economy.getEconomy()[userBeingTaxed].money
                 }
-                if (hasItem(userGainingMoney, "the irs")) {
-                    taxAmount = economy.taxPlayer(userBeingTaxed, max, Math.random() * (.03 - .01) + .01)
-                }
-                else {
-                    taxAmount = economy.taxPlayer(userBeingTaxed, max)
-                }
+                taxAmount = economy.taxPlayer(userBeingTaxed, max)
                 if (taxAmount.amount == max) {
                     useItem(userBeingTaxed, "tax shield")
                 }

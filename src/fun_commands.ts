@@ -292,7 +292,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return {
                     files: [
                         {
-                            attachment: "https://cdn.discordapp.com/emojis/825937263707947008.png",
+                            attachment: "./assets/nose.png",
                             name: "Nose 😏.png",
                             delete: false
                         }
