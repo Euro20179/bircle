@@ -26,6 +26,7 @@ import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
 import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
+import { Message } from 'discord.js'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")

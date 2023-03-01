@@ -20,37 +20,37 @@ import { getOpt } from '../user-options'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ['school-stats', ccmdV2(async function({msg, args, opts}){
+    yield ['school-stats', ccmdV2(async function({ msg, args, opts }) {
         let ip;
-        if(fs.existsSync("./data/ip.key")){
+        if (fs.existsSync("./data/ip.key")) {
 
             ip = fs.readFileSync("./data/ip.key");
         }
-        if(!ip){
-            return {content: "Euro has yet to add a special file", status: StatusCode.ERR}
+        if (!ip) {
+            return { content: "Euro has yet to add a special file", status: StatusCode.ERR }
         }
 
         let toFetch = opts.getString("of", msg.author.id)
         let user: User | undefined = msg.author;
-        if(toFetch !== msg.author.id){
-            if(msg.guild){
+        if (toFetch !== msg.author.id) {
+            if (msg.guild) {
                 user = (await fetchUser(msg.guild, toFetch))?.user
             }
-            else{
+            else {
                 user = await fetchUserFromClient(client, toFetch)
             }
-            if(!user){
+            if (!user) {
                 user = msg.author
             }
         }
 
-        let res = await fetch.default(`http://${ip}`, {method: "POST", body: JSON.stringify({"id": user.id}), headers: {"Content-Type": "application/json"}})
+        let res = await fetch.default(`http://${ip}`, { method: "POST", body: JSON.stringify({ "id": user.id }), headers: { "Content-Type": "application/json" } })
         let data = await res.json()
         let embed = new MessageEmbed()
         embed.setTitle(`School stats of ${user.username}`)
         embed.setColor(msg.member?.displayColor || "NOT_QUITE_BLACK")
         embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["grade", String(data.grade)]))
-        return {embeds: [embed], status: StatusCode.RETURN}
+        return { embeds: [embed], status: StatusCode.RETURN }
     }, "School stats", {
         helpOptions: {
             of: createHelpOption("The user to get stats of")
@@ -105,7 +105,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         helpArguments: {
             files: createHelpOption("Files listed in <code>command-file -l</code> to act on")
         },
-        helpOptions:{
+        helpOptions: {
             r: createHelpOption("reverse the order of the lines")
         },
         accepts_stdin: "Instead of files, reverse content from stdin"
@@ -1704,7 +1704,7 @@ middle
                         replacedFn = `${fn} ${string}`
                     }
 
-                    string = getContentFromResult((await cmd({msg, command_excluding_prefix: replacedFn, recursion: rec + 1, returnJson: true, disable: bans})).rv).trim()
+                    string = getContentFromResult((await cmd({ msg, command_excluding_prefix: replacedFn, recursion: rec + 1, returnJson: true, disable: bans })).rv).trim()
                 }
                 return { content: string, status: StatusCode.RETURN }
             },
@@ -2191,27 +2191,27 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "read-lines", ccmdV2(async function({msg, args, sendCallback, stdin, pipeTo, opts}){
+        "read-lines", ccmdV2(async function({ msg, args, sendCallback, stdin, pipeTo, opts }) {
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
             let lines = text.split("\n")
-            if(!pipeTo){
-                await handleSending(msg, {content: `Warning: you are not piping the result to anything`, status: StatusCode.WARNING}, sendCallback)
+            if (!pipeTo) {
+                await handleSending(msg, { content: `Warning: you are not piping the result to anything`, status: StatusCode.WARNING }, sendCallback)
             }
             let waitTime = opts.getNumber("w", 1000)
-            if(waitTime < 700){
+            if (waitTime < 700) {
                 waitTime = 1000
             }
             let id = Math.random()
             globals.SPAMS[id] = true
-            for(let line of lines){
-                if(!globals.SPAMS[id])
+            for (let line of lines) {
+                if (!globals.SPAMS[id])
                     break;
 
-                await handleSending(msg, {content: line, status: StatusCode.INFO, do_change_cmd_user_expansion: false}, sendCallback)
+                await handleSending(msg, { content: line, status: StatusCode.INFO, do_change_cmd_user_expansion: false }, sendCallback)
                 await new Promise(res => setTimeout(res, waitTime))
             }
             delete globals.SPAMS[id]
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         }, "Read each line one at a time and send to sendCallback", {
             accepts_stdin: "The text to read one line at a time"
         })
@@ -2421,7 +2421,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
                 }
                 embed.addFields(efd(["Same Roles", same || "No same"], [`${realUser1.displayName} unique roles`, user1U || "No unique roles"], [`${realUser2.displayName} unique roles`, user2U || "No unique roles"]))
-                return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: {parse: []} }
+                return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
             },
             category: CommandCategory.UTIL,
             help: {
@@ -2525,7 +2525,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 embed.addFields(efd([`members: ${i}`, memberTexts[i]]))
             }
             embed.addFields(efd(["Member count", String(memberCount)]))
-            return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: {parse: []} }
+            return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
         }, CAT, "Gets a list of users with a specific role", {
             "...role": createHelpArgument("The role to search for")
@@ -2603,7 +2603,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             static parseFormatSpecifier(format: string): string | Format {
                 let [char, ...rest] = format
                 let showType = char
-                if (rest[0] === ')'){
+                if (rest[0] === ')') {
                     showType += rest[0]
                     rest = rest.slice(1)
                 }
@@ -2835,7 +2835,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         'stackl',
         {
             run: async (msg, args, sendCallback) => {
-                const stackl = require("./stackl")
+                const stackl = require("../stackl")
                 let opts: Opts;
                 [opts, args] = getOpts(args)
                 let useStart = true
@@ -3161,14 +3161,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 case "has-x-units-passed": {
                     let name = args[1]?.trim()
                     let t = timer.getTimer(msg.author.id, String(name))
-                    if(t === undefined){
-                        return {content: `You do not have a timer named ${name}`, status: StatusCode.ERR}
+                    if (t === undefined) {
+                        return { content: `You do not have a timer named ${name}`, status: StatusCode.ERR }
                     }
 
                     let number = Number(args[2]?.trim())
 
-                    if(isNaN(number)){
-                        return {content: `Must give a number`, status: StatusCode.ERR}
+                    if (isNaN(number)) {
+                        return { content: `Must give a number`, status: StatusCode.ERR }
                     }
 
                     let unit = args[3]?.trim() || "MS"
@@ -3178,22 +3178,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let h = m / 60
                     let d = h / 24
                     let w = d / 7
-                    if(unit.startsWith("s")){
-                        return {content: `${s >= number}`, status: StatusCode.RETURN}
+                    if (unit.startsWith("s")) {
+                        return { content: `${s >= number}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("m")){
-                        return {content: `${m >= number}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("m")) {
+                        return { content: `${m >= number}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("h")){
-                        return {content: `${h >= number}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("h")) {
+                        return { content: `${h >= number}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("d")){
-                        return {content: `${d >= number}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("d")) {
+                        return { content: `${d >= number}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("w")){
-                        return {content: `${w >= number}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("w")) {
+                        return { content: `${w >= number}`, status: StatusCode.RETURN }
                     }
-                    return { content: `${Date.now() - t >=  number}`, status: StatusCode.RETURN }
+                    return { content: `${Date.now() - t >= number}`, status: StatusCode.RETURN }
                 }
                 case "create": {
                     let name = String(args.slice(1).join(" ")).trim()
@@ -3240,20 +3240,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let h = m / 60
                     let d = h / 24
                     let w = d / 7
-                    if(unit.startsWith("s")){
-                        return {content: `${s}`, status: StatusCode.RETURN}
+                    if (unit.startsWith("s")) {
+                        return { content: `${s}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("m")){
-                        return {content: `${m}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("m")) {
+                        return { content: `${m}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("h")){
-                        return {content: `${h}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("h")) {
+                        return { content: `${h}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("d")){
-                        return {content: `${d}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("d")) {
+                        return { content: `${d}`, status: StatusCode.RETURN }
                     }
-                    else if(unit.startsWith("w")){
-                        return {content: `${w}`, status: StatusCode.RETURN}
+                    else if (unit.startsWith("w")) {
+                        return { content: `${w}`, status: StatusCode.RETURN }
                     }
                     return { content: `${Date.now() - t}`, status: StatusCode.RETURN }
                 }
@@ -3490,22 +3490,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     }, CommandCategory.UTIL)]
 
     yield [
-        "user-info!", ccmdV2(async function({msg, args}){
+        "user-info!", ccmdV2(async function({ msg, args }) {
             args.beginIter()
 
             let search = args.expectString(1)
-            if(search === BADVALUE){
-                return {content: "No search given", status: StatusCode.RETURN}
+            if (search === BADVALUE) {
+                return { content: "No search given", status: StatusCode.RETURN }
             }
 
             let user = await fetchUserFromClient(client, search)
 
-            if(!user){
-                return {content: `${search} not found`, status: StatusCode.ERR}
+            if (!user) {
+                return { content: `${search} not found`, status: StatusCode.ERR }
             }
 
             let fmt = args.expectString(i => i ? true : BADVALUE)
-            if(fmt && fmt !== BADVALUE){
+            if (fmt && fmt !== BADVALUE) {
                 return {
                     content: format(fmt, {
                         i: user.id || "#!N/A",
@@ -3519,7 +3519,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let e = new MessageEmbed()
             e.setTitle(user.username)
             let aurl = user.avatarURL()
-            if(aurl)
+            if (aurl)
                 e.setThumbnail(aurl)
             e.addFields(efd(["id", user.id], ["created at", user.createdAt.toString()], ["avatar url", String(aurl)]))
 
@@ -3559,6 +3559,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     .default({ content: "user not found", status: StatusCode.ERR })
                     .next((member: GuildMember, user: User) => {
                         if (args[1]) {
+                            let status = (() => {
+                                return member.presence?.clientStatus?.desktop ?? member.presence?.clientStatus?.web ?? member.presence?.clientStatus?.mobile
+                            })() ?? "invisible"
+                            let platform = member.presence?.clientStatus && Object.keys(member.presence.clientStatus)[0] || "offline"
+                            let platform_status = `${platform}/${status}`
                             const fmt = args.slice(1).join(" ")
                             return {
                                 content: format(fmt,
@@ -3571,6 +3576,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                         "{created}": user.createdAt.toString() || "#!N/A",
                                         "{joined}": member.joinedAt?.toString() || "#!N/A",
                                         "{boost}": member.premiumSince?.toString() || "#!N/A",
+                                        "{status}": platform_status,
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
                                         n: member.nickname || "#!N/A",
@@ -3580,7 +3586,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                         c: user.createdAt.toString() || "#!N/A",
                                         j: member.joinedAt?.toString() || "#!N/A",
                                         b: member.premiumSince?.toString() || "#!N/A",
-                                        a: user.avatarURL() || "#!N/A"
+                                        a: user.avatarURL() || "#!N/A",
+                                        s: platform_status
                                     }
                                 )
                             }
@@ -3623,6 +3630,8 @@ valid formats:<br>
     <li>
     <code>{boost}</code> or <code>{b}</code> or <code>%b</code>: when the user started boosting the server
     </li>
+    <li>
+    <code>{status}</code> or <code>{s}</code> or <code>%s</code>: gets the platform/status of the user
 </ul>`,
             },
             category: CommandCategory.UTIL

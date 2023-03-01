@@ -1,7 +1,7 @@
 import fs from 'fs'
 
-import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, ButtonInteraction, Guild } from "discord.js"
-import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2 } from "../common_to_commands"
+import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, ButtonInteraction, Guild, User } from "discord.js"
+import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2 } from "../common_to_commands"
 
 import globals = require("../globals")
 import economy = require("../economy")
@@ -11,13 +11,126 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, mulStr, strlen } from "../util"
+import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient } from "../util"
 import { client, getVar, GLOBAL_CURRENCY_SIGN, setVar } from "../common"
 import timer from '../timer'
+
+import connect4, { Board } from '../connect4'
 
 const { useItem, hasItem } = require("../shop")
 
 export default function*(): Generator<[string, Command | CommandV2]> {
+
+    yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
+
+        let board: Board = connect4.createBoard(opts.getNumber("rows", 6), opts.getNumber("cols", 7))
+
+        let p1Color = user_options.getOpt(msg.author.id, "connect4-symbol", opts.getString('symbol', "🔴"))
+        let p2Color = '🔵'
+
+        let players: (User | undefined)[] = [msg.author]
+        if (args.length) {
+            players[1] = msg.guild ? (await fetchUser(msg.guild, args.join(" ")))?.user : await fetchUserFromClient(client, args.join(" "))
+            p2Color = user_options.getOpt(players[1]?.id, "connect4-symbol", p2Color)
+        }
+        if (!players[1]) {
+            if (args.length) {
+                await handleSending(msg, { content: `${args.join(" ")} not found`, status: StatusCode.WARNING })
+            }
+            let e = new MessageEmbed()
+            e.setTitle("Type `join` to join the connect4 game")
+            await handleSending(msg, { embeds: [e], status: StatusCode.PROMPT })
+            let joinMessages = await msg.channel.awaitMessages({ filter: m => m.content.toLowerCase().startsWith("join"), time: 30000, max: 1 })
+            let m = joinMessages.at(0)
+            if (!m) {
+                return { content: `No one wanted to play :(`, status: StatusCode.RETURN }
+            }
+
+            p2Color = user_options.getOpt(m.author.id, "connect4-symbol", m.content.slice("join".length).trim() || p2Color)
+            players[1] = m.author
+        }
+
+        for (let user of players as User[])
+            globals.startCommand(user.id, "connect4")
+
+        //main game
+
+
+        let cycler = cycle(listComprehension(players, (p, idx) => [p as User, idx === 0 ? "R" : "B"] as const))
+
+        let editableMsg = await handleSending(msg, { content: `${players[0]}\nType the number column you want to go in\n${connect4.createBoardText(board, p1Color, p2Color)}`, status: StatusCode.INFO })
+
+        let going = players[0]
+
+        let ENDGAME = false
+
+        let listener = msg.channel.createMessageCollector({ filter: m => players.includes(m.author) && ["resend", "board", "new", "quit", "q"].includes(m.content) })
+        listener.on("collect", m => {
+            if (["quit", "q"].includes(m.content)) {
+                for (let user of players as User[])
+                    globals.endCommand(user.id, 'connect4')
+                ENDGAME = true
+                handleSending(m, { content: `${m.author} quit the game`, status: StatusCode.INFO })
+                listener.stop()
+                return
+            }
+            handleSending(msg, { content: `${going}\nType the number column you want to go in\n${connect4.createBoardText(board, p1Color, p2Color)}`, status: StatusCode.INFO }).then(m => editableMsg = m)
+        })
+
+        const needed = opts.getNumber("needed", opts.getNumber("n", 4))
+
+        for (let [player, turnColor] of cycler) {
+            await editableMsg.edit(`${player}\nType the number column you want to go in\n${connect4.createBoardText(board, p1Color, p2Color)}`)
+            if (ENDGAME) {
+                break
+            }
+            //for the listener that refreshes the board
+            going = player
+            let msgs = await msg.channel.awaitMessages({
+                filter: m =>
+                    m.author.id === player.id &&
+                    !isNaN(Number(m.content)) &&
+                    connect4.canPlaceInColumn(board, Number(m.content) - 1),
+                max: 1, time: 30000
+            })
+            let m = msgs.at(0)
+            if (!m) {
+                await handleSending(msg, { content: `<@${player.id}> took too long, skipping turn`, status: StatusCode.INFO })
+                continue;
+            }
+            if (m.deletable) {
+                await m.delete()
+            }
+            let column = Number(m.content) - 1
+            board = connect4.placeColorInColumn(board, turnColor, column)
+            if (connect4.checkWin(board, needed)) {
+                for (let user of players as User[])
+                    globals.endCommand(user.id, 'connect4')
+                listener.stop()
+                await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
+                return { content: user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!`), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
+            }
+        }
+
+        //end main game
+
+        for (let user of players as User[])
+            globals.endCommand(user.id, 'connect4')
+
+        listener.stop()
+        return { noSend: true, status: StatusCode.RETURN }
+
+    }, "Play some connect 4\nto join type <code>join</code>, after the word join you may put a symbol to use instead of <code>🔵</code>", {
+        permCheck: m => !globals.userUsingCommand(m.author.id, "connect4"),
+        helpArguments: {
+            "player": createHelpArgument("The player you want to play against", false)
+        }, helpOptions: {
+            "needed": createHelpOption("The amount you need to get in a row to win", undefined, "4"),
+            "rows": createHelpOption("The number of rows", undefined, "6"),
+            "cols": createHelpOption("The number of cols", undefined, "7"),
+            "symbol": createHelpOption("The symbol to use for yourself", undefined, "🔴")
+        }
+    })]
 
     yield ["madlibs", createCommandV2(async ({ sendCallback, msg }) => {
 
@@ -54,7 +167,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 variables.set(varName, resp?.content || "")
                 return resp?.content || ""
             }
-            else{
+            else {
                 await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
                 let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                 let resp = msgs.at(0)
@@ -1161,7 +1274,7 @@ until you put a 0 in the box`)
                             if (row.components.length > 0) {
                                 rows.push(row)
                             }
-                            let m = await handleSending(msg,{ content: response, components: rows, status: StatusCode.INFO }, sendCallback)
+                            let m = await handleSending(msg, { content: response, components: rows, status: StatusCode.INFO }, sendCallback)
                             let choice = ""
                             try {
                                 let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
@@ -1204,7 +1317,7 @@ until you put a 0 in the box`)
                         if (!await handleStage(stage)) {
                             stats.adventureOrder[stats.adventureOrder.length - 1][1] += " *(fail)*"
                             let oldStage = stage
-                            await handleSending(msg,{content: `FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`, status: StatusCode.ERR}, sendCallback)
+                            await handleSending(msg, { content: `FAILURE on stage: ${oldStage} ${current_location == '__generic__' ? "" : `at location: ${current_location}`}, resetting to location __generic__`, status: StatusCode.ERR }, sendCallback)
                             current_location = '__generic__'
                         }
                         else {
@@ -1304,7 +1417,7 @@ until you put a 0 in the box`)
 
                 //solves a bug where the user has to run last-run once in order to create the timer
                 let bypassCheck = false
-                if(timer.getTimer(msg.author.id, "%last-run") === undefined){
+                if (timer.getTimer(msg.author.id, "%last-run") === undefined) {
                     timer.createTimer(msg.author.id, "%last-run")
                     timer.saveTimers()
                     bypassCheck = true
@@ -1485,7 +1598,7 @@ until you put a 0 in the box`)
                 else {
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
-                let _message = await handleSending(msg, {embeds: [embed], status: StatusCode.INFO}, sendCallback)
+                let _message = await handleSending(msg, { embeds: [embed], status: StatusCode.INFO }, sendCallback)
                 let response
                 while (!response) {
                     let collectedMessages
@@ -1740,7 +1853,7 @@ until you put a 0 in the box`)
                         }
                         if (!(pile.top()?.type == 'skip')) {
                             let player = players[players.map(v => v.id).indexOf(going)]
-                            let send = displayStack(playerData.get(player.id)as uno.Hand)
+                            let send = displayStack(playerData.get(player.id) as uno.Hand)
                             send += "\n-------------------------"
                             player.send({ content: send })
                             if (pile.cards.length)
