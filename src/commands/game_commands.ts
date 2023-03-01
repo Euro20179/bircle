@@ -105,7 +105,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let user of players as User[])
                     globals.endCommand(user.id, 'connect4')
                 listener.stop()
-                await handleSending(msg, {content: connect4.createBoardText(board), status: StatusCode.INFO})
+                await handleSending(msg, {content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO})
                 return { content: user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!`), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
             }
         }
