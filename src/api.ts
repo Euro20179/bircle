@@ -1,6 +1,7 @@
 import { Message, CollectorFilter } from "discord.js"
 import economy = require("./economy")
 import pet from './pets'
+import timer from './timer'
 import shop = require("./shop")
 import fetch = require('node-fetch')
 import { cmd } from "./common_to_commands"
@@ -31,7 +32,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     },
     canEarnMoney: {
         requirements: ["id"],
-        exec: async({ id }: {id: string}) => economy.canEarn(id)
+        exec: async({ id }: {id: string}) => timer.has_x_s_passed(id, "%can-earn", 60)
     },
     listPets:  {
         requirements: [],

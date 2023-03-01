@@ -1,15 +1,15 @@
 import fs from 'fs'
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "./common_to_commands"
-import globals = require("./globals")
-import user_options = require("./user-options")
-import economy = require("./economy")
-import API = require("./api")
-import { parseAliasReplacement, Parser } from "./parsing"
-import { addToPermList, addUserMatchCommand, ADMINS, client, delVar, FILE_SHORTCUTS, getUserMatchCommands, getVar, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, saveVars, setVar, vars, VERSION, WHITELIST } from "./common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient } from "./util"
+import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
+import globals = require("../globals")
+import user_options = require("../user-options")
+import economy = require("../economy")
+import API = require("../api")
+import { parseAliasReplacement, Parser } from "../parsing"
+import { addToPermList, addUserMatchCommand, ADMINS, client, delVar, FILE_SHORTCUTS, getUserMatchCommands, getVar, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, saveVars, setVar, vars, VERSION, WHITELIST } from "../common"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix } from "../util"
 import { Guild, Message, MessageEmbed, User } from "discord.js"
-import { registerCommand } from "./common_to_commands"
+import { registerCommand } from "../common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
@@ -745,7 +745,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
 
             async function runIf(c: string, operator: string, value: string) {
-                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans })).rv
+                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans })).rv as CommandReturn
                 let isTrue = false
                 switch (operator) {
                     case "==": {
@@ -972,7 +972,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                         expected += ch;
                     }
-                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv).trim()
+                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
                     expected = expected.trim()
                     switch (check.trim().toLowerCase()) {
                         case "==": {

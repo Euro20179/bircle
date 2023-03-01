@@ -1,9 +1,9 @@
-import { client, prefix, setVarEasy } from "./common"
-import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "./common_to_commands"
-import { Parser } from "./parsing"
-import { fetchUserFromClient, getContentFromResult } from "./util"
+import { client, prefix, setVarEasy } from "../common"
+import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
+import { Parser } from "../parsing"
+import { fetchUserFromClient, getContentFromResult } from "../util"
 
-import user_options = require("./user-options")
+import user_options = require("../user-options")
 import { DMChannel } from "discord.js"
 
 export default function*(CAT: CommandCategory) {
@@ -11,7 +11,7 @@ export default function*(CAT: CommandCategory) {
         let find = match[1]
         let replace = match[2]
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true })).rv
+        return (await cmd({msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true})).rv as CommandReturn
 
     }, /^\^([^\^]+)\^(.*)$/, "match:run-replace", {
         info: "^&lt;find&gt;^&lt;replace&gt;",
@@ -21,6 +21,67 @@ export default function*(CAT: CommandCategory) {
         }
     })]
 
+    yield [createMatchCommand(async ({msg, match}) => {
+
+        if(msg.guild){
+            return {noSend: true, status: StatusCode.RETURN}
+        }
+
+        let searchUser: string = match[1]
+        let textToSend = match[2]
+
+        let user = await fetchUserFromClient(client, searchUser)
+
+        if(!user){
+            return {content: `${searchUser} not found`, status: StatusCode.ERR}
+        }
+        if (user_options.getOpt(user.id, "enable-mail", "false").toLowerCase() !== "true") {
+            return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
+        }
+        let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
+        if (signature.slice(0, prefix.length) === prefix) {
+            signature = getContentFromResult((await cmd({msg, command_excluding_prefix: signature.slice(prefix.length), recursion: 19, returnJson: true})).rv as CommandReturn)
+            if (signature.startsWith(prefix)) {
+                signature = "\\" + signature
+            }
+        }
+        if(!user.dmChannel){
+            try{
+                await user.createDM()
+            }
+            catch(err){
+                return {content: `Cannot send to ${user.username}`, status: StatusCode.ERR}
+            }
+        }
+        await handleSending(msg, { content: textToSend + `\n${signature}` ||`${msg.member?.displayName || msg.author.username} says hi` , status: StatusCode.RETURN, delete: true, channel: user.dmChannel as DMChannel })
+
+        return {content: `Message sent to ${user.username}`, status: StatusCode.RETURN}
+
+
+
+    }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
+
+    yield [createMatchCommand(async function({msg, match}){
+        return (await cmd({msg, command_excluding_prefix: `stop${match[1] ?? ""}`, returnJson: true})).rv as CommandReturn
+    }, /u!stop(.*)/, "match:u!stop", {
+        info: "same as [stop"
+    })]
+
+    yield [createMatchCommand(async function({msg, match}){
+        return (await cmd({msg, command_excluding_prefix: `calc -python ${match[1] ?? ""}`, returnJson: true})).rv as CommandReturn
+    }, /u!eval(.*)/, "match:u!eval", {
+        info: "same as [calc -python"
+    })]
+
+    yield [createMatchCommand(async function({msg, match}){
+        user_options.unsetOpt(msg.author.id, 'prefix')
+        return (await cmd({msg, command_excluding_prefix: match[1] ?? "echo -D prefix unset", returnJson: true})).rv as CommandReturn
+
+    }, /s!(.*)/, "match:s!", {
+        info: "In case of a bad prefix, unsets it"
+    })]
+
+>>>>>>> development:src/commands/match_commands.ts
     yield [createMatchCommand(async ({ msg, match }) => {
         return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`, returnJson: true })).rv
     }, /^u!stop(.*)/, "match:u!stop", {

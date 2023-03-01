@@ -6,10 +6,10 @@ import fetch = require("node-fetch")
 
 import { Stream } from 'stream'
 
-import { CommandCategory, createCommand, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from './common_to_commands'
-import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts, getOpts, intoColorList, Pipe, randomColor, rgbToHex } from './util'
-import { parsePosition } from './parsing'
-import { getVar, prefix } from './common'
+import { CommandCategory, createCommand, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts, getOpts, intoColorList, Pipe, randomColor, rgbToHex } from '../util'
+import { parsePosition } from '../parsing'
+import { getVar, prefix } from '../common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
 

@@ -6,20 +6,56 @@ import fetch = require('node-fetch')
 
 import { Stream } from 'stream'
 
-import globals = require("./globals")
-import economy = require("./economy")
-import pet from "./pets"
-import timer from './timer'
+import globals = require("../globals")
+import economy = require("../economy")
+import pet from "../pets"
+import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd } from './common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE } from './util'
-import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from './common'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd } from '../common_to_commands'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE } from '../util'
+import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
-import { getOpt } from './user-options'
-import { isNaN } from 'lodash'
+import { getOpt } from '../user-options'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+
+    yield ['school-stats', ccmdV2(async function({msg, args, opts}){
+        let ip;
+        if(fs.existsSync("./data/ip.key")){
+
+            ip = fs.readFileSync("./data/ip.key");
+        }
+        if(!ip){
+            return {content: "Euro has yet to add a special file", status: StatusCode.ERR}
+        }
+
+        let toFetch = opts.getString("of", msg.author.id)
+        let user: User | undefined = msg.author;
+        if(toFetch !== msg.author.id){
+            if(msg.guild){
+                user = (await fetchUser(msg.guild, toFetch))?.user
+            }
+            else{
+                user = await fetchUserFromClient(client, toFetch)
+            }
+            if(!user){
+                user = msg.author
+            }
+        }
+
+        let res = await fetch.default(`http://${ip}`, {method: "POST", body: JSON.stringify({"id": user.id}), headers: {"Content-Type": "application/json"}})
+        let data = await res.json()
+        let embed = new MessageEmbed()
+        embed.setTitle(`School stats of ${user.username}`)
+        embed.setColor(msg.member?.displayColor || "NOT_QUITE_BLACK")
+        embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["grade", String(data.grade)]))
+        return {embeds: [embed], status: StatusCode.RETURN}
+    }, "School stats", {
+        helpOptions: {
+            of: createHelpOption("The user to get stats of")
+        }
+    })]
 
     yield ["cat", ccmdV2(async ({ stdin, opts, args }) => {
         let content = "";
@@ -2113,7 +2149,9 @@ null = None
 g = VarHolder(${JSON.stringify(vars['__global__'])})
 u = VarHolder(${JSON.stringify(vars[msg.author.id]) || "{}"})
 print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
-                    let moreDat = spawnSync("python3", ["-c", codeStr])
+                    let moreDat = spawnSync("python3", ["-c", codeStr], {
+                        timeout: 3000
+                    })
                     let sendText = ""
                     if (moreDat.stderr.toString("utf-8")) {
                         sendText += moreDat.stderr.toString("utf-8").trim() + '\n'

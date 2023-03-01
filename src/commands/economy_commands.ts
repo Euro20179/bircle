@@ -1,20 +1,20 @@
 import fs from 'fs'
 import fetch = require("node-fetch")
-import economy = require('./economy')
-import pet from "./pets"
-import user_options = require("./user-options")
-import timer from './timer'
+import economy = require('../economy')
+import pet from "../pets"
+import user_options = require("../user-options")
+import timer from '../timer'
 
 
-import { client, GLOBAL_CURRENCY_SIGN, prefix } from './common'
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from './common_to_commands'
-import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension } from './util'
+import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
+import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension } from '../util'
 import { MessageEmbed } from 'discord.js'
-import { giveItem, saveItems } from './shop'
+import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
-const { buyItem, hasItem, useItem } = require('./shop')
+const { buyItem, hasItem, useItem } = require('../shop')
 
-const { ITEMS, INVENTORY } = require("./shop")
+const { ITEMS, INVENTORY } = require("../shop")
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -763,10 +763,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     text += `${economy.getEconomy()[user.id].money}\n`
                 }
                 if (opts['l']) {
-                    text += `${economy.getEconomy()[user.id].lastTalk}\n`
+                    text += `${timer.do_lap(msg.author.id, "%can-earn")}\n`
                 }
                 if (opts['t']) {
-                    text += `${economy.getEconomy()[user.id].lastTaxed}\n`
+                    text += `${timer.do_lap(msg.author.id, "%last-taxed")}\n`
                 }
                 if (opts['nw']) {
                     text += `${economy.playerLooseNetWorth(user.id)}\n`

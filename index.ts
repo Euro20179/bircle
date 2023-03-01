@@ -14,7 +14,7 @@ import { Routes } from "discord-api-types/v9"
 
 import pet from './src/pets'
 
-require("./src/commands")
+require("./src/commands/commands")
 import command_commons = require("./src/common_to_commands")
 
 let commands = command_commons.getCommands()
@@ -25,6 +25,7 @@ import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
 import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
+import timer from './src/timer'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -88,6 +89,7 @@ client.on("guildMemberAdd", async (m: typeof Message) => {
 })
 
 client.on('ready', async () => {
+    economy.loadEconomy()
     Object.keys(user_options.USER_OPTIONS).forEach((v) => {
         if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
             client.users.fetch(v).then((u: any) => {
@@ -124,6 +126,10 @@ client.on("messageCreate", async (m: typeof Message) => {
         return
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
+    }
+    if(!timer.getTimer(m.author.id, "%can-earn") && !m.author.bot){
+        //for backwards compatibility
+        timer.createTimer(m.author.id, "%can-earn")
     }
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
@@ -185,20 +191,25 @@ client.on("messageCreate", async (m: typeof Message) => {
     else {
         await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
     }
-    if (economy.canEarn(m.author.id)) {
+    if (timer.has_x_s_passed(m.author.id, "%can-earn", 60) && !m.author.bot) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
         if (deaths.length)
             await m.channel.send(`<@${m.author.id}>'s ${deaths.join(", ")} died`)
+
         let ap = pet.getActivePet(m.author.id)
+
         let percent = 1.001
         let pcount = Number(hasItem(m.author.id, "puffle chat"))
+
         percent += .0001 * pcount
+
         if (ap == 'cat') {
             economy.earnMoney(m.author.id, percent + .002)
         }
         else {
             economy.earnMoney(m.author.id, percent)
         }
+
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
             if (stuff) {
@@ -565,7 +576,7 @@ client.login(globals.token)
 const server = http.createServer()
 server.listen(8222)
 
-server.on("request", (req, res) => {
+function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: string){
     let url = req.url
     if (!url) {
         res.writeHead(404)
@@ -578,79 +589,18 @@ server.on("request", (req, res) => {
     if (paramsStart == -1) {
         urlParams = null
     }
-    switch (path) {
-        case "/economy": {
-            let userId = urlParams?.get("user-id")
-            let econData = economy.getEconomy()
-            let rv;
-            if (userId) {
-                if (econData[userId])
-                    rv = econData[userId]
-                else {
-                    rv = { error: "Cannot find data for user" }
-                }
-            }
-            else {
-                rv = econData
-            }
-            res.writeHead(200)
-            res.end(JSON.stringify(rv))
-            break
-        }
-        case "/files": {
-            let files = urlParams?.get("file")?.split(" ")
-            if (!files) {
-                files = fs.readdirSync(`./command-results/`)
-            }
-            let data: { [file: string]: string } = {}
-            for (let file of files) {
-                if (fs.existsSync(`./command-results/${file}`)) {
-                    data[file] = fs.readFileSync(`./command-results/${file}`, "utf-8")
-                }
-            }
-            res.writeHead(200)
-            res.end(JSON.stringify(data))
-            break
-        }
-        case "/end": {
-            economy.saveEconomy()
-            saveItems()
-            saveVars()
-            pet.savePetData()
-            client.destroy()
-            res.writeHead(200)
-            res.end(JSON.stringify({ success: "Successfully ended bot" }))
-            server.close()
-            break;
-        }
-        case "/send": {
-            let text = urlParams?.get("text")
-            if (!text) {
-                res.writeHead(400)
-                res.end(JSON.stringify({ error: "No text given" }))
-                break
-            }
-            let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
-                channel.send({ content: text }).then((msg: any) => {
-                    res.writeHead(200)
-                    res.end(JSON.stringify(msg.toJSON()))
-                })
-            }).catch((_err: any) => {
-                res.writeHead(444)
-                res.end(JSON.stringify({ error: "Channel not found" }))
-            })
-            break
-        }
-        case "/run": {
-            let command = urlParams?.get("cmd")
+    let [_blank, mainPath, ...subPaths] = path.split("/")
+    switch(mainPath){
+        case "run": {
+            let command = body
+            let shouldSend = urlParams?.get("send")
             if (!command) {
                 res.writeHead(400)
-                res.end(JSON.stringify({ error: "No text given" }))
+                res.end(JSON.stringify({ error: "No post body given" }))
                 break
             }
-            if (!command.startsWith(prefix)) {
-                command = `${prefix}${command}`
+            if (command.startsWith(prefix)) {
+                command = command.slice(prefix.length)
             }
             let inChannel = urlParams?.get("channel-id")
             client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
@@ -708,7 +658,7 @@ server.on("request", (req, res) => {
                     //@ts-ignore
                     reactions: null,
                     reference: null,
-                    stockers: new Collection(),
+                    stickers: new Collection(),
                     system: false,
                     thread: null,
                     tts: false,
@@ -718,17 +668,133 @@ server.on("request", (req, res) => {
                     _cacheType: false,
                     _patch: (_data: any) => { }
                 }
-                command_commons.cmd({msg, command_excluding_prefix: (command as string).slice(prefix), returnJson: true}).then(rv => {
-                    command_commons.handleSending(msg, rv.rv as CommandReturn).then(_done => {
+                console.log(command)
+                command_commons.cmd({msg, command_excluding_prefix: command as string, returnJson: true}).then(rv => {
+                    if(shouldSend){
+                        command_commons.handleSending(msg, rv.rv as CommandReturn).then(_done => {
+                            res.writeHead(200)
+                            res.end(JSON.stringify(rv))
+                        }).catch(_err => {
+                            res.writeHead(500)
+                            console.log(_err)
+                            res.end(JSON.stringify({ error: "Soething went wrong sending message" }))
+                        })
+                    }
+                    else{
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))
-                    }).catch(_err => {
-                        res.writeHead(500)
-                        res.end(JSON.stringify({ error: "Soething went wrong sending message" }))
-                    })
+                        
+                    }
                 }).catch(_err => {
                     res.writeHead(500)
+                            console.log(_err)
                     res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
+                })
+            }).catch((_err: any) => {
+                res.writeHead(444)
+                res.end(JSON.stringify({ error: "Channel not found" }))
+            })
+            break
+        }
+    }
+
+}
+
+function _handlePost(req: http.IncomingMessage, res: http.ServerResponse){
+    let body = ''
+    req.on("data", chunk => body += chunk.toString())
+    req.on("end", () => {
+        handlePost(req, res, body)
+    })
+}
+
+function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
+    let url = req.url
+    if (!url) {
+        res.writeHead(404)
+        res.end(JSON.stringify({ err: "Page not found" }))
+        return
+    }
+    let paramsStart = url.indexOf("?")
+    let path = url.slice(0, paramsStart > -1 ? paramsStart : undefined)
+    let urlParams: URLSearchParams | null = new URLSearchParams(url.slice(paramsStart))
+    if (paramsStart == -1) {
+        urlParams = null
+    }
+    let [_blank, mainPath, ...subPaths] = path.split("/")
+    switch (mainPath) {
+        case "option": {
+            let userId = subPaths[0] ?? urlParams?.get("user-id")
+            if(!userId){
+                res.writeHead(400)
+                res.end('{"erorr": "No user id given"}')
+                break;
+            }
+            let option = urlParams?.get("option")
+            if(!option){
+                res.writeHead(400)
+                res.end('{"erorr": "No option given"}')
+                break;
+            }
+            res.end(JSON.stringify(user_options.getOpt(userId, option)))
+            break;
+        }
+        case "economy": {
+            let userId = subPaths[0] ?? urlParams?.get("user-id")
+            let econData = economy.getEconomy()
+            let rv;
+            if (userId) {
+                if (econData[userId])
+                    rv = econData[userId]
+                else {
+                    rv = { error: "Cannot find data for user" }
+                }
+            }
+            else {
+                rv = econData
+            }
+            res.writeHead(200)
+            res.end(JSON.stringify(rv))
+            break
+        }
+        case "files": {
+            let files = urlParams?.get("file")?.split(" ")
+            if (!files) {
+                files = fs.readdirSync(`./command-results/`)
+            }
+            let data: { [file: string]: string } = {}
+            for (let file of files) {
+                if (fs.existsSync(`./command-results/${file}`)) {
+                    data[file] = fs.readFileSync(`./command-results/${file}`, "utf-8")
+                }
+            }
+            res.writeHead(200)
+            res.end(JSON.stringify(data))
+            break
+        }
+        case "end": {
+            economy.saveEconomy()
+            saveItems()
+            saveVars()
+            pet.savePetData()
+            client.destroy()
+            res.writeHead(200)
+            res.end(JSON.stringify({ success: "Successfully ended bot" }))
+            server.close()
+            break;
+        }
+        case "send": {
+            let text = urlParams?.get("text")
+            if (!text) {
+                res.writeHead(400)
+                res.end(JSON.stringify({ error: "No text given" }))
+                break
+            }
+            let inChannel = urlParams?.get("channel-id")
+            client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
+                channel.send({ content: text }).then((msg: any) => {
+                    res.writeHead(200)
+                    res.end(JSON.stringify(msg.toJSON()))
                 })
             }).catch((_err: any) => {
                 res.writeHead(444)
@@ -739,5 +805,14 @@ server.on("request", (req, res) => {
         default:
             res.writeHead(404)
             res.end(JSON.stringify({ error: "Route not found" }))
+    }
+}
+
+server.on("request", (req, res) => {
+    if(req.method === 'POST'){
+        return _handlePost(req, res)
+    }
+    else if(req.method === 'GET'){
+        return handleGet(req, res)
     }
 })

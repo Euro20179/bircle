@@ -8,19 +8,19 @@ import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
-import economy = require("./economy")
-import { client, prefix } from "./common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE } from "./util"
-import user_options = require("./user-options")
-import pet from "./pets"
-import globals = require("./globals")
-import timer from './timer'
-import { cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "./common_to_commands";
-import { registerFont } from 'canvas';
-import { giveItem } from './shop';
+import economy = require("../economy")
+import { client, prefix } from "../common";
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE } from "../util"
+import user_options = require("../user-options")
+import pet from "../pets"
+import globals = require("../globals")
+import timer from '../timer'
+import { cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
+import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
-const { useItem, hasItem, INVENTORY } = require("./shop")
+
+const { useItem, hasItem, INVENTORY } = require("../shop")
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -151,7 +151,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv)
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
             if (signature.startsWith(prefix)) {
                 signature = "\\" + signature
             }

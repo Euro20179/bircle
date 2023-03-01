@@ -1,14 +1,14 @@
 import fs from 'fs'
-import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars } from './common'
-import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, handleSending, registerCommand, StatusCode } from './common_to_commands'
-import economy = require("./economy")
-import user_options = require("./user-options")
-import pet from "./pets"
-import timer from './timer'
-import { saveItems } from './shop'
+import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars } from '../common'
+import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import economy = require("../economy")
+import user_options = require("../user-options")
+import pet from "../pets"
+import timer from '../timer'
+import { saveItems } from '../shop'
 import { Message } from 'discord.js'
-import { fetchUser } from './util'
-const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('./shop')
+import { fetchUser } from '../util'
+const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('../shop')
 
 export default function*(): Generator<[string, Command| CommandV2]> {
 

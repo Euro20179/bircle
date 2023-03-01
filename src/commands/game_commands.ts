@@ -1,21 +1,21 @@
 import fs from 'fs'
 
 import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, ButtonInteraction, Guild } from "discord.js"
-import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2 } from "./common_to_commands"
+import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2 } from "../common_to_commands"
 
-import globals = require("./globals")
-import economy = require("./economy")
-import user_options = require("./user-options")
-import battle = require("./battle")
-import pet from "./pets"
+import globals = require("../globals")
+import economy = require("../economy")
+import user_options = require("../user-options")
+import battle = require("../battle")
+import pet from "../pets"
 
-import uno = require("./uno")
+import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, mulStr, strlen } from "./util"
-import { client, getVar, GLOBAL_CURRENCY_SIGN, setVar } from "./common"
-import timer from './timer'
+import { choice, cycle, efd, fetchUser, format, getOpts, mulStr, strlen } from "../util"
+import { client, getVar, GLOBAL_CURRENCY_SIGN, setVar } from "../common"
+import timer from '../timer'
 
-const { useItem, hasItem } = require("./shop")
+const { useItem, hasItem } = require("../shop")
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 

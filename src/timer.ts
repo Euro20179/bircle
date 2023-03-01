@@ -13,6 +13,12 @@ function createTimer(for_user: string, name: string){
     return TIMERS[for_user][name]
 }
 
+function timerExists(for_user: string, name: string){
+    if(TIMERS[for_user]?.[name] === undefined)
+        return false
+    return true;
+}
+
 function deleteTimer(for_user: string, name: string){
     if(!TIMERS[for_user]?.[name]){
         return false
@@ -76,5 +82,6 @@ export default{
     loadTimers,
     getTimer,
     getTimersOfUser,
-    restartTimer
+    restartTimer,
+    timerExists
 }
