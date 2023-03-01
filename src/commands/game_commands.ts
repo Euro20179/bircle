@@ -31,6 +31,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let players: (User | undefined)[] = [msg.author]
         if (args.length) {
             players[1] = msg.guild ? (await fetchUser(msg.guild, args.join(" ")))?.user : await fetchUserFromClient(client, args.join(" "))
+            p2Color = user_options.getOpt(players[1]?.id, "connect4-symbol", p2Color)
         }
         if (!players[1]) {
             if (args.length) {
@@ -70,6 +71,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     globals.endCommand(user.id, 'connect4')
                 ENDGAME = true
                 handleSending(m, { content: `${m.author} quit the game`, status: StatusCode.INFO })
+                listener.stop()
                 return
             }
             handleSending(msg, { content: `${going}\nType the number column you want to go in\n${connect4.createBoardText(board, p1Color, p2Color)}`, status: StatusCode.INFO }).then(m => editableMsg = m)
@@ -105,7 +107,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let user of players as User[])
                     globals.endCommand(user.id, 'connect4')
                 listener.stop()
-                await handleSending(msg, {content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO})
+                await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
                 return { content: user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!`), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
             }
         }
@@ -118,8 +120,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         listener.stop()
         return { noSend: true, status: StatusCode.RETURN }
 
-    }, "Play some connect 4", {
-        permCheck: m => !globals.userUsingCommand(m.author.id, "connect4")
+    }, "Play some connect 4\nto join type <code>join</code>, after the word join you may put a symbol to use instead of <code>🔵</code>", {
+        permCheck: m => !globals.userUsingCommand(m.author.id, "connect4"),
+        helpArguments: {
+            "player": createHelpArgument("The player you want to play against", false)
+        }, helpOptions: {
+            "needed": createHelpOption("The amount you need to get in a row to win", undefined, "4"),
+            "rows": createHelpOption("The number of rows", undefined, "6"),
+            "cols": createHelpOption("The number of cols", undefined, "7"),
+            "symbol": createHelpOption("The symbol to use for yourself", undefined, "🔴")
+        }
     })]
 
     yield ["madlibs", createCommandV2(async ({ sendCallback, msg }) => {
