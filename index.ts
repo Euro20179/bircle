@@ -740,7 +740,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
     let [_blank, mainPath, ...subPaths] = path.split("/")
     switch (mainPath) {
         case "option": {
-            let userId = urlParams?.get("user-id")
+            let userId = subPaths[0] ?? urlParams?.get("user-id")
             if(!userId){
                 res.writeHead(400)
                 res.end('{"erorr": "No user id given"}')
@@ -756,7 +756,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
             break;
         }
         case "economy": {
-            let userId = urlParams?.get("user-id")
+            let userId = subPaths[0] ?? urlParams?.get("user-id")
             let econData = economy.getEconomy()
             let rv;
             if (userId) {
