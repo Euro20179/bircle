@@ -25,7 +25,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
         let board: Board = connect4.createBoard(opts.getNumber("rows", 6), opts.getNumber("cols", 7))
 
-        let p1Color = opts.getString('symbol', "🔴")
+        let p1Color = user_options.getOpt(msg.author.id, "connect4-symbol", opts.getString('symbol', "🔴"))
         let p2Color = '🔵'
 
         let players: (User | undefined)[] = [msg.author]
@@ -45,7 +45,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: `No one wanted to play :(`, status: StatusCode.RETURN }
             }
 
-            p2Color = m.content.slice("join".length).trim() || p2Color
+            p2Color = user_options.getOpt(m.author.id, "connect4-symbol", m.content.slice("join".length).trim() || p2Color)
             players[1] = m.author
         }
 
