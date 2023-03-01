@@ -4,7 +4,7 @@ import { spawnSync } from "child_process"
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
 import { client } from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
 
