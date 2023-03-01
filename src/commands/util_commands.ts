@@ -2835,7 +2835,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         'stackl',
         {
             run: async (msg, args, sendCallback) => {
-                const stackl = require("./stackl")
+                const stackl = require("../stackl")
                 let opts: Opts;
                 [opts, args] = getOpts(args)
                 let useStart = true
