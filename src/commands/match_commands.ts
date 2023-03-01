@@ -61,6 +61,26 @@ export default function*(CAT: CommandCategory) {
 
     }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
 
+    yield [createMatchCommand(async function({msg, match}){
+        return (await cmd({msg, command_excluding_prefix: `stop${match[1] ?? ""}`, returnJson: true})).rv as CommandReturn
+    }, /u!stop(.*)/, "match:u!stop", {
+        info: "same as [stop"
+    })]
+
+    yield [createMatchCommand(async function({msg, match}){
+        return (await cmd({msg, command_excluding_prefix: `calc -python ${match[1] ?? ""}`, returnJson: true})).rv as CommandReturn
+    }, /u!eval(.*)/, "match:u!eval", {
+        info: "same as [calc -python"
+    })]
+
+    yield [createMatchCommand(async function({msg, match}){
+        user_options.unsetOpt(msg.author.id, 'prefix')
+        return (await cmd({msg, command_excluding_prefix: match[1] ?? "echo -D prefix unset", returnJson: true})).rv as CommandReturn
+
+    }, /s!(.*)/, "match:s!", {
+        info: "In case of a bad prefix, unsets it"
+    })]
+
     yield [createMatchCommand(async ({ msg, match }) => {
         let prefix = match[1]
         let name = match[2]
