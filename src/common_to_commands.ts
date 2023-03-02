@@ -1105,7 +1105,7 @@ export class Interpreter {
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
             let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-            if(m && m.content !== 'y'){
+            if(!m || (m && m.content.toLowerCase() !== 'y')){
                 declined = true
             }
         }
@@ -1151,7 +1151,7 @@ export class Interpreter {
 
             if (commandObj?.category === CommandCategory.ADMIN || commandObj?.prompt_before_run === true) {
                 let m = await promptUser(this.#msg,  `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-                if (m && m.content.toLowerCase() !== 'y') {
+                if (!m || (m && m.content.toLowerCase() !== 'y')) {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
                     declined = true
                     canRun = false
@@ -1609,7 +1609,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
     use_result_cache?: boolean,
-    accepts_stdin?: CommandHelp['accepts_stdin']
+    accepts_stdin?: CommandHelp['accepts_stdin'],
+    prompt_before_run?: boolean
 }): CommandV2 {
     return {
         run: cb,
@@ -1625,6 +1626,7 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         make_bot_type: options?.shouldType,
         cmd_std_version: 2,
         use_result_cache: options?.use_result_cache,
+        prompt_before_run: options?.prompt_before_run
     }
 
 }
