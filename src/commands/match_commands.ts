@@ -81,7 +81,6 @@ export default function*(CAT: CommandCategory) {
         info: "In case of a bad prefix, unsets it"
     })]
 
->>>>>>> development:src/commands/match_commands.ts
     yield [createMatchCommand(async ({ msg, match }) => {
         return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`, returnJson: true })).rv
     }, /^u!stop(.*)/, "match:u!stop", {

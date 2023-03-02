@@ -1119,15 +1119,16 @@ export class Interpreter {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
         else if (this.aliasV2) {
+            let declined = false
             if (warn_cmds.includes(this.aliasV2.name)) {
                 let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
                 if (!m || (m && m.content.toLowerCase() !== 'y')) {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
-                }
-                else{
-                    rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
+                    declined = true
                 }
             }
+            if(!declined)
+                rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
         }
         else if (!commands.get(this.real_cmd)) {
             //We dont want to keep running commands if the command doens't exist
@@ -1489,7 +1490,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     //if the content is > 2000 (discord limit), send a file instead
     if ((rv.content?.length || 0) >= 2000) {
-        if(rv.onOver2kLimit){
+        if (rv.onOver2kLimit) {
             rv = rv.onOver2kLimit(msg, rv)
         }
         //@ts-ignore
