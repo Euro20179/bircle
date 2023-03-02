@@ -4,9 +4,9 @@ import { spawnSync } from "child_process"
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
 import { client } from "./common"
-import { AliasV2, CommandCategory } from "./common_to_commands"
+import { AliasV2, CommandCategory, StatusCode } from "./common_to_commands"
 
 import globals = require("./globals")
 import { formatMoney, getOpt } from "./user-options"
@@ -27,6 +27,69 @@ function mimeTypeToFileExtension(mime: `${string}/${string}`){
             return ""
     }
 }
+
+function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValues: string[], hasToMatch: RegExp, onMatch?: (match: string, or: string) => any) {
+    let innerPairs: [string, string][] = []
+    let escape = false
+    let curPair = ""
+    let inBracket = false
+    let validBracket = false
+    let buildingOr = false
+    let currentOr = ""
+    for (let i = 0; i < string.lastIndexOf("}") + 1; i++) {
+        let ch = string[i]
+
+        if (ch === "{" && !escape) {
+            inBracket = true
+            validBracket = false
+            continue
+        }
+        else if (ch === "}" && !escape) {
+            inBracket = false
+            if (hasToMatch.test(curPair)) {
+                innerPairs.push([curPair, currentOr])
+                onMatch && onMatch(curPair, currentOr)
+            }
+            curPair = ""
+            currentOr = ""
+            continue
+        }
+        else if (ch === "|" && string[i + 1] === "|") {
+            i++;
+            buildingOr = true;
+            currentOr = "||"
+            continue;
+        }
+        else if (buildingOr) {
+            currentOr += ch
+        }
+        else {
+            curPair += ch
+        }
+
+        if (!buildingOr && !validStartsWithValues.filter(v => v.length > curPair.length ? v.startsWith(curPair) : curPair.startsWith(v)).length) {
+            inBracket = false
+            validBracket = false
+            buildingOr = false
+            curPair = ""
+            currentOr = ""
+        }
+
+        //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
+        if (ch === "\\") {
+            escape = true
+        }
+        else {
+            escape = false
+        }
+
+    }
+    if (curPair) {
+        innerPairs.push([curPair, currentOr])
+    }
+    return innerPairs
+}
+
 
 function isSafeFilePath(fp: string) {
     if (fp.match(/\/?\.\.\//)) {
@@ -614,18 +677,18 @@ async function fetchChannel(guild: Guild, find: string) {
 */
 async function fetchUserFromClient(client: Client, find: string) {
     let res;
-    if(res = find.match(/<@!?(\d{18})>/)){
+    if (res = find.match(/<@!?(\d{18})>/)) {
         find = res[1]
     }
     find = find.toLowerCase()
     let user = client.users.cache.find((v, k) => {
         return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find
     })
-    if(!user){
-        try{
+    if (!user) {
+        try {
             user = await client.users.fetch(find)
         }
-        catch(err){
+        catch (err) {
             return user
         }
     }
@@ -865,6 +928,8 @@ function cmdCatToStr(cat: number) {
             return "admin"
         case 8:
             return "match"
+        default:
+            return "UNKNOWN"
     }
 }
 
@@ -1061,25 +1126,25 @@ class Options extends Map {
     }
 }
 
-function getOptsUnix(args: ArgumentList): [Opts, ArgumentList]{
+function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
     let opts: Opts = {}
     let arg, idxOfFirstRealArg = -1
-    while((arg = args[++idxOfFirstRealArg])?.startsWith("-")){
-        if(arg === '--'){
+    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
+        if (arg === '--') {
             idxOfFirstRealArg++;
             break;
         }
-        else if(arg.startsWith("--")){
+        else if (arg.startsWith("--")) {
             let name = arg.slice(2)
             let value = args[++idxOfFirstRealArg];
             opts[name] = value
         }
-        else if(arg.startsWith("-")){
-            for(let char of arg.slice(1)){
+        else if (arg.startsWith("-")) {
+            for (let char of arg.slice(1)) {
                 opts[char] = true
             }
         }
-        else{
+        else {
             break;
         }
     }
@@ -1110,7 +1175,7 @@ function getContentFromResult(result: CommandReturn, end = "") {
         res += result.content + end
     if (result.files) {
         for (let file of result.files) {
-                res += fs.readFileSync(file.attachment, "base64") + "\n"
+            res += fs.readFileSync(file.attachment, "base64") + "\n"
         }
     }
     if (result.embeds) {
@@ -1267,7 +1332,7 @@ function renderHTML(text: string, indentation = 0) {
 function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let summary = `***${name}***`
 
-    if(command.help?.accepts_stdin){
+    if (command.help?.accepts_stdin) {
         summary = `\\[<command> >pipe>] ${summary}`
     }
 
@@ -1310,12 +1375,12 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     if (helpData.aliases) {
         aliasInfo = `Aliases: ${helpData.aliases.join(", ")}\n`
     }
-    if(helpData.accepts_stdin){
+    if (helpData.accepts_stdin) {
         argInfo += "__stdin__:\n"
-        if(typeof helpData.accepts_stdin === 'string'){
+        if (typeof helpData.accepts_stdin === 'string') {
             argInfo += renderHTML(helpData.accepts_stdin, 2)
         }
-        else{
+        else {
             argInfo += 'true'
         }
         argInfo += '\n'
@@ -1376,7 +1441,7 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
         if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
         }
-        if(help["accepts_stdin"]){
+        if (help["accepts_stdin"]) {
             html += `<h2 class="command-stdin">Stdin</h2><p class="stdin-text">${help['accepts_stdin']}</p>`
         }
         if (args && Object.keys(args).length) {
@@ -1541,6 +1606,7 @@ export {
     efd,
     generateCommandSummary,
     isSafeFilePath,
-    mimeTypeToFileExtension
+    mimeTypeToFileExtension,
+    getInnerPairsAndDeafultBasedOnRegex
 }
 

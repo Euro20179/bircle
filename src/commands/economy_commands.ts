@@ -831,7 +831,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     amount: createHelpArgument("The amount to give"),
                     "...user": createHelpArgument("The user to give the money to")
                 }
-            }
+            },
+            prompt_before_run: true
         },
     ]
 

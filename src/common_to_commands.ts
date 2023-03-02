@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
 
@@ -49,6 +49,17 @@ export enum CommandCategory {
     MATCH
 }
 
+export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>) {
+    await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+    let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: 30000, max: 1 })
+    let m = msgs.at(0)
+    if (!m) {
+        return false
+    }
+    return m
+
+}
+
 export class AliasV2 {
     help: CommandHelp;
     name: string
@@ -82,68 +93,11 @@ export class AliasV2 {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
-        let innerPairs: [string, string][] = []
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
-        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)$/
+        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[[^\]]*\])$/
 
-        let escape = false
-        let curPair = ""
-        let inBracket = false
-        let validBracket = false
-        let buildingOr = false
-        let currentOr = ""
-        for (let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++) {
-            let ch = this.exec[i]
-
-            if (ch === "{" && !escape) {
-                inBracket = true
-                validBracket = true
-                continue
-            }
-            else if (ch === "|" && this.exec[i + 1] === "|") {
-                i++;
-                buildingOr = true;
-                currentOr = "||"
-                continue;
-            }
-            //checks if the character is not valid, and we're not escaping the char, and we're still inside of an {args} bracket, and we're not building the default
-            //OR if the character is a } and we're not building the default, and we're not escaped THEN
-            //we're no longer in a valid bracket, we're not in a bracket, and we're not building a default value
-            //
-            //checking the char is } in this same else if, and not in a seperate else if above is important,
-            //otherwise this if statement will be skipped,
-            //and } will be appended to the end of curPair,
-            //which is no longer a valid args bracket. messing up for loop 
-            else if ((!"#args.1234567890".includes(ch) && !escape && validBracket && !buildingOr) || (ch === "}" && buildingOr && !escape)) {
-                inBracket = false
-                validBracket = false
-                buildingOr = false
-                if (argsRegex.test(curPair)) {
-                    innerPairs.push([curPair, currentOr])
-                }
-                curPair = ""
-                continue
-            }
-            if (buildingOr) {
-                currentOr += ch
-            }
-            else if (validBracket) {
-                curPair += ch
-            }
-
-            //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
-            if (ch === "\\") {
-                escape = true
-            }
-            else {
-                escape = false
-            }
-
-        }
-        if (curPair) {
-            innerPairs.push([curPair, currentOr])
-        }
+        let innerPairs = getInnerPairsAndDeafultBasedOnRegex(this.exec, ["#args", "args"], argsRegex)
 
         let tempExec = this.exec
 
@@ -152,39 +106,50 @@ export class AliasV2 {
             //remove the leading ||
             //the leading || is there to make the above line easier
             innerOr = innerOr.slice(2)
-            if (argsRegex.test(innerText)) {
-                let [left, right] = innerText.split("..")
-                if (left === "args") {
-                    tempExec = tempExec.replace(toReplace, args.join(" ") || innerOr)
-                    continue
+
+            if (innerText.startsWith('args[')) {
+                let innerBracket = parseBracketPair(innerText, "[]")
+                innerOr = JSON.stringify([innerOr])
+                if (!innerBracket) {
+                    tempExec = tempExec.replace(toReplace, args.length ? JSON.stringify(args) : innerOr)
                 }
-                else if (left === '#args') {
-                    tempExec = tempExec.replace(toReplace, String(args.length))
-                    continue
+                else if (!isNaN(Number(innerBracket))) {
+                    tempExec = tempExec.replace(toReplace, JSON.stringify([args[Number(innerBracket)]]) || innerOr)
                 }
-                let leftIndex = Number(left.replace("args", ""))
-                let rightIndex = right ? Number(right) : NaN
-                if (!isNaN(rightIndex)) {
-                    let slice = args.slice(leftIndex, rightIndex)
-                    let text = ""
-                    if (!slice.length)
-                        text = innerOr
-                    else
-                        text = slice.join(" ")
-                    tempExec = tempExec.replace(toReplace, text)
-                }
-                else if (right === "") {
-                    let slice = args.slice(leftIndex)
-                    let text = ""
-                    if (!slice.length)
-                        text = innerOr
-                    else
-                        text = slice.join(" ")
-                    tempExec = tempExec.replace(toReplace, text)
-                }
-                else {
-                    tempExec = tempExec.replace(toReplace, args[leftIndex] ?? innerOr)
-                }
+                continue
+            }
+
+            let [left, right] = innerText.split("..")
+            if (left === "args") {
+                tempExec = tempExec.replace(toReplace, args.join(" ") || innerOr)
+                continue
+            }
+            else if (left === '#args') {
+                tempExec = tempExec.replace(toReplace, String(args.length))
+                continue
+            }
+            let leftIndex = Number(left.replace("args", ""))
+            let rightIndex = right ? Number(right) : NaN
+            if (!isNaN(rightIndex)) {
+                let slice = args.slice(leftIndex, rightIndex)
+                let text = ""
+                if (!slice.length)
+                    text = innerOr
+                else
+                    text = slice.join(" ")
+                tempExec = tempExec.replace(toReplace, text)
+            }
+            else if (right === "") {
+                let slice = args.slice(leftIndex)
+                let text = ""
+                if (!slice.length)
+                    text = innerOr
+                else
+                    text = slice.join(" ")
+                tempExec = tempExec.replace(toReplace, text)
+            }
+            else {
+                tempExec = tempExec.replace(toReplace, args[leftIndex] ?? innerOr)
             }
         }
 
@@ -1135,20 +1100,8 @@ export class Interpreter {
         }
 
 
-        let warnings = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
-
-        let declined = false
-        if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
-            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
-            let msgs = await this.#msg.channel.awaitMessages({ filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1 })
-            let m = msgs.at(0)
-            if (!m) {
-                declined = true
-            }
-            else if (m.content.toLowerCase() !== 'y') {
-                declined = true
-            }
-        }
+        let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
+        let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
 
         let [opts, args2] = getOpts(args)
 
@@ -1159,17 +1112,22 @@ export class Interpreter {
             this.aliasV2 = false
         }
 
-        if (declined) {
-            rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
-        }
-        else if (this.alias && this.#aliasExpandSuccess) {
-            rv = await this.runAlias()
+        if (this.alias && this.#aliasExpandSuccess) {
+            rv = await this.runAlias() || { content: "You found a secret", status: StatusCode.ERR }
         }
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
         else if (this.aliasV2) {
-            rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
+            if (warn_cmds.includes(this.aliasV2.name)) {
+                let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+                if (!m || (m && m.content.toLowerCase() !== 'y')) {
+                    rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
+                }
+                else{
+                    rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
+                }
+            }
         }
         else if (!commands.get(this.real_cmd)) {
             //We dont want to keep running commands if the command doens't exist
@@ -1181,10 +1139,23 @@ export class Interpreter {
             exists = false
         }
         else if (exists) {
+            let commandObj = commands.get(this.real_cmd)
             //make sure it passes the command's perm check if it has one
-            if (commands.get(this.real_cmd)?.permCheck) {
-                canRun = commands.get(this.real_cmd)?.permCheck?.(this.#msg) ?? true
+            if (commandObj?.permCheck) {
+                canRun = commandObj?.permCheck?.(this.#msg) ?? true
             }
+
+            let declined = false
+
+            if (warn_categories.includes(cmdCatToStr(commandObj?.category)) || commandObj?.prompt_before_run === true || warn_cmds.includes(this.real_cmd)) {
+                let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+                if (!m || (m && m.content.toLowerCase() !== 'y')) {
+                    rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
+                    declined = true
+                    canRun = false
+                }
+            }
+
             //is whitelisted
             if (WHITELIST[this.#msg.author.id]?.includes(this.real_cmd)) {
                 canRun = true
@@ -1236,7 +1207,7 @@ export class Interpreter {
                 }
                 //if normal command, it counts as use
             }
-            else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+            else if (!declined) rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
         }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
@@ -1294,9 +1265,9 @@ export class Interpreter {
             }
 
             commandReturn = await int.run() as CommandReturn
-            if(allowedMentions){
+            if (allowedMentions) {
                 //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
-                commandReturn.allowedMentions = {parse: []}
+                commandReturn.allowedMentions = { parse: [] }
             }
             tks = int.getPipeTo()
         }
@@ -1388,54 +1359,15 @@ export class Interpreter {
             let m;
             if (m = content.match(regex)) {
                 const argsRegex = /^(match\d+)$/
-
-                let escape = false
-                let curPair = ""
-                let inBracket = false
-                let validBracket = false
-                let innerPairs = []
-
-                for (let i = run.indexOf("{"); i < run.lastIndexOf("}") + 1; i++) {
-                    let ch = run[i]
-
-                    if (ch === "{" && !escape) {
-                        inBracket = true
-                        validBracket = true
-                        continue
-                    }
-                    else if (![..."match1234567890"].includes(ch) && !escape && validBracket) {
-                        inBracket = false
-                        validBracket = false
-                        if (argsRegex.test(curPair)) {
-                            innerPairs.push(curPair)
-                        }
-                        curPair = ""
-                        continue
-                    }
-                    if (validBracket) {
-                        curPair += ch
-                    }
-
-                    //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
-                    if (ch === "\\") {
-                        escape = true
-                    }
-                    else {
-                        escape = false
-                    }
-
-                }
-                if (curPair) {
-                    innerPairs.push(curPair)
-                }
+                let innerPairs = getInnerPairsAndDeafultBasedOnRegex(run, ["match"], argsRegex)
 
                 let tempExec = run
 
-                for (let innerText of innerPairs) {
-                    if (argsRegex.test(innerText)) {
-                        let n = Number(innerText.slice("match".length))
-                        tempExec = tempExec.replace(`{${innerText}}`, m[n])
-                    }
+                for (let [match, or] of innerPairs) {
+                    let innerText = `{${match}${or}}`
+                    or = or.slice(2)
+                    let n = Number(match.slice("match".length))
+                    tempExec = tempExec.replace(innerText, m[n] ?? or)
                 }
 
                 try {
@@ -1679,7 +1611,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
     use_result_cache?: boolean,
-    accepts_stdin?: CommandHelp['accepts_stdin']
+    accepts_stdin?: CommandHelp['accepts_stdin'],
+    prompt_before_run?: boolean
 }): CommandV2 {
     return {
         run: cb,
@@ -1695,6 +1628,7 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         make_bot_type: options?.shouldType,
         cmd_std_version: 2,
         use_result_cache: options?.use_result_cache,
+        prompt_before_run: options?.prompt_before_run
     }
 
 }
