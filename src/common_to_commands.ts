@@ -85,7 +85,9 @@ export class AliasV2 {
         let innerPairs: [string, string][] = []
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
-        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.)$/
+        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[\])$/
+
+        let canStartWith = ["#args", "args"]
 
         let escape = false
         let curPair = ""
@@ -93,12 +95,21 @@ export class AliasV2 {
         let validBracket = false
         let buildingOr = false
         let currentOr = ""
-        for (let i = this.exec.indexOf("{"); i < this.exec.lastIndexOf("}") + 1; i++) {
+        for (let i = 0; i < this.exec.lastIndexOf("}") + 1; i++) {
             let ch = this.exec[i]
 
             if (ch === "{" && !escape) {
                 inBracket = true
-                validBracket = true
+                validBracket = false
+                continue
+            }
+            else if(ch === "}" && !escape){
+                inBracket = false
+                if (argsRegex.test(curPair)) {
+                    innerPairs.push([curPair, currentOr])
+                }
+                curPair = ""
+                currentOr = ""
                 continue
             }
             else if (ch === "|" && this.exec[i + 1] === "|") {
@@ -107,29 +118,19 @@ export class AliasV2 {
                 currentOr = "||"
                 continue;
             }
-            //checks if the character is not valid, and we're not escaping the char, and we're still inside of an {args} bracket, and we're not building the default
-            //OR if the character is a } and we're not building the default, and we're not escaped THEN
-            //we're no longer in a valid bracket, we're not in a bracket, and we're not building a default value
-            //
-            //checking the char is } in this same else if, and not in a seperate else if above is important,
-            //otherwise this if statement will be skipped,
-            //and } will be appended to the end of curPair,
-            //which is no longer a valid args bracket. messing up for loop 
-            else if ((!"#args.1234567890".includes(ch) && !escape && validBracket && !buildingOr) || (ch === "}" && buildingOr && !escape)) {
+            else if(buildingOr) {
+                currentOr += ch
+            }
+            else {
+                curPair += ch
+            }
+
+            if(!buildingOr && !canStartWith.filter(v => v.length > curPair.length ? v.startsWith(curPair) : curPair.startsWith(v)).length){
                 inBracket = false
                 validBracket = false
                 buildingOr = false
-                if (argsRegex.test(curPair)) {
-                    innerPairs.push([curPair, currentOr])
-                }
                 curPair = ""
-                continue
-            }
-            if (buildingOr) {
-                currentOr += ch
-            }
-            else if (validBracket) {
-                curPair += ch
+                currentOr = ""
             }
 
             //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
