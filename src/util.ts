@@ -4,9 +4,9 @@ import { spawnSync } from "child_process"
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
 import { client } from "./common"
-import { AliasV2, CommandCategory } from "./common_to_commands"
+import { AliasV2, CommandCategory, StatusCode } from "./common_to_commands"
 
 import globals = require("./globals")
 import { formatMoney, getOpt } from "./user-options"
@@ -75,6 +75,7 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
     }
     return innerPairs
 }
+
 
 function isSafeFilePath(fp: string) {
     if (fp.match(/\/?\.\.\//)) {

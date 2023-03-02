@@ -49,6 +49,17 @@ export enum CommandCategory {
     MATCH
 }
 
+export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>) {
+    await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+    let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: 30000, max: 1 })
+    let m = msgs.at(0)
+    if (!m) {
+        return false
+    }
+    return m
+
+}
+
 export class AliasV2 {
     help: CommandHelp;
     name: string
@@ -96,13 +107,13 @@ export class AliasV2 {
             //the leading || is there to make the above line easier
             innerOr = innerOr.slice(2)
 
-            if(innerText.startsWith('args[')){
+            if (innerText.startsWith('args[')) {
                 let innerBracket = parseBracketPair(innerText, "[]")
                 innerOr = JSON.stringify([innerOr])
-                if(!innerBracket){
+                if (!innerBracket) {
                     tempExec = tempExec.replace(toReplace, args.length ? JSON.stringify(args) : innerOr)
                 }
-                else if(!isNaN(Number(innerBracket))){
+                else if (!isNaN(Number(innerBracket))) {
                     tempExec = tempExec.replace(toReplace, JSON.stringify([args[Number(innerBracket)]]) || innerOr)
                 }
                 continue
@@ -1093,13 +1104,8 @@ export class Interpreter {
 
         let declined = false
         if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
-            await handleSending(this.#msg, { content: `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`, status: StatusCode.PROMPT })
-            let msgs = await this.#msg.channel.awaitMessages({ filter: m => m.author.id === this.#msg.author.id, time: 30000, max: 1 })
-            let m = msgs.at(0)
-            if (!m) {
-                declined = true
-            }
-            else if (m.content.toLowerCase() !== 'y') {
+            let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+            if(m && m.content !== 'y'){
                 declined = true
             }
         }
@@ -1135,10 +1141,23 @@ export class Interpreter {
             exists = false
         }
         else if (exists) {
+            let commandObj = commands.get(this.real_cmd)
             //make sure it passes the command's perm check if it has one
-            if (commands.get(this.real_cmd)?.permCheck) {
-                canRun = commands.get(this.real_cmd)?.permCheck?.(this.#msg) ?? true
+            if (commandObj?.permCheck) {
+                canRun = commandObj?.permCheck?.(this.#msg) ?? true
             }
+
+            let declined = false
+
+            if (commandObj?.category === CommandCategory.ADMIN || commandObj?.prompt_before_run === true) {
+                let m = await promptUser(this.#msg,  `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+                if (m && m.content.toLowerCase() !== 'y') {
+                    rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
+                    declined = true
+                    canRun = false
+                }
+            }
+
             //is whitelisted
             if (WHITELIST[this.#msg.author.id]?.includes(this.real_cmd)) {
                 canRun = true
@@ -1190,7 +1209,7 @@ export class Interpreter {
                 }
                 //if normal command, it counts as use
             }
-            else rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+            else if(!declined) rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
         }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam

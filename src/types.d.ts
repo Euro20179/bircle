@@ -82,7 +82,8 @@ declare global {
         category: CommandCategory,
         make_bot_type?: boolean,
         use_result_cache?: boolean
-        cmd_std_version?: 1
+        cmd_std_version?: 1,
+        prompt_before_run?: boolean
     }
 
     interface CommandV2RunArg { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList, stdin?: CommandReturn, pipeTo?: Token[] }
@@ -96,7 +97,8 @@ declare global {
         category: CommandCategory,
         make_bot_type?: boolean,
         use_result_cache?: boolean
-        cmd_std_version?: 2
+        cmd_std_version?: 2,
+        prompt_before_run?: boolean
     }
 
     interface MatchCommand{
