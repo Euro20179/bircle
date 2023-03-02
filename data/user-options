@@ -10,6 +10,8 @@ bj-screen:When you get blackjack, this is what will be said<br>&nbsp;<b>{amount}
 
 warn-cmds:A list of commands that when you run, will confirm that you want to run them (none by default)
 
+warn-categories:A list of categories that if a command belongs to, will warn you (none by default)
+
 heist-join:What is said when you join a heist
 
 count-text:The text to send when running [count<br>&nbsp;<b>count</b> will be replaced with the current number ({count} by default)

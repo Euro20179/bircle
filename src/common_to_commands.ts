@@ -1100,15 +1100,8 @@ export class Interpreter {
         }
 
 
-        let warnings = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
-
-        let declined = false
-        if (warnings.includes(this.real_cmd.slice(this.real_cmd.indexOf(":") + 1))) {
-            let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-            if(!m || (m && m.content.toLowerCase() !== 'y')){
-                declined = true
-            }
-        }
+        let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
+        let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
 
         let [opts, args2] = getOpts(args)
 
@@ -1119,10 +1112,7 @@ export class Interpreter {
             this.aliasV2 = false
         }
 
-        if (declined) {
-            rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
-        }
-        else if (this.alias && this.#aliasExpandSuccess) {
+        if (this.alias && this.#aliasExpandSuccess) {
             rv = await this.runAlias() || { content: "You found a secret", status: StatusCode.ERR }
         }
         else if (this.alias && !this.#aliasExpandSuccess) {
@@ -1149,7 +1139,7 @@ export class Interpreter {
 
             let declined = false
 
-            if (commandObj?.category === CommandCategory.ADMIN || commandObj?.prompt_before_run === true) {
+            if (warn_categories.includes(cmdCatToStr(commandObj?.category)) || commandObj?.prompt_before_run === true || warn_cmds.includes(this.real_cmd)) {
                 let m = await promptUser(this.#msg,  `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
                 if (!m || (m && m.content.toLowerCase() !== 'y')) {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }

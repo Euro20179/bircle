@@ -913,6 +913,8 @@ function cmdCatToStr(cat: number) {
             return "admin"
         case 8:
             return "match"
+        default:
+            return "UNKNOWN"
     }
 }
 
