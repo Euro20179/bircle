@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension } from './util';
+import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
 
@@ -82,69 +82,11 @@ export class AliasV2 {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
-        let innerPairs: [string, string][] = []
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[\])$/
 
-        let canStartWith = ["#args", "args"]
-
-        let escape = false
-        let curPair = ""
-        let inBracket = false
-        let validBracket = false
-        let buildingOr = false
-        let currentOr = ""
-        for (let i = 0; i < this.exec.lastIndexOf("}") + 1; i++) {
-            let ch = this.exec[i]
-
-            if (ch === "{" && !escape) {
-                inBracket = true
-                validBracket = false
-                continue
-            }
-            else if(ch === "}" && !escape){
-                inBracket = false
-                if (argsRegex.test(curPair)) {
-                    innerPairs.push([curPair, currentOr])
-                }
-                curPair = ""
-                currentOr = ""
-                continue
-            }
-            else if (ch === "|" && this.exec[i + 1] === "|") {
-                i++;
-                buildingOr = true;
-                currentOr = "||"
-                continue;
-            }
-            else if(buildingOr) {
-                currentOr += ch
-            }
-            else {
-                curPair += ch
-            }
-
-            if(!buildingOr && !canStartWith.filter(v => v.length > curPair.length ? v.startsWith(curPair) : curPair.startsWith(v)).length){
-                inBracket = false
-                validBracket = false
-                buildingOr = false
-                curPair = ""
-                currentOr = ""
-            }
-
-            //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
-            if (ch === "\\") {
-                escape = true
-            }
-            else {
-                escape = false
-            }
-
-        }
-        if (curPair) {
-            innerPairs.push([curPair, currentOr])
-        }
+        let innerPairs = getInnerPairsAndDeafultBasedOnRegex(this.exec, ["#args", "args"], argsRegex)
 
         let tempExec = this.exec
 
@@ -1389,54 +1331,15 @@ export class Interpreter {
             let m;
             if (m = content.match(regex)) {
                 const argsRegex = /^(match\d+)$/
-
-                let escape = false
-                let curPair = ""
-                let inBracket = false
-                let validBracket = false
-                let innerPairs = []
-
-                for (let i = run.indexOf("{"); i < run.lastIndexOf("}") + 1; i++) {
-                    let ch = run[i]
-
-                    if (ch === "{" && !escape) {
-                        inBracket = true
-                        validBracket = true
-                        continue
-                    }
-                    else if (![..."match1234567890"].includes(ch) && !escape && validBracket) {
-                        inBracket = false
-                        validBracket = false
-                        if (argsRegex.test(curPair)) {
-                            innerPairs.push(curPair)
-                        }
-                        curPair = ""
-                        continue
-                    }
-                    if (validBracket) {
-                        curPair += ch
-                    }
-
-                    //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
-                    if (ch === "\\") {
-                        escape = true
-                    }
-                    else {
-                        escape = false
-                    }
-
-                }
-                if (curPair) {
-                    innerPairs.push(curPair)
-                }
+                let innerPairs = getInnerPairsAndDeafultBasedOnRegex(run, ["match"], argsRegex)
 
                 let tempExec = run
 
-                for (let innerText of innerPairs) {
-                    if (argsRegex.test(innerText)) {
-                        let n = Number(innerText.slice("match".length))
-                        tempExec = tempExec.replace(`{${innerText}}`, m[n])
-                    }
+                for (let [match, or] of innerPairs) {
+                    let innerText = `{${match}${or}}`
+                    or = or.slice(2)
+                    let n = Number(match.slice("match".length))
+                    tempExec = tempExec.replace(innerText, m[n] ?? or)
                 }
 
                 try {
