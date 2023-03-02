@@ -84,7 +84,7 @@ export class AliasV2 {
 
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
-        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[\])$/
+        const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[[^\]]*\])$/
 
         let innerPairs = getInnerPairsAndDeafultBasedOnRegex(this.exec, ["#args", "args"], argsRegex)
 
@@ -95,39 +95,50 @@ export class AliasV2 {
             //remove the leading ||
             //the leading || is there to make the above line easier
             innerOr = innerOr.slice(2)
-            if (argsRegex.test(innerText)) {
-                let [left, right] = innerText.split("..")
-                if (left === "args") {
-                    tempExec = tempExec.replace(toReplace, args.join(" ") || innerOr)
-                    continue
+
+            if(innerText.startsWith('args[')){
+                let innerBracket = parseBracketPair(innerText, "[]")
+                innerOr = JSON.stringify([innerOr])
+                if(!innerBracket){
+                    tempExec = tempExec.replace(toReplace, args.length ? JSON.stringify(args) : innerOr)
                 }
-                else if (left === '#args') {
-                    tempExec = tempExec.replace(toReplace, String(args.length))
-                    continue
+                else if(!isNaN(Number(innerBracket))){
+                    tempExec = tempExec.replace(toReplace, JSON.stringify([args[Number(innerBracket)]]) || innerOr)
                 }
-                let leftIndex = Number(left.replace("args", ""))
-                let rightIndex = right ? Number(right) : NaN
-                if (!isNaN(rightIndex)) {
-                    let slice = args.slice(leftIndex, rightIndex)
-                    let text = ""
-                    if (!slice.length)
-                        text = innerOr
-                    else
-                        text = slice.join(" ")
-                    tempExec = tempExec.replace(toReplace, text)
-                }
-                else if (right === "") {
-                    let slice = args.slice(leftIndex)
-                    let text = ""
-                    if (!slice.length)
-                        text = innerOr
-                    else
-                        text = slice.join(" ")
-                    tempExec = tempExec.replace(toReplace, text)
-                }
-                else {
-                    tempExec = tempExec.replace(toReplace, args[leftIndex] ?? innerOr)
-                }
+                continue
+            }
+
+            let [left, right] = innerText.split("..")
+            if (left === "args") {
+                tempExec = tempExec.replace(toReplace, args.join(" ") || innerOr)
+                continue
+            }
+            else if (left === '#args') {
+                tempExec = tempExec.replace(toReplace, String(args.length))
+                continue
+            }
+            let leftIndex = Number(left.replace("args", ""))
+            let rightIndex = right ? Number(right) : NaN
+            if (!isNaN(rightIndex)) {
+                let slice = args.slice(leftIndex, rightIndex)
+                let text = ""
+                if (!slice.length)
+                    text = innerOr
+                else
+                    text = slice.join(" ")
+                tempExec = tempExec.replace(toReplace, text)
+            }
+            else if (right === "") {
+                let slice = args.slice(leftIndex)
+                let text = ""
+                if (!slice.length)
+                    text = innerOr
+                else
+                    text = slice.join(" ")
+                tempExec = tempExec.replace(toReplace, text)
+            }
+            else {
+                tempExec = tempExec.replace(toReplace, args[leftIndex] ?? innerOr)
             }
         }
 
@@ -1106,7 +1117,7 @@ export class Interpreter {
             rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
         }
         else if (this.alias && this.#aliasExpandSuccess) {
-            rv = await this.runAlias()
+            rv = await this.runAlias() || { content: "You found a secret", status: StatusCode.ERR }
         }
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
@@ -1237,9 +1248,9 @@ export class Interpreter {
             }
 
             commandReturn = await int.run() as CommandReturn
-            if(allowedMentions){
+            if (allowedMentions) {
                 //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
-                commandReturn.allowedMentions = {parse: []}
+                commandReturn.allowedMentions = { parse: [] }
             }
             tks = int.getPipeTo()
         }
