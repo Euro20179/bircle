@@ -1336,9 +1336,6 @@ export const slashCommands = [
         createChatCommandOption(STRING, "choice", "choice", { required: true }),
         createChatCommandOption(STRING, "bet", "bet", { required: false })
     ]),
-    createChatCommand("rccmd", "remove a custom command, WOWZERS", [
-        createChatCommandOption(STRING, "name", "name of command to remove (NO SPACES)", { required: true }),
-    ]),
     createChatCommand("say", "says something", [
         createChatCommandOption(STRING, "something", "the something to say", { required: true })
     ]),

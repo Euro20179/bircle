@@ -420,17 +420,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
                 }]
             }).catch(console.error)
         }
-        else if (interaction.commandName == "alias") {
-            //@ts-ignore
-            interaction.author = interaction.member?.user
-            let arglist = [interaction.options.get("name")?.value, interaction.options.get("command")?.value].filter(v => String(v)) as string[]
-            let args = interaction.options.get("text")?.value as string
-            if (args) {
-                arglist = arglist.concat(args.split(" "))
-            }
-            let rv = await (command_commons.commands.get("alias"))?.run({msg: interaction, args: arglist, rawArgs: arglist})
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
-        }
         else if (interaction.commandName == 'poll') {
             //@ts-ignore
             interaction.author = interaction?.member.user
@@ -454,13 +443,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             }
             //@ts-ignore
             let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
-        }
-        else if (interaction.commandName == 'rccmd') {
-            //@ts-ignore
-            interaction.author = interaction.member?.user
-            //@ts-ignore
-            let rv = await command_commons.commands['rccmd'].run(interaction, [interaction.options.get("name")?.value], interaction.channel.send.bind(interaction.channel))
             interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'say') {
