@@ -1399,6 +1399,20 @@ export function createCommandV2(
     }
 }
 
+//this funky type modifies each key in CommandReturn with the following transformation function:
+//  f(key) = key?: CommandReturn[key]
+//  essentially it makes every key optional
+/**
+    * @description crv: stands for: commandReturnValue
+*/
+export function crv(content: string, options?: {[K in keyof CommandReturn]?: CommandReturn[K]}, status=StatusCode.RETURN){
+    return {
+        content,
+        status: options?.status ?? status,
+        ...options
+    }
+}
+
 export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     category?: CommandCategory,
     helpArguments?: CommandHelpArguments,

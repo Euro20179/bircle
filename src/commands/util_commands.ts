@@ -12,8 +12,8 @@ import pet from "../pets"
 import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd } from '../common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair } from '../util'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp } from '../util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
@@ -267,14 +267,28 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             if (opts['json']) {
-                return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
+                return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN, mimetype: "application/json" }
             }
             let text = ""
-            let fn = opts['s'] ? function() { return generateCommandSummary(arguments[0], arguments[1]) + "\n" } : generateTextFromCommandHelp
-            for (let command in commandsToUse) {
-                text += fn(command, commandsToUse[command]) + "---------------------------------------\n"
+
+            let fn: (string: string, cmd: typeof commandsToUse[string]) => string
+            let mimetype: MimeType = "plain/markdown"
+            if (opts['s']) {
+                fn = function() { return generateCommandSummary(arguments[0], arguments[1]) + "\n---------------------\n" }
             }
-            return { content: text, status: StatusCode.RETURN }
+            else if (opts['html']) {
+                fn = function() { return generateHTMLFromCommandHelp(arguments[0], arguments[1]) + "<br>" }
+                mimetype = "text/html"
+            }
+            else {
+                fn = generateTextFromCommandHelp
+            }
+            for (let command in commandsToUse) {
+                text += fn(command, commandsToUse[command])
+            }
+            return crv(text, {
+                mimetype: mimetype
+            })
         }, CommandCategory.UTIL,
             "Get help with specific commands",
             {
@@ -282,7 +296,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             },
             {
                 "g": createHelpOption("List the bot syntax"),
-                "s": createHelpOption("Only show a summary")
+                "s": createHelpOption("Only show a summary"),
+                html: createHelpOption("Show html instead of markdown format")
             }
         ),
     ]
@@ -3014,20 +3029,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "file", ccmdV2(async({msg, opts, args, stdin}) => {
-                let fn = generateFileName("file", msg.author.id)
-                fs.writeFileSync(fn, stdin ? getContentFromResult(stdin) : args.join(" "))
+        "file", ccmdV2(async ({ msg, opts, args, stdin }) => {
+            let fn = generateFileName("file", msg.author.id)
+            fs.writeFileSync(fn, stdin ? getContentFromResult(stdin) : args.join(" "))
 
-                return {
-                    files: [
-                        {
-                            attachment: fn,
-                            name: `${fn}.txt`,
-                            description: `data`,
-                        }
-                    ],
-                    status: StatusCode.RETURN
-                }
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: `${fn}.txt`,
+                        description: `data`,
+                    }
+                ],
+                status: StatusCode.RETURN
+            }
 
         }, "Creates a file with data")
     ]
@@ -3530,23 +3545,23 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "[", ccmdV2(async function({args, opts}){
-            if(args.indexOf("]") < 0){
-                return {content: `You must end the check with ]`, status: StatusCode.ERR}
+        "[", ccmdV2(async function({ args, opts }) {
+            if (args.indexOf("]") < 0) {
+                return { content: `You must end the check with ]`, status: StatusCode.ERR }
             }
 
             let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}")
             let elseCommand = parseBracketPair(args.slice(args.lastIndexOf("else")).join(" "), "{}")
 
-            if(opts.getBool('c', false)){
-                if(getCommands().get(args[0]) || getMatchCommands()[args[0]]){
-                    return {content: "true", status: StatusCode.RETURN}
+            if (opts.getBool('c', false)) {
+                if (getCommands().get(args[0]) || getMatchCommands()[args[0]]) {
+                    return { content: "true", status: StatusCode.RETURN }
                 }
-                else{
-                    return {content: "false", status: StatusCode.RETURN}
+                else {
+                    return { content: "false", status: StatusCode.RETURN }
                 }
             }
-            return {noSend: true, status: StatusCode.ERR}
+            return { noSend: true, status: StatusCode.ERR }
 
         }, "Similar to the unix \[ command")
     ]

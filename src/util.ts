@@ -14,18 +14,17 @@ import { formatMoney, getOpt } from "./user-options"
 const { execFileSync, exec } = require('child_process')
 const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
-function mimeTypeToFileExtension(mime: `${string}/${string}`){
+export type MimeType = `${string}/${string}`
+
+function mimeTypeToFileExtension(mime: MimeType){
     let [_, specific] = mime.split("/")
-    switch(specific){
-        case "typescript":
-            return "ts"
-        case "javascript":
-            return "js"
-        case "text":
-            return ".txt"
-        default:
-            return ""
-    }
+    return {
+        "typescript": "ts",
+        "javascript": "js",
+        "text": "txt",
+        "markdown": "md",
+        "html": "html"
+    }[specific] ?? "dat"
 }
 
 function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValues: string[], hasToMatch: RegExp, onMatch?: (match: string, or: string) => any) {
