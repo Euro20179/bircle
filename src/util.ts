@@ -518,7 +518,7 @@ function formatBracePairs(string: string, replacements: Replacements, pair = "{}
 function parseBracketPair(string: string, pair: string, start = -1) {
     let count = 1;
     if (string.indexOf(pair[0]) === -1) {
-        return string
+        return ""
     }
     let curStr = ""
     start = start === -1 ? string.indexOf(pair[0]) + 1 : start

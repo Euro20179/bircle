@@ -1436,6 +1436,8 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
     if (rv.noSend) {
+        //${%:?} should still be set despite nosend
+        if(rv.do_change_cmd_user_expansion !== false) setVar("?", rv.status, msg.author.id)
         return msg
     }
     //we only want to do this if the return cant expand into a cmd

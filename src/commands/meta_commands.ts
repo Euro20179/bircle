@@ -119,6 +119,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let matches = getMatchCommands()
             let cmds = getCommands()
             let av1;
+            //TODO: add user match
             for (let cmd of args) {
                 if (aliasV2s[cmd]) {
                     res.push("av2")
@@ -736,6 +737,107 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 "{": createHelpArgument("Start the block of cases", true),
                 "...cases": createHelpArgument("the case is a regular expression followed by a block of commands seperated by <code>;&lt;newline&gt;</code>, surrounded by {}<br>if the last command is &&, it will continue testing the cases", true),
                 "}": createHelpArgument("End the block of cases", true),
+            }
+        })
+    ]
+
+    yield [
+        "[", ccmdV2(async function({ args, opts, sendCallback, commandBans, recursionCount, msg }) {
+            if (args.indexOf("]") < 0) {
+                return { content: `You must end the check with ]`, status: StatusCode.ERR }
+            }
+
+            let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}").trim()
+            let elseCommand = ""
+            if(args.lastIndexOf("else") > 0){
+                elseCommand = parseBracketPair(args.slice(args.lastIndexOf("else")).join(" "), "{}").trim()
+            }
+
+            async function handleBranch(command: string, code: StatusCode) {
+                if (command)
+                    return (await cmd({ msg, command_excluding_prefix: command, sendCallback, returnJson: true, disable: commandBans, recursion: recursionCount + 1 })).rv as CommandReturn
+                return { noSend: true, status: code }
+
+            }
+
+            const handleTruthiness = async () => await handleBranch(commandToRun, StatusCode.RETURN)
+            const handleFalsiness = async () => await handleBranch(elseCommand, StatusCode.ERR)
+
+            if (opts.getBool('c', false)) {
+                if (getCommands().get(args[0]) || getMatchCommands()[args[0]]) {
+                    return await handleTruthiness()
+                }
+                else {
+                    return await handleFalsiness()
+                }
+            }
+
+            else if (opts.getBool("a", false)) {
+                return getAliasesV2()[args[0]] ? await handleTruthiness() : await handleFalsiness()
+            }
+
+            else if (opts.getBool("a1", false)) {
+                return getAliases()[args[0]] ? await handleTruthiness() : await handleFalsiness()
+            }
+
+            else if (opts.getBool("u", false)){
+                return (await fetchUserFromClient(client, args[0])) ? await handleTruthiness() : await handleFalsiness()
+            }
+
+            else if (opts.getBool("U", false)){
+                if(!msg.guild){
+                    return await handleFalsiness()
+                }
+                return await fetchUser(msg.guild, args[0]) ? await handleTruthiness() : await handleFalsiness()
+            }
+
+            else {
+                let [v1, op, v2] = args
+                return (() => {
+                    switch (op) {
+                        case "=": case "==":
+                            return v1 === v2
+
+                        case "starts-with": case "sw": case "^=":
+                            return v1.startsWith(v2)
+
+                        case "ends-with": case "ew": case "$=":
+                            return v1.endsWith(v2)
+
+                        case "includes": case "*=":
+                            return v1.includes(v2)
+
+                        case "<":
+                            return Number(v1) < Number(v2)
+                        case ">":
+                            return Number(v1) > Number(v2)
+                        case "<=":
+                            return Number(v1) <= Number(v2)
+                        case ">=":
+                            return Number(v1) >= Number(v2)
+
+                        default: {
+                            return false;
+                        }
+                    }
+                })() ? await handleTruthiness() : handleFalsiness()
+            }
+
+        }, "Similar to if-cmd however it does not need to run a command", {
+            helpOptions: {
+                c: createHelpOption("Test if the first argument is a command"),
+                a: createHelpOption("Test if the first argument is an alias"),
+                a1: createHelpOption("Test if the first argument is an aliasv1"),
+                u: createHelpOption("Test if first argument is a user in bot's cache"),
+                U: createHelpOption("Test if first argument is a user")
+            },
+            helpArguments: {
+                "value 1": createHelpArgument("The first value", true),
+                operation: createHelpArgument("The operation<br><lh>Operations</lh><ul><li>==: check if the values are equal</li><li>^=: Check if value 1 starts with value 2</li><li>$=: check if value 1 ends with value 2</li><li>*=: check if value 1 includes value2</li><li>&lt;: check if value 1 is less than value 2</li><li>&gt;: check if value 1 is greater than value 2</li><li>&le;: Check if value one is less or equal to value 2</li><li>&ge;: Check if value 1 is greater or equal to value 2</li>", false),
+                "value 2": createHelpArgument("The second value", false),
+                "]": createHelpArgument("A literal ]", true),
+                "{ command }": createHelpArgument("Command to run if check is true", false),
+                "else { command }": createHelpArgument("Command to run if check is false", false)
             }
         })
     ]
