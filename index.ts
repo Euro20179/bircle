@@ -372,9 +372,9 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
         }
         else if (interaction.commandName == 'help') {
             interaction.reply({
-                content: "use `[help -n -plain`, slash commands r boring, so i will not support them that much\nbegrudgingly, here is the current help file",
+                content: "use `[help`, slash commands r boring, so i will not support them that much\nhere is some documentation",
                 files: [{
-                    attachment: './help.html',
+                    attachment: './help-web.html',
                     name: "heres some help.html",
                     description: "lmao"
                 }]
