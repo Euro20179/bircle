@@ -1198,16 +1198,16 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
 function getContentFromResult(result: CommandReturn, end = "") {
     let res = ""
     if (result.content)
-        res += result.content + end
+        res += result.content
     if (result.files) {
         for (let file of result.files) {
             if(existsSync(file.attachment))
-                res += fs.readFileSync(file.attachment, "base64") + "\n"
+                res += end + fs.readFileSync(file.attachment, "base64")
         }
     }
     if (result.embeds) {
         for (let embed of result.embeds) {
-            res += `${JSON.stringify(embed.toJSON())}\n`
+            res += `${end}${JSON.stringify(embed.toJSON())}`
         }
     }
     return res
