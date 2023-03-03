@@ -712,19 +712,21 @@ export class Interpreter {
                     data = `{${args.join(" ")}}`
                     break
                 }
+                let start = performance.now()
                 data = format(fmt,
                     {
                         i: user.id || "#!N/A",
                         u: user.username || "#!N/A",
                         n: member.nickname || "#!N/A",
-                        X: member.displayHexColor.toString() || "#!N/A",
-                        x: member.displayColor.toString() || "#!N/A",
+                        X: () => member?.displayHexColor.toString() || "#!N/A",
+                        x: () => member?.displayColor.toString() || "#!N/A",
                         c: user.createdAt.toString() || "#!N/A",
                         j: member.joinedAt?.toString() || "#!N/A",
                         b: member.premiumSince?.toString() || "#!N/A",
-                        a: member.user.avatarURL() || "#N/A"
+                        a: () => user?.avatarURL() || "#N/A"
                     }
                 )
+                console.log(performance.now() - start)
                 break
             }
             case "rand":
@@ -832,6 +834,7 @@ export class Interpreter {
                     hours > 12 ? hours = hours - 12 : hours
                     args.splice(0, 1)
                 }
+                let start = performance.now()
                 data = format(args.join("|"), {
                     "d": `${date.getDate()}`,
                     "H": `${hours}`,
@@ -848,6 +851,7 @@ export class Interpreter {
                     "w": `${date.getDay()}`,
                     "s": `${Date.now()}`
                 })
+                console.log(performance.now() - start)
                 break
             case "arg": {
                 return [new Token(T.str, this.args[this.args.length - 1], token.argNo)]

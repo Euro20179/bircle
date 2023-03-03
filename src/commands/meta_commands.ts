@@ -214,7 +214,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "options", createCommand(async (msg, _, __, opts, args) => {
-            let user = msg.author.id
+            let user: string = msg.author.id
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
             }
@@ -244,7 +244,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let userOpts = user_options.getUserOptions()[user]
             let optionToCheck = args.join(" ").toLowerCase()
             if (optionToCheck) {
-                //@ts-ignore
                 return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
             let text = ""

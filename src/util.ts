@@ -435,8 +435,16 @@ const Units = {
     Lightsecond
 }
 
+type Replacements = {[key: string]: (() => string) | string}
 
-function parsePercentFormat(string: string, replacements?: { [key: string]: string }) {
+function handleReplacement(replacement: Replacements[string]){
+    if(typeof replacement === 'string'){
+        return replacement
+    }
+    return replacement()
+}
+
+function parsePercentFormat(string: string, replacements?: Replacements) {
     let formats = []
     let ploc = -1;
     while ((ploc = string.indexOf("%")) > -1) {
@@ -448,7 +456,7 @@ function parsePercentFormat(string: string, replacements?: { [key: string]: stri
             formats.push("%")
         }
         else if (replacements) {
-            formats.push(replacements[char] || char)
+            formats.push(handleReplacement(replacements[char]) || char)
         }
         else {
             formats.push(char)
@@ -459,7 +467,7 @@ function parsePercentFormat(string: string, replacements?: { [key: string]: stri
     return formats
 }
 
-function formatPercentStr(string: string, replacements: { [key: string]: string }) {
+function formatPercentStr(string: string, replacements: Replacements) {
     let ploc = -1;
     let newStr = ""
     while ((ploc = string.indexOf("%")) > -1) {
@@ -469,7 +477,7 @@ function formatPercentStr(string: string, replacements: { [key: string]: string 
         if (char === undefined)
             break
         if (char !== "%") {
-            newStr += replacements[char] ?? `%${char}`
+            newStr += handleReplacement(replacements[char]) ?? `%${char}`
         }
         else {
             newStr += "%"
@@ -481,7 +489,7 @@ function formatPercentStr(string: string, replacements: { [key: string]: string 
     return newStr
 }
 
-function formatBracePairs(string: string, replacements: { [key: string]: string }, pair = "{}", recursion = true) {
+function formatBracePairs(string: string, replacements: Replacements, pair = "{}", recursion = true) {
     let newStr = ""
     let escape = false
     for (let i = 0; i < string.length; i++) {
@@ -492,10 +500,10 @@ function formatBracePairs(string: string, replacements: { [key: string]: string 
         else if (ch == pair[0] && !escape) {
             let inner = parseBracketPair(string.slice(i), pair)
             if (recursion) {
-                newStr += replacements[inner] ?? `${pair[0]}${formatBracePairs(inner, replacements, pair, recursion)}${pair[1]}`
+                newStr += handleReplacement(replacements[inner]) ?? `${pair[0]}${formatBracePairs(inner, replacements, pair, recursion)}${pair[1]}`
             }
             else {
-                newStr += replacements[inner] ?? `${pair[0]}${inner}${pair[1]}`
+                newStr += handleReplacement(replacements[inner]) ?? `${pair[0]}${inner}${pair[1]}`
             }
             i += inner.length + 1
         }
@@ -760,7 +768,7 @@ function escapeRegex(str: string) {
     return finalString
 }
 
-function format(str: string, formats: { [key: string]: string }, recursion = false) {
+function format(str: string, formats: Replacements, recursion = false) {
     return formatPercentStr(formatBracePairs(str, formats, "{}", recursion), formats)
 }
 
