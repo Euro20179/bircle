@@ -1339,10 +1339,6 @@ export const slashCommands = [
     createChatCommand("say", "says something", [
         createChatCommandOption(STRING, "something", "the something to say", { required: true })
     ]),
-    createChatCommand("poll", "create a poll", [
-        createChatCommandOption(STRING, "options", "Options are seperated by |", { required: true }),
-        createChatCommandOption(STRING, "title", "The title of the poll", { required: false }),
-    ]),
     createChatCommand("md", "say markdown", [
         createChatCommandOption(STRING, "text", "The text to say", { required: true })
     ]),

@@ -275,46 +275,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             }
         }
     }
-    else if (interaction.isSelectMenu() && !interaction.replied) {
-        if (interaction.customId.includes("poll")) {
-            let id = interaction.customId
-            let key = interaction.values[0]
-            if (globals.POLLS[id]["votes"]) {
-                //checks if the user voted
-                for (let key in globals.POLLS[id]["votes"]) {
-                    if (globals.POLLS[id]["votes"][key]?.length) {
-                        if (globals.POLLS[id]["votes"][key].includes(String(interaction.member?.user.id))) {
-                            return
-                        }
-                    }
-                }
-
-                if (globals.POLLS[id]["votes"][key])
-                    globals.POLLS[id]["votes"][key].push(String(interaction.member?.user.id))
-                else
-                    globals.POLLS[id]["votes"][key] = [String(interaction.member?.user.id)]
-            }
-            else globals.POLLS[id]["votes"] = { [id]: [String(interaction.member?.user.id)] }
-            let str = ""
-            for (let key in globals.POLLS[id]["votes"]) {
-                str += `${key}: ${globals.POLLS[id]["votes"][key].length}\n`
-            }
-            let dispId = id.slice(id.indexOf(":"))
-            if (interaction.message instanceof Message) {
-                if (str.length > 1990 - globals.POLLS[id]["title"].length) {
-                    let fn = generateFileName("poll-reply", interaction.member?.user.id)
-                    fs.writeFileSync(fn, str)
-                    await interaction.message.edit({ files: [{ attachment: fn }], content: dispId })
-                    fs.rmSync(fn)
-                }
-                else {
-                    interaction.message.edit({ content: `**${globals.POLLS[id]["title"]}**\npoll id: ${dispId}\n${str}` })
-                    interaction.reply({ content: `${interaction.values.toString()} is your vote`, ephemeral: true }).catch(console.error)
-                }
-            }
-            else interaction.reply({ content: interaction.values.toString(), ephemeral: true }).catch(console.error)
-        }
-    }
     else if (interaction.isCommand() && !interaction.replied) {
         if (BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)) {
             interaction.reply({ content: "You are blacklisted from this" }).catch(console.error)
