@@ -12,6 +12,7 @@ import { create } from 'domain';
 import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
+import parse_format from './parse_format';
 
 
 export enum StatusCode {
@@ -416,6 +417,10 @@ export class Interpreter {
         return this.#pipeTo
     }
 
+    getPipeData() {
+        return this.#pipeData
+    }
+
     advance(amount = 1) {
         this.#i += amount;
         this.#curTok = this.tokens[this.#i]
@@ -497,215 +502,17 @@ export class Interpreter {
     //fmt
     async[4](token: Token): Promise<Token[] | false> {
         let [format_name, ...args] = (token.data as string).split("|")
-        let data = ""
-        switch (format_name) {
-            case "%":
-                if (this.#pipeData) {
-                    data = getContentFromResult(this.#pipeData)
-                }
-                else {
-                    data = "{%}"
-                }
-                break
-            case "-%": {
-                if (this.#pipeData) {
-                    data = getContentFromResult(this.#pipeData)
-                    this.#pipeData = undefined
-                }
-                else {
-                    data = "{-%}"
-                }
-                break;
+        if (parse_format[`parse_${format_name}`]) {
+            let dat = await parse_format[`parse_${format_name}`](token, format_name, args, this)
+            if (typeof dat === 'string') {
+                return [new Token(T.str, dat, token.argNo)]
             }
-            case "cmd":
-                data = this.cmd
-                break
-            case "fhex":
-            case "fbase": {
-                let [num, base] = args
-                data = String(parseInt(num, parseInt(base) || 16))
-                break
-            }
-            case "hex":
-            case "base": {
-                let [num, base] = args
-                data = String(Number(num).toString(parseInt(base) || 16))
-                break
-            }
-
-            case "token": {
-                let [tt, ...data] = args
-                let text = data.join("|")
-
-                return this.interprateAsToken(new Token(strToTT(tt), text, this.#curTok?.argNo as number), strToTT(tt))
-            }
-
-            case "rev":
-            case "reverse":
-                if (args.length > 1)
-                    data = args.reverse().join(" ")
-                else {
-                    data = [...args.join(" ")].reverse().join("")
-                }
-                break
-            case '$': {
-                data = String(economy.calculateAmountFromString(this.#msg.author.id, args.join(" ") || "100%"))
-                break
-            }
-            case '$l': {
-                data = String(economy.calculateLoanAmountFromString(this.#msg.author.id, args.join(" ") || "100%"))
-                break
-            }
-            case '$t': {
-                data = String(economy.calculateAmountFromStringIncludingStocks(this.#msg.author.id, args.join(" ") || "100%"))
-                break
-            }
-            case '$n': {
-                data = String(economy.calculateAmountFromStringIncludingStocks(this.#msg.author.id, args.join(" ") || "100%") - economy.calculateLoanAmountFromString(this.#msg.author.id, "100%"))
-                break
-            }
-            case "timer": {
-                let name = args.join(" ").trim()
-                if (name[0] === '-') {
-                    data = String(timer.default.do_lap(this.#msg.author.id, name.slice(1)))
-                }
-                else {
-                    data = String(timer.default.getTimer(this.#msg.author.id, args.join(" ").trim()))
-                }
-                break
-            }
-            case "user": {
-                let fmt = args.join(" ") || "<@%i>"
-                let member = this.#msg.member
-                let user = member?.user
-                if (user === undefined || member === undefined || member === null) {
-                    data = `{${args.join(" ")}}`
-                    break
-                }
-                let start = performance.now()
-                data = format(fmt,
-                    {
-                        i: user.id || "#!N/A",
-                        u: user.username || "#!N/A",
-                        n: member.nickname || "#!N/A",
-                        X: () => member?.displayHexColor.toString() || "#!N/A",
-                        x: () => member?.displayColor.toString() || "#!N/A",
-                        c: user.createdAt.toString() || "#!N/A",
-                        j: member.joinedAt?.toString() || "#!N/A",
-                        b: member.premiumSince?.toString() || "#!N/A",
-                        a: () => user?.avatarURL() || "#N/A"
-                    }
-                )
-                break
-            }
-            case "rand":
-                if (args && args?.length > 0)
-                    data = args[Math.floor(Math.random() * args.length)]
-                else {
-                    data = "{rand}"
-                }
-                break
-            case "num":
-            case "number":
-                if (args && args?.length > 0) {
-                    let low = Number(args[0])
-                    let high = Number(args[1]) || low * 10
-                    let dec = ["y", "yes", "true", "t", "."].indexOf(args[2]) > -1 ? true : false
-                    if (dec)
-                        data = String((Math.random() * (high - low)) + low)
-                    else {
-                        data = String(Math.floor((Math.random() * (high - low)) + low))
-                    }
-                    break
-                }
-                data = String(Math.random())
-                break
-            case "ruser":
-                let fmt = args.join(" ") || "%u"
-                let guild = this.#msg.guild
-                if (guild === null) {
-                    data = `{${fmt}}`
-                    break
-                }
-
-                let member = guild.members.cache.random()
-                if (member === undefined)
-                    member = (await guild.members.fetch()).random()
-                if (member === undefined) {
-                    data = `{${fmt}}`
-                    break
-                }
-                let user = member.user
-                data = format(fmt,
-                    {
-                        i: user.id || "#!N/A",
-                        u: user.username || "#!N/A",
-                        n: member.nickname || "#!N/A",
-                        X: member.displayHexColor.toString() || "#!N/A",
-                        x: member.displayColor.toString() || "#!N/A",
-                        c: user.createdAt.toString() || "#!N/A",
-                        j: member.joinedAt?.toString() || "#!N/A",
-                        b: member.premiumSince?.toString() || "#!N/A"
-                    }
-                )
-                break
-            case "html": {
-                data = renderHTML(args.join("|"))
-                break
-            }
-            case "time":
-                let date = new Date()
-                if (!args.length) {
-                    data = date.toString()
-                    break
-                }
-                let hours = date.getHours()
-                let AMPM = hours < 12 ? "AM" : "PM"
-                if (args[0].trim() == '12') {
-                    hours > 12 ? hours = hours - 12 : hours
-                    args.splice(0, 1)
-                }
-                let start = performance.now()
-                data = format(args.join("|"), {
-                    "d": `${date.getDate()}`,
-                    "H": `${hours}`,
-                    "M": `${date.getMinutes()}`,
-                    "S": `${date.getSeconds()}`,
-                    "T": `${hours}:${date.getMinutes()}:${date.getSeconds()}`,
-                    "t": `${hours}:${date.getMinutes()}`,
-                    "1": `${date.getMilliseconds()}`,
-                    "z": `${date.getTimezoneOffset()}`,
-                    "x": AMPM,
-                    "D": `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
-                    "m": `${date.getMonth() + 1}`,
-                    "Y": `${date.getFullYear()}`,
-                    "w": `${date.getDay()}`,
-                    "s": `${Date.now()}`
-                })
-                break
-            case "arg": {
-                return [new Token(T.str, this.args[this.args.length - 1], token.argNo)]
-            }
-            case "channel":
-                data = format(args.join("|"), {
-                    "i": `${this.#msg.channel.id}`,
-                    //@ts-ignore
-                    "N!": `${this.#msg.channel.nsfw}`,
-                    //@ts-ignore
-                    "n": `${this.#msg.channel.name}`,
-                    "c": `${this.#msg.channel.createdAt}`
-                })
-                break
-            default: {
-                if (args.length > 0) {
-                    data = `{${format_name}|${args.join("|")}}`
-                }
-                else {
-                    data = `{${format_name}}`
-                }
-            }
+            return dat
         }
-        return [new Token(T.str, data, token.argNo)]
+        if (args.length > 0) {
+            return [new Token(T.str, `{${format_name}|${args.join("|")}}`, token.argNo)]
+        }
+        return [new Token(T.str, `{${format_name}}`, token.argNo)]
     }
     //dofirstrepl
     async[5](token: Token): Promise<Token[] | false> {
@@ -1051,12 +858,12 @@ export class Interpreter {
             await int.interprate()
 
             //instead force sendCallback to get the result
-            int.sendCallback = async(o) => {
+            int.sendCallback = async (o) => {
                 let obj = o as CommandReturn
                 commandReturn = obj as CommandReturn
                 //files get deleted too early
-                for(let i = 0; i < (obj.files?.length ?? 0); i++){
-                    if(obj.files?.[i]){
+                for (let i = 0; i < (obj.files?.length ?? 0); i++) {
+                    if (obj.files?.[i]) {
                         obj.files[i].delete = false
                     }
 
@@ -1400,7 +1207,7 @@ export function createCommandV2(
 /**
     * @description crv: stands for: commandReturnValue
 */
-export function crv(content: string, options?: {[K in keyof CommandReturn]?: CommandReturn[K]}, status=StatusCode.RETURN){
+export function crv(content: string, options?: { [K in keyof CommandReturn]?: CommandReturn[K] }, status = StatusCode.RETURN) {
     return {
         content,
         status: options?.status ?? status,

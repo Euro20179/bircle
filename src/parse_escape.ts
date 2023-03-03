@@ -152,4 +152,4 @@ export default {
 
     }
 
-} as { [key: string]: (token: Token, char: string, seq: string, interpreter?: Interpreter) => Promise<Token[]> }
+} as { [key: string]: (token: Token, char: string, seq: string, interpreter: Interpreter) => Promise<Token[]> }
