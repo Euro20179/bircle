@@ -26,7 +26,6 @@ import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
 import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
-import { Message } from 'discord.js'
 
 const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
@@ -172,26 +171,6 @@ client.on("messageCreate", async (m: typeof Message) => {
         }
     }
 
-    if (content.slice(0, local_prefix.length) == local_prefix) {
-        if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
-            server.close()
-        }
-        for (let cmd of content.split(`\n${local_prefix};\n`)) {
-            m.content = `${cmd}`
-            let c = m.content.slice(local_prefix.length)
-            try {
-                await command_commons.cmd({msg: m, command_excluding_prefix: c})
-            }
-            catch (err) {
-                console.error(err)
-                await m.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
-            }
-        }
-        globals.writeCmdUse()
-    }
-    else {
-        await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
-    }
     if (timer.has_x_s_passed(m.author.id, "%can-earn", 60) && !m.author.bot) {
         let deaths = pet.damageUserPetsRandomly(m.author.id)
         if (deaths.length)
@@ -218,6 +197,27 @@ client.on("messageCreate", async (m: typeof Message) => {
                 await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
         }
+    }
+
+    if (content.slice(0, local_prefix.length) == local_prefix) {
+        if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
+            server.close()
+        }
+        for (let cmd of content.split(`\n${local_prefix};\n`)) {
+            m.content = `${cmd}`
+            let c = m.content.slice(local_prefix.length)
+            try {
+                await command_commons.cmd({msg: m, command_excluding_prefix: c})
+            }
+            catch (err) {
+                console.error(err)
+                await m.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+            }
+        }
+        globals.writeCmdUse()
+    }
+    else {
+        await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
     }
 })
 
