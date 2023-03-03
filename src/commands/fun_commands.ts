@@ -15,7 +15,7 @@ import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -1248,12 +1248,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "pfp",
-        {
-            run: async (msg, _, _sendCallback, opts, args) => {
+        "pfp", ccmdV2(async({msg, opts, args, stdin}) => {
                 let link = args[0]
                 if (!link) {
-                    link = String(getImgFromMsgAndOpts(opts, msg))
+                    link = String(getImgFromMsgAndOpts(opts, msg, stdin))
                 }
                 if (!link)
                     return { content: "no link given", status: StatusCode.ERR }
@@ -1264,17 +1262,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     console.log(err)
                     return { content: "could not set pfp", status: StatusCode.ERR }
                 }
-                return { content: 'set pfp', delete: Boolean(opts['d'] || opts['delete']), status: StatusCode.RETURN }
+                return { content: 'set pfp', delete: opts.getBool("d", opts.getBool("delete", false)), status: StatusCode.RETURN }
+
+        }, "Change the bot pfp", {
+            helpArguments: {
+                link: createHelpArgument( "Link to an image to use as the pfp")
             },
-            help: {
-                arguments: {
-                    "link": {
-                        description: "Link to an image to use as the pfp"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-        },
+            accepts_stdin: "Pipe can contain an image to use"
+        })
     ]
 
     yield ["name-pet", createCommandV2(async ({ args, msg }) => {

@@ -941,9 +941,16 @@ function cmdCatToStr(cat: number) {
     }
 }
 
-function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
-    let img = opts['img']
-    if (msg.attachments?.at(0)) {
+function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn) {
+    let img;
+    if(opts instanceof Options){
+        img = opts.getString("img", "")
+    }
+    else img = opts['img']
+    if(stdin?.files){
+        img = stdin?.files[0].attachment
+    }
+    else if (msg.attachments?.at(0)) {
         //@ts-ignore
         img = msg.attachments.at(0)?.attachment
     }
