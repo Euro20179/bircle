@@ -1101,13 +1101,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         fs.writeFileSync(fn, rv.content as string)
         let extension = rv.mimetype ? mimeTypeToFileExtension(rv.mimetype) || "txt" : "txt"
         delete rv["content"]
-        if (rv.files) {
-            rv.files.push({ attachment: fn, name: `cmd.${extension}`, description: "command output too long" })
-        } else {
-            rv.files = [{
-                attachment: fn, name: `cmd.${extension}`, description: "command output too long"
-            }]
-        }
+        rv.files = (rv.files ?? []).concat([{ attachment: fn, name: `cmd.${extension}`, description: "command output too long" }])
     }
     let newMsg
     try {

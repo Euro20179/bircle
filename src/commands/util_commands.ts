@@ -45,7 +45,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
         }
 
-        let res = await fetch.default(`http://${ip}`, { method: "POST", body: JSON.stringify({ "id": user.id }), headers: { "Content-Type": "application/json" } })
+        let res;
+        try {
+            res = await fetch.default(`http://${ip}`, { method: "POST", body: JSON.stringify({ "id": user.id }), headers: { "Content-Type": "application/json" } })
+        }
+        catch (err) {
+            return crv("Could not fetch data", { status: StatusCode.ERR })
+        }
         let data = await res.json()
         let embed = new MessageEmbed()
         embed.setTitle(`School stats of ${user.username}`)
@@ -3030,22 +3036,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "cut", ccmdV2(async function({args, opts, stdin}){
+        "cut", ccmdV2(async function({ args, opts, stdin }) {
             let fields = opts.getString("f", opts.getString("fields", ""))
             let delimiter = opts.getString("d", opts.getString("delimiter", " "))
             let join = opts.getString("j", opts.getString("join", "\t"))
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(delimiter)
             let splitText = text.split(delimiter)
             let numberField = Number(fields)
-            if(!isNaN(numberField)){
+            if (!isNaN(numberField)) {
                 return crv(splitText[numberField - 1])
             }
             let [start, end] = fields.split("-")
             let [startN, endN] = [Number(start), Number(end)]
-            if(isNaN(startN)){
+            if (isNaN(startN)) {
                 startN = 1
             }
-            if(isNaN(endN)){
+            if (isNaN(endN)) {
                 return crv(splitText.slice(startN - 1).join(join))
             }
             return crv(splitText.slice(startN - 1, endN - 1).join(join))
