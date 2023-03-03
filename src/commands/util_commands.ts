@@ -17,6 +17,7 @@ import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, form
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
+import { isNaN } from 'lodash'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
@@ -3026,6 +3027,40 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             category: CommandCategory.UTIL
 
         },
+    ]
+
+    yield [
+        "cut", ccmdV2(async function({args, opts, stdin}){
+            let fields = opts.getString("f", opts.getString("fields", ""))
+            let delimiter = opts.getString("d", opts.getString("delimiter", " "))
+            let join = opts.getString("j", opts.getString("join", "\t"))
+            let text = stdin ? getContentFromResult(stdin, "\n") : args.join(delimiter)
+            let splitText = text.split(delimiter)
+            let numberField = Number(fields)
+            if(!isNaN(numberField)){
+                return crv(splitText[numberField - 1])
+            }
+            let [start, end] = fields.split("-")
+            let [startN, endN] = [Number(start), Number(end)]
+            if(isNaN(startN)){
+                startN = 1
+            }
+            if(isNaN(endN)){
+                return crv(splitText.slice(startN - 1).join(join))
+            }
+            return crv(splitText.slice(startN - 1, endN - 1).join(join))
+
+        }, "Cuts a string my seperator, and says the requested fields", {
+            helpArguments: {
+                "...text": createHelpArgument("The text to cut", false)
+            },
+            helpOptions: {
+                "d": createHelpOption("The delimiter", ["delimiter"], "<space>"),
+                f: createHelpOption("The fields to get in the format of <code>start[-[end]]</code>", ["fields"], "0-"),
+                j: createHelpOption("The text to join the fields by", ["join"], "\\t")
+            },
+            accepts_stdin: "Can be used instead of <code>...text</code>"
+        })
     ]
 
     yield [

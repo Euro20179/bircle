@@ -1226,10 +1226,10 @@ The commands below, only work after **path** has been run:
             let opts;
             [opts, args] = getOpts(args)
             let img = getImgFromMsgAndOpts(opts, msg)
-            if (!img || img === true) {
+            if (!img) {
                 return { content: "No image given", status: StatusCode.ERR }
             }
-            let image = await canvas.loadImage(img)
+            let image = await canvas.loadImage(img.toString())
 
             return { content: `width: ${image.width}\nheight: ${image.height}`, status: StatusCode.RETURN }
         }, CommandCategory.IMAGES),

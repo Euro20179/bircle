@@ -31,7 +31,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let players: (User | undefined)[] = [msg.author]
         if (args.length) {
             players[1] = msg.guild ? (await fetchUser(msg.guild, args.join(" ")))?.user : await fetchUserFromClient(client, args.join(" "))
-            p2Color = user_options.getOpt(players[1]?.id, "connect4-symbol", p2Color)
         }
         if (!players[1]) {
             if (args.length) {
@@ -49,6 +48,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             p2Color = user_options.getOpt(m.author.id, "connect4-symbol", m.content.slice("join".length).trim() || p2Color)
             players[1] = m.author
         }
+        p2Color = user_options.getOpt(players[1].id, "connect4-symbol", p2Color)
 
         for (let user of players as User[])
             globals.startCommand(user.id, "connect4")
