@@ -749,7 +749,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}").trim()
             let elseCommand = ""
-            if(args.lastIndexOf("else") > 0){
+            if (args.lastIndexOf("else") > 0) {
                 elseCommand = parseBracketPair(args.slice(args.lastIndexOf("else")).join(" "), "{}").trim()
             }
 
@@ -780,12 +780,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return getAliases()[args[0]] ? await handleTruthiness() : await handleFalsiness()
             }
 
-            else if (opts.getBool("u", false)){
+            else if (opts.getBool("u", false)) {
                 return (await fetchUserFromClient(client, args[0])) ? await handleTruthiness() : await handleFalsiness()
             }
 
-            else if (opts.getBool("U", false)){
-                if(!msg.guild){
+            else if (opts.getBool("U", false)) {
+                if (!msg.guild) {
                     return await handleFalsiness()
                 }
                 return await fetchUser(msg.guild, args[0]) ? await handleTruthiness() : await handleFalsiness()
@@ -1160,28 +1160,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "getimg",
-        {
-            run: async (msg, _, sendCallback, opts, args) => {
-                let img = getImgFromMsgAndOpts(opts, msg)
-                if (opts['pop'] && msg.attachments.at(0)) {
-                    msg.attachments.delete(msg.attachments.keyAt(0) as string)
-                }
-                return { content: String(img), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "find the link to the image that would be used if you gave the same options to an image command",
-                options: {
-                    img: {
-                        description: "The image link to use"
-                    },
-                    pop: {
-                        description: "If given, remove the attachment from message"
-                    }
-                }
-            },
-            category: CAT
-        },
+        "getimg", ccmdV2(async ({ msg, opts, args, stdin }) => {
+            let pop = opts.getBool("pop", false)
+            let img = getImgFromMsgAndOpts(opts, msg, stdin, pop)
+            return { content: String(img), status: StatusCode.RETURN }
+
+        }, "find the link to the image that would be used if you gave the same options to an image command", {
+            helpOptions: {
+                img: createHelpOption("The link to use"),
+                pop: createHelpOption("If given, remove the attachment from message, or stdin wherver the image was gotten from")
+            }
+        })
     ]
 
     yield [
@@ -2405,7 +2394,7 @@ ${styles}
     ]
 
     yield [
-        "list-garbage-files", ccmdV2(async() => {
+        "list-garbage-files", ccmdV2(async () => {
             return crv(fs.readdirSync("./garbage-files").join("\n") || "\\_\\_empty\\_\\_")
         }, "List files that happened as result of command")
     ]

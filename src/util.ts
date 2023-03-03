@@ -4,8 +4,9 @@ import { spawnSync } from "child_process"
 const vm = require('vm')
 const fs = require('fs')
 
-import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
+import { BufferResolvable, Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
 import { existsSync } from "fs"
+import { Stream } from "stream"
 import { client } from "./common"
 import { AliasV2, CommandCategory, StatusCode } from "./common_to_commands"
 
@@ -941,29 +942,39 @@ function cmdCatToStr(cat: number) {
     }
 }
 
-function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn) {
+function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean){
     let img;
     if(opts instanceof Options){
         img = opts.getString("img", "")
+        if(img && pop)
+            opts.delete("img")
     }
-    else img = opts['img']
-    if(stdin?.files){
-        img = stdin?.files[0].attachment
+    if(!img && !(opts instanceof Options) && typeof opts['img'] === 'string') {
+        img = opts['img']
+        if(img && pop)
+            delete opts['img']
     }
-    else if (msg.attachments?.at(0)) {
-        //@ts-ignore
-        img = msg.attachments.at(0)?.attachment
+    if(!img && stdin?.files){
+        img = stdin?.files[0]?.attachment
+        if(img && pop)
+            delete stdin.files[0]
     }
-    else if (msg.stickers?.at(0)) {
-        //@ts-ignore
-        img = msg.stickers.at(0).url as string
+    if (!img && msg.attachments?.at(0)) {
+        img = msg.attachments.at(0)?.url
+        if(img && pop)
+            msg.attachments.delete(msg.attachments.keyAt(0) as string)
     }
-    else if (msg.embeds?.at(0)?.image?.url) {
-        //@ts-ignore
+    if (!img && msg.stickers?.at(0)) {
+        img = msg.stickers.at(0)?.url as string
+        if(img && pop)
+            msg.stickers.delete(msg.stickers.keyAt(0) as string)
+    }
+    if (!img && msg.embeds?.at(0)?.image?.url) {
         img = msg.embeds?.at(0)?.image?.url
+        if(img && pop)
+            (msg.embeds.at(0) as MessageEmbed).image = null
     }
-    else if (!img || img == true) {
-        //@ts-ignore
+    if (!img) {
         img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
     }
     return img
