@@ -438,10 +438,10 @@ const Units = {
 type Replacements = {[key: string]: (() => string) | string}
 
 function handleReplacement(replacement: Replacements[string]){
-    if(typeof replacement === 'string'){
-        return replacement
+    if(typeof replacement === 'function'){
+        return replacement()
     }
-    return replacement()
+    return replacement
 }
 
 function parsePercentFormat(string: string, replacements?: Replacements) {
