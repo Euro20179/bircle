@@ -13,7 +13,11 @@ declare global {
         attachment: string,
         name?: string,
         description?: string,
-        delete?: boolean
+        /**
+            * @deprecated put inside the garbage-files folder instead
+        */
+        delete?: boolean,
+        postPipeDelete?: boolean
     }
 
     type FileArray = Array<CommandFile>
@@ -23,6 +27,9 @@ declare global {
         content?: string,
         embeds?: Array<MessageEmbed>
         files?: FileArray,
+        /**
+            * @deprecated put inside the garbage-files folder instead
+        */
         deleteFiles?: boolean
         delete?: boolean
         noSend?: boolean,

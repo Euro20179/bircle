@@ -13,7 +13,7 @@ import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp } from '../util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension } from '../util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
@@ -3030,14 +3030,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         "file", ccmdV2(async ({ msg, opts, args, stdin }) => {
-            let fn = generateFileName("file", msg.author.id)
-            fs.writeFileSync(fn, stdin ? getContentFromResult(stdin) : args.join(" "))
+            let fn = generateFileName("file", msg.author.id, mimeTypeToFileExtension(opts.getString("mime", stdin?.mimetype || "plain/text") as MimeType))
+            fs.writeFileSync(fn, stdin ? getContentFromResult(stdin, "\n") : args.join(" "))
 
             return {
                 files: [
                     {
                         attachment: fn,
-                        name: `${fn}.txt`,
+                        name: fn,
                         description: `data`,
                     }
                 ],

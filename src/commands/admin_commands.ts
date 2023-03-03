@@ -1,13 +1,13 @@
 import fs from 'fs'
 import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars } from '../common'
-import { CommandCategory, createCommandV2, createHelpArgument, currently_playing, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import economy = require("../economy")
 import user_options = require("../user-options")
 import pet from "../pets"
 import timer from '../timer'
 import { saveItems } from '../shop'
 import { Message } from 'discord.js'
-import { fetchUser } from '../util'
+import { fetchUser, listComprehension } from '../util'
 const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('../shop')
 
 export default function*(): Generator<[string, Command| CommandV2]> {
@@ -24,6 +24,18 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 info: "run javascript"
             }
         },
+    ]
+
+    yield [
+        "TRASH_EMPTY", ccmdV2(async ({msg, sendCallback}) => {
+            fs.readdir("./garbage-files", async(err, files) => {
+                for(let file of files){
+                    fs.rmSync(`./garbage-files/${file}`)
+                }
+                await handleSending(msg, crv(`Deleted all files`), sendCallback)
+            })
+            return crv("Emptying files", {status: StatusCode.INFO})
+        }, "Empties the garbage-files folder")
     ]
 
     yield [

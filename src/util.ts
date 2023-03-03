@@ -5,6 +5,7 @@ const vm = require('vm')
 const fs = require('fs')
 
 import { Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
+import { existsSync } from "fs"
 import { client } from "./common"
 import { AliasV2, CommandCategory, StatusCode } from "./common_to_commands"
 
@@ -738,8 +739,8 @@ async function fetchUser(guild: Guild, find: string) {
     return user
 }
 
-function generateFileName(cmd: string, userId: string) {
-    return `${cmd}::${userId}.txt`
+function generateFileName(cmd: string, userId: string, ext: string = "txt") {
+    return `garbage-files/${cmd}-${userId}.${ext}`
 }
 
 function downloadSync(url: string) {
@@ -1182,7 +1183,8 @@ function getContentFromResult(result: CommandReturn, end = "") {
         res += result.content + end
     if (result.files) {
         for (let file of result.files) {
-            res += fs.readFileSync(file.attachment, "base64") + "\n"
+            if(existsSync(file.attachment))
+                res += fs.readFileSync(file.attachment, "base64") + "\n"
         }
     }
     if (result.embeds) {

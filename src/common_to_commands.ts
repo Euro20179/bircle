@@ -596,7 +596,6 @@ export class Interpreter {
                         a: () => user?.avatarURL() || "#N/A"
                     }
                 )
-                console.log(performance.now() - start)
                 break
             }
             case "rand":
@@ -683,7 +682,6 @@ export class Interpreter {
                     "w": `${date.getDay()}`,
                     "s": `${Date.now()}`
                 })
-                console.log(performance.now() - start)
                 break
             case "arg": {
                 return [new Token(T.str, this.args[this.args.length - 1], token.argNo)]
@@ -1054,7 +1052,15 @@ export class Interpreter {
 
             //instead force sendCallback to get the result
             int.sendCallback = async(o) => {
-                commandReturn = o as CommandReturn
+                let obj = o as CommandReturn
+                commandReturn = obj as CommandReturn
+                //files get deleted too early
+                for(let i = 0; i < (obj.files?.length ?? 0); i++){
+                    if(obj.files?.[i]){
+                        obj.files[i].delete = false
+                    }
+
+                }
                 return int.getMessage()
             }
 
@@ -1217,10 +1223,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         sendCallback = msg.channel.send.bind(msg.channel)
     }
 
-    //by default delete files that are being sent from local storage
-    if (rv.deleteFiles === undefined) {
-        rv.deleteFiles = true
-    }
     if (rv.delete && msg.deletable) {
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
@@ -1274,7 +1276,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 
         let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
 
-        rv = ret.rv
+        rv = ret.rv as CommandReturn
         //we only want to override it if the command doens't explicitly want to do it
         if (rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false) {
             rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion
@@ -1308,13 +1310,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //usually happens when there is nothing to send
         console.log(err)
         newMsg = await sendCallback({ content: `${err}` })
-    }
-    //delete files that were sent
-    if (rv.files) {
-        for (let file of rv.files) {
-            if (file.delete !== false && rv.deleteFiles && fs.existsSync(file.attachment))
-                fs.rmSync(file.attachment)
-        }
     }
     return newMsg
 }
@@ -1409,6 +1404,7 @@ export function crv(content: string, options?: {[K in keyof CommandReturn]?: Com
     return {
         content,
         status: options?.status ?? status,
+        mimetype: options?.mimetype ?? "plain/text",
         ...options
     }
 }
