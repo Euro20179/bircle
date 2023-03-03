@@ -1290,15 +1290,15 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         if (rv.onOver2kLimit) {
             rv = rv.onOver2kLimit(msg, rv)
         }
-        //@ts-ignore
-        fs.writeFileSync("out", rv.content)
+        let fn = `./garbage-files/${msg.author.id}-${msg.id}`
+        fs.writeFileSync(fn, rv.content as string)
         let extension = rv.mimetype ? mimeTypeToFileExtension(rv.mimetype) || "txt" : "txt"
         delete rv["content"]
         if (rv.files) {
-            rv.files.push({ attachment: "out", name: `cmd.${extension}`, description: "command output too long" })
+            rv.files.push({ attachment: fn, name: `cmd.${extension}`, description: "command output too long" })
         } else {
             rv.files = [{
-                attachment: "out", name: `cmd.${extension}`, description: "command output too long"
+                attachment: fn, name: `cmd.${extension}`, description: "command output too long"
             }]
         }
     }
