@@ -21,20 +21,13 @@ export enum StatusCode {
 }
 
 export function statusCodeToStr(code: StatusCode) {
-    switch (code) {
-        case StatusCode.PROMPT:
-            return "-2"
-        case StatusCode.INFO:
-            return "-1"
-        case StatusCode.RETURN:
-            return "0"
-        case StatusCode.WARNING:
-            return "1"
-        case StatusCode.ERR:
-            return "2"
-        default:
-            return "NaN"
-    }
+    return {
+        [StatusCode.PROMPT]: "-2",
+        [StatusCode.INFO]: "-1",
+        [StatusCode.RETURN]: "0",
+        [StatusCode.WARNING]: "1",
+        [StatusCode.ERR]: "2"
+    }[code]
 }
 
 export enum CommandCategory {
@@ -485,13 +478,10 @@ export class Interpreter {
     //esc sequence
     async [3](token: Token): Promise<Token[] | false> {
         let [char, sequence] = token.data
-        switch (char) {
-            case "n":
-                return [new Token(T.str, "\n", token.argNo)]
-            case "t":
-                return [new Token(T.str, "\t", token.argNo)]
-            case "U":
-            case "u":
+        let sequenceMap: { [key: string]: Token[] | ((char: string, sequence: string) => Promise<Token[]>) } = {
+            n: [new Token(T.str, "\n", token.argNo)],
+            t: [new Token(T.str, "\t", token.argNo)],
+            u: async (_, sequence) => {
                 if (!sequence) {
                     return [new Token(T.str, "\\u", token.argNo)]
                 }
@@ -501,21 +491,24 @@ export class Interpreter {
                 catch (err) {
                     return [new Token(T.str, `\\u{${sequence}}`, token.argNo)]
                 }
-            case "s":
-                if (sequence) {
-                    return [new Token(T.str, sequence, token.argNo)]
+            },
+            U: async function(): Promise<Token[]> { return (this["u"] as Function)() },
+            s: async (_, seq) => {
+                if (seq) {
+                    return [new Token(T.str, seq, token.argNo)]
                 }
                 return [new Token(T.str, " ", token.argNo)]
-            case "y": {
-                if (sequence) {
-                    return await this.interprateAsToken(new Token(T.str, sequence, token.argNo), T.syntax)
+            },
+            y: async (_, seq) => {
+                if (seq) {
+                    return await this.interprateAsToken(new Token(T.str, seq, token.argNo), T.syntax) as Token[]
                 }
                 return [new Token(T.str, " ", token.argNo)]
-            }
+            },
             //this is different from \y because it splits the args whereas \y keeps everything as 1 arg
-            case "Y": {
-                if (sequence) {
-                    let p = new Parser(this.#msg, sequence, false)
+            Y: async (_, seq) => {
+                if (seq) {
+                    let p = new Parser(this.#msg, seq, false)
                     await p.parse()
                     let i = new Interpreter(this.#msg, p.tokens, p.modifiers, this.recursion + 1)
                     let args = await i.interprate()
@@ -524,21 +517,19 @@ export class Interpreter {
                     }
                 }
                 return [];
-            }
-            case "A":
-                if (sequence) {
-                    for (let i = 0; i < sequence.length; i++) {
-                        return [new Token(T.str, sequence[i], ++token.argNo)]
-                    }
+
+            },
+            A: async (_, seq) => {
+                if (seq) {
+                    return listComprehension(seq, item => new Token(T.str, item, ++token.argNo))
                 }
                 return [new Token(T.str, "", token.argNo)]
-            case "b":
-                return [new Token(T.str, `**${sequence}**`, token.argNo)]
-            case "i":
-                return [new Token(T.str, `*${sequence}*`, token.argNo)]
-            case "S":
-                return [new Token(T.str, `~~${sequence}~~`, token.argNo)]
-            case "d":
+
+            },
+            b: [new Token(T.str, `**${sequence}**`, token.argNo)],
+            i: [new Token(T.str, `*${sequence}*`, token.argNo)],
+            S: [new Token(T.str, `~~${sequence}~~`, token.argNo)],
+            d: async (_, sequence) => {
                 let date = new Date(sequence)
                 if (date.toString() === "Invalid Date") {
                     if (sequence) {
@@ -549,22 +540,16 @@ export class Interpreter {
                     }
                 }
                 return [new Token(T.str, date.toString(), token.argNo)]
-            case "D":
-                if (isNaN(parseInt(sequence))) {
-                    if (sequence) {
-                        return [new Token(T.str, `\\D{${sequence}}`, token.argNo)]
-                    }
-                    return [new Token(T.str, `\\D`, token.argNo)]
-                }
-                return [new Token(T.str, (new Date(parseInt(sequence))).toString(), token.argNo)]
-            case "T": {
+            },
+            D: async function(_, seq): Promise<Token[]> { return (this['d'] as Function)(_, seq) },
+            T: async (_, sequence) => {
                 let ts = Date.now()
                 if (parseFloat(sequence)) {
                     return [new Token(T.str, String(ts / parseFloat(sequence)), token.argNo)]
                 }
                 return [new Token(T.str, String(Date.now()), token.argNo)]
-            }
-            case "V": {
+            },
+            V: async (_, sequence) => {
                 let [scope, ...n] = sequence.split(":")
                 //@ts-ignore
                 let name = n.join(":")
@@ -592,8 +577,9 @@ export class Interpreter {
                     return [new Token(T.str, v, token.argNo)]
                 }
                 return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
-            }
-            case "v":
+
+            },
+            v: async (_, sequence) => {
                 let num = Number(sequence)
                 //basically checks if it's a n
                 if (!isNaN(num)) {
@@ -607,22 +593,31 @@ export class Interpreter {
                     return [new Token(T.str, v, token.argNo)]
                 }
                 return [new Token(T.str, `\\v{${sequence}}`, token.argNo)]
-            case "\\":
+            },
+            "\\": async (_, sequence) => {
                 if (sequence) {
                     return [new Token(T.str, `\\{${sequence}}`, token.argNo)]
                 }
                 return [new Token(T.str, "\\", token.argNo)]
-            case " ":
+            },
+            " ": async (_, sequence) => {
                 if (sequence) {
                     return [new Token(T.str, sequence, token.argNo)]
                 }
                 return [new Token(T.str, " ", token.argNo)]
-            default:
-                if (sequence) {
-                    return [new Token(T.str, `${char}{${sequence}}`, token.argNo)]
-                }
-                return [new Token(T.str, `${char}`, token.argNo)]
+            }
         }
+        let res = sequenceMap[char]
+        if (typeof res === 'function') {
+            res = await res(char, sequence)
+        }
+        else if (typeof res === 'undefined') {
+            if (sequence) {
+                res = [new Token(T.str, `${char}{${sequence}}`, token.argNo)]
+            }
+            res = [new Token(T.str, `${char}`, token.argNo)]
+        }
+        return res
     }
     //fmt
     async[4](token: Token): Promise<Token[] | false> {
@@ -1131,7 +1126,7 @@ export class Interpreter {
                     declined = true
                 }
             }
-            if(!declined)
+            if (!declined)
                 rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
         }
         else if (!commands.get(this.real_cmd)) {
@@ -1437,7 +1432,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     if (rv.noSend) {
         //${%:?} should still be set despite nosend
-        if(rv.do_change_cmd_user_expansion !== false) setVar("?", rv.status, msg.author.id)
+        if (rv.do_change_cmd_user_expansion !== false) setVar("?", rv.status, msg.author.id)
         return msg
     }
     //we only want to do this if the return cant expand into a cmd

@@ -124,6 +124,7 @@ client.on("messageCreate", async (m: typeof Message) => {
     }
     if (m.channel.type !== "DM" && m.guild && m.guild?.id !== globals.GUILD_ID)
         return
+
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
     }
