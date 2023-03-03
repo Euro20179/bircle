@@ -408,7 +408,7 @@ export class Interpreter {
         }
     }
 
-    getMessage(){
+    getMessage() {
         return this.#msg
     }
 
@@ -486,7 +486,7 @@ export class Interpreter {
     async [3](token: Token): Promise<Token[] | false> {
         let [char, sequence] = token.data
 
-        if(parse_escape[`escape_${char}`]){
+        if (parse_escape[`escape_${char}`]) {
             return parse_escape[`escape_${char}`](token, char, sequence, this)
         }
         if (sequence) {
@@ -606,44 +606,6 @@ export class Interpreter {
                     data = "{rand}"
                 }
                 break
-            // case "glob": {
-            //     if (!args?.length) {
-            //         data = "{glob}"
-            //         break
-            //     }
-            //     const glob = args.join("|")
-            //     let matchingCmds = [...getCommands().keys(), ...Object.keys(getAliasesV2()), ...Object.keys(getMatchCommands())]
-            //     //TODO:
-            //     //to do this properly we would need a class for each type of glob
-            //     //eg: basic string, star, questionmark
-            //     //each class would have a filter function that takes in the currently matching strings and filters out the ones that dont match
-            //     //we would parse the glob and create a list of instances of these classes and go through them one at a time
-            //     let strings = glob.split("*")
-            //
-            //     if (strings.length === 0) {
-            //         matchingCmds = matchingCmds.filter(v => v === strings[0])
-            //     }
-            //     else {
-            //
-            //         for (let i = 0; i < strings.length; i++) {
-            //
-            //             if (i === 0) {
-            //                 matchingCmds = matchingCmds.filter(v => v.startsWith(strings[i]))
-            //             }
-            //
-            //             else if (i === strings.length - 1) {
-            //                 matchingCmds = matchingCmds.filter(v => v.endsWith(strings[i]))
-            //             }
-            //
-            //             else {
-            //                 matchingCmds = matchingCmds.filter(v => v.includes(strings[i]))
-            //             }
-            //         }
-            //     }
-            //
-            //     data = matchingCmds.join(",")
-            //     break
-            // }
             case "num":
             case "number":
                 if (args && args?.length > 0) {
@@ -738,50 +700,8 @@ export class Interpreter {
                 break
             default: {
 
-                let rangeMatch;
-
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
-                }
-                else if (format_name.startsWith(",:")) {
-                    format_name = format_name.slice(2)
-                    //if it's 0, then the only thing in args is either nothing, or the command at position -1
-                    let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
-                    this.args[token.argNo] = ""
-                    let after: Token[] = []
-                    while (this.advance() && this.#curTok?.argNo === token.argNo) {
-                        after = after.concat(await this.interprateAsToken(this.#curTok, this.#curTok.type) as Token[])
-                    }
-                    this.back()
-                    let afterText = after.map(v => v.data).join("")
-                    let toks = []
-                    let offset = 0
-                    for (let word of (format_name).split(",")) {
-                        toks.push(new Token(T.str, `${beforeText}${word}${afterText}`, token.argNo + offset++))
-                    }
-                    return toks
-                }
-                else if (rangeMatch = format_name.match(/(\d+)\.\.(\d+)/)) {
-                    let start = parseInt(rangeMatch[1])
-                    let end = parseInt(rangeMatch[2])
-                    if (start - end > 10000) {
-                        [start, end] = [0, 1]
-                    }
-                    //if it's 0, then the only thing in args is either nothing, or the command at position -1
-                    let beforeText = this.args[token.argNo] ? this.args[token.argNo] : ""
-                    this.args[token.argNo] = ""
-                    let after: Token[] = []
-                    while (this.advance() && this.#curTok?.argNo === token.argNo) {
-                        after = after.concat(await this.interprateAsToken(this.#curTok, this.#curTok.type) as Token[])
-                    }
-                    this.back()
-                    let afterText = after.map(v => v.data).join("")
-                    let toks = []
-                    let offset = 0;
-                    for (let i = start; i < end + 1; i++) {
-                        toks.push(new Token(T.str, `${beforeText}${i}${afterText}`, token.argNo + offset++))
-                    }
-                    return toks
                 }
                 else {
                     data = `{${format_name}}`
