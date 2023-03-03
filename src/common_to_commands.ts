@@ -1331,15 +1331,6 @@ export const slashCommands = [
         createChatCommandOption(INTEGER, "height", "height of image", { required: true, min: 0, max: 5000 }),
         createChatCommandOption(STRING, "color", "color of image", {})
     ]),
-    createChatCommand("ccmd", "create a custom command, WOWZERS", [
-        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", { required: true }),
-        createChatCommandOption(STRING, "text", "what to say", { required: true })
-    ]),
-    createChatCommand("alias", "A more powerful ccmd", [
-        createChatCommandOption(STRING, "name", "name of command (NO SPACES)", { required: true }),
-        createChatCommandOption(STRING, "command", "command to run", { required: true }),
-        createChatCommandOption(STRING, "text", "Text to give to command", {})
-    ]),
     createChatCommand("rps", "Rock paper scissors", [
         createChatCommandOption(USER, "opponent", "opponent", { required: true }),
         createChatCommandOption(STRING, "choice", "choice", { required: true }),

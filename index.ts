@@ -428,8 +428,7 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             if (args) {
                 arglist = arglist.concat(args.split(" "))
             }
-            //@ts-ignore
-            let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel), interaction.channel.send.bind(interaction.channel))
+            let rv = await (command_commons.commands.get("alias"))?.run({msg: interaction, args: arglist, rawArgs: arglist})
             interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'poll') {
