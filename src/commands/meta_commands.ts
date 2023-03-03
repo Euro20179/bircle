@@ -756,7 +756,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             async function handleBranch(command: string, code: StatusCode) {
                 if (command)
                     return (await cmd({ msg, command_excluding_prefix: command, sendCallback, returnJson: true, disable: commandBans, recursion: recursionCount + 1 })).rv as CommandReturn
-                return { noSend: true, status: code }
+                return { content: code === StatusCode.RETURN ? "true" : "false", status: code }
 
             }
 
