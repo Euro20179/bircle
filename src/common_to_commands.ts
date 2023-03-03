@@ -11,6 +11,8 @@ import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getCo
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
 
+import parse_escape from './parse_escape';
+
 
 export enum StatusCode {
     PROMPT = -2,
@@ -406,6 +408,10 @@ export class Interpreter {
         }
     }
 
+    getMessage(){
+        return this.#msg
+    }
+
     getPipeTo() {
         return this.#pipeTo
     }
@@ -443,6 +449,7 @@ export class Interpreter {
     removeLastTokenFromArgList() {
         this.args = this.args.slice(0, -1)
     }
+
     //str token
     async [0](token: Token): Promise<Token[] | false> {
         return [token]
@@ -478,146 +485,14 @@ export class Interpreter {
     //esc sequence
     async [3](token: Token): Promise<Token[] | false> {
         let [char, sequence] = token.data
-        let sequenceMap: { [key: string]: Token[] | ((char: string, sequence: string) => Promise<Token[]>) } = {
-            n: [new Token(T.str, "\n", token.argNo)],
-            t: [new Token(T.str, "\t", token.argNo)],
-            u: async (_, sequence) => {
-                if (!sequence) {
-                    return [new Token(T.str, "\\u", token.argNo)]
-                }
-                try {
-                    return [new Token(T.str, String.fromCodePoint(parseInt(`0x${sequence}`)), token.argNo)]
-                }
-                catch (err) {
-                    return [new Token(T.str, `\\u{${sequence}}`, token.argNo)]
-                }
-            },
-            U: async function(): Promise<Token[]> { return (this["u"] as Function)() },
-            s: async (_, seq) => {
-                if (seq) {
-                    return [new Token(T.str, seq, token.argNo)]
-                }
-                return [new Token(T.str, " ", token.argNo)]
-            },
-            y: async (_, seq) => {
-                if (seq) {
-                    return await this.interprateAsToken(new Token(T.str, seq, token.argNo), T.syntax) as Token[]
-                }
-                return [new Token(T.str, " ", token.argNo)]
-            },
-            //this is different from \y because it splits the args whereas \y keeps everything as 1 arg
-            Y: async (_, seq) => {
-                if (seq) {
-                    let p = new Parser(this.#msg, seq, false)
-                    await p.parse()
-                    let i = new Interpreter(this.#msg, p.tokens, p.modifiers, this.recursion + 1)
-                    let args = await i.interprate()
-                    for (let arg of args.join(" ").split(" ")) {
-                        return [new Token(T.str, arg, this.args.length + 1)]
-                    }
-                }
-                return [];
 
-            },
-            A: async (_, seq) => {
-                if (seq) {
-                    return listComprehension(seq, item => new Token(T.str, item, ++token.argNo))
-                }
-                return [new Token(T.str, "", token.argNo)]
-
-            },
-            b: [new Token(T.str, `**${sequence}**`, token.argNo)],
-            i: [new Token(T.str, `*${sequence}*`, token.argNo)],
-            S: [new Token(T.str, `~~${sequence}~~`, token.argNo)],
-            d: async (_, sequence) => {
-                let date = new Date(sequence)
-                if (date.toString() === "Invalid Date") {
-                    if (sequence) {
-                        return [new Token(T.str, `\\d{${sequence}}`, token.argNo)]
-                    }
-                    else {
-                        return [new Token(T.str, `\\d`, token.argNo)]
-                    }
-                }
-                return [new Token(T.str, date.toString(), token.argNo)]
-            },
-            D: async function(_, seq): Promise<Token[]> { return (this['d'] as Function)(_, seq) },
-            T: async (_, sequence) => {
-                let ts = Date.now()
-                if (parseFloat(sequence)) {
-                    return [new Token(T.str, String(ts / parseFloat(sequence)), token.argNo)]
-                }
-                return [new Token(T.str, String(Date.now()), token.argNo)]
-            },
-            V: async (_, sequence) => {
-                let [scope, ...n] = sequence.split(":")
-                //@ts-ignore
-                let name = n.join(":")
-                if (scope == "%") {
-                    scope = this.#msg.author.id
-                }
-                else if (scope == ".") {
-                    let v = getVar(this.#msg, name)
-                    if (v !== false) {
-                        return [new Token(T.str, v, token.argNo)]
-                    }
-                    return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
-                }
-                else if (!name) {
-                    //@ts-ignore
-                    name = scope
-                    let v = getVar(this.#msg, name)
-                    if (v !== false) {
-                        return [new Token(T.str, v, token.argNo)]
-                    }
-                    return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
-                }
-                let v = getVar(this.#msg, name, scope)
-                if (v !== false) {
-                    return [new Token(T.str, v, token.argNo)]
-                }
-                return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
-
-            },
-            v: async (_, sequence) => {
-                let num = Number(sequence)
-                //basically checks if it's a n
-                if (!isNaN(num)) {
-                    let args = this.#msg.content.split(" ")
-                    return [new Token(T.str, String(args[num]), token.argNo)]
-                }
-                let v = getVar(this.#msg, sequence, this.#msg.author.id)
-                if (v === false)
-                    v = getVar(this.#msg, sequence)
-                if (v !== false) {
-                    return [new Token(T.str, v, token.argNo)]
-                }
-                return [new Token(T.str, `\\v{${sequence}}`, token.argNo)]
-            },
-            "\\": async (_, sequence) => {
-                if (sequence) {
-                    return [new Token(T.str, `\\{${sequence}}`, token.argNo)]
-                }
-                return [new Token(T.str, "\\", token.argNo)]
-            },
-            " ": async (_, sequence) => {
-                if (sequence) {
-                    return [new Token(T.str, sequence, token.argNo)]
-                }
-                return [new Token(T.str, " ", token.argNo)]
-            }
+        if(parse_escape[`escape_${char}`]){
+            return parse_escape[`escape_${char}`](token, char, sequence, this)
         }
-        let res = sequenceMap[char]
-        if (typeof res === 'function') {
-            res = await res(char, sequence)
+        if (sequence) {
+            return [new Token(T.str, `${char}{${sequence}}`, token.argNo)]
         }
-        else if (typeof res === 'undefined') {
-            if (sequence) {
-                res = [new Token(T.str, `${char}{${sequence}}`, token.argNo)]
-            }
-            res = [new Token(T.str, `${char}`, token.argNo)]
-        }
-        return res
+        return [new Token(T.str, `${char}`, token.argNo)]
     }
     //fmt
     async[4](token: Token): Promise<Token[] | false> {
