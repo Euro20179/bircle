@@ -699,7 +699,6 @@ export class Interpreter {
                 })
                 break
             default: {
-
                 if (args.length > 0) {
                     data = `{${format_name}|${args.join("|")}}`
                 }

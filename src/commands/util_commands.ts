@@ -3014,11 +3014,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "file",
-        {
-            run: async (msg, _, sendCallback, opts, args) => {
+        "file", ccmdV2(async({msg, opts, args, stdin}) => {
                 let fn = generateFileName("file", msg.author.id)
-                fs.writeFileSync(fn, args.join(" "))
+                fs.writeFileSync(fn, stdin ? getContentFromResult(stdin) : args.join(" "))
 
                 return {
                     files: [
@@ -3030,13 +3028,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     ],
                     status: StatusCode.RETURN
                 }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Creates a file with data"
-            }
 
-        },
+        }, "Creates a file with data")
     ]
 
     yield [
