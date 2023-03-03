@@ -1047,18 +1047,18 @@ export class Interpreter {
         //if noSend is given, we dont want to pipe it
         while (tks.length && !commandReturn.noSend) {
             tks[0] = tks[0].convertToCommand()
-            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn)
+            //we cant return json or it will double pipe
+            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, false, this.disable, undefined, commandReturn)
+
             await int.interprate()
-            if (int.getPipeTo().length) {
-                //using this.sendCallback directly breaks for some reason, so i'm redefining the function and only applying it if there is a pipe
-                async function sendCallback(this: Interpreter, options: string | MessageOptions | MessagePayload) {
-                    options = await int.handlePipes(options as CommandReturn)
-                    return handleSending(this.#msg, options as CommandReturn, undefined)
-                }
-                int.sendCallback = sendCallback.bind(this)
+
+            //instead force sendCallback to get the result
+            int.sendCallback = async(o) => {
+                commandReturn = o as CommandReturn
+                return int.getMessage()
             }
 
-            commandReturn = await int.run() as CommandReturn
+            await int.run() as CommandReturn
             if (allowedMentions) {
                 //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
                 commandReturn.allowedMentions = { parse: [] }
