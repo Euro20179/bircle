@@ -52,7 +52,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         catch (err) {
             return crv("Could not fetch data", { status: StatusCode.ERR })
         }
-        let data = await res.json()
+        let data
+        try{
+            data = await res.json()
+        }
+        catch(err){
+            return crv("Could not get json", {status: StatusCode.ERR})
+        }
         let embed = new MessageEmbed()
         embed.setTitle(`School stats of ${user.username}`)
         embed.setColor(msg.member?.displayColor || "NOT_QUITE_BLACK")
