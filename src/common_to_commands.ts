@@ -395,17 +395,17 @@ export class Interpreter {
         if (this.#pipeData) {
             //FIXME: using stdin as prefix can lead to race condition where if 2 people run pipes at the same time, the data may get jumbled.
             //possible solution: make all prefixes user based instead of accessed globally, then have just one __global__ prefix
-            setVar("content", this.#pipeData.content ?? "", "stdin")
-            setVar("status", statusCodeToStr(this.#pipeData.status), "stdin")
-            setVar("raw", JSON.stringify(this.#pipeData), "stdin")
+            setVar("content", this.#pipeData.content ?? "", "stdin", this.#msg.author.id)
+            setVar("status", statusCodeToStr(this.#pipeData.status), "stdin", this.#msg.author.id)
+            setVar("raw", JSON.stringify(this.#pipeData), "stdin", this.#msg.author.id)
         }
     }
 
     #deletePipeDataVars() {
         if (this.#pipeData) {
-            delVar("content", "stdin")
-            delVar("status", "stdin")
-            delVar("raw", "stdin")
+            delVar("content", "stdin", this.#msg.author.id)
+            delVar("status", "stdin", this.#msg.author.id)
+            delVar("raw", "stdin", this.#msg.author.id)
         }
     }
 

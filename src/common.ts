@@ -159,8 +159,17 @@ function readVars() {
 
 readVars()
 
-function delVar(varName: string, prefix?: string){
-    delete vars[prefix ?? "__global__"][varName]
+function delVar(varName: string, prefix?: string, id?: string){
+    prefix ??= "__global__"
+    if(prefix === "__global__"){
+        delete vars[prefix][varName]
+    }
+    else if(prefix.match(/\d{18}/)){
+        delete vars[prefix][varName]
+    }
+    else if(id && vars[id]?.[prefix]?.[varName] !== undefined){
+        delete vars[id][prefix][varName]
+    }
 }
 
 function setVarEasy(msg: Message, varName: string, value: string, prefix?: string){
@@ -179,10 +188,10 @@ function setVarEasy(msg: Message, varName: string, value: string, prefix?: strin
     if(prefix === "%"){
         prefix = msg.author.id
     }
-    return setVar(varName, value, prefix)
+    return setVar(varName, value, prefix, msg.author.id)
 }
 
-function setVar(varName: string, value: string, prefix?: string) {
+function setVar(varName: string, value: string, prefix?: string, id?: string) {
     if (!prefix) {
         let v;
         [prefix, ...v] = varName.split(":")
@@ -192,11 +201,27 @@ function setVar(varName: string, value: string, prefix?: string) {
             prefix = "__global__"
         }
     }
-    if (!vars[prefix]) {
-        vars[prefix] = { [varName]: value }
+    if(prefix === "__global__"){
+        //functions are builtin vars and should not be overwritten
+        if(typeof vars['__global__'][varName] === 'function'){
+            return false
+        }
+        vars['__global__'][varName] = value
+        return true
     }
-    else if (vars[prefix]) {
-        vars[prefix][varName] = value
+    if(prefix && id){
+        if(!vars[id]){
+            vars[id] = {[prefix]: {[varName]: value}}
+        }
+        else if(!vars[id][prefix]){
+            vars[id][prefix] = {[varName]: value}
+        }
+        else{
+            if(typeof vars[id][prefix][varName] === 'function'){
+                return false
+            }
+            vars[id][prefix][varName] = value
+        }
     }
     return true
 }
@@ -210,6 +235,9 @@ function readVarVal(msg: Message, variableData: Function | any) {
     }
     else if (typeof variableData === 'number') {
         return String(variableData)
+    }
+    else if (typeof variableData === 'object'){
+        return JSON.stringify(variableData)
     }
     else {
         return String(variableData)
@@ -230,8 +258,17 @@ function getVar(msg: Message, varName: string, prefix?: string) {
         }
         else varName = name.join(":");
     }
-    if (vars[prefix] && vars[prefix][varName] !== undefined) {
+    //global vars
+    if(prefix === "__global__" && vars[prefix][varName] !== undefined){
         return readVarVal(msg, vars[prefix][varName])
+    }
+    //for standard user vars
+    else if(prefix.match(/^\d{18}$/) && vars[prefix]?.[varName] !== undefined){
+        return readVarVal(msg, vars[prefix][varName])
+    }
+    //for prefixed vars
+    else if (vars[msg.author.id]?.[prefix]?.[varName] !== undefined) {
+        return readVarVal(msg, vars[msg.author.id][prefix][varName])
     }
     return false
 }
