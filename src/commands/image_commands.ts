@@ -467,7 +467,7 @@ The commands below, only work after **path** has been run:
     **arc** <x> <y> <r> [start-angle [end-angle]]:
         create an arc at (<x>, <y>) with radius <r>
 
-`}, sendCallback)
+`, mimetype: "plain/markdown"}, sendCallback)
                         continue;
                     }
                     case "done": {//{{{
@@ -1309,8 +1309,10 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             [opts, args] = getOpts(args)
 
             let img;
+            let resize = true
             if (opts['img'] || msg.attachments.at(0)) {
                 img = getImgFromMsgAndOpts(opts, msg)
+                resize = false
             }
 
             let width = Number(opts['w']) || 0
@@ -1326,7 +1328,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let font_size = String(opts['size'] || "10") + "px"
             let font = String(opts['font'] || "serif")
 
-            if (width === 0 || height === 0) {
+            if ((width === 0 || height === 0) && resize) {
                 let c = new canvas.Canvas(1000, 1000)
                 let ctx = c.getContext("2d")
                 ctx.font = `${font_size} ${font}`
