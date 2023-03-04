@@ -117,6 +117,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let res = []
             let aliasV2s = getAliasesV2()
             let matches = getMatchCommands()
+            let userMatches = getUserMatchCommands()
             let cmds = getCommands()
             let av1;
             //TODO: add user match
@@ -126,6 +127,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 else if (matches[cmd]) {
                     res.push("match")
+                }
+                else if (userMatches.get(cmd)){
+                    res.push("user-match")
                 }
                 else if (cmds.get(cmd)) {
                     switch (cmds.get(cmd)?.cmd_std_version) {
