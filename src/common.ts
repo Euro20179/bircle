@@ -159,20 +159,26 @@ function readVars() {
 
 readVars()
 
-function delVar(varName: string, prefix?: string, id?: string) {
+function delVar(varName: string, prefix?: string, id?: string, systemDel: boolean = true) {
     prefix ??= "__global__"
-    if (prefix === "__global__") {
-        if (vars[prefix]?.[varName])
-            delete vars[prefix][varName]
-        else return false
+    let path
+    if (prefix === "__global__" && vars[prefix]?.[varName]) {
+        path = vars[prefix]
     }
     else if (prefix.match(/\d{18}/) && vars[prefix]?.[varName]) {
-        delete vars[prefix][varName]
+        path = vars[prefix]
     }
     else if (id && vars[id]?.[prefix]?.[varName] !== undefined) {
-        delete vars[id][prefix][varName]
+        path = vars[id][prefix]
     }
     else return false
+
+    if(!systemDel && typeof path[varName] === 'function'){
+        return false
+    }
+
+    delete path[varName]
+
     return true
 }
 

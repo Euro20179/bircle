@@ -423,7 +423,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let names = args
                 let deleted = []
                 for (let name of names) {
-                    if(delVar(name, prefix, msg.author.id))
+                    if(delVar(name, prefix, msg.author.id, false))
                         deleted.push(name)
                 }
                 return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
