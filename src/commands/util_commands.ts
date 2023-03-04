@@ -2905,7 +2905,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         texts.push(item)
                     }
                 }
-                return { content: texts.join(" "), embeds: embeds, noSend: (<Array<stackTypes>>stack).length > 0 ? false : true, status: StatusCode.RETURN }
+                return { content: texts.join(String(opts['join'] ?? " ")), embeds: embeds, noSend: (<Array<stackTypes>>stack).length > 0 ? false : true, status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {
                 info: "Welcome to stackl",
