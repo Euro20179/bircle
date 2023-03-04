@@ -75,9 +75,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (stdin) {
             content += getContentFromResult(stdin, "\n")
         }
+        let folder = opts.getBool("g", false) ? "garbage-files" : "command-results"
         for (let arg of args) {
-            if (fs.existsSync(`./command-results/${arg}`)) {
-                content += fs.readFileSync(`./command-results/${arg}`, "utf-8")
+            if (fs.existsSync(`./${folder}/${arg}`)) {
+                content += fs.readFileSync(`./${folder}/${arg}`, "utf-8")
             }
         }
         if (!content) {
@@ -92,7 +93,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             files: createHelpArgument("Files listed in <code>command-file -l</code> to act on", false)
         },
         helpOptions: {
-            r: createHelpOption("Reverse order of the lines")
+            r: createHelpOption("Reverse order of the lines"),
+            g: createHelpOption("Open a file from garbage-files folder instead of command-results")
         },
         accepts_stdin: "Instead of files, act on the text from pipe"
     })]
