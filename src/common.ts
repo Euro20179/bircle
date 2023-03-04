@@ -23,14 +23,14 @@ let BLACKLIST: { [key: string]: string[] } = {}
 
 let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
 
-function loadMatchCommands(){
-    if(fs.existsSync("./data/match-commands")){
+function loadMatchCommands() {
+    if (fs.existsSync("./data/match-commands")) {
         let data = fs.readFileSync("./data/match-commands", "utf-8")
-        let jsonData: {[id: string]: {[name: string]: [string, string]}} = JSON.parse(data)
+        let jsonData: { [id: string]: { [name: string]: [string, string] } } = JSON.parse(data)
         let final: typeof USER_MATCH_COMMANDS = new Map()
-        for(let user in jsonData){
+        for (let user in jsonData) {
             let data: Map<string, [RegExp, string]> = new Map()
-            for(let [name, [regexp, run]] of Object.entries(jsonData[user])){
+            for (let [name, [regexp, run]] of Object.entries(jsonData[user])) {
                 data.set(name, [new RegExp(regexp), run])
             }
             final.set(user, data)
@@ -40,28 +40,28 @@ function loadMatchCommands(){
     return USER_MATCH_COMMANDS
 }
 
-function removeUserMatchCommand(user: string, name: string){
+function removeUserMatchCommand(user: string, name: string) {
     return USER_MATCH_COMMANDS.get(user)?.delete(name)
 }
 
-function addUserMatchCommand(user: string, name: string, search: RegExp, run: string){
-    if(USER_MATCH_COMMANDS.get(user)){
+function addUserMatchCommand(user: string, name: string, search: RegExp, run: string) {
+    if (USER_MATCH_COMMANDS.get(user)) {
         (USER_MATCH_COMMANDS.get(user) as Map<string, [RegExp, string]>).set(name, [search, run])
     }
-    else{
+    else {
         let m: Map<string, [RegExp, string]> = new Map()
         m.set(name, [search, run])
         USER_MATCH_COMMANDS.set(user, m)
     }
 }
 
-function saveMatchCommands(){
-    let data: {[id: string]: {[name: string]: [string, string]}} = {}
-    for(let user of USER_MATCH_COMMANDS.keys()){
+function saveMatchCommands() {
+    let data: { [id: string]: { [name: string]: [string, string] } } = {}
+    for (let user of USER_MATCH_COMMANDS.keys()) {
         let userData: typeof data[string] = {}
         let userCmds = USER_MATCH_COMMANDS.get(user)
-        if(!userCmds) continue;
-        for(let [name, [regexp, run]] of userCmds.entries()){
+        if (!userCmds) continue;
+        for (let [name, [regexp, run]] of userCmds.entries()) {
             userData[name] = [regexp.toString().replace(/^\//, "").replace(/\/$/, ""), run]
         }
         data[user] = userData
@@ -69,16 +69,16 @@ function saveMatchCommands(){
     fs.writeFileSync("./data/match-commands", JSON.stringify(data))
 }
 
-function getUserMatchCommands(){
+function getUserMatchCommands() {
     return USER_MATCH_COMMANDS
 }
 
 loadMatchCommands()
 
-function reloadList(list: string, listHolder: {[key: string]: string[]}){
+function reloadList(list: string, listHolder: { [key: string]: string[] }) {
     let lf = readFileSync(`command-perms/${list}`, "utf-8")
-    for(let line of lf.split("\n")){
-        if(!line) continue;
+    for (let line of lf.split("\n")) {
+        if (!line) continue;
         let [user, cmdlist] = line.split(":").map((v: any) => v.trim())
         listHolder[user] = cmdlist.split(" ")
     }
@@ -129,7 +129,7 @@ let defaultVars = {
     "_": (msg: Message) => getVar(msg, "_!", msg.author.id)
 }
 
-for(let v of allowedOptions){
+for (let v of allowedOptions) {
     //@ts-ignore
     defaultVars[`__${v.replaceAll("-", "_")}`] = (msg: Message) => getOpt(msg.author.id, v, "unset")
 }
@@ -147,7 +147,7 @@ function saveVars() {
         }
     }
     writeFileSync("./data/vars", JSON.stringify(vars))
-    vars['__global__'] = {...vars['__global__'], ...defaultVars}
+    vars['__global__'] = { ...vars['__global__'], ...defaultVars }
 }
 
 function readVars() {
@@ -159,33 +159,37 @@ function readVars() {
 
 readVars()
 
-function delVar(varName: string, prefix?: string, id?: string){
+function delVar(varName: string, prefix?: string, id?: string) {
     prefix ??= "__global__"
-    if(prefix === "__global__"){
+    if (prefix === "__global__") {
+        if (vars[prefix]?.[varName])
+            delete vars[prefix][varName]
+        else return false
+    }
+    else if (prefix.match(/\d{18}/) && vars[prefix]?.[varName]) {
         delete vars[prefix][varName]
     }
-    else if(prefix.match(/\d{18}/)){
-        delete vars[prefix][varName]
-    }
-    else if(id && vars[id]?.[prefix]?.[varName] !== undefined){
+    else if (id && vars[id]?.[prefix]?.[varName] !== undefined) {
         delete vars[id][prefix][varName]
     }
+    else return false
+    return true
 }
 
-function setVarEasy(msg: Message, varName: string, value: string, prefix?: string){
+function setVarEasy(msg: Message, varName: string, value: string, prefix?: string) {
     if (!prefix) {
         let v;
         [prefix, ...v] = varName.split(":")
         varName = v.join(":")
-        if(!varName){
+        if (!varName) {
             varName = prefix
             prefix = "__global__"
         }
     }
-    if(prefix.match(/\d{18}/)){
+    if (prefix.match(/\d{18}/)) {
         return false
     }
-    if(prefix === "%"){
+    if (prefix === "%") {
         prefix = msg.author.id
     }
     return setVar(varName, value, prefix, msg.author.id)
@@ -196,28 +200,28 @@ function setVar(varName: string, value: string, prefix?: string, id?: string) {
         let v;
         [prefix, ...v] = varName.split(":")
         varName = v.join(":")
-        if(!varName){
+        if (!varName) {
             varName = prefix
             prefix = "__global__"
         }
     }
-    if(prefix === "__global__"){
+    if (prefix === "__global__") {
         //functions are builtin vars and should not be overwritten
-        if(typeof vars['__global__'][varName] === 'function'){
+        if (typeof vars['__global__'][varName] === 'function') {
             return false
         }
         vars['__global__'][varName] = value
         return true
     }
-    if(prefix && id){
-        if(!vars[id]){
-            vars[id] = {[prefix]: {[varName]: value}}
+    if (prefix && id) {
+        if (!vars[id]) {
+            vars[id] = { [prefix]: { [varName]: value } }
         }
-        else if(!vars[id][prefix]){
-            vars[id][prefix] = {[varName]: value}
+        else if (!vars[id][prefix]) {
+            vars[id][prefix] = { [varName]: value }
         }
-        else{
-            if(typeof vars[id][prefix][varName] === 'function'){
+        else {
+            if (typeof vars[id][prefix][varName] === 'function') {
                 return false
             }
             vars[id][prefix][varName] = value
@@ -236,7 +240,7 @@ function readVarVal(msg: Message, variableData: Function | any) {
     else if (typeof variableData === 'number') {
         return String(variableData)
     }
-    else if (typeof variableData === 'object'){
+    else if (typeof variableData === 'object') {
         return JSON.stringify(variableData)
     }
     else {
@@ -259,11 +263,11 @@ function getVar(msg: Message, varName: string, prefix?: string) {
         else varName = name.join(":");
     }
     //global vars
-    if(prefix === "__global__" && vars[prefix][varName] !== undefined){
+    if (prefix === "__global__" && vars[prefix][varName] !== undefined) {
         return readVarVal(msg, vars[prefix][varName])
     }
     //for standard user vars
-    else if(prefix.match(/^\d{18}$/) && vars[prefix]?.[varName] !== undefined){
+    else if (prefix.match(/^\d{18}$/) && vars[prefix]?.[varName] !== undefined) {
         return readVarVal(msg, vars[prefix][varName])
     }
     //for prefixed vars

@@ -416,17 +416,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg, args, sendCallback) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let prefix = "__global__"
+                let prefix = String(opts['prefix']) || "__global__"
                 if (opts['u']) {
                     prefix = msg.author.id
                 }
                 let names = args
                 let deleted = []
                 for (let name of names) {
-                    if (vars[prefix]?.[name] !== undefined && typeof vars[prefix]?.[name] !== 'function') {
-                        delVar(name, prefix)
+                    if(delVar(name, prefix, msg.author.id))
                         deleted.push(name)
-                    }
                 }
                 return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
             }, category: CAT,
@@ -1804,9 +1802,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
-                }
-                if (name.includes(":")) {
-                    return { content: "Variable name cannot include :", status: StatusCode.ERR }
                 }
                 let realVal = value.join("=")
                 if (opts['u']) {
