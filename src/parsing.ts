@@ -341,7 +341,7 @@ class Parser {
 
     parseCmd() {
         let cmd = this.#curChar as string
-        let modMap = new Map<RegExp, typeof Modifier>
+        let modMap = new Map<RegExp, typeof Modifier>()
         modMap.set(/^redir(!)?\(([^:]*):([^:]+)\):/, RedirModifier)
         modMap.set(/^d:/,  DeleteModifier)
         modMap.set(/^t:/,  TypingModifier)
