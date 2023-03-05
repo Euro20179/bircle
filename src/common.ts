@@ -182,15 +182,19 @@ function delVar(varName: string, prefix?: string, id?: string, systemDel: boolea
     return true
 }
 
-function setVarEasy(msg: Message, varName: string, value: string, prefix?: string) {
-    if (!prefix) {
-        let v;
-        [prefix, ...v] = varName.split(":")
+function getPrefixAndVarname(varName: string){
+        let [prefix, ...v] = varName.split(":")
         varName = v.join(":")
         if (!varName) {
             varName = prefix
             prefix = "__global__"
         }
+        return [prefix, varName]
+}
+
+function setVarEasy(msg: Message, varName: string, value: string, prefix?: string) {
+    if (!prefix) {
+        [prefix, varName] = getPrefixAndVarname(varName)
     }
     if (prefix.match(/\d{18}/)) {
         return false
@@ -203,36 +207,34 @@ function setVarEasy(msg: Message, varName: string, value: string, prefix?: strin
 
 function setVar(varName: string, value: string | Function, prefix?: string, id?: string) {
     if (!prefix) {
-        let v;
-        [prefix, ...v] = varName.split(":")
-        varName = v.join(":")
-        if (!varName) {
-            varName = prefix
-            prefix = "__global__"
+        if (!prefix) {
+            [prefix, varName] = getPrefixAndVarname(varName)
         }
     }
+    let path;
     if (prefix === "__global__") {
-        //functions are builtin vars and should not be overwritten
-        if (typeof vars['__global__'][varName] === 'function') {
-            return false
-        }
-        vars['__global__'][varName] = value
-        return true
+        path = vars["__global__"]
     }
     if (prefix && id) {
         if (!vars[id]) {
-            vars[id] = { [prefix]: { [varName]: value } }
+            vars[id] = {}
         }
-        else if (!vars[id][prefix]) {
-            vars[id][prefix] = { [varName]: value }
+        if(!vars[id][prefix]){
+            vars[id][prefix] = {}
         }
-        else {
-            if (typeof vars[id][prefix][varName] === 'function') {
-                return false
-            }
-            vars[id][prefix][varName] = value
-        }
+        path = vars[id][prefix]
     }
+    else if(prefix.match(/\d{18}/)){
+        if(!vars[prefix]){
+            vars[prefix] = {}
+        }
+        path = vars[prefix]
+    }
+    //functions are builtin vars and should not be overwritten
+    if(typeof path[varName] === 'function'){
+        return false
+    }
+    path[varName] = value
     return true
 }
 
@@ -256,17 +258,12 @@ function readVarVal(msg: Message, variableData: Function | any) {
 
 function getVar(msg: Message, varName: string, prefix?: string) {
     if (!prefix) {
-        let name
-        [prefix, ...name] = varName.split(":")
-        if (!name.length) {
-            varName = prefix
-            prefix = "__global__"
+        if (!prefix) {
+            [prefix, varName] = getPrefixAndVarname(varName)
         }
-        else if (prefix === "%") {
-            prefix = msg.author.id
-            varName = name.join(":")
-        }
-        else varName = name.join(":");
+    }
+    if (prefix === "%") {
+        prefix = msg.author.id
     }
     //global vars
     if (prefix === "__global__" && vars[prefix][varName] !== undefined) {

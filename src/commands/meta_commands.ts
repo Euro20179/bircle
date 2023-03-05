@@ -2006,10 +2006,10 @@ ${fs.readdirSync("./command-results").join("\n")}
             }
 
             let data = safeEval(args.join(" "), {
-                util: require("./util"),
-                common_to_commands: require("./common_to_commands"),
-                globals: require("./globals"),
-                common: require("./common")
+                util: require("../util"),
+                common_to_commands: require("../common_to_commands"),
+                globals: require("../globals"),
+                common: require("../common")
             }, {})
             return {
                 content: `\`\`\`javascript\n${String(data)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
