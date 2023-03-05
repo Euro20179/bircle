@@ -6,7 +6,7 @@ import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, client, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, strToTT, RedirModifier } from './parsing';
+import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, strToTT, RedirModifier, TypingModifier, SkipModifier } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
@@ -200,8 +200,8 @@ export class AliasV2 {
         }
 
         let modifierText = ""
-        for (let modText of (modifiers?.filter(v => !(v instanceof RedirModifier)).map(v => v.stringify())) ?? []) {
-            modifierText += modText as string
+        for (let mod of modifiers?.filter(v => !(v instanceof RedirModifier)) ?? []) {
+            modifierText += mod.stringify() as string
         }
 
         //it is not possible to fix double interpretation
@@ -605,8 +605,8 @@ export class Interpreter {
         return [new Token(T.str, _var, token.argNo)]
     }
 
-    hasModifier(mod: Modifiers) {
-        return this.modifiers.filter(v => v.type === mod).length > 0
+    hasModifier(mod: typeof Modifier) {
+        return this.modifiers.filter(v => v instanceof mod).length > 0
     }
 
     async runAlias() {
@@ -621,7 +621,7 @@ export class Interpreter {
             content += ` ${this.args.join(" ")}`
         }
 
-        if (this.hasModifier(Modifiers.typing)) {
+        if (this.hasModifier(TypingModifier)) {
             await this.#msg.channel.sendTyping()
         }
 
@@ -854,7 +854,7 @@ export class Interpreter {
         if (this.#interprated) {
             return this.args
         }
-        if (this.hasModifier(Modifiers.skip)) {
+        if (this.hasModifier(SkipModifier)) {
             this.advance()
             if ((this.#curTok as Token).type === T.command) {
                 await this[T.command](this.#curTok as Token)
