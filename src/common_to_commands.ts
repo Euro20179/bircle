@@ -833,7 +833,7 @@ export class Interpreter {
                 //if a file contains content that was previously supposed to be sent to chat, dont keep in file
                 for (let i = 0; i < (obj.files?.length ?? 0); i++) {
                     if (obj.files?.[i].wasContent) {
-                        commandReturn.content = fs.readFileSync(obj.files[i].attachment, "utf-8")
+                        commandReturn.content = obj.files[i].wasContent
                         obj.files = obj.files.filter((_v, idx) => idx !== i)
                     }
                 }
