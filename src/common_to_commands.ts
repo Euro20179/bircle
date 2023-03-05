@@ -654,8 +654,6 @@ export class Interpreter {
         //canRun is true if the user is not BLACKLISTED from a command
         //it is also  true if the user is WHITELISTED for a command
         let canRun = true
-        //This is true if the command exists
-        let exists = true
 
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
@@ -701,9 +699,8 @@ export class Interpreter {
                 this.real_cmd = `\\${this.real_cmd}`
             }
             rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
-            exists = false
         }
-        else if (exists) {
+        else{
             let commandObj = commands.get(this.real_cmd)
             //make sure it passes the command's perm check if it has one
             if (commandObj?.permCheck) {
