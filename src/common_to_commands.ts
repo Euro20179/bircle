@@ -626,6 +626,21 @@ export class Interpreter {
         return (await cmd({ msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable })).rv
     }
 
+    async sendDataToVariable(place: string, name: string, _data: CommandReturn) {
+        let data = _data.content
+        if (data) {
+            let oldData = getVar(this.#msg, name, place)
+            if (oldData === false) {
+                //@ts-ignore
+                setVar(name, _data.content, place, this.#msg.author.id)
+            }
+            //@ts-ignore
+            else setVar(name, oldData + "\n" + _data.content, place, this.#msg.author.id)
+        }
+        return this.#msg
+
+    }
+
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
         //canRun is true if the user is not BLACKLISTED from a command
@@ -638,7 +653,7 @@ export class Interpreter {
         let typing = false
 
         //This is  false  if the command result is not redirected into a variable
-        let redir: boolean | [string, string] = false //Object is the object in which the variable is stored, string is the variable name
+        let redir: boolean | [string, string, string] = false //Object is the object in which the variable is stored, string is the variable name
 
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
@@ -653,30 +668,19 @@ export class Interpreter {
             //whether or not to redirect *all* message sends to the variable, or just the return value from the command
             let all = m[1] //this matches the ! after redir
             if (all) {
-                //change this function to redirect into the variable requested
-                this.sendCallback = async (_data) => {
-                    //@ts-ignore
-                    let data = typeof _data === 'string' ? _data : _data.content
-                    if (data) {
-                        if (typeof redir === 'object') {
-                            let [place, name] = redir
-                            let oldData = getVar(this.#msg, name, place)
-                            if(oldData === false){
-                                //@ts-ignore
-                                setVar(name, _data.content)
-                            }
-                            //@ts-ignore
-                            else setVar(name, oldData + "\n" + _data.content)
-                        }
-                    }
-                    return this.#msg
-                }
+                //the variable scope
+                let prefix = m[2] //matches the text before the  : in the parens in redir
+                //the variable name
+                let name = m[3] //matches the text after the :  in the parens in redir
+                //@ts-ignore
+                this.sendCallback = this.sendDataToVariable.bind(this, prefix, name)
             }
             //the variable scope
             let prefix = m[2] //matches the text before the  : in the parens in redir
             //the variable name
             let name = m[3] //matches the text after the :  in the parens in redir
-            redir = [prefix, name]
+            redir = [all, prefix, name]
+            setVar(name, "", prefix, this.#msg.author.id)
         }
 
         if (this.hasModifier(Modifiers.typing)) {
@@ -808,9 +812,13 @@ export class Interpreter {
             return this.handlePipes(rv)
         }
         if (redir) {
-            let [place, name] = redir
-            setVar(name, getContentFromResult(rv, "\n"), place, this.#msg.author.id)
-            return
+            let [_all, place, name] = redir
+            let data = getVar(this.#msg, name, place)
+            if(data !== false){
+                data += getContentFromResult(rv, "\n")
+            }
+            setVar(name, data, place, this.#msg.author.id)
+            return {noSend: true, status: StatusCode.RETURN}
         }
         //handles the rv protocol
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
