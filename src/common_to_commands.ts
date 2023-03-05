@@ -830,12 +830,12 @@ export class Interpreter {
             int.sendCallback = async (o) => {
                 let obj = o as CommandReturn
                 commandReturn = obj as CommandReturn
-                //files get deleted too early
+                //if a file contains content that was previously supposed to be sent to chat, dont keep in file
                 for (let i = 0; i < (obj.files?.length ?? 0); i++) {
-                    if (obj.files?.[i]) {
-                        obj.files[i].delete = false
+                    if (obj.files?.[i].wasContent) {
+                        commandReturn.content = fs.readFileSync(obj.files[i].attachment, "utf-8")
+                        obj.files = obj.files.filter((_v, idx) => idx !== i)
                     }
-
                 }
                 return int.getMessage()
             }
@@ -1063,14 +1063,15 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     //if the content is > 2000 (discord limit), send a file instead
     if ((rv.content?.length || 0) >= 2000) {
+        let oldContent = rv.content
         if (rv.onOver2kLimit) {
             rv = rv.onOver2kLimit(msg, rv)
         }
         let fn = `./garbage-files/${msg.author.id}-${msg.id}`
         fs.writeFileSync(fn, rv.content as string)
         let extension = rv.mimetype ? mimeTypeToFileExtension(rv.mimetype) || "txt" : "txt"
+        rv.files = (rv.files ?? []).concat([{ attachment: fn, name: `cmd.${extension}`, description: "command output too long", wasContent: oldContent }])
         delete rv["content"]
-        rv.files = (rv.files ?? []).concat([{ attachment: fn, name: `cmd.${extension}`, description: "command output too long" }])
     }
     let newMsg
     try {

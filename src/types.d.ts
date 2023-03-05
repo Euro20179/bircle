@@ -17,7 +17,8 @@ declare global {
             * @deprecated put inside the garbage-files folder instead
         */
         delete?: boolean,
-        postPipeDelete?: boolean
+        postPipeDelete?: boolean,
+        wasContent?: string
     }
 
     type FileArray = Array<CommandFile>
