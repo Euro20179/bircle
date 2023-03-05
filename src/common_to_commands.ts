@@ -729,10 +729,10 @@ export class Interpreter {
             if (BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd)) {
                 canRun = false
             }
-            if (this.disable?.commands && this.disable.commands.includes(this.real_cmd)) {
-                canRun = false
-            }
-            if (this.disable?.categories && this.disable.categories.includes(commands.get(this.real_cmd)?.category)) {
+            if (
+                this.disable?.commands && this.disable.commands.includes(this.real_cmd) ||
+                this.disable?.commands && this.disable.categories?.includes(commandObj?.category)
+            ) {
                 canRun = false
             }
             if (canRun) {
