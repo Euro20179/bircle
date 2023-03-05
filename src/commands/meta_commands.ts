@@ -2137,9 +2137,19 @@ ${fs.readdirSync("./command-results").join("\n")}
         for (let opt of Object.entries(opts)) {
             delVar(`-${opt[0]}`, msg.author.id)
         }
+        if(opts.getBool('e', false)){
+            //-1 because chain starts with the original alias
+            return {content: String(chain.length - 1), status: StatusCode.RETURN}
+        }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
-    }, CAT)]
+    }, CAT, "Get the cmd chain of an alias", {
+        alias: createHelpArgument("The alias to get the chain of"),
+        "...args": createHelpArgument("Fake args to give the alias")
+    }, {
+        e: createHelpOption("get the expansion count"),
+        n: createHelpOption("put the names of the expanded commands only")
+    })]
 
     yield [
         "cmd-chainv1",
