@@ -5,7 +5,7 @@ import economy = require("./economy")
 import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
+import { BLACKLIST, client, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
@@ -638,7 +638,7 @@ export class Interpreter {
         let typing = false
 
         //This is  false  if the command result is not redirected into a variable
-        let redir: boolean | [Object, string] = false //Object is the object in which the variable is stored, string is the variable name
+        let redir: boolean | [string, string] = false //Object is the object in which the variable is stored, string is the variable name
 
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
@@ -656,18 +656,17 @@ export class Interpreter {
                 //change this function to redirect into the variable requested
                 this.sendCallback = async (_data) => {
                     //@ts-ignore
-                    if (_data.content) {
+                    let data = typeof _data === 'string' ? _data : _data.content
+                    if (data) {
                         if (typeof redir === 'object') {
                             let [place, name] = redir
+                            let oldData = getVar(this.#msg, name, place)
+                            if(oldData === false){
+                                //@ts-ignore
+                                setVar(name, _data.content)
+                            }
                             //@ts-ignore
-                            place[name] = place[name] + "\n" + _data.content
-                        }
-                    }
-                    else if (typeof _data === 'string') {
-                        if (typeof redir === 'object') {
-                            let [place, name] = redir
-                            //@ts-ignore
-                            place[name] = place[name] + "\n" + _data
+                            else setVar(name, oldData + "\n" + _data.content)
                         }
                     }
                     return this.#msg
@@ -677,16 +676,7 @@ export class Interpreter {
             let prefix = m[2] //matches the text before the  : in the parens in redir
             //the variable name
             let name = m[3] //matches the text after the :  in the parens in redir
-            if (!prefix) {
-                prefix = "__global__"
-                redir = [vars["__global__"], name]
-            }
-
-            else if (prefix) {
-                if (!vars[prefix])
-                    vars[prefix] = {}
-                redir = [vars[prefix], name]
-            }
+            redir = [prefix, name]
         }
 
         if (this.hasModifier(Modifiers.typing)) {
@@ -819,9 +809,7 @@ export class Interpreter {
         }
         if (redir) {
             let [place, name] = redir
-            //set the variable to the response
-            //@ts-ignore
-            place[name] = () => getContentFromResult(rv, "\n")
+            setVar(name, getContentFromResult(rv, "\n"), place, this.#msg.author.id)
             return
         }
         //handles the rv protocol

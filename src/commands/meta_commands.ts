@@ -420,15 +420,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg, args, sendCallback) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let prefix = String(opts['prefix']) || "__global__"
+                let prefix = String(opts['prefix'] || "__global__")
                 if (opts['u']) {
                     prefix = msg.author.id
                 }
                 let names = args
                 let deleted = []
                 for (let name of names) {
-                    if(delVar(name, prefix, msg.author.id, false))
+                    if(delVar(name, prefix, msg.author.id, false)){
                         deleted.push(name)
+                    }
                 }
                 return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
             }, category: CAT,

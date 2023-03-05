@@ -75,9 +75,6 @@ Object.defineProperty(User.prototype, "netWorth", {
 })();
 
 
-//as the name implies this  function does  a command based on the contents of a  message
-//TODO: Eventually I would  like to make it so that all that is necessary here, is to pass a command
-
 client.on("guildMemberAdd", async (m: typeof Message) => {
     try {
         let role = await m.guild?.roles.fetch("427570287232417793")
@@ -117,7 +114,6 @@ client.on("messageDeleteBulk", async (m: any) => {
     if (purgeSnipe.length > 5)
         purgeSnipe.length = 5
 })
-
 
 client.on("messageCreate", async (m: typeof Message) => {
     if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {

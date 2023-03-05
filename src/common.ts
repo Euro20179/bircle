@@ -201,7 +201,7 @@ function setVarEasy(msg: Message, varName: string, value: string, prefix?: strin
     return setVar(varName, value, prefix, msg.author.id)
 }
 
-function setVar(varName: string, value: string, prefix?: string, id?: string) {
+function setVar(varName: string, value: string | Function, prefix?: string, id?: string) {
     if (!prefix) {
         let v;
         [prefix, ...v] = varName.split(":")

@@ -1,4 +1,4 @@
-import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload, TextChannel, DMChannel } from "discord.js"
+import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload, TextChannel, DMChannel, User } from "discord.js"
 
 import { ArgList, Options } from './util'
 
