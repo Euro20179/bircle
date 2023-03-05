@@ -88,14 +88,6 @@ class Token {
     }
 }
 
-enum Modifiers {
-    skip = 0,
-    silent = 1,
-    typing = 2,
-    delete = 3,
-    redir = 4
-}
-
 class Modifier {
     data: RegExpMatchArray
     constructor(data: RegExpMatchArray) {
@@ -815,7 +807,6 @@ export {
     Token,
     T,
     Modifier,
-    Modifiers,
     strToTT,
     TypingModifier,
     DeleteModifier,

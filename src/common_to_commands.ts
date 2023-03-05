@@ -6,7 +6,7 @@ import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, client, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, strToTT, RedirModifier, TypingModifier, SkipModifier } from './parsing';
+import { Parser, Token, T, Modifier,  parseAliasReplacement, strToTT, RedirModifier, TypingModifier, SkipModifier } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
