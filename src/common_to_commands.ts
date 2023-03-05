@@ -736,14 +736,17 @@ export class Interpreter {
                 canRun = false
             }
             if (canRun) {
-                if (this.#shouldType || commands.get(this.real_cmd)?.make_bot_type)
+
+                let cmdObject = commands.get(this.real_cmd)
+
+                if (this.#shouldType || cmdObject?.make_bot_type)
                     await this.#msg.channel.sendTyping()
 
-                if (commands.get(this.real_cmd)?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
+                if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
                     rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
                 }
 
-                else if (commands.get(this.real_cmd)?.cmd_std_version == 2) {
+                else if (cmdObject?.cmd_std_version == 2) {
                     let obj: CommandV2RunArg = {
                         msg: this.#msg,
                         rawArgs: args,
@@ -756,14 +759,14 @@ export class Interpreter {
                         stdin: this.#pipeData,
                         pipeTo: this.#pipeTo
                     };
-                    let cmd = commands.get(this.real_cmd) as CommandV2
+                    let cmd = cmdObject as CommandV2
                     rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
                 }
                 else {
 
-                    rv = await (commands.get(this.real_cmd) as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                    rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
-                if (commands.get(this.real_cmd)?.use_result_cache === true) {
+                if (cmdObject?.use_result_cache === true) {
                     Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
                 }
                 //it will double add this if it's an alias
