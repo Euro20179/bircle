@@ -6,7 +6,7 @@ type BoardCharacter = "O" | "R" | "B" | string
 export type Board = BoardCharacter[][]
 
 function strNumberToEmoji(number: string) {
-    return listComprehension(number, n => `${n}\u{fe0f}`).join("")
+    return listComprehension(number, n => `${n}\u{fe0f}\u{20e3}`).join("")
 }
 
 function createBoard(rows = 6, cols = 7) {
