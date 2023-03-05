@@ -1,4 +1,6 @@
 import { Message } from "discord.js"
+import { setVar } from "./common"
+import { Interpreter } from "./common_to_commands"
 
 const { getOpt } = require("./user-options")
 const { prefix, vars, getVar } = require('./common.js')
@@ -94,27 +96,79 @@ enum Modifiers {
     redir = 4
 }
 
-function modifierToStr(mod: Modifiers) {
-    switch (mod) {
-        case 0:
-            return "n:"
-        case 1:
-            return "s:"
-        case 2:
-            return "t:"
-        case 3:
-            return "d:"
-        case 4:
-            throw new Error("Cannot convert redir tot a string")
+class Modifier {
+    data: RegExpMatchArray
+    constructor(data: RegExpMatchArray) {
+        this.data = data
+    }
+    modify(int: Interpreter): any {}
+    stringify(): string{return "W:"}
+}
+
+class SkipModifier extends Modifier{
+    modify(int: Interpreter){
+    }
+    stringify(){
+        return "n:"
     }
 }
 
-class Modifier {
-    data: RegExpMatchArray
-    type: Modifiers
-    constructor(data: RegExpMatchArray, type: Modifiers) {
-        this.data = data
-        this.type = type
+class SilentModifier extends Modifier{
+    modify(int: Interpreter){
+        int.sendCallback = async(_data) => int.getMessage()
+    }
+    stringify(){
+        return "s:"
+    }
+}
+
+class RedirModifier extends Modifier{
+    modify(int: Interpreter){
+            let m = this.data
+            //whether or not to redirect *all* message sends to the variable, or just the return value from the command
+            let all = m[1] //this matches the ! after redir
+            if (all) {
+                //the variable scope
+                let prefix = m[2] //matches the text before the  : in the parens in redir
+                //the variable name
+                let name = m[3] //matches the text after the :  in the parens in redir
+                //@ts-ignore
+                int.sendCallback = int.sendDataToVariable.bind(int, prefix, name)
+            }
+            //the variable scope
+            let prefix = m[2] //matches the text before the  : in the parens in redir
+            //the variable name
+            let name = m[3] //matches the text after the :  in the parens in redir
+            setVar(name, "", prefix, int.getMessage().author.id)
+    }
+    stringify(){
+        let str = "redir"
+        if(this.data[1])
+            str += "!"
+        str += "("
+        if(this.data[2]){
+            str += this.data[2]
+        }
+        str += `:${this.data[3]})`
+        return str
+    }
+}
+
+class TypingModifier extends Modifier{
+    modify(int: Interpreter){
+        int.setTyping()
+    }
+    stringify(){
+        return "t:"
+    }
+}
+
+class DeleteModifier extends Modifier{
+    modify(int: Interpreter){
+        int.getMessage().deletable && int.getMessage().delete()
+    }
+    stringify(){
+        return "d:"
     }
 }
 
@@ -182,7 +236,7 @@ class Parser {
         while (this.advance()) {
             if (!this.#hasCmd && this.#isParsingCmd) {
                 this.tokens.push(this.parseCmd())
-                if (this.modifiers.filter(v => v.type === Modifiers.skip).length) {
+                if (this.modifiers.filter(v => v instanceof SkipModifier).length) {
                     this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).filter(v => v !== '').map((v, i) => new Token(T.str, v, i)))
                     break
                 }
@@ -295,18 +349,22 @@ class Parser {
 
     parseCmd() {
         let cmd = this.#curChar as string
-        let modifiers = [/^n:/, /^s:/, /^t:/, /^d:/, /^redir(!)?\(([^:]*):([^:]+)\):/]
+        let modMap = new Map<RegExp, typeof Modifier>
+        modMap.set(/^redir(!)?\(([^:]*):([^:]+)\):/, RedirModifier)
+        modMap.set(/^d:/,  DeleteModifier)
+        modMap.set(/^t:/,  TypingModifier)
+        modMap.set(/^s:/,  SilentModifier)
+        modMap.set(/^n:/,  SkipModifier)
         while (this.advance() && !this.IFS.includes(this.#curChar as string) && this.#curChar !== "\n") {
             cmd += this.#curChar as string
         }
         while (true) {
             let foundMatch = false
-            for (let modNo = 0; modNo < modifiers.length; modNo++) {
-                let mod = modifiers[modNo]
-                let m = cmd.match(mod)
+            for (let modRegex of modMap.keys()) {
+                let m = cmd.match(modRegex)
                 if (m) {
                     cmd = cmd.slice(m[0].length)
-                    this.modifiers.push(new Modifier(m, modNo))
+                    this.modifiers.push(new (modMap.get(modRegex) ?? Modifier)(m))
                     foundMatch = true
                 }
             }
@@ -758,6 +816,10 @@ export {
     T,
     Modifier,
     Modifiers,
-    modifierToStr,
-    strToTT
+    strToTT,
+    TypingModifier,
+    DeleteModifier,
+    SkipModifier,
+    RedirModifier,
+    SilentModifier,
 }

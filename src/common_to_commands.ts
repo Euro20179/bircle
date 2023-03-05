@@ -6,7 +6,7 @@ import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, client, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, modifierToStr, strToTT } from './parsing';
+import { Parser, Token, T, Modifier, Modifiers, parseAliasReplacement, strToTT, RedirModifier } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
@@ -200,7 +200,7 @@ export class AliasV2 {
         }
 
         let modifierText = ""
-        for (let modText of (modifiers?.filter(v => v.type !== Modifiers.redir).map(v => modifierToStr(v.type))) ?? []) {
+        for (let modText of (modifiers?.filter(v => !(v instanceof RedirModifier)).map(v => v.stringify())) ?? []) {
             modifierText += modText as string
         }
 
@@ -358,6 +358,8 @@ export class Interpreter {
     #pipeData: CommandReturn | undefined
     #pipeTo: Token[]
 
+    #shouldType: boolean
+
     modifiers: Modifier[]
 
     static commandUndefined = new Object()
@@ -389,6 +391,12 @@ export class Interpreter {
         this.#doFirstNoFromArgNo = {}
         this.#interprated = false
         this.#aliasExpandSuccess = false
+
+        this.#shouldType = false
+    }
+
+    setTyping(bool?: boolean){
+        this.#shouldType = bool ?? true
     }
 
     #initializePipeDataVars() {
@@ -618,9 +626,9 @@ export class Interpreter {
         }
 
         for (let mod of this.modifiers) {
-            if (mod.type === Modifiers.redir)
+            if (mod instanceof RedirModifier)
                 continue;
-            content = modifierToStr(mod.type) + content
+            content = mod.stringify() + content
         }
 
         return (await cmd({ msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable })).rv
@@ -649,48 +657,12 @@ export class Interpreter {
         //This is true if the command exists
         let exists = true
 
-        //This is true if the bot  is supposed  to type
-        let typing = false
-
-        //This is  false  if the command result is not redirected into a variable
-        let redir: boolean | [string, string, string] = false //Object is the object in which the variable is stored, string is the variable name
-
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
 
-
-        //these modifiers are incompatible
-        if (this.hasModifier(Modifiers.silent)) {
-            this.sendCallback = async (_data) => this.#msg
+        for(let mod of this.modifiers){
+            mod.modify(this)
         }
-        else if (this.hasModifier(Modifiers.redir)) {
-            let m = this.modifiers.filter(v => v.type === Modifiers.redir)[0].data
-            //whether or not to redirect *all* message sends to the variable, or just the return value from the command
-            let all = m[1] //this matches the ! after redir
-            if (all) {
-                //the variable scope
-                let prefix = m[2] //matches the text before the  : in the parens in redir
-                //the variable name
-                let name = m[3] //matches the text after the :  in the parens in redir
-                //@ts-ignore
-                this.sendCallback = this.sendDataToVariable.bind(this, prefix, name)
-            }
-            //the variable scope
-            let prefix = m[2] //matches the text before the  : in the parens in redir
-            //the variable name
-            let name = m[3] //matches the text after the :  in the parens in redir
-            redir = [all, prefix, name]
-            setVar(name, "", prefix, this.#msg.author.id)
-        }
-
-        if (this.hasModifier(Modifiers.typing)) {
-            typing = true
-        }
-
-        if (this.hasModifier(Modifiers.delete)) {
-            if (this.#msg.deletable) await this.#msg.delete()
-        }
-
 
         let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
         let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
@@ -764,7 +736,7 @@ export class Interpreter {
                 canRun = false
             }
             if (canRun) {
-                if (typing || commands.get(this.real_cmd)?.make_bot_type)
+                if (this.#shouldType || commands.get(this.real_cmd)?.make_bot_type)
                     await this.#msg.channel.sendTyping()
 
                 if (commands.get(this.real_cmd)?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
@@ -811,8 +783,9 @@ export class Interpreter {
         if (this.returnJson) {
             return this.handlePipes(rv)
         }
-        if (redir) {
-            let [_all, place, name] = redir
+        let m
+        if (m = this.modifiers.filter(v => v instanceof RedirModifier)[0]?.data) {
+            let [_all, place, name] = m
             let data = getVar(this.#msg, name, place)
             if(data !== false){
                 data += getContentFromResult(rv, "\n")
