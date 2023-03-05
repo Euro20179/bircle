@@ -18,6 +18,39 @@ import fetch from 'node-fetch'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
+    yield ["get-var", ccmdV2(async function({args, opts, msg}){
+        let as = opts.getString("as", msg.author.id)
+        let user: undefined | User = msg.author
+        if(msg.guild){
+            user = (await fetchUser(msg.guild, as))?.user
+        }
+        else
+            user = await fetchUserFromClient(client, as)
+        if(!user){
+            return {content: `Cannot find user ${as}`, status: StatusCode.ERR}
+        }
+
+        let oldAuthor = msg.author
+        msg.author = user
+        let res = getVar(msg, args[0])
+        msg.author = oldAuthor
+
+        if(res === false){
+            return {noSend: true, status: StatusCode.ERR}
+        }
+
+
+        return crv(res)
+    }, "Gets a variable", {
+        helpArguments: {
+            name: createHelpArgument("the variable name including prefix, eg: connect4:wins")
+        },
+        helpOptions: {
+            as: createHelpOption("The user to get the variable from")
+        }
+    })]
+    
+
     yield ["stdin", createCommandV2(async ({ stdin, args }) => {
         let result: any = stdin
         args.forEach(arg => result = result[arg] ?? result)
