@@ -12,7 +12,7 @@ import pet from "../pets"
 import uno = require("../uno")
 
 import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient } from "../util"
-import { client, getVar, GLOBAL_CURRENCY_SIGN, saveVars, setVar } from "../common"
+import { client, getVar, GLOBAL_CURRENCY_SIGN, saveVars, setVar, setVarEasy } from "../common"
 import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
@@ -1448,6 +1448,11 @@ until you put a 0 in the box`)
                         amount *= 2
                     }
                     economy.addMoney(msg.author.id, amount)
+
+                    setVarEasy(msg, "last-run:total", String(Number(getVar(msg, "last-run:total")) + amount))
+                    setVarEasy(msg, "last-run:last", String(amount))
+                    saveVars()
+
                     fmt += `\n{earnings}`
                     fs.writeFileSync("./command-results/last-run", String(Date.now()))
                 }
