@@ -207,9 +207,7 @@ function setVarEasy(msg: Message, varName: string, value: string, prefix?: strin
 
 function setVar(varName: string, value: string | Function, prefix?: string, id?: string) {
     if (!prefix) {
-        if (!prefix) {
-            [prefix, varName] = getPrefixAndVarname(varName)
-        }
+        [prefix, varName] = getPrefixAndVarname(varName)
     }
     let path;
     if (prefix === "__global__") {

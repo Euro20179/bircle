@@ -12,7 +12,7 @@ import pet from "../pets"
 import uno = require("../uno")
 
 import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient } from "../util"
-import { client, getVar, GLOBAL_CURRENCY_SIGN, setVar } from "../common"
+import { client, getVar, GLOBAL_CURRENCY_SIGN, saveVars, setVar } from "../common"
 import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
@@ -104,11 +104,19 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let column = Number(m.content) - 1
             board = connect4.placeColorInColumn(board, turnColor, column)
             if (connect4.checkWin(board, needed)) {
-                for (let user of players as User[])
+                for (let user of players as User[]){
                     globals.endCommand(user.id, 'connect4')
+                    if(user !== player){
+                        setVar("losses", String(Number(getVar(msg, "losses", "connect4")) + 1), "connect4", user.id)
+                    }
+                }
                 listener.stop()
+                let wins = Number(getVar(msg, "wins", "connect4")) + 1
+                let losses = Number(getVar(msg, "losses", "connect4"))
+                setVar("wins", String(wins), "connect4", msg.author.id)
                 await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
-                return { content: user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!`), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
+                saveVars()
+                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), {wins: getVar(msg, "wins", "connect4"), losses: String(losses)}), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
             }
         }
 
