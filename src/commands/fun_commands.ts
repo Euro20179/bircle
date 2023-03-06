@@ -10,7 +10,7 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy = require("../economy")
 import { client, prefix } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE } from "../util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -1014,6 +1014,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (dm) {
                     rv['dm'] = true
                 }
+                if(opts['mimetype'] && String(opts['mimetype']).match(/^[^\/]+\/[^\/]+$/)){
+                    rv['mimetype'] = String(opts['mimetype']) as MimeType
+                }
                 if (stringArgs) {
                     rv["content"] = stringArgs
                 }
@@ -1099,6 +1102,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     },
                     "wait": {
                         description: "The seconds to wait before deleting and sending the message"
+                    },
+                    "mimetype": {
+                        description: "The mimetype of the text"
                     },
                     "status": {
                         description: `The status  code of the  command, can be:
