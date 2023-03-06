@@ -31,6 +31,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let players: (User | undefined)[] = [msg.author]
         if (args.length) {
             players[1] = msg.guild ? (await fetchUser(msg.guild, args.join(" ")))?.user : await fetchUserFromClient(client, args.join(" "))
+            if(players[1] === players[0]){
+                return {content: ":watching:", status: StatusCode.ERR}
+            }
         }
         if (!players[1]) {
             if (args.length) {
@@ -39,7 +42,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let e = new MessageEmbed()
             e.setTitle("Type `join` to join the connect4 game")
             await handleSending(msg, { embeds: [e], status: StatusCode.PROMPT })
-            let joinMessages = await msg.channel.awaitMessages({ filter: m => m.content.toLowerCase().startsWith("join"), time: 30000, max: 1 })
+            let joinMessages = await msg.channel.awaitMessages({ filter: m => m.content.toLowerCase().startsWith("join") && m.author.id !== msg.author.id, time: 30000, max: 1 })
             let m = joinMessages.at(0)
             if (!m) {
                 return { content: `No one wanted to play :(`, status: StatusCode.RETURN }
