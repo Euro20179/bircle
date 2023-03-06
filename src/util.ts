@@ -47,6 +47,7 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
         }
         else if (ch === "}" && !escape) {
             inBracket = false
+            buildingOr = false
             if (hasToMatch.test(curPair)) {
                 innerPairs.push([curPair, currentOr])
                 onMatch && onMatch(curPair, currentOr)
