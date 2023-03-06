@@ -267,7 +267,7 @@ function getVar(msg: Message, varName: string, prefix?: string) {
     if(prefix.includes(".") && prefix.slice(0, 18).match(/\d{18}/)){
         let user;
         [user, prefix] = prefix.split(".")
-        if(vars[user]?.[prefix][varName])
+        if(vars[user]?.[prefix]?.[varName])
             return readVarVal(msg, vars[user]?.[prefix][varName])
     }
 
