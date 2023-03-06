@@ -83,20 +83,26 @@ export class AliasV2 {
         this.standardizeOpts = bool ?? false
     }
 
+    basicPrepare(msg: Message, args: string[], opts: Opts) {
+        let tempExec = this.exec
+
+        if (this.appendOpts && Object.keys(opts).length) {
+            //if opt is true, we want it to JUST be -<opt> if it's anything else it should be -<opt>=<value>
+            tempExec += " " + Object.entries(opts).map(v => `-${v[0]}${v[1] === true ? "" : `=\\s{${v[1]}}`}`).join(" ")
+        }
+
+        if (this.appendArgs && args.length) {
+            tempExec += " " + args.join(" ")
+        }
+        return tempExec
+
+    }
+
     prepare(msg: Message, args: string[], opts: Opts, fillPlaceholders = false) {
         let tempExec = this.exec
 
         if (!fillPlaceholders) {
-            if (this.appendOpts && Object.keys(opts).length) {
-                //if opt is true, we want it to JUST be -<opt> if it's anything else it should be -<opt>=<value>
-                tempExec += " " + Object.entries(opts).map(v => `-${v[0]}${v[1] === true ? "" : `=\\s{${v[1]}}`}`).join(" ")
-            }
-
-            if (this.appendArgs && args.length) {
-                tempExec += " " + args.join(" ")
-            }
-
-            return tempExec
+            return this.basicPrepare(msg, args, opts)
         }
 
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
@@ -170,8 +176,6 @@ export class AliasV2 {
         if (this.appendArgs && args.length) {
             tempExec += " " + args.join(" ")
         }
-
-
         return tempExec
     }
 
@@ -711,7 +715,9 @@ export class Interpreter {
             if (this.real_cmd.startsWith(prefix)) {
                 this.real_cmd = `\\${this.real_cmd}`
             }
-            rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
+            if(user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true")
+                rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
+            else rv = {noSend: true, status: StatusCode.ERR}
         }
         else {
             let commandObj = commands.get(this.real_cmd)
