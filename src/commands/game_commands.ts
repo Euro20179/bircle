@@ -116,7 +116,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 setVar("wins", String(wins), "!connect4", msg.author.id)
                 await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
                 saveVars()
-                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), {wins: getVar(msg, "wins", "connect4"), losses: String(losses)}), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
+                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), {wins: getVar(msg, "wins", "connect4"), losses: String(losses)}), status: StatusCode.RETURN, recurse: true }
             }
         }
 
