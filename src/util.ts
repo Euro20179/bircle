@@ -938,6 +938,8 @@ function cmdCatToStr(cat: number) {
             return "admin"
         case 8:
             return "match"
+        case 9:
+            return "aliasv2"
         default:
             return "UNKNOWN"
     }

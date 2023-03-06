@@ -1,4 +1,4 @@
-import { Collection, Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { Collection, CommandInteraction, Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
 import economy = require("./economy")
@@ -42,7 +42,8 @@ export enum CommandCategory {
     ECONOMY,
     VOICE,
     ADMIN,
-    MATCH
+    MATCH,
+    ALIASV2
 }
 
 export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>) {
@@ -64,6 +65,10 @@ export class AliasV2 {
     appendArgs: boolean
     appendOpts: boolean
     standardizeOpts: boolean
+    category: CommandCategory
+    make_bot_type: boolean
+    cmd_std_version: "alias"
+    use_result_cache: false
     constructor(name: string, exec: string, creator: string, help: CommandHelp, appendArgs?: boolean, appendOpts?: boolean, standardizeOpts?: boolean) {
         this.name = name
         this.exec = exec
@@ -72,6 +77,10 @@ export class AliasV2 {
         this.appendArgs = appendArgs ?? true
         this.appendOpts = appendOpts ?? true
         this.standardizeOpts = standardizeOpts ?? true
+        this.category = CommandCategory.ALIASV2
+        this.make_bot_type = false
+        this.cmd_std_version = "alias"
+        this.use_result_cache = false
     }
     setAppendArgs(bool?: boolean) {
         this.appendArgs = bool ?? false
@@ -684,6 +693,12 @@ export class Interpreter {
 
         let [opts, args2] = getOpts(args)
 
+        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(this.real_cmd)
+        if (!cmdObject && this.aliasV2) {
+            cmdObject = this.aliasV2
+            this.real_cmd = this.aliasV2.name
+        }
+
         if (opts['?']) {
             args = [this.real_cmd]
             args2 = [this.real_cmd]
@@ -697,38 +712,15 @@ export class Interpreter {
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
-        else if (this.aliasV2) {
-            let declined = false
-            if (warn_cmds.includes(this.aliasV2.name)) {
-                let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-                if (!m || (m && m.content.toLowerCase() !== 'y')) {
-                    rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
-                    declined = true
-                }
-            }
-            if (!declined)
-                rv = await this.aliasV2.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts: opts, args: args2, recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
-        }
-        else if (!commands.get(this.real_cmd)) {
-            //We dont want to keep running commands if the command doens't exist
-            //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (this.real_cmd.startsWith(prefix)) {
-                this.real_cmd = `\\${this.real_cmd}`
-            }
-            if(user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true")
-                rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
-            else rv = {noSend: true, status: StatusCode.ERR}
-        }
-        else {
-            let commandObj = commands.get(this.real_cmd)
+        else if (cmdObject) {
             //make sure it passes the command's perm check if it has one
-            if (commandObj?.permCheck) {
-                canRun = commandObj?.permCheck?.(this.#msg) ?? true
+            if (!(cmdObject instanceof AliasV2) && cmdObject?.permCheck) {
+                canRun = (cmdObject as Command | CommandV2)?.permCheck?.(this.#msg) ?? true
             }
 
             let declined = false
 
-            if (warn_categories.includes(cmdCatToStr(commandObj?.category)) || commandObj?.prompt_before_run === true || warn_cmds.includes(this.real_cmd)) {
+            if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(this.real_cmd)) {
                 let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
                 if (!m || (m && m.content.toLowerCase() !== 'y')) {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
@@ -747,13 +739,11 @@ export class Interpreter {
             }
             if (
                 this.disable?.commands && this.disable.commands.includes(this.real_cmd) ||
-                this.disable?.commands && this.disable.categories?.includes(commandObj?.category)
+                this.disable?.commands && this.disable.categories?.includes(cmdObject?.category)
             ) {
                 canRun = false
             }
             if (canRun) {
-
-                let cmdObject = commands.get(this.real_cmd)
 
                 if (this.#shouldType || cmdObject?.make_bot_type)
                     await this.#msg.channel.sendTyping()
@@ -771,6 +761,7 @@ export class Interpreter {
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                         opts: new Options(opts),
+                        rawOpts: opts,
                         argList: new ArgList(args2),
                         stdin: this.#pipeData,
                         pipeTo: this.#pipeTo
@@ -778,8 +769,10 @@ export class Interpreter {
                     let cmd = cmdObject as CommandV2
                     rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
                 }
+                else if (cmdObject instanceof AliasV2) {
+                    rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
+                }
                 else {
-
                     rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
                 if (cmdObject?.use_result_cache === true) {
@@ -792,6 +785,16 @@ export class Interpreter {
                 //if normal command, it counts as use
             }
             else if (!declined) rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+        }
+        else {
+            //We dont want to keep running commands if the command doens't exist
+            //fixes the [[[[[[[[[[[[[[[[[ exploit
+            if (this.real_cmd.startsWith(prefix)) {
+                this.real_cmd = `\\${this.real_cmd}`
+            }
+            if (user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true")
+                rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
+            else rv = { noSend: true, status: StatusCode.ERR }
         }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
