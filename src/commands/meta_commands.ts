@@ -2167,7 +2167,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 chain.push(alias)
             }
             return true
-        })
+        }, !opts.getBool("F", false))
         if (!result) {
             return { content: "failed to expand alias", status: StatusCode.ERR }
         }
@@ -2185,7 +2185,8 @@ ${fs.readdirSync("./command-results").join("\n")}
         "...args": createHelpArgument("Fake args to give the alias")
     }, {
         e: createHelpOption("get the expansion count"),
-        n: createHelpOption("put the names of the expanded commands only")
+        n: createHelpOption("put the names of the expanded commands only"),
+        F: createHelpOption("Dont fill placeholders such as {args..}")
     })]
 
     yield [

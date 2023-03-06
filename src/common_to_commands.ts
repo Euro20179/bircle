@@ -6,7 +6,7 @@ import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, client, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier,  parseAliasReplacement, strToTT, RedirModifier, TypingModifier, SkipModifier } from './parsing';
+import { Parser, Token, T, Modifier, parseAliasReplacement, strToTT, RedirModifier, TypingModifier, SkipModifier } from './parsing';
 import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { create } from 'domain';
 import { cloneDeep } from 'lodash';
@@ -83,7 +83,22 @@ export class AliasV2 {
         this.standardizeOpts = bool ?? false
     }
 
-    prepare(msg: Message, args: string[], opts: Opts) {
+    prepare(msg: Message, args: string[], opts: Opts, fillPlaceholders = false) {
+        let tempExec = this.exec
+
+        if (!fillPlaceholders) {
+            if (this.appendOpts && Object.keys(opts).length) {
+                //if opt is true, we want it to JUST be -<opt> if it's anything else it should be -<opt>=<value>
+                tempExec += " " + Object.entries(opts).map(v => `-${v[0]}${v[1] === true ? "" : `=\\s{${v[1]}}`}`).join(" ")
+            }
+
+            if (this.appendArgs && args.length) {
+                tempExec += " " + args.join(" ")
+            }
+
+            return tempExec
+        }
+
         //TODO: set variables such as args, opts, etc... in maybe %:__<var>
         for (let opt of Object.entries(opts)) {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
@@ -94,8 +109,6 @@ export class AliasV2 {
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[[^\]]*\])$/
 
         let innerPairs = getInnerPairsAndDeafultBasedOnRegex(this.exec, ["#args", "args"], argsRegex)
-
-        let tempExec = this.exec
 
         for (let [innerText, innerOr] of innerPairs) {
             let toReplace = `{${innerText}${innerOr}}`
@@ -231,10 +244,10 @@ export class AliasV2 {
     }
 
 
-    async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any): Promise<AliasV2 | false> {
+    async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any, fillPlaceholders = false): Promise<AliasV2 | false> {
         let expansions = 0
         let command = this.exec.split(" ")[0]
-        let preArgs = this.prepare(msg, args, opts)
+        let preArgs = this.prepare(msg, args, opts, fillPlaceholders)
         if (onExpand && !onExpand?.(command, preArgs)) {
             return false
         }
@@ -244,7 +257,7 @@ export class AliasV2 {
             if (expansions > 1000) {
                 return false
             }
-            preArgs = curAlias.prepare(msg, preArgs.split(" ").slice(1), opts)
+            preArgs = curAlias.prepare(msg, preArgs.split(" ").slice(1), opts, fillPlaceholders)
             command = aliasesV2[command].exec.split(" ")[0]
             if (onExpand && !onExpand?.(command, preArgs)) {
                 return false
@@ -395,7 +408,7 @@ export class Interpreter {
         this.#shouldType = false
     }
 
-    setTyping(bool?: boolean){
+    setTyping(bool?: boolean) {
         this.#shouldType = bool ?? true
     }
 
@@ -658,7 +671,7 @@ export class Interpreter {
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
 
-        for(let mod of this.modifiers){
+        for (let mod of this.modifiers) {
             mod.modify(this)
         }
 
@@ -700,7 +713,7 @@ export class Interpreter {
             }
             rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
         }
-        else{
+        else {
             let commandObj = commands.get(this.real_cmd)
             //make sure it passes the command's perm check if it has one
             if (commandObj?.permCheck) {
@@ -787,11 +800,11 @@ export class Interpreter {
         if (m = this.modifiers.filter(v => v instanceof RedirModifier)[0]?.data) {
             let [_all, place, name] = m
             let data = getVar(this.#msg, name, place)
-            if(data !== false){
+            if (data !== false) {
                 data += getContentFromResult(rv, "\n")
             }
             setVar(name, data, place, this.#msg.author.id)
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         }
         //handles the rv protocol
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
