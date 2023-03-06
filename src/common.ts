@@ -263,8 +263,16 @@ function getVar(msg: Message, varName: string, prefix?: string) {
     if (prefix === "%") {
         prefix = msg.author.id
     }
+
+    if(prefix.includes(".") && prefix.slice(0, 18).match(/\d{18}/)){
+        let user;
+        [user, prefix] = prefix.split(".")
+        if(vars[user]?.[prefix][varName])
+            return readVarVal(msg, vars[user]?.[prefix][varName])
+    }
+
     //global vars
-    if (prefix === "__global__" && vars[prefix][varName] !== undefined) {
+    else if (prefix === "__global__" && vars[prefix][varName] !== undefined) {
         return readVarVal(msg, vars[prefix][varName])
     }
     //for standard user vars
