@@ -122,7 +122,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield ["mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
-            return { content: "You must set the 'enable-mail' option to true in order to use mail", status: StatusCode.ERR }
+            return { content: "You must run `[option enable-mail true` to run this command", status: StatusCode.ERR }
         }
         let toUser: User | GuildMember | undefined = undefined;
         if (!msg.guild) {
