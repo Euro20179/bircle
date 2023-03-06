@@ -159,7 +159,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         let user = toUser instanceof GuildMember ? toUser.user : toUser
         handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, user.send.bind(user.dmChannel), recursionCount)
-        return { content: "Message sent", status: StatusCode.RETURN }
+        return { content: "Message sent", status: StatusCode.RETURN, delete: true }
     }, CommandCategory.FUN)]
 
     yield [
