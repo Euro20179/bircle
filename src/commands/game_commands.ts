@@ -107,13 +107,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let user of players as User[]){
                     globals.endCommand(user.id, 'connect4')
                     if(user !== player){
-                        setVar("losses", String(Number(getVar(msg, "losses", "connect4")) + 1), "connect4", user.id)
+                        setVar("losses", String(Number(getVar(msg, "losses", "!connect4")) + 1), "!connect4", user.id)
                     }
                 }
                 listener.stop()
-                let wins = Number(getVar(msg, "wins", "connect4")) + 1
-                let losses = Number(getVar(msg, "losses", "connect4"))
-                setVar("wins", String(wins), "connect4", msg.author.id)
+                let wins = Number(getVar(msg, "wins", "!connect4")) + 1
+                let losses = Number(getVar(msg, "losses", "!connect4"))
+                setVar("wins", String(wins), "!connect4", msg.author.id)
                 await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
                 saveVars()
                 return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), {wins: getVar(msg, "wins", "connect4"), losses: String(losses)}), status: StatusCode.RETURN, do_change_cmd_user_expansion: true }
@@ -1449,8 +1449,8 @@ until you put a 0 in the box`)
                     }
                     economy.addMoney(msg.author.id, amount)
 
-                    setVarEasy(msg, "last-run:total", String(Number(getVar(msg, "last-run:total")) + amount))
-                    setVarEasy(msg, "last-run:last", String(amount))
+                    setVarEasy(msg, "!last-run:total", String(Number(getVar(msg, "last-run:total")) + amount))
+                    setVarEasy(msg, "!last-run:last", String(amount))
                     saveVars()
 
                     fmt += `\n{earnings}`
