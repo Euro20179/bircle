@@ -2160,14 +2160,10 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
 
         let result = v2.expand(msg, args.slice(1), getOpts(rawArgs)[0], (alias: any, preArgs: any) => {
-            if (showArgs) {
-                chain.push(preArgs)
-            }
-            else {
-                chain.push(alias)
-            }
+            chain.push(showArgs ? preArgs : alias)
             return true
         }, !opts.getBool("F", false))
+
         if (!result) {
             return { content: "failed to expand alias", status: StatusCode.ERR }
         }
