@@ -98,6 +98,14 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                     stack.push(arg1 + arg2)
                     break
                 }
+                case "object": {
+                    if(Array.isArray(arg1) && arg2){
+                        arg1.push(arg2)
+                        stack.push(arg1)
+                        break
+                    }
+                    return {content: "arg2 is undefined", err: true}
+                }
                 default: {
                     return { err: true, content: `type of ${arg1} is unknown` }
                 }
@@ -1062,6 +1070,18 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             stack.push(arr.join(val))
             break
         }
+        case "%push": {
+            let val = stack.pop()
+            if(val === undefined){
+                return {err: true, content: `cannot push undefined to a list`}
+            }
+            let arr = stack.pop()
+            if(!Array.isArray(arr)){
+                return {err: true, content: `${arr} is not a list`}
+            }
+            stack.push(arr.push(val))
+            break;
+        }
         case "%index": {
             let indexNo = stack.pop()
             let startIndex = null
@@ -1212,10 +1232,9 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             return { chgI: chgI }
         }
         case "%if": {
-            let bool = Boolean(stack.pop()) ? true : false
+            let bool = Boolean(stack.pop())
             if (bool) {
                 for (let i = argNo + 1; i < argCount; i++) {
-                    //@ts-ignore
                     let ifCount = 0
                     if (args[i] == "%else") {
                         let ifCount = 0

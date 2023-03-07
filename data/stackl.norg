@@ -246,6 +246,12 @@
       - `<arr: (<T>)Array> <index: number> %find -> T`
       -- Return the item of the `arr` at `index`
 
+      - `<arr: (<T>)Array> <item: any> + -> (<T>)Array`
+      -- appends item to array, and pushes the new array to the stack.
+
+      - `<arr: (<T>)Array> <item: any> %push -> number`
+      -- appends item to array, and pushes the new length of the array to the stack.
+
 
 ***** Message Manipulation
 
