@@ -133,9 +133,7 @@ client.on("messageCreate", async (m: typeof Message) => {
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
-        //@ts-ignore
         for (let i = 0; i < m.mentions.members.size; i++) {
-            //@ts-ignore
             let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
@@ -236,8 +234,11 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
                 interaction.reply({ content: "Something went wrong" }).catch(console.error)
                 return
             }
-            //@ts-ignore
-            let [userChoice, ogUser, bet] = globals.BUTTONS[interaction.customId].split(":")
+            let data = globals.BUTTONS[interaction.customId]
+            if(typeof data !== 'string'){
+                return;
+            }
+            let [userChoice, ogUser, bet] = data.split(":")
             let ogBet = Number(bet)
             if (interaction.member?.user.id === ogUser) {
                 interaction.reply({ content: "Ur a dingus" }).catch(console.error)
@@ -257,7 +258,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
                 if (ogBet) {
                     economy.loseMoneyToBank(ogUser, ogBet)
                     if (interaction.member?.user.id) {
-                        //@ts-ignore
                         economy.addMoney(interaction.member?.user.id, ogBet)
                         interaction.reply({ content: `<@${interaction.member?.user.id}> user won ${ogBet}!` }).catch(console.error)
                     }
@@ -288,7 +288,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
         }
         else if (interaction.commandName === 'md') {
             interaction.reply({
-                //@ts-ignore
                 type: InteractionResponseTypes.CHANNEL_MESSAGE_WITH_SOURCE,
                 content: interaction.options.get("text")?.value as string ?? "Hi"
             })
@@ -357,8 +356,7 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             }
         }
         else if (interaction.commandName == 'img') {
-            //@ts-ignore
-            let rv = await command_commons.commands["img"].run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel))
+            let rv = await (command_commons.commands.get("img") as Command).run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel), {}, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], 0, undefined)
             interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
             if (rv.files) {
                 for (let file of rv.files) {
@@ -377,7 +375,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             }).catch(console.error)
         }
         else if (interaction.commandName == 'poll') {
-            //@ts-ignore
             interaction.author = interaction?.member.user
             let argList = []
             let title = interaction.options.get("title")?.value
@@ -386,37 +383,24 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
                 argList.push(`-title=${title}`)
             }
             argList.push(options)
-            //@ts-ignore
-            await command_commons.commands['poll'].run(interaction, argList, interaction.channel.send.bind(interaction.channel))
+            await (command_commons.commands.get("poll") as Command).run(interaction, argList, interaction.channel.send.bind(interaction.channel), {}, argList, 0, undefined)
         }
         else if (interaction.commandName == 'ccmd') {
-            //@ts-ignore
             interaction.author = interaction.member?.user
             let arglist = [String(interaction.options.get("name")?.value), "say"] as string[]
             let args = interaction.options.get("text")?.value as string
             if (args) {
                 arglist = arglist.concat(args.split(" "))
             }
-            //@ts-ignore
-            let rv = await command_commons.commands['alias'].run(interaction, arglist, interaction.channel.send.bind(interaction.channel))
+            let rv = await (command_commons.commands.get('alias') as Command).run(interaction, arglist, interaction.channel.send.bind(interaction.channel), {}, arglist, 0, undefined)
             interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'say') {
             interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here").catch(console.error)
         }
         else if (interaction.commandName == "dad") {
-            //@ts-ignore
             interaction.author = interaction.member?.user
-            //@ts-ignore
-            let rv = await command_commons.commands['add'].run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
-        }
-        else if (interaction.commandName == "add-8") {
-            //@ts-ignore
-            interaction.author = interaction.member?.user
-            let resp = interaction.options.get("response")?.value as string
-            //@ts-ignore
-            let rv = await command_commons.commands['add'].run(interaction, ["8", resp], interaction.channel.send.bind(interaction.channel))
+            let rv = await (command_commons.commands.get('add') as Command).run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel), {}, ["distance", interaction.options.get("response")?.value], 0, undefined)
             interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == "add-wordle") {

@@ -1422,9 +1422,6 @@ export const slashCommands = [
         ]
     },
     createChatCommand("help", "get help", []),
-    createChatCommand("add-wordle", "add a word to wordle", [createChatCommandOption(STRING, "word", "the word", { required: true })]),
-    createChatCommand("add-8", "add a response to 8ball", [createChatCommandOption(STRING, "response", "the response", { required: true })]),
-    createChatCommand("dad", "add a distance response", [createChatCommandOption(STRING, "response", "The response", { required: true })]),
     {
         name: "ping",
         type: 2
