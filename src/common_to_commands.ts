@@ -708,6 +708,7 @@ export class Interpreter {
         }
 
         if (this.alias && this.#aliasExpandSuccess) {
+            await handleSending(this.#msg, {content: `Aliasv1 is deprecated, convert \`${this.cmd}\` into an aliasv2`, status: StatusCode.WARNING})
             rv = await this.runAlias() || { content: "You found a secret", status: StatusCode.ERR }
         }
         else if (this.alias && !this.#aliasExpandSuccess) {
