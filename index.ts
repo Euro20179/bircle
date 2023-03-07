@@ -398,23 +398,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
         else if (interaction.commandName == 'say') {
             interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here").catch(console.error)
         }
-        else if (interaction.commandName == "dad") {
-            interaction.author = interaction.member?.user
-            let rv = await (command_commons.commands.get('add') as Command).run(interaction, ["distance", interaction.options.get("response")?.value], interaction.channel.send.bind(interaction.channel), {}, ["distance", interaction.options.get("response")?.value], 0, undefined)
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
-        }
-        else if (interaction.commandName == "add-wordle") {
-            //@ts-ignore
-            interaction.author = interaction.member?.user
-            let resp = interaction.options.get("word")?.value as string
-            if (resp.includes(" ")) {
-                interaction.reply("no spaces").catch(console.error)
-                return
-            }
-            //@ts-ignore
-            let rv = await command_commons.commands['add'].run(interaction, ["wordle", resp], interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
-        }
         else if (interaction.commandName == 'rps') {
             let opponent = interaction.options.get("opponent")?.value
             let choice = interaction.options.get("choice")?.value as string
@@ -437,24 +420,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             globals.BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
             interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` }).catch(console.error)
-        }
-        else if (interaction.commandName == "hangman") {
-            let caseSensitive = interaction.options.get("case")?.value
-            let lives = interaction.options.get("lives")?.value
-            let user = interaction.options.get("user")?.value
-            let cmdsArgs = []
-            if (caseSensitive) {
-                cmdsArgs.push("-case")
-            }
-            if (lives !== undefined) {
-                cmdsArgs.push(`-lives=${lives}`)
-            }
-            cmdsArgs.push(user)
-            //@ts-ignore
-            interaction.author = interaction.member.user
-            //@ts-ignore
-            let rv = await command_commons.commands['hangman'].run(interaction, cmdsArgs, interaction.channel.send.bind(interaction.channel))
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
     }
     else if (interaction.isUserContextMenu() && !interaction.replied) {
