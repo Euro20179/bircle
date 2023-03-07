@@ -1869,9 +1869,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { noSend: true, status: StatusCode.RETURN }
             },
             help: {
+                options: {
+                    u: createHelpOption("Create a user variable")
+                },
                 arguments: {
-                    "name=value": {
-                        description: "name is the variable name, value is the value",
+                    "[prefix:]name=value": {
+                        description: "name is the variable name, value is the value<br>prefix is optional, and can be anything that does not start with !<br>the <code>%</code> prefix will also create a user variable.",
                         required: true
                     }
                 }
