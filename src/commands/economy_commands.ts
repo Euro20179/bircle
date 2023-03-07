@@ -39,7 +39,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         return crv(`$${toolTotal}`)
     }, "Total amount on tools bot")]
 
-    yield ['transfer-rate', ccmdV2(async function({ args }) {
+    yield ['exchange-rate', ccmdV2(async function({ args }) {
         let ip = getToolIp()
 
         if (!ip) {
@@ -74,7 +74,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield [
-        "transfer", ccmdV2(async function({ args, msg }) {
+        "exchange", ccmdV2(async function({ args, msg }) {
             let ip = getToolIp()
 
             if (!ip) {
