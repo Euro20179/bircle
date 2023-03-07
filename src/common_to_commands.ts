@@ -495,17 +495,18 @@ export class Interpreter {
     }
     //dofirst token
     async [1](token: Token): Promise<Token[] | false> {
-        let parser = new Parser(this.#msg, token.data as string)
-        await parser.parse()
-        let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, true, this.disable)
-        let rv = await int.run() as CommandReturn;
-        let data = getContentFromResult(rv as CommandReturn, "\n").trim()
-        if (rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            let parser = new Parser(this.#msg, token.data as string)
-            await parser.parse();
-            let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, true, this.disable)
-            let rv = await int.run() as CommandReturn;
-            data = getContentFromResult(rv as CommandReturn, "\n").trim()
+        const runCmd = async (data: string) => (await cmd({
+            msg: this.#msg,
+            command_excluding_prefix: data,
+            disable: this.disable,
+            recursion: this.recursion + 1,
+            returnJson: true
+        })).rv
+        let rv = await runCmd(token.data as string)
+        let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
+        if (rv && rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
+            let rv2 = await runCmd(rv.content.slice(prefix.length))
+            data = rv2 ? getContentFromResult(rv2 as CommandReturn, "\n").trim() : ""
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
