@@ -18,7 +18,17 @@ const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require(
 
 export type MimeType = `${string}/${string}`
 
-function mimeTypeToFileExtension(mime: MimeType){
+function getToolIp() {
+    let ip;
+    if (fs.existsSync("./data/ip.key")) {
+
+        ip = fs.readFileSync("./data/ip.key");
+    }
+    return ip
+
+}
+
+function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
     return {
         "typescript": "ts",
@@ -437,10 +447,10 @@ const Units = {
     Lightsecond
 }
 
-type Replacements = {[key: string]: (() => string) | string}
+type Replacements = { [key: string]: (() => string) | string }
 
-function handleReplacement(replacement: Replacements[string]){
-    if(typeof replacement === 'function'){
+function handleReplacement(replacement: Replacements[string]) {
+    if (typeof replacement === 'function') {
         return replacement()
     }
     return replacement
@@ -945,36 +955,36 @@ function cmdCatToStr(cat: number) {
     }
 }
 
-function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean){
+function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean) {
     let img;
-    if(opts instanceof Options){
+    if (opts instanceof Options) {
         img = opts.getString("img", "")
-        if(img && pop)
+        if (img && pop)
             opts.delete("img")
     }
-    if(!img && !(opts instanceof Options) && typeof opts['img'] === 'string') {
+    if (!img && !(opts instanceof Options) && typeof opts['img'] === 'string') {
         img = opts['img']
-        if(img && pop)
+        if (img && pop)
             delete opts['img']
     }
-    if(!img && stdin?.files){
+    if (!img && stdin?.files) {
         img = stdin?.files[0]?.attachment
-        if(img && pop)
+        if (img && pop)
             delete stdin.files[0]
     }
     if (!img && msg.attachments?.at(0)) {
         img = msg.attachments.at(0)?.url
-        if(img && pop)
+        if (img && pop)
             msg.attachments.delete(msg.attachments.keyAt(0) as string)
     }
     if (!img && msg.stickers?.at(0)) {
         img = msg.stickers.at(0)?.url as string
-        if(img && pop)
+        if (img && pop)
             msg.stickers.delete(msg.stickers.keyAt(0) as string)
     }
     if (!img && msg.embeds?.at(0)?.image?.url) {
         img = msg.embeds?.at(0)?.image?.url
-        if(img && pop)
+        if (img && pop)
             (msg.embeds.at(0) as MessageEmbed).image = null
     }
     if (!img) {
@@ -1204,7 +1214,7 @@ function getContentFromResult(result: CommandReturn, end = "") {
         res += result.content
     if (result.files) {
         for (let file of result.files) {
-            if(existsSync(file.attachment))
+            if (existsSync(file.attachment))
                 res += end + fs.readFileSync(file.attachment, "base64")
         }
     }
@@ -1637,6 +1647,7 @@ export {
     generateCommandSummary,
     isSafeFilePath,
     mimeTypeToFileExtension,
-    getInnerPairsAndDeafultBasedOnRegex
+    getInnerPairsAndDeafultBasedOnRegex,
+    getToolIp
 }
 

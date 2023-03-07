@@ -7,8 +7,8 @@ import timer from '../timer'
 
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension } from '../util'
+import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
@@ -17,6 +17,106 @@ const { buyItem, hasItem, useItem } = require('../shop')
 const { ITEMS, INVENTORY } = require("../shop")
 
 export default function*(): Generator<[string, Command | CommandV2]> {
+
+    yield ["#calcet", ccmdV2(async function(){
+        let ip = getToolIp()
+
+        if (!ip) {
+            return crv("Euro has not added the special file", {
+                status: StatusCode.ERR
+            })
+        }
+
+        let res;
+        try {
+            res = await fetch.default(`http://${ip}/total`)
+        }
+        catch (err) {
+            return crv("Could not fetch data", { status: StatusCode.ERR })
+        }
+
+        let toolTotal = Number(await res.text())
+        return crv(`$${toolTotal}`)
+    }, "Total amount on tools bot")]
+
+    yield ['transfer-rate', ccmdV2(async function({ args }) {
+        let ip = getToolIp()
+
+        if (!ip) {
+            return crv("Euro has not added the special file", {
+                status: StatusCode.ERR
+            })
+        }
+
+        let res;
+        try {
+            res = await fetch.default(`http://${ip}/total`)
+        }
+        catch (err) {
+            return crv("Could not fetch data", { status: StatusCode.ERR })
+        }
+
+        let toolTotal = Number(await res.text())
+
+        let economyTotal = economy.economyLooseGrandTotal().moneyAndStocks
+
+        if (args[0] === 'tte') {
+            return crv(`# -> [: \`${economyTotal / toolTotal}\``)
+        }
+        else {
+            return crv(`\\[ -> #: \`${toolTotal / economyTotal}\``)
+        }
+
+    }, "Calculate the exchange rate between tool's bot and this bot", {
+        helpArguments: {
+            tte: createHelpArgument("Gets the exchange rate from tool to euro instead of euro to tool", false)
+        }
+    })]
+
+    yield [
+        "transfer", ccmdV2(async function({ args, msg }) {
+            let ip = getToolIp()
+
+            if (!ip) {
+                return crv("Euro has not added the special file", {
+                    status: StatusCode.ERR
+                })
+            }
+
+            let res;
+            try {
+                res = await fetch.default(`http://${ip}/total`)
+            }
+            catch (err) {
+                return crv("Could not fetch data", { status: StatusCode.ERR })
+            }
+
+            let toolTotal = await res.json()
+
+            let economyTotal = economy.economyLooseGrandTotal().moneyAndStocks
+
+            let exchangeRate = toolTotal / economyTotal
+
+            let amount = economy.calculateAmountFromString(msg.author.id, args[0])
+            let nAmount = Number(amount)
+            if(!economy.canBetAmount(msg.author.id, nAmount)){
+                return {content: `You do not have this much money`, status: StatusCode.ERR}
+            }
+
+
+            economy.loseMoneyToBank(msg.author.id, nAmount)
+
+            let amountAfterExchangeRate = nAmount * exchangeRate
+
+            await fetch.default(`http://${ip}/exchange`,
+                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: msg.author.id, money: amountAfterExchangeRate }) }
+            )
+
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
+            return { content: `You transfered ${sign}${nAmount} to #${amountAfterExchangeRate}`, status: StatusCode.RETURN }
+        }, "Transfer money to tools bot")
+    ]
 
     yield [
         "buy", {
@@ -443,7 +543,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (!activePet) {
                     e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
                 }
-                return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: []} }
+                return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "Get the pets of a user",

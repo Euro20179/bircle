@@ -240,7 +240,7 @@ function economyLooseGrandTotal(){
             loanTotal += econ[player].loanUsed
         }
     }
-    return {money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal}
+    return {money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal}
 }
 
 function work(id: string){

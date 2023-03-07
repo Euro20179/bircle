@@ -53,16 +53,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return crv("Could not fetch data", { status: StatusCode.ERR })
         }
         let data
-        try{
+        try {
             data = await res.json()
         }
-        catch(err){
-            return crv("Could not get json", {status: StatusCode.ERR})
+        catch (err) {
+            return crv("Could not get json", { status: StatusCode.ERR })
         }
         let embed = new MessageEmbed()
         embed.setTitle(`School stats of ${user.username}`)
         embed.setColor(msg.member?.displayColor || "NOT_QUITE_BLACK")
-        embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["grade", String(data.grade)]))
+        embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["job", String(data.job?.name ?? "None")], ["grade", String(data.grade)]))
         return { embeds: [embed], status: StatusCode.RETURN }
     }, "School stats", {
         helpOptions: {
@@ -207,7 +207,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             args = new ArgList(args.slice(1))
             for (let i = 0; i < args.length; i += 1) {
-                //@ts-ignore
                 unit = unit.toUnit(Units.LengthUnit.fromUnitName(args[i]))
             }
             //eval complains Units is not defined, but this works for some reason
@@ -3625,8 +3624,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         status: StatusCode.ERR
                     }
                 }
-                //@ts-ignore
-                let member = await fetchUser(msg.guild, args[0])
+                let member = msg.guild
+                    ? await fetchUser(msg.guild, args[0])
+                    : await fetchUserFromClient(client, args[0])
                 return Pipe.start(member)
                     .default({ content: "member not found", status: StatusCode.ERR })
                     .next((member: GuildMember) => {

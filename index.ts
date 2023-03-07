@@ -627,8 +627,34 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
             res.end(JSON.stringify(user_options.getOpt(userId, option)))
             break;
         }
+        case "give-money": {
+            let userId = subPaths[0]
+            if(!userId){
+                res.writeHead(400)
+                res.end(JSON.stringify({"error": "no user id"}))
+            }
+            let amount = subPaths[1]
+            if(!amount || isNaN(Number(amount))){
+                res.writeHead(400)
+                res.end(JSON.stringify({"error": "no amount"}))
+            }
+            if(!economy.getEconomy()[userId]){
+                res.writeHead(400)
+                res.end(JSON.stringify({"error": "Invalid user"}))
+                break;
+            }
+            economy.addMoney(userId, Number(amount))
+            res.writeHead(200)
+            res.end(JSON.stringify({"amount": Number(amount)}))
+            break;
+        }
         case "economy": {
             let userId = subPaths[0] ?? urlParams?.get("user-id")
+            if(userId === "total"){
+                res.writeHead(200)
+                res.end(JSON.stringify(economy.economyLooseGrandTotal()))
+                break;
+            }
             let econData = economy.getEconomy()
             let rv;
             if (userId) {
