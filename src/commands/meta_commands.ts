@@ -79,6 +79,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (line.startsWith(prefix)) {
                 line = line.slice(prefix.length)
             }
+            if(line === 'exit'){
+                break;
+            }
             await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
         }
         return { noSend: true, status: StatusCode.RETURN }
@@ -112,6 +115,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
+                if(line === 'exit') break
                 await cmd({ msg, command_excluding_prefix: line, recursion: globals.RECURSION_LIMIT - 1, disable: bans, sendCallback })
             }
             return { noSend: true, status: StatusCode.RETURN }
@@ -1788,6 +1792,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (line.startsWith(prefix)) {
                         line = line.slice(prefix.length)
                     }
+                    if(line === 'exit') break
                     await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
                 }
                 delete globals.SPAMS[id]
