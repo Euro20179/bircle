@@ -115,7 +115,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
 
             return { content: `You transfered ${sign}${nAmount} to #${amountAfterExchangeRate}`, status: StatusCode.RETURN }
-        }, "Transfer money to tools bot")
+        }, "Transfer money to tools bot", {
+            helpArguments: {
+                amount: createHelpArgument("the amount to transfer", true)
+            }
+        })
     ]
 
     yield [

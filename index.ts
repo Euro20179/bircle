@@ -637,6 +637,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
             if(!amount || isNaN(Number(amount))){
                 res.writeHead(400)
                 res.end(JSON.stringify({"error": "no amount"}))
+                break
             }
             if(!economy.getEconomy()[userId]){
                 res.writeHead(400)
