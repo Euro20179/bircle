@@ -534,7 +534,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 stack.push(0)
             }
             else {
-                stack.push(data)
+                stack.push(data || 0)
             }
             break
         }

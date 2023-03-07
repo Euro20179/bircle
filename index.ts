@@ -433,7 +433,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             let embed = new MessageEmbed()
             embed.setColor(member.displayColor)
             if (user.avatarURL())
-                //@ts-ignore
                 embed.setThumbnail(user.avatarURL())
             embed.addFields(efd(
                 ["Id", user.id || "#!N/A", true],

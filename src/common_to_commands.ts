@@ -302,12 +302,9 @@ export function createAliases() {
     let data = fs.readFileSync("command-results/alias", "utf-8")
     for (let cmd of data.split(';END')) {
         if (!cmd.trim()) continue
-        let [_, ...args] = cmd.split(":")
-        //@ts-ignore
-        args = args.join(":")
-        //@ts-ignore
+        let [_, ...argList] = cmd.split(":")
+        let args = argList.join(":")
         args = args.trim()
-        //@ts-ignore
         let [actualCmd, ...rest] = args.split(" ")
         actualCmd = actualCmd.trim()
         a[actualCmd] = rest
@@ -666,11 +663,9 @@ export class Interpreter {
         if (data) {
             let oldData = getVar(this.#msg, name, place)
             if (oldData === false) {
-                //@ts-ignore
-                setVar(name, _data.content, place, this.#msg.author.id)
+                setVar(name, data, place, this.#msg.author.id)
             }
-            //@ts-ignore
-            else setVar(name, oldData + "\n" + _data.content, place, this.#msg.author.id)
+            else setVar(name, oldData + "\n" + data, place, this.#msg.author.id)
         }
         return this.#msg
 
@@ -919,8 +914,7 @@ export class Interpreter {
         this.args = this.args.filter(v => v !== null)
 
         //undefined can get in args if {token} format is used, and they want a command token
-        //@ts-ignore
-        let lastUndefIdx = this.args.lastIndexOf(Interpreter.commandUndefined)
+        let lastUndefIdx = this.args.lastIndexOf(Interpreter.commandUndefined as string)
 
         //if it is found
         if (lastUndefIdx > -1) {
@@ -1042,14 +1036,13 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         //if not empty, save in the _! variable
 
 
-        //@ts-ignore
-        let optionToGet: user_options.UserOption = {
+        let optionToGet: user_options.UserOption = ({
             [StatusCode.ERR]: "change-cmd-error",
             [StatusCode.INFO]: "change-cmd-info",
             [StatusCode.PROMPT]: "change-cmd-prompt",
             [StatusCode.RETURN]: "change-cmd-return",
             [StatusCode.WARNING]: "change-cmd-warning"
-        }[rv.status] as user_options.UserOption
+        } as {[key: number]: user_options.UserOption})[rv.status] as user_options.UserOption
 
 
         let opt = user_options.getOpt(msg.author.id, optionToGet, "")
