@@ -161,7 +161,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         //return {content: links.text(), status: StatusCode.RETURN}
         return { content: urls.join("\n"), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL)]
+    }, CommandCategory.UTIL, "Search google and get a list of urls")]
 
     yield [
         "has-role", createCommandV2(async ({ msg, argList }) => {
@@ -179,7 +179,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: "No member found", status: StatusCode.ERR }
             }
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
-        }, CommandCategory.UTIL)
+        }, CommandCategory.UTIL, "Check if a user has a role", {
+            user: createHelpArgument("The user to checK", true),
+            role: createHelpArgument("The role to check", true)
+        })
     ]
 
     yield [

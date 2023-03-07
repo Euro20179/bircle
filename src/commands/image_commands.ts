@@ -156,6 +156,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
             }, category: CommandCategory.IMAGES,
             help: {
+                info: "Inverts colors on an image",
                 arguments: {
                     channel: {
                         description: "The channel to invert, defaults to all",
@@ -752,7 +753,7 @@ The commands below, only work after **path** has been run:
                     }
                 ], status: StatusCode.RETURN
             }
-        }, CommandCategory.IMAGES),
+        }, CommandCategory.IMAGES, "Honestly just run the [draw command then type help"),
     ]
 
     yield [
@@ -815,6 +816,7 @@ The commands below, only work after **path** has been run:
                 }
             },
             help: {
+                info: "Creates an image",
                 arguments: {
                     width: {
                         description: "the width of the image, max of 2000",
@@ -1232,7 +1234,7 @@ The commands below, only work after **path** has been run:
             let image = await canvas.loadImage(img.toString())
 
             return { content: `width: ${image.width}\nheight: ${image.height}`, status: StatusCode.RETURN }
-        }, CommandCategory.IMAGES),
+        }, CommandCategory.IMAGES, "Gets the width and height of an image"),
     ]
 
     yield [

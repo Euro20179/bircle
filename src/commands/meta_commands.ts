@@ -665,7 +665,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: JSON.stringify(results[Number(opts['index'])]) || "null", status: StatusCode.RETURN }
             }
             return { content: results.map(v => String(JSON.stringify(v))).join(";\n") + ";", status: StatusCode.RETURN }
-        }, CAT),
+        }, CAT, "Gets specific properties from the return value of a command", {
+            "( command )": createHelpArgument("The command to run in ()", true),
+            "...property [[<!=|==> <value>] | ...subproperties]": createHelpArgument(`each property should be on it's own line.<br>On each line you may add == or != &lt;value&gt;<br>You may also get subproperties for example: <code>content length</code>`)
+        }),
     ]
 
     yield [
@@ -701,7 +704,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.RETURN }
-        }, CAT)
+        }, CAT, "A for loop", {
+            name: createHelpArgument("A variable name<br>can be used like any other bot variable in the commands", true),
+            "x..y": createHelpArgument("x is the start, y is the end", true),
+            "{ commands }": createHelpArgument("The commands to run in {}, seperated by ; and a blank line", true)
+        })
     ]
 
     yield [
@@ -1869,6 +1876,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { noSend: true, status: StatusCode.RETURN }
             },
             help: {
+                info: "Creates a variable",
                 options: {
                     u: createHelpOption("Create a user variable")
                 },
@@ -1962,6 +1970,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: "Nothing removed from file", status: StatusCode.RETURN }
             },
             help: {
+                info: "Removes a line from a command file",
                 arguments: {
                     file: {
                         description: "The command file to remove from",
@@ -2018,6 +2027,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             },
             help: {
+                info: "Reads a command file",
                 arguments: {
                     file: {
                         description: "the file to see"
@@ -2122,6 +2132,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 }
             },
             help: {
+                info: "Adds a line to a command file",
                 arguments: {
                     "file": {
                         description: "The command file list to add to",
@@ -2147,7 +2158,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         }
         return { content: "None", status: StatusCode.ERR }
 
-    }, CAT)]
+    }, CAT, "Gets the type of an alias")]
 
     yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
 
@@ -2273,7 +2284,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         else {
             return { content: `You did not create ${cmdName}`, status: StatusCode.ERR }
         }
-    }, CAT)]
+    }, CAT, "Removes an aliasv2", {
+        name: createHelpArgument("The name of the command to remove", true)
+    })]
 
     yield [
         "rccmdv1",
@@ -2421,6 +2434,7 @@ ${styles}
                 }
             },
             help: {
+                info: "A really funky help command",
                 options: {
                     "json": {
                         description: "return the json of help"
@@ -2445,7 +2459,7 @@ ${styles}
                     }
                 }
             },
-            category: CAT
+            category: CAT,
 
         },
     ]
