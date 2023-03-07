@@ -1842,9 +1842,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
                 }
                 let realVal = value.join("=")
-                let [prefix, val] = realVal.split(":")
-                if(prefix && val && prefix.startsWith("!")){
+                let [prefix, realName] = name.split(":")
+                if(prefix && realName && prefix.startsWith("!")){
                     return {content: `prefix cannot start with !`, status: StatusCode.ERR}
+                }
+                else if(!realName){
+                    realName = prefix
+                    prefix = "__global__"
                 }
                 if (opts['u']) {
                     setVar(name, realVal, msg.author.id)
@@ -1855,7 +1859,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                 }
                 else {
-                    setVarEasy(msg, name, realVal)
+                    setVarEasy(msg, realName, realVal, prefix)
                     if (!opts['silent'])
                         return {
                             content: getVar(msg, name),
