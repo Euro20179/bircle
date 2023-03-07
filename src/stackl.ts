@@ -2,7 +2,7 @@ import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable } 
 import { getVar } from './common'
 
 import { cmd, handleSending, StatusCode } from "./common_to_commands"
-import { efd } from './util'
+import { efd, enumerate } from './util'
 
 const { vars, prefix } = require("./common.js")
 
@@ -99,12 +99,12 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                     break
                 }
                 case "object": {
-                    if(Array.isArray(arg1) && arg2){
+                    if (Array.isArray(arg1) && arg2) {
                         arg1.push(arg2)
                         stack.push(arg1)
                         break
                     }
-                    return {content: "arg2 is undefined", err: true}
+                    return { content: "arg2 is undefined", err: true }
                 }
                 default: {
                     return { err: true, content: `type of ${arg1} is unknown` }
@@ -1072,12 +1072,12 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
         }
         case "%push": {
             let val = stack.pop()
-            if(val === undefined){
-                return {err: true, content: `cannot push undefined to a list`}
+            if (val === undefined) {
+                return { err: true, content: `cannot push undefined to a list` }
             }
             let arr = stack.pop()
-            if(!Array.isArray(arr)){
-                return {err: true, content: `${arr} is not a list`}
+            if (!Array.isArray(arr)) {
+                return { err: true, content: `${arr} is not a list` }
             }
             stack.push(arr.push(val))
             break;
@@ -1233,83 +1233,46 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
         }
         case "%if": {
             let bool = Boolean(stack.pop())
-            if (bool) {
-                for (let i = argNo + 1; i < argCount; i++) {
-                    let ifCount = 0
-                    if (args[i] == "%else") {
-                        let ifCount = 0
-                        for (let j = i + 1; j < argCount; j++) {
-                            if (args[j] == '%if') {
-                                ifCount++
-                            }
-                            if (args[j] == "%ifend") {
-                                ifCount--
-                                if (ifCount < 0)
-                                    return { chgI: j - argNo }
-                            }
-                        }
-                        return { chgI: i - argNo }
-                    }
-                    else if (args[i] == "%if") {
-                        ifCount++
-                    }
-                    else if (args[i] == "%ifend") {
-                        ifCount--
-                    }
-                    if (args[i] == "%ifend" && ifCount < 0) {
-                        return { chgI: i - argNo }
-                    }
-                    let rv = await parseArg(args[i], i, argCount, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
-                    //@ts-ignore
-                    if (rv?.end) return { end: true }
-                    //@ts-ignore
-                    if (rv?.chgI)
-                        //@ts-ignore
-                        i += parseInt(rv.chgI)
-                    //@ts-ignore
-                    if (rv?.err) {
-                        //@ts-ignore
-                        return { chgI: i - argNo, ...rv }
-                    }
-                    //@ts-ignore
-                    if (rv?.stack) {
-                        //@ts-ignore
+            let ifArgs = []
+            //argNo + 1 otherwise we start on the %if that we are currently on
+            for (let i = argNo + 1, innerIfs = 1; innerIfs > 0; i++) {
+                //100k should be PLENTY
+                if(i > 100000){
+                    return {err: true, content: "Syntax error, missing %ifend"}
+                }
+                let a = args[i]
+                if (a === '%if') innerIfs++;
+                else if (a === '%ifend') {
+                    innerIfs--;
+                }
+                ifArgs.push(a)
+            }
+            let start = 0;
+            //if false, and there is an else
+            if (!bool && ifArgs.indexOf("%else") > -1) {
+                //start at the else
+                start = ifArgs.indexOf("%else") + 1
+            }
+            //there was no else, and bool is false, skip the for loop
+            //we must explicitly check for false here because it could be true due to lack of if(bool == true) check
+            else if (!bool) start = -1
+            for (let i = start; i < ifArgs.length && i > -1; i++) {
+
+                if (ifArgs[i] === '%ifend') break;
+
+                let rv = await parseArg(ifArgs[i], i + argNo + 1, argCount, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
+                if (typeof rv === 'object') {
+                    if ("end" in rv)
+                        return { end: true }
+                    if ("chgI" in rv && rv.chgI)
+                        i += rv.chgI
+                    if ('err' in rv)
+                        return { chgI: ifArgs.length, ...rv }
+                    if ('stack' in rv && rv.stack)
                         stack = rv.stack
-                    }
                 }
             }
-            else {
-                for (let i = argNo; i < argCount; i++) {
-                    if (args[i] == "%else") {
-                        for (let j = i + 1; j < argCount; j++) {
-                            if (args[j] == "%ifend") {
-                                return { chgI: j - argNo }
-                            }
-                            let rv = await parseArg(args[j], j, argCount, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
-                            //@ts-ignore
-                            if (rv?.end) return { end: true }
-                            //@ts-ignore
-                            if (rv?.chgI)
-                                //@ts-ignore
-                                j += parseInt(rv.chgI)
-                            //@ts-ignore
-                            if (rv?.err) {
-                                //@ts-ignore
-                                return { chgI: j - argNo, ...rv }
-                            }
-                            //@ts-ignore
-                            if (rv?.stack) {
-                                //@ts-ignore
-                                stack = rv.stack
-                            }
-                        }
-                    }
-                    if (args[i] == "%ifend") {
-                        return { chgI: i - argNo }
-                    }
-                }
-            }
-            break
+            return { chgI: ifArgs.length }
         }
         default: {
             if (arg.match(/^\.[^ ]+$/)) {
@@ -1449,7 +1412,7 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
                 n: "\n",
                 t: "\t"
             }
-            if(maps[text[i] as keyof typeof maps]){
+            if (maps[text[i] as keyof typeof maps]) {
                 word += maps[text[i] as keyof typeof maps]
                 continue
             }
