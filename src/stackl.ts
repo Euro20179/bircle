@@ -1143,10 +1143,9 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             stack.push(list.reverse())
             return { chgI: chgI }
         }
+        //while these technically do the same thing, %break should be used in loops, while %end should be used to end the program
+        case "%break":
         case "%end": {
-            return { end: true }
-        }
-        case "%break": {
             return { end: true }
         }
         case "%find": {
@@ -1237,8 +1236,8 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             //argNo + 1 otherwise we start on the %if that we are currently on
             for (let i = argNo + 1, innerIfs = 1; innerIfs > 0; i++) {
                 //100k should be PLENTY
-                if(i > 100000){
-                    return {err: true, content: "Syntax error, missing %ifend"}
+                if (i > 100000) {
+                    return { err: true, content: "Syntax error, missing %ifend" }
                 }
                 let a = args[i]
                 if (a === '%if') innerIfs++;
@@ -1262,7 +1261,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
 
                 let rv = await parseArg(ifArgs[i], i + argNo + 1, argCount, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
                 if (typeof rv === 'object') {
-                    if ("end" in rv)
+                    if ("end" in rv && rv.end)
                         return { end: true }
                     if ("chgI" in rv && rv.chgI)
                         i += rv.chgI
@@ -1438,20 +1437,11 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
         let arg = args[i]
         arg = arg.trim()
         let rv = await parseArg(arg, i, args.length, args, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
-        //@ts-ignore
-        if (rv?.end) break
-        //@ts-ignore
-        if (rv?.chgI)
-            //@ts-ignore
-            i += parseInt(rv.chgI)
-        //@ts-ignore
-        if (rv?.err) {
-            return rv
-        }
-        //@ts-ignore
-        if (rv?.stack) {
-            //@ts-ignore
-            stack = rv.stack
+        if (typeof rv === 'object') {
+            if ("end" in rv && rv.end) break
+            if ("chgI" in rv && rv.chgI) i += rv.chgI
+            if ("err" in rv && rv?.err) return rv
+            if ("stack" in rv && rv.stack) stack = rv.stack
         }
     }
     return stack
