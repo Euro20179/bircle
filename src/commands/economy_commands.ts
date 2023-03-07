@@ -12,6 +12,7 @@ import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComp
 import { MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
+import { DEVBOT } from '../globals'
 const { buyItem, hasItem, useItem } = require('../shop')
 
 const { ITEMS, INVENTORY } = require("../shop")
@@ -98,7 +99,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let exchangeRate = toolTotal / economyTotal
 
             let amount = economy.calculateAmountFromString(msg.author.id, args[0])
-            let nAmount = Number(amount)
+            let nAmount = Math.trunc(Number(amount))
             if(!economy.canBetAmount(msg.author.id, nAmount)){
                 return {content: `You do not have this much money`, status: StatusCode.ERR}
             }
@@ -118,7 +119,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }, "Transfer money to tools bot", {
             helpArguments: {
                 amount: createHelpArgument("the amount to transfer", true)
-            }
+            },
+            permCheck: () => !DEVBOT
         })
     ]
 

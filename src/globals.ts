@@ -8,6 +8,8 @@ export const GUILD_ID = fs.readFileSync("./data/GUILD", "utf-8").trim()
 
 export let SPAM_ALLOWED = true
 
+export let DEVBOT = fs.existsSync("./data/IS-DEV-BOT")
+
 export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 export let SPAMS: { [id: string]: boolean } = {}
