@@ -9,7 +9,7 @@ const { vars, prefix } = require("./common.js")
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed | CommandReturn
 type errType = { content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?: boolean }
 
-async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc: number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: number | string | Message | GuildMember | Function }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, SPAMS: { [key: string]: boolean }): Promise<stackTypes | errType> {
+async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc: number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: stackTypes }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, SPAMS: { [key: string]: boolean }): Promise<stackTypes | errType> {
     switch (arg) {
         //vars
         case "$stacksize": {
@@ -54,7 +54,6 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof val !== 'number') {
                 return { content: `${stack[stack.length - 1]} is not a number`, err: true }
             }
-            //@ts-ignore
             let ans = val + 1
             stack.push(ans)
             break;
@@ -479,23 +478,12 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 let stack = args
                 for (let i = 0; i < code.length; i++) {
                     let rv = await parseArg(code[i], i, code.length, code, argc, stack, initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
-                    //@ts-ignore
-                    if (rv?.end) return { end: true }
-                    //@ts-ignore
-                    if (rv?.chgI)
-                        //@ts-ignore
-                        i += parseInt(rv.chgI)
-                    //@ts-ignore
-                    if (rv?.err) {
-                        //@ts-ignore
-                        return { chgI: i - argNo, ...rv }
+                    if (typeof rv === 'object') {
+                        if ("end" in rv && rv.end) return { end: true }
+                        if ("chgI" in rv && rv?.chgI) i += rv.chgI
+                        if ("err" in rv && rv?.err) return { chgI: i - argNo, ...rv }
+                        if ("stack" in rv && rv.stack) stack = rv.stack
                     }
-                    //@ts-ignore
-                    if (rv?.stack) {
-                        //@ts-ignore
-                        stack = rv.stack
-                    }
-
                 }
                 return { stack: stack }
             }
@@ -887,8 +875,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                     "random": [Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)]
                 }
                 if (typeof color === 'string') {
-                    //@ts-ignore
-                    color = colorsToStrings[color.toLowerCase()]
+                    color = colorsToStrings[color.toLowerCase() as keyof typeof colorsToStrings] ?? color.toLowerCase()
                 }
                 e.setColor(color as ColorResolvable)
             }
@@ -1199,21 +1186,11 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 loopCount++
                 for (let i = 0; i < code.length; i++) {
                     let rv = await parseArg(code[i], i, code.length, code, argc, stacks[currScopes[currScopes.length - 1]], initialArgs, ram, currScopes, msg, recursionC, stacks, SPAMS)
-                    //@ts-ignore
-                    if (rv?.end) break forever
-                    //@ts-ignore
-                    if (rv?.chgI) {
-                        //@ts-ignore
-                        i += parseInt(rv.chgI)
-                    }
-                    //@ts-ignore
-                    if (rv?.err) {
-                        return rv
-                    }
-                    //@ts-ignore
-                    if (rv?.stack) {
-                        //@ts-ignore
-                        stack = rv.stack
+                    if (typeof rv === 'object') {
+                        if ("end" in rv && rv.end) break forever
+                        if ("chgI" in rv && rv.chgI) i += rv.chgI
+                        if ("err" in rv && rv.err) return rv
+                        if ("stack" in rv && rv.stack) stack = rv.stack
                     }
                 }
                 if (loopCount > 2000) {
@@ -1315,8 +1292,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             else if (stack[stack.length - 1] == "%sram") {
                 let sram = stack.pop()
                 let item = stack.pop()
-                //@ts-ignore
-                ram[arg as string] = item
+                ram[arg as string] = item ?? 0
             }
             else if (stack[stack.length - 1] == '%lram') {
                 if (ram[arg] === undefined) {
