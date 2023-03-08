@@ -989,7 +989,7 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
             (msg.embeds.at(0) as MessageEmbed).image = null
     }
     if (!img) {
-        img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
+        img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.url
     }
     return img
 }

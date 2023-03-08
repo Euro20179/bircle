@@ -1501,7 +1501,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 let opts: Opts;
                 [opts, args] = getOpts(args)
                 let img = getImgFromMsgAndOpts(opts, msg)
-                if (!img || img === true) {
+                if (!img) {
                     return { content: "No image found", status: StatusCode.ERR }
                 }
                 let amount = Number(args[0]) || 90
