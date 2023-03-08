@@ -7,7 +7,7 @@ import economy = require("../economy")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, delVar, FILE_SHORTCUTS, getUserMatchCommands, getVar, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, saveVars, setVar, setVarEasy, vars, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList } from "../util"
 import { Guild, Message, MessageEmbed, User } from "discord.js"
 import { registerCommand } from "../common_to_commands"
 import { execSync } from 'child_process'
@@ -500,46 +500,43 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "cmd-search",
-        {
-            run: async (_msg, args, sendCallback) => {
+        "cmd-search", ccmdV2(async function({args, opts}){
                 let search = args.join(" ")
-                let regexp;
-                try {
-                    regexp = new RegExp(search)
+                let commands = { ...Object.fromEntries(getCommands().entries()), }
+                let infos = Object.entries(commands).map(v => `${v[0]}\n${v[1].help?.info || ""}`)
+                let infoResults = searchList(search, infos)
+                // let results = searchList(search, Object.keys(commands))
+                // let sortedResults = Object.entries(results).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1])
+                let sortedInfoResults = Object.entries(infoResults).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1])
+                let allResults = sortedInfoResults
+                let top10 = allResults.slice(0, opts.getNumber("top", 10))
+                if(!top10.length){
+                    return crv("No results", {status: StatusCode.ERR})
                 }
-                catch (err) {
-                    return { content: "Invalid regex", status: StatusCode.ERR }
-                }
-                let commands = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
-                let results = []
-                for (let cmd in commands) {
-                    if (cmd.match(regexp)) {
-                        if (commands[cmd]?.help?.info) {
-                            results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
-                        }
-                        else results.push(cmd)
-                    }
-                    else if (commands[cmd]?.help) {
-                        let help = commands[cmd]?.help
-                        if (help?.info?.match(search)) {
-                            results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
-                        }
-                        else if (help?.tags?.includes(search)) {
-                            results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
-                        }
-                    }
-                }
-                if (results.length == 0) {
-                    return { content: "No results", status: StatusCode.ERR }
-                }
-                return { content: results.join("\n"), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Search for commands with a search query"
-            },
-            category: CAT
-        },
+                return crv(top10.reduce((p, cur) => `${p}\n--------------------\n${renderHTML(cur[0])} (${cur[1]})`, ""), {status: StatusCode.RETURN})
+
+                // for (let cmd in commands) {
+                //     if (cmd.match(regexp)) {
+                //         if (commands[cmd]?.help?.info) {
+                //             results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
+                //         }
+                //         else results.push(cmd)
+                //     }
+                //     else if (commands[cmd]?.help) {
+                //         let help = commands[cmd]?.help
+                //         if (help?.info?.match(search)) {
+                //             results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
+                //         }
+                //         else if (help?.tags?.includes(search)) {
+                //             results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
+                //         }
+                //     }
+                // }
+                // if (results.length == 0) {
+                //     return { content: "No results", status: StatusCode.ERR }
+                // }
+                // return { content: results.join("\n"), status: StatusCode.RETURN }
+        }, "Search for commands with a search query")
     ]
 
     yield [

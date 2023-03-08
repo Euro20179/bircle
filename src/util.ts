@@ -1542,34 +1542,43 @@ function searchList(search: string, list_of_strings: string[]) {
     let results: { [key: string]: number } = {}
     for (let str of list_of_strings) {
         let lastMatch = 0;
-        let matchIndicies: number[] = []
+        let score = 0
+        let inARow = 0
+        let lastJ = 0;
         for (let i = 0; i < search.length; i++) {
-            // let foundMatch = false
+            let foundMatch = false
             for (let j = lastMatch; j < str.length; j++) {
                 if (str[j] === search[i]) {
-                    matchIndicies.push(j)
-                    lastMatch = j
+                    if(j == lastJ + 1){
+                        inARow++;
+                        score += inARow
+                        foundMatch = true
+                        lastJ = j
+                    }
+                    // score += ((str.length - j) / str.length)
                     // accuracy += (j - i) * sequence * (file.length - j)
                     // sequence += 1
-                    // foundMatch = true
                     // break
                 }
                 // else if(i === j)
                 //     sequence = 1
+            }
+            if(!foundMatch){
+                inARow = 0
+                score /= 2
             }
             // if(!foundMatch){
             //     accuracy -= file.length
             //     sequence = 1
             // }
         }
-        let total = 0
-        for (let i = 1; i < matchIndicies.length; i++) {
-            if (matchIndicies[i] - matchIndicies[i - 1] === 0) {
-                continue
-            }
-            total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
-        }
-        results[str] = total
+        // for (let i = 1; i < streak.length; i++) {
+        //     if (matchIndicies[i] - matchIndicies[i - 1] === 0) {
+        //         continue
+        //     }
+        //     total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
+        // }
+        results[str] = score
     }
     return results
 }
