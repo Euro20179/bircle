@@ -69,6 +69,7 @@ declare global {
 
     interface CommandHelp {
         info?: string,
+        docs?: string,
         /**
          * @deprecated Use /ccmd <alias name> <command> <text> instead, ie: no built in aliases
          */

@@ -1202,6 +1202,7 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     helpArguments?: CommandHelpArguments,
     helpOptions?: CommandHelpOptions,
     tags?: string[],
+    docs?: string,
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
     use_result_cache?: boolean,
@@ -1212,6 +1213,7 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         run: cb,
         help: {
             info: helpInfo,
+            docs: options?.docs,
             arguments: options?.helpArguments,
             options: options?.helpOptions,
             tags: options?.tags,

@@ -1,3 +1,4 @@
+import { Cheerio } from "cheerio"
 import cheerio = require("cheerio")
 import { spawnSync } from "child_process"
 
@@ -1281,6 +1282,10 @@ function renderBElement(elem: cheerio.Element, indentation = 0) {
     return `**${renderElementChildren(elem, indentation)}**`
 }
 
+function renderUElement(elem: cheerio.Element, indentation=0){
+    return `__${renderElementChildren(elem, indentation)}__`
+}
+
 function renderIElement(elem: cheerio.Element, indentation = 0) {
     return `*${renderElementChildren(elem, indentation)}*`
 }
@@ -1343,6 +1348,9 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         else if (["strong", "b"].includes(elem.name)) {
             text += renderBElement(elem, indentation)
         }
+        else if(elem.name === "u"){
+            text += renderUElement(elem, indentation)
+        }
         else if (["i"].includes(elem.name)) {
             text += renderIElement(elem, indentation)
         }
@@ -1368,6 +1376,12 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
 function renderHTML(text: string, indentation = 0) {
     let h = cheerio.load(text)("body")[0]
     return renderELEMENT(h, indentation)
+}
+
+function generateDocSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand){
+    let summary = generateCommandSummary(name, command)
+    summary += renderHTML(`<br><br><b>docs</b><br>${command['help']?.['docs'] || ""}`)
+    return summary
 }
 
 function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
@@ -1412,6 +1426,9 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
 
     if (helpData.info) {
         textInfo = "\n\n" + renderHTML(helpData.info) + "\n\n"
+    }
+    if(helpData.docs){
+        textInfo += renderHTML(helpData.docs)
     }
     if (helpData.aliases) {
         aliasInfo = `Aliases: ${helpData.aliases.join(", ")}\n`
@@ -1481,6 +1498,9 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
         let args = help["arguments"] || {}
         if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
+        }
+        if(help['docs']){
+            html += `<h2 class="command-doc">Docs</h2><p class="command-doc">${help['docs']}</p>`
         }
         if (help["accepts_stdin"]) {
             html += `<h2 class="command-stdin">Stdin</h2><p class="stdin-text">${help['accepts_stdin']}</p>`
@@ -1658,6 +1678,7 @@ export {
     isSafeFilePath,
     mimeTypeToFileExtension,
     getInnerPairsAndDeafultBasedOnRegex,
-    getToolIp
+    getToolIp,
+    generateDocSummary
 }
 

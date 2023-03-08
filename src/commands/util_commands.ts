@@ -13,7 +13,7 @@ import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp } from '../util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary } from '../util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
@@ -294,6 +294,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let mimetype: MimeType = "plain/markdown"
             if (opts['s']) {
                 fn = function() { return generateCommandSummary(arguments[0], arguments[1]) + "\n---------------------\n" }
+            }
+            else if(opts['d']){
+                fn = function() { return generateDocSummary(arguments[0], arguments[1]) + "\n---------------------\n"}
             }
             else if (opts['html']) {
                 fn = function() { return generateHTMLFromCommandHelp(arguments[0], arguments[1]) + "<br>" }
@@ -672,7 +675,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     </li>
     <li>
         <b>p</b>: print <code>range</code> lines or the current line.
-    <li>
+    </li>
     <li>
         <b>n</b>: same as <b>p</b> and also numbers the lines.
     </li>
@@ -683,7 +686,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         <b>!</b>: replaces <code>range</code> lines with the output of a bircle command.
     </li>
     <li><b>q</b>: quit</li>
-</ul>`, {
+</ul>
+<b>Insert</b>
+<p indent=1>
+    To exit insert mode do <code>.</code>
+</p>`, {
             "...exec": createHelpArgument("If -exec is given, treat arguments as ed commands")
         }, {
             "exec": createHelpOption("Treat arguments as ed commands")

@@ -834,7 +834,8 @@ until you put a 0 in the box`)
                 return battle.battle(msg, args)
             }, category: CommandCategory.GAME,
             help: {
-                info: `<h1>A BATTLE SIMULATOR</h1>
+                info: `<h1>A BATTLE SIMULATOR</h1>`,
+                docs: `
             <br>Rules:<br>
             <ul>
                 <li>
