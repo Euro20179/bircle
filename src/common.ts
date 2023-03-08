@@ -254,14 +254,14 @@ function readVarVal(msg: Message, variableData: Function | any) {
     }
 }
 
-function getVar(msg: Message, varName: string, prefix?: string) {
+function getVar(msg: Message, varName: string, prefix?: string, id?: string) {
     if (!prefix) {
         if (!prefix) {
             [prefix, varName] = getPrefixAndVarname(varName)
         }
     }
     if (prefix === "%") {
-        prefix = msg.author.id
+        prefix = id ?? msg.author.id
     }
 
     if(prefix.includes(".") && prefix.slice(0, 18).match(/\d{18}/)){
@@ -280,8 +280,8 @@ function getVar(msg: Message, varName: string, prefix?: string) {
         return readVarVal(msg, vars[prefix][varName])
     }
     //for prefixed vars
-    else if (vars[msg.author.id]?.[prefix]?.[varName] !== undefined) {
-        return readVarVal(msg, vars[msg.author.id][prefix][varName])
+    else if (vars[id ?? msg.author.id]?.[prefix]?.[varName] !== undefined) {
+        return readVarVal(msg, vars[id ?? msg.author.id][prefix][varName])
     }
     return false
 }
