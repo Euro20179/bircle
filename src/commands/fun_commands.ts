@@ -195,11 +195,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }, 
             "spanking": async () => {
                 let lostAmount = Math.floor(Math.random() * 10)
-                let name = choice(["Johnny", "Jicky", "aldo", "yicky", "jinky", "Mumbo"])
+                let name = choice(["Johnny", "Jicky", "Aldo", "Yicky", "Jinky", "Mumbo"])
                 await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
                 return {noSend: true, status: StatusCode.RETURN}
             },
-            "bingo night": async() => {
+            "doing bingo night": async() => {
                 economy.addMoney(msg.author.id, economy.calculateAmountFromString(msg.author.id, "1%"))
                 return crv("YOU WIN!!!!", {
                     files: [
@@ -208,7 +208,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                     ]
                 })
-            }
+            },
+            "getting a retirement massage": async() => crv(choice([
+                    "Now that's relaxing",
+                    "That really chilled out my bone structure",
+                ]))
         }
 
         let activity =  choice(Array.from(Object.keys(activities)))
