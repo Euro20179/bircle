@@ -441,47 +441,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     }
                     embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
                 }
-                embed.setFooter({ text: `To buy a pet, do ${prefix}bpet <pet name>` })
+                embed.setFooter({ text: `To buy a pet, do ${prefix}buy pet <pet name>` })
                 return { embeds: [embed], status: StatusCode.RETURN }
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "See the pet shop"
-            }
-        },
-    ]
-
-    yield [
-        'bpet', {
-            run: async (msg, args, sendCallback) => {
-                let requested_pet = args[0]
-                if (!requested_pet) {
-                    return { content: "You didnt specify a pet", status: StatusCode.ERR }
-                }
-                let shopData = pet.getPetShop()
-                requested_pet = requested_pet.toLowerCase()
-                if (!shopData[requested_pet]) {
-                    return { content: `${requested_pet}: not a valid pet`, status: StatusCode.ERR }
-                }
-                let petData = shopData[requested_pet]
-                let totalCost = 0
-                for (let cost of petData.cost) {
-                    totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
-                }
-                if (!economy.canBetAmount(msg.author.id, totalCost)) {
-                    return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
-                }
-                if (pet.buyPet(msg.author.id, requested_pet)) {
-                    return { content: `You have successfuly bought: ${requested_pet} for: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`, status: StatusCode.RETURN }
-                }
-                return { content: "You already have this pet", status: StatusCode.ERR }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Buy a pet",
-                arguments: {
-                    pet: {
-                        description: "The pet to buy"
-                    }
-                }
             }
         },
     ]
