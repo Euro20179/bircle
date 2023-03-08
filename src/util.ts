@@ -1282,7 +1282,7 @@ function renderBElement(elem: cheerio.Element, indentation = 0) {
     return `**${renderElementChildren(elem, indentation)}**`
 }
 
-function renderUElement(elem: cheerio.Element, indentation=0){
+function renderUElement(elem: cheerio.Element, indentation = 0) {
     return `__${renderElementChildren(elem, indentation)}__`
 }
 
@@ -1348,7 +1348,7 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         else if (["strong", "b"].includes(elem.name)) {
             text += renderBElement(elem, indentation)
         }
-        else if(elem.name === "u"){
+        else if (elem.name === "u") {
             text += renderUElement(elem, indentation)
         }
         else if (["i"].includes(elem.name)) {
@@ -1378,7 +1378,7 @@ function renderHTML(text: string, indentation = 0) {
     return renderELEMENT(h, indentation)
 }
 
-function generateDocSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand){
+function generateDocSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let summary = generateCommandSummary(name, command)
     summary += renderHTML(`<br><br><b>docs</b><br>${command['help']?.['docs'] || ""}`)
     return summary
@@ -1427,7 +1427,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     if (helpData.info) {
         textInfo = "\n\n" + renderHTML(helpData.info) + "\n\n"
     }
-    if(helpData.docs){
+    if (helpData.docs) {
         textInfo += renderHTML(helpData.docs)
     }
     if (helpData.aliases) {
@@ -1499,7 +1499,7 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
         if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
         }
-        if(help['docs']){
+        if (help['docs']) {
             html += `<h2 class="command-doc">Docs</h2><p class="command-doc">${help['docs']}</p>`
         }
         if (help["accepts_stdin"]) {
@@ -1559,47 +1559,55 @@ function weirdMulStr(text: string[], ...count: string[]) {
     return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
 
+function recursiveSum(start: number): number {
+    if (start === 0) {
+        return 0
+    }
+    return start + recursiveSum(start - 1)
+}
+
 function searchList(search: string, list_of_strings: string[]) {
     let results: { [key: string]: number } = {}
     for (let str of list_of_strings) {
-        let lastMatch = 0;
+        str = str.toLowerCase()
         let score = 0
         let inARow = 0
-        let lastJ = 0;
-        for (let i = 0; i < search.length; i++) {
+        let maxInARow = 0;
+        let lastMatchI = 0;
+        let lastMatchJ = 0;
+        for (let i = 0; i < str.length; i++) {
             let foundMatch = false
-            for (let j = lastMatch; j < str.length; j++) {
-                if (str[j] === search[i]) {
-                    if(j == lastJ + 1){
+            for (let j = lastMatchJ + 1; j < search.length; j++) {
+                if (str[i] === search[j]) {
+                    if (i === lastMatchI + 1) {
                         inARow++;
-                        score += inARow
-                        foundMatch = true
-                        lastJ = j
+                        score += j
                     }
-                    // score += ((str.length - j) / str.length)
-                    // accuracy += (j - i) * sequence * (file.length - j)
-                    // sequence += 1
-                    // break
+                    else {
+                        inARow = 1
+                    }
+                    if (inARow > maxInARow) {
+                        maxInARow = inARow
+                    }
+                    lastMatchI = i
+                    lastMatchJ = j
+                    if (inARow > maxInARow)
+                        maxInARow = inARow
+
+                    foundMatch = true
+                    break;
                 }
-                // else if(i === j)
-                //     sequence = 1
             }
-            if(!foundMatch){
-                inARow = 0
-                score /= 2
+            if (!foundMatch) {
+                if (maxInARow / search.length < .7) {
+                    score /= 2
+                }
+                inARow = 0;
+                lastMatchJ = 0
+                lastMatchI = 0
             }
-            // if(!foundMatch){
-            //     accuracy -= file.length
-            //     sequence = 1
-            // }
         }
-        // for (let i = 1; i < streak.length; i++) {
-        //     if (matchIndicies[i] - matchIndicies[i - 1] === 0) {
-        //         continue
-        //     }
-        //     total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
-        // }
-        results[str] = score
+        results[str] = score * maxInARow
     }
     return results
 }

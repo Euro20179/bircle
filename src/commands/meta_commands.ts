@@ -503,40 +503,50 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "cmd-search", ccmdV2(async function({args, opts}){
                 let search = args.join(" ")
                 let commands = { ...Object.fromEntries(getCommands().entries()), }
-                let infos = Object.entries(commands).map(v => `${v[0]}\n${v[1].help?.info || ""}`)
-                let infoResults = searchList(search, infos)
-                // let results = searchList(search, Object.keys(commands))
-                // let sortedResults = Object.entries(results).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1])
-                let sortedInfoResults = Object.entries(infoResults).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1])
-                let allResults = sortedInfoResults
-                let top10 = allResults.slice(0, opts.getNumber("top", 10))
-                if(!top10.length){
+
+                let top = opts.getNumber("top", 10)
+
+                let mainTopCount = top / 2
+                let infoTopCount = top / 2
+
+                if(opts.getBool("ei", opts.getBool("exclude-info", false))){
+                    mainTopCount = top
+                    infoTopCount = 0
+                }
+                else if(opts.getBool("in", opts.getBool("include-names", false))){
+                    mainTopCount = 0
+                    infoTopCount = top
+                }
+
+                let allResults: [string, number][] = []
+
+                if(mainTopCount > 0){
+                    let results = searchList(search, Object.keys(commands))
+                    let sortedResults = Object.entries(results).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, mainTopCount)
+                    allResults = sortedResults
+                }
+
+                if(infoTopCount > 0){
+                    let infos = Object.entries(commands).map(v => `${v[0]}\n${v[1].help?.info || ""}`)
+                    let infoResults = searchList(search, infos)
+                    let sortedInfoResults = Object.entries(infoResults).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, infoTopCount)
+                    allResults = allResults.concat(sortedInfoResults)
+                }
+
+                if(!allResults.length){
                     return crv("No results", {status: StatusCode.ERR})
                 }
-                return crv(top10.reduce((p, cur) => `${p}\n--------------------\n${renderHTML(cur[0])} (${cur[1]})`, ""), {status: StatusCode.RETURN})
-
-                // for (let cmd in commands) {
-                //     if (cmd.match(regexp)) {
-                //         if (commands[cmd]?.help?.info) {
-                //             results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
-                //         }
-                //         else results.push(cmd)
-                //     }
-                //     else if (commands[cmd]?.help) {
-                //         let help = commands[cmd]?.help
-                //         if (help?.info?.match(search)) {
-                //             results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
-                //         }
-                //         else if (help?.tags?.includes(search)) {
-                //             results.push(`**${cmd}**: ${renderHTML(commands[cmd]?.help?.info || "")}`)
-                //         }
-                //     }
-                // }
-                // if (results.length == 0) {
-                //     return { content: "No results", status: StatusCode.ERR }
-                // }
-                // return { content: results.join("\n"), status: StatusCode.RETURN }
-        }, "Search for commands with a search query")
+                return crv(allResults.reduce((p, cur) => `${p}\n--------------------\n${renderHTML(cur[0])} (${cur[1]})`, ""), {status: StatusCode.RETURN})
+        }, "Search for commands with a search query", {
+            helpOptions: {
+                top: createHelpOption("Show for the top <code>n</code> results", undefined, "10"),
+                ei: createHelpOption("Exclude searching for cmd info", ["exclude-info"], "true"),
+                in: createHelpOption("Include searching just cmd names", ["include-names"], "false")
+            },
+            helpArguments: {
+                "...search": createHelpArgument("Search query", true)
+            }
+        })
     ]
 
     yield [
