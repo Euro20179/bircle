@@ -344,66 +344,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "bitem", {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-
-                [opts, args] = getOpts(args)
-                let count = Number(opts['count'] || opts['c'])
-                if (!count) {
-                    count = Number(args[args.length - 1])
-                    if (count) {
-                        args = args.slice(0, -1)
-                    }
-                    else {
-                        count = 1
-                    }
-                }
-                let item = args.join(" ")
-                if (!item) {
-                    return { content: "no item", status: StatusCode.ERR }
-                }
-                if (msg.author.bot) {
-                    return { content: "Bots cannot buy items", status: StatusCode.ERR }
-                }
-                if (!ITEMS()[item]) {
-                    return { content: `${item} does not exist`, status: StatusCode.ERR }
-                }
-                let totalSpent = 0
-                for (let i = 0; i < count; i++) {
-                    let totalCost = 0
-                    let { total } = economy.economyLooseGrandTotal()
-                    for (let cost of ITEMS()[item].cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, total, `${cost}`)
-                    }
-                    if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
-                        if (buyItem(msg.author.id, item)) {
-                            economy.loseMoneyToBank(msg.author.id, totalCost)
-                            totalSpent += totalCost
-                        }
-                        else {
-                            return { content: `You already have the maximum of ${item}`, status: StatusCode.ERR }
-                        }
-                    }
-                    else {
-                        if (i > 0) {
-                            return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`, status: StatusCode.RETURN }
-                        }
-                        return { content: `This item is too expensive for u`, status: StatusCode.ERR }
-                    }
-                }
-                return { content: `You bought: ${item} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Buy an item",
-                options: {
-                    count: createHelpOption("The amount of the item to buy", undefined, "1")
-                }
-            }
-        },
-    ]
-
-    yield [
         "inventory", {
             run: async (msg, args, sendCallback) => {
                 let user = await fetchUserFromClient(client, args[0] ?? msg.author.id)
