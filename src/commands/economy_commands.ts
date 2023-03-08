@@ -886,8 +886,26 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "give-item", {
             run: async (msg, args, sendCallback) => {
-                let user = args.slice(-1)[0]
-                let i = args.slice(0, -1).join(" ")
+                let user = msg.author;
+                if (msg.mentions.users.at(0)) {
+                    args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "").trim()).filter(v => v)
+                    user = msg.mentions.users.at(0) as User
+                }
+                else{
+                    let search = args.slice(-1)[0]
+                    if(msg.guild){
+                        user = (await fetchUser(msg.guild as Guild, search))?.user as User
+                    }
+                    else{
+                        user = (await fetchUserFromClient(client, search)) as User
+                    }
+                    if (!user) {
+                        return { content: `${user} not found`, status: StatusCode.ERR }
+                    }
+                    args = args.slice(0, -1)
+                }
+
+                let i = args.join(" ")
 
                 if (!user) {
                     return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
@@ -904,10 +922,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
 
-                let member = await fetchUser(msg.guild as Guild, user)
-                if (!member) {
-                    return { content: `${user} not found`, status: StatusCode.ERR }
-                }
 
                 let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
                 if (!itemData) {
@@ -915,14 +929,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
 
                 let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(msg.author.id, itemData, count))
-                if (countnum <= 0 || countnum > itemData.count) {
-                    return { content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
+                if (countnum <= 0 || countnum > itemData) {
+                    return { content: `You only have ${itemData} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }
 
-                giveItem(member.id, itemstr.toLowerCase(), countnum)
+                giveItem(user.id, itemstr.toLowerCase(), countnum)
                 useItem(msg.author.id, itemstr.toLowerCase(), countnum)
 
-                return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+                return { content: `<@${msg.author.id}> gave <@${user.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
             }, category: CommandCategory.ECONOMY,
             help: {
