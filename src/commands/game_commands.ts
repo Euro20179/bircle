@@ -31,8 +31,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let players: (User | undefined)[] = [msg.author]
         if (args.length) {
             players[1] = msg.guild ? (await fetchUser(msg.guild, args.join(" ")))?.user : await fetchUserFromClient(client, args.join(" "))
-            if(players[1] === players[0]){
-                return {content: ":watching:", status: StatusCode.ERR}
+            if (players[1] === players[0]) {
+                return { content: ":watching:", status: StatusCode.ERR }
             }
         }
         if (!players[1]) {
@@ -107,9 +107,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let column = Number(m.content) - 1
             board = connect4.placeColorInColumn(board, turnColor, column)
             if (connect4.checkWin(board, needed)) {
-                for (let user of players as User[]){
+                for (let user of players as User[]) {
                     globals.endCommand(user.id, 'connect4')
-                    if(user !== player){
+                    if (user !== player) {
                         setVar("losses", String(Number(getVar(msg, "losses", "!connect4", user.id)) + 1), "!connect4", user.id)
                     }
                 }
@@ -119,7 +119,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 setVar("wins", String(wins), "!connect4", player.id)
                 await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
                 saveVars()
-                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), {wins: String(wins), losses: String(losses)}), status: StatusCode.RETURN, recurse: true }
+                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), { wins: String(wins), losses: String(losses) }), status: StatusCode.RETURN, recurse: true }
             }
         }
 
@@ -912,6 +912,18 @@ until you put a 0 in the box`)
         },
     ]
 
+    // yield [
+    //     "roulette", ccmdV2(async function({msg, args}){
+    //         globals.startCommand(msg.author.id, "roulette")
+    //
+    //
+    //
+    //         globals.endCommand(msg.author.id, "roulette")
+    //     }, "Is it black or red, bet your life savings to find out!!!!", {
+    //         permCheck: m => !globals.userUsingCommand(m.author.id, "roulette")
+    //     })
+    // ]
+
     yield [
         "ticket",
         {
@@ -1476,9 +1488,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "blackjack", createCommand(async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        "blackjack", ccmdV2(async ({ msg, args, rawOpts: opts, sendCallback }) => {
             let hardMode = Boolean(opts['hard'])
             let betStr = args[0]
             if (!betStr) {
@@ -1511,13 +1521,16 @@ until you put a 0 in the box`)
             }
 
             globals.BLACKJACK_GAMES[msg.author.id] = true
-            let cards = []
+
+            let cards: string[] = []
+
             let numbers = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
             for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                 for (let num of numbers) {
                     cards.push(`${num}`)
                 }
             }
+
             function calculateCardValue(card: string, total: number) {
                 if (card == "A") {
                     if (total + 11 >= 22) {
@@ -1535,6 +1548,7 @@ until you put a 0 in the box`)
                 }
                 return { amount: NaN, soft: false }
             }
+
             function calculateTotal(cards: string[]) {
                 let total = 0
                 let soft = false
@@ -1555,24 +1569,46 @@ until you put a 0 in the box`)
                 }
                 return { total: total, soft: soft }
             }
+
             function giveRandomCard(cardsToChooseFrom: string[], deck: string[]) {
                 let no = Math.floor(Math.random() * cardsToChooseFrom.length)
                 let c = cardsToChooseFrom[no]
                 cards = cardsToChooseFrom.filter((_v, i) => i != no)
                 deck.push(c)
             }
-            let playersCards: string[] = []
-            let dealerCards: string[] = []
-            for (let i = 0; i < 2; i++) {
-                giveRandomCard(cards, playersCards)
-                giveRandomCard(cards, dealerCards)
+
+
+            function dealCards(playerCards: string[], dealerCards: string[]) {
+                for (let i = 0; i < 2; i++) {
+                    giveRandomCard(cards, playerCards)
+                    giveRandomCard(cards, dealerCards)
+                }
             }
-            if (calculateTotal(playersCards).total === 21) {
+
+            function letDealerPlay(dealerCards: string[]) {
+                let total = 0
+                while ((total = calculateTotal(dealerCards).total) < 22) {
+                    let awayFrom21 = 21 - total
+                    let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
+
+                    let chance = countOfAwayInDeck / cards.length
+                    if (Math.random() < chance || total < 17) {
+                        giveRandomCard(cards, dealerCards)
+                    }
+                    else {
+                        break
+                    }
+                }
+            }
+
+            function winBJ(bet: number) {
                 economy.addMoney(msg.author.id, bet * 3)
                 delete globals.BLACKJACK_GAMES[msg.author.id]
                 return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+
             }
-            if (calculateTotal(dealerCards).total === 21) {
+
+            function dealerBJ(bet: number) {
                 economy.loseMoneyToBank(msg.author.id, bet)
                 delete globals.BLACKJACK_GAMES[msg.author.id]
                 if (Math.random() > .999) {
@@ -1580,67 +1616,71 @@ until you put a 0 in the box`)
                     return { content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN }
                 }
                 return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**`, status: StatusCode.RETURN }
-            }
-            let total = 0
-            while ((total = calculateTotal(dealerCards).total) < 22) {
-                let awayFrom21 = 21 - total
-                let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
 
-                let chance = countOfAwayInDeck / cards.length
-                if (Math.random() < chance || total < 17) {
-                    giveRandomCard(cards, dealerCards)
-                }
-                else {
-                    break
-                }
             }
+
+            let playersCards: string[] = []
+            let dealerCards: string[] = []
+
+            dealCards(playersCards, dealerCards)
+
+            if (calculateTotal(playersCards).total === 21) {
+                return winBJ(bet)
+            }
+
+            if (calculateTotal(dealerCards).total === 21) {
+                return dealerBJ(bet)
+            }
+
+            letDealerPlay(dealerCards)
+
+            let aurl = msg.member?.user.avatarURL()
             while (true) {
                 let embed = new MessageEmbed()
+
                 embed.setTitle("Blackjack")
-                if (msg.member?.user.avatarURL()) {
-                    //@ts-ignore
-                    embed.setThumbnail(msg.member.user.avatarURL().toString())
+
+                if (aurl) {
+                    embed.setThumbnail(aurl.toString())
                 }
+
                 let playerTotal = calculateTotal(playersCards)
+
                 if (playerTotal.soft) {
                     embed.addFields(efd(["Your cards", `value: **${playerTotal.total}** (soft)`, true]))
                 }
                 else embed.addFields(efd(["Your cards", `value: **${playerTotal.total}**`, true]))
+
                 //FIXME: edge case where dealerCards[0] is "A", this could be wrong
                 embed.addFields(efd(["Dealer cards", `value: **${calculateCardValue(dealerCards[0], 0).amount}**`, true]))
+
                 embed.setFooter({ text: `Cards Remaining, \`${cards.length}\`` })
+
+                let turnOptions = ["hit", "stand", "double bet"]
+
                 if (hasItem(msg.author.id, "reset")) {
                     embed.setDescription(`\`reset\`: restart the game\n\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
+                    turnOptions.push("reset")
                 }
                 else {
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
-                let _message = await handleSending(msg, { embeds: [embed], status: StatusCode.INFO }, sendCallback)
-                let response
-                while (!response) {
-                    let collectedMessages
-                    try {
-                        collectedMessages = await msg.channel.awaitMessages({
-                            filter: m => {
-                                if (m.author.id === msg.author.id) {
-                                    if (hasItem(msg.author.id, "reset") && (['hit', 'stand', 'double bet', 'reset'].includes(m.content.toLowerCase()))) {
-                                        return true
-                                    }
-                                    else if (['hit', 'stand', 'double bet'].includes(m.content.toLowerCase())) {
-                                        return true
-                                    }
-                                }
-                                return false
-                            }, max: 1, time: 30000, errors: ["time"]
-                        })
-                    }
-                    catch (err) {
-                        economy.loseMoneyToBank(msg.author.id, bet)
-                        delete globals.BLACKJACK_GAMES[msg.author.id]
-                        return { content: `Did not respond  in time, lost ${bet}`, status: StatusCode.ERR }
-                    }
-                    response = collectedMessages.at(0)
+
+                await handleSending(msg, { embeds: [embed], status: StatusCode.INFO }, sendCallback)
+
+                let response, collectedMessages
+                collectedMessages = await msg.channel.awaitMessages({
+                    filter: m => m.author.id === msg.author.id && turnOptions.includes(m.content.toLowerCase())
+                    , max: 1, time: 30000
+                })
+                response = collectedMessages.at(0)
+                if (!response) {
+                    economy.loseMoneyToBank(msg.author.id, bet)
+                    delete globals.BLACKJACK_GAMES[msg.author.id]
+                    return { content: `Did not respond  in time, lost ${bet}`, status: StatusCode.ERR }
                 }
+
+
                 let choice = response.content.toLowerCase()
                 if (choice === 'double bet') {
                     if (!economy.canBetAmount(msg.author.id, bet * 2)) {
@@ -1650,67 +1690,58 @@ until you put a 0 in the box`)
                     bet *= 2
                     choice = "hit"
                 }
+
                 if (choice === 'hit') {
                     giveRandomCard(cards, playersCards)
                 }
+
                 if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
+
+                    useItem(msg.author.id, "reset")
+
                     cards = []
                     for (let _suit of ["Diamonds", "Spades", "Hearts", "Clubs"]) {
                         for (let num of ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]) {
                             cards.push(`${num}`)
                         }
                     }
+
                     playersCards = []
                     dealerCards = []
-                    for (let i = 0; i < 2; i++) {
-                        giveRandomCard(cards, playersCards)
-                        giveRandomCard(cards, dealerCards)
-                    }
+
+                    dealCards(playersCards, dealerCards)
+
                     if (calculateTotal(playersCards).total === 21) {
-                        economy.addMoney(msg.author.id, bet * 3)
-                        delete globals.BLACKJACK_GAMES[msg.author.id]
-                        useItem(msg.author.id, "reset")
-                        return { content: format(blackjack_screen, { amount: String(bet * 3) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                        return winBJ(bet)
                     }
                     if (calculateTotal(dealerCards).total === 21) {
-                        economy.loseMoneyToBank(msg.author.id, bet)
-                        delete globals.BLACKJACK_GAMES[msg.author.id]
-                        if (Math.random() > .999) {
-                            economy.loseMoneyToBank(msg.author.id, bet * 2)
-                            return { content: "Bowser was actually the dealer and got blackjack, and forrces you to pay 3x what you bet", status: StatusCode.RETURN }
-                        }
-                        return { content: `**BLACKJACK!**\nYou did not get: **${bet * 3}**`, status: StatusCode.RETURN }
+                        return dealerBJ(bet)
                     }
-                    let total = 0
-                    while ((total = calculateTotal(dealerCards).total) < 22) {
-                        let awayFrom21 = 21 - total
-                        let countOfAwayInDeck = cards.filter(v => calculateCardValue(v, total).amount <= awayFrom21).length
 
-                        let chance = countOfAwayInDeck / cards.length
-                        if (Math.random() < chance || total < 17) {
-                            giveRandomCard(cards, dealerCards)
-                        }
-                        else {
-                            break
-                        }
-                    }
-                    useItem(msg.author.id, "reset")
+                    letDealerPlay(dealerCards)
                 }
                 if ((choice === 'stand' && (hardMode == false || calculateTotal(playersCards).total >= 17)) || calculateTotal(playersCards).total > 21) {
                     break
                 }
             }
+
             let playerTotal = calculateTotal(playersCards).total
             let dealerTotal = calculateTotal(dealerCards).total
+
             let stats = `Your total: ${playerTotal} (${playersCards.length})\nDealer total: ${dealerTotal} (${dealerCards.length})`
+
             let status = "You won"
+
             let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
             if (playerTotal > 21) {
                 status = `You lost: $${bet} (over 21)`
                 economy.loseMoneyToBank(msg.author.id, bet)
             }
             else if (playerTotal === dealerTotal) {
                 status = "TIE"
+
+                //spider stuff{{{
                 if (Math.random() > 0.999) {
                     let UserHp = 60;
                     let SpiderHp = 50;
@@ -1749,7 +1780,7 @@ until you put a 0 in the box`)
                         economy.loseMoneyToBank(msg.author.id, bet);
                         return { content: "u r ez dead", status: StatusCode.RETURN };
                     }
-                }
+                }//}}}
             }
             else if (playerTotal < dealerTotal && dealerTotal < 22) {
                 status = `You lost: ${currency_sign}${bet} (dealer won)`
@@ -1760,11 +1791,11 @@ until you put a 0 in the box`)
                 economy.addMoney(msg.author.id, bet)
             }
             delete globals.BLACKJACK_GAMES[msg.author.id]
+
             return { content: `**${status}**\n${stats}`, status: StatusCode.RETURN }
-        }, CommandCategory.GAME,
-            "Play a round of blackjack",
+        }, "Play a round of blackjack",
             {
-                "hard": createHelpOption("You can only stand if you have 17+"),
+                helpArguments: { "hard": createHelpOption("You can only stand if you have 17+") },
             },
         ),
     ]
@@ -1775,8 +1806,8 @@ until you put a 0 in the box`)
             run: async (msg, args, sendCallback) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let [betstr, guess]  = args
-                if(!guess){
+                let [betstr, guess] = args
+                if (!guess) {
                     guess = betstr
                     betstr = ""
                 }
@@ -1785,7 +1816,7 @@ until you put a 0 in the box`)
                 if (bet && !guess) {
                     return { content: "You cannot bet, but not have a guess", status: StatusCode.ERR }
                 }
-                if(!["heads", "tails"].includes(guess)){
+                if (!["heads", "tails"].includes(guess)) {
                     return crv("Guess must be `heads` or `tails`")
                 }
                 let side = Math.random() > .5 ? "heads" : "tails"
