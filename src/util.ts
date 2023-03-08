@@ -1315,12 +1315,13 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
 }
 
 function renderPElement(elem: cheerio.TagElement, indentation = 0) {
-    return `\n${renderElementChildren(elem, indentation)}\n`
+    return `\n${'\t'.repeat(indentation)}${renderElementChildren(elem, indentation)}\n`
 }
 
 function renderELEMENT(elem: cheerio.Element, indentation = 0) {
     let text = ""
     if (elem.type === "tag") {
+        indentation = !isNaN(Number(elem.attribs['indent'])) ? indentation + Number(elem.attribs['indent']) : indentation
         if (elem.name === "br") {
             text += `\n${"\t".repeat(indentation)}`
         }

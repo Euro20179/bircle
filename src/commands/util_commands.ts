@@ -627,6 +627,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         m = (await msg.channel.awaitMessages({ filter: m => canEdit.includes(m.author.id), max: 1, time: 60000, errors: ["time"] })).at(0)
                     }
                     catch (err) {
+                        for (let ed in globals.EDS) {
+                            delete globals.EDS[ed]
+                        }
+
                         return { content: "Timeout", status: StatusCode.ERR }
                     }
                     if (!m) break
@@ -642,7 +646,48 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { noSend: true, status: StatusCode.RETURN }
             }
             return { content: text.join("\n"), status: StatusCode.RETURN }
-        }, CommandCategory.UTIL, "The excellent unix ed command"
+        }, CommandCategory.UTIL, `The excellent unix ed command<br><lh>Modes</lh>
+<ul>
+    <li>normal</li>
+    <li>insert</li>
+</ul>
+<b>Normal mode</b>
+<p indent=1>
+    The general way to use a normal mode command is<br>
+    <code>[range]&lt;command&gt;[args...]</code><br>
+    All commands are 1 character
+</p>
+<lh>commands</lh>
+<ul>
+    <li>
+        <b>i</b>: enter insert mode on line <code>range</code><br>
+        or the current line if not given.<br>
+        if <code>args</code> are given, it will insert the args and stay in normal mode.
+    </li>
+    <li>
+        <b>a</b>: enter insert mode at the end of the text because its broken
+    </li>
+    <li>
+        <b>d</b>: delete <code>range</code> lines or the current line.
+    </li>
+    <li>
+        <b>p</b>: print <code>range</code> lines or the current line.
+    <li>
+    <li>
+        <b>n</b>: same as <b>p</b> and also numbers the lines.
+    </li>
+    <li>
+        <b>s</b>: runs a find/replace on <code>range</code> liens or the current line.
+    </li>
+    <li>
+        <b>!</b>: replaces <code>range</code> lines with the output of a bircle command.
+    </li>
+    <li><b>q</b>: quit</li>
+</ul>`, {
+            "...exec": createHelpArgument("If -exec is given, treat arguments as ed commands")
+        }, {
+            "exec": createHelpOption("Treat arguments as ed commands")
+        }
         ),
     ]
 
@@ -840,8 +885,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let canWork = economy.canWork(msg.author.id)
                 let currency_sign = getOpt(msg.author.id, "currency-sign", "$")
                 let ip = getToolIp()
-                if(!ip){
-                    return crv("No ip", {status: StatusCode.ERR})
+                if (!ip) {
+                    return crv("No ip", { status: StatusCode.ERR })
                 }
                 let res = await fetch.default(`http://${ip}`)
                 let json = await res.json()
