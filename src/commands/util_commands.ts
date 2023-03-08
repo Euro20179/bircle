@@ -13,7 +13,7 @@ import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension } from '../util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp } from '../util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
@@ -141,7 +141,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             { name: "HP", value: `${petInfo.health} / ${petTypeInfo['max-hunger']}`, inline: true }
         ])
         return { embeds: [embed], status: StatusCode.RETURN }
-    }, CommandCategory.FUN)]
+    }, CommandCategory.UTIL, "Gets information about a pet", {
+        pet: createHelpArgument("The pet to get info on", true)
+    })]
 
     yield ["google", createCommandV2(async ({ args }) => {
         let baseUrl = "https://www.google.com/search?q=";
@@ -640,7 +642,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { noSend: true, status: StatusCode.RETURN }
             }
             return { content: text.join("\n"), status: StatusCode.RETURN }
-        }, CommandCategory.UTIL
+        }, CommandCategory.UTIL, "The excellent unix ed command"
         ),
     ]
 
@@ -837,8 +839,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg, _args, sendCallback) => {
                 let canWork = economy.canWork(msg.author.id)
                 let currency_sign = getOpt(msg.author.id, "currency-sign", "$")
+                let ip = getToolIp()
+                if(!ip){
+                    return crv("No ip", {status: StatusCode.ERR})
+                }
+                let res = await fetch.default(`http://${ip}`)
+                let json = await res.json()
                 //0 means that it has been an hour, but they are not broke
-                if (canWork === 0 && msg.member?.roles.cache.filter(r => r.name === "College").at(0)) {
+                if (canWork === 0 && json[msg.author.id]?.grade === 'college') {
                     let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                         fired: (amount) => {
                             return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
@@ -1581,6 +1589,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             },
             category: CommandCategory.UTIL,
             help: {
+                info: "Searches youtube with an invidious intance",
                 arguments: {
                     "search": createHelpArgument("The search query", true)
                 },
@@ -1802,6 +1811,7 @@ middle
                 }
             },
             help: {
+                info: "Gets the time",
                 arguments: {
                     format: {
                         description: "the format to use for the time<br><lh>formats:</lh><br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li><li>unix: unix time</li></ul>"
