@@ -9,7 +9,7 @@ import timer from '../timer'
 import { client, GLOBAL_CURRENCY_SIGN, prefix, setVar } from '../common'
 import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
-import { Guild, MessageEmbed } from 'discord.js'
+import { Guild, MessageEmbed, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
 import { DEVBOT } from '../globals'
@@ -19,7 +19,7 @@ const { ITEMS, INVENTORY } = require("../shop")
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
-    yield ["#calcet", ccmdV2(async function(){
+    yield ["#calcet", ccmdV2(async function() {
         let ip = getToolIp()
 
         if (!ip) {
@@ -40,9 +40,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         return crv(`$${toolTotal}`)
     }, "Total amount on tools bot")]
 
-    yield ["retire", ccmdV2(async function({msg}){
+    yield ["retire", ccmdV2(async function({ msg }) {
         let percentage = economy.playerLooseNetWorth(msg.author.id) / economy.economyLooseGrandTotal().total
-        if(percentage >= 0.5){
+        if (percentage >= 0.5) {
             setVar('retired', 'true', '!retire', msg.author.id)
             return crv("CONGRATS, you retired")
         }
@@ -78,7 +78,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         else {
             answer = ["\\[ -> #", toolTotal / economyTotal]
         }
-        if(opts.getBool("raw", false)){
+        if (opts.getBool("raw", false)) {
             return crv(`${answer[1]}`)
         }
         return crv(answer.join(": "))
@@ -118,8 +118,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let amount = economy.calculateAmountFromString(msg.author.id, args[0])
             let nAmount = Math.trunc(Number(amount))
-            if(!economy.canBetAmount(msg.author.id, nAmount)){
-                return {content: `You do not have this much money`, status: StatusCode.ERR}
+            if (!economy.canBetAmount(msg.author.id, nAmount)) {
+                return { content: `You do not have this much money`, status: StatusCode.ERR }
             }
 
 
@@ -766,28 +766,47 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "give", {
             run: async (msg, args, sendCallback) => {
-                let [amount, ...user] = args
-                let userSearch = user.join(" ")
-                if (!userSearch) {
-                    return { content: "No user to search for", status: StatusCode.ERR }
+                let user: User = msg.author;
+                let amount;
+                if (msg.mentions.users.at(0)) {
+                    args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "")).filter(v => v)
+                    user = msg.mentions.users.at(0) as User
+                    amount = args[0]
                 }
-                //@ts-ignore
-                let member = await fetchUser(msg.guild, userSearch)
-                if (!member)
-                    return { content: `${userSearch} not found`, status: StatusCode.ERR }
+                else {
+                    let user;
+                    [amount, ...user] = args
+
+                    let userSearch = user.join(" ")
+                    if (!userSearch) {
+                        return { content: "No user to search for", status: StatusCode.ERR }
+                    }
+                    if(msg.guild){
+                        user = await fetchUser(msg.guild as Guild, userSearch)
+                    }
+                    else{
+                        user = await fetchUserFromClient(client, userSearch)
+                    }
+                    if (!user)
+                        return { content: `${userSearch} not found`, status: StatusCode.ERR }
+                }
+
                 let realAmount = economy.calculateAmountFromString(msg.author.id, amount)
+
                 if (!realAmount) {
                     return { content: "Nothing to give", status: StatusCode.ERR }
                 }
+
                 if (realAmount < 0) {
                     return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
                 }
-                if (economy.getEconomy()[member.id] === undefined) {
-                    return { content: `${member.id} is not in the economy`, status: StatusCode.ERR }
+
+                if (economy.getEconomy()[user.id] === undefined) {
+                    return { content: `${user.id} is not in the economy`, status: StatusCode.ERR }
                 }
-                if (economy.canBetAmount(msg.author.id, realAmount) && !member.user.bot) {
-                    economy.loseMoneyToPlayer(msg.author.id, realAmount, member.id)
-                    return { content: `You gave ${realAmount} to ${member.user.username}`, status: StatusCode.RETURN }
+                if (economy.canBetAmount(msg.author.id, realAmount) && !user.bot) {
+                    economy.loseMoneyToPlayer(msg.author.id, realAmount, user.id)
+                    return { content: `You gave ${realAmount} to ${user.username}`, status: StatusCode.RETURN }
                 }
                 else {
                     return { content: `You cannot give away ${realAmount}`, status: StatusCode.ERR }
@@ -881,7 +900,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     itemstr = count
                     count = "1"
                 }
-                else if(!itemstr){
+                else if (!itemstr) {
                     return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
 
