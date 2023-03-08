@@ -846,7 +846,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let res = await fetch.default(`http://${ip}`)
                 let json = await res.json()
                 //0 means that it has been an hour, but they are not broke
-                if (canWork === 0 && json[msg.author.id]?.grade === 'college') {
+                if (canWork === 0 && json[msg.author.id]?.major === 'graduated') {
                     let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
                         fired: (amount) => {
                             return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }

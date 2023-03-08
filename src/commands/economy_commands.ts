@@ -40,7 +40,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         return crv(`$${toolTotal}`)
     }, "Total amount on tools bot")]
 
-    yield ['exchange-rate', ccmdV2(async function({ args }) {
+    yield ['exchange-rate', ccmdV2(async function({ args, opts }) {
         let ip = getToolIp()
 
         if (!ip) {
@@ -61,16 +61,24 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
         let economyTotal = economy.economyLooseGrandTotal().moneyAndStocks
 
+        let answer: [string, number]
         if (args[0] === 'tte') {
-            return crv(`# -> [: \`${economyTotal / toolTotal}\``)
+            answer = ["# -> [", economyTotal / toolTotal]
         }
         else {
-            return crv(`\\[ -> #: \`${toolTotal / economyTotal}\``)
+            answer = ["\\[ -> #", toolTotal / economyTotal]
         }
+        if(opts.getBool("raw", false)){
+            return crv(`${answer[1]}`)
+        }
+        return crv(answer.join(": "))
 
     }, "Calculate the exchange rate between tool's bot and this bot", {
         helpArguments: {
             tte: createHelpArgument("Gets the exchange rate from tool to euro instead of euro to tool", false)
+        },
+        helpOptions: {
+            raw: createHelpOption("Gets just the number")
         }
     })]
 
