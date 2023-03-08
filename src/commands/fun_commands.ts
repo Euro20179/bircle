@@ -1018,7 +1018,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false, status: StatusCode.RETURN }
             if (dm) {
-                rv['dm'] = true
+                rv['channel'] = msg.author.dmChannel ?? undefined
             }
             if (opts['mimetype'] && String(opts['mimetype']).match(/^[^\/]+\/[^\/]+$/)) {
                 rv['mimetype'] = String(opts['mimetype']) as MimeType
