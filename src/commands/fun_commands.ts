@@ -209,10 +209,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     ]
                 })
             },
-            "getting a retirement massage": async() => crv(choice([
-                    "Now that's relaxing",
-                    "That really chilled out my bone structure",
-                ]))
+            "getting a retirement massage": async() => crv(choice([ "Now that's relaxing", "That really chilled out my bone structure", ]))
         }
 
         let activity =  choice(Array.from(Object.keys(activities)))

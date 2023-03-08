@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, ButtonInteraction, Guild, User } from "discord.js"
-import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2 } from "../common_to_commands"
+import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
 
 import globals = require("../globals")
 import economy = require("../economy")
@@ -1774,10 +1774,18 @@ until you put a 0 in the box`)
             run: async (msg, args, sendCallback) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let guess = args[0]
-                let bet = economy.calculateAmountFromString(msg.author.id, String(opts['bet'] || opts['b'])) || 0
+                let [betstr, guess]  = args
+                if(!guess){
+                    guess = betstr
+                    betstr = ""
+                }
+                guess = guess.toLowerCase()
+                let bet = economy.calculateAmountFromString(msg.author.id, String(betstr || opts['bet'] || opts['b'])) || 0
                 if (bet && !guess) {
                     return { content: "You cannot bet, but not have a guess", status: StatusCode.ERR }
+                }
+                if(!["heads", "tails"].includes(guess)){
+                    return crv("Guess must be `heads` or `tails`")
                 }
                 let side = Math.random() > .5 ? "heads" : "tails"
                 if (!bet || bet < 0) {
@@ -1802,7 +1810,8 @@ until you put a 0 in the box`)
                     bet: createHelpOption("The bet to put on a side")
                 },
                 arguments: {
-                    bet: createHelpArgument("What you think the coin will land  on (heads/tails)", false, "-bet")
+                    betAmount: createHelpArgument("Amount of money to put on the line", false, "guess"),
+                    guess: createHelpArgument("The guess (heads/tails)", false, "betAmount")
                 }
             }
         },
