@@ -257,7 +257,7 @@ export class AliasV2 {
     }
 
 
-    async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any, fillPlaceholders = false): Promise<AliasV2 | false> {
+    async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any, fillPlaceholders = true): Promise<AliasV2 | false> {
         let expansions = 0
         let command = this.exec.split(" ")[0]
         let preArgs = this.prepare(msg, args, opts, fillPlaceholders)
