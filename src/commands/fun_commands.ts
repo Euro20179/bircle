@@ -168,38 +168,40 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }, CommandCategory.FUN)
     ]
 
-    yield ["retirement-activity", ccmdV2(async function({msg, sendCallback}){
+    yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
         let isRetired = economy.isRetired(msg, msg.author.id)
         let firstTime = false
-        if(!timer.getTimer(msg.author.id, "%retirement-activity")){
+        if (!timer.getTimer(msg.author.id, "%retirement-activity")) {
             firstTime = true
             timer.createTimer(msg.author.id, "%retirement-activity")
         }
-        if(!isRetired){
-            return crv("You are not retired", {status: StatusCode.ERR})
+        if (!isRetired) {
+            return crv("You are not retired", { status: StatusCode.ERR })
         }
-        if(!timer.has_x_s_passed(msg.author.id, "%retirement-activity", 1800) && !firstTime){
+        if (!timer.has_x_s_passed(msg.author.id, "%retirement-activity", 1800) && !firstTime) {
             return crv(`You must wait ${(1800 - ((timer.do_lap(msg.author.id, "%retirement-activity") || 0) / 1000)) / 60} minutes`)
         }
         timer.restartTimer(msg.author.id, "%retirement-activity")
-        let activities: {[activity: string]: () => Promise<CommandReturn>} = {
+        let activities: { [activity: string]: () => Promise<CommandReturn> } = {
             "knitting": async () => {
                 let item = choice(["blanket", "scarf", "left sock"])
-                giveItem(msg.author.id,item, 1)
-                return {content: `You got a ${item}`, status: StatusCode.RETURN, files: [
-                    {
-                        delete: false,
-                        attachment: `./assets/${item}.png`,
-                    }
-                ]}
-            }, 
+                giveItem(msg.author.id, item, 1)
+                return {
+                    content: `You got a ${item}`, status: StatusCode.RETURN, files: [
+                        {
+                            delete: false,
+                            attachment: `./assets/${item}.png`,
+                        }
+                    ]
+                }
+            },
             "spanking": async () => {
                 let lostAmount = Math.floor(Math.random() * 10)
                 let name = choice(["Johnny", "Jicky", "Aldo", "Yicky", "Jinky", "Mumbo"])
                 await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
-                return {noSend: true, status: StatusCode.RETURN}
+                return { noSend: true, status: StatusCode.RETURN }
             },
-            "doing bingo night": async() => {
+            "doing bingo night": async () => {
                 economy.addMoney(msg.author.id, economy.calculateAmountFromString(msg.author.id, "1%"))
                 return crv("YOU WIN!!!!", {
                     files: [
@@ -209,10 +211,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     ]
                 })
             },
-            "getting a retirement massage": async() => crv(choice([ "Now that's relaxing", "That really chilled out my bone structure", ]))
+            "getting a retirement massage": async () => crv(choice(["Now that's relaxing", "That really chilled out my bone structure",]))
         }
 
-        let activity =  choice(Array.from(Object.keys(activities)))
+        let activity = choice(Array.from(Object.keys(activities)))
 
         await handleSending(msg, crv(`You are: ${activity}`), sendCallback)
 
@@ -981,168 +983,122 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "echo",
-        {
-            run: async (msg: Message, _, __, opts, args) => {
-                let wait = parseFloat(String(opts['wait'])) || 0
-                let dm = Boolean(opts['dm'] || false)
-                let embedText = opts['e'] || opts['embed']
-                let embed
-                if (embedText) {
-                    embed = new MessageEmbed()
-                    if (embedText !== true)
-                        embed.setTitle(embedText)
-                    let img;
-                    //esentially if the user put `-img=` or `-img`
-                    if (opts['img'] == "" || opts['img'] === true) {
-                        img = null
+        "echo", ccmdV2(async function({ msg, rawOpts: opts, args }) {
+            let wait = parseFloat(String(opts['wait'])) || 0
+            let dm = Boolean(opts['dm'] || false)
+            let embedText = opts['e'] || opts['embed']
+            let embed
+            if (embedText) {
+                embed = new MessageEmbed()
+                if (embedText !== true)
+                    embed.setTitle(embedText)
+                let img;
+                //esentially if the user put `-img=` or `-img`
+                if (opts['img'] == "" || opts['img'] === true) {
+                    img = null
+                }
+                else img = getImgFromMsgAndOpts(opts, msg)
+                if (img) {
+                    embed.setImage(String(img))
+                }
+                let color
+                if (color = opts['color'] || opts['e-color'] || opts['embed-color']) {
+                    try {
+                        embed.setColor(color as ColorResolvable)
                     }
-                    else img = getImgFromMsgAndOpts(opts, msg)
-                    if (img) {
-                        embed.setImage(String(img))
+                    catch (err) {
                     }
-                    let color
-                    if (color = opts['color'] || opts['e-color'] || opts['embed-color']) {
+                }
+            }
+            let stringArgs = args.join(" ")
+            let files = msg.attachments?.toJSON()
+            let stickers = msg.stickers?.toJSON()
+            if (wait) {
+                await new Promise((res) => setTimeout(res, wait * 1000))
+            }
+            let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false, status: StatusCode.RETURN }
+            if (dm) {
+                rv['dm'] = true
+            }
+            if (opts['mimetype'] && String(opts['mimetype']).match(/^[^\/]+\/[^\/]+$/)) {
+                rv['mimetype'] = String(opts['mimetype']) as MimeType
+            }
+            if (stringArgs) {
+                rv["content"] = stringArgs
+            }
+            if (opts['mail']) {
+                let search = String(opts['mail'])
+                let user = await fetchUserFromClient(client, search)
+                if (!user) {
+                    return { content: `${search} not found`, status: StatusCode.ERR }
+                }
+                else {
+                    if (!user.dmChannel) {
                         try {
-                            embed.setColor(color as ColorResolvable)
+                            await user.createDM()
                         }
                         catch (err) {
+                            return { content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR }
                         }
                     }
-                }
-                let stringArgs = args.join(" ")
-                let files = msg.attachments?.toJSON()
-                let stickers = msg.stickers?.toJSON()
-                if (wait) {
-                    await new Promise((res) => setTimeout(res, wait * 1000))
-                }
-                let rv: CommandReturn = { delete: !(opts["D"] || opts['no-del']), deleteFiles: false, status: StatusCode.RETURN }
-                if (dm) {
-                    rv['dm'] = true
-                }
-                if(opts['mimetype'] && String(opts['mimetype']).match(/^[^\/]+\/[^\/]+$/)){
-                    rv['mimetype'] = String(opts['mimetype']) as MimeType
-                }
-                if (stringArgs) {
-                    rv["content"] = stringArgs
-                }
-                if (opts['mail']) {
-                    let search = String(opts['mail'])
-                    let user = await fetchUserFromClient(client, search)
-                    if (!user) {
-                        return { content: `${search} not found`, status: StatusCode.ERR }
+                    rv['channel'] = user.dmChannel as DMChannel
+                    if (rv['content']) {
+                        rv['content'] += user_options.getOpt(msg.author.id, "mail-signature", "")
                     }
                     else {
-                        if (!user.dmChannel) {
-                            try {
-                                await user.createDM()
-                            }
-                            catch (err) {
-                                return { content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR }
-                            }
-                        }
-                        rv['channel'] = user.dmChannel as DMChannel
-                        if (rv['content']) {
-                            rv['content'] += user_options.getOpt(msg.author.id, "mail-signature", "")
-                        }
-                        else {
-                            rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
-                        }
-                    }
-                    //TODO: finish this
-                }
-                if (files.length) {
-                    rv["files"] = files as CommandFile[]
-                }
-                if (embed) {
-                    rv["embeds"] = [embed]
-                }
-                if (stickers.length) {
-                    rv['stickers'] = stickers
-                }
-                if (opts['recurse']) {
-                    rv.recurse = true
-                }
-                if (opts['status']) {
-                    let status = {
-                        "return": StatusCode.RETURN,
-                        "err": StatusCode.ERR,
-                        "error": StatusCode.ERR,
-                        "prompt": StatusCode.PROMPT,
-                        "info": StatusCode.INFO,
-                        "warning": StatusCode.WARNING
-                    }[String(opts['status']).toString()]
-                    if (status) {
-                        rv.status = status
+                        rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
                     }
                 }
-                if (wait) {
-                    await new Promise(res => setTimeout(res, wait * 1000))
+                //TODO: finish this
+            }
+            if (files.length) {
+                rv["files"] = files as CommandFile[]
+            }
+            if (embed) {
+                rv["embeds"] = [embed]
+            }
+            if (stickers.length) {
+                rv['stickers'] = stickers
+            }
+            if (opts['recurse']) {
+                rv.recurse = true
+            }
+            if (opts['status']) {
+                let status = {
+                    "return": StatusCode.RETURN,
+                    "err": StatusCode.ERR,
+                    "error": StatusCode.ERR,
+                    "prompt": StatusCode.PROMPT,
+                    "info": StatusCode.INFO,
+                    "warning": StatusCode.WARNING
+                }[String(opts['status']).toString()]
+                if (status) {
+                    rv.status = status
                 }
-                return rv
-            },
+            }
+            if (wait) {
+                await new Promise(res => setTimeout(res, wait * 1000))
+            }
+            return rv
+
+        }, "the bot will say the <code>text</code>", {
             use_result_cache: true,
-            help: {
-                info: "the bot will say the <code>text</code>",
-                options: {
-                    "D": {
-                        description: "If given, don't delete original message"
-                    },
-                    "dm": {
-                        description: "Will dm you, instead of sending to channel"
-                    },
-                    "mail": {
-                        description: "Send the result as mail to someone"
-                    },
-                    "no-del": {
-                        description: "same as -D"
-                    },
-                    "embed": {
-                        description: "Create an embed with the text following ="
-                    },
-                    "color": {
-                        description: "Color of the embed"
-                    },
-                    "img": {
-                        description: "Image of the embed<br>If not provided, an image will be chosen from chat (if exists)<br>set -img= to stop this"
-                    },
-                    "wait": {
-                        description: "The seconds to wait before deleting and sending the message"
-                    },
-                    "mimetype": {
-                        description: "The mimetype of the text"
-                    },
-                    "status": {
-                        description: `The status  code of the  command, can be:
-<ul>
-    <li>
-    return
-    </li>
-    <li>
-    err
-    </li>
-    <li>
-    info
-    </li>
-    <li>
-    prompt
-    </li>
-    <li>
-    warning
-    </li>
-</ul>
-`
-                    }
-                },
-                arguments: {
-                    text: {
-                        description: "what to say",
-                        required: true
-                    }
-                }
+            helpOptions: {
+                "D": createHelpOption("If given, don't delete original message"),
+                "dm": createHelpOption("Will dm you, instead of sending to channel"),
+                "mail": createHelpOption("Send the result as mail to someone"),
+                "no-del": createHelpOption("same as -D"),
+                "embed": createHelpOption("Create an embed with the text following ="),
+                "color": createHelpOption("Color of the embed"),
+                "img": createHelpOption("Image of the embed<br>If not provided, an image will be chosen from chat (if exists)<br>set -img= to stop this"),
+                "wait": createHelpOption("The seconds to wait before deleting and sending the message"),
+                "mimetype": createHelpOption("The mimetype of the text"),
+                "status": createHelpOption(`The status  code of the  command, can be: <ul> <li> return </li> <li> err </li> <li> info </li> <li> prompt </li> <li> warning </li> </ul>`)
             },
-            category: CommandCategory.FUN
-        },
+            helpArguments: {
+                text: createHelpArgument("What to say", true)
+            }
+        })
     ]
 
     yield [
@@ -1154,14 +1110,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (opts['timealive'])
                     delAfter = parseInt(String(opts['timealive']))
                 if (typeof content === 'boolean') {
-                    content = `button:${msg.author.id}`
+                    content = `button: ${ msg.author.id }`
                 }
                 let text = args.join(" ") || "hi"
                 let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
-                let button = new MessageButton({ emoji: emoji, customId: `button:${msg.author.id}`, label: text, style: "PRIMARY" })
+                let button = new MessageButton({ emoji: emoji, customId: `button: ${ msg.author.id }`, label: text, style: "PRIMARY" })
                 let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                 let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
-                let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button:${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
+                let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${ msg.author.id }` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
                 collector.on("collect", async (interaction) => {
                     if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
                         return
@@ -1228,22 +1184,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (choices.length < 1) {
                     return { status: StatusCode.ERR, content: "no options given" }
                 }
-                let selection = new MessageSelectMenu({ customId: `poll:${id}`, placeholder: "Select one", options: choices })
+                let selection = new MessageSelectMenu({ customId: `poll: ${ id }`, placeholder: "Select one", options: choices })
                 actionRow.addComponents(selection)
-                globals.POLLS[`poll:${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
+                globals.POLLS[`poll: ${ id }`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
                 let channelToSendToSearch = opts['channel']
                 let chan = undefined;
                 if (channelToSendToSearch) {
                     chan = await fetchChannel(_msg.guild as Guild, String(channelToSendToSearch))
                     if (!chan || chan.type !== 'GUILD_TEXT') {
-                        return { content: `Cannot send to ${chan}`, status: StatusCode.ERR }
+                        return { content: `Cannot send to ${ chan }`, status: StatusCode.ERR }
                     }
                     else if (!_msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
-                        return { content: `You do not have permission to talk in ${chan}`, status: StatusCode.ERR }
+                        return { content: `You do not have permission to talk in ${ chan } `, status: StatusCode.ERR }
                     }
-                    return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN, channel: chan }
+                    return { components: [actionRow], content: `** ${ String(opts['title'] || "") || "Select one" }**\npoll id: ${ id } `, status: StatusCode.RETURN, channel: chan }
                 }
-                return { components: [actionRow], content: `**${String(opts['title'] || "") || "Select one"}**\npoll id: ${id}`, status: StatusCode.RETURN }
+                return { components: [actionRow], content: `** ${ String(opts['title'] || "") || "Select one" }**\npoll id: ${ id } `, status: StatusCode.RETURN }
             },
             help: {
                 info: "create a poll",
@@ -1260,25 +1216,25 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "pfp", ccmdV2(async({msg, opts, args, stdin}) => {
-                let link = args[0]
-                if (!link) {
-                    link = String(getImgFromMsgAndOpts(opts, msg, stdin))
-                }
-                if (!link)
-                    return { content: "no link given", status: StatusCode.ERR }
-                try {
-                    await client.user?.setAvatar(link)
-                }
-                catch (err) {
-                    console.log(err)
-                    return { content: "could not set pfp", status: StatusCode.ERR }
-                }
-                return { content: 'set pfp', delete: opts.getBool("d", opts.getBool("delete", false)), status: StatusCode.RETURN }
+        "pfp", ccmdV2(async ({ msg, opts, args, stdin }) => {
+            let link = args[0]
+            if (!link) {
+                link = String(getImgFromMsgAndOpts(opts, msg, stdin))
+            }
+            if (!link)
+                return { content: "no link given", status: StatusCode.ERR }
+            try {
+                await client.user?.setAvatar(link)
+            }
+            catch (err) {
+                console.log(err)
+                return { content: "could not set pfp", status: StatusCode.ERR }
+            }
+            return { content: 'set pfp', delete: opts.getBool("d", opts.getBool("delete", false)), status: StatusCode.RETURN }
 
         }, "Change the bot pfp", {
             helpArguments: {
-                link: createHelpArgument( "Link to an image to use as the pfp")
+                link: createHelpArgument("Link to an image to use as the pfp")
             },
             accepts_stdin: "Pipe can contain an image to use"
         })
@@ -1292,9 +1248,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             p = type
         if (pet.namePet(msg.author.id, p, realName)) {
 
-            return { content: `Named: ${p} to ${realName}`, status: StatusCode.RETURN }
+            return { content: `Named: ${ p } to ${ realName } `, status: StatusCode.RETURN }
         }
-        return { content: `You do not have a ${p}`, status: StatusCode.ERR }
+        return { content: `You do not have a ${ p } `, status: StatusCode.ERR }
     }, CommandCategory.FUN, "Name a pet", {
         pet: createHelpArgument("The base pet to name, eg: <code>cat</code>", true),
         "...name": createHelpArgument("The name to give the pet", true)
@@ -1310,7 +1266,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                             let start = Date.now()
                             collector.on("collect", async (_m) => {
-                                await handleSending(msg, { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }, sendCallback)
+                                await handleSending(msg, { content: `${ Date.now() - start } ms`, status: StatusCode.RETURN }, sendCallback)
                                 collector.stop()
                             })
                         }
@@ -1319,13 +1275,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     })
                 }
                 else {
-                    let button = new MessageButton({ customId: `button:${msg.author.id}`, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
+                    let button = new MessageButton({ customId: `button:${ msg.author.id } `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
                     let row = new MessageActionRow({ type: "BUTTON", components: [button] })
                     let start = Date.now()
                     let message = await handleSending(msg, { components: [row], status: StatusCode.PROMPT }, sendCallback)
-                    let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id}` })
+                    let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${ msg.author.id } ` })
                     collector.on("collect", async (interaction) => {
-                        await interaction.reply({ content: `${Date.now() - start}ms` })
+                        await interaction.reply({ content: `${ Date.now() - start } ms` })
                     })
                 }
                 return { noSend: true, status: StatusCode.RETURN }
@@ -1352,245 +1308,245 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 return {
                     content: `Changed name to \`${args.join(" ")}\``,
-                    //@ts-ignore
-                    delete: opts['d'] || opts['delete'],
-                    status: StatusCode.RETURN
-                }
+        //@ts-ignore
+        delete: opts['d'] || opts['delete'],
+            status: StatusCode.RETURN
+}
             },
-            category: CommandCategory.FUN,
-            help: {
-                info: "Change the nickname of the bot"
-            }
+category: CommandCategory.FUN,
+    help: {
+    info: "Change the nickname of the bot"
+}
         },
     ]
 
-    yield [
-        "sport",
-        {
-            run: async (msg, args, sendCallback) => {
-                https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
-                    let data = new Stream.Transform()
-                    resp.on("data", chunk => {
-                        data.push(chunk)
-                    })
-                    resp.on("end", async () => {
-                        let html = data.read().toString()
-                        let embed = new MessageEmbed()
-                        //winner should be in *****
-                        let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
-                        try {
-                            inning = inning.match(/span class=".*?">(.*?)<\//)[1]
-                                .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
-                                    var num = parseInt(numStr, 10);
-                                    return String.fromCharCode(num);
-                                });
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: "No results", status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                        awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                        let homeScore, awayScore
-                        try {
-                            [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: "Failed to get data", status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
-                        awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
-                        embed.setTitle(`${args.join(" ")}`)
-                        if (awayScore >= homeScore) {
-                            awayTeam = `***${awayTeam}***`
-                            awayScore = `***${awayScore}***`
-                            embed.setColor("#ff0000")
-                        }
-                        else {
-                            homeTeam = `***${homeTeam}***`
-                            homeScore = `***${homeScore}***`
-                            embed.setColor("#00ff00")
-                        }
-                        embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
-                        await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN }, sendCallback)
-                    })
-                }).end()
-                return {
-                    content: "getting data",
-                    status: StatusCode.INFO
-                }
-            }, help: {
-                info: "Print information about a sport game",
-                arguments: {
-                    team: {
-                        description: "The team to get info on"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-
-        },
-    ]
-
-    yield [
-        "edit",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (opts['d'] && msg.deletable) await msg.delete()
-                let edits = args.join(" ").split("|")
-                let message
-                try {
-                    message = await handleSending(msg, { content: edits[0], status: StatusCode.INFO }, sendCallback)
-                }
-                catch (err) {
-                    return { content: "message too big", status: StatusCode.ERR }
-                }
-                edits = edits.slice(1)
-                let lastEdit = message.content
-                for (let edit of edits) {
-                    let match
-                    if (match = edit.match(/^!(\d+)!$/)) {
-                        let time = parseFloat(match[1])
-                        await new Promise(res => setTimeout(res, time * 1000))
-                        continue
-                    }
-                    if (edit[0] == "-") {
-                        edit = lastEdit.replaceAll(edit.slice(1), "")
-                    }
-                    else if (edit[0] == "+") {
-                        edit = lastEdit + edit.slice(1)
-                    }
-                    else if (edit[0] == "*") {
-                        let times = parseInt(edit.slice(1))
-                        edit = lastEdit
-                        for (let i = 1; i < times; i++) {
-                            edit += lastEdit
-                        }
-                    }
-                    else if (edit[0] == "/") {
-                        let divideBy = parseInt(edit.slice(1))
-                        edit = lastEdit.slice(0, lastEdit.length / divideBy)
-                    }
-                    else if (edit[0] == ";") {
-                        try {
-                            message = await handleSending(msg, { content: edit.slice(1), status: StatusCode.INFO }, sendCallback)
-                        }
-                        catch (err) {
-                            return { content: "message too big", status: StatusCode.ERR }
-                        }
-                        continue
-                    }
+yield[
+    "sport",
+    {
+        run: async (msg, args, sendCallback) => {
+            https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async () => {
+                    let html = data.read().toString()
+                    let embed = new MessageEmbed()
+                    //winner should be in *****
+                    let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
                     try {
-                        await message.edit({ content: edit })
+                        inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+                            .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
+                                var num = parseInt(numStr, 10);
+                                return String.fromCharCode(num);
+                            });
                     }
                     catch (err) {
-                        if (!message.deletable) {
-                            return { noSend: true, status: StatusCode.ERR }
-                        }
-                        await handleSending(msg, { content: `Could not edit message with: ${edit}`, status: StatusCode.ERR }, sendCallback)
+                        await handleSending(msg, { content: "No results", status: StatusCode.ERR }, sendCallback)
+                        return
                     }
-                    await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
-                    lastEdit = message.content
-                }
-                return { noSend: true, status: StatusCode.INFO }
-            },
-            help: {
-                arguments: {
-                    texts: {
-                        description: "Seperate each edit with a |<br><b>Sepcial Operators:</b><ul><li><i>-</i>: remove letters from the last edit</li><li><i>+</i>: add to the previous edit instead of replacing it</li><li><i>*</i>: Multiply the last edit a certain number of times</li><li><i>/</i>: divide the last edit by a number</li><li><i>;</i>start a new message</li><li><i>!&lt;number&gt;!</i>: Wait &lt;number&gt; seconds before going to the next edit</li></ul>"
+                    homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+                    awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+                    let homeScore, awayScore
+                    try {
+                        [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
                     }
-                }
-            },
-            category: CommandCategory.FUN
-        },
-    ]
-
-    yield [
-        "choose", createCommandV2(async ({ args, opts }) => {
-            let sep = String(opts.getString("sep", opts.getString("s", "\n")))
-            let times = opts.getNumber("t", 1)
-            let ans = []
-            args = new ArgList(args.join(" ").split("|"))
-            for (let i = 0; i < times; i++) {
-                ans.push(choice(args).trim())
-            }
+                    catch (err) {
+                        await handleSending(msg, { content: "Failed to get data", status: StatusCode.ERR }, sendCallback)
+                        return
+                    }
+                    homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
+                    awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+                    embed.setTitle(`${args.join(" ")}`)
+                    if (awayScore >= homeScore) {
+                        awayTeam = `***${awayTeam}***`
+                        awayScore = `***${awayScore}***`
+                        embed.setColor("#ff0000")
+                    }
+                    else {
+                        homeTeam = `***${homeTeam}***`
+                        homeScore = `***${homeScore}***`
+                        embed.setColor("#00ff00")
+                    }
+                    embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
+                    await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN }, sendCallback)
+                })
+            }).end()
             return {
-                content: ans.join(sep) || "```invalid message```",
-                status: StatusCode.RETURN
+                content: "getting data",
+                status: StatusCode.INFO
             }
+        }, help: {
+            info: "Print information about a sport game",
+            arguments: {
+                team: {
+                    description: "The team to get info on"
+                }
+            }
+        },
+        category: CommandCategory.FUN
 
-        }, CommandCategory.FUN, "Choose a random item from a list of items separated by a |", {
-            items: createHelpArgument("The items", true)
-        }, {
-            sep: createHelpOption("The seperator to seperate each chosen item by", ["s"], "\\n"),
-            t: createHelpOption("The amount of items to choose", undefined, "1")
-        })
+    },
     ]
 
-    yield [
-        "weather",
-        {
-            run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
-                let url = "https://www.wttr.in"
-                let town = args.join(" ") || "tokyo"
-
-                let data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
-                let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
-                if (!tempData) {
-                    return { content: "Could not find weather", status: StatusCode.ERR }
+yield[
+    "edit",
+    {
+        run: async (msg, args, sendCallback) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if (opts['d'] && msg.deletable) await msg.delete()
+            let edits = args.join(" ").split("|")
+            let message
+            try {
+                message = await handleSending(msg, { content: edits[0], status: StatusCode.INFO }, sendCallback)
+            }
+            catch (err) {
+                return { content: "message too big", status: StatusCode.ERR }
+            }
+            edits = edits.slice(1)
+            let lastEdit = message.content
+            for (let edit of edits) {
+                let match
+                if (match = edit.match(/^!(\d+)!$/)) {
+                    let time = parseFloat(match[1])
+                    await new Promise(res => setTimeout(res, time * 1000))
+                    continue
                 }
-                let condition, temp, unit
+                if (edit[0] == "-") {
+                    edit = lastEdit.replaceAll(edit.slice(1), "")
+                }
+                else if (edit[0] == "+") {
+                    edit = lastEdit + edit.slice(1)
+                }
+                else if (edit[0] == "*") {
+                    let times = parseInt(edit.slice(1))
+                    edit = lastEdit
+                    for (let i = 1; i < times; i++) {
+                        edit += lastEdit
+                    }
+                }
+                else if (edit[0] == "/") {
+                    let divideBy = parseInt(edit.slice(1))
+                    edit = lastEdit.slice(0, lastEdit.length / divideBy)
+                }
+                else if (edit[0] == ";") {
+                    try {
+                        message = await handleSending(msg, { content: edit.slice(1), status: StatusCode.INFO }, sendCallback)
+                    }
+                    catch (err) {
+                        return { content: "message too big", status: StatusCode.ERR }
+                    }
+                    continue
+                }
                 try {
-                    [condition, temp, unit] = tempData.slice(1, 4)
+                    await message.edit({ content: edit })
                 }
                 catch (err) {
-                    return { content: "Could not find weather :(", status: StatusCode.ERR }
-                }
-                temp = Number(temp)
-                let tempC, tempF
-                if (unit == "C") {
-                    tempF = temp * 9 / 5 + 32
-                    tempC = temp
-                } else if (unit == "F") {
-                    tempC = (temp - 32) * 5 / 9
-                    tempF = temp
-                }
-                else {
-                    tempC = 843902438
-                    tempF = tempC * 9 / 5 + 32
-                }
-                let color = "DARK_BUT_NOT_BLACK"
-                if (tempF >= 110) color = "#aa0000"
-                if (tempF < 110) color = "#ff0000"
-                if (tempF < 100) color = "#ff412e"
-                if (tempF < 90) color = "ORANGE"
-                if (tempF < 75) color = "YELLOW"
-                if (tempF < 60) color = "GREEN"
-                if (tempF < 45) color = "BLUE"
-                if (tempF < 32) color = "#5be6ff"
-                if (tempF < 0) color = "PURPLE"
-                let embed = new MessageEmbed()
-                embed.setTitle(town)
-                embed.setColor(color as ColorResolvable)
-                embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
-                embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
-                if (opts['fmt']) {
-                    return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
-                }
-                return { embeds: [embed], status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Get weather for a specific place, default: tokyo",
-                arguments: {
-                    "location": {
-                        description: "Where do you want the weather for"
+                    if (!message.deletable) {
+                        return { noSend: true, status: StatusCode.ERR }
                     }
-                },
-                options: {
-                    fmt: createHelpOption(`The format to use instead of an embed
+                    await handleSending(msg, { content: `Could not edit message with: ${edit}`, status: StatusCode.ERR }, sendCallback)
+                }
+                await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
+                lastEdit = message.content
+            }
+            return { noSend: true, status: StatusCode.INFO }
+        },
+        help: {
+            arguments: {
+                texts: {
+                    description: "Seperate each edit with a |<br><b>Sepcial Operators:</b><ul><li><i>-</i>: remove letters from the last edit</li><li><i>+</i>: add to the previous edit instead of replacing it</li><li><i>*</i>: Multiply the last edit a certain number of times</li><li><i>/</i>: divide the last edit by a number</li><li><i>;</i>start a new message</li><li><i>!&lt;number&gt;!</i>: Wait &lt;number&gt; seconds before going to the next edit</li></ul>"
+                }
+            }
+        },
+        category: CommandCategory.FUN
+    },
+    ]
+
+yield[
+    "choose", createCommandV2(async ({ args, opts }) => {
+        let sep = String(opts.getString("sep", opts.getString("s", "\n")))
+        let times = opts.getNumber("t", 1)
+        let ans = []
+        args = new ArgList(args.join(" ").split("|"))
+        for (let i = 0; i < times; i++) {
+            ans.push(choice(args).trim())
+        }
+        return {
+            content: ans.join(sep) || "```invalid message```",
+            status: StatusCode.RETURN
+        }
+
+    }, CommandCategory.FUN, "Choose a random item from a list of items separated by a |", {
+        items: createHelpArgument("The items", true)
+    }, {
+        sep: createHelpOption("The seperator to seperate each chosen item by", ["s"], "\\n"),
+        t: createHelpOption("The amount of items to choose", undefined, "1")
+    })
+]
+
+yield[
+    "weather",
+    {
+        run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
+            let url = "https://www.wttr.in"
+            let town = args.join(" ") || "tokyo"
+
+            let data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
+            let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
+            if (!tempData) {
+                return { content: "Could not find weather", status: StatusCode.ERR }
+            }
+            let condition, temp, unit
+            try {
+                [condition, temp, unit] = tempData.slice(1, 4)
+            }
+            catch (err) {
+                return { content: "Could not find weather :(", status: StatusCode.ERR }
+            }
+            temp = Number(temp)
+            let tempC, tempF
+            if (unit == "C") {
+                tempF = temp * 9 / 5 + 32
+                tempC = temp
+            } else if (unit == "F") {
+                tempC = (temp - 32) * 5 / 9
+                tempF = temp
+            }
+            else {
+                tempC = 843902438
+                tempF = tempC * 9 / 5 + 32
+            }
+            let color = "DARK_BUT_NOT_BLACK"
+            if (tempF >= 110) color = "#aa0000"
+            if (tempF < 110) color = "#ff0000"
+            if (tempF < 100) color = "#ff412e"
+            if (tempF < 90) color = "ORANGE"
+            if (tempF < 75) color = "YELLOW"
+            if (tempF < 60) color = "GREEN"
+            if (tempF < 45) color = "BLUE"
+            if (tempF < 32) color = "#5be6ff"
+            if (tempF < 0) color = "PURPLE"
+            let embed = new MessageEmbed()
+            embed.setTitle(town)
+            embed.setColor(color as ColorResolvable)
+            embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
+            embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
+            if (opts['fmt']) {
+                return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
+            }
+            return { embeds: [embed], status: StatusCode.RETURN }
+        },
+        help: {
+            info: "Get weather for a specific place, default: tokyo",
+            arguments: {
+                "location": {
+                    description: "Where do you want the weather for"
+                }
+            },
+            options: {
+                fmt: createHelpOption(`The format to use instead of an embed
 <br>
 Valid formats:
     %f: temp in F
@@ -1599,368 +1555,368 @@ Valid formats:
     %s: condition
     %l: town
 `)
-                }
-
-            },
-            category: CommandCategory.FUN
-        },
-    ]
-
-    yield [
-        "ship",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (args.length < 2) {
-                    return { content: "2 users must be given", delete: opts['d'] as boolean, status: StatusCode.ERR }
-                }
-                let [user1Full, user2Full] = args.join(" ").split("|")
-                if (!user1Full || !user2Full) {
-                    return { content: "2 users not given", status: StatusCode.ERR }
-                }
-                let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
-                let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
-                let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-                return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Create your favorite fantacies!!!!"
-            },
-            category: CommandCategory.FUN
-        },
-    ]
-
-    yield [
-        "aship",
-        {
-            run: async (msg, args, sendCallback) => {
-                return await (getCommands().get('add') as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
-            },
-            help: {
-                info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
-            },
-            category: CommandCategory.FUN
-        },
-    ]
-
-    yield [
-        "spasm",
-        {
-            run: async (msg, args, sendCallback) => {
-                let [times, ...text] = args
-                let sendText = text.join(" ")
-                let timesToGo = 10
-                if (!isNaN(parseInt(times))) {
-                    timesToGo = parseInt(times)
-                }
-                else {
-                    sendText = [times, ...text].join(" ")
-                }
-                let id = String(Math.floor(Math.random() * 100000000))
-                await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
-                globals.SPAMS[id] = true
-                let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
-                while (globals.SPAMS[id] && timesToGo--) {
-                    if (message.deletable) await message.delete()
-                    message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
-                    await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
-                }
-                delete globals.SPAMS[id]
-                return { content: "done", status: StatusCode.INFO }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Repeatedly send and delete a message"
             }
+
         },
+        category: CommandCategory.FUN
+    },
     ]
 
-    yield [
-        "udict",
-        {
-            run: async (_msg, args, sendCallback) => {
-                //@ts-ignore
-                try {
-                    //@ts-ignore
-                    let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
-                    let text = await data.text()
-                    let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                    return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
-                }
-                catch (err) {
-                    return { content: "An error occured", status: StatusCode.ERR }
-                }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Look up a word in urban dictionary"
-            },
-            use_result_cache: true
+yield[
+    "ship",
+    {
+        run: async (_msg, args, sendCallback) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            if (args.length < 2) {
+                return { content: "2 users must be given", delete: opts['d'] as boolean, status: StatusCode.ERR }
+            }
+            let [user1Full, user2Full] = args.join(" ").split("|")
+            if (!user1Full || !user2Full) {
+                return { content: "2 users not given", status: StatusCode.ERR }
+            }
+            let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
+            let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
+            let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
+            return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
         },
+        help: {
+            info: "Create your favorite fantacies!!!!"
+        },
+        category: CommandCategory.FUN
+    },
     ]
 
-    yield [
-        "reddit",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let subreddit = args[0]
+yield[
+    "aship",
+    {
+        run: async (msg, args, sendCallback) => {
+            return await (getCommands().get('add') as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
+        },
+        help: {
+            info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
+        },
+        category: CommandCategory.FUN
+    },
+    ]
+
+yield[
+    "spasm",
+    {
+        run: async (msg, args, sendCallback) => {
+            let [times, ...text] = args
+            let sendText = text.join(" ")
+            let timesToGo = 10
+            if (!isNaN(parseInt(times))) {
+                timesToGo = parseInt(times)
+            }
+            else {
+                sendText = [times, ...text].join(" ")
+            }
+            let id = String(Math.floor(Math.random() * 100000000))
+            await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
+            globals.SPAMS[id] = true
+            let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
+            while (globals.SPAMS[id] && timesToGo--) {
+                if (message.deletable) await message.delete()
+                message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
+                await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+            }
+            delete globals.SPAMS[id]
+            return { content: "done", status: StatusCode.INFO }
+        }, category: CommandCategory.FUN,
+        help: {
+            info: "Repeatedly send and delete a message"
+        }
+    },
+    ]
+
+yield[
+    "udict",
+    {
+        run: async (_msg, args, sendCallback) => {
+            //@ts-ignore
+            try {
                 //@ts-ignore
-                let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
+                let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
                 let text = await data.text()
-                if (!text) {
-                    return { content: "nothing found", status: StatusCode.ERR }
-                }
-                const $ = cheerio.load(text)
-                type data = { text?: string, link?: string }
-                let foundData: data[] = []
-                for (let item of $("h2.post_title a[href]")) {
-                    let dataToAdd: data = {}
-                    //@ts-ignore
-                    if (item.children[0].data) {
-                        //@ts-ignore
-                        dataToAdd['text'] = item.children[0].data
-                    }
-                    else { continue }
-                    //@ts-ignore
-                    if (item.attribs?.href) {
-                        //@ts-ignore
-                        dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs?.href}`
-                    }
-                    foundData.push(dataToAdd)
-                }
-                let post = choice(foundData)
-                let embed = new MessageEmbed()
-                embed.setTitle(post.text || "None")
-                embed.setFooter({ text: post.link || "None" })
-                return { embeds: [embed], status: StatusCode.RETURN }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Gets a random post  from a subreddit"
+                let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
+                return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
             }
+            catch (err) {
+                return { content: "An error occured", status: StatusCode.ERR }
+            }
+        }, category: CommandCategory.FUN,
+        help: {
+            info: "Look up a word in urban dictionary"
         },
+        use_result_cache: true
+    },
     ]
 
-    yield [
-        "8",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let content = args.join(" ")
-                let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
+yield[
+    "reddit",
+    {
+        run: async (_msg, args, sendCallback) => {
+            let subreddit = args[0]
+            //@ts-ignore
+            let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
+            let text = await data.text()
+            if (!text) {
+                return { content: "nothing found", status: StatusCode.ERR }
+            }
+            const $ = cheerio.load(text)
+            type data = { text?: string, link?: string }
+            let foundData: data[] = []
+            for (let item of $("h2.post_title a[href]")) {
+                let dataToAdd: data = {}
+                //@ts-ignore
+                if (item.children[0].data) {
+                    //@ts-ignore
+                    dataToAdd['text'] = item.children[0].data
+                }
+                else { continue }
+                //@ts-ignore
+                if (item.attribs?.href) {
+                    //@ts-ignore
+                    dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs?.href}`
+                }
+                foundData.push(dataToAdd)
+            }
+            let post = choice(foundData)
+            let embed = new MessageEmbed()
+            embed.setTitle(post.text || "None")
+            embed.setFooter({ text: post.link || "None" })
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, category: CommandCategory.FUN,
+        help: {
+            info: "Gets a random post  from a subreddit"
+        }
+    },
+    ]
+
+yield[
+    "8",
+    {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+            let content = args.join(" ")
+            let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
+            return {
+                content: choice(options)
+                    .slice(20)
+                    .replaceAll("{content}", content)
+                    .replaceAll("{u}", `${msg.author}`),
+                status: StatusCode.RETURN
+            }
+        },
+        help: {
+            info: "<code>[8 question</code><br>for the <code>[add</code> command, <code>{u}</code> represents user using this command, and <code>{content}</code> is their question",
+            arguments: {
+                question: {
+                    description: "What is on your mind?"
+                }
+            }
+        },
+        category: CommandCategory.FUN
+
+    },
+    ]
+
+yield[
+    "distance",
+    {
+        run: async (msg: Message, args: ArgumentList, sendCallback) => {
+            let opts;
+            [opts, args] = getOpts(args)
+            let speed = parseInt(opts['speed'] as string) || 1
+            let joinedArgs = args.join(" ")
+            let [from, to] = joinedArgs.split("|")
+            if (!to) {
+                return { content: "No second place given, fmt: `place 1 | place 2`", status: StatusCode.ERR }
+            }
+            //@ts-ignore
+            let fromUser = await fetchUser(msg.guild, from)
+            //@ts-ignore
+            let toUser = await fetchUser(msg.guild, to)
+            if (fromUser && toUser) {
+                let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
                     content: choice(options)
                         .slice(20)
-                        .replaceAll("{content}", content)
-                        .replaceAll("{u}", `${msg.author}`),
+                        .replaceAll("{from}", fromUser.id)
+                        .replaceAll("{to}", toUser.id)
+                        .replaceAll("{f}", `${fromUser}`)
+                        .replaceAll("{t}", `${toUser}`)
+                        .trim(),
                     status: StatusCode.RETURN
                 }
-            },
-            help: {
-                info: "<code>[8 question</code><br>for the <code>[add</code> command, <code>{u}</code> represents user using this command, and <code>{content}</code> is their question",
-                arguments: {
-                    question: {
-                        description: "What is on your mind?"
-                    }
+            }
+            from = encodeURI(from.trim())
+            to = encodeURI(to.trim())
+            const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
+            //@ts-ignore
+            const resp = await fetch.default(url, {
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
                 }
-            },
-            category: CommandCategory.FUN
-
-        },
-    ]
-
-    yield [
-        "distance",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let speed = parseInt(opts['speed'] as string) || 1
-                let joinedArgs = args.join(" ")
-                let [from, to] = joinedArgs.split("|")
-                if (!to) {
-                    return { content: "No second place given, fmt: `place 1 | place 2`", status: StatusCode.ERR }
-                }
-                //@ts-ignore
-                let fromUser = await fetchUser(msg.guild, from)
-                //@ts-ignore
-                let toUser = await fetchUser(msg.guild, to)
-                if (fromUser && toUser) {
-                    let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
-                    return {
-                        content: choice(options)
-                            .slice(20)
-                            .replaceAll("{from}", fromUser.id)
-                            .replaceAll("{to}", toUser.id)
-                            .replaceAll("{f}", `${fromUser}`)
-                            .replaceAll("{t}", `${toUser}`)
-                            .trim(),
-                        status: StatusCode.RETURN
-                    }
-                }
-                from = encodeURI(from.trim())
-                to = encodeURI(to.trim())
-                const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
-                //@ts-ignore
-                const resp = await fetch.default(url, {
-                    headers: {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
-                    }
-                })
-                const $ = cheerio.load(await resp.text())
-                let text = $("p.home2").text()
-                let drivingDistText = text.match(/The total driving distance from [^\.]* is ([\d,]*) miles/)
-                let drivingDist = 0;
-                if (drivingDistText) {
-                    drivingDist = parseInt(drivingDistText[1]?.replaceAll(",", ""))
-                }
-                let straightLineText = text.match(/The total straight line flight distance from [^\.]* is ([\d,]*) miles/)
-                let straightLineDist = 0
-                if (straightLineText) {
-                    straightLineDist = parseInt(straightLineText[1]?.replaceAll(",", ""))
-                }
-                const embed = new MessageEmbed()
-                embed.setTitle("Distances")
-                if (drivingDist) {
-                    embed.addFields(efd(["Driving distance", `${drivingDist} miles`]))
-                    if (speed)
-                        embed.addFields(efd(["Driving distance time", `${drivingDist / speed} hours`]))
-                }
-                if (straightLineDist) {
-                    embed.addFields(efd(["Straight line distance", `${straightLineDist} miles`]))
-                    if (speed)
-                        embed.addFields(efd(["Straight line distance time", `${straightLineDist / speed} hours`]))
-                }
-                if (!drivingDist && !straightLineDist) {
-                    let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
-                    return {
-                        content: choice(options)
-                            .slice(20)
-                            .replaceAll("{from}", from)
-                            .replaceAll("{to}", to)
-                            .replaceAll("{f}", decodeURI(from))
-                            .replaceAll("{t}", decodeURI(to))
-                            .trim(),
-                        status: StatusCode.RETURN
-                    }
-                }
+            })
+            const $ = cheerio.load(await resp.text())
+            let text = $("p.home2").text()
+            let drivingDistText = text.match(/The total driving distance from [^\.]* is ([\d,]*) miles/)
+            let drivingDist = 0;
+            if (drivingDistText) {
+                drivingDist = parseInt(drivingDistText[1]?.replaceAll(",", ""))
+            }
+            let straightLineText = text.match(/The total straight line flight distance from [^\.]* is ([\d,]*) miles/)
+            let straightLineDist = 0
+            if (straightLineText) {
+                straightLineDist = parseInt(straightLineText[1]?.replaceAll(",", ""))
+            }
+            const embed = new MessageEmbed()
+            embed.setTitle("Distances")
+            if (drivingDist) {
+                embed.addFields(efd(["Driving distance", `${drivingDist} miles`]))
+                if (speed)
+                    embed.addFields(efd(["Driving distance time", `${drivingDist / speed} hours`]))
+            }
+            if (straightLineDist) {
+                embed.addFields(efd(["Straight line distance", `${straightLineDist} miles`]))
+                if (speed)
+                    embed.addFields(efd(["Straight line distance time", `${straightLineDist / speed} hours`]))
+            }
+            if (!drivingDist && !straightLineDist) {
+                let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
-                    embeds: [embed],
+                    content: choice(options)
+                        .slice(20)
+                        .replaceAll("{from}", from)
+                        .replaceAll("{to}", to)
+                        .replaceAll("{f}", decodeURI(from))
+                        .replaceAll("{t}", decodeURI(to))
+                        .trim(),
                     status: StatusCode.RETURN
                 }
-            },
-            help: {
-                arguments: {
-                    "city 1": {
-                        "description": "The starting city, seperate the cities with |",
-                        "required": true
-                    },
-                    "city 2": {
-                        "description": "The ending city, seperate the cities with |",
-                        required: true
-                    }
-                }
-            },
-            category: CommandCategory.FUN
+            }
+            return {
+                embeds: [embed],
+                status: StatusCode.RETURN
+            }
         },
+        help: {
+            arguments: {
+                "city 1": {
+                    "description": "The starting city, seperate the cities with |",
+                    "required": true
+                },
+                "city 2": {
+                    "description": "The ending city, seperate the cities with |",
+                    required: true
+                }
+            }
+        },
+        category: CommandCategory.FUN
+    },
     ]
 
-    yield [
-        "list-cmds",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                let values = ''
-                let typeConv = { 1: "chat", 2: "user", 3: "message" }
-                for (let cmd in getCommands()) {
-                    values += `${cmd}\n`
-                }
-                for (let cmd of slashCommands) {
+yield[
+    "list-cmds",
+    {
+        run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
+            let values = ''
+            let typeConv = { 1: "chat", 2: "user", 3: "message" }
+            for (let cmd in getCommands()) {
+                values += `${cmd}\n`
+            }
+            for (let cmd of slashCommands) {
+                //@ts-ignore
+                if (cmd.type) {
                     //@ts-ignore
-                    if (cmd.type) {
-                        //@ts-ignore
-                        values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
-                    }
-                    else values += `/${cmd["name"]}\n`
+                    values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
                 }
-                return {
-                    content: values,
-                    status: StatusCode.RETURN
+                else values += `/${cmd["name"]}\n`
+            }
+            return {
+                content: values,
+                status: StatusCode.RETURN
+            }
+        },
+        category: CommandCategory.FUN,
+        help: {
+            info: "List all builtin commands"
+        },
+        use_result_cache: true
+    }
+]
+
+yield[
+    "psnipe",
+    {
+        run: async (_msg, _args, sendCallback) => {
+            if (!purgeSnipe) {
+                return { content: "Nothing has been purged yet", status: StatusCode.ERR }
+            }
+            let content = ""
+            let files: CommandFile[] = []
+            let embeds: MessageEmbed[] = []
+            for (let m of purgeSnipe) {
+                if (m.content) {
+                    content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
                 }
-            },
-            category: CommandCategory.FUN,
-            help: {
-                info: "List all builtin commands"
-            },
-            use_result_cache: true
-        }
+                let mAttachments = m.attachments?.toJSON()
+                if (mAttachments) {
+                    files = files.concat(mAttachments as CommandFile[])
+                }
+                if (m.embeds) {
+                    embeds = embeds.concat(m.embeds)
+                }
+            }
+            return { content: content ? content : undefined, files: files, embeds: embeds, status: StatusCode.RETURN }
+        },
+        help: {
+            info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
+        },
+        category: CommandCategory.FUN
+    },
     ]
 
-    yield [
-        "psnipe",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                if (!purgeSnipe) {
-                    return { content: "Nothing has been purged yet", status: StatusCode.ERR }
-                }
-                let content = ""
-                let files: CommandFile[] = []
-                let embeds: MessageEmbed[] = []
-                for (let m of purgeSnipe) {
-                    if (m.content) {
-                        content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
-                    }
-                    let mAttachments = m.attachments?.toJSON()
-                    if (mAttachments) {
-                        files = files.concat(mAttachments as CommandFile[])
-                    }
-                    if (m.embeds) {
-                        embeds = embeds.concat(m.embeds)
-                    }
-                }
-                return { content: content ? content : undefined, files: files, embeds: embeds, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
-            },
-            category: CommandCategory.FUN
+yield[
+    "snipe",
+    {
+        run: async (_msg: Message, args: ArgumentList, sendCallback) => {
+            let snipeC = ((parseInt(args[0]) - 1) || 0)
+            if (snipeC >= 5) {
+                return { content: "it only goes back 5", status: StatusCode.ERR }
+            }
+            if (snipeC > snipes.length) {
+                return { content: "Not that many messages have been deleted yet", status: StatusCode.ERR }
+            }
+            if (!snipes.length) {
+                return { content: "Nothing has been deleted", status: StatusCode.ERR }
+            }
+            let snipe = snipes[snipeC]
+            if (!snipe) {
+                return { content: "no snipe", status: StatusCode.ERR }
+            }
+            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
+            let files = snipe.attachments?.toJSON()
+            if (files) {
+                rv["files"] = files as CommandFile[]
+            }
+            if (snipe.embeds) {
+                rv["embeds"] = snipe.embeds
+            }
+            return rv
         },
-    ]
-
-    yield [
-        "snipe",
-        {
-            run: async (_msg: Message, args: ArgumentList, sendCallback) => {
-                let snipeC = ((parseInt(args[0]) - 1) || 0)
-                if (snipeC >= 5) {
-                    return { content: "it only goes back 5", status: StatusCode.ERR }
+        help: {
+            info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
+            arguments: {
+                number: {
+                    description: "the message you want to see"
                 }
-                if (snipeC > snipes.length) {
-                    return { content: "Not that many messages have been deleted yet", status: StatusCode.ERR }
-                }
-                if (!snipes.length) {
-                    return { content: "Nothing has been deleted", status: StatusCode.ERR }
-                }
-                let snipe = snipes[snipeC]
-                if (!snipe) {
-                    return { content: "no snipe", status: StatusCode.ERR }
-                }
-                let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
-                let files = snipe.attachments?.toJSON()
-                if (files) {
-                    rv["files"] = files as CommandFile[]
-                }
-                if (snipe.embeds) {
-                    rv["embeds"] = snipe.embeds
-                }
-                return rv
-            },
-            help: {
-                info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
-                arguments: {
-                    number: {
-                        description: "the message you want to see"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
+            }
         },
+        category: CommandCategory.FUN
+    },
     ]
 }
 
