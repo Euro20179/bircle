@@ -9,7 +9,7 @@ import timer from '../timer'
 import { client, GLOBAL_CURRENCY_SIGN, prefix, setVar } from '../common'
 import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
-import { MessageEmbed } from 'discord.js'
+import { Guild, MessageEmbed } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
 import { DEVBOT } from '../globals'
@@ -1023,39 +1023,50 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "give-item", {
             run: async (msg, args, sendCallback) => {
-                let alist = new ArgList(args)
-                let [i, user] = args.join(" ").split("|").map(v => v.trim())
+                let user = args.slice(-1)[0]
+                let i = args.slice(0, -1).join(" ")
+
                 if (!user) {
-                    return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``, status: StatusCode.ERR }
+                    return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
+
                 let [count, ...item] = i.split(" ")
+
                 let itemstr = item.join(" ")
-                if (!itemstr) {
-                    return { content: `Improper  command usage, \`${prefix}give-item <count> <item> | <user>\``, status: StatusCode.ERR }
+                if (!itemstr && isNaN(Number(count))) {
+                    itemstr = count
+                    count = "1"
                 }
-                //@ts-ignore
-                let member = await fetchUser(msg.guild, user)
+                else if(!itemstr){
+                    return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+                }
+
+                let member = await fetchUser(msg.guild as Guild, user)
                 if (!member) {
                     return { content: `${user} not found`, status: StatusCode.ERR }
                 }
+
                 let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
                 if (!itemData) {
                     return { content: `You do not have ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }
+
                 let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(msg.author.id, itemData, count))
                 if (countnum <= 0 || countnum > itemData.count) {
                     return { content: `You only have ${itemData.count} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }
+
                 giveItem(member.id, itemstr.toLowerCase(), countnum)
                 useItem(msg.author.id, itemstr.toLowerCase(), countnum)
+
                 return { content: `<@${msg.author.id}> gave <@${member.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
 
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "Give a player an item",
                 arguments: {
+                    count: createHelpArgument("The amount of the item to give", false, undefined, "1"),
                     item: createHelpArgument("The item to give to another player", true),
-                    "|": createHelpArgument("The separator between the item and the player", true),
                     player: createHelpArgument("The player to give the item to", true)
                 }
             }
