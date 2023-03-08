@@ -347,7 +347,8 @@ export async function cmd({
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
         let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData)
-        rv = await int.run() ?? false;
+        //this previously ored to false
+        rv = await int.run() ?? {noSend: true, status: StatusCode.RETURN};
     }
     return {
         rv: rv,

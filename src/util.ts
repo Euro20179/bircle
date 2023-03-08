@@ -1,4 +1,3 @@
-import { Cheerio } from "cheerio"
 import cheerio = require("cheerio")
 import { spawnSync } from "child_process"
 

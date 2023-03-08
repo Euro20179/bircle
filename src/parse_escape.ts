@@ -20,8 +20,8 @@ export default {
         }
     },
 
-    escape_U: async function(token, char, seq) {
-        return this.escape_u(token, char, seq)
+    escape_U: async function(token, char, seq, int) {
+        return this.escape_u(token, char, seq, int)
     },
 
     escape_s: async (token, _, seq) => {

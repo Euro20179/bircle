@@ -2578,6 +2578,25 @@ ${styles}
         let appendOpts = !opts.getBool("no-opts", false)
         let standardizeOpts = !opts.getBool("no-standardize", false)
 
+        let aliasV2s = getAliasesV2()
+
+        if(opts.getBool("rename", false)){
+            let [oldAlias, newName] = args
+
+            let alias = aliasV2s[oldAlias]
+            if(!alias){
+                return crv(`${oldAlias} is not an aliasv2`, {status: StatusCode.ERR})
+            }
+
+            if(alias.creator !== msg.author.id){
+                return crv("You did not create this alias, and cannot rename it", {status: StatusCode.ERR})
+            }
+
+            aliasV2s[newName] = alias
+            delete aliasV2s[oldAlias]
+            return crv(`\`${oldAlias}\` has been renamed to \`${newName}\``)
+        }
+
         if (!opts.getBool('no-easy', false)) {
             let [name, ...cmd] = args
             if (!name) {
@@ -2586,7 +2605,7 @@ ${styles}
             else if (aliases[cmd[0]]) {
                 return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
             }
-            if (getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]) {
+            if (getCommands().get(name) || getAliases()[name] || aliasV2s[name]) {
                 return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
@@ -2736,6 +2755,7 @@ ${styles}
         "argument": createHelpArgument("<code>argument</code> followed by the name of the option, followed by a |, then <code>desc|required|default</code>, followed by another | and lastly the text<br>if desc is chosen, text is a description of the argument<br>if required is chosen, text is true/false<br>if default is chosen, text is the default if argument is not given.", false),
         "cmd": createHelpArgument("<code>cmd</code> followed by the command to run <b>THIS SHOULD BE LAST</b>", true),
     }, {
+        "rename": createHelpOption("Rename an aliasv2 (the first argument is the alias to rename) (the second argument is the new name)"),
         "no-args": createHelpOption("Do not append user arguments to the end of exec (does not requre -no-easy)", undefined, "false"),
         "no-opts": createHelpOption("Do not append user opts to the end of exec (does not require -no-easy)", undefined, "false"),
         "no-easy": createHelpOption("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;"),
