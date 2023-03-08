@@ -120,6 +120,7 @@ const SAVING_INTERVAL = setInterval(() => {
         saveItems()
         pet.savePetData()
         saveVars()
+        timer.saveTimers()
 }, 30000)
 
 client.on("messageCreate", async (m: typeof Message) => {

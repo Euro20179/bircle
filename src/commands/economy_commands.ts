@@ -6,7 +6,7 @@ import user_options = require("../user-options")
 import timer from '../timer'
 
 
-import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
+import { client, GLOBAL_CURRENCY_SIGN, prefix, setVar } from '../common'
 import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
 import { MessageEmbed } from 'discord.js'
@@ -39,6 +39,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let toolTotal = Number(await res.text())
         return crv(`$${toolTotal}`)
     }, "Total amount on tools bot")]
+
+    yield ["retire", ccmdV2(async function({msg}){
+        let percentage = economy.playerLooseNetWorth(msg.author.id) / economy.economyLooseGrandTotal().total
+        if(percentage >= 0.5){
+            setVar('retired', 'true', '!retire', msg.author.id)
+            return crv("CONGRATS, you retired")
+        }
+        setVar('retired', 'false', '!retire', msg.author.id)
+        return crv("You cannot retire :( you must have >= 50% of the economy")
+    }, "lets you retire and get retirement benifits")]
 
     yield ['exchange-rate', ccmdV2(async function({ args, opts }) {
         let ip = getToolIp()

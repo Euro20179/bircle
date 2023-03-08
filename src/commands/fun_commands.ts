@@ -9,13 +9,13 @@ import fetch = require("node-fetch")
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy = require("../economy")
-import { client, prefix } from "../common";
+import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
 import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -168,50 +168,55 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }, CommandCategory.FUN)
     ]
 
-    yield ["hunting", createCommandV2(async ({ msg, args }) => {
-        let activePet = pet.getActivePet(msg.author.id)
-        if (!activePet) {
-            return { content: `You must activate a bird, dog, or cat to hunt`, status: StatusCode.ERR }
+    yield ["retirement-activity", ccmdV2(async function({msg, sendCallback}){
+        let isRetired = economy.isRetired(msg, msg.author.id)
+        let firstTime = false
+        if(!timer.getTimer(msg.author.id, "%retirement-activity")){
+            firstTime = true
+            timer.createTimer(msg.author.id, "%retirement-activity")
         }
-        let itemsToFind = {
-            "bird": [
-                ["worm", 1],
-                ["fly", 1]
-            ],
-            "dog": [
-                ["bone", 1],
-                ["fossil", 0.25],
-                ["time machine", 0.05]
-            ],
-            "cat": [
-                ["dead bird", 1],
-                ["dead rat", 1]
-            ]
-        }[activePet] as [string, number][]
-        if (!itemsToFind) {
-            return { content: `A ${activePet} cannot hunt`, status: StatusCode.ERR }
+        if(!isRetired){
+            return crv("You are not retired", {status: StatusCode.ERR})
         }
-        let weightSum = itemsToFind.reduce((p, c) => p + c[1], 0)
-        const threshold = Math.random() * weightSum
-
-        let runningTotal = 0;
-        let item;
-        for (let i = 0; i < itemsToFind.length; i++) {
-            runningTotal += itemsToFind[i][1]
-
-            if (runningTotal >= threshold) {
-                item = itemsToFind[i][0]
-                break
+        if(!timer.has_x_s_passed(msg.author.id, "%retirement-activity", 1800) && !firstTime){
+            return crv(`You must wait ${(1800 - ((timer.do_lap(msg.author.id, "%retirement-activity") || 0) / 1000)) / 60} minutes`)
+        }
+        timer.restartTimer(msg.author.id, "%retirement-activity")
+        let activities: {[activity: string]: () => Promise<CommandReturn>} = {
+            "knitting": async () => {
+                let item = choice(["blanket", "scarf", "left sock"])
+                giveItem(msg.author.id,item, 1)
+                return {content: `You got a ${item}`, status: StatusCode.RETURN, files: [
+                    {
+                        delete: false,
+                        attachment: `./assets/${item}.png`,
+                    }
+                ]}
+            }, 
+            "spanking": async () => {
+                let lostAmount = Math.floor(Math.random() * 10)
+                let name = choice(["Johnny", "Jicky", "aldo", "yicky", "jinky", "Mumbo"])
+                await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
+                return {noSend: true, status: StatusCode.RETURN}
+            },
+            "bingo night": async() => {
+                economy.addMoney(msg.author.id, economy.calculateAmountFromString(msg.author.id, "1%"))
+                return crv("YOU WIN!!!!", {
+                    files: [
+                        {
+                            attachment: './assets/elderly-woman.webp'
+                        }
+                    ]
+                })
             }
         }
-        if (!item) {
-            return { content: "Nothing was found :(", status: StatusCode.RETURN }
-        }
-        let petName = pet.getUserPets(msg.author.id)[activePet].name || activePet
-        giveItem(msg.author.id, item, 1)
-        return { content: `${petName} found a ${item}`, status: StatusCode.RETURN }
 
-    }, CommandCategory.FUN)]
+        let activity =  choice(Array.from(Object.keys(activities)))
+
+        await handleSending(msg, crv(`You are: ${activity}`), sendCallback)
+
+        return activities[activity]()
+    }, "If you are retired, do an activity")]
 
     yield ["fishing", createCommandV2(async ({ msg, args }) => {
         let rod = hasItem(msg.author.id, "fishing rod")

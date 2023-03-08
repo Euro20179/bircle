@@ -1,5 +1,7 @@
 const fs = require("fs")
+import { Message } from "discord.js"
 import fetch = require("node-fetch")
+import { getVar } from "./common"
 
 import pet from "./pets"
 import timer from "./timer"
@@ -11,6 +13,10 @@ export type EconomyData = { money: number, stocks?: { [key: string]: Stock }, lo
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
+
+function isRetired(msg: Message, id: string){
+    return getVar(msg, 'retired', '!retire', id) === 'true' ? true : false
+}
 
 
 function setUserStockSymbol(id: string, symbol: string, data: {name: string, info: Stock}){
@@ -586,5 +592,6 @@ export {
     setUserStockSymbol,
     increaseSandCounter,
     getSandCounter,
+    isRetired
     // tradeItems
 }
