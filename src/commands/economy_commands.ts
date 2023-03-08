@@ -156,11 +156,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     item = item.split(" ").slice(0, -1).join(" ")
                 }
                 if (!allowedTypes.includes(type)) {
-                    //if is in format of old [buy <stock> <shares>
-                    if (Number(item) && !allowedTypes.includes(type)) {
-                        await handleSending(msg, { content: `WARNING: <@${msg.author.id}>, this method for buying a stock is outdated, please use\n\`${prefix}buy stock <stockname> <shares>\` or \`${prefix}bstock <stockname> <shares>\`\ninstead`, status: StatusCode.WARNING }, sendCallback)
-                        return await (getCommands().get('bstock') as Command).run(msg, args, sendCallback, {}, args, recursion)
-                    }
                     //else
                     return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
                 }
@@ -263,61 +258,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         },
     ]
 
-    yield [
-        "bstock", {
-            run: async (msg, args, sendCallback) => {
-                let stock = args[0]
-                if (!stock) {
-                    return { content: "No stock given", status: StatusCode.ERR }
-                }
-                if (stock == prefix) {
-                    return { content: "nah ah ah", status: StatusCode.ERR }
-                }
-                stock = stock.toUpperCase()
-                let amount = Number(args[1])
-                if (!amount) {
-                    return { content: "No share count given", status: StatusCode.ERR }
-                }
-                if (amount < .1) {
-                    return { content: "You must buy at least 1/10 of a share", status: StatusCode.ERR }
-                }
-                economy.getStockInformation(stock, (data) => {
-                    if (data === false) {
-                        handleSending(msg, { content: `${stock} does not exist`, status: StatusCode.ERR }, sendCallback)
-                        return
-                    }
-                    let realStock = economy.userHasStockSymbol(msg.author.id, stock)
-                    if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
-                        handleSending(msg, { content: "You cannot afford this", status: StatusCode.ERR }, sendCallback)
-                        return
-                    }
-                    if (realStock) {
-                        economy.buyStock(msg.author.id, realStock.name, amount, data.price)
-                    }
-                    else {
-                        economy.buyStock(msg.author.id, stock.toLowerCase(), amount, data.price)
-                    }
-                    handleSending(msg, { content: `${msg.author} has bought ${amount} shares of ${stock.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }, sendCallback)
-                }, () => {
-                    handleSending(msg, { content: `Failed to get stock data for: ${stock}`, status: StatusCode.ERR }, sendCallback)
-                })
-                return { noSend: true, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: `Buy a stock, this is the same as ${prefix}buy stock <symbol> <amount>`,
-                arguments: {
-                    symbol: {
-                        description: `The stock symbol to buy, if you do not know the symbol for a stock, use ${prefix}stk <search>`,
-                        required: true
-                    },
-                    amount: {
-                        description: "The amount of shares to buy of the stock",
-                        required: true
-                    }
-                }
-            }
-        },
-    ]
 
     yield [
         "stocks", {
