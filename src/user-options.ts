@@ -51,8 +51,8 @@ export function unsetOpt(user: string, opt: string) {
     }
 }
 
-export function isValidOption(opt: string) {
-    return allowedOptions.includes(opt as UserOption)
+export function isValidOption(opt: string): UserOption | false {
+    return allowedOptions.includes(opt as UserOption) && opt as UserOption
 }
 
 export function formatMoney(user: string, amount: string | number) {

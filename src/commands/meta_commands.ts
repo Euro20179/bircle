@@ -281,8 +281,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             let userOpts = user_options.getUserOptions()[user]
             let optionToCheck = args.join(" ").toLowerCase()
-            if (optionToCheck) {
-                return { content: `**${optionToCheck}**\n${user_options.getOpt(user, optionToCheck, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+            let validOpt = user_options.isValidOption(optionToCheck)
+            if (validOpt) {
+                return { content: `**${optionToCheck}**\n${user_options.getOpt(user, validOpt, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
             let text = ""
             for (let opt of user_options.allowedOptions) {
@@ -1194,11 +1195,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 }
                 if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                    return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv
+                    return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
                 let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
                 if (elseCmd) {
-                    return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv
+                    return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
                 return { content: "?", status: StatusCode.ERR }
             },
@@ -2814,7 +2815,7 @@ ${styles}
                     return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
                 }
                 msg.content = lastCommand[msg.author.id]
-                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv
+                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
             },
             help: {
                 info: "Run the last command that was run",
