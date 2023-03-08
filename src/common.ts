@@ -11,7 +11,7 @@ const prefix = readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 5, minor: 17, bug: 0, part: "", beta: false, alpha: false }
+const VERSION = { major: 5, minor: 17, bug: 1, part: "", beta: false, alpha: false }
 
 //@ts-ignore
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_PRESENCES], allowedMentions: { parse: ["users"] } })
