@@ -115,6 +115,13 @@ client.on("messageDeleteBulk", async (m: any) => {
         purgeSnipe.length = 5
 })
 
+const SAVING_INTERVAL = setInterval(() => {
+        economy.saveEconomy()
+        saveItems()
+        pet.savePetData()
+        saveVars()
+}, 30000)
+
 client.on("messageCreate", async (m: typeof Message) => {
     if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {
         return
@@ -149,13 +156,6 @@ client.on("messageCreate", async (m: typeof Message) => {
 
     if (m.content === `<@${client.user.id}>`) {
         await command_commons.handleSending(m, { content: `The prefix is: ${local_prefix}`, status: 0 })
-    }
-
-    //saves economy stuff 45% of the time
-    if (Math.random() > .55) {
-        economy.saveEconomy()
-        saveItems()
-        pet.savePetData()
     }
 
     let content = m.content
