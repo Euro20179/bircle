@@ -2776,23 +2776,7 @@ ${styles}
         } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024) }), status: StatusCode.RETURN }
     }, CAT, "Gets info about the process")]
 
-    yield [
-        "aliasv1",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                return { content: "Creating new aliasv1s is disabled, use aliasv2 instead", status: StatusCode.ERR }
-            },
-            category: CAT,
-            help: {
-                info: "Create an alias",
-                arguments: {
-                    command: createHelpArgument("The command name", true),
-                    command_to_run: createHelpArgument("The command to run", true),
-                    args: createHelpArgument("Arguments for the command to run", false)
-                }
-            }
-        },
-    ]
+    yield [ "aliasv1", ccmdV2(async() => crv("Creating alias v1s is disabled, used `alias` instead", {status: StatusCode.ERR}), "disabled") ]
 
     yield [
         "!!",
