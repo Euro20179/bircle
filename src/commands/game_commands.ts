@@ -1047,9 +1047,9 @@ until you put a 0 in the box`)
                     text = `<@${playerId}> guessed the correct third of ${guess}`
                 }
                 economy.addMoney(playerId, winnings)
+                let sign = user_options.getOpt(playerId, "currency-sign", GLOBAL_CURRENCY_SIGN)
                 if (winnings > 0)
-                    //TODO: use currency sign here, possibly add roulette-win user option
-                    text += `\nearnings: **${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
+                    text += `\nearnings: **${sign}${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
                 totaltext += text + "\n--------------\n"
             }
 
