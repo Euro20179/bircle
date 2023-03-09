@@ -3,7 +3,7 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, User } from "discord.js";
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, TextInputComponent, User } from "discord.js";
 import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
@@ -1243,6 +1243,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             category: CommandCategory.FUN
         },
     ]
+
 
     yield [
         "pfp", ccmdV2(async ({ msg, opts, args, stdin }) => {

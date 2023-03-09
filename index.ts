@@ -6,7 +6,7 @@ import fs from 'fs'
 
 import http from 'http'
 
-const { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel,  Collection, MessageFlags,  InteractionReplyOptions, User } = require("discord.js")
+const { MessageEmbed, MessageButton, MessageActionRow, GuildMember, TextChannel,  Collection, MessageFlags,  InteractionReplyOptions, User } = require("discord.js")
 
 import { REST } from '@discordjs/rest'
 
@@ -26,6 +26,7 @@ import { GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
 
 import economy from './src/economy'
+import { Interaction, Message, Modal, TextInputComponent } from 'discord.js'
 // const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
 const { saveItems, hasItem } = require("./src/shop")
@@ -74,7 +75,7 @@ Object.defineProperty(User.prototype, "netWorth", {
 })();
 
 
-client.on("guildMemberAdd", async (m: typeof Message) => {
+client.on("guildMemberAdd", async (m: Message) => {
     try {
         let role = await m.guild?.roles.fetch("427570287232417793")
         if (role)
@@ -99,7 +100,7 @@ client.on('ready', async () => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async (m: typeof Message) => {
+client.on("messageDelete", async (m: Message) => {
     if (m.author?.id != client.user?.id) {
         for (let i = 3; i >= 0; i--) {
             command_commons.snipes[i + 1] = command_commons.snipes[i]
@@ -122,7 +123,7 @@ const SAVING_INTERVAL = setInterval(() => {
         timer.saveTimers()
 }, 30000)
 
-client.on("messageCreate", async (m: typeof Message) => {
+client.on("messageCreate", async (m: Message) => {
     if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {
         return
     }
@@ -140,8 +141,8 @@ client.on("messageCreate", async (m: typeof Message) => {
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
-        for (let i = 0; i < m.mentions.members.size; i++) {
-            let pingresponse = user_options.getOpt(m.mentions.members.at(i)?.user.id, "pingresponse", null)
+        for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
+            let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if (command_commons.isCmd(pingresponse, prefix)) {
@@ -217,7 +218,7 @@ client.on("messageCreate", async (m: typeof Message) => {
     }
 })
 
-client.on("interactionCreate", async (interaction: typeof Interaction) => {
+client.on("interactionCreate", async (interaction: Interaction) => {
     if (interaction?.user?.username === undefined) {
         return
     }
@@ -288,6 +289,7 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
         }
         else if (interaction.commandName === 'md') {
             interaction.reply({
+                //@ts-ignore it works
                 type: InteractionResponseTypes.CHANNEL_MESSAGE_WITH_SOURCE,
                 content: interaction.options.get("text")?.value as string ?? "Hi"
             })
@@ -356,7 +358,8 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
             }
         }
         else if (interaction.commandName == 'img') {
-            let rv = await (command_commons.commands.get("img") as Command).run(interaction, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel), {}, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], 0, undefined)
+            //@ts-ignore
+            let rv = await (command_commons.commands.get("img") as Command).run(interaction as Message, [interaction.options.get("width")?.value as string, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel), {}, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], 0, undefined)
             interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
             if (rv.files) {
                 for (let file of rv.files) {
@@ -373,27 +376,6 @@ client.on("interactionCreate", async (interaction: typeof Interaction) => {
                     description: "lmao"
                 }]
             }).catch(console.error)
-        }
-        else if (interaction.commandName == 'poll') {
-            interaction.author = interaction?.member.user
-            let argList = []
-            let title = interaction.options.get("title")?.value
-            let options = interaction.options.get("options")?.value as string
-            if (title) {
-                argList.push(`-title=${title}`)
-            }
-            argList.push(options)
-            await (command_commons.commands.get("poll") as Command).run(interaction, argList, interaction.channel.send.bind(interaction.channel), {}, argList, 0, undefined)
-        }
-        else if (interaction.commandName == 'ccmd') {
-            interaction.author = interaction.member?.user
-            let arglist = [String(interaction.options.get("name")?.value), "say"] as string[]
-            let args = interaction.options.get("text")?.value as string
-            if (args) {
-                arglist = arglist.concat(args.split(" "))
-            }
-            let rv = await (command_commons.commands.get('alias') as Command).run(interaction, arglist, interaction.channel.send.bind(interaction.channel), {}, arglist, 0, undefined)
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
         }
         else if (interaction.commandName == 'say') {
             interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here").catch(console.error)
@@ -492,7 +474,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
             }
             let inChannel = urlParams?.get("channel-id")
             client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
-                let msg: typeof Message = {
+                let msg: Message = {
                     activity: null,
                     applicationId: client.id,
                     id: "_1033110249244213260",
