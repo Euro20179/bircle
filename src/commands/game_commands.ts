@@ -986,7 +986,7 @@ until you put a 0 in the box`)
                     }
                     if(isValidGuess(location.join(" "))){
                         bets[m.author.id] = [money, location.join(" ")]
-                        handleSending(msg, crv(`${msg.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now`))
+                        handleSending(msg, crv(`${m.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now`))
                         return true
                     }
                     return false
@@ -1002,6 +1002,8 @@ until you put a 0 in the box`)
             let result = Math.floor(Math.random() * 36)
             let resultText = String(result)
 
+            //TODO: if result is 0, and the player guesses 0, give a 72x bonus
+
             let color = result % 2 === 0 ? "red" : "black"
 
             let halfText = result < 19 ? "1st half" : "2nd half"
@@ -1016,23 +1018,24 @@ until you put a 0 in the box`)
                 let text = `<@${playerId}> did not win`
                 let winnings = 0
                 if(guess === resultText){
-                    winnings = pot * 36
+                    winnings = pot * 37
                     text = `<@${playerId}> GUESSED THE EXACT NUMBER OF ${guess}`
                 }
                 else if(guess === halfText){
-                    winnings = pot * 2
+                    winnings = pot * 3
                     text = `<@${playerId}> guessed the correct half of ${guess}`
                 }
                 else if(guess === color){
-                    winnings = pot * 2
+                    winnings = pot * 3
                     text = `<@${playerId}> guessed the correct color of ${guess}`
                 }
                 else if(guess === thirdText){
-                    winnings = pot * 3
+                    winnings = pot * 4
                     text = `<@${playerId}> guessed the correct third of ${guess}`
                 }
                 economy.addMoney(playerId, winnings)
                 if(winnings > 0)
+                    //TODO: use currency sign here, possibly add roulette-win user option
                     text += `\nearnings: **${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
                 totaltext += text + "\n--------------\n"
             }
