@@ -205,7 +205,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 inPromptSection = true
             }
             else if (char === "}") {
-                console.log(currentPrompt)
                 if (currentPrompt) {
                     processedStory += await processPrompt(currentPrompt)
                 }
