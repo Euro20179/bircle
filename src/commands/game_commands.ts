@@ -828,14 +828,12 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "battle",
-        {
-            run: async (msg, args, sendCallback) => {
-                return battle.battle(msg, args)
-            }, category: CommandCategory.GAME,
-            help: {
-                info: `<h1>A BATTLE SIMULATOR</h1>`,
-                docs: `
+        "battle", ccmdV2(async function({ msg, args }) {
+            return battle.battle(msg, args)
+
+        }, `<h1>A BATTLE SIMULATOR</h1>`, {
+
+            docs: `
             <br>Rules:<br>
             <ul>
                 <li>
@@ -895,21 +893,21 @@ until you put a 0 in the box`)
             </ul>
             <p>*Cannot kill players, they will remain in the negatives until a game message targets them</p>
             `,
-                arguments: {
-                    "bet": {
-                        description: "Your bet (must be at minimum 0.2%)"
-                    },
-                    "pool type": {
-                        description: "The type of pool, can be winnter take all (wta) or distribute (where when someone dies, their money gets distributed)"
-                    }
+            helpArguments: {
+                "bet": {
+                    description: "Your bet (must be at minimum 0.2%)"
                 },
-                options: {
-                    "no-items": {
-                        description: "Disable items"
-                    }
+                "pool type": {
+                    description: "The type of pool, can be winnter take all (wta) or distribute (where when someone dies, their money gets distributed)"
+                }
+            },
+            helpOptions: {
+                "no-items": {
+                    description: "Disable items"
                 }
             }
-        },
+
+        })
     ]
 
     yield [
@@ -932,7 +930,7 @@ until you put a 0 in the box`)
                 globals.endCommand(msg.author.id, "roulette")
                 return crv(`You do not have ${sign}${money}`)
             }
-            if(money < 0){
+            if (money < 0) {
                 return crv("Cannot bet a negative amount")
             }
 
@@ -944,8 +942,8 @@ until you put a 0 in the box`)
 
             const isValidGuess = (text: string) => {
                 let n = Number(text)
-                if(!isNaN(n)){
-                    if(n < 37 && n >= 0){
+                if (!isNaN(n)) {
+                    if (n < 37 && n >= 0) {
                         return text
                     }
                     return false
@@ -953,16 +951,16 @@ until you put a 0 in the box`)
 
                 let validList = Object.values(thirds).concat(["red", "black", "1st half", "2nd half"])
 
-                if(validList.includes(text)) return text
+                if (validList.includes(text)) return text
 
                 return false
             }
 
-            let guess = args.expect(() => true, i =>{
-                if(!i.length) return BADVALUE
+            let guess = args.expect(() => true, i => {
+                if (!i.length) return BADVALUE
                 let v = isValidGuess(i.join(" "))
 
-                if(v) return v
+                if (v) return v
 
                 return BADVALUE
             })
@@ -972,19 +970,19 @@ until you put a 0 in the box`)
                 return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
             }
 
-            let bets: {[key: string]: [number, string]} = {[msg.author.id]: [money, guess]}
+            let bets: { [key: string]: [number, string] } = { [msg.author.id]: [money, guess] }
 
-            await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now`, {status: StatusCode.PROMPT}))
+            await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now`, { status: StatusCode.PROMPT }))
 
             await msg.channel.awaitMessages({
                 filter: m => {
-                    if(globals.userUsingCommand(m.author.id, "roulette")) return false
+                    if (globals.userUsingCommand(m.author.id, "roulette")) return false
                     let [amount, ...location] = m.content.split(" ")
                     let money = economy.calculateAmountFromString(m.author.id, amount)
-                    if(!economy.canBetAmount(m.author.id, money) || money < 0){
+                    if (!economy.canBetAmount(m.author.id, money) || money < 0) {
                         return false
                     }
-                    if(isValidGuess(location.join(" "))){
+                    if (isValidGuess(location.join(" "))) {
                         bets[m.author.id] = [money, location.join(" ")]
                         handleSending(msg, crv(`${m.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now`))
                         return true
@@ -994,7 +992,7 @@ until you put a 0 in the box`)
             })
 
             let pot = 0
-            for(let [playerId, [amount, _location]] of Object.entries(bets)){
+            for (let [playerId, [amount, _location]] of Object.entries(bets)) {
                 pot += amount
                 economy.loseMoneyToBank(playerId, amount)
             }
@@ -1014,27 +1012,27 @@ until you put a 0 in the box`)
             if (result === 0) ((color = "green") && (halfText = "0"))
 
             let totaltext = `The rolled number is ${resultText}\n`
-            for(let [playerId, [amount, guess]] of Object.entries(bets)){
+            for (let [playerId, [amount, guess]] of Object.entries(bets)) {
                 let text = `<@${playerId}> did not win`
                 let winnings = 0
-                if(guess === resultText){
+                if (guess === resultText) {
                     winnings = pot * 36
                     text = `<@${playerId}> GUESSED THE EXACT NUMBER OF ${guess}`
                 }
-                else if(guess === halfText){
+                else if (guess === halfText) {
                     winnings = pot * 2
                     text = `<@${playerId}> guessed the correct half of ${guess}`
                 }
-                else if(guess === color){
+                else if (guess === color) {
                     winnings = pot * 2
                     text = `<@${playerId}> guessed the correct color of ${guess}`
                 }
-                else if(guess === thirdText){
+                else if (guess === thirdText) {
                     winnings = pot * 3
                     text = `<@${playerId}> guessed the correct third of ${guess}`
                 }
                 economy.addMoney(playerId, winnings)
-                if(winnings > 0)
+                if (winnings > 0)
                     //TODO: use currency sign here, possibly add roulette-win user option
                     text += `\nearnings: **${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
                 totaltext += text + "\n--------------\n"
