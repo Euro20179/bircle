@@ -11,7 +11,7 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE } from "../util"
+import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween } from "../util"
 import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, saveVars, setVar, setVarEasy } from "../common"
 import timer from '../timer'
 
@@ -237,7 +237,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
                 return 0
             }
-            //TODO: add prompts stuff
             const prompts = fs.readFileSync("./command-results/kym", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":")).map(v => v.trim()).filter(v => v)
 
             for (let i = 0; i < amountOfRounds; i++) {
@@ -299,8 +298,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 //This acts as the timer for the whole voting thing, if removed there will be no timer for voting
                 let messagevotes = await msg.channel.awaitMessages({
                     filter: (m) => {
-                        //TODO: fix exploit whre you can vote for an arbitrary number
-                        if (!voted.includes(m.author.id) && !m.author.bot && !isNaN(Number(m.content))) {
+                        let n = Number(m.content) 
+                        if (!voted.includes(m.author.id) && !m.author.bot && !isNaN(n) && isBetween(0, n, gifs.length)) {
                             voted.push(m.author.id)
                             handleSending(msg, { content: `You voted for gif: ${m.content}`, status: StatusCode.INFO })
                             return true
