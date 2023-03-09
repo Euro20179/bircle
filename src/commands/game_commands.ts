@@ -1031,7 +1031,7 @@ until you put a 0 in the box`)
                 let text = `<@${playerId}> did not win`
                 let winnings = 0
                 if (guess === resultText) {
-                    winnings = pot * 36
+                    winnings = pot * 37
                     text = `<@${playerId}> GUESSED THE EXACT NUMBER OF ${guess}`
                 }
                 else if (guess === halfText) {
@@ -1064,7 +1064,7 @@ until you put a 0 in the box`)
                 guess: createHelpArgument(`The guess<br><lh>Must be one of</lh>
 <ul>
 <li>
-    <b>number</b>: any number 0-36 (get 36x the pot)
+    <b>number</b>: any number 0-36 (get 37x the pot)
 </li>
 <li>
     <b>red/black</b>: red is even, black is odd (get 2x the pot)
