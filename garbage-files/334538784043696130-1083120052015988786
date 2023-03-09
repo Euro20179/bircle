@@ -1,0 +1,101 @@
+
+--------------------
+ed the excellent unix ed command
+__modes__ 
+ 	*	normal
+ 	*	insert
+  **normal mode** 
+	 the general way to use a normal mode command is
+	 `[range]<command>[args...]`
+	 all commands are 1 character 
+ __commands__ 
+ 	*	 **i**: enter insert mode on line `range`
+		 or the current line if not given.
+		 if `args` are given, it will insert the args and stay in normal mode. 
+ 	*	 **a**: enter insert mode at the end of the text because its broken 
+ 	*	 **d**: delete `range` lines or the current line. 
+ 	*	 **p**: print `range` lines or the current line. 
+ 	*	 **n**: same as **p** and also numbers the lines. 
+ 	*	 **s**: runs a find/replace on `range` liens or the current line. 
+ 	*	 **!**: replaces `range` lines with the output of a bircle command. 
+ 	*	**q**: quit
+  **insert** 
+	 to exit insert mode do `.` 
+ (41)
+--------------------
+if evaluate bircle commands conditionally!
+there are 2 versions of the if statement
+	*	**1**: standard javascript expression
+	*	**2**:([bircle-command) <operator> (value)
+
+**for the 2nd version**, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators
+in addition, the `:` operator may be used to check if the result of the commands includes the regex expression provided in the second set of parentheses.
+lastly, the `includes` operator may be used to check if the expected value is in the result of the command.
+after the condition must be a ;
+
+after the ; must be a command to run followed by `;end`
+lastly `[else;` <command> may optionally be added on a new line
+if the condition is false and an  is not provided a ? will be sent (41)
+--------------------
+user-info gets info on a member
+[user-info <user> [format]
+ valid formats:
+ 
+ 	*	 `{id}` or `{i}` or `%i`: user id 
+ 	*	 `{username}` or `{u}` or `%u`: user username 
+ 	*	 `{nickname}` or `{n}` or `%n`: user nickname 
+ 	*	 `{0xcolor}` or `{x}` or `%x`: user color in hex 
+ 	*	 `{color}` or `{x}` or `%x`: user color 
+ 	*	 `{created}` or `{c}` or `%c`: when the user was created 
+ 	*	 `{joined}` or `{j}` or `%j`: when the user joined the server 
+ 	*	 `{boost}` or `{b}` or `%b`: when the user started boosting the server 
+ 	*	 `{status}` or `{s}` or `%s`: gets the platform/status of the user 
+ (37)
+--------------------
+alias **there are 2 modes**
+	*	default: how alias has always worked <name> <command>
+	*	no-easy: use the -no-easy option enable this
+
+create an aliasv2
+by default, the user arguments will be appended to the end of exec
+to access an option in the exec, use ${%:-option-name}, for args use ${%:\_\_arg[<i>]}
+raw args are also accessable with \_\_rawarg instead of \_\_arg.
+to access all args, use ${%:\_\_arg[...]}
+
+**the rest only applies to no-easy mode**
+each argument should be on its own line (19)
+--------------------
+filter filters:
+rotate[:angle]
+flip[:hor|vert]
+brightness[:val]
+grey|greyscale|gray|grayscale
+invert
+contrast[:val] (12)
+--------------------
+lottery get the current lottery pool (9)
+--------------------
+last-run formats:
+	*	%h: hours
+	*	%m: minutes
+	*	%s: seconds
+	*	%d: days
+	*	%i: milliseconds
+	*	%f: total milliseconds
+	*	%d: total days
+	*	%h: total hours
+	*	%m: total minutes
+	*	%s: total seconds
+	*	%t: the full time it was last run
+	*	%t: the time ago it was run
+ 	*	{date}: the date it was last run
+	*	{time}: las time it was run
+ (8)
+--------------------
+reset_lottery resets the lottery (8)
+--------------------
+overlay overlay image 1 onto image 2 seperated by | 
+ if an image is not provided it will be pulled from chat, or an image you gave it (8)
+--------------------
+8 `[8 question`
+for the `[add` command, `{u}` represents user using this command, and `{content}` is their question (7)

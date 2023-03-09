@@ -1,0 +1,133 @@
+
+COLOR TYPES:
+    #rgb
+    #rrggbb
+    #rrggbbaa
+    rgb(r, g, b)
+    rgba(r, g, b, a)
+    hsl(h, s, l)
+    hsla(h, s, l, a)
+    <html color name>
+    lgradient <x1> <y1> <x2> <y2> | <stop1> <css-color> > <stop2> <css-color2> > ...
+        (<x1>, <y1>) is the start of the gradient, (<x2>, <y2>) is the end
+        the stops must be a percentage 0-1
+        css-color must be a basic css-color as listed above
+    rgradient <x1> <y1> <r1> <x2> <y2> <r2> | <stop1> <css-color> > <stop2> <css-color2> > ...
+        I honestly could not tell you how radial gradients work
+
+COMMANDS:
+
+**done**: end drawing
+**no** <type>:
+    set <type> back to default
+    values for type:
+        shadow
+        color
+        text-align
+        text-baseline
+        outline
+
+**start-path** | **path** | **begin-path** | **begin-stroke** :
+    begin a path
+
+**end-path** | **stroke** | **end-stroke**:
+    end a path
+
+**fill** | **fill-stroke**:
+    end a path and fill it
+
+**goto** | **move-to** <x> <y>:
+    change the current position to (<x>, <y>)
+**image** <dx> <dy> [dw [dh [sx [sy [sw [sh]]]]]] | <image>:
+    put the area: (<sx>, <sy>) through (<sx + sw>, <sy + sh>) <image> on the canvas at (<dx>, <dy>) with a width of (<dw>, <dh>)
+
+**shadow** [xo [yo [blur [color]]]]:
+    set shadowOffsetX to <xo> or 0
+    set shadowOffsetY to <yo> or 0
+    set shadowBlur to <blur> or 0
+    set shadowColor to <color> or red
+
+**shadow-color** <color>:
+    set shadowColor to a basic css color
+
+**shadow-x** <x>:
+    set shadowOffsetY to <x>
+
+**shadow-y** <y>:
+    set shadowOffsetY to <y>
+
+**shadow-blur** <blur>:
+    set shadowBlur to <blur>
+
+**outline** | **stroke** [color]:
+    set the stroke style (outline color) to [color] or red
+    see COLOR TYPES for types of colors
+
+**outline-width** | **line-width** | **stroke-width** <width>:
+    set the outline width to <width>
+
+**outline-type** | **line-type** | **stroke-type** <style>:
+    set the line type to <style>
+    style can be:
+        round
+        bevel
+        miter
+
+**color** <color>:
+    set the fill color to <color>
+    see COLOR TYPES for types of colors
+
+**font** [size]:
+**font** [font]:
+**font** [size] [font]:
+    sets the font size to [size], and the font to [font]
+    for a list of fonts, run ]api getFonts
+
+**text-align** <alignment>:
+    alignment can be:
+        left
+        right
+        center
+        start
+        end
+
+**text-baseline** [baseline]:
+    sets the text baseline to [baseline] or top
+    baseline can be:
+        top
+        hanging
+        middle
+        alphabet
+        ideographic
+        bottom
+
+**stroke-text** | **stext** <x> <y> <text>:
+    Put an outline of <text> at <x> <y>
+
+**text** <x> <y> <text>:
+    Put <text> at (<x>, <y>)
+
+**box** <x> <y> <w> <h>:
+    draw an outline of a box at (<x>, <y>) with a width of <w> and height of <h>
+
+**rect** <x> <y> <w> <h>:
+    put a rectangle at (<x>, <y>) with a width of <w> and height of <h>
+
+**fill-screen** [color]:
+    fill the screen with color
+    see COLOR TYPES for types of colors
+
+**orect** <x> <y> <w> <h>:
+    put an outlined rectangle at (<x>, <y>) with a width of <w> and height of <h>
+
+**rotate** <angle (degrees)>:
+    rotate the canvas by <angle>
+
+The commands below, only work after **path** has been run:
+
+    **line-to** <x> <y>:
+        draw a line starting from the current position, and going to (<x>, <y>)
+
+    **arc** <x> <y> <r> [start-angle [end-angle]]:
+        create an arc at (<x>, <y>) with radius <r>
+

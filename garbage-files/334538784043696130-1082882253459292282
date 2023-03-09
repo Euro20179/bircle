@@ -1,0 +1,117 @@
+
+last-run
+Formats:
+	*	%H: hours
+	*	%M: minutes
+	*	%S: seconds
+	*	%D: days
+	*	%i: milliseconds
+	*	%f: total milliseconds
+	*	%d: total days
+	*	%h: total hours
+	*	%m: total minutes
+	*	%s: total seconds
+	*	%T: The full time it was last run
+	*	%t: the time ago it was run
+ 	*	{date}: the date it was last run
+	*	{time}: las time it was run
+
+battle
+A BATTLE SIMULATOR 
+Rules:
+ 
+ 	*	 Every 4 seconds a random message will be sent dealing damage, or giving health to random players 
+ 	*	 An item can only be used every 8 seconds
+		 Lose 5 hp if you use an item on cooldown (can kill you) 
+  
+Bonuses:
+ 
+ 	*	 If the winner has 100+ hp, they get $1 for every hp they had above 100 
+ 	*	 The person who uses the most items gets the item bonus and wins $(most items used - 2nd most items used) 
+  
+Items:
+ 
+ 	*	 **heal**: gain randomly 1-20 hp (cost: $0.1 + 1%) 
+ 	*	 **anger toolbox**: reduce everyone's health by 0.1% (cost: $3) 
+ 	*	 **anger euro**: say STOPPING (cost: $3) 
+ 	*	 **blowtorch***: deal randomly 1-20 hp to all other players (cost: $1 + 1%) 
+ 	*	 **double bet**: Double your bet (cost: 1%) 
+ 	*	 **swap***: Swap health with a random player (cost (3 * player count)%) 
+ 	*	 **double**: Double the damage of the next game attack (cost: $2 + 5%) 
+ 	*	 **triple**: Triple the damage of the next game attack (cost: $3 + 10%) 
+ 	*	 **blue shll**: Deal 50 damage to the player with the most health (if they have more than 50 health) (cost: $0.5 + 2%) 
+ : Block the next game attack (cost: $0.5 + 0.3%) 	*	 **mumbo**: Add a dummy player. When he dies lose 0.5%, If he wins, you get half of the pool (cost: $1) 
+ 	*	 **suicide***: Deal randomly 2-10 damage to yourself (cost: $1 + 0.1%) 
+  
+*Cannot kill players, they will remain in the negatives until a game message targets them
+ 
+if
+Evaluate bircle commands conditionally!
+There are 2 versions of the if statement
+	*	**1**: standard javascript expression
+	*	**2**:([bircle-command) <operator> (value)
+
+**For the 2nd version**, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators
+In addition, the `:` operator may be used to check if the result of the commands includes the regex expression provided in the second set of parentheses.
+Lastly, the `includes` operator may be used to check if the expected value is in the result of the command.
+After the condition must be a ;
+
+after the ; must be a command to run followed by `;end`
+lastly `[else;` <command> may optionally be added on a new line
+If the condition is false and an  is not provided a ? will be sent
+user-info
+Gets info on a member
+[user-info <user> [format]
+ valid formats:
+ 
+ 	*	 `{id}` or `{i}` or `%i`: user id 
+ 	*	 `{username}` or `{u}` or `%u`: user username 
+ 	*	 `{nickname}` or `{n}` or `%n`: user nickname 
+ 	*	 `{0xcolor}` or `{X}` or `%X`: user color in hex 
+ 	*	 `{color}` or `{x}` or `%x`: user color 
+ 	*	 `{created}` or `{c}` or `%c`: when the user was created 
+ 	*	 `{joined}` or `{j}` or `%j`: when the user joined the server 
+ 	*	 `{boost}` or `{b}` or `%b`: when the user started boosting the server 
+ 	*	 `{status}` or `{s}` or `%s`: gets the platform/status of the user 
+
+version
+Says the version
+formats:
+
+	*	v: full version
+	*	M: major
+	*	m: minor
+	*	b: bug
+	*	A: alpha
+	*	B: beta
+
+uno
+UNO
+things you can do in dms
+
+	*	draw - draw a card
+	*	stack - see all cards in the pile if it can send, otherwise the top 10 cards
+	*	stop - quit the game
+	*	cards - see your cards
+
+alias
+**There are 2 Modes**
+	*	default: How alias has always worked <name> <command>
+	*	no-easy: use the -no-easy option enable this
+
+Create an aliasv2
+By default, the user arguments will be appended to the end of exec
+To access an option in the exec, use ${%:-option-name}, for args use ${%:\_\_arg[<i>]}
+raw args are also accessable with \_\_rawarg instead of \_\_arg.
+To access all args, use ${%:\_\_arg[...]}
+
+**THE REST ONLY APPLIES TO no-easy MODE**
+Each argument should be on its own line
+switch
+Does different things depending on what the initial argument is
+use-item
+Use and combine items to do something!
+See `[use-item -l` to see a list of recipes
+usage: `[use-item  +  `
+wikipedia
+Get information about something, defaults to random
