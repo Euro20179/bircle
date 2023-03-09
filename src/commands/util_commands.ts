@@ -13,7 +13,7 @@ import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary } from '../util'
+import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension } from '../util'
 import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
@@ -3113,20 +3113,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let delimiter = opts.getString("d", opts.getString("delimiter", " "))
             let join = opts.getString("j", opts.getString("join", "\t"))
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(delimiter)
-            let splitText = text.split(delimiter)
             let numberField = Number(fields)
-            if (!isNaN(numberField)) {
-                return crv(splitText[numberField - 1])
-            }
             let [start, end] = fields.split("-")
             let [startN, endN] = [Number(start), Number(end)]
+            let columns = listComprehension(text.split("\n"), (i) => i.split(delimiter))
+            if (!isNaN(numberField)) {
+                return crv(columns.map(v => v[numberField - 1]).join("\n"))
+            }
+
             if (isNaN(startN)) {
                 startN = 1
             }
             if (isNaN(endN)) {
-                return crv(splitText.slice(startN - 1).join(join))
+
+                return crv(columns.map(v => v.slice(startN - 1).join(join)).join("\n"))
             }
-            return crv(splitText.slice(startN - 1, endN - 1).join(join))
+            return crv(columns.map(v => v.slice(startN - 1, endN - 1).join(join)).join("\n"))
 
         }, "Cuts a string my seperator, and says the requested fields", {
             helpArguments: {
