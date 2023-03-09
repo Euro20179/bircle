@@ -294,6 +294,16 @@ function setMoney(id: string, amount: number) {
     }
 }
 
+function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+    if(ECONOMY[id] === undefined){
+        return NaN
+    }
+
+    let total = playerLooseNetWorth(id)
+
+    return calculateAmountOfMoneyFromString(id, total, amount, extras, calculateAmountFromNetWorth)
+}
+
 function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
@@ -330,57 +340,58 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         return Infinity
     amount = amount.toLowerCase()
 
-    let flipSign = amount.startsWith("-") ? -1 : 1
-    if(flipSign === -1) amount = amount.slice(1)
-
     let match //for else if(match =...)
     if (amount == "all") {
-        return money * .99 * flipSign
+        return money * .99
     }
     else if (amount == "all!") {
-        return money * flipSign
+        return money
     }
     else if (amount.startsWith('#')) {
         let toNextMultipleOf = Number(amount.slice(1))
         if (isNaN(toNextMultipleOf)) {
             return NaN
         }
-        return toNextMultipleOf - (money % toNextMultipleOf) * flipSign
+        return toNextMultipleOf - (money % toNextMultipleOf)
     }
     else if(amount.endsWith("#")){
         let toNextMultipleOf = Number(amount.slice(0, -1))
         if(isNaN(toNextMultipleOf)){
             return NaN
         }
-        return money % toNextMultipleOf * flipSign
+        return money % toNextMultipleOf
     }
     else if(amount.endsWith("k")){
-        return Number(amount.slice(0, -1)) * 1000 * flipSign
+        return Number(amount.slice(0, -1)) * 1000
     }
     else if(amount.endsWith("m")){
-        return Number(amount.slice(0, -1)) * 1000000 * flipSign
+        return Number(amount.slice(0, -1)) * 1000000
     }
     else if(amount.endsWith("b")){
-        return Number(amount.slice(0, -1)) * 1000000000 * flipSign
+        return Number(amount.slice(0, -1)) * 1000000000
     }
     else if(amount.endsWith("t")){
-        return Number(amount.slice(0, -1)) * 1000000000000 * flipSign
+        return Number(amount.slice(0, -1)) * 1000000000000
     }
     else if (amount.startsWith("needed(") && amount.endsWith(")")) {
         let wantedAmount = parseFloat(amount.slice("needed(".length))
-        return (wantedAmount - money) * flipSign
+        return wantedAmount - money
     }
     else if (amount.startsWith("ineeded(") && amount.endsWith(")")) {
         let wantedAmount = parseFloat(amount.slice("ineeded(".length))
-        return (money - wantedAmount) * flipSign
+        return money - wantedAmount
+    }
+    else if(amount.startsWith("neg(") && amount.endsWith(")")){
+        let req = amount.slice("neg(".length, -1)
+        return (fallbackFn ? fallbackFn(id, req, extras) : calculateAmountOfMoneyFromString(id, money, req, extras, fallbackFn)) * -1;
     }
     else if(match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)){
         let id = match[1]
         let amount = match[2]
         if(fallbackFn){
-            return fallbackFn(id, amount, extras) * flipSign
+            return fallbackFn(id, amount, extras)
         }
-        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn) * flipSign
+        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn)
     }
     else if(match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)){
         let side1 = match[1]
@@ -396,30 +407,30 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
             amount2 = fallbackFn(id, side2, extras)
         }
         switch(operator){
-            case "+": return (amount1 + amount2) * flipSign
-            case "-": return (amount1 - amount2) * flipSign
-            case "*": return (amount1 * amount2) * flipSign
-            case "/": return (amount1 / amount2) * flipSign
+            case "+": return amount1 + amount2
+            case "-": return amount1 - amount2
+            case "*": return amount1 * amount2
+            case "/": return amount1 / amount2
         }
     }
     for (let e in extras) {
         let match;
         if (match = amount.match(e)) {
-            return extras[e](money, amount, ECONOMY[id], match) * flipSign
+            return extras[e](money, amount, ECONOMY[id], match)
         }
     }
     if (Number(amount)) {
-        return Number(amount) * flipSign
+        return Number(amount)
     }
     else if (amount[0] === "$" && Number(amount.slice(1))) {
-        return Number(amount.slice(1)) * flipSign
+        return Number(amount.slice(1))
     }
     else if (amount[amount.length - 1] === "%") {
         let percent = Number(amount.slice(0, -1))
         if (!percent) {
             return 0
         }
-        return (money * percent / 100) * flipSign
+        return money * percent / 100
     }
     return 0
 }
@@ -575,6 +586,7 @@ export default {
     buyStock,
     calculateStockAmountFromString,
     calculateAmountFromStringIncludingStocks,
+    calculateAmountFromNetWorth,
     sellStock,
     buyLotteryTicket,
     newLottery,

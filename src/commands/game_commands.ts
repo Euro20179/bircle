@@ -111,15 +111,25 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     globals.endCommand(user.id, 'connect4')
                     if (user !== player) {
                         setVar("losses", String(Number(getVar(msg, "losses", "!connect4", user.id)) + 1), "!connect4", user.id)
+                        economy.addMoney(user.id, economy.calculateAmountFromNetWorth(user.id, "neg(0.05%)"))
                     }
                 }
                 listener.stop()
+
                 let wins = Number(getVar(msg, "wins", "!connect4", player.id)) + 1
                 let losses = Number(getVar(msg, "losses", "!connect4", player.id))
+
                 setVar("wins", String(wins), "!connect4", player.id)
-                await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
                 saveVars()
-                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}`), { wins: String(wins), losses: String(losses) }), status: StatusCode.RETURN, recurse: true }
+
+                let winnings = economy.calculateAmountFromNetWorth(player.id, "0.1%")
+                economy.addMoney(player.id, winnings)
+
+                await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
+
+                let sign = user_options.getOpt(player.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
+                return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}\n+{amount_won}`), { wins: String(wins), losses: String(losses), amount_won: sign + String(winnings) }), status: StatusCode.RETURN, recurse: true }
             }
         }
 
@@ -131,7 +141,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         listener.stop()
         return { noSend: true, status: StatusCode.RETURN }
 
-    }, "Play some connect 4\nto join type <code>join</code>, after the word join you may put a symbol to use instead of <code>🔵</code>", {
+    }, "Play some connect 4\nto join type <code>join</code>, after the word join you may put a symbol to use instead of <code>🔵</code><br>The winner will win .1% of their net worth, the loser will lose 0.05% of their net worth.", {
         permCheck: m => !globals.userUsingCommand(m.author.id, "connect4"),
         helpArguments: {
             "player": createHelpArgument("The player you want to play against", false)

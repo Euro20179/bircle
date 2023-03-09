@@ -1262,7 +1262,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 if (!as)
                     as = msg.author.id
-                let amount = economy.calculateAmountFromStringIncludingStocks(String(as), args.join(" ").trim())
+                let amount = economy.calculateAmountFromNetWorth(String(as), args.join(" ").trim())
                 if (dollarSign === true) {
                     return { content: `${amount}`, status: StatusCode.RETURN }
                 }
