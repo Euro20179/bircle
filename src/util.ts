@@ -1294,7 +1294,7 @@ function renderSElement(elem: cheerio.Element, indentation = 0) {
 
 function renderAElement(elem: cheerio.TagElement, indentation = 0) {
     let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? ""
-    return `[${renderElementChildren(elem)}](${href})`
+    return `${'\t'.repeat(indentation)}[${renderElementChildren(elem)}](${href})`
 }
 
 function renderBlockcodeElement(elem: cheerio.TagElement, indentation = 0) {
@@ -1321,6 +1321,14 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
 function renderPElement(elem: cheerio.TagElement, indentation = 0) {
     return `\n${'\t'.repeat(indentation)}${renderElementChildren(elem, indentation)}\n`
 }
+
+function renderHxElement(elem: cheerio.TagElement, indentation = 0){
+    return `\n${'\t'.repeat(indentation)}${'#'.repeat(Number(elem.name[1]))} __${renderElementChildren(elem, indentation)}__\n`
+}
+//
+// function renderAElement(elem: cheerio.TagElement, indentation = 0){
+//     return `\n${'\t'.repeat(indentation)}[${renderElementChildren(elem, indentation)}](${elem.attribs['href'] || ""})`
+// }
 
 function renderELEMENT(elem: cheerio.Element, indentation = 0) {
     let text = ""
@@ -1355,6 +1363,9 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         }
         else if (["del"].includes(elem.name)) {
             text += renderSElement(elem, indentation)
+        }
+        else if (elem.name.length === 2 && elem.name[0] === 'h' && isBetween(0, Number(elem.name[1]), 7)){
+            text += renderHxElement(elem, indentation)
         }
         else if (elem.name === "p") {
             text += renderPElement(elem, indentation)
@@ -1635,6 +1646,10 @@ function strToCommandCat(category: string) {
     return catNum
 }
 
+function isBetween(low: number, checking: number, high: number){
+    return checking > low && checking < high
+}
+
 export {
     strToCommandCat,
     fetchUser,
@@ -1686,6 +1701,7 @@ export {
     mimeTypeToFileExtension,
     getInnerPairsAndDeafultBasedOnRegex,
     getToolIp,
-    generateDocSummary
+    generateDocSummary,
+    isBetween
 }
 

@@ -143,7 +143,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }
     })]
 
-    yield ["madlibs", createCommandV2(async ({ sendCallback, msg }) => {
+    yield ["madlibs", ccmdV2(async ({ sendCallback, msg }) => {
 
         const stories = fs.readFileSync("./command-results/madlibs", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim()).filter(v => v)
 
@@ -208,7 +208,22 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
         return { content: processedStory, status: StatusCode.RETURN }
 
-    }, CommandCategory.GAME, "Play madlibs")]
+    }, "Play madlibs", {
+        docs: `<h1>Creating a madlib</h1>
+<p indent=1>
+    write any text you want.<br>
+    <br>
+    If text is between {} it will prompt the user for what is between {}<br>
+    <u>Example:</u> <code indent=2>{noun}</code><br>
+    To create a variable you may do this:<br>
+    <br>
+    <code>{users-name:=Your name}</code><br>
+    This will have the prompt <code>Your name</code> and save in the variable <code>users-name</code><br>
+    <br>
+    To user a variable use <code>{$var-name}</code>.<br>
+    To use the variable from above you can do <code>{$users-name}</code>
+</p>`
+    })]
 
     yield ["know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
 
