@@ -999,7 +999,7 @@ until you put a 0 in the box`)
                     }
                     if (isValidGuess(location.join(" "))) {
                         bets[m.author.id] = [money, location.join(" ")]
-                        handleSending(msg, crv(`${m.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now`))
+                        handleSending(msg, crv(`${m.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now\ntype \`<bet> <guess>\` to join`))
                         return true
                     }
                     return false
@@ -1030,7 +1030,7 @@ until you put a 0 in the box`)
 
             if (result === 0) ((color = "green") && (halfText = "0"))
 
-            let totaltext = `The rolled number is ${resultText}\n`
+            let totaltext = `The rolled number is ${resultText} (${color})\n`
             for (let [playerId, [amount, guess]] of Object.entries(bets)) {
                 let text = `<@${playerId}> did not win`
                 let winnings = 0
