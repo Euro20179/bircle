@@ -131,6 +131,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                 return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}\n+{amount_won}`), { wins: String(wins), losses: String(losses), amount_won: sign + String(winnings) }), status: StatusCode.RETURN, recurse: true }
             }
+            if (connect4.boardIsFull(board)) {
+                await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
+                return crv("TIE")
+            }
         }
 
         //end main game
@@ -308,7 +312,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 //This acts as the timer for the whole voting thing, if removed there will be no timer for voting
                 let messagevotes = await msg.channel.awaitMessages({
                     filter: (m) => {
-                        let n = Number(m.content) 
+                        let n = Number(m.content)
                         if (!voted.includes(m.author.id) && !m.author.bot && !isNaN(n) && isBetween(0, n, gifs.length)) {
                             voted.push(m.author.id)
                             handleSending(msg, { content: `You voted for gif: ${m.content}`, status: StatusCode.INFO })

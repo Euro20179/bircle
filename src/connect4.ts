@@ -17,6 +17,16 @@ function createBoard(rows = 6, cols = 7) {
     return board
 }
 
+function boardIsFull(board: Board){
+    let columns = listComprehension(range(0, board[0].length), (colNo) => listComprehension(board, row => row[colNo]).filter(v => v === "O"))
+    for(let column of columns){
+        if(column.length){
+            return false
+        }
+    }
+    return true
+}
+
 function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') {
     let text = "```\n"
     for (let [idx, _] of enumerate(board[0])) {
@@ -158,5 +168,6 @@ export default {
     createBoard,
     placeColorInColumn,
     canPlaceInColumn,
-    checkWin
+    checkWin,
+    boardIsFull
 }
