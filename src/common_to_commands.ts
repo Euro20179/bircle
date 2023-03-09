@@ -111,11 +111,9 @@ export class AliasV2 {
             return this.basicPrepare(msg, args, opts)
         }
 
-        //TODO: set variables such as args, opts, etc... in maybe %:__<var>
         for (let opt of Object.entries(opts)) {
             setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
-
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[[^\]]*\])$/

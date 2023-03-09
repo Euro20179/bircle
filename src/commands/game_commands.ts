@@ -1014,8 +1014,6 @@ until you put a 0 in the box`)
             let result = Math.floor(Math.random() * 36)
             let resultText = String(result)
 
-            //TODO: if result is 0, and the player guesses 0, give a 72x bonus
-
             let color = result % 2 === 0 ? "red" : "black"
 
             let halfText = result < 19 ? "1st half" : "2nd half"

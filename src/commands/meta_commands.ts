@@ -153,7 +153,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let userMatches = getUserMatchCommands()
             let cmds = getCommands()
             let av1;
-            //TODO: add user match
             for (let cmd of args) {
                 if (aliasV2s[cmd]) {
                     res.push("av2")
@@ -1438,7 +1437,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans }) {
 
-            //TODO: add performance markers throughout the different steps of runninga  command
             let start = performance.now()
             await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
             return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
