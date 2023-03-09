@@ -4,7 +4,7 @@ import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, But
 import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
 
 import globals = require("../globals")
-import economy = require("../economy")
+import economy from '../economy'
 import user_options = require("../user-options")
 import battle = require("../battle")
 import pet from "../pets"

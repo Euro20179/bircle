@@ -12,7 +12,7 @@
 import { Message } from 'discord.js'
 
 import fs = require("fs")
-import economy = require("./economy")
+import economy from './economy'
 
 const { buyItem } = require("./shop.js")
 

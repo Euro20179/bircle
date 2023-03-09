@@ -7,7 +7,7 @@ import fs = require("fs")
 const { getOpts } = require("./util.js")
 
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
-import economy = require("./economy")
+import economy from './economy'
 import { StatusCode, handleSending } from './common_to_commands'
 import { efd } from './util'
 const { hasItem } = require("./shop.js")

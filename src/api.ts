@@ -1,9 +1,8 @@
 import { Message, CollectorFilter } from "discord.js"
-import economy = require("./economy")
+import economy from './economy'
 import pet from './pets'
 import timer from './timer'
 import shop = require("./shop")
-import fetch = require('node-fetch')
 import { cmd } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 

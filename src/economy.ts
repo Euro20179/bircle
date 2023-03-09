@@ -554,7 +554,7 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     return data
 }
 
-export {
+export default {
     loadEconomy,
     saveEconomy,
     createPlayer,

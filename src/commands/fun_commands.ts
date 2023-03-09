@@ -8,7 +8,7 @@ import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
-import economy = require("../economy")
+import economy from '../economy'
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
 import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType } from "../util"
 import user_options = require("../user-options")

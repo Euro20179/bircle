@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import economy = require("../economy")
+import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
 import timer from '../timer'

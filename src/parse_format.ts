@@ -2,7 +2,7 @@ import { Interpreter } from "./common_to_commands";
 import { strToTT, T, Token } from "./parsing";
 import { getContentFromResult, renderHTML } from "./util";
 
-import economy = require("./economy")
+import economy from './economy'
 import timer from "./timer";
 import { format } from "./util";
 

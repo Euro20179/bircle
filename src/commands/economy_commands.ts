@@ -1,6 +1,6 @@
 import fs from 'fs'
 import fetch = require("node-fetch")
-import economy = require('../economy')
+import economy, { EconomyData } from '../economy'
 import pet from "../pets"
 import user_options = require("../user-options")
 import timer from '../timer'
@@ -1060,7 +1060,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 let embed = new MessageEmbed()
                 let text = ""
-                let sortedEconomy: [string, economy.EconomyData][] = []
+                let sortedEconomy: [string, EconomyData][] = []
                 let econ = economy.getEconomy()
                 if (opts['nw']) {
                     sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => economy.playerLooseNetWorth(b[0]) - economy.playerLooseNetWorth(a[0]))

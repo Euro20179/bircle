@@ -6,7 +6,7 @@ import fs from 'fs'
 
 import http from 'http'
 
-const { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel, MessageActivity, Collection, MessageFlags, MessageMentions, ReactionManager, InteractionReplyOptions, User } = require("discord.js")
+const { Message, MessageEmbed, Interaction, MessageButton, MessageActionRow, GuildMember, TextChannel,  Collection, MessageFlags,  InteractionReplyOptions, User } = require("discord.js")
 
 import { REST } from '@discordjs/rest'
 
@@ -15,19 +15,18 @@ import { Routes } from "discord-api-types/v9"
 import pet from './src/pets'
 
 require("./src/commands/commands")
-import command_commons = require("./src/common_to_commands")
-
-let commands = command_commons.getCommands()
+import command_commons from './src/common_to_commands'
 
 import globals = require("./src/globals")
 import { URLSearchParams } from "url"
 import { efd, format } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
-import { getUserMatchCommands, GLOBAL_CURRENCY_SIGN } from './src/common'
+import { GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
 
-const economy = require("./src/economy")
+import economy from './src/economy'
+// const economy = require("./src/economy")
 const { generateFileName } = require("./src/util")
 const { saveItems, hasItem } = require("./src/shop")
 

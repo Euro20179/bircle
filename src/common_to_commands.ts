@@ -1,14 +1,11 @@
-import { Collection, CommandInteraction, Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
-import economy = require("./economy")
-import timer = require("./timer")
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST, client, delVar, getUserMatchCommands, getVar, prefix, setVar, setVarEasy, vars, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, strToTT, RedirModifier, TypingModifier, SkipModifier } from './parsing';
-import { ArgList, cmdCatToStr, format, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, renderHTML, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
-import { create } from 'domain';
+import { BLACKLIST,  delVar, getUserMatchCommands, getVar, prefix, setVar, vars, WHITELIST } from './common';
+import { Parser, Token, T, Modifier, parseAliasReplacement,  RedirModifier, TypingModifier, SkipModifier } from './parsing';
+import { ArgList, cmdCatToStr,  generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
@@ -287,7 +284,7 @@ export class AliasV2 {
 
 export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
-export let purgeSnipe: (Message | PartialMessage)[];
+export let purgeSnipe: (Message | PartialMessage)[] = [];
 
 export let currently_playing: { link: string, filename: string } | undefined;
 
@@ -348,7 +345,7 @@ export async function cmd({
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
         let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData)
         //this previously ored to false
-        rv = await int.run() ?? {noSend: true, status: StatusCode.RETURN};
+        rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
     }
     return {
         rv: rv,
@@ -704,7 +701,7 @@ export class Interpreter {
         }
 
         if (this.alias && this.#aliasExpandSuccess) {
-            await handleSending(this.#msg, {content: `Aliasv1 is deprecated, convert \`${this.cmd}\` into an aliasv2`, status: StatusCode.WARNING})
+            await handleSending(this.#msg, { content: `Aliasv1 is deprecated, convert \`${this.cmd}\` into an aliasv2`, status: StatusCode.WARNING })
             rv = await this.runAlias() || { content: "You found a secret", status: StatusCode.ERR }
         }
         else if (this.alias && !this.#aliasExpandSuccess) {
@@ -1043,7 +1040,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             [StatusCode.PROMPT]: "change-cmd-prompt",
             [StatusCode.RETURN]: "change-cmd-return",
             [StatusCode.WARNING]: "change-cmd-warning"
-        } as {[key: number]: user_options.UserOption})[rv.status] as user_options.UserOption
+        } as { [key: number]: user_options.UserOption })[rv.status] as user_options.UserOption
 
 
         let opt = user_options.getOpt(msg.author.id, optionToGet, "")
@@ -1431,3 +1428,41 @@ export const slashCommands = [
         type: 3
     }
 ]
+
+export default {
+    StatusCode,
+    statusCodeToStr,
+    CommandCategory,
+    promptUser,
+    AliasV2,
+    lastCommand,
+    snipes,
+    purgeSnipe,
+    currently_playing,
+    setCurrentlyPlaying,
+    illegalLastCmds,
+    createAliases,
+    createAliasesV2,
+    aliases,
+    aliasesV2,
+    isCmd,
+    expandAlias,
+    createCommand,
+    createCommandV2,
+    crv,
+    ccmdV2,
+    generateDefaultRecurseBans,
+    commands,
+    matchCommands,
+    registerCommand,
+    registerMatchCommand,
+    getCommands,
+    getMatchCommands,
+    getAliasesV2,
+    getAliases,
+    createChatCommandOption,
+    slashCommands,
+    cmd,
+    handleSending,
+    Interpreter
+}

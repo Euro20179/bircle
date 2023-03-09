@@ -2069,7 +2069,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
             let data = safeEval(args.join(" "), {
                 util: require("../util"),
-                common_to_commands: require("../common_to_commands"),
+                common_to_commands: require("../common_to_commands").default,
                 globals: require("../globals"),
                 common: require("../common")
             }, {})

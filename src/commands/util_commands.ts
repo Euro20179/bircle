@@ -7,7 +7,7 @@ import fetch = require('node-fetch')
 import { Stream } from 'stream'
 
 import globals = require("../globals")
-import economy = require("../economy")
+import economy from '../economy'
 import pet from "../pets"
 import timer from '../timer'
 
