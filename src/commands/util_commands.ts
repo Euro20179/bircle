@@ -2210,7 +2210,7 @@ The order these are given does not matter, excpet for field, which will be added
         }
         const cmd = spawnSync("qalc", ["-t"].concat(argList))
         return { content: cmd.stdout.toString("utf-8"), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL)]
+    }, CommandCategory.UTIL, "Fancy calculator")]
 
     yield [
         "calc",
@@ -2326,6 +2326,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 return { content: str, status: StatusCode.RETURN }
             },
             help: {
+                info: "Gets the id of a poll",
                 arguments: {
                     "id": {
                         description: "The id of the poll to get the count of"
@@ -3195,7 +3196,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
 
             return { content: encoded, status: StatusCode.RETURN }
-        }, CommandCategory.UTIL),
+        }, CommandCategory.UTIL, "Custom implementation of b64, only works on ascii"),
     ]
 
     yield [
@@ -3385,7 +3386,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
 
             }
-        }, CommandCategory.UTIL),
+        }, CommandCategory.UTIL, "gets info on timers"),
     ]
 
     yield [
@@ -3586,7 +3587,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         },
     ]
 
-    yield ["sticker-info", createCommandV2(async ({ msg, opts, args }) => {
+    yield ["sticker-info", ccmdV2(async ({ msg, opts, args }) => {
         let sticker = msg.stickers.at(0)
         if (opts.getBool("r", false)) {
             sticker = (await msg.guild?.stickers.fetch())?.random()
@@ -3610,7 +3611,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             return { embeds: [embed], status: StatusCode.RETURN }
         }
         return { content: format(fmt, { "t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A" }), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL)]
+    }, "Gets info on a sticker", {
+        docs: `<lh>format specifiers</lh><br>
+<ul>
+<li>t: type</li>
+<li>n: name</li>
+<li>i: id</li>
+<li>c: creator</li>
+<li>T: created at</li>
+<li>f: format</li>
+<li#: tags</li>
+</ul>`,
+        helpArguments:{
+            sticker: createHelpArgument("The sticker to use", true),
+            fmt: createHelpArgument("The format specifier", false, "{embed}")
+        }
+    }, )]
 
     yield [
         "user-info!", ccmdV2(async function({ msg, args }) {
