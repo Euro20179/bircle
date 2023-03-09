@@ -1068,7 +1068,7 @@ class ArgList extends Array {
         })
     }
     expectString(amountOfArgs: AmountOfArgs = 1) {
-        return this.expect(amountOfArgs, i => i.join(" "))
+        return this.expect(amountOfArgs, i => i.length ? i.join(" ") : BADVALUE)
     }
     expectInt(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.join(" ").match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)

@@ -11,8 +11,8 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient } from "../util"
-import { client, getVar, GLOBAL_CURRENCY_SIGN, saveVars, setVar, setVarEasy } from "../common"
+import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE } from "../util"
+import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, saveVars, setVar, setVarEasy } from "../common"
 import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
@@ -912,17 +912,158 @@ until you put a 0 in the box`)
         },
     ]
 
-    // yield [
-    //     "roulette", ccmdV2(async function({msg, args}){
-    //         globals.startCommand(msg.author.id, "roulette")
-    //
-    //
-    //
-    //         globals.endCommand(msg.author.id, "roulette")
-    //     }, "Is it black or red, bet your life savings to find out!!!!", {
-    //         permCheck: m => !globals.userUsingCommand(m.author.id, "roulette")
-    //     })
-    // ]
+    yield [
+        "roulette", ccmdV2(async function({ msg, args }) {
+            globals.startCommand(msg.author.id, "roulette")
+
+            args.beginIter()
+
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
+            let reqMoney = args.expectString(1)
+            if (reqMoney === BADVALUE) {
+                globals.endCommand(msg.author.id, "roulette")
+                return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
+            }
+
+            let money = economy.calculateAmountFromString(msg.author.id, reqMoney)
+
+            if (!economy.canBetAmount(msg.author.id, money)) {
+                globals.endCommand(msg.author.id, "roulette")
+                return crv(`You do not have ${sign}${money}`)
+            }
+            if(money < 0){
+                return crv("Cannot bet a negative amount")
+            }
+
+            const thirds = {
+                1: "1st third",
+                2: "2nd third",
+                3: "3rd third"
+            }
+
+            const isValidGuess = (text: string) => {
+                let n = Number(text)
+                if(!isNaN(n)){
+                    if(n < 37 && n >= 0){
+                        return text
+                    }
+                    return false
+                }
+
+                let validList = Object.values(thirds).concat(["red", "black", "1st half", "2nd half"])
+
+                if(validList.includes(text)) return text
+
+                return false
+            }
+
+            let guess = args.expect(() => true, i =>{
+                if(!i.length) return BADVALUE
+                let v = isValidGuess(i.join(" "))
+
+                if(v) return v
+
+                return BADVALUE
+            })
+
+            if (guess === BADVALUE) {
+                globals.endCommand(msg.author.id, "roulette")
+                return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
+            }
+
+            let bets: {[key: string]: [number, string]} = {[msg.author.id]: [money, guess]}
+
+            await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now`, {status: StatusCode.PROMPT}))
+
+            let msgs = await msg.channel.awaitMessages({
+                filter: m => {
+                    if(globals.userUsingCommand(m.author.id, "roulette")) return false
+                    let [amount, ...location] = m.content.split(" ")
+                    let money = economy.calculateAmountFromString(m.author.id, amount)
+                    if(!economy.canBetAmount(m.author.id, money) || money < 0){
+                        return false
+                    }
+                    if(isValidGuess(location.join(" "))){
+                        bets[m.author.id] = [money, location.join(" ")]
+                        handleSending(msg, crv(`${msg.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now`))
+                        return true
+                    }
+                    return false
+                }, time: 30000
+            })
+
+            let pot = 0
+            for(let [playerId, [amount, _location]] of Object.entries(bets)){
+                pot += amount
+                economy.loseMoneyToBank(playerId, amount)
+            }
+
+            let result = Math.floor(Math.random() * 36)
+            let resultText = String(result)
+
+            let color = result % 2 === 0 ? "red" : "black"
+
+            let halfText = result < 19 ? "1st half" : "2nd half"
+
+            let third = Math.ceil(result / 12)
+            let thirdText = thirds[third as keyof typeof thirds] ?? "0"
+
+            if (result === 0) ((color = "green") && (halfText = "0"))
+
+            let totaltext = `The rolled number is ${resultText}\n`
+            for(let [playerId, [amount, guess]] of Object.entries(bets)){
+                let text = `<@${playerId}> did not win`
+                let winnings = 0
+                if(guess === resultText){
+                    winnings = pot * 36
+                    text = `<@${playerId}> GUESSED THE EXACT NUMBER OF ${guess}`
+                }
+                else if(guess === halfText){
+                    winnings = pot * 2
+                    text = `<@${playerId}> guessed the correct half of ${guess}`
+                }
+                else if(guess === color){
+                    winnings = pot * 2
+                    text = `<@${playerId}> guessed the correct color of ${guess}`
+                }
+                else if(guess === thirdText){
+                    winnings = pot * 3
+                    text = `<@${playerId}> guessed the correct third of ${guess}`
+                }
+                economy.addMoney(playerId, winnings)
+                if(winnings > 0)
+                    text += `\nearnings: **${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
+                totaltext += text + "\n--------------\n"
+            }
+
+            globals.endCommand(msg.author.id, "roulette")
+
+            return crv(totaltext)
+
+        }, "Is it black or red, bet your life savings to find out!!!!", {
+            permCheck: m => !globals.userUsingCommand(m.author.id, "roulette"),
+            helpArguments: {
+                bet: createHelpArgument("Your bet", true),
+                guess: createHelpArgument(`The guess<br><lh>Must be one of</lh>
+<ul>
+<li>
+    <b>number</b>: any number 0-36 (get 36x the pot)
+</li>
+<li>
+    <b>red/black</b>: red is even, black is odd (get 2x the pot)
+</li>
+<li>
+    <b>1st half/2nd half</b>: either the 1st or 2nd half (get 2x the pot)
+</li>
+<li>
+    <b>1st third/2nd third/3rd third</b>: Either the 1st, 2nd, or 3rd third of numbers (get 3x the pot)
+</li>
+</ul>`, true)
+
+            }
+        })
+    ]
 
     yield [
         "ticket",

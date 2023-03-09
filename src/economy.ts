@@ -275,6 +275,9 @@ function canTax(id: string, bonusTime?: number) {
 }
 
 function canBetAmount(id: string, amount: number) {
+    if(isNaN(amount)){
+        return false
+    }
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
         return true
     }
