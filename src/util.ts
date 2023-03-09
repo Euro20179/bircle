@@ -2,7 +2,7 @@ import cheerio = require("cheerio")
 import { spawnSync } from "child_process"
 
 const vm = require('vm')
-const fs = require('fs')
+import fs from 'fs'
 
 import { BufferResolvable, Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
 import { existsSync } from "fs"
@@ -26,6 +26,10 @@ function getToolIp() {
     }
     return ip
 
+}
+
+function databaseFileToArray(name: string){
+    return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
 
 function mimeTypeToFileExtension(mime: MimeType) {
@@ -1702,6 +1706,7 @@ export {
     getInnerPairsAndDeafultBasedOnRegex,
     getToolIp,
     generateDocSummary,
-    isBetween
+    isBetween,
+    databaseFileToArray
 }
 

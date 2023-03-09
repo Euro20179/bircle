@@ -32,7 +32,7 @@ export function saveUserOptions() {
     fs.writeFileSync("./user-options.json", JSON.stringify(USER_OPTIONS))
 }
 
-export function getOpt(user: string | number, opt: UserOption, fallback: string) {
+export function getOpt<T>(user: string | number, opt: UserOption, fallback: T) {
     return USER_OPTIONS[String(user)]?.[opt] ?? fallback
 }
 
@@ -57,4 +57,19 @@ export function isValidOption(opt: string): UserOption | false {
 
 export function formatMoney(user: string, amount: string | number) {
     return `${getOpt(user, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount}`
+}
+
+export default{
+    allowedOptions,
+    userOptionsInfo,
+    USER_OPTIONS,
+    getUserOptions,
+    loadUserOptions,
+    saveUserOptions,
+    getOpt,
+    setOpt,
+    unsetOpt,
+    isValidOption,
+    formatMoney,
+
 }

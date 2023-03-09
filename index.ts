@@ -6,7 +6,7 @@ import fs from 'fs'
 
 import http from 'http'
 
-const { MessageEmbed, MessageButton, MessageActionRow, GuildMember, TextChannel,  Collection, MessageFlags,  InteractionReplyOptions, User } = require("discord.js")
+import { MessageEmbed, MessageButton, MessageActionRow, GuildMember, TextChannel, Collection, MessageFlags, InteractionReplyOptions, User } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -26,12 +26,14 @@ import { GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
 
 import economy from './src/economy'
-import { Interaction, Message, Modal, TextInputComponent } from 'discord.js'
+import { Interaction, Message, } from 'discord.js'
 // const economy = require("./src/economy")
-const { generateFileName } = require("./src/util")
-const { saveItems, hasItem } = require("./src/shop")
 
-const user_options = require("./src/user-options")
+import { generateFileName } from './src/util'
+
+import { saveItems, hasItem } from './src/shop'
+
+import user_options from './src/user-options'
 
 let { client, purgeSnipe, prefix, BLACKLIST, saveVars } = require("./src/common")
 
@@ -115,12 +117,12 @@ client.on("messageDeleteBulk", async (m: any) => {
         purgeSnipe.length = 5
 })
 
-const SAVING_INTERVAL = setInterval(() => {
-        economy.saveEconomy()
-        saveItems()
-        pet.savePetData()
-        saveVars()
-        timer.saveTimers()
+setInterval(() => {
+    economy.saveEconomy()
+    saveItems()
+    pet.savePetData()
+    saveVars()
+    timer.saveTimers()
 }, 30000)
 
 client.on("messageCreate", async (m: Message) => {
@@ -133,7 +135,7 @@ client.on("messageCreate", async (m: Message) => {
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
         economy.createPlayer(m.author.id)
     }
-    if(!timer.getTimer(m.author.id, "%can-earn") && !m.author.bot){
+    if (!timer.getTimer(m.author.id, "%can-earn") && !m.author.bot) {
         //for backwards compatibility
         timer.createTimer(m.author.id, "%can-earn")
     }
@@ -142,11 +144,11 @@ client.on("messageCreate", async (m: Message) => {
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
-            let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id, "pingresponse", null)
+            let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id as string, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
                 if (command_commons.isCmd(pingresponse, prefix)) {
-                    await command_commons.cmd({msg: m, command_excluding_prefix: pingresponse.slice(prefix.length), disable: command_commons.generateDefaultRecurseBans()})
+                    await command_commons.cmd({ msg: m, command_excluding_prefix: pingresponse.slice(prefix.length), disable: command_commons.generateDefaultRecurseBans() })
                 }
                 else {
                     m.channel.send(pingresponse)
@@ -204,7 +206,7 @@ client.on("messageCreate", async (m: Message) => {
             m.content = `${cmd}`
             let c = m.content.slice(local_prefix.length)
             try {
-                await command_commons.cmd({msg: m, command_excluding_prefix: c})
+                await command_commons.cmd({ msg: m, command_excluding_prefix: c })
             }
             catch (err) {
                 console.error(err)
@@ -236,7 +238,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             let data = globals.BUTTONS[interaction.customId]
-            if(typeof data !== 'string'){
+            if (typeof data !== 'string') {
                 return;
             }
             let [userChoice, ogUser, bet] = data.split(":")
@@ -360,7 +362,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         else if (interaction.commandName == 'img') {
             //@ts-ignore
             let rv = await (command_commons.commands.get("img") as Command).run(interaction as Message, [interaction.options.get("width")?.value as string, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel), {}, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], 0, undefined)
-            interaction.reply(rv as typeof InteractionReplyOptions).catch(console.error)
+            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
             if (rv.files) {
                 for (let file of rv.files) {
                     fs.rmSync(file.attachment)
@@ -411,11 +413,12 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         }
         else if (interaction.commandName == 'info') {
             const user = interaction.targetUser
-            const member: typeof GuildMember = interaction.targetMember as typeof GuildMember
+            const member: GuildMember = interaction.targetMember as GuildMember
             let embed = new MessageEmbed()
             embed.setColor(member.displayColor)
-            if (user.avatarURL())
-                embed.setThumbnail(user.avatarURL())
+            let aurl = user.avatarURL()
+            if (aurl)
+                embed.setThumbnail(aurl)
             embed.addFields(efd(
                 ["Id", user.id || "#!N/A", true],
                 ["Username", user.username || "#!N/A", true],
@@ -432,7 +435,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
     else if (interaction.isMessageContextMenu() && !interaction.replied) {
         globals.addToCmdUse(`${interaction.commandName}:message`)
         if (interaction.commandName == 'fileify') {
-            let fn = generateFileName("fileify", interaction.member?.user.id)
+            let fn = generateFileName("fileify", interaction.user.id)
             fs.writeFileSync(fn, interaction.targetMessage.content)
             interaction.reply({ files: [{ attachment: fn, description: "Your file, sir" }] }).then(() => {
                 fs.rmSync(fn)
@@ -446,7 +449,7 @@ client.login(globals.token)
 const server = http.createServer()
 server.listen(8222)
 
-function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: string){
+function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: string) {
     let url = req.url
     if (!url) {
         res.writeHead(404)
@@ -459,8 +462,8 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
     if (paramsStart == -1) {
         urlParams = null
     }
-    let [_blank, mainPath, ...subPaths] = path.split("/")
-    switch(mainPath){
+    let [_blank, mainPath, ..._subPaths] = path.split("/")
+    switch (mainPath) {
         case "run": {
             let command = body
             let shouldSend = urlParams?.get("send")
@@ -473,7 +476,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 command = command.slice(prefix.length)
             }
             let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
+            client.channels.fetch(inChannel).then((channel: TextChannel) => {
                 let msg: Message = {
                     activity: null,
                     applicationId: client.id,
@@ -510,7 +513,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                         repliedUser: null,
                         roles: new Collection(),
                         users: new Collection(),
-                        has: (data: any, options: any) => false,
+                        has: (_data: any, _options: any) => false,
                         _channels: null,
                         _content: command as string,
                         _members: null,
@@ -539,8 +542,8 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     _patch: (_data: any) => { }
                 }
                 console.log(command)
-                command_commons.cmd({msg, command_excluding_prefix: command as string, returnJson: true}).then(rv => {
-                    if(shouldSend){
+                command_commons.cmd({ msg, command_excluding_prefix: command as string, returnJson: true }).then(rv => {
+                    if (shouldSend) {
                         command_commons.handleSending(msg, rv.rv as CommandReturn).then(_done => {
                             res.writeHead(200)
                             res.end(JSON.stringify(rv))
@@ -550,14 +553,14 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                             res.end(JSON.stringify({ error: "Soething went wrong sending message" }))
                         })
                     }
-                    else{
+                    else {
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))
-                        
+
                     }
                 }).catch(_err => {
                     res.writeHead(500)
-                            console.log(_err)
+                    console.log(_err)
                     res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
                 })
             }).catch((_err: any) => {
@@ -570,7 +573,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
 
 }
 
-function _handlePost(req: http.IncomingMessage, res: http.ServerResponse){
+function _handlePost(req: http.IncomingMessage, res: http.ServerResponse) {
     let body = ''
     req.on("data", chunk => body += chunk.toString())
     req.on("end", () => {
@@ -578,7 +581,7 @@ function _handlePost(req: http.IncomingMessage, res: http.ServerResponse){
     })
 }
 
-function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
+function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
     let url = req.url
     if (!url) {
         res.writeHead(404)
@@ -595,45 +598,51 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
     switch (mainPath) {
         case "option": {
             let userId = subPaths[0] ?? urlParams?.get("user-id")
-            if(!userId){
+            if (!userId) {
                 res.writeHead(400)
                 res.end('{"erorr": "No user id given"}')
                 break;
             }
             let option = urlParams?.get("option")
-            if(!option){
+            if (!option) {
                 res.writeHead(400)
                 res.end('{"erorr": "No option given"}')
                 break;
             }
-            res.end(JSON.stringify(user_options.getOpt(userId, option)))
+            let validOption = user_options.isValidOption(option)
+            if (!validOption) {
+                res.writeHead(400)
+                res.end('{"erorr": "No option given"}')
+                break;
+            }
+            res.end(JSON.stringify(user_options.getOpt(userId, validOption, null)))
             break;
         }
         case "give-money": {
             let userId = subPaths[0]
-            if(!userId){
+            if (!userId) {
                 res.writeHead(400)
-                res.end(JSON.stringify({"error": "no user id"}))
+                res.end(JSON.stringify({ "error": "no user id" }))
             }
             let amount = subPaths[1]
-            if(!amount || isNaN(Number(amount))){
+            if (!amount || isNaN(Number(amount))) {
                 res.writeHead(400)
-                res.end(JSON.stringify({"error": "no amount"}))
+                res.end(JSON.stringify({ "error": "no amount" }))
                 break
             }
-            if(!economy.getEconomy()[userId]){
+            if (!economy.getEconomy()[userId]) {
                 res.writeHead(400)
-                res.end(JSON.stringify({"error": "Invalid user"}))
+                res.end(JSON.stringify({ "error": "Invalid user" }))
                 break;
             }
             economy.addMoney(userId, Number(amount))
             res.writeHead(200)
-            res.end(JSON.stringify({"amount": Number(amount)}))
+            res.end(JSON.stringify({ "amount": Number(amount) }))
             break;
         }
         case "economy": {
             let userId = subPaths[0] ?? urlParams?.get("user-id")
-            if(userId === "total"){
+            if (userId === "total") {
                 res.writeHead(200)
                 res.end(JSON.stringify(economy.economyLooseGrandTotal()))
                 break;
@@ -687,8 +696,14 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
                 res.end(JSON.stringify({ error: "No text given" }))
                 break
             }
+
+            //******************************
+            /*YOU WERE FIXING WARNINGS, YOU GOT RID OF ALL OF THEM HERE*/
+            //******************************
+
+
             let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: typeof TextChannel) => {
+            client.channels.fetch(inChannel).then((channel: TextChannel) => {
                 channel.send({ content: text }).then((msg: any) => {
                     res.writeHead(200)
                     res.end(JSON.stringify(msg.toJSON()))
@@ -706,10 +721,10 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse){
 }
 
 server.on("request", (req, res) => {
-    if(req.method === 'POST'){
+    if (req.method === 'POST') {
         return _handlePost(req, res)
     }
-    else if(req.method === 'GET'){
+    else if (req.method === 'GET') {
         return handleGet(req, res)
     }
 })
