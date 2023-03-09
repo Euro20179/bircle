@@ -2804,14 +2804,7 @@ ${styles}
         },
     ]
 
-    yield [
-        "ping", createCommand(async (msg, _args, sendCallback) => {
-            return { content: `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`, status: StatusCode.RETURN }
-        },
-            CAT,
-            "Gets the bot's ping (very accurate)"
-        )
-    ]
+    yield [ "ping", ccmdV2(async({msg}) => crv( `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`), "Gets the bot's ping (very accurate)") ]
 
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
