@@ -130,16 +130,6 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         optional: ["who", "timeout"],
         extra: ['msg']
     },
-    // fetchURL: {
-    //     requirements: ["url", "data"],
-    //     exec: async({ url, data }: {url: string, data: "text"}) => {
-    //         console.log(url)
-    //         let respData = await fetch.default(encodeURI(url))
-    //         if(data == "text"){
-    //             return respData.text()
-    //         }
-    //     }
-    // }
 }
 
 export async function handleApiArgumentType(msg: Message, t: string, argument: string): Promise<any>{
@@ -157,18 +147,11 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
             if(Number(argument) === 0){
                 return 0
             }
-            else{
-                return await handleApiArgumentType(msg, "id", argument)
-            }
+            return await handleApiArgumentType(msg, "id", argument)
         }
         case "timeout":
             return parseFloat(argument)
-        case "role":
-        case "url":
-        case "prompt":
-        case "data":
-        case "cmd":
-        case "symbol": {
+        case "role": case "url": case "prompt": case "data": case "cmd": case "symbol": {
             return argument
         }
         default:
