@@ -240,6 +240,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
     if(useItems){
         itemUseCollector.on("collect", async(m) => {
+            console.log(cooldowns, m.author.id)
             if(!economy.getEconomy()[m.author.id]){
                 return
             }
@@ -267,7 +268,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             e.setFooter({text: `Cost: ${a}`})
             let rv = await itemFunctionTable[i](m, e)
             if(rv){
-                cooldowns[msg.author.id] = Date.now() / 1000
+                cooldowns[m.author.id] = Date.now() / 1000
                 economy.loseMoneyToBank(m.author.id, a)
                 await m.channel.send({embeds: [e]})
                 betTotal += a
