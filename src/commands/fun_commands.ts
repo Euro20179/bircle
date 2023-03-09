@@ -1170,7 +1170,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "poll",
         {
-            run: async (_msg, _, _sendCallback, opts, args) => {
+            run: async (msg, _, _sendCallback, opts, args) => {
                 let actionRow = new MessageActionRow()
                 let id = String(Math.floor(Math.random() * 100000000))
                 args = args.join(" ").split("|")
@@ -1186,20 +1186,49 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 let selection = new MessageSelectMenu({ customId: `poll: ${ id }`, placeholder: "Select one", options: choices })
                 actionRow.addComponents(selection)
+
                 globals.POLLS[`poll: ${ id }`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
+
                 let channelToSendToSearch = opts['channel']
                 let chan = undefined;
+                let actionMsg;
+                let textToSend =   `** ${ String(opts['title'] || "") || "Select one" }**\npoll id: ${ id } `
                 if (channelToSendToSearch) {
-                    chan = await fetchChannel(_msg.guild as Guild, String(channelToSendToSearch))
+                    chan = await fetchChannel(msg.guild as Guild, String(channelToSendToSearch))
                     if (!chan || chan.type !== 'GUILD_TEXT') {
                         return { content: `Cannot send to ${ chan }`, status: StatusCode.ERR }
                     }
-                    else if (!_msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
+                    else if (!msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
                         return { content: `You do not have permission to talk in ${ chan } `, status: StatusCode.ERR }
                     }
-                    return { components: [actionRow], content: `** ${ String(opts['title'] || "") || "Select one" }**\npoll id: ${ id } `, status: StatusCode.RETURN, channel: chan }
+                    actionMsg = await handleSending(msg, {components: [actionRow], content: textToSend, status: StatusCode.PROMPT})
                 }
-                return { components: [actionRow], content: `** ${ String(opts['title'] || "") || "Select one" }**\npoll id: ${ id } `, status: StatusCode.RETURN }
+                else {
+                    actionMsg = await handleSending(msg, crv(textToSend, {components: [actionRow], status: StatusCode.PROMPT}))
+                }
+
+                let collector = actionMsg.createMessageComponentCollector({componentType: "SELECT_MENU"})
+
+                collector.on("collect", async(int) => {
+                    if(!int.isSelectMenu()) return
+                    if(Object.values(globals.POLLS[int.customId].votes).filter(v => v.includes(int.user.id)).length) {
+                        int.reply({ephemeral: true, content: "You have alredy voted"})
+                        return
+                    }
+
+                    if(!globals.POLLS[int.customId].votes[int.values[0]]){
+                        globals.POLLS[int.customId].votes[int.values[0]] = [int.user.id]
+                    }
+                    else{
+                        globals.POLLS[int.customId].votes[int.values[0]].push(int.user.id)
+                    }
+
+                    let votes = Object.entries(globals.POLLS[int.customId].votes).map(v => `${v[0]}: ${v[1].length}`).join("\n")
+
+                    int.update({content: textToSend + "\n" + votes })
+                })
+
+                return {noSend: true, status: StatusCode.RETURN}
             },
             help: {
                 info: "create a poll",
