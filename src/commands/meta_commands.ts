@@ -2781,33 +2781,6 @@ ${styles}
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 return { content: "Creating new aliasv1s is disabled, use aliasv2 instead", status: StatusCode.ERR }
-                // let cmd, cmd2
-                // [cmd, cmd2, ...args] = args
-                // if (!cmd) {
-                //     return { content: "No  alias name given", status: StatusCode.ERR }
-                // }
-                // cmd = cmd.trim()
-                // if (cmd.includes(" ") || cmd.includes("\n")) {
-                //     return { content: "Name cannot have space or new lines", status: StatusCode.ERR }
-                // }
-                // if (!args) {
-                //     return { content: "No command given", status: StatusCode.ERR }
-                // }
-                // if (getAliases()[cmd]) {
-                //     return { content: `Failed to add "${cmd}", it already exists`, status: StatusCode.ERR }
-                // }
-                // if (getAliasesV2()[cmd]) {
-                //     return { content: `Failed to add ${cmd} it already exists as an aliasv2`, status: StatusCode.ERR }
-                // }
-                // if (getCommands().get(cmd)) {
-                //     return { content: `Failed to add "${cmd}", it is a builtin`, status: StatusCode.ERR }
-                // }
-                // fs.appendFileSync("command-results/alias", `${msg.author.id}: ${cmd} ${cmd2} ${args.join(" ")};END\n`)
-                // getAliases(true)
-                // return {
-                //     content: `Added \`${cmd}\` = \`${cmd2}\` \`${args.join(" ")}\``,
-                //     status: StatusCode.RETURN
-                // }
             },
             category: CAT,
             help: {
