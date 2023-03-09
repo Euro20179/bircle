@@ -329,54 +329,58 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
     if (amount === 'Infinity')
         return Infinity
     amount = amount.toLowerCase()
+
+    let flipSign = amount.startsWith("-") ? -1 : 1
+    if(flipSign === -1) amount = amount.slice(1)
+
     let match //for else if(match =...)
     if (amount == "all") {
-        return money * .99
+        return money * .99 * flipSign
     }
     else if (amount == "all!") {
-        return money
+        return money * flipSign
     }
     else if (amount.startsWith('#')) {
         let toNextMultipleOf = Number(amount.slice(1))
         if (isNaN(toNextMultipleOf)) {
             return NaN
         }
-        return toNextMultipleOf - (money % toNextMultipleOf)
+        return toNextMultipleOf - (money % toNextMultipleOf) * flipSign
     }
     else if(amount.endsWith("#")){
         let toNextMultipleOf = Number(amount.slice(0, -1))
         if(isNaN(toNextMultipleOf)){
             return NaN
         }
-        return money % toNextMultipleOf
+        return money % toNextMultipleOf * flipSign
     }
     else if(amount.endsWith("k")){
-        return Number(amount.slice(0, -1)) * 1000
+        return Number(amount.slice(0, -1)) * 1000 * flipSign
     }
     else if(amount.endsWith("m")){
-        return Number(amount.slice(0, -1)) * 1000000
+        return Number(amount.slice(0, -1)) * 1000000 * flipSign
     }
     else if(amount.endsWith("b")){
-        return Number(amount.slice(0, -1)) * 1000000000
+        return Number(amount.slice(0, -1)) * 1000000000 * flipSign
     }
     else if(amount.endsWith("t")){
-        return Number(amount.slice(0, -1)) * 1000000000000
+        return Number(amount.slice(0, -1)) * 1000000000000 * flipSign
     }
     else if (amount.startsWith("needed(") && amount.endsWith(")")) {
         let wantedAmount = parseFloat(amount.slice("needed(".length))
-        return wantedAmount - money
+        return (wantedAmount - money) * flipSign
     }
     else if (amount.startsWith("ineeded(") && amount.endsWith(")")) {
         let wantedAmount = parseFloat(amount.slice("ineeded(".length))
-        return money - wantedAmount
+        return (money - wantedAmount) * flipSign
     }
     else if(match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)){
         let id = match[1]
         let amount = match[2]
         if(fallbackFn){
-            return fallbackFn(id, amount, extras)
+            return fallbackFn(id, amount, extras) * flipSign
         }
-        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn)
+        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn) * flipSign
     }
     else if(match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)){
         let side1 = match[1]
@@ -392,30 +396,30 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
             amount2 = fallbackFn(id, side2, extras)
         }
         switch(operator){
-            case "+": return amount1 + amount2
-            case "-": return amount1 - amount2
-            case "*": return amount1 * amount2
-            case "/": return amount1 / amount2
+            case "+": return (amount1 + amount2) * flipSign
+            case "-": return (amount1 - amount2) * flipSign
+            case "*": return (amount1 * amount2) * flipSign
+            case "/": return (amount1 / amount2) * flipSign
         }
     }
     for (let e in extras) {
         let match;
         if (match = amount.match(e)) {
-            return extras[e](money, amount, ECONOMY[id], match)
+            return extras[e](money, amount, ECONOMY[id], match) * flipSign
         }
     }
     if (Number(amount)) {
-        return Number(amount)
+        return Number(amount) * flipSign
     }
     else if (amount[0] === "$" && Number(amount.slice(1))) {
-        return Number(amount.slice(1))
+        return Number(amount.slice(1)) * flipSign
     }
     else if (amount[amount.length - 1] === "%") {
         let percent = Number(amount.slice(0, -1))
         if (!percent) {
             return 0
         }
-        return money * percent / 100
+        return (money * percent / 100) * flipSign
     }
     return 0
 }
