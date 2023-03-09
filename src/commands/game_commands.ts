@@ -987,7 +987,7 @@ until you put a 0 in the box`)
 
             let bets: { [key: string]: [number, string] } = { [msg.author.id]: [money, guess] }
 
-            await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now`, { status: StatusCode.PROMPT }))
+            await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now\nplace your bets now\ntype \`<bet> <guess>\` to join`, { status: StatusCode.PROMPT }))
 
             let msgs = await msg.channel.awaitMessages({
                 filter: m => {
@@ -999,7 +999,7 @@ until you put a 0 in the box`)
                     }
                     if (isValidGuess(location.join(" "))) {
                         bets[m.author.id] = [money, location.join(" ")]
-                        handleSending(msg, crv(`${m.author} played $${money} on ${location.join(" ")}\nStarting in 30 seconds, place your bets now\ntype \`<bet> <guess>\` to join`))
+                        handleSending(msg, crv(`${m.author} played $${money} on ${location.join(" ")}`))
                         return true
                     }
                     return false
