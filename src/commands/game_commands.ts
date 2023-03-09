@@ -989,7 +989,7 @@ until you put a 0 in the box`)
 
             await handleSending(msg, crv(`${msg.author} played ${sign}${money} on ${guess}\nStarting in 30 seconds, place your bets now`, { status: StatusCode.PROMPT }))
 
-            await msg.channel.awaitMessages({
+            let msgs = await msg.channel.awaitMessages({
                 filter: m => {
                     if (globals.userUsingCommand(m.author.id, "roulette")) return false
                     let [amount, ...location] = m.content.split(" ")
@@ -1005,6 +1005,10 @@ until you put a 0 in the box`)
                     return false
                 }, time: 30000
             })
+
+            if(msgs.size < 1){
+                return crv("Playing roulette solo is bad")
+            }
 
             let pot = 0
             for (let [playerId, [amount, _location]] of Object.entries(bets)) {
