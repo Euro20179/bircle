@@ -139,6 +139,7 @@ class Canada extends Country {
 class Mexico extends Country {
     init() {
         this.registerActivity("mayan temple", "3%", this.mayanTemple.bind(this))
+        this.registerActivity("cartel", "neg(1)", this.drugCartel.bind(this))
         return this
     }
 
@@ -159,7 +160,7 @@ class Mexico extends Country {
     }
 
     async mayanTemple({ msg }: CommandV2RunArg) {
-        if (Math.random() < .1) {
+        if (Math.random() < .03) {
             let amount = economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "1%")
             economy.addMoney(msg.author.id, amount)
             return crv(`You found a secret gold stash worth: ${this.getSign(msg)}${amount}`)
