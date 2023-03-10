@@ -107,6 +107,22 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 })
             }
 
+            let canExchange = false
+            if (!timer.getTimer(msg.author.id, "%exchange")) {
+                canExchange = true
+                timer.createTimer(msg.author.id, "%exchange")
+            }
+
+            if (timer.has_x_s_passed(msg.author.id, "%exchange", 60 * 3)) {
+                canExchange = true
+                timer.restartTimer(msg.author.id, "%exchange")
+            }
+
+            if(!canExchange){
+                let lap = Number(timer.do_lap(msg.author.id, "%exchange")) / 1000 / 60
+                return crv(`You must wait ${3 - (lap)} minutes`)
+            }
+
             let res;
             try {
                 res = await fetch.default(`http://${ip}/total`)
