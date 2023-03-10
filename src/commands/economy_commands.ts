@@ -792,18 +792,18 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     amount = args[0]
                 }
                 else {
-                    let user;
-                    [amount, ...user] = args
+                    let searchUser;
+                    [amount, ...searchUser] = args
 
-                    let userSearch = user.join(" ")
+                    let userSearch = searchUser.join(" ")
                     if (!userSearch) {
                         return { content: "No user to search for", status: StatusCode.ERR }
                     }
                     if(msg.guild){
-                        user = await fetchUser(msg.guild as Guild, userSearch)
+                        user = (await fetchUser(msg.guild as Guild, userSearch))?.user as User
                     }
                     else{
-                        user = await fetchUserFromClient(client, userSearch)
+                        user = await fetchUserFromClient(client, userSearch) as User
                     }
                     if (!user)
                         return { content: `${userSearch} not found`, status: StatusCode.ERR }
