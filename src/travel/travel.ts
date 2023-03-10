@@ -121,6 +121,16 @@ class Country {
         }
         return this.neutralFlightHome(data)
     }
+
+    async onVisit(data: CommandV2RunArg){
+        let achievementname = achievements.isAchievement(this.constructor.name.toLowerCase())
+        if (achievementname){
+            let ach = achievements.achievementGet(data.msg, achievementname)
+            if(ach){
+                await handleSending(data.msg, ach)
+            }
+        }
+    }
 }
 
 class Canada extends Country {
@@ -144,16 +154,7 @@ class Canada extends Country {
         }
         return crv("You did a smidge of ice skating because there are no other activities in canada")
     }
-
-    async onVisit(data: CommandV2RunArg){
-        let ach = achievements.achievementGet(data.msg, "canada")
-        if(ach)
-            await handleSending(data.msg, ach)
-
-    }
 }
-
-
 
 class Mexico extends Country {
     init() {
@@ -205,11 +206,6 @@ class Mexico extends Country {
         }
         return crv(`You think the temples are very neato, and you rate it ${ratingMsg.content}/5 on myspace`)
     }
-    async onVisit({msg}: CommandV2RunArg){
-        let ach = achievements.achievementGet(msg, "mexico")
-        if(ach)
-            await handleSending(msg, ach)
-    }
 }
 
 class UnitedStates extends Country {
@@ -222,12 +218,6 @@ class UnitedStates extends Country {
         this.registerActivity("museum of liberty", "max(25,5%)", this.museumOfLiberty.bind(this))
         this.registerActivity("second street", "0.02", this.secondStreet.bind(this))
         return this
-    }
-
-    async onVisit({msg}: CommandV2RunArg){
-        let ach = achievements.achievementGet(msg, "united states")
-        if(ach)
-            await handleSending(msg, ach)
     }
 
     async secondStreet({msg}: CommandV2RunArg) {
@@ -357,11 +347,18 @@ class France extends Country{
         return {noSend: true, status: StatusCode.RETURN}
     }
 
-    onVisit(data: CommandV2RunArg){
-        let ach = achievements.achievementGet(data.msg, "france")
-        if(ach){
-            handleSending(data.msg, ach)
+}
+
+class Iraq extends Country{
+    init(){
+        this.registerActivity("oil raid", "10", this.oilRaid.bind(this))
+    }
+    async oilRaid(data: CommandV2RunArg){
+        if(Math.random() > .9){
+            return crv("The iraqi military comes and repurposes your skin -5 points")
         }
+        let gallonsOfOil = Math.floor(Math.random() * 100)
+        return crv(`You successfully raided ${gallonsOfOil} gallons of oil`)
     }
 }
 
@@ -386,7 +383,8 @@ let defaultCountries = {
     "us": new UnitedStates({ cost: "5%+20", greeting: "Welcome to the us 🔫" }),
     "canada": new Canada({ cost: "2%+10" }),
     "mexico": (new Mexico({ cost: "1%+5", greeting: "Welcome to mexico🪇" })),
-    "france": new France({cost: "5%+30", greeting: "Bonjour!🍞", currencySign: '💶'})
+    "france": new France({cost: "5%+30", greeting: "Bonjour!🍞", currencySign: '💶'}),
+    "iraq": new Iraq({cost: "3%", badFlightChance: .5})
 }
 
 
