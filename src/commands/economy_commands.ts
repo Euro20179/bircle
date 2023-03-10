@@ -92,6 +92,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }
     })]
 
+    yield ['inflation', ccmdV2(async function({msg, args}){
+        return crv(`${economy.getInflation() * 100}%`)
+    }, "Gets the inflation% over the past minute")]
+
     yield [
         "exchange", ccmdV2(async function({ args, msg }) {
             let ip = getToolIp()

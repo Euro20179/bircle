@@ -578,7 +578,14 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     return data
 }
 
+let lastEconomyTotal = economyLooseGrandTotal().total
+let inflation = 0
+setInterval(() => {
+    inflation = (economyLooseGrandTotal().total - lastEconomyTotal) / lastEconomyTotal
+}, 60000)
+
 export default {
+    getInflation: () => inflation,
     loadEconomy,
     saveEconomy,
     createPlayer,
