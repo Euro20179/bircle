@@ -1009,7 +1009,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     useItem(userBeingTaxed, "tax shield")
                 }
                 if (pet.getActivePet(userBeingTaxed) === 'frog' && userBeingTaxed !== userGainingMoney) {
-                    let text = `<@${userBeingTaxed}> has a ${pet.hasPet(msg.author.id, "frog").name}!\n`
+                    let text = `<@${userBeingTaxed}> has a ${pet.hasPet(userBeingTaxed, "frog")?.name}!\n`
                     let playersToFrog = Object.entries(economy.getEconomy()).filter((a) => economy.playerLooseNetWorth(a[0]) > economy.playerLooseNetWorth(userBeingTaxed))
                     for (let player of playersToFrog) {
                         let amount = economy.playerLooseNetWorth(player[0]) * 0.001
