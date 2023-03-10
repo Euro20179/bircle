@@ -13,6 +13,7 @@ import { Guild, MessageEmbed, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
 import { DEVBOT } from '../globals'
+import achievements from '../achievements'
 const { buyItem, hasItem, useItem } = require('../shop')
 
 const { ITEMS, INVENTORY } = require("../shop")
@@ -121,6 +122,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let exchangeRate = toolTotal / economyTotal
 
             let amount = economy.calculateAmountFromString(msg.author.id, args[0])
+
+            if(amount / economy.playerLooseNetWorth(msg.author.id) >= .5){
+                achievements.achievementGet(msg, "even transfer")
+            }
+            
             let nAmount = Math.trunc(Number(amount))
             if (!economy.canBetAmount(msg.author.id, nAmount)) {
                 return { content: `You do not have this much money`, status: StatusCode.ERR }

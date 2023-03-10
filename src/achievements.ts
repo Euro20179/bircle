@@ -31,7 +31,7 @@ class ItemRewardAchievement extends Achievement{
 
     earn(id: string){
         giveItem(id, this.reward[0], this.reward[1])
-        return super.earn(id, this.reward[0])
+        return super.earn(id, `${this.reward[1]} of ${this.reward[0]}`)
     }
 }
 
@@ -59,7 +59,8 @@ const POSSIBLE_ACHIEVEMENTS: {[name: string]: Achievement} = {
     canada: new MoneyRewardAchievement("canada", "travel to canada", "max(2%,100)"),
     "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
     france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
-    traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193])
+    traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
+    "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20])
 }
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};

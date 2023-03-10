@@ -1983,7 +1983,8 @@ Valid formats:
         let totalAchievements = Object.keys(achievements.POSSIBLE_ACHIEVEMENTS).length
 
         if(opts.getBool("l", false))
-            return crv(Object.entries(achievements.POSSIBLE_ACHIEVEMENTS).map(v => `${v[0]}: ${v[1].description}}`).join('\n'))
+            //@ts-ignore
+            return crv(Object.entries(achievements.POSSIBLE_ACHIEVEMENTS).map(v => `${v[0]}: ${v[1].description} (reward: ${v[1].reward || "nothing"})`).join('\n'))
 
         let userAchievements = achievements.getAchievementsOf(msg.author.id)
         if(!userAchievements){
