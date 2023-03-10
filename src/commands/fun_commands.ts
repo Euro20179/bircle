@@ -10,7 +10,7 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
-import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
+import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, setVar } from "../common";
 import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -21,7 +21,8 @@ import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
 
-const { useItem, hasItem, INVENTORY } = require("../shop")
+import {hasItem, useItem} from '../shop'
+const { INVENTORY } = require("../shop")
 
 import travel_countries from '../travel/travel';
 import { IUserCountry } from '../travel/user-country';
@@ -2062,9 +2063,14 @@ Valid formats:
 
             let countries = travel_countries.getCountries()
 
+            let defaultCountries = travel_countries.getCountries("default")
+
+
+            let hasPassport = hasItem(msg.author.id, "passport")
+
             if(opts.getBool("countries", opts.getBool("l", false))){
                 return crv(Object.entries(countries).map((v) => {
-                    return `${v[0]}: ${sign}${v[1].cost}`
+                    return `${v[0]}: ${sign}${hasPassport ? 0 : v[1].cost}`
                 }).join("\n"))
             }
 
@@ -2078,9 +2084,26 @@ Valid formats:
 
             let cost = economy.calculateAmountFromString(msg.author.id, countries[userGoingTo].cost)
 
+            if(hasPassport){
+                cost = 0
+                useItem(msg.author.id, "passport")
+            }
+
             if(!economy.canBetAmount(msg.author.id, cost)){
                 return crv(`You cannot affort to go to ${userGoingTo}`)
             }
+
+            let beenTo = getVar(msg, "visited-countries", '!stats', msg.author.id)
+            if(beenTo === false){
+                beenTo = userGoingTo + ","
+            }
+            else if(!beenTo.includes(userGoingTo + ",")) beenTo += userGoingTo + ","
+            setVar("visited-countries", beenTo, "!stats", msg.author.id)
+
+        //TODO: add this when there are a lot more locations
+            // if(beenTo.slice(0, -1) === Object.keys(defaultCountries).reduce((p, c) => p + `${c},`, "0")){
+            //     achievements.achievementGet(msg, "traveler")
+            // }
 
             economy.loseMoneyToBank(msg.author.id, cost)
 

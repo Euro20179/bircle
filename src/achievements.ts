@@ -23,15 +23,15 @@ class Achievement{
 }
 
 class ItemRewardAchievement extends Achievement{
-    reward: string
-    constructor(name: string, description: string, itemReward: string, message?: string){
+    reward: [string, number]
+    constructor(name: string, description: string, itemReward: [string, number], message?: string){
         super(name, description, message)
         this.reward = itemReward
     }
 
     earn(id: string){
-        giveItem(id, this.reward, 1)
-        return super.earn(id, this.reward)
+        giveItem(id, this.reward[0], this.reward[1])
+        return super.earn(id, this.reward[0])
     }
 }
 
@@ -57,8 +57,9 @@ type AchievedAchievement = {
 const POSSIBLE_ACHIEVEMENTS: {[name: string]: Achievement} = { 
     mexico: new MoneyRewardAchievement("mexico", "travel to mexico", "max(2%,100)"),
     canada: new MoneyRewardAchievement("canada", "travel to canada", "max(2%,100)"),
-    "united states": new ItemRewardAchievement("united states", "travel to the us", "gun"),
-    france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)")
+    "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
+    france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
+    traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193])
 }
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};
@@ -68,7 +69,7 @@ function getAchievements(){
         if(fs.existsSync("./data/achievements.json"))
             cachedAchievements = JSON.parse(fs.readFileSync("./data/achievements.json", "utf-8"))
         else cachedAchievements = {}
-        return cachedAchievements
+        return cachedAchievements as {[id: string]: AchievedAchievement[]}
     }
     else if(cachedAchievements){
         return cachedAchievements
@@ -96,7 +97,7 @@ type AchievementMessage = CommandReturn
 function achievementGet(msg: Message, achievement: Achievement['name']): AchievementMessage | false{
     let id = msg.author.id
     if(!cachedAchievements){
-        cachedAchievements = {}
+        cachedAchievements = getAchievements()
     }
     let achievementObj = getAchievementByName(achievement)
     if(!cachedAchievements[id]){

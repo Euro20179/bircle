@@ -390,7 +390,11 @@ let defaultCountries = {
 }
 
 
-function getCountries() {
+function getCountries(type: "user" | "default" | 'all' = 'all') {
+    if(type === 'default'){
+        return defaultCountries
+    }
+
     let userCountries: { [name: string]: UserCountry } = {}
 
     if (fs.existsSync("./data/travel.json")) {
@@ -404,6 +408,9 @@ function getCountries() {
                 })
             }
         }
+    }
+    if(type === 'user'){
+        return userCountries
     }
     return {
         ...defaultCountries,
