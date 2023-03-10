@@ -2032,7 +2032,10 @@ Valid formats:
                 }).join("\n"))
             }
 
-            let userGoingTo = args.expect(() => true, i => countries[i.join(" ") as keyof typeof countries] ? i.join(" ") : BADVALUE) as keyof typeof countries | typeof BADVALUE
+            let userGoingTo = args.expect(() => true, i => {
+                let text = i.join(" ").toLowerCase()
+                return countries[text as keyof typeof countries] ? text : BADVALUE
+            }) as keyof typeof countries | typeof BADVALUE
             if(userGoingTo === BADVALUE){
                 return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, {status: StatusCode.ERR})
             }
