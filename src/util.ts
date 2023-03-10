@@ -1004,13 +1004,15 @@ type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => 
 class ArgList extends Array {
     #i: number
     #curArg: string | null
-    constructor(args: string[]) {
+    IFS: string
+    constructor(args: string[], IFS=" ") {
         super(args.length)
         for (let index in args) {
             Reflect.set(this, index, args[index])
         }
         this.#i = NaN
         this.#curArg = null
+        this.IFS = IFS
     }
     beginIter() {
         this.#i = -1
@@ -1030,15 +1032,29 @@ class ArgList extends Array {
         this.#curArg = this[this.#i]
         return this.#curArg
     }
+    get currentIndex(){
+        return this.#i
+    }
     #createArgList(amountOfArgs: AmountOfArgs) {
         let argsToUse = []
         if (typeof amountOfArgs === 'number') {
-            this.advance()
-            argsToUse = listComprehension(range(this.#i, this.#i + amountOfArgs), (i: number) => this[i])
+            if(this.#i === -1)
+                this.advance()
+            for(let start = this.#i; this.#i < start + amountOfArgs; this.advance()){
+                if(this.#curArg !== undefined && this.#curArg !== null){
+                    argsToUse.push(this.#curArg)
+                }
+                else {
+                    return []
+                }
+            }
         }
         else {
-            while (this.advance() && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)) {
-                argsToUse.push(this.#curArg)
+            if(this.#i === -1)
+                this.advance()
+            while (this.#curArg && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)) {
+                argsToUse.push(this.#curArg as string)
+                this.advance()
             }
             this.back()
         }
@@ -1050,7 +1066,7 @@ class ArgList extends Array {
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if ((res = filter(argsToUse)) !== false && res !== BADVALUE) {
+        if ((res = filter.bind(this)(argsToUse)) !== false && res !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return BADVALUE
@@ -1072,14 +1088,14 @@ class ArgList extends Array {
         })
     }
     expectString(amountOfArgs: AmountOfArgs = 1) {
-        return this.expect(amountOfArgs, i => i.length ? i.join(" ") : BADVALUE)
+        return this.expect(amountOfArgs, i => i.length ? i.join(this.IFS) : BADVALUE)
     }
     expectInt(amountOfArgs: AmountOfArgs = 1) {
-        return this.expect(amountOfArgs, i => i.join(" ").match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
+        return this.expect(amountOfArgs, i => i.join(this.IFS).match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
     }
     expectBool(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {
-            let s = i.join(" ").toLowerCase()
+            let s = i.join(this.IFS).toLowerCase()
             if (s === 'true') {
                 return true
             }
@@ -1095,7 +1111,7 @@ class ArgList extends Array {
             if (!roles) {
                 return BADVALUE
             }
-            let s = i.join(" ")
+            let s = i.join(this.IFS)
             let foundRoles = roles.filter(r => r.name.toLowerCase() === s ? true : false)
             if (!foundRoles.size) {
                 foundRoles = roles.filter(r => r.name.toLowerCase().match(s) ? true : false)

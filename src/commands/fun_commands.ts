@@ -9,6 +9,7 @@ import fetch = require("node-fetch")
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy from '../economy'
+import user_country, { UserCountryActivity } from '../travel/user-country'
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
 import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType } from "../util"
 import user_options = require("../user-options")
@@ -22,7 +23,8 @@ import { randomInt } from 'crypto';
 
 const { useItem, hasItem, INVENTORY } = require("../shop")
 
-import travel_countries from '../travel';
+import travel_countries from '../travel/travel';
+import { IUserCountry } from '../travel/user-country';
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -1949,41 +1951,110 @@ Valid formats:
         },
     ]
 
-    // yield [
-    //     "travel", ccmdV2(async function({msg, args, opts, sendCallback}){
-    //         args.beginIter()
-    //
-    //         let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
-    //
-    //         if(opts.getBool("countries", opts.getBool("l", false))){
-    //             return crv(Object.entries(travel_countries).map((v) => {
-    //                 return `${v[0]}: ${sign}${v[1].cost}`
-    //             }).join("\n"))
-    //         }
-    //
-    //         let userGoingTo = args.expect(1, i => travel_countries[i[0] as keyof typeof travel_countries] ? i : BADVALUE) as keyof typeof travel_countries | typeof BADVALUE
-    //         if(userGoingTo === BADVALUE){
-    //             return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, {status: StatusCode.ERR})
-    //         }
-    //
-    //         let cost = economy.calculateAmountFromString(msg.author.id, travel_countries[userGoingTo].cost)
-    //
-    //         if(!economy.canBetAmount(msg.author.id, cost)){
-    //             return crv(`You cannot affort to go to ${userGoingTo}`)
-    //         }
-    //
-    //         economy.loseMoneyToBank(msg.author.id, cost)
-    //
-    //         await handleSending(msg, crv(`You spent ${sign}${cost} on your trip to ${userGoingTo}`, {status: StatusCode.INFO}))
-    //
-    //         return await travel_countries[userGoingTo as keyof typeof travel_countries].go(arguments[0])
-    //
-    //     }, "Travel to a country", {
-    //         helpOptions: {
-    //             countries: createHelpOption("List the countries that can be travelled to", ["l"])
-    //         }
-    //     })
-    // ]
+    yield ['remove-travel-location', ccmdV2(async function({msg, args}){
+
+        args.beginIter()
+
+        let countries = user_country.getUserCountries()
+
+        let name = args.expect(1, function(this: ArgList,i){
+            let name = i.join(this.IFS)
+            if(countries[msg.author.id]?.[name] === undefined){
+                return BADVALUE
+            }
+            return name
+        })
+        if(name === BADVALUE){
+            return crv(`No valid country name given`, {status: StatusCode.ERR})
+        }
+
+        user_country.removeCountry(msg.author.id, name)
+
+        return crv(`Successfuly removed ${name}`)
+
+    }, "Remove a country you created")]
+
+    yield ['add-travel-location', ccmdV2(async function({msg, args}){
+        args = new ArgList(args.join(" ").split("\n"), "\n")
+        console.log(args)
+        args.beginIter()
+        let name = args.expectString(1)
+        if(name === BADVALUE){
+            return crv (`No name given`, {status: StatusCode.ERR})
+        }
+
+        //@ts-ignore
+        if(travel_countries.getCountries()[name] !== undefined){
+            return {content: `${name} is already a location`, status: StatusCode.ERR}
+        }
+
+        let cost = args.expectString(1)
+        if(cost === BADVALUE)
+            return crv (`No cost given`, {status: StatusCode.ERR})
+
+        let activities: {[name: string]: UserCountryActivity} = {}
+
+        let finalText = args.expectString(() => true)
+        if(finalText === BADVALUE){
+            return crv (`Expected a list of activities`, {status: StatusCode.ERR})
+        }
+
+        for(let line of finalText.split("\n")){
+            let [activity, cost, ...run] = line.split("|")
+            let runText = run.join("|")
+            activity = activity.trim()
+            cost = cost.trim()
+            activities[activity] = {
+                cost,
+                run: runText.trim()
+            }
+        }
+
+        user_country.addCountry(msg.author.id, name, cost, activities)
+
+        return crv (`Added ${name} where you can do ${Object.keys(activities).join("\n")}`)
+
+    }, "Create a travelable country for the travel command")]
+
+    yield [
+        "travel", ccmdV2(async function({msg, args, opts}){
+            args.beginIter()
+
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
+            let countries = travel_countries.getCountries()
+
+            if(opts.getBool("countries", opts.getBool("l", false))){
+                return crv(Object.entries(countries).map((v) => {
+                    return `${v[0]}: ${sign}${v[1].cost}`
+                }).join("\n"))
+            }
+
+            let userGoingTo = args.expect(() => true, i => countries[i.join(" ") as keyof typeof countries] ? i.join(" ") : BADVALUE) as keyof typeof countries | typeof BADVALUE
+            if(userGoingTo === BADVALUE){
+                return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, {status: StatusCode.ERR})
+            }
+
+            let cost = economy.calculateAmountFromString(msg.author.id, countries[userGoingTo].cost)
+
+            if(!economy.canBetAmount(msg.author.id, cost)){
+                return crv(`You cannot affort to go to ${userGoingTo}`)
+            }
+
+            economy.loseMoneyToBank(msg.author.id, cost)
+
+            await handleSending(msg, crv(`You spent ${sign}${cost} on your trip to ${userGoingTo}`, {status: StatusCode.INFO}))
+
+            let country = countries[userGoingTo as keyof typeof countries]
+
+            return await country.go(arguments[0])
+
+        }, "Travel to a country", {
+            helpOptions: {
+                countries: createHelpOption("List the countries that can be travelled to", ["l"])
+            }
+        })
+    ]
 }
 
 

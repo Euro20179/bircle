@@ -17,7 +17,6 @@ import fetch from 'node-fetch'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
-
     yield ["get-var", ccmdV2(async function({args, opts, msg}){
         let as = opts.getString("as", msg.author.id)
         let user: undefined | User = msg.author

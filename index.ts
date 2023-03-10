@@ -19,7 +19,7 @@ import command_commons from './src/common_to_commands'
 
 import globals = require("./src/globals")
 import { URLSearchParams } from "url"
-import { efd, format } from "./src/util"
+import { efd, format, enumerate } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { InteractionResponseTypes } from "discord.js/typings/enums"
 import { GLOBAL_CURRENCY_SIGN } from './src/common'

@@ -232,6 +232,11 @@ class Parser {
                     this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).filter(v => v !== '').map((v, i) => new Token(T.str, v, i)))
                     break
                 }
+                //ignore new lines after cmds
+                if(this.#curChar === '\n'){
+                    this.#curArgNo++;
+                    continue;
+                }
             }
             switch (this.#curChar) {
                 case this.IFS: {
