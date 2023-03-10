@@ -77,7 +77,7 @@ class Country {
         let msgs = await msg.channel.awaitMessages({
             filter: m => {
                 return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && isBetween(0, Number(m.content), this.activityNameList.length + 1))
-            }, max: 1, time: 6000
+            }, max: 1, time: 60000
         })
 
         if (msgs.size < 1) {
@@ -128,6 +128,7 @@ class Canada extends Country {
     }
 
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
+        this.onVisit(arguments[0])
         if (Math.random() < .1) {
             let costBack = economy.calculateAmountFromStringIncludingStocks(msg.author.id, "10%")
             economy.loseMoneyToBank(msg.author.id, costBack)
@@ -140,7 +141,7 @@ class Canada extends Country {
     }
 
     async onVisit(data: CommandV2RunArg){
-        let ach = achievements.achievementGet(data.msg, "mexico")
+        let ach = achievements.achievementGet(data.msg, "canada")
         if(ach)
             await handleSending(data.msg, ach)
 
@@ -348,6 +349,13 @@ class France extends Country{
         await b.reply(`You bought the ${item} for ${this.getSign(msg)}${cost}`)
 
         return {noSend: true, status: StatusCode.RETURN}
+    }
+
+    onVisit(data: CommandV2RunArg){
+        let ach = achievements.achievementGet(data.msg, "france")
+        if(ach){
+            handleSending(data.msg, ach)
+        }
     }
 }
 
