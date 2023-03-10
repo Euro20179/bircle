@@ -1,5 +1,6 @@
 const fs = require("fs")
 import { Message } from "discord.js"
+import { max, min } from "lodash"
 import fetch = require("node-fetch")
 import { getVar } from "./common"
 
@@ -7,22 +8,22 @@ import pet from "./pets"
 import timer from "./timer"
 
 
-type Stock = {buyPrice:  number, shares: number}
+type Stock = { buyPrice: number, shares: number }
 
 export type EconomyData = { money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
-function isRetired(msg: Message, id: string){
+function isRetired(msg: Message, id: string) {
     return getVar(msg, 'retired', '!retire', id) === 'true' ? true : false
 }
 
 
-function setUserStockSymbol(id: string, symbol: string, data: {name: string, info: Stock}){
-    if(!ECONOMY[id])
+function setUserStockSymbol(id: string, symbol: string, data: { name: string, info: Stock }) {
+    if (!ECONOMY[id])
         return false
-    if(!ECONOMY[id].stocks){
+    if (!ECONOMY[id].stocks) {
         ECONOMY[id].stocks = {}
     }
     //@ts-ignore
@@ -30,19 +31,19 @@ function setUserStockSymbol(id: string, symbol: string, data: {name: string, inf
     return true
 }
 
-function increaseSandCounter(id: string, amount  = 1){
-    if(ECONOMY[id]?.sandCounter !== undefined){
+function increaseSandCounter(id: string, amount = 1) {
+    if (ECONOMY[id]?.sandCounter !== undefined) {
         //@ts-ignore
         ECONOMY[id].sandCounter += amount
         return true
     }
-    else if(ECONOMY[id]){
+    else if (ECONOMY[id]) {
         ECONOMY[id].sandCounter = amount
     }
     return false
 }
 
-function getSandCounter(id: string){
+function getSandCounter(id: string) {
     return ECONOMY[id]?.sandCounter
 }
 
@@ -192,7 +193,7 @@ function randInt(min: number, max: number) {
 function taxPlayer(id: string, max: number, taxPercent: number | boolean = false) {
     timer.restartTimer(id, "%last-taxed")
     let total = playerEconomyLooseTotal(id)
-    if(taxPercent === false){
+    if (taxPercent === false) {
         taxPercent = randInt(0.001, 0.008)
     }
     if (pet.getActivePet(id) == 'tiger') {
@@ -205,16 +206,16 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
     return { amount: amountTaxed, percent: taxPercent as number }
 }
 
-function canWork(id: string){
-    if(!ECONOMY[id]){
+function canWork(id: string) {
+    if (!ECONOMY[id]) {
         return false
     }
     let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
     let total = playerEconomyLooseTotal(id)
     //not broke but it has been 1 hour
-    if(total >= 0 && secondsDiff > 3600)
+    if (total >= 0 && secondsDiff > 3600)
         return 0;
-    if(total < 0 && secondsDiff > 3600){
+    if (total < 0 && secondsDiff > 3600) {
         //broke and has been 1 hour
         return true
     }
@@ -222,39 +223,39 @@ function canWork(id: string){
     return false
 }
 
-function playerLooseNetWorth(id: string){
-    if(!ECONOMY[id])
+function playerLooseNetWorth(id: string) {
+    if (!ECONOMY[id])
         return 0
     return playerEconomyLooseTotal(id) - (ECONOMY[id]?.loanUsed || 0)
 }
 
-function economyLooseGrandTotal(){
+function economyLooseGrandTotal() {
     let moneyTotal = 0
     let stockTotal = 0
     let loanTotal = 0
     let econ = getEconomy()
-    for(let player in econ){
+    for (let player in econ) {
         let pst = 0
         moneyTotal += econ[player].money
-        for(let stock in econ[player].stocks){
+        for (let stock in econ[player].stocks) {
             //@ts-ignore
             pst += econ[player].stocks[stock].shares * econ[player].stocks[stock].buyPrice
         }
         stockTotal += pst
-        if(econ[player].loanUsed){
+        if (econ[player].loanUsed) {
             //@ts-ignore
             loanTotal += econ[player].loanUsed
         }
     }
-    return {money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal}
+    return { money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal }
 }
 
-function work(id: string){
-    if(!ECONOMY[id])
+function work(id: string) {
+    if (!ECONOMY[id])
         return false
     ECONOMY[id].lastWork = Date.now()
     let minimumWage = .001 * (economyLooseGrandTotal().total)
-    if(addMoney(id, minimumWage)){
+    if (addMoney(id, minimumWage)) {
         return minimumWage
     }
     return false
@@ -275,7 +276,7 @@ function canTax(id: string, bonusTime?: number) {
 }
 
 function canBetAmount(id: string, amount: number) {
-    if(isNaN(amount)){
+    if (isNaN(amount)) {
         return false
     }
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
@@ -295,7 +296,7 @@ function setMoney(id: string, amount: number) {
 }
 
 function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
-    if(ECONOMY[id] === undefined){
+    if (ECONOMY[id] === undefined) {
         return NaN
     }
 
@@ -332,7 +333,7 @@ function calculateLoanAmountFromString(id: string, amount: string, extras?: { [k
     return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras, calculateLoanAmountFromString)
 }
 
-function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }, fallbackFn?: (id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number}) => number ): number {
+function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }, fallbackFn?: (id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }) => number): number {
     if (amount == undefined || amount == null) {
         return NaN
     }
@@ -354,23 +355,23 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         }
         return toNextMultipleOf - (money % toNextMultipleOf)
     }
-    else if(amount.endsWith("#")){
+    else if (amount.endsWith("#")) {
         let toNextMultipleOf = Number(amount.slice(0, -1))
-        if(isNaN(toNextMultipleOf)){
+        if (isNaN(toNextMultipleOf)) {
             return NaN
         }
         return money % toNextMultipleOf
     }
-    else if(amount.endsWith("k")){
+    else if (amount.endsWith("k")) {
         return Number(amount.slice(0, -1)) * 1000
     }
-    else if(amount.endsWith("m")){
+    else if (amount.endsWith("m")) {
         return Number(amount.slice(0, -1)) * 1000000
     }
-    else if(amount.endsWith("b")){
+    else if (amount.endsWith("b")) {
         return Number(amount.slice(0, -1)) * 1000000000
     }
-    else if(amount.endsWith("t")){
+    else if (amount.endsWith("t")) {
         return Number(amount.slice(0, -1)) * 1000000000000
     }
     else if (amount.startsWith("needed(") && amount.endsWith(")")) {
@@ -381,32 +382,40 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         let wantedAmount = parseFloat(amount.slice("ineeded(".length))
         return money - wantedAmount
     }
-    else if(amount.startsWith("neg(") && amount.endsWith(")")){
+    else if (amount.startsWith("neg(") && amount.endsWith(")")) {
         let req = amount.slice("neg(".length, -1)
         return (fallbackFn ? fallbackFn(id, req, extras) : calculateAmountOfMoneyFromString(id, money, req, extras, fallbackFn)) * -1;
     }
-    else if(match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)){
+    else if (amount.startsWith("max(") && amount.endsWith(")")) {
+        let amounts = amount.slice("max(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(id, money, v, extras, fallbackFn))
+        return max(amounts) as number
+    }
+    else if (amount.startsWith("min(") && amount.endsWith(")")) {
+        let amounts = amount.slice("min(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(id, money, v, extras, fallbackFn))
+        return min(amounts) as number
+    }
+    else if (match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)) {
         let id = match[1]
         let amount = match[2]
-        if(fallbackFn){
+        if (fallbackFn) {
             return fallbackFn(id, amount, extras)
         }
         return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn)
     }
-    else if(match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)){
+    else if (match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)) {
         let side1 = match[1]
         let operator = match[2]
         let side2 = match[3]
         let amount1, amount2
-        if(!fallbackFn){
+        if (!fallbackFn) {
             amount1 = calculateAmountOfMoneyFromString(id, money, side1, extras, fallbackFn)
             amount2 = calculateAmountOfMoneyFromString(id, money, side2, extras, fallbackFn)
         }
-        else{
+        else {
             amount1 = fallbackFn(id, side1, extras)
             amount2 = fallbackFn(id, side2, extras)
         }
-        switch(operator){
+        switch (operator) {
             case "+": return amount1 + amount2
             case "-": return amount1 - amount2
             case "*": return amount1 * amount2
@@ -534,11 +543,11 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
         return false
     let data: { change: number, price: number, "%change": string, volume: string, name: string } = { change: 0, price: 0, "%change": "0%", volume: "0", name: quote.toUpperCase() }
     let html
-    try{
+    try {
         html = await (await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(quote)}`)).text()
     }
-    catch(err){
-        if(fail)
+    catch (err) {
+        if (fail)
             fail(err)
         return false
     }
