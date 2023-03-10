@@ -11,10 +11,6 @@ import { getVar, GLOBAL_CURRENCY_SIGN } from "../common"
 import { giveItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
 
-
-//TODO:
-//custom locations
-
 class Activity {
     cost: string
     go: (data: CommandV2RunArg) => Promise<CommandReturn>
@@ -287,7 +283,7 @@ class France extends Country{
         this.registerActivity("eiffel tower", "max(50,10%)", this.eiffelTower.bind(this))
         this.registerActivity("baguette shop", "0", this.baguetteShop.bind(this))
     }
-    async badFlightHome({ msg }: CommandV2RunArg): Promise<CommandReturn> {
+    async badFlightHome(_data: CommandV2RunArg): Promise<CommandReturn> {
         return crv("Your piolot accidentally crashed into the eiffel tower😲\nOH NO")
     }
 
