@@ -123,13 +123,18 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
 
 
-            economy.loseMoneyToBank(msg.author.id, nAmount)
 
             let amountAfterExchangeRate = nAmount * exchangeRate
 
-            await fetch.default(`http://${ip}/exchange`,
+            let response = await fetch.default(`http://${ip}/exchange`,
                 { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: msg.author.id, money: amountAfterExchangeRate }) }
             )
+
+            if(response.status === 400){
+                return crv(`Transaction denied (less than 1 dollar after transfer)`)
+            }
+
+            economy.loseMoneyToBank(msg.author.id, nAmount)
 
             let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
 
