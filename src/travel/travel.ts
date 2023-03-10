@@ -82,6 +82,11 @@ class Country {
 
         let activity = this.activities.get(activityOfChoice) || Array.from(this.activities.values())[Number(activityOfChoice) - 1]
 
+        let cost = economy.calculateAmountFromNetWorth(msg.author.id, activity.cost)
+        if(!economy.canBetAmount(msg.author.id, cost)){
+            return crv(`You could not afford to do the activities you wanted and left sadly`)
+        }
+
         await handleSending(msg, await activity.go(arguments[0]))
 
         return await this.returnHome(arguments[0])
