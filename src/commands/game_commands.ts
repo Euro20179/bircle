@@ -1640,8 +1640,9 @@ until you put a 0 in the box`)
                         }
                     }
 
-                    setVarEasy(msg, "!last-run:total", String(Number(getVar(msg, "last-run:total")) + amount))
-                    setVarEasy(msg, "!last-run:last", String(amount))
+                    setVarEasy(msg, "!stats:last-run.count", String(Number(getVar(msg, "!stats:last-run.count")) + 1))
+                    setVarEasy(msg, "!stats:last-run.last", String(amount))
+                    setVarEasy(msg, "!stats:last-run.total", String(Number(getVar(msg, "!stats:last-run.")) + amount))
                     saveVars()
 
                     fmt += `\n{earnings}`
