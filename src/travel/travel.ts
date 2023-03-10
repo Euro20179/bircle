@@ -200,7 +200,13 @@ class UnitedStates extends Country {
         this.registerActivity("free hotdog", "3", this.freeHotdog.bind(this))
         this.registerActivity("car accident", "0", this.carAccident.bind(this))
         this.registerActivity("museum of liberty", "max(25,5%)", this.museumOfLiberty.bind(this))
+        this.registerActivity("second street", "0.02", this.secondStreet.bind(this))
         return this
+    }
+
+    async secondStreet({msg}: CommandV2RunArg) {
+        economy.addMoney(msg.author.id, 0.01)
+        return crv(`You found a penny on second street\ngain ${this.getSign(msg)}.01!!!`)
     }
 
     async freeHotdog({ msg }: CommandV2RunArg) {
