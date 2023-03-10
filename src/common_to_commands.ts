@@ -1184,7 +1184,7 @@ export function createCommandV2(
 /**
     * @description crv: stands for: commandReturnValue
 */
-export function crv(content: string, options?: { [K in keyof CommandReturn]?: CommandReturn[K] }, status = StatusCode.RETURN) {
+export function crv(content: string, options?: { [K in keyof CommandReturn]?: CommandReturn[K] }, status = StatusCode.RETURN): CommandReturn {
     return {
         content,
         status: options?.status ?? status,

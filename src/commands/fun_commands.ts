@@ -1976,7 +1976,6 @@ Valid formats:
 
     yield ['add-travel-location', ccmdV2(async function({msg, args}){
         args = new ArgList(args.join(" ").split("\n"), "\n")
-        console.log(args)
         args.beginIter()
         let name = args.expectString(1)
         if(name === BADVALUE){
