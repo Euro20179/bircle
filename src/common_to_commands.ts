@@ -13,6 +13,7 @@ import parse_format from './parse_format';
 
 
 export enum StatusCode {
+    ACHIEVEMENT = -3,
     PROMPT = -2,
     INFO = -1,
     RETURN = 0,
@@ -22,6 +23,7 @@ export enum StatusCode {
 
 export function statusCodeToStr(code: StatusCode) {
     return {
+        [StatusCode.ACHIEVEMENT]: "-3",
         [StatusCode.PROMPT]: "-2",
         [StatusCode.INFO]: "-1",
         [StatusCode.RETURN]: "0",

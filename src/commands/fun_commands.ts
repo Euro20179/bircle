@@ -25,6 +25,7 @@ const { useItem, hasItem, INVENTORY } = require("../shop")
 
 import travel_countries from '../travel/travel';
 import { IUserCountry } from '../travel/user-country';
+import achievements from '../achievements';
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -1976,6 +1977,27 @@ Valid formats:
         return crv(`Successfuly removed ${name}`)
 
     }, "Remove a country you created")]
+
+    yield ['achievements', ccmdV2(async function({msg, args, opts}){
+        let totalAchievements = Object.keys(achievements.POSSIBLE_ACHIEVEMENTS).length
+
+        if(opts.getBool("l", false))
+            return crv(Object.entries(achievements.POSSIBLE_ACHIEVEMENTS).map(v => `${v[0]}: ${v[1].description}}`).join('\n'))
+
+        let userAchievements = achievements.getAchievementsOf(msg.author.id)
+        if(!userAchievements){
+            return crv('You have no achievements')
+        }
+
+        
+        let userAchievementCount = userAchievements.length
+
+        return crv(`You have ${userAchievementCount} / ${totalAchievements} achievements\n` + userAchievements.map(v => `**${v.achievement}**: achieved at: ${(new Date(v.achieved)).toString()}`).join("\n"))
+    }, "Lists the achievements of a user, or all achievements", {
+        helpOptions: {
+            l: createHelpOption("List all achievements")
+        }
+    })]
 
     yield ['add-travel-location', ccmdV2(async function({msg, args}){
         args = new ArgList(args.join(" ").split("\n"), "\n")

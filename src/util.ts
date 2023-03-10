@@ -18,6 +18,8 @@ const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require(
 
 export type MimeType = `${string}/${string}`
 
+export type UnixTime = number
+
 function getToolIp() {
     let ip;
     if (fs.existsSync("./data/ip.key")) {
