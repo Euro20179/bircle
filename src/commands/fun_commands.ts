@@ -22,6 +22,8 @@ import { randomInt } from 'crypto';
 
 const { useItem, hasItem, INVENTORY } = require("../shop")
 
+import travel_countries from '../travel';
+
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
     organization: orgid,
@@ -1324,22 +1326,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "nick", ccmdV2(async function({msg, args, opts}){
+        "nick", ccmdV2(async function({ msg, args, opts }) {
             args.beginIter()
             let newName = args.expect(() => true, i => {
                 let v = i.join(" ")
                 return v.length > 31 ? BADVALUE : v
             })
 
-            if(newName === BADVALUE)
+            if (newName === BADVALUE)
                 return { content: "Name not given, or is too long", status: StatusCode.ERR }
 
-            if(!msg.guild)
-                return crv("You must use this in a guild", {status: StatusCode.ERR})
+            if (!msg.guild)
+                return crv("You must use this in a guild", { status: StatusCode.ERR })
 
             let clientMember = msg.guild.members.cache.find(member => member.id === client.user?.id)
-            if(!clientMember)
-                return crv("Could not find bot member", {status: StatusCode.ERR})
+            if (!clientMember)
+                return crv("Could not find bot member", { status: StatusCode.ERR })
             await clientMember.setNickname(newName)
             return crv(`Changed name to: ${newName}`, {
                 delete: opts.getBool("d", opts.getBool("delete", false)),
@@ -1946,6 +1948,42 @@ Valid formats:
             category: CommandCategory.FUN
         },
     ]
+
+    // yield [
+    //     "travel", ccmdV2(async function({msg, args, opts, sendCallback}){
+    //         args.beginIter()
+    //
+    //         let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+    //
+    //         if(opts.getBool("countries", opts.getBool("l", false))){
+    //             return crv(Object.entries(travel_countries).map((v) => {
+    //                 return `${v[0]}: ${sign}${v[1].cost}`
+    //             }).join("\n"))
+    //         }
+    //
+    //         let userGoingTo = args.expect(1, i => travel_countries[i[0] as keyof typeof travel_countries] ? i : BADVALUE) as keyof typeof travel_countries | typeof BADVALUE
+    //         if(userGoingTo === BADVALUE){
+    //             return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, {status: StatusCode.ERR})
+    //         }
+    //
+    //         let cost = economy.calculateAmountFromString(msg.author.id, travel_countries[userGoingTo].cost)
+    //
+    //         if(!economy.canBetAmount(msg.author.id, cost)){
+    //             return crv(`You cannot affort to go to ${userGoingTo}`)
+    //         }
+    //
+    //         economy.loseMoneyToBank(msg.author.id, cost)
+    //
+    //         await handleSending(msg, crv(`You spent ${sign}${cost} on your trip to ${userGoingTo}`, {status: StatusCode.INFO}))
+    //
+    //         return await travel_countries[userGoingTo as keyof typeof travel_countries].go(arguments[0])
+    //
+    //     }, "Travel to a country", {
+    //         helpOptions: {
+    //             countries: createHelpOption("List the countries that can be travelled to", ["l"])
+    //         }
+    //     })
+    // ]
 }
 
 

@@ -217,6 +217,13 @@ function  killPet(id: string, pet: string){
     return false
 }
 
+function setPetToFullHealth(id: string, pet: string){
+    if(PETINVENTORY[id]?.[pet] === undefined){
+        return false
+    }
+    return PETINVENTORY[id][pet].health = PETSHOP[pet]['max-hunger']
+}
+
 function damagePet(id: string, pet: string){
     if(PETINVENTORY[id]?.[pet] !== undefined){
         PETINVENTORY[id][pet].health -= Math.floor(Math.random() * 4 + 1)
@@ -269,5 +276,6 @@ export default{
     getPetTypeByName,
     namePet,
     hasPetByNameOrType,
-    getFavoriteFoodOfPetType
+    getFavoriteFoodOfPetType,
+    setPetToFullHealth
 }

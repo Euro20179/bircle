@@ -235,6 +235,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                                 return { content: `This item is too expensive for u`, status: StatusCode.ERR }
                             }
                         }
+                        if(totalSpent < 0){
+                            return crv("Cannot spend negative money in shop", {status: StatusCode.ERR})
+                        }
                         return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
                     }
                 }
