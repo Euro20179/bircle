@@ -124,7 +124,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let amount = economy.calculateAmountFromString(msg.author.id, args[0])
 
             if(amount / economy.playerLooseNetWorth(msg.author.id) >= .5){
-                achievements.achievementGet(msg, "even transfer")
+                let ach = achievements.achievementGet(msg, "even transfer")
+                if(ach)
+                    await handleSending(msg, ach)
             }
             
             let nAmount = Math.trunc(Number(amount))
