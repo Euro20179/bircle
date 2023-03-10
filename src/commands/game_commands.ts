@@ -16,6 +16,7 @@ import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, saveVars, setVar, setVarE
 import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
+import achievements from '../achievements'
 
 const { useItem, hasItem } = require("../shop")
 
@@ -1631,6 +1632,13 @@ until you put a 0 in the box`)
                         amount *= 2
                     }
                     economy.addMoney(msg.author.id, amount)
+
+                    if(Number(days) >= 1){
+                        let ach = achievements.achievementGet(msg, "patience")
+                        if(ach){
+                            await handleSending(msg, ach)
+                        }
+                    }
 
                     setVarEasy(msg, "!last-run:total", String(Number(getVar(msg, "last-run:total")) + amount))
                     setVarEasy(msg, "!last-run:last", String(amount))

@@ -20,6 +20,10 @@ class Achievement{
         embed.setDescription(`reward: ${reward}`)
         return {embeds: [embed], status: StatusCode.ACHIEVEMENT, do_change_cmd_user_expansion: false}
     }
+
+    getReward(){
+        return "nothing"
+    }
 }
 
 class ItemRewardAchievement extends Achievement{
@@ -32,6 +36,10 @@ class ItemRewardAchievement extends Achievement{
     earn(id: string){
         giveItem(id, this.reward[0], this.reward[1])
         return super.earn(id, `${this.reward[1]} of ${this.reward[0]}`)
+    }
+
+    getReward(): string {
+        return `${this.reward[1]} of ${this.reward[0]}`
     }
 }
 
@@ -47,6 +55,10 @@ class MoneyRewardAchievement extends Achievement{
         economy.addMoney(id, amount)
         return super.earn(id, String(amount))
     }
+
+    getReward(): string {
+        return `$${this.reward}`
+    }
 }
 
 type AchievedAchievement = {
@@ -54,14 +66,15 @@ type AchievedAchievement = {
     achieved: UnixTime
 }
 
-const POSSIBLE_ACHIEVEMENTS: {[name: string]: Achievement} = { 
+const POSSIBLE_ACHIEVEMENTS = { 
     mexico: new MoneyRewardAchievement("mexico", "travel to mexico", "max(2%,100)"),
     canada: new MoneyRewardAchievement("canada", "travel to canada", "max(2%,100)"),
     "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
     france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
     traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
-    "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20])
-}
+    "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
+    "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(5%,300)")
+} as const
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};
 
@@ -95,7 +108,7 @@ function isAchievement(name: string){
 
 type AchievementMessage = CommandReturn
 
-function achievementGet(msg: Message, achievement: Achievement['name']): AchievementMessage | false{
+function achievementGet(msg: Message, achievement: keyof typeof POSSIBLE_ACHIEVEMENTS): AchievementMessage | false{
     let id = msg.author.id
     if(!cachedAchievements){
         cachedAchievements = getAchievements()
