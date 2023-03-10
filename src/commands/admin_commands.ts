@@ -6,8 +6,9 @@ import user_options = require("../user-options")
 import pet from "../pets"
 import timer from '../timer'
 import { saveItems } from '../shop'
-import { Message } from 'discord.js'
-import { fetchUser, listComprehension } from '../util'
+import user_country from '../travel/user-country'
+import { Message, User } from 'discord.js'
+import { fetchUser, fetchUserFromClient, listComprehension } from '../util'
 const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('../shop')
 
 export default function*(): Generator<[string, Command| CommandV2]> {
@@ -24,6 +25,27 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 info: "run javascript"
             }
         },
+    ]
+
+    yield [
+        "REMOVE_TRAVEL_LOCATION", ccmdV2(async function({msg, args}){
+            let creator = args[0]
+            let user: User | undefined = msg.author
+            if(msg.guild)
+                user = (await fetchUser(msg.guild, creator))?.user
+            else
+                user = await fetchUserFromClient(client, creator)
+            if(!user){
+                return crv(`${creator} not found`)
+            }
+            let location = args.slice(1).join(" ").trim()
+            if(user_country.removeCountry(user.id, location)){
+                return crv(`Successfuly removed ${location}`)
+            }
+            return crv(`Could not remove ${location}`)
+        }, "Remove a travel location", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [

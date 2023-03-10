@@ -1994,6 +1994,10 @@ Valid formats:
         if(cost === BADVALUE)
             return crv (`No cost given`, {status: StatusCode.ERR})
 
+        if(cost.startsWith("-") || cost.startsWith("neg(")){
+            return crv('Cost cannot be negative')
+        }
+
         let activities: {[name: string]: UserCountryActivity} = {}
 
         let finalText = args.expectString(() => true)
