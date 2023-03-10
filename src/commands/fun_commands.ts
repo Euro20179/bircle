@@ -2002,17 +2002,27 @@ Valid formats:
         }
 
         for(let line of finalText.split("\n")){
+            line = line.trim()
+            if(!line) continue
             let [activity, cost, ...run] = line.split("|")
             let runText = run.join("|")
             activity = activity.trim()
             cost = cost.trim()
+            if(cost.startsWith("-") || cost.startsWith("neg")){
+                await handleSending(msg, crv(`Skipping ${activity} due to negative cost`, {status: StatusCode.WARNING}))
+                continue
+            }
             activities[activity] = {
                 cost,
                 run: runText.trim()
             }
         }
 
-        user_country.addCountry(msg.author.id, name, cost, activities)
+        if(!Object.keys(activities).length){
+            return crv(`No valid activities given`)
+        }
+
+        user_country.addCountry(msg.author.id, name.trim(), cost, activities)
 
         return crv (`Added ${name} where you can do ${Object.keys(activities).join("\n")}`)
 
