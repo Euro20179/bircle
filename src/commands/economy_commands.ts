@@ -107,15 +107,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 })
             }
 
-            let canExchange = false
+            let canExchange = timer.has_x_s_passed(msg.author.id, "%exchange", 60 * 3)
             if (!timer.getTimer(msg.author.id, "%exchange")) {
                 canExchange = true
                 timer.createTimer(msg.author.id, "%exchange")
-            }
-
-            if (timer.has_x_s_passed(msg.author.id, "%exchange", 60 * 3)) {
-                canExchange = true
-                timer.restartTimer(msg.author.id, "%exchange")
             }
 
             if(!canExchange){
