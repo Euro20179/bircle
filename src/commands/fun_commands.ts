@@ -11,7 +11,7 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, setVar } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType } from "../util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -1503,15 +1503,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "choose", createCommandV2(async ({ args, opts }) => {
+            args.beginIter()
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
-            let ans = []
-            args = new ArgList(args.join(" ").split("|"))
-            for (let i = 0; i < times; i++) {
-                ans.push(choice(args).trim())
+            let items =  args.expectList("|", Infinity)
+            if(items === BADVALUE){
+                return crv("expected list")
             }
+            let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep)
             return {
-                content: ans.join(sep) || "```invalid message```",
+                content: ans.trim() || "```invalid message```",
                 status: StatusCode.RETURN
             }
 

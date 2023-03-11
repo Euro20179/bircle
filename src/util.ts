@@ -1089,6 +1089,36 @@ class ArgList extends Array {
             list.includes(i.join(" "))
         })
     }
+    expectList(splitter: string, amountOfListItems: number = 1){
+        let resArr: string[] = []
+        let curItem = 0
+        return this.expect((arg) => {
+            if(resArr[curItem] === undefined){
+                resArr[curItem] = ""
+            }
+            if(arg === splitter){
+                curItem++;
+            }
+            else if(arg.includes(splitter)){
+                let [last, ...rest] = arg.split(splitter)
+                resArr[curItem] += last + this.IFS
+                if(resArr.length > amountOfListItems){
+                    return false
+                }
+                if(resArr.length + rest.length > amountOfListItems){
+                    rest.length = amountOfListItems - resArr.length
+                }
+                if(rest.length){
+                    rest[rest.length - 1] += this.IFS
+                    resArr = resArr.concat(rest)
+                }
+                curItem = resArr.length - 1
+            }
+            else resArr[curItem] += arg + this.IFS
+            return resArr.length < amountOfListItems
+        //slicing here removes the extra IFS at the end of each item
+        }, () => resArr.map(v => v.slice(0, -1))) as string[] | typeof BADVALUE
+    }
     expectString(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.length ? i.join(this.IFS) : BADVALUE)
     }

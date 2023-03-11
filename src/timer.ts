@@ -48,15 +48,21 @@ function do_lap(for_user: string, name: string){
     return Date.now() - TIMERS[for_user][name]
 }
 
-function has_x_ms_passed(for_user: string, name: string, x_ms: number){
+/**
+    * @param {boolean} for_user The user id
+* @param {string} name name of timer
+* @param {number} x_ms number of ms that have passed
+    * @param {boolean} canBeUndef If the tiemr is undefined, should this return true, or false
+*/
+function has_x_ms_passed(for_user: string , name: string, x_ms: number, canBeUndef = false){
     if(TIMERS[for_user]?.[name] === undefined){
-        return false
+        return canBeUndef
     }
     return (Date.now() - TIMERS[for_user][name]) > x_ms
 }
 
-function has_x_s_passed(for_user: string, name: string, x_s: number){
-    return has_x_ms_passed(for_user, name, x_s * 1000)
+function has_x_s_passed(for_user: string, name: string, x_s: number, canBeUndef = false){
+    return has_x_ms_passed(for_user, name, x_s * 1000, canBeUndef)
 }
 
 function saveTimers(){
