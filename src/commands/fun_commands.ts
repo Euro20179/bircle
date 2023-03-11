@@ -1188,9 +1188,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 choices.push({ label: arg, value: arg })
             }
+
             if (choices.length < 1) {
                 return { status: StatusCode.ERR, content: "no options given" }
             }
+
             let selection = new MessageSelectMenu({ customId: `poll: ${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
 
@@ -1200,8 +1202,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let chan = undefined;
             let actionMsg;
             let textToSend = `** ${opts.getString("title", "select one")}**\npoll id: ${id} `
-            if (channelToSendToSearch) {
-                chan = await fetchChannel(msg.guild as Guild, String(channelToSendToSearch))
+            if (channelToSendToSearch && msg.guild) {
+                chan = await fetchChannel(msg.guild, String(channelToSendToSearch))
                 if (!chan || chan.type !== 'GUILD_TEXT') {
                     return { content: `Cannot send to ${chan}`, status: StatusCode.ERR }
                 }
