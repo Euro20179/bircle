@@ -178,7 +178,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!role) {
                 return { content: "Could not find role", status: StatusCode.ERR }
             }
-            let member: GuildMember | undefined = await fetchUser(msg.guild as Guild, user)
+            if(!msg.guild){
+                return crv(`You must run this from a server`)
+            }
+            let member: GuildMember | undefined = await fetchUser(msg.guild, user)
             if (!member) {
                 return { content: "No member found", status: StatusCode.ERR }
             }
