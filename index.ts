@@ -6,7 +6,7 @@ import fs from 'fs'
 
 import http from 'http'
 
-import { MessageEmbed, MessageButton, MessageActionRow, GuildMember, TextChannel, Collection, MessageFlags, InteractionReplyOptions, User } from "discord.js"
+import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, TextChannel, Collection, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType, MessageFlagsBitField, MessageType, Events } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -19,9 +19,8 @@ import command_commons from './src/common_to_commands'
 
 import globals = require("./src/globals")
 import { URLSearchParams } from "url"
-import { efd, format, enumerate } from "./src/util"
+import { efd, format, isMsgChannel } from "./src/util"
 import { getOpt } from "./src/user-options"
-import { InteractionResponseTypes } from "discord.js/typings/enums"
 import { GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
 
@@ -79,7 +78,7 @@ Object.defineProperty(User.prototype, "netWorth", {
 })();
 
 
-client.on("guildMemberAdd", async (m: Message) => {
+client.on(Events.GuildMemberAdd, async (m: Message) => {
     try {
         let role = await m.guild?.roles.fetch("427570287232417793")
         if (role)
@@ -90,7 +89,7 @@ client.on("guildMemberAdd", async (m: Message) => {
     }
 })
 
-client.on('ready', async () => {
+client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
     Object.keys(user_options.USER_OPTIONS).forEach((v) => {
         if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
@@ -104,7 +103,7 @@ client.on('ready', async () => {
     console.log("ONLINE")
 })
 
-client.on("messageDelete", async (m: Message) => {
+client.on(Events.MessageDelete, async (m: Message) => {
     if (m.author?.id != client.user?.id) {
         for (let i = 3; i >= 0; i--) {
             command_commons.snipes[i + 1] = command_commons.snipes[i]
@@ -113,7 +112,7 @@ client.on("messageDelete", async (m: Message) => {
     }
 })
 
-client.on("messageDeleteBulk", async (m: any) => {
+client.on(Events.MessageBulkDelete, async (m: any) => {
     purgeSnipe = m.toJSON()
     if (purgeSnipe.length > 5)
         purgeSnipe.length = 5
@@ -127,11 +126,12 @@ setInterval(() => {
     timer.saveTimers()
 }, 30000)
 
-client.on("messageCreate", async (m: Message) => {
+client.on(Events.MessageCreate, async (m: Message) => {
+    if(!isMsgChannel(m.channel)) return
     if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {
         return
     }
-    if (m.channel.type !== "DM" && m.guild && m.guild?.id !== globals.GUILD_ID)
+    if (m.channel.type !== ChannelType.DM && m.guild && m.guild?.id !== globals.GUILD_ID)
         return
 
     if (economy.getEconomy()[m.author.id] === undefined && !m.author.bot) {
@@ -222,7 +222,7 @@ client.on("messageCreate", async (m: Message) => {
     }
 })
 
-client.on("interactionCreate", async (interaction: Interaction) => {
+client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction?.user?.username === undefined) {
         return
     }
@@ -289,12 +289,13 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                 return
             }
             interaction.reply(`Attacking ${user}...`).catch(console.error)
-            interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
+            if(interaction.channel && isMsgChannel(interaction.channel))
+                interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
         }
         else if (interaction.commandName === 'md') {
             interaction.reply({
-                //@ts-ignore it works
-                type: InteractionResponseTypes.CHANNEL_MESSAGE_WITH_SOURCE,
+                //@ts-ignore
+                type: InteractionResponseType.ChannelMessageWithSource,
                 content: interaction.options.get("text")?.value as string ?? "Hi"
             })
         }
@@ -357,7 +358,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             globals.SPAM_ALLOWED = true
             for (let i = 0; i < times; i++) {
                 if (!globals.SPAM_ALLOWED) break
-                await interaction.channel?.send(`<@${user}> has been pinged`)
+                await interaction.reply(`<@${user}> has been pinged`)
                 await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
             }
         }
@@ -398,17 +399,17 @@ client.on("interactionCreate", async (interaction: Interaction) => {
                     }
                 }
             }
-            let rock = new MessageButton({ customId: `button.rock:${opponent}`, label: "rock", style: "PRIMARY" })
-            let paper = new MessageButton({ customId: `button.paper:${opponent}`, label: "paper", style: "PRIMARY" })
-            let scissors = new MessageButton({ customId: `button.scissors:${opponent}`, label: "scissors", style: "PRIMARY" })
+            let rock = new ButtonBuilder({ customId: `button.rock:${opponent}`, label: "rock", style: ButtonStyle.Primary})
+            let paper = new ButtonBuilder({ customId: `button.paper:${opponent}`, label: "paper", style: ButtonStyle.Primary})
+            let scissors = new ButtonBuilder({ customId: `button.scissors:${opponent}`, label: "scissors", style: ButtonStyle.Primary})
             globals.BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             globals.BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             globals.BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            let row = new MessageActionRow({ type: "BUTTON", components: [rock, paper, scissors] })
+            let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [rock, paper, scissors] })
             interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` }).catch(console.error)
         }
     }
-    else if (interaction.isUserContextMenu() && !interaction.replied) {
+    else if (interaction.isUserContextMenuCommand() && !interaction.replied) {
         globals.addToCmdUse(`${interaction.commandName}:user`)
         if (interaction.commandName == 'ping') {
             interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`).catch(console.error)
@@ -416,7 +417,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
         else if (interaction.commandName == 'info') {
             const user = interaction.targetUser
             const member: GuildMember = interaction.targetMember as GuildMember
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             embed.setColor(member.displayColor)
             let aurl = user.avatarURL()
             if (aurl)
@@ -434,7 +435,7 @@ client.on("interactionCreate", async (interaction: Interaction) => {
             interaction.reply({ embeds: [embed] }).catch(console.error)
         }
     }
-    else if (interaction.isMessageContextMenu() && !interaction.replied) {
+    else if (interaction.isMessageContextMenuCommand() && !interaction.replied) {
         globals.addToCmdUse(`${interaction.commandName}:message`)
         if (interaction.commandName == 'fileify') {
             let fn = generateFileName("fileify", interaction.user.id)
@@ -499,7 +500,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     editedAt: null,
                     editedTimestamp: null,
                     embeds: [],
-                    flags: new MessageFlags(),
+                    flags: new MessageFlagsBitField(),
                     groupActivityApplication: null,
                     guild: channel.guild,
                     guildId: channel.guild.id,
@@ -537,7 +538,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     system: false,
                     thread: null,
                     tts: false,
-                    type: "DEFAULT",
+                    type: MessageType.Default,
                     url: "http://localhost:8222/",
                     webhookId: null,
                     _cacheType: false,
@@ -706,7 +707,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
 
             let inChannel = urlParams?.get("channel-id")
             client.channels.fetch(inChannel).then((channel: TextChannel) => {
-                channel.send({ content: text }).then((msg: any) => {
+                channel.send({ content: text as string }).then((msg: any) => {
                     res.writeHead(200)
                     res.end(JSON.stringify(msg.toJSON()))
                 })

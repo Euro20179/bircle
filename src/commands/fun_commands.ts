@@ -3,7 +3,7 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu, User } from "discord.js";
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, SelectMenuOptionBuilder, User, SelectMenuBuilder, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed } from "discord.js";
 import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
@@ -12,7 +12,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import { client,  GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range } from "../util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -484,15 +484,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 return { content: `SCORIGAMI!\nNearest score: ${closestScore} (${closestDistance} difference)`, status: StatusCode.RETURN }
             }
-            let first_time_embed = new MessageEmbed()
+            let first_time_embed = new EmbedBuilder()
             first_time_embed.setTitle(`${score.first_team_away} @ ${score.first_team_home}`)
             first_time_embed.setDescription(`First time during ${(new Date(score.first_date)).toDateString()}`)
             first_time_embed.setFooter({ text: score.first_link })
-            let last_time_embed = new MessageEmbed()
+            let last_time_embed = new EmbedBuilder()
             last_time_embed.setTitle(`${score.last_team_away} @ ${score.last_team_home}`)
             last_time_embed.setDescription(`Most recent during ${(new Date(score.last_date)).toDateString()}`)
             last_time_embed.setFooter({ text: score.last_link })
-            let info_embed = new MessageEmbed()
+            let info_embed = new EmbedBuilder()
             info_embed.setTitle(`Count:  ${score.count}`)
             let nfl_years = (new Date()).getFullYear() - 1922
             let years_since_first = (new Date()).getFullYear() - (new Date(score.first_date)).getFullYear()
@@ -512,6 +512,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "count", createCommand(async (msg, args, _, __, ___, rec, disable) => {
+            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode}
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
             }
@@ -568,13 +569,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 await handleSending(msg, { content: "Getting data", status: StatusCode.INFO }, sendCallback)
                 if (fmt == "{embed}") {
-                    let embed = new MessageEmbed()
+                    let embed = new EmbedBuilder()
                     let nChange = Number(data.change)
                     let nPChange = Number(data["%change"]) * 100
                     embed.setTitle(stock.toUpperCase().trim() || "N/A")
                     embed.addFields(efd(["price", String(data.price).trim() || "N/A", true], ["change", String(data.change).trim() || "N/A", true], ["%change", String(nPChange).trim() || "N/A", true], ["volume", data.volume?.trim() || "N/A"]))
                     if (nChange < 0) {
-                        embed.setColor("RED")
+                        embed.setColor("Red")
                     }
                     else if (nChange > 0) {
                         embed.setColor("#00ff00")
@@ -724,7 +725,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         const rank2 = JSONData.players.indexOf(user2Data)
                         let [xp_needed1, min_messages_for_next_level1, max_messages_for_next_level1, avg_messages_for_next_level1] = getAmountUntil(user1Data)
                         let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
-                        const embed = new MessageEmbed()
+                        const embed = new EmbedBuilder()
                         embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
                         let redness = Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255))
                         let greenness = Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255))
@@ -758,7 +759,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                     const rank = JSONData.players.indexOf(userData)
                     let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
-                    const embed = new MessageEmbed()
+                    const embed = new EmbedBuilder()
                     let aurl = member.user.avatarURL()
                     if (aurl) {
                         embed.setThumbnail(aurl)
@@ -999,7 +1000,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let embedText = opts['e'] || opts['embed']
             let embed
             if (embedText) {
-                embed = new MessageEmbed()
+                embed = new EmbedBuilder()
                 if (embedText !== true)
                     embed.setTitle(embedText)
                 let img;
@@ -1124,8 +1125,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 let text = args.join(" ") || "hi"
                 let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
-                let button = new MessageButton({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: "PRIMARY" })
-                let row = new MessageActionRow({ type: "BUTTON", components: [button] })
+                let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary})
+                let row = new ActionRowBuilder<ButtonBuilder>({ type:ComponentType.Button, components: [button] })
                 let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
                 let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
                 collector.on("collect", async (interaction) => {
@@ -1179,11 +1180,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "poll", ccmdV2(async function({ msg, opts, args }) {
-            let actionRow = new MessageActionRow()
+            let actionRow = new ActionRowBuilder<StringSelectMenuBuilder>()
             let id = String(Math.floor(Math.random() * 100000000))
 
             let choices = []
-            for (let arg of args) {
+            for (let arg of args.join(" ").split("|")) {
                 if (!arg.trim()) {
                     continue
                 }
@@ -1194,7 +1195,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { status: StatusCode.ERR, content: "no options given" }
             }
 
-            let selection = new MessageSelectMenu({ customId: `poll: ${id}`, placeholder: "Select one", options: choices })
+            let selection = new StringSelectMenuBuilder({ customId: `poll: ${id}`, placeholder: "Select one", options: choices })
             actionRow.addComponents(selection)
 
             globals.POLLS[`poll: ${id}`] = { title: opts.getString("title", "select one"), votes: {} }
@@ -1205,10 +1206,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let textToSend = `** ${opts.getString("title", "select one")}**\npoll id: ${id} `
             if (channelToSendToSearch && msg.guild) {
                 chan = await fetchChannel(msg.guild, String(channelToSendToSearch))
-                if (!chan || chan.type !== 'GUILD_TEXT') {
+                if (!chan || chan.type !== ChannelType.GuildText) {
                     return { content: `Cannot send to ${chan}`, status: StatusCode.ERR }
                 }
-                else if (!msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
+                else if (!msg.member?.permissionsIn(chan).has("SendMessages")) {
                     return { content: `You do not have permission to talk in ${chan} `, status: StatusCode.ERR }
                 }
                 actionMsg = await handleSending(msg, { components: [actionRow], content: textToSend, status: StatusCode.PROMPT })
@@ -1217,10 +1218,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 actionMsg = await handleSending(msg, crv(textToSend, { components: [actionRow], status: StatusCode.PROMPT }))
             }
 
-            let collector = actionMsg.createMessageComponentCollector({ componentType: "SELECT_MENU" })
+            let collector = actionMsg.createMessageComponentCollector({ componentType: ComponentType.StringSelect})
 
             collector.on("collect", async (int) => {
-                if (!int.isSelectMenu()) return
+                if (!int.isStringSelectMenu()) return
                 if (Object.values(globals.POLLS[int.customId].votes).filter(v => v.includes(int.user.id)).length) {
                     int.reply({ ephemeral: true, content: "You have alredy voted" })
                     return
@@ -1301,6 +1302,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg, _, sendCallback, opts, args) => {
                 if (opts['t']) {
                     handleSending(msg, { content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1 }, sendCallback).then(_m => {
+                        if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
                         try {
                             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                             let start = Date.now()
@@ -1314,8 +1316,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     })
                 }
                 else {
-                    let button = new MessageButton({ customId: `button:${msg.author.id} `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: "DANGER" })
-                    let row = new MessageActionRow({ type: "BUTTON", components: [button] })
+                    let button = new ButtonBuilder({ customId: `button:${msg.author.id} `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: ButtonStyle.Danger})
+                    let row = new ActionRowBuilder<ButtonBuilder>({ components: [button] })
                     let start = Date.now()
                     let message = await handleSending(msg, { components: [row], status: StatusCode.PROMPT }, sendCallback)
                     let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id} ` })
@@ -1368,7 +1370,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     })
                     resp.on("end", async () => {
                         let html = data.read().toString()
-                        let embed = new MessageEmbed()
+                        let embed = new EmbedBuilder()
                         //winner should be in *****
                         let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
                         try {
@@ -1566,7 +1568,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (tempF < 45) color = "BLUE"
                 if (tempF < 32) color = "#5be6ff"
                 if (tempF < 0) color = "PURPLE"
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 embed.setTitle(town)
                 embed.setColor(color as ColorResolvable)
                 embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
@@ -1722,7 +1724,7 @@ Valid formats:
                     foundData.push(dataToAdd)
                 }
                 let post = choice(foundData)
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 embed.setTitle(post.text || "None")
                 embed.setFooter({ text: post.link || "None" })
                 return { embeds: [embed], status: StatusCode.RETURN }
@@ -1810,7 +1812,7 @@ Valid formats:
                 if (straightLineText) {
                     straightLineDist = parseInt(straightLineText[1]?.replaceAll(",", ""))
                 }
-                const embed = new MessageEmbed()
+                const embed = new EmbedBuilder()
                 embed.setTitle("Distances")
                 if (drivingDist) {
                     embed.addFields(efd(["Driving distance", `${drivingDist} miles`]))
@@ -1895,7 +1897,7 @@ Valid formats:
                 }
                 let content = ""
                 let files: CommandFile[] = []
-                let embeds: MessageEmbed[] = []
+                let embeds: Embed[] = []
                 for (let m of purgeSnipe) {
                     if (m.content) {
                         content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`

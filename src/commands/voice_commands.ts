@@ -3,20 +3,13 @@ import fs from 'fs'
 import ytdl = require("ytdl-core")
 import fetch = require("node-fetch")
 
-import economy = require('../economy')
-import pet from "../pets"
-import user_options = require("../user-options")
 
 
-import { prefix } from '../common'
-import { CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, currently_playing, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, setCurrentlyPlaying, StatusCode } from '../common_to_commands'
-import { format, generateFileName, getOpts } from '../util'
-import { MessageEmbed } from 'discord.js'
-import { giveItem, saveItems } from '../shop'
+import { CommandCategory, createCommand, createCommandV2, currently_playing, setCurrentlyPlaying, StatusCode } from '../common_to_commands'
+import {  generateFileName } from '../util'
+import { EmbedBuilder } from 'discord.js'
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
-const { buyItem, hasItem, useItem } = require('../shop')
 
-const { ITEMS, INVENTORY } = require("../shop")
 let connection: VoiceConnection | undefined;
 let vc_queue: { link: string, filename: string }[] = []
 const player = createAudioPlayer({
@@ -26,7 +19,7 @@ const player = createAudioPlayer({
 })
 
 
-async function play_next_in_queue_or_destroy_connection(queue: typeof vc_queue){
+async function play_next_in_queue_or_destroy_connection(_queue: typeof vc_queue){
     let new_link = vc_queue.shift()
     if(new_link){
         play_link(new_link)
@@ -82,7 +75,7 @@ async function play_link({ link, filename }: { link: string, filename: string })
         })
     }
 }
-player.on(AudioPlayerStatus.Idle, (err) => {
+player.on(AudioPlayerStatus.Idle, (_err) => {
     fs.rmSync(currently_playing?.filename as string)
     play_next_in_queue_or_destroy_connection(vc_queue)
 })
@@ -116,24 +109,24 @@ export default function*() {
         }, CommandCategory.VOICE),
     ]
 
-    yield ["skip", createCommandV2(async({msg, args}) => {
+    yield ["skip", createCommandV2(async() => {
         player.stop()
         return {content: "skipping", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Skip the current song")]
 
-    yield ["pause", createCommandV2(async({msg, args}) => {
+    yield ["pause", createCommandV2(async() => {
         player.pause()
         return {content: "Pausing", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Pause the current song")]
 
-    yield ["unpause", createCommandV2(async({msg, args}) => {
+    yield ["unpause", createCommandV2(async() => {
         player.unpause()
         return {content: "UnPausing", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Unpause the current song")]
 
     yield [
-        'queue', createCommand(async (msg, args) => {
-            let embed = new MessageEmbed()
+        'queue', createCommand(async () => {
+            let embed = new EmbedBuilder()
             embed.setTitle("queue")
             embed.setDescription(String(currently_playing?.link) || "None")
             return { content: vc_queue.map(v => v.link).join("\n"), embeds: [embed], status: StatusCode.RETURN }

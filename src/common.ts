@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { User } from "discord.js";
 
-import { Client, Intents } from "discord.js"
+import { Client, GatewayIntentBits } from "discord.js"
 const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 
@@ -10,8 +10,7 @@ const ADMINS = ["334538784043696130"]
 
 const VERSION = { major: 5, minor: 21, bug: 3, part: "", beta: false, alpha: false }
 
-//@ts-ignore
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES, Intents.FLAGS.GUILD_PRESENCES], allowedMentions: { parse: ["users"] } })
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
 let USER_SETTINGS = {}
 

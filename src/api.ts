@@ -5,6 +5,7 @@ import timer from './timer'
 import shop = require("./shop")
 import { cmd } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
+import { isMsgChannel } from "./util"
 
 const { fetchUser, getFonts } = require("./util.js")
 
@@ -100,6 +101,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     },
     "input": {
         exec: async ({msg, prompt, who, timeout}: {msg: Message, prompt?: string, who?: boolean | string | number, timeout?: number}) => {
+            if(!isMsgChannel(msg.channel)) return "0"
             if (prompt && typeof prompt === 'string') {
                 await msg.channel.send(prompt)
             }

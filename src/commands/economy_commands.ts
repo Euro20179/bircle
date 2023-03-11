@@ -10,8 +10,8 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import { ArgList, fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
-import { Guild, MessageEmbed, User } from 'discord.js'
+import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
+import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { randomInt } from 'crypto'
 import { DEVBOT } from '../globals'
@@ -378,7 +378,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let user = await fetchUserFromClient(client, args[0] ?? msg.author.id)
                 if (!user)
                     return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
-                let e = new MessageEmbed()
+                let e = new EmbedBuilder()
                 e.setTitle("ITEMS")
                 let au = user.avatarURL()
                 if (au)
@@ -400,7 +400,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "pet-shop", {
             run: async (msg, _args, sendCallback) => {
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 let shopData = pet.getPetShop()
                 for (let pet in shopData) {
                     let data = shopData[pet]
@@ -430,7 +430,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (!pets) {
                     return { content: `<@${user.user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
                 }
-                let e = new MessageEmbed()
+                let e = new EmbedBuilder()
                 e.setTitle(`${user.user.username}'s pets`)
                 let activePet = pet.getActivePet(msg.author.id)
                 e.setDescription(`active pet: ${activePet}`)
@@ -466,7 +466,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let itemJ = JSON.parse(items)
                 let pages = []
                 let i = 0
-                let e = new MessageEmbed()
+                let e = new EmbedBuilder()
                 let au = msg.author.avatarURL()
                 if (au) {
                     e.setThumbnail(au)
@@ -495,13 +495,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     e.addFields(efd([item.toUpperCase(), text, true]))
                     if (i % 25 == 0) {
                         pages.push(e)
-                        e = new MessageEmbed()
+                        e = new EmbedBuilder()
                         if (au)
                             e.setThumbnail(au)
                         i = 0
                     }
                 }
-                if (e.fields.length > 0) {
+                if ((e.data.fields?.length || 0) > 0) {
                     pages.push(e)
                 }
                 return { embeds: pages, status: StatusCode.RETURN }
@@ -599,7 +599,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (!data) {
                     return { content: "No stock data found", status: StatusCode.ERR }
                 }
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
                 if (!stockInfo) {
                     return { content: "You do not have this stock", status: StatusCode.ERR }
@@ -610,10 +610,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 embed.setTitle(stockName)
                 embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
                 if (profit > 0) {
-                    embed.setColor("GREEN")
+                    embed.setColor("Green")
                 }
                 else {
-                    embed.setColor("RED")
+                    embed.setColor("Red")
                 }
                 embed.addFields(efd(["Price", String(data.price), true], ["Change", String(data.change) || "N/A", true], ["Change %", String(data["%change"]) || "N/A", true], ["Profit", String(profit), true], ["Today's Profit", String(todaysProfit), true], ["Value", String(data.price * stockInfo.info.shares)]))
                 if (fmt == "{embed}") {
@@ -1019,7 +1019,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (hasItem(user.id, "tax evasion")) {
                 ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
             }
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             if (ct) {
                 embed.setTitle("Taxation Time")
                 let userBeingTaxed = user.id
@@ -1087,7 +1087,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         place = 10
                     }
                 }
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 let text = ""
                 let sortedEconomy: [string, EconomyData][] = []
                 let econ = economy.getEconomy()

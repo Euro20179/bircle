@@ -1,4 +1,4 @@
-import { Message, MessageEmbed } from 'discord.js';
+import { Message, EmbedBuilder } from 'discord.js';
 import fs from 'fs'
 import { crv, StatusCode } from './common_to_commands';
 import economy from './economy';
@@ -15,7 +15,7 @@ class Achievement{
         this.message = message
     }
     earn(id: string, reward: string): CommandReturn{
-        let embed = new MessageEmbed()
+        let embed = new EmbedBuilder()
         embed.setTitle(`Achievement Get: ${this.name}`)
         embed.setDescription(`reward: ${reward}`)
         return {embeds: [embed], status: StatusCode.ACHIEVEMENT, do_change_cmd_user_expansion: false}

@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { Message, MessageActionRow, MessageButton } from "discord.js"
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
 import { crv, generateDefaultRecurseBans, handleSending, StatusCode } from "../common_to_commands"
 import { choice, isBetween, listComprehension } from "../util"
 
@@ -56,7 +56,7 @@ class Country {
         return this._activityNameList ?? (this._activityNameList = Array.from(this.activities.keys()))
     }
 
-    isUserCountry(){
+    isUserCountry() {
         return false
     }
 
@@ -67,7 +67,7 @@ class Country {
 
         let name = "name" in this ? this.name : this.constructor.name
 
-        if("onVisit" in this && typeof this.onVisit === 'function'){
+        if ("onVisit" in this && typeof this.onVisit === 'function') {
             this.onVisit(arguments[0])
         }
 
@@ -75,12 +75,14 @@ class Country {
 
         await new Promise(res => setTimeout(res, 900))
         await handleSending(msg, crv(`Please choose an activity :grin:\n${activitiesText}`, { status: StatusCode.PROMPT }))
-        let msgs = await msg.channel.awaitMessages({
-            filter: m => {
-                return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && isBetween(0, Number(m.content), this.activityNameList.length + 1))
-            }, max: 1, time: 60000
-        })
-
+        let msgs: Collection<string, Message<boolean>> = new Collection()
+        if (msg.channel.type !== ChannelType.GuildStageVoice) {
+            msgs = await msg.channel.awaitMessages({
+                filter: m => {
+                    return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && isBetween(0, Number(m.content), this.activityNameList.length + 1))
+                }, max: 1, time: 60000
+            })
+        }
         if (msgs.size < 1) {
             return crv("You did not chose an activity in time", { status: StatusCode.ERR })
         }
@@ -90,7 +92,7 @@ class Country {
         let activity = this.activities.get(activityOfChoice) || Array.from(this.activities.values())[Number(activityOfChoice) - 1]
 
         let cost = economy.calculateAmountFromNetWorth(msg.author.id, activity.cost)
-        if(!economy.canBetAmount(msg.author.id, cost)){
+        if (!economy.canBetAmount(msg.author.id, cost)) {
             return crv(`You could not afford to do the activities you wanted and left sadly`)
         }
 
@@ -123,11 +125,11 @@ class Country {
         return this.neutralFlightHome(data)
     }
 
-    async onVisit(data: CommandV2RunArg){
+    async onVisit(data: CommandV2RunArg) {
         let achievementname = achievements.isAchievement(this.constructor.name.toLowerCase())
-        if (achievementname){
+        if (achievementname) {
             let ach = achievements.achievementGet(data.msg, achievementname)
-            if(ach){
+            if (ach) {
                 await handleSending(data.msg, ach)
             }
         }
@@ -196,8 +198,11 @@ class Mexico extends Country {
             ]
         }))
 
-        let msgs = await msg.channel.awaitMessages({ filter: m => isBetween(0, Number(m.content), 6) && m.author.id === msg.author.id, max: 1, time: 30000 })
-        let ratingMsg = msgs.at(0)
+        let ratingMsg;
+        if(msg.channel.type !== ChannelType.GuildStageVoice){
+            let msgs = await msg.channel.awaitMessages({ filter: m => isBetween(0, Number(m.content), 6) && m.author.id === msg.author.id, max: 1, time: 30000 })
+            ratingMsg = msgs.at(0)
+        }
         if (!ratingMsg) {
             return crv(`You gave the default rating of 3.5/5 on myspace`)
         }
@@ -221,7 +226,7 @@ class UnitedStates extends Country {
         return this
     }
 
-    async secondStreet({msg}: CommandV2RunArg) {
+    async secondStreet({ msg }: CommandV2RunArg) {
         economy.addMoney(msg.author.id, 0.01)
         return crv(`You found a penny on second street\ngain ${this.getSign(msg)}.01!!!`)
     }
@@ -254,29 +259,31 @@ class UnitedStates extends Country {
             await handleSending(msg, crv("Since you are retired you get a free bald eagle!!!!"))
         }
 
-        let row = new MessageActionRow()
+        let row = new ActionRowBuilder<ButtonBuilder>()
 
-        let buttons = []
         //this is so bad but whatever improving it takes a lot of effor because i gotta find the right unicode val to make something a keycap
         if (Math.random() < .1) {
-            buttons.push(new MessageButton({ customId: `${msg.author.id}.museum.1`, style: "PRIMARY", label: `1️⃣` }))
-            buttons.push(new MessageButton({ customId: `${msg.author.id}.museum.2`, style: "PRIMARY", label: `2️⃣` }))
-            buttons.push(new MessageButton({ customId: `${msg.author.id}.museum.3`, style: "PRIMARY", label: `3️⃣` }))
+            row.addComponents(
+                new ButtonBuilder()
+                    .setCustomId( `${msg.author.id}.museum.1`)
+                    .setLabel(`1️⃣` )
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder({ customId: `${msg.author.id}.museum.2`, style: ButtonStyle.Primary, label: `2️⃣` }),
+                new ButtonBuilder({ customId: `${msg.author.id}.museum.3`, style: ButtonStyle.Primary, label: `3️⃣` })
+            )
         }
         else {
-            buttons.push(new MessageButton({ customId: `${msg.author.id}.museum.1`, style: "PRIMARY", label: `1` }))
-            buttons.push(new MessageButton({ customId: `${msg.author.id}.museum.2`, style: "PRIMARY", label: `2` }))
-            buttons.push(new MessageButton({ customId: `${msg.author.id}.museum.3`, style: "PRIMARY", label: `3` }))
+            new ButtonBuilder({ customId: `${msg.author.id}.museum.1`, style: ButtonStyle.Primary, label: `1` })
+            new ButtonBuilder({ customId: `${msg.author.id}.museum.2`, style: ButtonStyle.Primary, label: `2` })
+            new ButtonBuilder({ customId: `${msg.author.id}.museum.3`, style: ButtonStyle.Primary, label: `3` })
         }
 
-        row.addComponents(buttons)
-
         let m = await handleSending(msg, crv("Welcome to the museum of liberty!!! Would you like to\n1: look around\n2: steal a bald eagle\n3: express your freedom", {
-            components: [row]
+            components: [ row]
         }))
 
 
-        let b = await m.awaitMessageComponent({ componentType: "BUTTON" })
+        let b = await m.awaitMessageComponent({ componentType: ComponentType.Button})
         switch (b.customId.slice(`${msg.author.id}.museum.`.length)) {
             case '1':
                 return crv("You look around like an npc, the end.")
@@ -299,8 +306,8 @@ class UnitedStates extends Country {
     }
 }
 
-class France extends Country{
-    init(){
+class France extends Country {
+    init() {
         this.registerActivity("eiffel tower", "max(50,10%)", this.eiffelTower.bind(this))
         this.registerActivity("baguette shop", "0", this.baguetteShop.bind(this))
     }
@@ -308,15 +315,15 @@ class France extends Country{
         return crv("Your piolot accidentally crashed into the eiffel tower😲\nOH NO")
     }
 
-    async eiffelTower({msg}: CommandV2RunArg): Promise<CommandReturn>{
-        if(Math.random() > .98){
+    async eiffelTower({ msg }: CommandV2RunArg): Promise<CommandReturn> {
+        if (Math.random() > .98) {
             return crv("The eiffel tower fell over, and you didnt get to take a picture of it :(")
         }
         giveItem(msg.author.id, "baguette", 2)
         return crv(`You visit the eiffel tower and find 2 baguettes on the floor!!!`)
     }
 
-    async baguetteShop({msg}: CommandV2RunArg): Promise<CommandReturn>{
+    async baguetteShop({ msg }: CommandV2RunArg): Promise<CommandReturn> {
         //TODO:
         //add a chance that the user takes a wrong turn and ends up in the back ally drug store
         //the user can buy drugs that actually do stuff
@@ -324,18 +331,18 @@ class France extends Country{
             "baguette": 3,
             "paris special": 10
         }
-        let row = new MessageActionRow()
+        let row = new ActionRowBuilder<ButtonBuilder>()
         let buttons = []
-        for(let item in menu){
-            buttons.push(new MessageButton({customId: `${msg.author.id}.baguette:${item}`, label: item, style: "PRIMARY"}))
+        for (let item in menu) {
+            buttons.push(new ButtonBuilder({ customId: `${msg.author.id}.baguette:${item}`, label: item, style: ButtonStyle.Primary }))
         }
         row.addComponents(buttons)
         let actionMsg = await handleSending(msg, crv(`What would you like from the menu\n${Object.entries(menu).map((v, idx) => `${idx + 1}: ${v[0]} (${v[1]})`).join("\n")}`, {
             components: [row]
         }))
 
-        let b = await actionMsg.awaitMessageComponent({componentType: "BUTTON", time: 30000})
-        if(!b){
+        let b = await actionMsg.awaitMessageComponent({ componentType: ComponentType.Button, time: 30000 })
+        if (!b) {
             return crv("You decided not to get anything")
         }
         let item = b.customId.split(":")[1] as keyof typeof menu
@@ -345,17 +352,17 @@ class France extends Country{
 
         await b.reply(`You bought the ${item} for ${this.getSign(msg)}${cost}`)
 
-        return {noSend: true, status: StatusCode.RETURN}
+        return { noSend: true, status: StatusCode.RETURN }
     }
 
 }
 
-class Iraq extends Country{
-    init(){
+class Iraq extends Country {
+    init() {
         this.registerActivity("oil raid", "10", this.oilRaid.bind(this))
     }
-    async oilRaid(data: CommandV2RunArg){
-        if(Math.random() < .9){
+    async oilRaid(data: CommandV2RunArg) {
+        if (Math.random() < .9) {
             return crv("The iraqi military comes and repurposes your skin -5 points")
         }
         let gallonsOfOil = Math.floor(Math.random() * 100)
@@ -375,7 +382,7 @@ class UserCountry extends Country {
         }
     }
 
-    isUserCountry(){
+    isUserCountry() {
         return true
     }
 }
@@ -384,13 +391,13 @@ let defaultCountries = {
     "us": new UnitedStates({ cost: "5%+20", greeting: "Welcome to the us 🔫" }),
     "canada": new Canada({ cost: "2%+10" }),
     "mexico": (new Mexico({ cost: "1%+5", greeting: "Welcome to mexico🪇" })),
-    "france": new France({cost: "5%+30", greeting: "Bonjour!🍞", currencySign: '💶'}),
-    "iraq": new Iraq({cost: "3%", badFlightChance: .5})
+    "france": new France({ cost: "5%+30", greeting: "Bonjour!🍞", currencySign: '💶' }),
+    "iraq": new Iraq({ cost: "3%", badFlightChance: .5 })
 }
 
 
 function getCountries(type: "user" | "default" | 'all' = 'all') {
-    if(type === 'default'){
+    if (type === 'default') {
         return defaultCountries
     }
 
@@ -408,7 +415,7 @@ function getCountries(type: "user" | "default" | 'all' = 'all') {
             }
         }
     }
-    if(type === 'user'){
+    if (type === 'user') {
         return userCountries
     }
     return {

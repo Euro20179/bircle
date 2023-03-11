@@ -9,8 +9,8 @@ import economy = require("../economy")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList } from "../util"
-import { Guild, Message, MessageEmbed, User } from "discord.js"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel } from "../util"
+import { Guild, Message, EmbedBuilder, User } from "discord.js"
 import { registerCommand } from "../common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
@@ -1656,6 +1656,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "remove-match-cmd", ccmdV2(async function({ msg, args }) {
+            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
             let name = args[0]
             let userCmds = getUserMatchCommands().get(msg.author.id)
             if (!userCmds) {
@@ -1902,6 +1903,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "remove",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
+                if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
                 //@ts-ignore
                 const file = FILE_SHORTCUTS[args[0]] || args[0]
 
@@ -2764,7 +2766,7 @@ ${styles}
     yield ["process", createCommandV2(async ({ args }) => {
         let fmt = args.join(" ")
         if (!fmt) {
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             embed.setTitle(process.argv0)
             embed.addFields([
                 { name: "Args", value: process.argv.join(" "), inline: true },
@@ -2936,6 +2938,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
 
     yield [
         "shell", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
+            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
             if (globals.userUsingCommand(msg.author.id, "shell")) {
                 return { content: "You are already using this command", status: StatusCode.ERR }
             }

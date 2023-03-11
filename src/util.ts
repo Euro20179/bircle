@@ -4,7 +4,7 @@ import { spawnSync } from "child_process"
 import vm from 'vm'
 import fs from 'fs'
 
-import { Client,  EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import { APIEmbedField, BaseChannel, Channel, ChannelType, Client,  DMChannel,  EmbedBuilder,  EmbedData,  Guild, GuildMember, Message, PartialDMChannel, PrivateThreadChannel, StageChannel, TextChannel, ThreadChannel } from "discord.js"
 import { existsSync } from "fs"
 import { client } from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
@@ -24,6 +24,12 @@ function getToolIp() {
     }
     return ip
 
+}
+
+//discord.js' isTextBased thing is absolutely useless
+function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclude<Channel, {type: ChannelType.GuildStageVoice}>{
+    let type = channel.type
+    return type !== ChannelType.GuildStageVoice
 }
 
 function databaseFileToArray(name: string){
@@ -115,7 +121,7 @@ function isSafeFilePath(fp: string) {
     return true
 }
 
-function createEmbedFieldData(name: string, value: string, inline?: boolean): EmbedFieldData {
+function createEmbedFieldData(name: string, value: string, inline?: boolean): APIEmbedField {
     return { name: name, value: value, inline: inline ?? false }
 }
 
@@ -123,7 +129,7 @@ function createEmbedFieldData(name: string, value: string, inline?: boolean): Em
     * @description Creates an array of embedfielddata
 */
 function efd(...data: [string, string, boolean?][]) {
-    return listComprehension<[string, string, boolean?], EmbedFieldData>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
+    return listComprehension<[string, string, boolean?], APIEmbedField>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
 }
 
 class LengthUnit {
@@ -986,11 +992,17 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
     }
     if (!img && msg.embeds?.at(0)?.image?.url) {
         img = msg.embeds?.at(0)?.image?.url
-        if (img && pop)
-            (msg.embeds.at(0) as MessageEmbed).image = null
     }
-    if (!img) {
-        img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.url
+    if (!img && msg.channel.type === ChannelType.GuildText) {
+        img = msg.channel.messages.cache.filter(
+            (m) => m.attachments?.last()?.size ? true : false
+        )?.last()?.attachments.last()?.url
+    }
+    //ts complains when these are the same check even though it's the same god damn thing
+    if (!img && msg.channel.type === ChannelType.DM) {
+        img = msg.channel.messages.cache.filter(
+            (m) => m.attachments?.last()?.size ? true : false
+        )?.last()?.attachments.last()?.url
     }
     return img
 }
@@ -1751,6 +1763,7 @@ export {
     getToolIp,
     generateDocSummary,
     isBetween,
-    databaseFileToArray
+    databaseFileToArray,
+    isMsgChannel
 }
 

@@ -1,11 +1,11 @@
 import { client, prefix } from "../common"
 import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
 import { Parser } from "../parsing"
-import { fetchUserFromClient, getContentFromResult } from "../util"
+import { fetchUserFromClient, getContentFromResult, isMsgChannel } from "../util"
 
 import user_options = require("../user-options")
 import vars from "../vars"
-import { DMChannel } from "discord.js"
+import { DMChannel, Message } from "discord.js"
 
 export default function*(CAT: CommandCategory) {
     yield [createMatchCommand(async ({ msg, match }) => {
@@ -179,6 +179,7 @@ yield[createMatchCommand(async function({ msg, match }) {
 }, /Screenshot \(Oct 29, 2022 00:10:15\)/, "match:img")]
 
 yield[createMatchCommand(async ({ msg: m, match: search }) => {
+    if(!isMsgChannel(m.channel)) return {noSend: true, status: StatusCode.ERR}
     let count = Number(search[1]) || Infinity
     let regexSearch = search[2]
     let rangeSearch = search[3]
@@ -229,7 +230,7 @@ yield[createMatchCommand(async ({ msg: m, match: search }) => {
         let result = finalMessages.join("\n")
         let oldSend = m.channel.send
         m.channel.send = async (_data) => {
-            return m
+            return m as Message<true>
         }
         for (let c of cmds) {
             let rv = await cmd({ msg: m, command_excluding_prefix: `${c} ${result}`, returnJson: true })

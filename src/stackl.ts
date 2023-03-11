@@ -1,13 +1,11 @@
-import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable } from 'discord.js'
+import { Message, GuildMember, EmbedBuilder, CollectorFilter, ColorResolvable, ChannelType } from 'discord.js'
 
 import vars from './vars'
 
 import { cmd, handleSending, StatusCode } from "./common_to_commands"
-import { efd, enumerate } from './util'
+import { efd, isMsgChannel } from './util'
 
-const { prefix } = require("./common.js")
-
-type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed | CommandReturn
+type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder | CommandReturn
 type errType = { content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?: boolean }
 
 async function parseArg(arg: string, argNo: number, argCount: number, args: string[], argc: number, stack: stackTypes[], initialArgs: string[], ram: { [key: string]: stackTypes }, currScopes: string[], msg: Message, recursionC: number, stacks: { [key: string]: stackTypes[] }, SPAMS: { [key: string]: boolean }): Promise<stackTypes | errType> {
@@ -704,7 +702,10 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { content: `${val} is not a string`, err: true }
             }
             try {
-                let m = await msg.channel.messages.fetch(val)
+                let m;
+                if(isMsgChannel(msg.channel)){
+                    m = await msg.channel.messages.fetch(val)
+                }
                 if (!m) {
                     stack.push(0)
                 }
@@ -723,7 +724,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
 
         //embeds
         case "%embed": {
-            stack.push(new MessageEmbed())
+            stack.push(new EmbedBuilder())
             break
         }
         case "%etitle": {
@@ -732,7 +733,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `Title for %etitle must be string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed, cannot set title` }
             }
             e.setTitle(title)
@@ -745,7 +746,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `imgUrl for %eimg must be a string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed, cannot set thumbnail` }
             }
             e.setImage(imgUrl)
@@ -758,7 +759,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `thumburl for %ethumb must be a string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed, cannot set thumbnail` }
             }
             e.setThumbnail(thumbUrl)
@@ -779,7 +780,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `initialArgs must be a string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed` }
             }
             e.addFields(efd([title, value, Boolean(inline)]))
@@ -796,7 +797,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `footer must be a string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed` }
             }
             if (typeof image === 'string') {
@@ -814,7 +815,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `description must be a string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed` }
             }
             e.setDescription(description)
@@ -827,7 +828,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `Timestamp must be a number` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed` }
             }
             e.setTimestamp(new Date(time || Date.now()))
@@ -844,7 +845,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 return { err: true, content: `author must be a string` }
             }
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed` }
             }
             if (typeof image === 'string') {
@@ -859,7 +860,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
         case "%eclr": {
             let color = stack.pop()
             let e = stack.pop()
-            if (!(e instanceof MessageEmbed)) {
+            if (!(e instanceof EmbedBuilder)) {
                 return { err: true, content: `${e} is not an embed` }
             }
             try {
@@ -1360,6 +1361,7 @@ async function parse(args: ArgumentList, useStart: boolean, msg: Message, SPAMS:
                 timeout = reqTimeout * 1000
             }
             try {
+                if(!isMsgChannel(msg.channel)) return 0
                 let collected = await msg.channel.awaitMessages({ filter: filter, max: 1, time: timeout, errors: ["time"] })
                 let resp = collected.at(0)
                 if (typeof resp === 'undefined') {

@@ -11,9 +11,9 @@ import economy from '../economy'
 import pet from "../pets"
 import timer from '../timer'
 
-import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
+import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel } from '../util'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
@@ -61,9 +61,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         catch (err) {
             return crv("Could not get json", { status: StatusCode.ERR })
         }
-        let embed = new MessageEmbed()
+        let embed = new EmbedBuilder()
         embed.setTitle(`School stats of ${user.username}`)
-        embed.setColor(msg.member?.displayColor || "NOT_QUITE_BLACK")
+        embed.setColor(msg.member?.displayColor || "NotQuiteBlack")
         embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["job", String(data.job?.name ?? "None")], ["grade", String(data.grade)]))
         return { embeds: [embed], status: StatusCode.RETURN }
     }, "School stats", {
@@ -136,7 +136,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let petInfo = pet_type[1]
         let petType = pet_type[0]
         let petTypeInfo = pet.getPetShop()[petType]
-        let embed = new MessageEmbed()
+        let embed = new EmbedBuilder()
         embed.setTitle(petInfo.name || petType)
         embed.addFields([
             { name: "Favorite food", value: petTypeInfo['favorite-food'], inline: true },
@@ -352,6 +352,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "ed", createCommand(async (msg, args, _, __, ___, rec, bans) => {
+            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
             if (globals.EDS[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
             }
@@ -712,7 +713,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 })
                 resp.on("end", async () => {
                     let html = data.read().toString()
-                    let embed = new MessageEmbed()
+                    let embed = new EmbedBuilder()
                     let stockData = html.match(/<div class="BNeawe iBp4i AP7Wnd">(.*?)<\/div>/)
                     if (!stockData) {
                         await handleSending(msg, { status: StatusCode.ERR, content: "No data found" }, sendCallback)
@@ -739,10 +740,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                     stockName = stockName[1]
                     if (numberchange > 0) {
-                        embed.setColor("GREEN")
+                        embed.setColor("Green")
                     }
                     else {
-                        embed.setColor("RED")
+                        embed.setColor("Red")
                     }
                     embed.setTitle(stockName)
                     embed.addFields(efd(["Price", price]))
@@ -1480,7 +1481,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let embeds = []
                 let elementsNamesList = []
                 for (let element of reqElementData) {
-                    let embed = new MessageEmbed()
+                    let embed = new EmbedBuilder()
                     elementsNamesList.push(`${element.Name} (${element.Symbol})`)
                     embed.setTitle(`${element.Name} (${element.Symbol})`)
                     embed.setDescription(`Discovered in ${element.DiscoveryYear == "0" ? "Unknown" : element.DiscoveryYear} by ${element.DiscoveredBy == "-" ? "Unknown" : element.DiscoveredBy}`)
@@ -1532,7 +1533,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}`)
                 let jsonData = await res.json()
 
-                let embeds: { embed: MessageEmbed, button: MessageButton, jsonButton: MessageButton }[] = []
+                let embeds: { embed: EmbedBuilder, button: ButtonBuilder, jsonButton: ButtonBuilder }[] = []
                 let current_page = 0
 
                 let valid_thumbnail_qualities = [
@@ -1569,7 +1570,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 for (let res of jsonData) {
                     i++;
 
-                    let e = new MessageEmbed()
+                    let e = new EmbedBuilder()
                     e.setTitle(String(res['title']))
 
                     if (res.description) {
@@ -1581,17 +1582,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     //@ts-ignore
                     e.setImage(res.videoThumbnails?.filter(v => v.quality == thumbnail_quality)[0].url)
 
-                    let button = new MessageButton({ label: "OPEN", style: "LINK", url: `https://www.youtube.com/watch?v=${res.videoId}` })
+                    let button = new ButtonBuilder({ label: "OPEN", style: ButtonStyle.Link, url: `https://www.youtube.com/watch?v=${res.videoId}` })
 
-                    let json_button = new MessageButton({ label: "JSON", style: "SECONDARY", customId: `yt.json:${res.videoId}` })
+                    let json_button = new ButtonBuilder({ label: "JSON", style: ButtonStyle.Secondary, customId: `yt.json:${res.videoId}` })
 
                     embeds.push({ embed: e, button: button, jsonButton: json_button })
                 }
 
-                let next_page = new MessageButton({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: "PRIMARY" })
-                let last_page = new MessageButton({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: "SECONDARY" })
+                let next_page = new ButtonBuilder({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: ButtonStyle.Primary })
+                let last_page = new ButtonBuilder({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary})
 
-                let action_row = new MessageActionRow()
+                let action_row = new ActionRowBuilder<ButtonBuilder>()
                 action_row.addComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
 
                 let m = await handleSending(msg, { components: [action_row], embeds: [embeds[current_page].embed], status: StatusCode.PROMPT }, sc)
@@ -2043,7 +2044,7 @@ middle
             async (msg, args) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 for (let arg of args.join(" ").split("\n")) {
                     let [type, ...typeArgs] = arg.split(" ")
                     switch (type.trim()) {
@@ -2069,7 +2070,7 @@ middle
                                 embed.setColor(typeArgs.join(" ") as ColorResolvable)
                             }
                             catch (err) {
-                                embed.setColor("RED")
+                                embed.setColor("Red")
                             }
                             break
                         }
@@ -2150,6 +2151,7 @@ The order these are given does not matter, excpet for field, which will be added
     ]
 
     yield ["sh", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
+        if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
         const cmd = spawn("bash")
         let dataToSend = ""
         let sendingTimeout: NodeJS.Timeout | undefined = undefined;
@@ -2184,16 +2186,17 @@ The order these are given does not matter, excpet for field, which will be added
         return { noSend: true, status: StatusCode.ERR }
     }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id))]
 
-    yield ["qalc", createCommandV2(async ({ msg, argList, opts }) => {
+    yield ["qalc", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
+        if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
         if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.IN_QALC.includes(msg.author.id)) {
             globals.IN_QALC.push(msg.author.id)
             const cmd = spawn("qalc", argList)
             cmd.stdout.on("data", data => {
                 let text = data.toString("utf-8").replaceAll(/\[[\d;]+m/g, "")
-                msg.channel.send(text)
+                handleSending(msg, crv(text), sendCallback)
             })
             cmd.stderr.on("data", data => {
-                msg.channel.send(data.toString("utf-8"))
+                handleSending(msg, crv(data.toString("utf-8")), sendCallback)
             })
             cmd.on("close", () => {
                 globals.IN_QALC = globals.IN_QALC.filter(v => v !== msg.author.id)
@@ -2393,7 +2396,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                             status: StatusCode.ERR
                         }
                     }
-                    let embed = new MessageEmbed()
+                    let embed = new EmbedBuilder()
                     embed.setTitle(`Roles for: ${user?.user.username}`)
                     embed.addFields(efd(["Role count", String(roles.cache.size)]))
                     let text = roles.cache.toJSON().join(" ")
@@ -2505,7 +2508,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let sameRoles = user1Roles.filter(v => user2RoleIds.includes(v.id))
                 let user1Unique = user1Roles.filter(v => !user2RoleIds.includes(v.id))
                 let user2Unique = user2Roles.filter(v => !user1RoleIds.includes(v.id))
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 let same = sameRoles.reduce((prev, cur) => `${prev} ${cur}`, "")
                 let user1U = user1Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
                 let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
@@ -2550,10 +2553,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let times = parseInt(args[0]) || 10
                 await msg.guild?.members.fetch()
                 let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
                 if (sortedMembers?.at(0)?.displayColor) {
-                    embed.setColor(sortedMembers?.at(0)?.displayColor || "RED")
+                    embed.setColor(sortedMembers?.at(0)?.displayColor || "Red")
                 }
                 let ret = ""
                 for (let i = 0; i < times; i++) {
@@ -2605,7 +2608,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             }
             await msg.guild?.members.fetch()
             let memberTexts = [""]
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             embed.setTitle(realRole.name)
             let i = 0
             let memberCount = 0
@@ -2621,7 +2624,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!memberTexts[0].length) {
                 return { content: "No one", status: StatusCode.RETURN }
             }
-            if (embed.fields.length < 1) {
+            if ((embed.data.fields?.length || 0) < 1) {
                 embed.addFields(efd([`members: ${i}`, memberTexts[i]]))
             }
             embed.addFields(efd(["Member count", String(memberCount)]))
@@ -2966,9 +2969,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let embeds = []
                 let texts = []
 
-                type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed
+                type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder
                 for (let item of stack as Array<stackTypes>) {
-                    if (item instanceof MessageEmbed) {
+                    if (item instanceof EmbedBuilder) {
                         embeds.push(item)
                     }
                     else {
@@ -3507,7 +3510,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!role) {
                 return { content: "Could not find role", status: StatusCode.ERR }
             }
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             embed.setTitle(role.name)
             embed.setColor(role.color)
             embed.addFields(efd(["id", String(role.id), true]))
@@ -3530,7 +3533,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 //@ts-ignore
                 let pinned = await channel?.messages?.fetchPinned()
                 let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 //@ts-ignore
                 embed.setTitle(channel.name || "Unknown name")
                 if (pinned) {
@@ -3538,7 +3541,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
                     embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", String(daysTillFull), true]))
                 }
-                embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type, true]))
+                embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type.toString(), true]))
                 //@ts-ignore
                 if (channel.topic) {
                     //@ts-ignore
@@ -3578,7 +3581,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 if (!e) {
                     return { content: "No emoji foudn", status: StatusCode.ERR }
                 }
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
                 embed.setTitle(String(e.name))
                 embed.addFields(efd(["id", e.id, true], ["created Date", e?.createdAt.toDateString(), true], ["Creation time", e?.createdAt.toTimeString(), true], ["THE CREATOR", String(e?.author), true]))
                 if (e.url)
@@ -3602,20 +3605,20 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         let fmt = args.join(" ") || "{embed}"
         if (fmt === "{embed}") {
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             embed.setThumbnail(sticker.url)
             embed.addFields([
-                { name: "type", value: sticker.type || "N/A", inline: true },
+                { name: "type", value: sticker.type?.toString() || "N/A", inline: true },
                 { name: "name", value: sticker.name, inline: true },
                 { name: "id", value: sticker.id, inline: true },
                 { name: "creator", value: sticker.user?.toString() || "N/A", inline: true },
                 { name: "createdAt", value: sticker.createdAt.toString(), inline: true },
-                { name: "format", value: sticker.format, inline: true },
-                { name: "tags", value: sticker.tags?.join(", ") || "N/A", inline: true }
+                { name: "format", value: sticker.format?.toString(), inline: true },
+                { name: "tags", value: sticker.tags?.toString() || "N/A", inline: true }
             ])
             return { embeds: [embed], status: StatusCode.RETURN }
         }
-        return { content: format(fmt, { "t": sticker.type || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format, "#": sticker.tags?.join(", ") || "N/A" }), status: StatusCode.RETURN }
+        return { content: format(fmt, { "t": sticker.type?.toString() || "N/A", n: sticker.name, i: sticker.id, c: sticker.user?.username || "N/A", T: sticker.createdAt.toString(), f: sticker.format?.toString(), "#": sticker.tags || "N/A" }), status: StatusCode.RETURN }
     }, "Gets info on a sticker", {
         docs: `<lh>format specifiers</lh><br>
 <ul>
@@ -3660,7 +3663,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     status: StatusCode.RETURN
                 }
             }
-            let e = new MessageEmbed()
+            let e = new EmbedBuilder()
             e.setTitle(user.username)
             let aurl = user.avatarURL()
             if (aurl)
@@ -3678,28 +3681,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 '...fmt': createHelpArgument("The format to use<br><lh>formats</lh><ul><li>i: user id</li><li>u: username</li><li>c: created at timestamp</li><li>a: avatar url</li></ul>", false, undefined, "an embed")
             },
         })
-    ]
-
-    yield [
-        "[", ccmdV2(async function({ args, opts }) {
-            if (args.indexOf("]") < 0) {
-                return { content: `You must end the check with ]`, status: StatusCode.ERR }
-            }
-
-            let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}")
-            let elseCommand = parseBracketPair(args.slice(args.lastIndexOf("else")).join(" "), "{}")
-
-            if (opts.getBool('c', false)) {
-                if (getCommands().get(args[0]) || getMatchCommands()[args[0]]) {
-                    return { content: "true", status: StatusCode.RETURN }
-                }
-                else {
-                    return { content: "false", status: StatusCode.RETURN }
-                }
-            }
-            return { noSend: true, status: StatusCode.ERR }
-
-        }, "Similar to the unix \[ command")
     ]
 
     yield [
@@ -3759,7 +3740,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                 )
                             }
                         }
-                        let embed = new MessageEmbed()
+                        let embed = new EmbedBuilder()
                         embed.setColor(member.displayColor)
                         embed.setThumbnail(user.avatarURL() || "")
                         let fields = [{ name: "Id", value: user.id || "#!N/A", inline: true }, { name: "Username", value: user.username || "#!N/A", inline: true }, { name: "Nickname", value: member.nickname || "#!N/A", inline: true }, { name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true }, { name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true }, { name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true }, { name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true }, { name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true },]

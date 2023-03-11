@@ -7,7 +7,7 @@ import fetch = require("node-fetch")
 import { Stream } from 'stream'
 
 import { CommandCategory, createCommand, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts, getOpts, intoColorList, Pipe, randomColor, rgbToHex } from '../util'
+import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts, getOpts, intoColorList, isMsgChannel, Pipe, randomColor, rgbToHex } from '../util'
 import { parsePosition } from '../parsing'
 import { prefix } from '../common'
 import { Message } from 'discord.js'
@@ -226,6 +226,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "draw", createCommand(async (msg, args, sendCallback) => {
+            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
             let opts;
             [opts, args] = getOpts(args)
             let width = Pipe.start(opts['w']).default(500).next((v: any) => String(v)).done()

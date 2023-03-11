@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { Message, Collection, MessageEmbed, MessageActionRow, MessageButton, ButtonInteraction, Guild, User } from "discord.js"
+import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel } from "discord.js"
 import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
 
 import globals = require("../globals")
@@ -11,7 +11,7 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween } from "../util"
+import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween, isMsgChannel } from "../util"
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common"
 import vars from '../vars'
 import timer from '../timer'
@@ -24,6 +24,7 @@ const { useItem, hasItem } = require("../shop")
 export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
+        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
         let board: Board = connect4.createBoard(opts.getNumber("rows", 6), opts.getNumber("cols", 7))
 
@@ -41,7 +42,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (args.length) {
                 await handleSending(msg, { content: `${args.join(" ")} not found`, status: StatusCode.WARNING })
             }
-            let e = new MessageEmbed()
+            let e = new EmbedBuilder()
             e.setTitle("Type `join` to join the connect4 game")
             await handleSending(msg, { embeds: [e], status: StatusCode.PROMPT })
             let joinMessages = await msg.channel.awaitMessages({ filter: m => m.content.toLowerCase().startsWith("join") && m.author.id !== msg.author.id, time: 30000, max: 1 })
@@ -160,6 +161,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield ["madlibs", ccmdV2(async ({ sendCallback, msg }) => {
+        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
         const stories = fs.readFileSync("./command-results/madlibs", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim()).filter(v => v)
 
@@ -180,6 +182,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 else {
                     await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+                    //@ts-ignore
                     let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                     let resp = msgs.at(0)
                     variables.set(prompt, resp?.content || "")
@@ -189,6 +192,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             else if (prompt.includes(":=")) {
                 let [varName, newPrompt] = prompt.split(":=")
                 await handleSending(msg, { content: newPrompt, status: StatusCode.PROMPT }, sendCallback)
+                //@ts-ignore
                 let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                 let resp = msgs.at(0)
                 variables.set(varName, resp?.content || "")
@@ -196,6 +200,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             else {
                 await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+                //@ts-ignore
                 let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                 let resp = msgs.at(0)
                 return resp?.content || ""
@@ -242,6 +247,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield ["know-your-meme", createCommandV2(async ({ msg, args, sendCallback, opts }) => {
 
+        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+
         const amountOfRounds = opts.getNumber("r", 1) || opts.getNumber("rounds", 1)
 
         async function game() {
@@ -272,7 +279,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                 let votes: { [key: number]: number } = {}
 
-                let buttons: MessageButton[] = []
+                let buttons: ButtonBuilder[] = []
 
                 for (let i = 0; i < gifs.length; i++) {
                     let gif = gifs[i]
@@ -280,11 +287,18 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         await handleSending(msg, { content: `${i + 1}: \\_\\_NO\\_GIF\\_\\_`, status: StatusCode.INFO })
                         continue
                     }
-                    let b = new MessageButton({ customId: `${i}`, style: "PRIMARY", label: `Vote for gif ${i + 1})` })
+                    let b = new ButtonBuilder({ customId: `${i}`, style: ButtonStyle.Primary, label: `Vote for gif ${i + 1})` })
                     buttons.push(b)
-                    let row = new MessageActionRow()
+                    let row = new ActionRowBuilder<ButtonBuilder>()
                     row.addComponents(b)
-                    let m = await handleSending(msg, { content: `${i + 1}:\n${gif.content}`, attachments: gif.attachments.toJSON(), status: StatusCode.INFO, components: [row] })
+                    let attachments = gif.attachments.toJSON()[0]
+                    let m = await handleSending(msg, {
+                        content: `${i + 1}:\n${gif.content}`,
+                        files: [{
+                            name: attachments.name || "image",
+                            attachment: attachments.url
+                        }], status: StatusCode.INFO, components: [row]
+                    })
 
                     const handleVoting = (int: ButtonInteraction) => {
                         let user = int.user
@@ -301,14 +315,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         else {
                             int.reply({ content: "You already voted", ephemeral: true })
                         }
-                        m.awaitMessageComponent({ componentType: "BUTTON" }).then(handleVoting)
+                        m.awaitMessageComponent({ componentType: ComponentType.Button }).then(handleVoting)
                     }
 
-                    m.awaitMessageComponent({ componentType: "BUTTON" }).then(handleVoting)
+                    m.awaitMessageComponent({ componentType: ComponentType.Button }).then(handleVoting)
                 }
 
                 await handleSending(msg, { content: `Vote for your favorite gif`, status: StatusCode.PROMPT });
                 let voted: string[] = []
+
+                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
                 //This acts as the timer for the whole voting thing, if removed there will be no timer for voting
                 let messagevotes = await msg.channel.awaitMessages({
@@ -364,6 +380,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "yahtzee", createCommand(async (msg, _, sc, opts, args) => {
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
             let new_rules = Boolean(opts['new-rules'])
 
@@ -621,6 +638,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         return true
                     }).bind(this)
 
+                    if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
                     let choiceMessageCollection = await msg.channel.awaitMessages({ filter: filter, max: 1 })
                     let choiceMessage = choiceMessageCollection.at(0)
 
@@ -802,7 +820,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 turnNo++;
             }
 
-            let embed = new MessageEmbed()
+            let embed = new EmbedBuilder()
             embed.setTitle("Game Over")
             let fields = []
             if (mode === "multi") {
@@ -941,6 +959,7 @@ until you put a 0 in the box`)
 
     yield [
         "roulette", ccmdV2(async function({ msg, args }) {
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             globals.startCommand(msg.author.id, "roulette")
 
             args.beginIter()
@@ -1122,7 +1141,7 @@ until you put a 0 in the box`)
                     ticket = numbers.map(v => Number(v))
                 }
                 let answer = economy.getLottery()
-                let e = new MessageEmbed()
+                let e = new EmbedBuilder()
                 if (round) {
                     amount = Math.floor(amount * 100) / 100
                 }
@@ -1136,11 +1155,11 @@ until you put a 0 in the box`)
                         return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                     }
                     e.setTitle("WINNER!!!")
-                    e.setColor("GREEN")
+                    e.setColor("Green")
                     e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
                 }
                 else {
-                    e.setColor("RED")
+                    e.setColor("Red")
                     e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
                     e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
                 }
@@ -1444,24 +1463,24 @@ until you put a 0 in the box`)
                         response = response.replace(/IF=(<|>|=)\d+/, "")
                         let locationOptions = current_location.split("|").map(v => v.trim())
                         if (locationOptions.length > 1) {
-                            let rows: MessageActionRow[] = []
+                            let rows: ActionRowBuilder<ButtonBuilder>[] = []
                             let buttonClickResponseInChoice = response.match(/BUTTONCLICK=(.*) ENDBUTTONCLICK/)
                             let buttonResponse = ""
                             if (buttonClickResponseInChoice?.[1]) {
                                 buttonResponse = buttonClickResponseInChoice[1]
                                 response = response.replace(/BUTTONCLICK=(.*) ENDBUTTONCLICK/, "")
                             }
-                            let row = new MessageActionRow()
+                            let row = new ActionRowBuilder<ButtonBuilder>()
                             for (let op of locationOptions) {
                                 if (!op) continue;
                                 if (op == "__random__") {
                                     op = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]
                                 }
-                                let button = new MessageButton({ customId: `button.heist:${op}`, label: op, style: "PRIMARY" })
+                                let button = new ButtonBuilder({ customId: `button.heist:${op}`, label: op, style: ButtonStyle.Primary })
                                 row.addComponents(button)
                                 if (row.components.length > 2) {
                                     rows.push(row)
-                                    row = new MessageActionRow()
+                                    row = new ActionRowBuilder()
                                 }
                             }
                             if (row.components.length > 0) {
@@ -1470,7 +1489,7 @@ until you put a 0 in the box`)
                             let m = await handleSending(msg, { content: response, components: rows, status: StatusCode.INFO }, sendCallback)
                             let choice = ""
                             try {
-                                let interaction = await m.awaitMessageComponent({ componentType: "BUTTON", time: 30000 })
+                                let interaction = await m.awaitMessageComponent({ componentType: ComponentType.Button, time: 30000 })
                                 choice = interaction.customId.split(":")[1]
                                 buttonResponse = buttonResponse.replaceAll("{user}", `<@${interaction.user.id}>`)
                             }
@@ -1530,7 +1549,7 @@ until you put a 0 in the box`)
                     globals.HEIST_STARTED = false
                     if (Object.keys(data).length > 0) {
                         let useEmbed = false
-                        let e = new MessageEmbed()
+                        let e = new EmbedBuilder()
                         let text = ''
                         if (!opts['no-location-stats'] && !opts['nls'] && !opts['no-stats'] && !opts['ns']) {
                             text += 'STATS:\n---------------------\n'
@@ -1634,9 +1653,9 @@ until you put a 0 in the box`)
                     }
                     economy.addMoney(msg.author.id, amount)
 
-                    if(Number(days) >= 1){
+                    if (Number(days) >= 1) {
                         let ach = achievements.achievementGet(msg, "patience")
-                        if(ach){
+                        if (ach) {
                             await handleSending(msg, ach)
                         }
                     }
@@ -1666,6 +1685,7 @@ until you put a 0 in the box`)
 
     yield [
         "blackjack", ccmdV2(async ({ msg, args, rawOpts: opts, sendCallback }) => {
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let hardMode = Boolean(opts['hard'])
             let betStr = args[0]
             if (!betStr) {
@@ -1813,7 +1833,7 @@ until you put a 0 in the box`)
 
             let aurl = msg.member?.user.avatarURL()
             while (true) {
-                let embed = new MessageEmbed()
+                let embed = new EmbedBuilder()
 
                 embed.setTitle("Blackjack")
 
@@ -2384,6 +2404,7 @@ until you put a 0 in the box`)
         "wordle",
         {
             run: async (msg, args, sendCallback) => {
+                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
                 let opts: Opts
                 [opts, args] = getOpts(args)
                 let min = parseInt(opts["min"] as string) || 5
@@ -2477,6 +2498,7 @@ until you put a 0 in the box`)
         "hangman",
         {
             run: async (msg, args, sendCallback) => {
+                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
                 let opponent = msg.author
                 let opts: Opts;
                 [opts, args] = getOpts(args)
@@ -2533,6 +2555,7 @@ until you put a 0 in the box`)
                     catch (err) {
                         return { content: "2K char limit reached", status: StatusCode.ERR }
                     }
+                    if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
                     let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
                     let gameIsGoing = true
                     collection.on("collect", async (m) => {
@@ -2621,6 +2644,7 @@ until you put a 0 in the box`)
                         return { content: "no channels found", status: StatusCode.ERR }
                     }
                     let channel = choice(channels)
+                    if(!isMsgChannel(channel as BaseChannel)) return {content: "Not a text channel", status: StatusCode.ERR}
                     if (channel === null) {
                         return { content: "Cannot do random in this non-channel", status: StatusCode.ERR }
                     }
@@ -2629,7 +2653,8 @@ until you put a 0 in the box`)
                         channel = choice(channels)
                     let messages
                     try {
-                        messages = await channel.messages.fetch({ limit: 100 })
+                        //@ts-ignore
+                        messages = await channel?.messages.fetch({ limit: 100 })
                     }
                     catch (err) {
                         messages = await msg.channel.messages.fetch({ limit: 100 })

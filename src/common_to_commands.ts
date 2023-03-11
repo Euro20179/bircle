@@ -1,4 +1,4 @@
-import { Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { Channel, ChannelType, Message, MessageCreateOptions, MessagePayload, PartialMessage, StageChannel } from 'discord.js';
 import fs from 'fs'
 
 import vars from './vars';
@@ -7,7 +7,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST,  getUserMatchCommands, prefix, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement,  RedirModifier, TypingModifier, SkipModifier } from './parsing';
-import { ArgList, cmdCatToStr,  generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
+import { ArgList, cmdCatToStr,  generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex, isMsgChannel } from './util';
 import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
@@ -47,7 +47,8 @@ export enum CommandCategory {
     ALIASV2
 }
 
-export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>) {
+export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>) {
+    if(!isMsgChannel(msg.channel)) return false
     await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
     let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: 30000, max: 1 })
     let m = msgs.at(0)
@@ -187,7 +188,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[] }) {
+    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[] }) {
 
         if (BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -342,7 +343,7 @@ export async function cmd({
     pipeData,
     enableUserMatch
 
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean }) {
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean }) {
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
@@ -366,7 +367,7 @@ export class Interpreter {
     recursion: number
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
-    sendCallback: ((options: MessageOptions | MessagePayload | string) => Promise<Message>) | undefined
+    sendCallback: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>) | undefined
     alias: boolean | [string, string[]]
     aliasV2: false | AliasV2
 
@@ -392,7 +393,7 @@ export class Interpreter {
 
     static resultCache = new Map()
 
-    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
+    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
         this.tokens = cloneDeep(tokens)
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
@@ -637,6 +638,7 @@ export class Interpreter {
     }
 
     async runAlias() {
+        if(!isMsgChannel(this.#msg.channel)) return crv("IN stage channel", {status: StatusCode.ERR})
         //alias is actually the real command
         //aliasPreArgs are the arguments taht go after the commnad
         let [alias, aliasPreArgs] = this.alias as [string, string[]]
@@ -746,6 +748,7 @@ export class Interpreter {
             if (canRun) {
 
                 if (this.#shouldType || cmdObject?.make_bot_type)
+                    //@ts-ignore
                     await this.#msg.channel.sendTyping()
 
                 if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
@@ -757,6 +760,7 @@ export class Interpreter {
                         msg: this.#msg,
                         rawArgs: args,
                         args: new ArgList(args2),
+                        //@ts-ignore
                         sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
@@ -773,6 +777,7 @@ export class Interpreter {
                     rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
                 }
                 else {
+                    //@ts-ignore
                     rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
                 if (cmdObject?.use_result_cache === true) {
@@ -931,7 +936,7 @@ export class Interpreter {
 
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
         if (intPipeData.length) {
-            this.sendCallback = (async function(this: Interpreter, options: string | MessageOptions | MessagePayload) {
+            this.sendCallback = (async function(this: Interpreter, options: string | MessageCreateOptions | MessagePayload) {
                 options = await this.handlePipes(options as CommandReturn)
                 return handleSending(this.#msg, options as CommandReturn, undefined)
             }).bind(this)
@@ -940,6 +945,7 @@ export class Interpreter {
     }
 
     static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean, recursion?: number) {
+
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]
@@ -972,6 +978,7 @@ export class Interpreter {
                 }
                 catch (err) {
                     console.error(err)
+                    //@ts-ignore
                     await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
                 }
             }
@@ -1003,7 +1010,8 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     return [command, aliasPreArgs]
 }
 
-export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
+export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
+    if(!isMsgChannel(msg.channel)) return msg
     if (!Object.keys(rv).length) {
         return msg
     }
@@ -1136,7 +1144,7 @@ export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand
     * @deprecated use createCommandV2
 */
 export function createCommand(
-    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
+    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
     category: CommandCategory,
     helpInfo?: string,
     helpArguments?: CommandHelpArguments | null,

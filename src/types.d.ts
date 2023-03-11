@@ -1,4 +1,4 @@
-import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload, TextChannel, DMChannel, User } from "discord.js"
+import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User } from "discord.js"
 
 import { ArgList, Options } from './util'
 
@@ -23,7 +23,7 @@ declare global {
 
     type FileArray = Array<CommandFile>
 
-    interface CommandReturn extends MessageOptions {
+    interface CommandReturn extends MessageCreateOptions {
         status: StatusCode
         content?: string,
         embeds?: Array<MessageEmbed>
@@ -48,6 +48,7 @@ declare global {
         */
         mimetype?: `${string}/${string}`,
         onOver2kLimit?: (msg: Message, rv: CommandReturn) => CommandReturn
+        attachments?: Message['attachments']
     }
 
     interface CommandHelpArguments {

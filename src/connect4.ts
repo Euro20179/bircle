@@ -1,4 +1,3 @@
-import { MessageEmbed } from "discord.js";
 import { enumerate, listComprehension, range } from "./util";
 
 type BoardCharacter = "O" | "R" | "B" | string
@@ -33,7 +32,7 @@ function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') 
         text += `|${strNumberToEmoji(String(idx + 1))}`
     }
     text += '|\n'
-    for (let [rowN, row] of enumerate(board)) {
+    for (let [_rowN, row] of enumerate(board)) {
         //fixes a missing bar at the start of each row
         text += "|"
         for (let [colN, point] of enumerate(row)) {
@@ -61,10 +60,6 @@ function createBoardText(board: Board, redplayer = '🔴', blueplayer = '🔵') 
         text += '\n'
     }
     return text + "```"
-}
-
-function colorToEmoji(color: "R" | "B", redplayer = '🔴', blueplayer = '🔵') {
-    return color === "R" ? redplayer : blueplayer
 }
 
 /**
