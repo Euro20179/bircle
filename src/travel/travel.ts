@@ -354,7 +354,7 @@ class Iraq extends Country{
         this.registerActivity("oil raid", "10", this.oilRaid.bind(this))
     }
     async oilRaid(data: CommandV2RunArg){
-        if(Math.random() > .9){
+        if(Math.random() < .9){
             return crv("The iraqi military comes and repurposes your skin -5 points")
         }
         let gallonsOfOil = Math.floor(Math.random() * 100)
