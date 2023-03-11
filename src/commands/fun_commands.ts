@@ -1178,15 +1178,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "poll", ccmdV2(async function({ msg, opts, args }) {
-            args.beginIter()
             let actionRow = new MessageActionRow()
             let id = String(Math.floor(Math.random() * 100000000))
-            let options = args.expectList("|", Infinity)
-
-            if(options === BADVALUE) return crv(`No options given`)
 
             let choices = []
-            for (let arg of options) {
+            for (let arg of args) {
                 if (!arg.trim()) {
                     continue
                 }
