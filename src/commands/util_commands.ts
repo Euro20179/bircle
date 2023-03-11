@@ -13,7 +13,7 @@ import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension } from '../util'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
@@ -3986,8 +3986,10 @@ valid formats:<br>
             let data = stdin ? stdin.content : argList.expectString(() => true)
 
             if (!data) {
-                if (msg.attachments?.at(0)) {
-                    data = downloadSync(msg.attachments?.at(0)?.attachment as string).toString()
+                let attachment = msg.attachments?.at(0)
+                if (attachment) {
+                    let res = await fetch.default(attachment.url)
+                    data = await res.text()
                 }
                 else return { content: "no data given to search through", status: StatusCode.ERR }
             }

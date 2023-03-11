@@ -1,20 +1,16 @@
 import cheerio = require("cheerio")
 import { spawnSync } from "child_process"
 
-const vm = require('vm')
+import vm from 'vm'
 import fs from 'fs'
 
-import { BufferResolvable, Client, ClientPresenceStatus, EmbedFieldData, Guild, GuildMember, Message, MessageEmbed, MessageOptions, MessagePayload, TextChannel } from "discord.js"
+import { Client,  EmbedFieldData, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
 import { existsSync } from "fs"
-import { Stream } from "stream"
 import { client } from "./common"
-import { AliasV2, CommandCategory, StatusCode } from "./common_to_commands"
+import { AliasV2, CommandCategory } from "./common_to_commands"
 
-import globals = require("./globals")
 import { formatMoney, getOpt } from "./user-options"
 
-const { execFileSync, exec } = require('child_process')
-const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
 
 export type MimeType = `${string}/${string}`
 
@@ -763,10 +759,6 @@ async function fetchUserFromClientOrGuild(find: string, guild?: Guild){
 
 function generateFileName(cmd: string, userId: string, ext: string = "txt") {
     return `garbage-files/${cmd}-${userId}.${ext}`
-}
-
-function downloadSync(url: string) {
-    return execFileSync(`curl`, ['--silent', url])
 }
 
 function escapeRegex(str: string) {
@@ -1711,7 +1703,6 @@ export {
     fetchUser,
     fetchChannel,
     generateFileName,
-    downloadSync,
     format,
     createGradient,
     applyJimpFilter,
