@@ -21,7 +21,7 @@ import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
 
-import {hasItem, useItem} from '../shop'
+import { hasItem, useItem } from '../shop'
 const { INVENTORY } = require("../shop")
 
 import travel_countries from '../travel/travel';
@@ -1177,80 +1177,81 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "poll",
-        {
-            run: async (msg, _, _sendCallback, opts, args) => {
-                let actionRow = new MessageActionRow()
-                let id = String(Math.floor(Math.random() * 100000000))
-                args = args.join(" ").split("|")
-                let choices = []
-                for (let arg of args) {
-                    if (!arg.trim()) {
-                        continue
-                    }
-                    choices.push({ label: arg, value: arg })
-                }
-                if (choices.length < 1) {
-                    return { status: StatusCode.ERR, content: "no options given" }
-                }
-                let selection = new MessageSelectMenu({ customId: `poll: ${id}`, placeholder: "Select one", options: choices })
-                actionRow.addComponents(selection)
+        "poll", ccmdV2(async function({ msg, opts, args }) {
+            args.beginIter()
+            let actionRow = new MessageActionRow()
+            let id = String(Math.floor(Math.random() * 100000000))
+            let options = args.expectList("|", Infinity)
 
-                globals.POLLS[`poll: ${id}`] = { title: String(opts['title'] || "") || "Select one", votes: {} }
+            if(options === BADVALUE) return crv(`No options given`)
 
-                let channelToSendToSearch = opts['channel']
-                let chan = undefined;
-                let actionMsg;
-                let textToSend = `** ${String(opts['title'] || "") || "Select one"}**\npoll id: ${id} `
-                if (channelToSendToSearch) {
-                    chan = await fetchChannel(msg.guild as Guild, String(channelToSendToSearch))
-                    if (!chan || chan.type !== 'GUILD_TEXT') {
-                        return { content: `Cannot send to ${chan}`, status: StatusCode.ERR }
-                    }
-                    else if (!msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
-                        return { content: `You do not have permission to talk in ${chan} `, status: StatusCode.ERR }
-                    }
-                    actionMsg = await handleSending(msg, { components: [actionRow], content: textToSend, status: StatusCode.PROMPT })
+            let choices = []
+            for (let arg of options) {
+                if (!arg.trim()) {
+                    continue
+                }
+                choices.push({ label: arg, value: arg })
+            }
+            if (choices.length < 1) {
+                return { status: StatusCode.ERR, content: "no options given" }
+            }
+            let selection = new MessageSelectMenu({ customId: `poll: ${id}`, placeholder: "Select one", options: choices })
+            actionRow.addComponents(selection)
+
+            globals.POLLS[`poll: ${id}`] = { title: opts.getString("title", "select one"), votes: {} }
+
+            let channelToSendToSearch = opts.getString('channel', '')
+            let chan = undefined;
+            let actionMsg;
+            let textToSend = `** ${opts.getString("title", "select one")}**\npoll id: ${id} `
+            if (channelToSendToSearch) {
+                chan = await fetchChannel(msg.guild as Guild, String(channelToSendToSearch))
+                if (!chan || chan.type !== 'GUILD_TEXT') {
+                    return { content: `Cannot send to ${chan}`, status: StatusCode.ERR }
+                }
+                else if (!msg.member?.permissionsIn(chan).has("SEND_MESSAGES")) {
+                    return { content: `You do not have permission to talk in ${chan} `, status: StatusCode.ERR }
+                }
+                actionMsg = await handleSending(msg, { components: [actionRow], content: textToSend, status: StatusCode.PROMPT })
+            }
+            else {
+                actionMsg = await handleSending(msg, crv(textToSend, { components: [actionRow], status: StatusCode.PROMPT }))
+            }
+
+            let collector = actionMsg.createMessageComponentCollector({ componentType: "SELECT_MENU" })
+
+            collector.on("collect", async (int) => {
+                if (!int.isSelectMenu()) return
+                if (Object.values(globals.POLLS[int.customId].votes).filter(v => v.includes(int.user.id)).length) {
+                    int.reply({ ephemeral: true, content: "You have alredy voted" })
+                    return
+                }
+
+                if (!globals.POLLS[int.customId].votes[int.values[0]]) {
+                    globals.POLLS[int.customId].votes[int.values[0]] = [int.user.id]
                 }
                 else {
-                    actionMsg = await handleSending(msg, crv(textToSend, { components: [actionRow], status: StatusCode.PROMPT }))
+                    globals.POLLS[int.customId].votes[int.values[0]].push(int.user.id)
                 }
 
-                let collector = actionMsg.createMessageComponentCollector({ componentType: "SELECT_MENU" })
+                let votes = Object.entries(globals.POLLS[int.customId].votes).map(v => `${v[0]}: ${v[1].length}`).join("\n")
 
-                collector.on("collect", async (int) => {
-                    if (!int.isSelectMenu()) return
-                    if (Object.values(globals.POLLS[int.customId].votes).filter(v => v.includes(int.user.id)).length) {
-                        int.reply({ ephemeral: true, content: "You have alredy voted" })
-                        return
-                    }
+                int.update({ content: textToSend + "\n" + votes })
+            })
 
-                    if (!globals.POLLS[int.customId].votes[int.values[0]]) {
-                        globals.POLLS[int.customId].votes[int.values[0]] = [int.user.id]
-                    }
-                    else {
-                        globals.POLLS[int.customId].votes[int.values[0]].push(int.user.id)
-                    }
+            return { noSend: true, status: StatusCode.RETURN }
 
-                    let votes = Object.entries(globals.POLLS[int.customId].votes).map(v => `${v[0]}: ${v[1].length}`).join("\n")
+        }, "create a poll", {
+            helpArguments: {
 
-                    int.update({ content: textToSend + "\n" + votes })
-                })
-
-                return { noSend: true, status: StatusCode.RETURN }
+                options: { description: "Options separated by |" }
             },
-            help: {
-                info: "create a poll",
-                arguments: {
-                    options: { description: "Options separated by |" }
-                },
-                options: {
-                    title: { description: "Title of the poll, no spaces" },
-                    channel: createHelpOption("The channel to send the poll to")
-                }
-            },
-            category: CommandCategory.FUN
-        },
+            helpOptions: {
+                title: { description: "Title of the poll, no spaces" },
+                channel: createHelpOption("The channel to send the poll to")
+
+            }
+        })
     ]
 
 
@@ -1506,8 +1507,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             args.beginIter()
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
-            let items =  args.expectList("|", Infinity)
-            if(items === BADVALUE){
+            let items = args.expectList("|", Infinity)
+            if (items === BADVALUE) {
                 return crv("expected list")
             }
             let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep)
@@ -1957,21 +1958,21 @@ Valid formats:
         },
     ]
 
-    yield ['remove-travel-location', ccmdV2(async function({msg, args}){
+    yield ['remove-travel-location', ccmdV2(async function({ msg, args }) {
 
         args.beginIter()
 
         let countries = user_country.getUserCountries()
 
-        let name = args.expect(1, function(this: ArgList,i){
+        let name = args.expect(1, function(this: ArgList, i) {
             let name = i.join(this.IFS)
-            if(countries[msg.author.id]?.[name] === undefined){
+            if (countries[msg.author.id]?.[name] === undefined) {
                 return BADVALUE
             }
             return name
         })
-        if(name === BADVALUE){
-            return crv(`No valid country name given`, {status: StatusCode.ERR})
+        if (name === BADVALUE) {
+            return crv(`No valid country name given`, { status: StatusCode.ERR })
         }
 
         user_country.removeCountry(msg.author.id, name)
@@ -1980,18 +1981,18 @@ Valid formats:
 
     }, "Remove a country you created")]
 
-    yield ['achievements', ccmdV2(async function({msg, args, opts}){
+    yield ['achievements', ccmdV2(async function({ msg, args, opts }) {
         let totalAchievements = Object.keys(achievements.POSSIBLE_ACHIEVEMENTS).length
 
-        if(opts.getBool("l", false))
+        if (opts.getBool("l", false))
             return crv(Object.entries(achievements.POSSIBLE_ACHIEVEMENTS).map(v => `**${v[0]}**: ${v[1].description} (reward: ${v[1].getReward()})`).join('\n'))
 
         let userAchievements = achievements.getAchievementsOf(msg.author.id)
-        if(!userAchievements){
+        if (!userAchievements) {
             return crv('You have no achievements')
         }
 
-        
+
         let userAchievementCount = userAchievements.length
 
         return crv(`You have ${userAchievementCount} / ${totalAchievements} achievements\n` + userAchievements.map(v => `**${v.achievement}**: achieved at: ${(new Date(v.achieved)).toString()}`).join("\n"))
@@ -2001,43 +2002,43 @@ Valid formats:
         }
     })]
 
-    yield ['add-travel-location', ccmdV2(async function({msg, args}){
+    yield ['add-travel-location', ccmdV2(async function({ msg, args }) {
         args = new ArgList(args.join(" ").split("\n"), "\n")
         args.beginIter()
         let name = args.expectString(1)
-        if(name === BADVALUE){
-            return crv (`No name given`, {status: StatusCode.ERR})
+        if (name === BADVALUE) {
+            return crv(`No name given`, { status: StatusCode.ERR })
         }
 
         //@ts-ignore
-        if(travel_countries.getCountries()[name] !== undefined){
-            return {content: `${name} is already a location`, status: StatusCode.ERR}
+        if (travel_countries.getCountries()[name] !== undefined) {
+            return { content: `${name} is already a location`, status: StatusCode.ERR }
         }
 
         let cost = args.expectString(1)
-        if(cost === BADVALUE)
-            return crv (`No cost given`, {status: StatusCode.ERR})
+        if (cost === BADVALUE)
+            return crv(`No cost given`, { status: StatusCode.ERR })
 
-        if(cost.startsWith("-") || cost.startsWith("neg(")){
+        if (cost.startsWith("-") || cost.startsWith("neg(")) {
             return crv('Cost cannot be negative')
         }
 
-        let activities: {[name: string]: UserCountryActivity} = {}
+        let activities: { [name: string]: UserCountryActivity } = {}
 
         let finalText = args.expectString(() => true)
-        if(finalText === BADVALUE){
-            return crv (`Expected a list of activities`, {status: StatusCode.ERR})
+        if (finalText === BADVALUE) {
+            return crv(`Expected a list of activities`, { status: StatusCode.ERR })
         }
 
-        for(let line of finalText.split("\n")){
+        for (let line of finalText.split("\n")) {
             line = line.trim()
-            if(!line) continue
+            if (!line) continue
             let [activity, cost, ...run] = line.split("|")
             let runText = run.join("|")
             activity = activity.trim()
             cost = cost.trim()
-            if(cost.startsWith("-") || cost.startsWith("neg")){
-                await handleSending(msg, crv(`Skipping ${activity} due to negative cost`, {status: StatusCode.WARNING}))
+            if (cost.startsWith("-") || cost.startsWith("neg")) {
+                await handleSending(msg, crv(`Skipping ${activity} due to negative cost`, { status: StatusCode.WARNING }))
                 continue
             }
             activities[activity] = {
@@ -2046,18 +2047,18 @@ Valid formats:
             }
         }
 
-        if(!Object.keys(activities).length){
+        if (!Object.keys(activities).length) {
             return crv(`No valid activities given`)
         }
 
         user_country.addCountry(msg.author.id, name.trim(), cost, activities)
 
-        return crv (`Added ${name} where you can do ${Object.keys(activities).join("\n")}`)
+        return crv(`Added ${name} where you can do ${Object.keys(activities).join("\n")}`)
 
     }, "Create a travelable country for the travel command")]
 
     yield [
-        "travel", ccmdV2(async function({msg, args, opts}){
+        "travel", ccmdV2(async function({ msg, args, opts }) {
             args.beginIter()
 
             let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
@@ -2069,7 +2070,7 @@ Valid formats:
 
             let hasPassport = hasItem(msg.author.id, "passport")
 
-            if(opts.getBool("countries", opts.getBool("l", false))){
+            if (opts.getBool("countries", opts.getBool("l", false))) {
                 return crv(Object.entries(countries).map((v) => {
                     return `${v[0]}: ${sign}${hasPassport ? 0 : v[1].cost}`
                 }).join("\n"))
@@ -2079,36 +2080,36 @@ Valid formats:
                 let text = i.join(" ").toLowerCase()
                 return countries[text as keyof typeof countries] ? text : BADVALUE
             }) as keyof typeof countries | typeof BADVALUE
-            if(userGoingTo === BADVALUE){
-                return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, {status: StatusCode.ERR})
+            if (userGoingTo === BADVALUE) {
+                return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
 
             let cost = economy.calculateAmountFromString(msg.author.id, countries[userGoingTo].cost)
 
-            if(hasPassport){
+            if (hasPassport) {
                 cost = 0
                 useItem(msg.author.id, "passport")
             }
 
-            if(!economy.canBetAmount(msg.author.id, cost)){
+            if (!economy.canBetAmount(msg.author.id, cost)) {
                 return crv(`You cannot affort to go to ${userGoingTo}`)
             }
 
             let beenTo = getVar(msg, "visited-countries", '!stats', msg.author.id)
-            if(beenTo === false){
+            if (beenTo === false) {
                 beenTo = userGoingTo + ","
             }
-            else if(!beenTo.includes(userGoingTo + ",")) beenTo += userGoingTo + ","
+            else if (!beenTo.includes(userGoingTo + ",")) beenTo += userGoingTo + ","
             setVar("visited-countries", beenTo, "!stats", msg.author.id)
 
-        //TODO: add this when there are a lot more locations
+            //TODO: add this when there are a lot more locations
             // if(beenTo.slice(0, -1) === Object.keys(defaultCountries).reduce((p, c) => p + `${c},`, "0")){
             //     achievements.achievementGet(msg, "traveler")
             // }
 
             economy.loseMoneyToBank(msg.author.id, cost)
 
-            await handleSending(msg, crv(`You spent ${sign}${cost} on your trip to ${userGoingTo}`, {status: StatusCode.INFO}))
+            await handleSending(msg, crv(`You spent ${sign}${cost} on your trip to ${userGoingTo}`, { status: StatusCode.INFO }))
 
             let country = countries[userGoingTo as keyof typeof countries]
 
