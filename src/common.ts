@@ -1,12 +1,9 @@
 import fs from 'fs'
 
-import { Message, User } from "discord.js";
-import { allowedOptions, getOpt } from "./user-options";
+import { User } from "discord.js";
 
-const { readFileSync, writeFileSync, existsSync } = require("fs");
 import { Client, Intents } from "discord.js"
-const economy = require("./economy");
-const prefix = readFileSync("./data/prefix", "utf-8").trim()
+const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 
 const ADMINS = ["334538784043696130"]
@@ -76,7 +73,7 @@ function getUserMatchCommands() {
 loadMatchCommands()
 
 function reloadList(list: string, listHolder: { [key: string]: string[] }) {
-    let lf = readFileSync(`command-perms/${list}`, "utf-8")
+    let lf = fs.readFileSync(`command-perms/${list}`, "utf-8")
     for (let line of lf.split("\n")) {
         if (!line) continue;
         let [user, cmdlist] = line.split(":").map((v: any) => v.trim())
@@ -92,7 +89,7 @@ reloadWhiteList()
 
 function savePermList(list: { [key: string]: string[] }, listFile: string) {
     let data = Object.entries(list).map(([user, perms]) => `${user}: ${perms.join(" ")}`).join("\n")
-    writeFileSync(`command-perms/${listFile}`, data)
+    fs.writeFileSync(`command-perms/${listFile}`, data)
 }
 
 function addToPermList(list: { [key: string]: string[] }, listFile: string, user: User, cmds: string[]) {
