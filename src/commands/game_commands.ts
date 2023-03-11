@@ -2001,6 +2001,9 @@ until you put a 0 in the box`)
         "coin",
         {
             run: async (msg, args, sendCallback) => {
+                if(!args.length){
+                    return crv(choice(['heads', 'tails']))
+                }
                 let opts;
                 [opts, args] = getOpts(args)
                 let [betstr, guess] = args
@@ -2023,7 +2026,6 @@ until you put a 0 in the box`)
                 if (!economy.canBetAmount(msg.author.id, bet)) {
                     return { content: "You dont have enough money for this bet", status: StatusCode.ERR }
                 }
-                guess = guess.toLowerCase()
                 if (side == guess) {
                     economy.addMoney(msg.author.id, bet)
                     return { content: `The side was: ${side}\nYou won: ${bet}`, status: StatusCode.RETURN }
