@@ -1,5 +1,6 @@
 import fs from 'fs'
-import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList, saveVars } from '../common'
+import vars from '../vars'
+import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require("../user-options")
@@ -260,7 +261,7 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 await handleSending(msg, {content: "STOPPING", status: StatusCode.RETURN}, sendCallback)
                 economy.saveEconomy()
                 saveItems()
-                saveVars()
+                vars.saveVars()
                 timer.saveTimers()
                 pet.savePetData()
                 client.destroy()

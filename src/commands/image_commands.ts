@@ -9,9 +9,11 @@ import { Stream } from 'stream'
 import { CommandCategory, createCommand, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts, getOpts, intoColorList, Pipe, randomColor, rgbToHex } from '../util'
 import { parsePosition } from '../parsing'
-import { getVar, prefix } from '../common'
+import { prefix } from '../common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
+
+import vars from '../vars'
 
 export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
@@ -1243,9 +1245,9 @@ The commands below, only work after **path** has been run:
             img1 = img1.trim()
             img2 = img2.trim()
             if (img1 && !img1.startsWith("http")) {
-                let new_img1 = getVar(msg, img1, msg.author.id)
+                let new_img1 = vars.getVar(msg, img1, msg.author.id)
                 if (!new_img1) {
-                    new_img1 = getVar(msg, img1, "__global__")
+                    new_img1 = vars.getVar(msg, img1, "__global__")
                 }
                 img1 = String(new_img1)
             }
@@ -1256,9 +1258,9 @@ The commands below, only work after **path** has been run:
                 }
             }
             if (img2 && !img2.startsWith("http")) {
-                let new_img2 = getVar(msg, img2, msg.author.id)
+                let new_img2 = vars.getVar(msg, img2, msg.author.id)
                 if (!new_img2) {
-                    new_img2 = getVar(msg, img2, "__global__")
+                    new_img2 = vars.getVar(msg, img2, "__global__")
                 }
                 img2 = String(new_img2)
             }

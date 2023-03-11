@@ -2,7 +2,8 @@ const fs = require("fs")
 import { Message } from "discord.js"
 import { max, min } from "lodash"
 import fetch = require("node-fetch")
-import { getVar } from "./common"
+
+import vars from "./vars"
 
 import pet from "./pets"
 import timer from "./timer"
@@ -16,7 +17,7 @@ let ECONOMY: { [key: string]: EconomyData } = {}
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
 function isRetired(msg: Message, id: string) {
-    return getVar(msg, 'retired', '!retire', id) === 'true' ? true : false
+    return vars.getVar(msg, 'retired', '!retire', id) === 'true' ? true : false
 }
 
 

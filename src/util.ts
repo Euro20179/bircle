@@ -750,11 +750,15 @@ async function fetchUser(guild: Guild, find: string) {
         if (!user) {
             user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
         }
-        if (!user) {
-            fetchUserFromClient(client, find)
-        }
     }
     return user
+}
+
+async function fetchUserFromClientOrGuild(find: string, guild?: Guild){
+    if(guild){
+        return (await fetchUser(guild, find))?.user
+    }
+    return await fetchUserFromClient(client, find)
 }
 
 function generateFileName(cmd: string, userId: string, ext: string = "txt") {
@@ -1724,6 +1728,7 @@ export {
     getOpts,
     getOptsUnix,
     fetchUserFromClient,
+    fetchUserFromClientOrGuild,
     generateSafeEvalContextFromMessage,
     choice,
     getContentFromResult,

@@ -12,7 +12,8 @@ import pet from "../pets"
 import uno = require("../uno")
 
 import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween } from "../util"
-import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, saveVars, setVar, setVarEasy } from "../common"
+import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common"
+import vars from '../vars'
 import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
@@ -111,17 +112,17 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let user of players as User[]) {
                     globals.endCommand(user.id, 'connect4')
                     if (user !== player) {
-                        setVar("losses", String(Number(getVar(msg, "losses", "!connect4", user.id)) + 1), "!connect4", user.id)
+                        vars.setVar("losses", String(Number(vars.getVar(msg, "losses", "!connect4", user.id)) + 1), "!connect4", user.id)
                         economy.addMoney(user.id, economy.calculateAmountFromNetWorth(user.id, "neg(0.05%)"))
                     }
                 }
                 listener.stop()
 
-                let wins = Number(getVar(msg, "wins", "!connect4", player.id)) + 1
-                let losses = Number(getVar(msg, "losses", "!connect4", player.id))
+                let wins = Number(vars.getVar(msg, "wins", "!connect4", player.id)) + 1
+                let losses = Number(vars.getVar(msg, "losses", "!connect4", player.id))
 
-                setVar("wins", String(wins), "!connect4", player.id)
-                saveVars()
+                vars.setVar("wins", String(wins), "!connect4", player.id)
+                vars.saveVars()
 
                 let winnings = economy.calculateAmountFromNetWorth(player.id, "0.1%")
                 economy.addMoney(player.id, winnings)
@@ -1189,7 +1190,7 @@ until you put a 0 in the box`)
                     for (let player of globals.HEIST_PLAYERS) {
                         data[player] = 0
                         data_floor[player] = 0
-                        setVar("__heist", "0", player)
+                        vars.setVar("__heist", "0", player)
                     }
                     let fileResponses = fs.readFileSync("./command-results/heist", "utf-8").split(";END").map(v => v.split(":").slice(1).join(":").trim())
                     //let fileResponses: string[] = []
@@ -1380,16 +1381,16 @@ until you put a 0 in the box`)
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                         data_floor[player] += 1
-                                        let oldValue = Number(getVar(msg, `__heist`, player))
-                                        setVar("__heist", String(oldValue + amount), player)
+                                        let oldValue = Number(vars.getVar(msg, `__heist`, player))
+                                        vars.setVar("__heist", String(oldValue + amount), player)
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     data_floor[shuffledPlayers[Number(user) - 1]] += 1
-                                    let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                    setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
+                                    let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                    vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                                 }
                             }
                         }
@@ -1402,16 +1403,16 @@ until you put a 0 in the box`)
                                         addToLocationStat(current_location, player, amount)
                                         data[player] += amount
                                         data_floor[player] -= 1
-                                        let oldValue = Number(getVar(msg, `__heist`, player))
-                                        setVar("__heist", String(oldValue + amount), player)
+                                        let oldValue = Number(vars.getVar(msg, `__heist`, player))
+                                        vars.setVar("__heist", String(oldValue + amount), player)
                                     }
                                 }
                                 else {
                                     addToLocationStat(current_location, shuffledPlayers[Number(user) - 1], amount)
                                     data[shuffledPlayers[Number(user) - 1]] += amount
                                     data_floor[shuffledPlayers[Number(user) - 1]] -= 1
-                                    let oldValue = Number(getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
-                                    setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
+                                    let oldValue = Number(vars.getVar(msg, "__heist", shuffledPlayers[Number(user) - 1])) || 0
+                                    vars.setVar("__heist", String(oldValue + amount), shuffledPlayers[Number(user) - 1])
                                 }
                             }
                         }
@@ -1640,10 +1641,10 @@ until you put a 0 in the box`)
                         }
                     }
 
-                    setVarEasy(msg, "!stats:last-run.count", String(Number(getVar(msg, "!stats:last-run.count")) + 1))
-                    setVarEasy(msg, "!stats:last-run.last", String(amount))
-                    setVarEasy(msg, "!stats:last-run.total", String(Number(getVar(msg, "!stats:last-run.total")) + amount))
-                    saveVars()
+                    vars.setVarEasy(msg, "!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1))
+                    vars.setVarEasy(msg, "!stats:last-run.last", String(amount))
+                    vars.setVarEasy(msg, "!stats:last-run.total", String(Number(vars.getVar(msg, "!stats:last-run.total")) + amount))
+                    vars.saveVars()
 
                     fmt += `\n{earnings}`
                     fs.writeFileSync("./command-results/last-run", String(Date.now()))

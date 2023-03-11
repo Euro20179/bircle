@@ -1,9 +1,9 @@
 import { Message } from "discord.js"
-import { setVar } from "./common"
+import vars from "./vars"
 import { Interpreter } from "./common_to_commands"
 
 const { getOpt } = require("./user-options")
-const { prefix, vars, getVar } = require('./common.js')
+const { prefix } = require('./common.js')
 const { format, safeEval, getOpts, generateSafeEvalContextFromMessage, parseBracketPair } = require('./util.js')
 const economy = require('./economy.js')
 const timer = require("./timer.js")
@@ -131,7 +131,7 @@ class RedirModifier extends Modifier{
             let prefix = m[2] //matches the text before the  : in the parens in redir
             //the variable name
             let name = m[3] //matches the text after the :  in the parens in redir
-            setVar(name, "", prefix, int.getMessage().author.id)
+            vars.setVar(name, "", prefix, int.getMessage().author.id)
     }
     stringify(){
         let str = "redir"

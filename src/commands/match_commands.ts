@@ -1,9 +1,10 @@
-import { client, prefix, setVarEasy } from "../common"
+import { client, prefix } from "../common"
 import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
 import { Parser } from "../parsing"
 import { fetchUserFromClient, getContentFromResult } from "../util"
 
 import user_options = require("../user-options")
+import vars from "../vars"
 import { DMChannel } from "discord.js"
 
 export default function*(CAT: CommandCategory) {
@@ -163,7 +164,7 @@ yield[createMatchCommand(async ({ msg, match }) => {
         data = (await int.interprate()).join(" ")
     }
 
-    setVarEasy(msg, name, data, prefix)
+    vars.setVarEasy(msg, name, data, prefix)
     return { noSend: true, status: StatusCode.RETURN }
 }, /(?:(%):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
     info: "var=\"data\" or var='data'",

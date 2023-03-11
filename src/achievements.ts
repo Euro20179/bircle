@@ -101,7 +101,7 @@ function getAchievementByName(name: keyof typeof POSSIBLE_ACHIEVEMENTS){
 }
 
 function isAchievement(name: string){
-    if(POSSIBLE_ACHIEVEMENTS[name]){
+    if(POSSIBLE_ACHIEVEMENTS[name as keyof typeof POSSIBLE_ACHIEVEMENTS]){
         return name as keyof typeof POSSIBLE_ACHIEVEMENTS
     }
     return false
@@ -133,7 +133,7 @@ function achievementGet(msg: Message, achievement: keyof typeof POSSIBLE_ACHIEVE
 
     saveAchievements()
 
-    return achievementObj.earn(msg.author.id, "nothing")
+    return achievementObj.earn(msg.author.id)
 }
 
 function getAchievementsOf(user: string){

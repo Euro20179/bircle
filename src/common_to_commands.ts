@@ -1,9 +1,11 @@
 import { Message, MessageOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
+import vars from './vars';
+
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST,  delVar, getUserMatchCommands, getVar, prefix, setVar, vars, WHITELIST } from './common';
+import { BLACKLIST,  getUserMatchCommands, prefix, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement,  RedirModifier, TypingModifier, SkipModifier } from './parsing';
 import { ArgList, cmdCatToStr,  generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex } from './util';
 import { cloneDeep } from 'lodash';
@@ -114,7 +116,7 @@ export class AliasV2 {
         }
 
         for (let opt of Object.entries(opts)) {
-            setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
+            vars.setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
@@ -229,6 +231,9 @@ export class AliasV2 {
 
         //it is not possible to fix double interpretation
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
+        //
+        //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
+            //the reason for this is that handleSending is never called, and handleSending puts it in a file
         let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
@@ -238,7 +243,7 @@ export class AliasV2 {
         //     rv.sendCallback = interpreter?.sendCallback
 
         for (let opt of Object.entries(opts)) {
-            delVar(`-${opt[0]}`, msg.author.id)
+            vars.delVar(`-${opt[0]}`, msg.author.id)
         }
 
         if (this.standardizeOpts) {
@@ -424,17 +429,17 @@ export class Interpreter {
         if (this.#pipeData) {
             //FIXME: using stdin as prefix can lead to race condition where if 2 people run pipes at the same time, the data may get jumbled.
             //possible solution: make all prefixes user based instead of accessed globally, then have just one __global__ prefix
-            setVar("content", this.#pipeData.content ?? "", "stdin", this.#msg.author.id)
-            setVar("status", statusCodeToStr(this.#pipeData.status), "stdin", this.#msg.author.id)
-            setVar("raw", JSON.stringify(this.#pipeData), "stdin", this.#msg.author.id)
+            vars.setVar("content", this.#pipeData.content ?? "", "stdin", this.#msg.author.id)
+            vars.setVar("status", statusCodeToStr(this.#pipeData.status), "stdin", this.#msg.author.id)
+            vars.setVar("raw", JSON.stringify(this.#pipeData), "stdin", this.#msg.author.id)
         }
     }
 
     #deletePipeDataVars() {
         if (this.#pipeData) {
-            delVar("content", "stdin", this.#msg.author.id)
-            delVar("status", "stdin", this.#msg.author.id)
-            delVar("raw", "stdin", this.#msg.author.id)
+            vars.delVar("content", "stdin", this.#msg.author.id)
+            vars.delVar("status", "stdin", this.#msg.author.id)
+            vars.delVar("raw", "stdin", this.#msg.author.id)
         }
     }
 
@@ -514,7 +519,7 @@ export class Interpreter {
         let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
         await int.interprate()
         token.data = int.args.join(" ")
-        let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars["__global__"] }, { timeout: 1000 })), token.argNo)
+        let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars.vars["__global__"] }, { timeout: 1000 })), token.argNo)
         return [t]
     }
     //esc sequence
@@ -617,7 +622,7 @@ export class Interpreter {
     //variable
     async [9](token: Token): Promise<Token[] | false> {
         let [varName, ifNull] = token.data
-        let _var = getVar(this.#msg, varName)
+        let _var = vars.getVar(this.#msg, varName)
         if (_var === false) {
             if (ifNull) {
                 return [new Token(T.str, ifNull, token.argNo)]
@@ -659,11 +664,11 @@ export class Interpreter {
     async sendDataToVariable(place: string, name: string, _data: CommandReturn) {
         let data = _data.content
         if (data) {
-            let oldData = getVar(this.#msg, name, place)
+            let oldData = vars.getVar(this.#msg, name, place)
             if (oldData === false) {
-                setVar(name, data, place, this.#msg.author.id)
+                vars.setVar(name, data, place, this.#msg.author.id)
             }
-            else setVar(name, oldData + "\n" + data, place, this.#msg.author.id)
+            else vars.setVar(name, oldData + "\n" + data, place, this.#msg.author.id)
         }
         return this.#msg
 
@@ -803,11 +808,11 @@ export class Interpreter {
         let m
         if (m = this.modifiers.filter(v => v instanceof RedirModifier)[0]?.data) {
             let [_all, place, name] = m
-            let data = getVar(this.#msg, name, place)
+            let data = vars.getVar(this.#msg, name, place)
             if (data !== false) {
                 data += getContentFromResult(rv, "\n")
             }
-            setVar(name, data, place, this.#msg.author.id)
+            vars.setVar(name, data, place, this.#msg.author.id)
             return { noSend: true, status: StatusCode.RETURN }
         }
         //handles the rv protocol
@@ -1020,15 +1025,15 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     if (rv.noSend) {
         //${%:?} should still be set despite nosend
-        if (rv.do_change_cmd_user_expansion !== false) setVar("?", rv.status, msg.author.id)
+        if (rv.do_change_cmd_user_expansion !== false) vars.setVar("?", rv.status, msg.author.id)
         return msg
     }
     //we only want to do this if the return cant expand into a cmd
     if (rv.do_change_cmd_user_expansion !== false) {
-        setVar("?", rv.status, msg.author.id)
+        vars.setVar("?", rv.status, msg.author.id)
         let c = getContentFromResult(rv, "\n")
-        setVar("_!", c, msg.author.id)
-        setVar("_!", c)
+        vars.setVar("_!", c, msg.author.id)
+        vars.setVar("_!", c)
     }
     if (rv.content && rv.do_change_cmd_user_expansion !== false) {
         //if not empty, save in the _! variable

@@ -14,7 +14,9 @@ import timer from '../timer'
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, MessageActionRow, MessageButton, MessageEmbed, Role, TextChannel, User } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
 import { choice, cmdCatToStr, cycle, downloadSync, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension } from '../util'
-import { addToPermList, ADMINS, BLACKLIST, client, getVar, prefix, setVar, setVarEasy, vars, removeFromPermList } from '../common'
+
+import vars from '../vars'
+import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
 import { isNaN } from 'lodash'
@@ -602,10 +604,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (args) {
                         for (let i = 0; i < commandLines.length; i++) {
                             let textAtLine = text[commandLines[i]]
-                            setVar("__ed_line", textAtLine, msg.author.id)
+                            vars.setVar("__ed_line", textAtLine, msg.author.id)
                             let rv = (await cmd({ msg, command_excluding_prefix: args, recursion: rec, returnJson: true, disable: bans })).rv
                             let t = getContentFromResult(rv, "\n").trim()
-                            delete vars[msg.author.id]["__ed_line"]
+                            vars.delVar("__ed_line", msg.author.id)
                             text[commandLines[i]] = t
                         }
                     }
@@ -2240,8 +2242,8 @@ class VarHolder:
     def __repr__(self):
         return repr(self.__dict__)
 null = None
-g = VarHolder(${JSON.stringify(vars['__global__'])})
-u = VarHolder(${JSON.stringify(vars[msg.author.id]) || "{}"})
+g = VarHolder(${JSON.stringify(vars.vars['__global__'])})
+u = VarHolder(${JSON.stringify(vars.vars[msg.author.id]) || "{}"})
 print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let moreDat = spawnSync("python3", ["-c", codeStr], {
                         timeout: 3000
@@ -2257,13 +2259,13 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 let ret: string = ""
                 try {
-                    ret = stringifyFn(safeEval(args.join(" "), { args: args, lastCommand: lastCommand[msg.author.id], g: vars["__global__"], u: vars[msg.author.id], ...generateDefaultRecurseBans() || {} }, { timeout: 3000 }))
+                    ret = stringifyFn(safeEval(args.join(" "), { args: args, lastCommand: lastCommand[msg.author.id], g: vars.vars["__global__"], u: vars.vars[msg.author.id], ...generateDefaultRecurseBans() || {} }, { timeout: 3000 }))
                 }
                 catch (err) {
                     console.log(err)
                 }
                 if (ret && ret.length) {
-                    setVar("__calc", ret, msg.author.id)
+                    vars.setVar("__calc", ret, msg.author.id)
                 }
                 return { content: ret, status: StatusCode.RETURN }
             },
@@ -2876,7 +2878,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (formatSpecifierList.filter(v => typeof v === 'string').length === formatSpecifierList.length) {
             rv.content = formatSpecifierList.join("")
             if (sendToVar) {
-                setVarEasy(msg, sendToVar, rv.content)
+                vars.setVarEasy(msg, sendToVar, rv.content)
             }
             return rv
         }
@@ -2899,7 +2901,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         rv.content = text
         if (sendToVar) {
-            setVarEasy(msg, sendToVar, rv.content)
+            vars.setVarEasy(msg, sendToVar, rv.content)
         }
         return rv
     }, CAT, "Similar to echo", {
@@ -3005,17 +3007,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     mainScope = msg.author.id
                     secondaryScope = "__global__"
                 }
-                let vardict = vars[mainScope]
+                let vardict = vars.vars[mainScope]
                 if (isNaN(parseFloat(vname))) {
-                    let vvalue = getVar(msg, vname, mainScope)
+                    let vvalue = vars.getVar(msg, vname, mainScope)
                     if (vvalue === false) {
-                        vardict = vars[secondaryScope]
-                        vvalue = getVar(msg, vname, secondaryScope)
+                        vardict = vars.vars[secondaryScope]
+                        vvalue = vars.getVar(msg, vname, secondaryScope)
                     }
                     if (vvalue === undefined) {
-                        vardict = vars[mainScope]
-                        setVar(vname, "0", mainScope)
-                        vvalue = getVar(msg, vname, mainScope)
+                        vardict = vars.vars[mainScope]
+                        vars.setVar(vname, "0", mainScope)
+                        vvalue = vars.getVar(msg, vname, mainScope)
                     }
                     varValRet = vvalue
                 }
@@ -3026,10 +3028,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 let op = args[1]
                 let expr = args[2]
                 if (expr && isNaN(parseFloat(expr))) {
-                    expr = getVar(msg, expr, mainScope)
+                    expr = vars.getVar(msg, expr, mainScope)
                     if (expr === undefined) {
-                        setVar(vname, "0", mainScope)
-                        expr = getVar(msg, expr, mainScope)
+                        vars.setVar(vname, "0", mainScope)
+                        expr = vars.getVar(msg, expr, mainScope)
                     }
                     if (expr === undefined) {
                         return { content: `var: **${expr}** does not exist`, status: StatusCode.ERR }

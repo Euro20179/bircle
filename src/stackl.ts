@@ -1,10 +1,11 @@
 import { Message, GuildMember, MessageEmbed, CollectorFilter, ColorResolvable } from 'discord.js'
-import { getVar } from './common'
+
+import vars from './vars'
 
 import { cmd, handleSending, StatusCode } from "./common_to_commands"
 import { efd, enumerate } from './util'
 
-const { vars, prefix } = require("./common.js")
+const { prefix } = require("./common.js")
 
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | MessageEmbed | CommandReturn
 type errType = { content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?: boolean }
@@ -590,7 +591,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof varName !== 'string') {
                 return { err: true, content: `${varName} is not a valid variable name` }
             }
-            if (vars["__global__"][varName]) {
+            if (vars.vars["__global__"][varName]) {
                 stack.push(1)
             }
             else {
@@ -603,7 +604,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof varName !== 'string') {
                 return { err: true, content: `${varName} is not a valid variable name` }
             }
-            if (vars[msg.author.id]?.[varName]) {
+            if (vars.vars[msg.author.id]?.[varName]) {
                 stack.push(1)
             }
             else {
@@ -620,8 +621,8 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof name !== 'string') {
                 return { err: true, content: `${name} is not a valid variable name` }
             }
-            if (vars["__global__"][name]) {
-                stack.push(getVar(msg, name))
+            if (vars.vars["__global__"][name]) {
+                stack.push(vars.getVar(msg, name))
             }
             else {
                 return { err: true, content: `${name} is not defined` }
@@ -1276,13 +1277,13 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (typeof ans === 'undefined') {
                     return { err: true, content: `Cannot save undefined as variable` }
                 }
-                vars["__global__"][arg] = ans
+                vars.vars["__global__"][arg] = ans
                 stack.push(ans)
             }
             else if (stack[stack.length - 1] == '%lvar') {
-                let value = getVar(msg, arg)
+                let value = vars.getVar(msg, arg)
                 if (typeof value === 'undefined') {
-                    value = getVar(msg, arg, msg.author.id)
+                    value = vars.getVar(msg, arg, msg.author.id)
                 }
                 if (typeof value === 'undefined') {
                     return { content: `var: **${arg}** does not exist`, err: true }
@@ -1304,9 +1305,9 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             else {
                 let value = ram[arg]
                 if (typeof value === 'undefined')
-                    value = getVar(msg, arg)
+                    value = vars.getVar(msg, arg)
                 if (typeof value === 'undefined') {
-                    value = getVar(msg, arg, msg.author.id)
+                    value = vars.getVar(msg, arg, msg.author.id)
                 }
                 if (arg.startsWith('"') && arg.endsWith('"')) {
                     value = arg.slice(1, -1)

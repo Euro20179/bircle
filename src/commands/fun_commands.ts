@@ -10,7 +10,8 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
-import { client, getVar, GLOBAL_CURRENCY_SIGN, prefix, setVar } from "../common";
+import vars from '../vars';
+import { client,  GLOBAL_CURRENCY_SIGN, prefix } from "../common";
 import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -299,7 +300,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
 
     yield ["use-item", createCommandV2(async ({ args, msg, opts }) => {
-        let recipes: [[string, string?], () => CommandReturn][] = [
+        let recipes: [[string, ...string[]], () => CommandReturn][] = [
             [["balanced breakfast"], () => {
                 let pets = pet.getUserPets(msg.author.id)
                 let petShop = pet.getPetShop()
@@ -2093,12 +2094,12 @@ Valid formats:
                 return crv(`You cannot affort to go to ${userGoingTo}`)
             }
 
-            let beenTo = getVar(msg, "visited-countries", '!stats', msg.author.id)
+            let beenTo = vars.getVar(msg, "visited-countries", '!stats', msg.author.id)
             if (beenTo === false) {
                 beenTo = userGoingTo + ","
             }
             else if (!beenTo.includes(userGoingTo + ",")) beenTo += userGoingTo + ","
-            setVar("visited-countries", beenTo, "!stats", msg.author.id)
+            vars.setVar("visited-countries", beenTo, "!stats", msg.author.id)
 
             //TODO: add this when there are a lot more locations
             // if(beenTo.slice(0, -1) === Object.keys(defaultCountries).reduce((p, c) => p + `${c},`, "0")){

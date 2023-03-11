@@ -1,12 +1,14 @@
 import fs from 'fs'
 
+import vars from '../vars'
+
 import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import economy = require("../economy")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
-import { addToPermList, addUserMatchCommand, ADMINS, client, delVar, FILE_SHORTCUTS, getUserMatchCommands, getVar, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, saveVars, setVar, setVarEasy, vars, VERSION, WHITELIST } from "../common"
+import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList } from "../util"
 import { Guild, Message, MessageEmbed, User } from "discord.js"
 import { registerCommand } from "../common_to_commands"
@@ -31,7 +33,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         let oldAuthor = msg.author
         msg.author = user
-        let res = getVar(msg, args[0])
+        let res = vars.getVar(msg, args[0])
         msg.author = oldAuthor
 
         if(res === false){
@@ -459,7 +461,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let names = args
                 let deleted = []
                 for (let name of names) {
-                    if(delVar(name, prefix, msg.author.id, false)){
+                    if(vars.delVar(name, prefix, msg.author.id, false)){
                         deleted.push(name)
                     }
                 }
@@ -489,7 +491,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "savev",
         {
             run: async (_msg, _args, sendCallback) => {
-                saveVars()
+                vars.saveVars()
                 return { content: "Variables saved", status: StatusCode.RETURN }
             }, category: CAT,
             help: {
@@ -695,7 +697,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let id = Math.floor(Math.random() * 100000000)
             globals.SPAMS[id] = true
             outer: for (let i = start; i < end; i++) {
-                setVar(var_name, String(i), msg.author.id)
+                vars.setVar(var_name, String(i), msg.author.id)
                 for (let line of scriptLines) {
                     await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
                     await new Promise(res => setTimeout(res, 1000))
@@ -1272,12 +1274,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "variablize", createCommand(async (msg, _, sc, opts, args) => {
-            let vars = args
-            let str = vars.map(v => {
+            let reqVars = args
+            let str = reqVars.map(v => {
                 if (v.startsWith("\\")) {
                     return v.slice(1)
                 }
-                return getVar(msg, v)
+                return vars.getVar(msg, v)
             }).join(" ")
             return { content: str, status: StatusCode.RETURN }
         }, CAT, "Each arg in the arguments is treated as a string, unless it starts with \\"),
@@ -1828,12 +1830,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     scope = msg.author.id
                 }
                 else if (scope == ".") {
-                    let v = getVar(msg, name)
+                    let v = vars.getVar(msg, name)
                     if (v)
                         return { content: String(v), status: StatusCode.RETURN }
                     else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
                 }
-                let v = getVar(msg, name, scope)
+                let v = vars.getVar(msg, name, scope)
                 if (v)
                     return { content: String(v), status: StatusCode.RETURN }
                 else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
@@ -1863,18 +1865,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     prefix = "__global__"
                 }
                 if (opts['u']) {
-                    setVar(name, realVal, msg.author.id)
+                    vars.setVar(name, realVal, msg.author.id)
                     if (!opts['silent'])
                         return {
-                            content: getVar(msg, name, msg.author.id),
+                            content: vars.getVar(msg, name, msg.author.id),
                             status: StatusCode.RETURN
                         }
                 }
                 else {
-                    setVarEasy(msg, realName, realVal, prefix)
+                    vars.setVarEasy(msg, realName, realVal, prefix)
                     if (!opts['silent'])
                         return {
-                            content: getVar(msg, name),
+                            content: vars.getVar(msg, name),
                             status: StatusCode.RETURN
                         }
                 }
@@ -2191,7 +2193,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             return { content: "failed to expand alias", status: StatusCode.ERR }
         }
         for (let opt of Object.entries(opts)) {
-            delVar(`-${opt[0]}`, msg.author.id)
+            vars.delVar(`-${opt[0]}`, msg.author.id)
         }
         if(opts.getBool('e', false)){
             //-1 because chain starts with the original alias

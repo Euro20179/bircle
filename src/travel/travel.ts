@@ -10,7 +10,8 @@ import user_options from '../user-options'
 
 import achievements from '../achievements'
 
-import { getVar, GLOBAL_CURRENCY_SIGN } from "../common"
+import { GLOBAL_CURRENCY_SIGN } from "../common"
+import vars from '../vars'
 import { giveItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
 
@@ -248,7 +249,7 @@ class UnitedStates extends Country {
 
     async museumOfLiberty({ msg }: CommandV2RunArg) {
         let sign = this.getSign(msg)
-        if (getVar(msg, "!retire:retired")) {
+        if (vars.getVar(msg, "!retire:retired")) {
             giveItem(msg.author.id, "bald eagle", 1)
             await handleSending(msg, crv("Since you are retired you get a free bald eagle!!!!"))
         }

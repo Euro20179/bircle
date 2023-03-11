@@ -1,4 +1,4 @@
-import { getVar } from "./common";
+import vars from "./vars";
 import { Interpreter } from "./common_to_commands";
 import { Parser, T, Token } from "./parsing";
 import { listComprehension } from "./util";
@@ -97,7 +97,7 @@ export default {
             scope = int.getMessage().author.id
         }
         else if (scope == ".") {
-            let v = getVar(int.getMessage(), name)
+            let v = vars.getVar(int.getMessage(), name)
             if (v !== false) {
                 return [new Token(T.str, v, token.argNo)]
             }
@@ -106,13 +106,13 @@ export default {
         else if (!name) {
             //@ts-ignore
             name = scope
-            let v = getVar(int.getMessage(), name)
+            let v = vars.getVar(int.getMessage(), name)
             if (v !== false) {
                 return [new Token(T.str, v, token.argNo)]
             }
             return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
         }
-        let v = getVar(int.getMessage(), name, scope)
+        let v = vars.getVar(int.getMessage(), name, scope)
         if (v !== false) {
             return [new Token(T.str, v, token.argNo)]
         }
@@ -127,9 +127,9 @@ export default {
             let args = int.getMessage().content.split(" ")
             return [new Token(T.str, String(args[num]), token.argNo)]
         }
-        let v = getVar(int.getMessage(), sequence, int.getMessage().author.id)
+        let v = vars.getVar(int.getMessage(), sequence, int.getMessage().author.id)
         if (v === false)
-            v = getVar(int.getMessage(), sequence)
+            v = vars.getVar(int.getMessage(), sequence)
         if (v !== false) {
             return [new Token(T.str, v, token.argNo)]
         }

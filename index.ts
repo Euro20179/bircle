@@ -35,7 +35,9 @@ import { saveItems, hasItem } from './src/shop'
 
 import user_options from './src/user-options'
 
-let { client, purgeSnipe, prefix, BLACKLIST, saveVars } = require("./src/common")
+let { client, purgeSnipe, prefix, BLACKLIST } = require("./src/common")
+
+import vars from './src/vars'
 
 const rest = new REST({ version: "9" }).setToken(globals.token);
 
@@ -121,7 +123,7 @@ setInterval(() => {
     economy.saveEconomy()
     saveItems()
     pet.savePetData()
-    saveVars()
+    vars.saveVars()
     timer.saveTimers()
 }, 30000)
 
@@ -681,7 +683,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         case "end": {
             economy.saveEconomy()
             saveItems()
-            saveVars()
+            vars.saveVars()
             pet.savePetData()
             client.destroy()
             res.writeHead(200)
