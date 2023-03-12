@@ -19,16 +19,16 @@ import fetch from 'node-fetch'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
-    yield ["get-var", ccmdV2(async function({args, opts, msg}){
+    yield ["get-var", ccmdV2(async function({ args, opts, msg }) {
         let as = opts.getString("as", msg.author.id)
         let user: undefined | User = msg.author
-        if(msg.guild){
+        if (msg.guild) {
             user = (await fetchUser(msg.guild, as))?.user
         }
         else
             user = await fetchUserFromClient(client, as)
-        if(!user){
-            return {content: `Cannot find user ${as}`, status: StatusCode.ERR}
+        if (!user) {
+            return { content: `Cannot find user ${as}`, status: StatusCode.ERR }
         }
 
         let oldAuthor = msg.author
@@ -36,8 +36,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let res = vars.getVar(msg, args[0])
         msg.author = oldAuthor
 
-        if(res === false){
-            return {noSend: true, status: StatusCode.ERR}
+        if (res === false) {
+            return { noSend: true, status: StatusCode.ERR }
         }
 
 
@@ -50,7 +50,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             as: createHelpOption("The user to get the variable from")
         }
     })]
-    
+
 
     yield ["stdin", createCommandV2(async ({ stdin, args }) => {
         let result: any = stdin
@@ -161,7 +161,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 else if (matches[cmd]) {
                     res.push("match")
                 }
-                else if (userMatches.get(cmd)){
+                else if (userMatches.get(cmd)) {
                     res.push("user-match")
                 }
                 else if (cmds.get(cmd)) {
@@ -279,7 +279,30 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 return { content: text.join("\n--------------------\n"), status: StatusCode.RETURN }
             }
+            if (opts['i'] || opts['import']) {
+                let att = msg.attachments.at(0)
+                if (!att) {
+                    return crv("No json attachment", { status: StatusCode.ERR })
+                }
+                let res = await fetch(att.url)
+                let data
+                try {
+                    data = await res.json()
+                }
+                catch (err) {
+                    return crv("Could not read json file", { status: StatusCode.ERR })
+                }
+                if(!data) return crv('Could not read json file', {status: StatusCode.ERR})
+                user_options.getUserOptions()[msg.author.id] = data
+                return crv(`Loaded: ${JSON.stringify(data)}`, {status: StatusCode.RETURN})
+            }
             let userOpts = user_options.getUserOptions()[user]
+            if (opts['e'] || opts['export']) {
+                return {
+                    content: JSON.stringify(userOpts),
+                    status: StatusCode.RETURN
+                }
+            }
             let optionToCheck = args.join(" ").toLowerCase()
             let validOpt = user_options.isValidOption(optionToCheck)
             if (validOpt) {
@@ -295,7 +318,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 "option": createHelpArgument("The option to check the value of", false)
             }, {
             l: createHelpOption("List the options and values, if a value is given, get the value of that option"),
-            h: createHelpOption("List the options, and give help for them<br>if args are given, give help for those opts")
+            h: createHelpOption("List the options, and give help for them<br>if args are given, give help for those opts"),
+            e: createHelpOption("Export options", ['export']),
+            i: createHelpOption("Import options", ['import'])
         }),
     ]
 
@@ -461,7 +486,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let names = args
                 let deleted = []
                 for (let name of names) {
-                    if(vars.delVar(name, prefix, msg.author.id, false)){
+                    if (vars.delVar(name, prefix, msg.author.id, false)) {
                         deleted.push(name)
                     }
                 }
@@ -501,43 +526,43 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "cmd-search", ccmdV2(async function({args, opts}){
-                let search = args.join(" ")
-                let commands = { ...Object.fromEntries(getCommands().entries()), }
+        "cmd-search", ccmdV2(async function({ args, opts }) {
+            let search = args.join(" ")
+            let commands = { ...Object.fromEntries(getCommands().entries()), }
 
-                let top = opts.getNumber("top", 10)
+            let top = opts.getNumber("top", 10)
 
-                let mainTopCount = top / 2
-                let infoTopCount = top / 2
+            let mainTopCount = top / 2
+            let infoTopCount = top / 2
 
-                if(opts.getBool("ei", opts.getBool("exclude-info", false))){
-                    mainTopCount = top
-                    infoTopCount = 0
-                }
-                else if(opts.getBool("in", opts.getBool("include-names", false))){
-                    mainTopCount = 0
-                    infoTopCount = top
-                }
+            if (opts.getBool("ei", opts.getBool("exclude-info", false))) {
+                mainTopCount = top
+                infoTopCount = 0
+            }
+            else if (opts.getBool("in", opts.getBool("include-names", false))) {
+                mainTopCount = 0
+                infoTopCount = top
+            }
 
-                let allResults: [string, number][] = []
+            let allResults: [string, number][] = []
 
-                if(mainTopCount > 0){
-                    let results = searchList(search, Object.keys(commands))
-                    let sortedResults = Object.entries(results).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, mainTopCount)
-                    allResults = sortedResults
-                }
+            if (mainTopCount > 0) {
+                let results = searchList(search, Object.keys(commands))
+                let sortedResults = Object.entries(results).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, mainTopCount)
+                allResults = sortedResults
+            }
 
-                if(infoTopCount > 0){
-                    let infos = Object.entries(commands).map(v => `${v[0]}\n${v[1].help?.info || ""}`)
-                    let infoResults = searchList(search, infos)
-                    let sortedInfoResults = Object.entries(infoResults).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, infoTopCount)
-                    allResults = allResults.concat(sortedInfoResults)
-                }
+            if (infoTopCount > 0) {
+                let infos = Object.entries(commands).map(v => `${v[0]}\n${v[1].help?.info || ""}`)
+                let infoResults = searchList(search, infos)
+                let sortedInfoResults = Object.entries(infoResults).filter(v => v[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, infoTopCount)
+                allResults = allResults.concat(sortedInfoResults)
+            }
 
-                if(!allResults.length){
-                    return crv("No results", {status: StatusCode.ERR})
-                }
-                return crv(allResults.reduce((p, cur) => `${p}\n--------------------\n${renderHTML(cur[0])} (${cur[1]})`, ""), {status: StatusCode.RETURN})
+            if (!allResults.length) {
+                return crv("No results", { status: StatusCode.ERR })
+            }
+            return crv(allResults.reduce((p, cur) => `${p}\n--------------------\n${renderHTML(cur[0])} (${cur[1]})`, ""), { status: StatusCode.RETURN })
         }, "Search for commands with a search query", {
             helpOptions: {
                 top: createHelpOption("Show for the top <code>n</code> results", undefined, "10"),
@@ -1656,7 +1681,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "remove-match-cmd", ccmdV2(async function({ msg, args }) {
-            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let name = args[0]
             let userCmds = getUserMatchCommands().get(msg.author.id)
             if (!userCmds) {
@@ -1858,10 +1883,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 let realVal = value.join("=")
                 let [prefix, realName] = name.split(":")
-                if(prefix && realName && prefix.startsWith("!")){
-                    return {content: `prefix cannot start with !`, status: StatusCode.ERR}
+                if (prefix && realName && prefix.startsWith("!")) {
+                    return { content: `prefix cannot start with !`, status: StatusCode.ERR }
                 }
-                else if(!realName){
+                else if (!realName) {
                     realName = prefix
                     prefix = "__global__"
                 }
@@ -1903,7 +1928,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "remove",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
                 //@ts-ignore
                 const file = FILE_SHORTCUTS[args[0]] || args[0]
 
@@ -2197,9 +2222,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         for (let opt of Object.entries(opts)) {
             vars.delVar(`-${opt[0]}`, msg.author.id)
         }
-        if(opts.getBool('e', false)){
+        if (opts.getBool('e', false)) {
             //-1 because chain starts with the original alias
-            return {content: String(chain.length - 1), status: StatusCode.RETURN}
+            return { content: String(chain.length - 1), status: StatusCode.RETURN }
         }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
@@ -2281,7 +2306,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             getAliasesV2(true)
             return { content: `Removed: ${cmdName}`, status: StatusCode.RETURN }
         }
-        else if(aliases[cmdName]){
+        else if (aliases[cmdName]) {
             await handleSending(msg, crv(`${cmdName} is an aliasv1, running \`rccmdv1 ${cmdName}\``, {
                 status: StatusCode.WARNING
             }))
@@ -2581,16 +2606,16 @@ ${styles}
 
         let aliasV2s = getAliasesV2()
 
-        if(opts.getBool("rename", false)){
+        if (opts.getBool("rename", false)) {
             let [oldAlias, newName] = args
 
             let alias = aliasV2s[oldAlias]
-            if(!alias){
-                return crv(`${oldAlias} is not an aliasv2`, {status: StatusCode.ERR})
+            if (!alias) {
+                return crv(`${oldAlias} is not an aliasv2`, { status: StatusCode.ERR })
             }
 
-            if(alias.creator !== msg.author.id){
-                return crv("You did not create this alias, and cannot rename it", {status: StatusCode.ERR})
+            if (alias.creator !== msg.author.id) {
+                return crv("You did not create this alias, and cannot rename it", { status: StatusCode.ERR })
             }
 
             aliasV2s[newName] = alias
@@ -2779,7 +2804,7 @@ ${styles}
         } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024) }), status: StatusCode.RETURN }
     }, CAT, "Gets info about the process")]
 
-    yield [ "aliasv1", ccmdV2(async() => crv("Creating alias v1s is disabled, used `alias` instead", {status: StatusCode.ERR}), "disabled") ]
+    yield ["aliasv1", ccmdV2(async () => crv("Creating alias v1s is disabled, used `alias` instead", { status: StatusCode.ERR }), "disabled")]
 
     yield [
         "!!",
@@ -2807,7 +2832,7 @@ ${styles}
         },
     ]
 
-    yield [ "ping", ccmdV2(async({msg}) => crv( `${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`), "Gets the bot's ping (very accurate)") ]
+    yield ["ping", ccmdV2(async ({ msg }) => crv(`${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`), "Gets the bot's ping (very accurate)")]
 
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
@@ -2938,7 +2963,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
 
     yield [
         "shell", ccmdV2(async function({ args, msg, recursionCount, commandBans, sendCallback }) {
-            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             if (globals.userUsingCommand(msg.author.id, "shell")) {
                 return { content: "You are already using this command", status: StatusCode.ERR }
             }
