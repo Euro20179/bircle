@@ -336,8 +336,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return crv("You sniff the baguette but are dissapointed because it is stale")
             }],
             [["a fine quarter"], () => {
-                economy.addMoney(msg.author.id, 0.26)
-                return { content: "You were about to earn 25 cents, but since it is a fine quarter you get 26 cents :+1:", status: StatusCode.RETURN }
+                let amount = economy.economyLooseGrandTotal().total
+                economy.addMoney(msg.author.id, amount * 0.0026)
+                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} :+1:`, status: StatusCode.RETURN }
             }],
             [["pirate's gold tooth", "a fine quarter"], () => {
                 giveItem(msg.author.id, "pawn shop", 1)
