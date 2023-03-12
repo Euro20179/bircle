@@ -333,6 +333,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             ],
             [["ghostly's nose", "baguette"], () => {
+                let ach = achievements.achievementGet(msg, "stale bread")
+                if(ach){
+                    handleSending(msg, ach)
+                }
                 return crv("You sniff the baguette but are dissapointed because it is stale")
             }],
             [["a fine quarter"], () => {
