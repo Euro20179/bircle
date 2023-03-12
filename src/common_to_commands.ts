@@ -748,6 +748,9 @@ export class Interpreter {
             }
             if (canRun) {
 
+                let varname =  `!stats:cmd-usage.${this.real_cmd}`
+                vars.setVarEasy(this.#msg, varname, String(Number(vars.getVar(this.#msg, varname)) + 1))
+
                 if (this.#shouldType || cmdObject?.make_bot_type)
                     //@ts-ignore
                     await this.#msg.channel.sendTyping()
