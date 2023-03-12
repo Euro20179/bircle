@@ -176,7 +176,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
-        let isRetired = economy.isRetired(msg, msg.author.id)
+        let isRetired = economy.isRetired( msg.author.id)
         let firstTime = false
         if (!timer.getTimer(msg.author.id, "%retirement-activity")) {
             firstTime = true

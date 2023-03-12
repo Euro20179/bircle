@@ -16,7 +16,7 @@ let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
-function isRetired(msg: Message, id: string) {
+function isRetired(id: string) {
     return ECONOMY[id]?.retired
 }
 

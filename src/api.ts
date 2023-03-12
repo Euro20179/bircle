@@ -34,6 +34,10 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         requirements: ["id"],
         exec: async({ id }: {id: string}) => timer.has_x_s_passed(id, "%can-earn", 60)
     },
+    isRetired: {
+        requirements: ["id"],
+        exec: async({ id }: {id: string}) => economy.isRetired(id)
+    },
     listPets:  {
         requirements: [],
         exec: async() => Object.keys(pet.getPetShop()).join("\n")
