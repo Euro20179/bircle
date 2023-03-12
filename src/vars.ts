@@ -20,7 +20,7 @@ let defaultVars = {
 
 for (let v of allowedOptions) {
     //@ts-ignore
-    defaultVars[`__${v.replaceAll("-", "_")}`] = (msg: Message) => getOpt(msg.author.id, v, "unset")
+    defaultVars[`__${v.replaceAll("-", "_")}`] = (msg: Message) => getOpt(msg.author.id, v, false)
 }
 
 let vars: { [key: string]: { [key: string]: Function | any } } = {
