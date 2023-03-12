@@ -46,7 +46,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield ["retire", ccmdV2(async function({ msg }) {
         let percentage = economy.playerLooseNetWorth(msg.author.id) / economy.economyLooseGrandTotal().total
         if (percentage >= 0.5) {
-            vars.setVar('retired', 'true', '!retire', msg.author.id)
+            economy.retirePlayer(msg.author.id)
             return crv("CONGRATS, you retired")
         }
         vars.setVar('retired', 'false', '!retire', msg.author.id)

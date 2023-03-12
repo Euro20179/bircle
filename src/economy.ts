@@ -11,13 +11,13 @@ import timer from "./timer"
 
 type Stock = { buyPrice: number, shares: number }
 
-export type EconomyData = { money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
+export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
 function isRetired(msg: Message, id: string) {
-    return vars.getVar(msg, 'retired', '!retire', id) === 'true' ? true : false
+    return ECONOMY[id]?.retired
 }
 
 
@@ -123,7 +123,7 @@ function newLottery() {
 
 function createPlayer(id: string, startingCash = 100) {
     timer.createTimer(id, "%can-earn")
-    ECONOMY[id] = { money: startingCash, stocks: {} }
+    ECONOMY[id] = { money: startingCash, stocks: {}, retired: false }
 }
 
 function addMoney(id: string, amount: number) {
@@ -454,12 +454,15 @@ function calculateAmountFromString(id: string, amount: string, extras?: { [key: 
 
 function resetEconomy() {
     ECONOMY = {}
-    for(let user in vars.vars){
-        vars.delVar('retired', '!retire', user)
-    }
-    vars.saveVars()
     saveEconomy()
     loadEconomy()
+}
+
+function retirePlayer(id: string){
+    if(!ECONOMY[id]){
+        return false
+    }
+    return ECONOMY[id].retired = true
 }
 
 function resetPlayer(id: string) {
@@ -632,6 +635,7 @@ export default {
     setUserStockSymbol,
     increaseSandCounter,
     getSandCounter,
-    isRetired
+    isRetired,
+    retirePlayer
     // tradeItems
 }
