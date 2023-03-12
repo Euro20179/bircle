@@ -127,7 +127,7 @@ setInterval(() => {
 }, 30000)
 
 client.on(Events.MessageCreate, async (m: Message) => {
-    if(!isMsgChannel(m.channel)) return
+    if (!isMsgChannel(m.channel)) return
     if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {
         return
     }
@@ -289,7 +289,7 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 return
             }
             interaction.reply(`Attacking ${user}...`).catch(console.error)
-            if(interaction.channel && isMsgChannel(interaction.channel))
+            if (interaction.channel && isMsgChannel(interaction.channel))
                 interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
         }
         else if (interaction.commandName === 'md') {
@@ -399,9 +399,9 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                     }
                 }
             }
-            let rock = new ButtonBuilder({ customId: `button.rock:${opponent}`, label: "rock", style: ButtonStyle.Primary})
-            let paper = new ButtonBuilder({ customId: `button.paper:${opponent}`, label: "paper", style: ButtonStyle.Primary})
-            let scissors = new ButtonBuilder({ customId: `button.scissors:${opponent}`, label: "scissors", style: ButtonStyle.Primary})
+            let rock = new ButtonBuilder({ customId: `button.rock:${opponent}`, label: "rock", style: ButtonStyle.Primary })
+            let paper = new ButtonBuilder({ customId: `button.paper:${opponent}`, label: "paper", style: ButtonStyle.Primary })
+            let scissors = new ButtonBuilder({ customId: `button.scissors:${opponent}`, label: "scissors", style: ButtonStyle.Primary })
             globals.BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             globals.BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
             globals.BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
@@ -584,21 +584,10 @@ function _handlePost(req: http.IncomingMessage, res: http.ServerResponse) {
     })
 }
 
-function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
-    let url = req.url
-    if (!url) {
-        res.writeHead(404)
-        res.end(JSON.stringify({ err: "Page not found" }))
-        return
-    }
-    let paramsStart = url.indexOf("?")
-    let path = url.slice(0, paramsStart > -1 ? paramsStart : undefined)
-    let urlParams: URLSearchParams | null = new URLSearchParams(url.slice(paramsStart))
-    if (paramsStart == -1) {
-        urlParams = null
-    }
-    let [_blank, mainPath, ...subPaths] = path.split("/")
-    switch (mainPath) {
+function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
+    let [apiEndPoint] = subPaths
+    subPaths = subPaths.splice(1)
+    switch (apiEndPoint) {
         case "option": {
             let userId = subPaths[0] ?? urlParams?.get("user-id")
             if (!userId) {
@@ -716,6 +705,34 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 res.end(JSON.stringify({ error: "Channel not found" }))
             })
             break
+        }
+
+    }
+
+}
+
+function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
+    let url = req.url
+    if (!url) {
+        res.writeHead(404)
+        res.end("Page not found")
+        return
+    }
+    let paramsStart = url.indexOf("?")
+    let path = url.slice(0, paramsStart > -1 ? paramsStart : undefined)
+    let urlParams: URLSearchParams | null = new URLSearchParams(url.slice(paramsStart))
+    if (paramsStart == -1) {
+        urlParams = null
+    }
+    let [_blank, mainPath, ...subPaths] = path.split("/")
+    switch (mainPath) {
+        case "": {
+            res.writeHead(200)
+            res.end("<p>hi</p>")
+            break;
+        }
+        case "api": {
+            return _apiSubPath(req, res, subPaths, urlParams)
         }
         default:
             res.writeHead(404)

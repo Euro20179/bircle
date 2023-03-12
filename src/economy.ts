@@ -3,8 +3,6 @@ import { Message } from "discord.js"
 import { max, min } from "lodash"
 import fetch = require("node-fetch")
 
-import vars from "./vars"
-
 import pet from "./pets"
 import timer from "./timer"
 
