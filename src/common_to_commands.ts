@@ -349,7 +349,6 @@ export async function cmd({
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
-        console.log(pipeData)
         let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData)
         //this previously ored to false
         rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
@@ -502,7 +501,8 @@ export class Interpreter {
             command_excluding_prefix: data,
             disable: this.disable,
             recursion: this.recursion + 1,
-            returnJson: true
+            returnJson: true,
+            pipeData: this.getPipeData()
         })).rv
         let rv = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
