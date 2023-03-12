@@ -178,7 +178,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!role) {
                 return { content: "Could not find role", status: StatusCode.ERR }
             }
-            if(!msg.guild){
+            if (!msg.guild) {
                 return crv(`You must run this from a server`)
             }
             let member: GuildMember | undefined = await fetchUser(msg.guild, user)
@@ -300,8 +300,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (opts['s']) {
                 fn = function() { return generateCommandSummary(arguments[0], arguments[1]) + "\n---------------------\n" }
             }
-            else if(opts['d']){
-                fn = function() { return generateDocSummary(arguments[0], arguments[1]) + "\n---------------------\n"}
+            else if (opts['d']) {
+                fn = function() { return generateDocSummary(arguments[0], arguments[1]) + "\n---------------------\n" }
             }
             else if (opts['html']) {
                 fn = function() { return generateHTMLFromCommandHelp(arguments[0], arguments[1]) + "<br>" }
@@ -352,7 +352,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "ed", createCommand(async (msg, args, _, __, ___, rec, bans) => {
-            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             if (globals.EDS[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
             }
@@ -940,20 +940,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "gapet",
-        {
-            run: async (msg, args, sendCallback) => {
-                let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild ?? undefined)
-                if(!user) return crv(`Could not find user: ${args[0]}`, {status: StatusCode.ERR})
-                return { content: String(pet.getActivePet(user.id || "")), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Gets the current active pet of a user",
-                arguments: {
-                    user: createHelpArgument("The user to get the active pet of", false, undefined, "Yourself")
-                }
+        "gapet", ccmdV2(async function({ args, msg }) {
+            let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild ?? undefined)
+            if (!user) return crv(`Could not find user: ${args[0]}`, { status: StatusCode.ERR })
+            return { content: String(pet.getActivePet(user.id || "")), status: StatusCode.RETURN }
+
+        }, "Gets the current active pet of a user", {
+            helpArguments: {
+                user: createHelpArgument("The user to get the active pet of", false, undefined, "Yourself")
             }
-        },
+        })
     ]
 
     yield [
@@ -1590,7 +1586,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
 
                 let next_page = new ButtonBuilder({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: ButtonStyle.Primary })
-                let last_page = new ButtonBuilder({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary})
+                let last_page = new ButtonBuilder({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary })
 
                 let action_row = new ActionRowBuilder<ButtonBuilder>()
                 action_row.addComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
@@ -2151,7 +2147,7 @@ The order these are given does not matter, excpet for field, which will be added
     ]
 
     yield ["sh", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
-        if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         const cmd = spawn("bash")
         let dataToSend = ""
         let sendingTimeout: NodeJS.Timeout | undefined = undefined;
@@ -2187,7 +2183,7 @@ The order these are given does not matter, excpet for field, which will be added
     }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id))]
 
     yield ["qalc", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
-        if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
         if ((opts.getBool("repl", false) || opts.getBool("r", false) || opts.getBool("interactive", false)) && !globals.IN_QALC.includes(msg.author.id)) {
             globals.IN_QALC.push(msg.author.id)
             const cmd = spawn("qalc", argList)
@@ -3630,11 +3626,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 <li>f: format</li>
 <li#: tags</li>
 </ul>`,
-        helpArguments:{
+        helpArguments: {
             sticker: createHelpArgument("The sticker to use", true),
             fmt: createHelpArgument("The format specifier", false, "{embed}")
         }
-    }, )]
+    },)]
 
     yield [
         "user-info!", ccmdV2(async function({ msg, args }) {
