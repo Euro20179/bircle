@@ -13,7 +13,7 @@ import timer from '../timer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild } from '../util'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
@@ -943,9 +943,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "gapet",
         {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
-                let user = await fetchUser(msg.guild, args[0] || msg.author.id)
-                return { content: String(pet.getActivePet(user?.user.id || "")), status: StatusCode.RETURN }
+                let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild ?? undefined)
+                if(!user) return crv(`Could not find user: ${args[0]}`, {status: StatusCode.ERR})
+                return { content: String(pet.getActivePet(user.id || "")), status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {
                 info: "Gets the current active pet of a user",
