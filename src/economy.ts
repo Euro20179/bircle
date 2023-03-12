@@ -454,6 +454,10 @@ function calculateAmountFromString(id: string, amount: string, extras?: { [key: 
 
 function resetEconomy() {
     ECONOMY = {}
+    for(let user in vars.vars){
+        vars.delVar('retired', '!retire', user)
+    }
+    vars.saveVars()
     saveEconomy()
     loadEconomy()
 }
