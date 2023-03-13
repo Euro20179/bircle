@@ -18,6 +18,15 @@ if(fs.existsSync("./data/valid-api-keys.key")){
     VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
 }
 
+function sendFile(res: http.ServerResponse, fp: string){
+    let stat = fs.statSync(fp)
+    res.writeHead(200, {"Content-Type": "text/html", "Content-Length": stat.size})
+    let stream = fs.createReadStream(fp)
+    stream.pipe(res).on("finish", () => {
+        res.end()
+    })
+}
+
 
 export const server = http.createServer()
 server.listen(8222)
@@ -319,46 +328,23 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
     let [_blank, mainPath, ...subPaths] = path.split("/")
     switch (mainPath) {
         case "": {
-            let stat = fs.statSync("./website/home.html")
-            res.writeHead(200, {"Content-Type": "text/html", "Content-Length": stat.size})
-            let stream = fs.createReadStream("./website/home.html")
-            stream.pipe(res).on("finish", () => {
-                res.end()
-            })
+            sendFile(res, "./website/home.html")
             break;
         }
         case "help-styles.css": {
-            let stat = fs.statSync("./help-styles.css")
-            res.writeHead(200, {"Content-Length": stat.size})
-            let stream = fs.createReadStream("./help-styles.css")
-            stream.pipe(res).on("finish", () => {
-                res.end()
-            })
+            sendFile(res, "./help-styles.css")
             break;
         }
         case "main.css": {
-            let stat = fs.statSync("./website/main.css")
-            res.writeHead(200, {"Content-Length": stat.size})
-            let stream = fs.createReadStream("./website/main.css")
-            stream.pipe(res).on("finish", () => {
-                res.end()
-            })
+            sendFile(res, "./website/main.css")
             break;
-
         }
         case "home.js": {
-            let stat = fs.statSync("./website/home.js")
-            res.writeHead(200, {"Content-Length": stat.size})
-            let stream = fs.createReadStream("./website/home.js")
-            stream.pipe(res).on("finish", () => {
-                res.end()
-            })
+            sendFile(res, "./website/js/home.js")
             break;
-
         }
         case "leaderboard": {
             break;
-
         }
         case "commands": {
                 let commands = common_to_commands.getCommands()
