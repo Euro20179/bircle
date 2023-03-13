@@ -346,6 +346,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         case "commands": {
                 let category = subPaths[0]
                 let search = urlParams?.get("search")
+                let cmdToGet = urlParams?.get("cmd")
                 let cmds = common_to_commands.getCommands()
                 let commands = Array.from(cmds.entries())
                 if(category)
@@ -353,16 +354,20 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 if(search){
                     let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
                     let results = searchList(search, infos, true)
-                    commands = listComprehension(Object.entries(results).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
+                    commands = listComprehension(Object.entries(results).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
                         name = name.split("\n")[0]
                         return [`${name} <span class='cmd-search-strength'>(${strength})</span>`, common_to_commands.getCommands().get(name) as Command | CommandV2]
                     }))
                 }
-                let html = '<link rel="stylesheet" href="/help-styles.css"><body><input type="text" id="search-box" placeholder="search"><section>'
+                else if(cmdToGet){
+                    commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as Command | CommandV2]]
+                }
+                let html = '<link rel="stylesheet" href="/commands.css"><body><input type="text" id="search-box" placeholder="search"><main>'
                 for (let [name, command] of commands) {
+                    if(!command) continue
                     html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
                 }
-                html += "</section></body><script src='/commands.js'></script>"
+                html += "</main></body><script src='/commands.js'></script>"
                 res.writeHead(200)
                 res.end(html)
                 break;
