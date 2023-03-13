@@ -39,7 +39,6 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
     switch (mainPath) {
         case "run": {
             let command = body
-            let shouldSend = urlParams?.get("send")
             if (!command) {
                 res.writeHead(400)
                 res.end(JSON.stringify({ error: "No post body given" }))
@@ -114,17 +113,10 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     _cacheType: false,
                     _patch: (_data: any) => { }
                 }
+                //@ts-ignore
+                //prevents from sending to chat
+                channel.send = (async() => msg).bind(channel)
                 common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true }).then(rv => {
-                    if (shouldSend) {
-                        common_to_commands.handleSending(msg, rv.rv as CommandReturn).then(_done => {
-                            res.writeHead(200)
-                            res.end(JSON.stringify(rv))
-                        }).catch(_err => {
-                            res.writeHead(500)
-                            console.log(_err)
-                            res.end(JSON.stringify({ error: "Soething went wrong sending message" }))
-                        })
-                    }
                     else {
                         res.writeHead(200)
                         res.end(JSON.stringify(rv))
@@ -342,6 +334,29 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             stream.pipe(res).on("finish", () => {
                 res.end()
             })
+            break;
+        }
+        case "main.css": {
+            let stat = fs.statSync("./website/main.css")
+            res.writeHead(200, {"Content-Length": stat.size})
+            let stream = fs.createReadStream("./website/main.css")
+            stream.pipe(res).on("finish", () => {
+                res.end()
+            })
+            break;
+
+        }
+        case "home.js": {
+            let stat = fs.statSync("./website/home.js")
+            res.writeHead(200, {"Content-Length": stat.size})
+            let stream = fs.createReadStream("./website/home.js")
+            stream.pipe(res).on("finish", () => {
+                res.end()
+            })
+            break;
+
+        }
+        case "leaderboard": {
             break;
 
         }

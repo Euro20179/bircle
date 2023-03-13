@@ -1,10 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>hi</title>
+    <link rel="stylesheet" href="/help-styles.css" media="all">
+    <main class="css"></main>
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background-color: #1E1E2E;
+            color: #b8b8b8ff;
+        }
+
+        code {
+            font-family: monospace;
+            font-size: .8rem;
+            background: #dddddd;
+            color: #312325ff;
+            padding: .2rem;
+            border: 1px solid transparent;
+            border-radius: 3px;
+        }
+
+        a {
+            color: pink;
+        }
+
+        a:visited {
+            color: pink;
+        }
+
+        ul li {
+            line-height: 3ex;
+        }
+
+        .soft-hr {
+            border-style: dotted
+        }
+
+        #command-output{
+            padding: 25px;
+            border: 3px solid white;
+            border-radius: 3px;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column
+        }
+
+        .embed{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            flex-direction: column;
+            border: 3px solid #93969fff;
+            border-radius: 3px;
+            min-width: 25%;
+        }
+
+        .embed-title{
+            grid-column: 1 / -1;
+            font-size: 1.3rem;
+            padding: 0 1rem;
+            text-align: center;
+            color: white;
+        }
+        .embed-description{
+            grid-column: 1 / -1;
+            font-size: 0.9rem;
+            padding: 0 1rem;
+            text-align: center;
+        }
+
+        .embed hr{
+            min-width: 100%;
+            grid-column: 1 / -1;
+        }
+
+        .embed-fieldbox{
+            padding-left: 5%;
+            grid-column: 1 / -1;
+        }
+
+        .embed-field {
+            font-size: .7rem;
+        }
+
+        .embed-field-name{
+            font-weight: bolder;
+            font-size: .9rem;
+        }
+
+        /* .embed-field { */
+        /*     display: grid; */
+        /*     grid-template-rows: repeat(1fr, 2); */
+        /* } */
+
+        #form{
+            display: flex;
+            flex-direction: column;
+            width: 50%;
+        }
+
+        textarea{
+            display: inline-block;
+            resize: vertical;
+        }
+
+        #form  button{
+            padding: 0.5rem;
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
     <h1>Welcome to Bircle</h1>
+
+    <ul>
+        <li><a href="/commands">
+                List of commands
+            </a></li>
+        <li><a href="/help">
+                Bot usage
+            </a></li>
+    </ul>
+
+    <div id="form">
+        <input type='text' id='channel-id' placeholder='channel id'></textarea>
+        <textarea type='text' id='command' placeholder='run a command'></textarea>
+        <br>
+        <button id='run-button'>run</button>
+    </div>
+
+    <div id="command-output">
+        
+    </div>
+
+<script src="/home.js">
+</script>
 </body>
+
 </html>
