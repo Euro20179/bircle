@@ -983,7 +983,8 @@ until you put a 0 in the box`)
                 globals.endCommand(msg.author.id, "roulette")
                 return crv(`You do not have ${sign}${money}`)
             }
-            if (money <= min) {
+            if (money < min) {
+                globals.endCommand(msg.author.id, "roulette")
                 return crv("Cannot less than 0.02%")
             }
 
@@ -1035,7 +1036,7 @@ until you put a 0 in the box`)
                     let money = economy.calculateAmountFromString(m.author.id, amount, {
                         min: () => min
                     })
-                    if (!economy.canBetAmount(m.author.id, money) || money <= min) {
+                    if (!economy.canBetAmount(m.author.id, money) || money < min) {
                         return false
                     }
                     if (isValidGuess(location.join(" "))) {
