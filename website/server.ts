@@ -179,6 +179,25 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             res.end(JSON.stringify(user_options.getOpt(userId, validOption, null)))
             break;
         }
+        case "reload-api-keys": {
+            if(!urlParams){
+                res.writeHead(403)
+                res.end("Permission denied")
+                break;
+            }
+            let apiKey = urlParams.get("key") || ""
+            if(!VALID_API_KEYS.includes(apiKey)){
+                res.writeHead(403)
+                res.end("Permission denied")
+                break;
+            }
+            if(fs.existsSync("./data/valid-api-keys.key")){
+                VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
+            }
+            res.writeHead(200)
+            res.end("Success")
+            break;
+        }
         case "give-money": {
             if(!urlParams){
                 res.writeHead(403)
@@ -195,6 +214,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             if (!userId) {
                 res.writeHead(400)
                 res.end(JSON.stringify({ "error": "no user id" }))
+                break;
             }
             let amount = subPaths[1]
             if (!amount || isNaN(Number(amount))) {
