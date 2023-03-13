@@ -4,39 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>hi</title>
-    <link rel="stylesheet" href="/help-styles.css" media="all">
+    <link rel="stylesheet" href="/common.css" media="all">
     <style>
-        * {
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        body {
-            background-color: #1E1E2E;
-            color: #b8b8b8ff;
-        }
-
-        code {
-            font-family: monospace;
-            font-size: .8rem;
-            background: #dddddd;
-            color: #312325ff;
-            padding: .2rem;
-            border: 1px solid transparent;
-            border-radius: 3px;
-        }
-
-        a {
-            color: pink;
-        }
-
-        a:visited {
-            color: pink;
-        }
-
-        ul li {
-            line-height: 3ex;
-        }
-
         .soft-hr {
             border-style: dotted
         }
@@ -52,16 +21,15 @@
 
         .embed{
             display: grid;
+            margin: 1ex 0;
             grid-template-columns: repeat(3, 1fr);
-            flex-direction: column;
             border: 3px solid #93969fff;
             border-radius: 3px;
-            min-width: 25%;
         }
 
         .embed-title{
             grid-column: 1 / -1;
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             padding: 0 1rem;
             text-align: center;
             color: white;
@@ -78,8 +46,12 @@
             grid-column: 1 / -1;
         }
 
+
         .embed-fieldbox{
-            padding-left: 5%;
+            padding-left: 3em;
+        }
+
+        .embed-fieldbox.full-grid-column {
             grid-column: 1 / -1;
         }
 
@@ -89,7 +61,11 @@
 
         .embed-field-name{
             font-weight: bolder;
-            font-size: .9rem;
+            font-size: 1.2rem;
+        }
+
+        .embed-field-value {
+            font-size: 1rem;
         }
 
         /* .embed-field { */
@@ -106,6 +82,7 @@
         textarea{
             display: inline-block;
             resize: vertical;
+            margin: 1ex 0;
         }
 
         #form  button{

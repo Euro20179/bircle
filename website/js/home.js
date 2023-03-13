@@ -46,6 +46,11 @@ class Embed {
             for (let field of this.fields) {
                 let fieldBox = document.createElement("div")
                 fieldBox.classList.add("embed-fieldbox")
+
+                if(field.inline !== true){
+                    fieldBox.classList.add("full-grid-column")
+                }
+
                 let f = document.createElement("div")
                 f.classList.add("embed-field")
 

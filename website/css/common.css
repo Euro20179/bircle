@@ -2,6 +2,7 @@
     --highlight: #ABE9B3;
     --link-color: pink;
     --selection: #96CDFB;
+    --main: #1E1E2E
 }
 
 * {
@@ -9,7 +10,7 @@
 }
 
 body {
-    background-color: #1E1E2E;
+    background-color: var(--main);
     color: #b8b8b8ff;
 }
 
@@ -29,11 +30,11 @@ p {
 }
 
 a {
-    color: pink;
+    color: var(--link-color);
 }
 
 a:visited {
-    color: pink;
+    color: var(--link-color);
     text-decoration-color: var(--selection);
 }
 
@@ -62,4 +63,39 @@ details {
 }
 summary {
     margin-left: -2rem;
+}
+
+input,
+textarea{
+    color: var(--link-color);
+    text-indent: 2px;
+    background-color: var(--main);
+    border-style: dashed;
+    font-size: 1.2em;
+    border-radius: 5px;
+    outline: none;
+    background-color: #ffffff22;
+    width: 50vw;
+
+}
+
+:is(input, textarea):focus {
+    border-color: var(--selection);
+    color: var(--selection);
+}
+
+
+button {
+    color: var(--highlight);
+    background-color: var(--main);
+    border-color: var(--highlight);
+    border-style: solid;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+}
+
+button:focus{
+    color: var(--selection);
+    border-color: var(--selection);
 }
