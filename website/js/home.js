@@ -78,6 +78,10 @@ function handleSending(crv) {
         commandOutput.removeChild(commandOutput.firstChild)
     }
 
+    if(rv.noSend){
+        return;
+    }
+
     if (rv.content) {
         let outputP = document.createElement("p")
         outputP.classList.add("output-content")

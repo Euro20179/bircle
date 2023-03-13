@@ -1071,19 +1071,19 @@ until you put a 0 in the box`)
                 let text = `<@${playerId}> did not win`
                 let winnings = 0
                 if (guess === resultText) {
-                    winnings = pot * 37
+                    winnings = pot * 37 
                     text = `<@${playerId}> GUESSED THE EXACT NUMBER OF ${guess}`
                 }
                 else if (guess === halfText) {
-                    winnings = pot * 2
+                    winnings = amount * 2
                     text = `<@${playerId}> guessed the correct half of ${guess}`
                 }
                 else if (guess === color) {
-                    winnings = pot * 2
+                    winnings = amount * 2
                     text = `<@${playerId}> guessed the correct color of ${guess}`
                 }
                 else if (guess === thirdText) {
-                    winnings = pot * 3
+                    winnings = amount * 3
                     text = `<@${playerId}> guessed the correct third of ${guess}`
                 }
                 economy.addMoney(playerId, winnings)

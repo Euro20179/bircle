@@ -1,6 +1,14 @@
 const searchBox = document.getElementById("search-box")
 
+const resultDisplay = document.getElementById("result-display")
+
 let page = document.querySelector("main")
+
+let resultCount = document.querySelectorAll(".command-section").length
+
+resultDisplay.setAttribute("data-result-count", String(resultCount))
+
+resultDisplay.innerText = String(resultCount)
 
 document.addEventListener("keydown", e => {
     if (document.activeElement === searchBox) return

@@ -66,15 +66,26 @@ li:has(summary)::marker{
     }
 }
 
-@media (max-width: 1100px){
-    #search-box {
-        left: 100%;
-        translate: -100%;
-    }
-}
-
 @media (max-width: 250px){
     #search-box {
         display: none;
     }
+}
+
+#result-display {
+    font-size: 2.5rem;
+    color: var(--highlight);
+    filter: brightness(70%);
+    text-align: center;
+    padding-top: 2.5rem;
+    display: block;
+
+}
+
+#result-display::after{
+    content: " results";
+}
+
+#result-display[data-result-count="1"]::after{
+    content: " result";
 }

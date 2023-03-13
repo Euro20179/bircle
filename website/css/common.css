@@ -49,7 +49,9 @@ summary {
 summary:hover{
     color: var(--highlight);
 }
-summary:focus{
+
+summary:focus,
+details[open] summary{
     color: var(--selection);
 }
 

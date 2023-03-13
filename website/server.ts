@@ -362,7 +362,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 else if(cmdToGet){
                     commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as Command | CommandV2]]
                 }
-                let html = '<link rel="stylesheet" href="/commands.css"><body><input type="text" id="search-box" placeholder="search"><main>'
+                let html = '<link rel="stylesheet" href="/commands.css"><body><input type="text" id="search-box" placeholder="search"><header><span id="result-display"></span></header><main>'
                 for (let [name, command] of commands) {
                     if(!command) continue
                     html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
