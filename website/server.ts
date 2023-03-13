@@ -326,21 +326,16 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         urlParams = null
     }
     let [_blank, mainPath, ...subPaths] = path.split("/")
+
+    if(mainPath.endsWith(".css") && fs.existsSync(`./website/css/${mainPath}`)){
+        sendFile(res, `./website/css/${mainPath}`)
+    }
+    else if(mainPath.endsWith(".js") && fs.existsSync(`./website/js/${mainPath}`)) {
+        sendFile(res, `./website/js/${mainPath}`)
+    }
     switch (mainPath) {
         case "": {
             sendFile(res, "./website/home.html")
-            break;
-        }
-        case "help-styles.css": {
-            sendFile(res, "./help-styles.css")
-            break;
-        }
-        case "main.css": {
-            sendFile(res, "./website/main.css")
-            break;
-        }
-        case "home.js": {
-            sendFile(res, "./website/js/home.js")
             break;
         }
         case "leaderboard": {
@@ -358,12 +353,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 break;
         }
         case "help": {
-            let stat = fs.statSync("./help-web.html")
-            res.writeHead(200, {"Content-Type": "text/html", "Content-Length": stat.size})
-            let stream = fs.createReadStream("./help-web.html")
-            stream.pipe(res).on("finish", () => {
-                res.end()
-            })
+            sendFile(res, "./website/help-web.html")
             break;
         }
         case "api": {
