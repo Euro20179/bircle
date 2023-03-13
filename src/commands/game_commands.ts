@@ -978,7 +978,7 @@ until you put a 0 in the box`)
                 globals.endCommand(msg.author.id, "roulette")
                 return crv(`You do not have ${sign}${money}`)
             }
-            if (money < 0) {
+            if (money <= 0) {
                 return crv("Cannot bet a negative amount")
             }
 
