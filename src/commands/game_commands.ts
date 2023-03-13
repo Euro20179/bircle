@@ -1071,7 +1071,7 @@ until you put a 0 in the box`)
                 let text = `<@${playerId}> did not win`
                 let winnings = 0
                 if (guess === resultText) {
-                    winnings = pot * 37 
+                    winnings = pot * 37
                     text = `<@${playerId}> GUESSED THE EXACT NUMBER OF ${guess}`
                 }
                 else if (guess === halfText) {
