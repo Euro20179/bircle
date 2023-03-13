@@ -5,7 +5,7 @@
         font-family: Arial, Helvetica, sans-serif;
     }
 
-    body{
+    body {
         background-color: #1E1E2E;
         color: #b8b8b8ff;
     }
@@ -20,16 +20,20 @@
         border-radius: 3px;
     }
 
-    a{
+    a {
         color: pink;
     }
 
-    a:visited{
+    a:visited {
         color: pink;
     }
 
-    .space-li>li:not(:last-of-type) {
-        margin-bottom: .8rem;
+    ul li {
+        line-height: 3ex;
+    }
+
+    .soft-hr {
+        border-style: dotted
     }
 </style>
 
@@ -66,9 +70,9 @@
         <br>
         the end of options will be signaled when an argument does not start with <code>-</code>
         <br>
-        <p>
+    <p>
         All commands accept the <code>-?</code> option, which will run <code>help &lt;the-command&gt;</code> instead
-        </p>
+    </p>
     </p>
 
     <h1 id="Escapes">Escape Sequences</h1>
@@ -82,7 +86,7 @@
 
     <h3>List of escape sequences</h3>
     <p>
-    <ul id="esc-sequence-list" class="space-li">
+    <ul id="esc-sequence-list">
         <li>
             <code>n</code>
             : Add a new line
@@ -173,7 +177,7 @@
     </p>
     <h3 id="list-of-formats">List of formats</h3>
     <p>
-    <ul class="space-li">
+    <ul>
         <li>
             <code>%</code>
             : Gets replaced with the content from stdin<br>
@@ -354,7 +358,7 @@
             <code>num <b>or</b> number[|low[|high[|round]]]</code>
             <p>
                 picks a random number<br>
-            <ul class='space-li'>
+            <ul>
                 <li>If <code>[low]</code> is given, that is the lowest the number can be (high will default to 10).<br>
                 </li>
                 <li>If <code>[high]</code> is given, that is the highest the number can be.<br></li>
@@ -477,7 +481,7 @@
         Variables are text that contain other text.
         <br>
         There are 4 kinds of variables:
-    <ul class='space-li'>
+    <ul>
         <li><a href="#global-vars"><code>global</code></a></li>
         <li><a href="#prefixed-vars"><code>prefixed</code></a></li>
         <li><a href="#user-vars"><code>user</code></a></li>
@@ -538,7 +542,7 @@
         Builtin vars can be accessed with either <code>${var-name}</code> or <code>\V{var-name}</code>
         <br>
         A list of builtin vars
-    <ul class='space-li'>
+    <ul>
         <li>
             <code>random</code>
             : Generate a random number
@@ -631,11 +635,11 @@
     <h1 id="Pipes">Pipes</h1>
     <code>[command1 ... &gt;pipe&gt; command2</code>
     <p>
-    The result from command1 will be given to command2 as stdin
-    <br>
-    stdin is read seperately from args, and thus only some commands support it.
-    <br>
-    {%} can be used to be replaced with the content of stdin.
+        The result from command1 will be given to command2 as stdin
+        <br>
+        stdin is read seperately from args, and thus only some commands support it.
+        <br>
+        {%} can be used to be replaced with the content of stdin.
 
 
     <h1 id="Special-prefixes">Special prefixes</h1>
@@ -662,7 +666,8 @@
         <li>
             <b>[prefix:]name="value"</b>
             <p>
-                <code>prefix</code> is optional, by default the global prefix is used. (<code>%</code> can be used for user prefix)
+                <code>prefix</code> is optional, by default the global prefix is used. (<code>%</code> can be used for
+                user prefix)
                 <br>
                 <code>name</code> is the name of the variable
                 <br>
@@ -691,6 +696,46 @@
         </li>
     </ul>
     </p>
+
+    <h1 id="Api">API</h1>
+    <p>
+        All api endpoints start with /api/
+    </p>
+    <p>
+        Here is a list of endpoints
+    </p>
+    <h2 id="api-economy">Economy endpoints</h2>
+
+    <hr class='soft-hr'>
+
+    <h3 id="/economy">/economy</h3>
+    Gets the json of the economy data
+    <ul>
+        <li>
+            <code>/economy/total</code>
+            : Gets the total value of the economy
+        </li>
+        <li>
+            <code>/economy/&lt;user-id&gt;</code>
+            : Gets the economy data of a user
+        </li>
+    </ul>
+
+    <hr class='soft-hr'>
+
+    <h3 id="/give-money">/give-money</h3>
+
+    <code>/give-money/&lt;user-id&gt;/&lt;amount&gt;</code>
+    <p>gives amount to the user with the discord id of user-id</p>
+
+    <hr>
+
+    <h2 id='api-other'>Other endpoints</h2>
+
+    <h3 id="/option">/option</h3>
+    <code>/option/&lt;user-id&gt;?option=&lt;option-name&gt;</code>
+    <p>Gets the value of an option that user-id set</p>
+    
 </body>
 
 </html>

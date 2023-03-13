@@ -13,6 +13,11 @@ import { generateHTMLFromCommandHelp } from '../src/util'
 
 const {prefix, client} = require("../src/common")
 
+let VALID_API_KEYS: string[] = []
+if(fs.existsSync("./data/valid-api-keys.key")){
+    VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
+}
+
 
 export const server = http.createServer()
 server.listen(8222)
@@ -156,25 +161,36 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             let userId = subPaths[0] ?? urlParams?.get("user-id")
             if (!userId) {
                 res.writeHead(400)
-                res.end('{"erorr": "No user id given"}')
+                res.end('{"error": "No user id given"}')
                 break;
             }
             let option = urlParams?.get("option")
             if (!option) {
                 res.writeHead(400)
-                res.end('{"erorr": "No option given"}')
+                res.end('{"error": "No option given"}')
                 break;
             }
             let validOption = user_options.isValidOption(option)
             if (!validOption) {
                 res.writeHead(400)
-                res.end('{"erorr": "No option given"}')
+                res.end('{"error": "No option given"}')
                 break;
             }
             res.end(JSON.stringify(user_options.getOpt(userId, validOption, null)))
             break;
         }
         case "give-money": {
+            if(!urlParams){
+                res.writeHead(403)
+                res.end("Permission denied")
+                break;
+            }
+            let apiKey = urlParams.get("key") || ""
+            if(!VALID_API_KEYS.includes(apiKey)){
+                res.writeHead(403)
+                res.end("Permission denied")
+                break;
+            }
             let userId = subPaths[0]
             if (!userId) {
                 res.writeHead(400)
