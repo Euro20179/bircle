@@ -639,7 +639,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             return { content: String(await apiFn.exec(argsForFn)), status: StatusCode.RETURN }
 
-        }, CAT, "Run low level bot commands<br>To see a list of api commands run <code>api -l</api>", {
+        }, CAT, "Run low level bot commands<br>To see a list of api commands run <code>api -l</code>", {
             command: createHelpArgument("The command to run", true),
         }, {
             "<opt>": createHelpOption("Each command will require different options")

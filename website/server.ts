@@ -18,9 +18,9 @@ if(fs.existsSync("./data/valid-api-keys.key")){
     VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
 }
 
-function sendFile(res: http.ServerResponse, fp: string){
+function sendFile(res: http.ServerResponse, fp: string, contentType?: string){
     let stat = fs.statSync(fp)
-    res.writeHead(200, {"Content-Type": "text/html", "Content-Length": stat.size})
+    res.writeHead(200, {content: contentType ?? "text/html", "Content-Length": stat.size})
     let stream = fs.createReadStream(fp)
     stream.pipe(res).on("finish", () => {
         res.end()
@@ -328,10 +328,12 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
     let [_blank, mainPath, ...subPaths] = path.split("/")
 
     if(mainPath.endsWith(".css") && fs.existsSync(`./website/css/${mainPath}`)){
-        sendFile(res, `./website/css/${mainPath}`)
+        sendFile(res, `./website/css/${mainPath}`, "text/css")
+        return
     }
     else if(mainPath.endsWith(".js") && fs.existsSync(`./website/js/${mainPath}`)) {
-        sendFile(res, `./website/js/${mainPath}`)
+        sendFile(res, `./website/js/${mainPath}`, "application/javascript")
+        return
     }
     switch (mainPath) {
         case "": {
@@ -344,10 +346,11 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         case "commands": {
                 let commands = common_to_commands.getCommands()
                 let commandsToUse = Object.fromEntries(commands.entries())
-                let html = '<link rel="stylesheet" href="/help-styles.css">'
+                let html = '<link rel="stylesheet" href="/help-styles.css"><body><section>'
                 for (let command in commandsToUse) {
                     html += generateHTMLFromCommandHelp(command, commands.get(command) as Command | CommandV2)
                 }
+                html += "</section></body>"
                 res.writeHead(200)
                 res.end(html)
                 break;
