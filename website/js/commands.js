@@ -24,14 +24,6 @@ document.addEventListener("keydown", e => {
         scrollBy(0, (innerHeight / 2))
         e.preventDefault()
     }
-    else if (e.key === 'f' && e.ctrlKey) {
-        scrollBy(0, innerHeight)
-        e.preventDefault()
-    }
-    else if (e.key === 'b' && e.ctrlKey) {
-        scrollBy(0, -innerHeight)
-        e.preventDefault()
-    }
     else if (e.key === '/') {
         searchBox.focus()
         e.preventDefault()
