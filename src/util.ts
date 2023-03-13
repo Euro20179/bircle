@@ -1559,7 +1559,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
 }
 
 function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2) {
-    let html = `<div class="command-section"><h1 class="command-title">${name}</h1>`
+    let html = `<div class="command-section"><h1 class="command-title" id="${name}">${name}</h1>`
     let help = command["help"]
     if (help) {
         let info = help["info"] || ""

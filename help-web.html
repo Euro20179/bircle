@@ -38,6 +38,9 @@
 </head>
 
 <body>
+
+    <h1 id="list-of-commands"><a href="/commands">List of Commands</a></h1>
+
     <h1 id="Usage">Basic usage</h1>
     <code>[command [options...] [arguments...]</code>
 
@@ -505,7 +508,11 @@
 
     <h2 id="prefixed-vars">Prefixed vars</h2>
     <p>
-        Prefixed vars can also be changed by anyone, but have a special prefix.
+        Prefixed vars are specific for each user, but have a special prefix.
+        <br>
+        Prefixes cannot start with <code>!</code> as those are reserved.
+        <br>
+        To access another user's prefixed variable the following may be used <code>${user-id.prefix:var}</code>
         <br>
         They can be accessed with either <code>${prefix:var-name}</code> or <code>\V{prefix:var-name}</code>
         <br>
