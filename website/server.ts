@@ -113,24 +113,22 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     _cacheType: false,
                     _patch: (_data: any) => { }
                 }
-                //@ts-ignore
                 //prevents from sending to chat
+                let oldSend = channel.send
+                //@ts-ignore
                 channel.send = (async() => msg).bind(channel)
                 common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true }).then(rv => {
-                    else {
-                        res.writeHead(200)
-                        res.end(JSON.stringify(rv))
-
-                    }
                 }).catch(_err => {
                     res.writeHead(500)
                     console.log(_err)
                     res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
                 })
+                channel.send = oldSend
             }).catch((_err: any) => {
                 res.writeHead(444)
                 res.end(JSON.stringify({ error: "Channel not found" }))
             })
+
             break
         }
     }
