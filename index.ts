@@ -184,12 +184,14 @@ client.on(Events.MessageCreate, async (m: Message) => {
 
         percent += .0001 * pcount
 
-        if (ap == 'cat') {
-            economy.earnMoney(m.author.id, percent + .002)
+        if(hasItem(m.author.id, "capitalism hat")){
+            percent += .002
         }
-        else {
-            economy.earnMoney(m.author.id, percent)
+        if(ap === 'cat'){
+            percent += .002
         }
+
+        economy.earnMoney(m.author.id, percent)
 
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)

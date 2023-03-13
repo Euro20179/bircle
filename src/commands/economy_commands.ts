@@ -247,6 +247,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                             }
                             if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
                                 if (buyItem(msg.author.id, item)) {
+                                    if(item === 'reset economy'){
+                                        let ach = achievements.achievementGet(msg, "capitalist")
+                                        if(ach){
+                                            await handleSending(msg, ach)
+                                        }
+                                    }
                                     economy.loseMoneyToBank(msg.author.id, totalCost)
                                     totalSpent += totalCost
                                 }

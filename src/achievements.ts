@@ -75,7 +75,8 @@ const POSSIBLE_ACHIEVEMENTS = {
     traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
     "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(5%,300)"),
-    "stale bread": new MoneyRewardAchievement("stale bread", "Sniff a stale baguette", "max(1%,50)")
+    "stale bread": new MoneyRewardAchievement("stale bread", "Sniff a stale baguette", "max(1%,50)"),
+    "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1])
 } as const
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};
