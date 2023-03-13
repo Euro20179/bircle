@@ -1840,6 +1840,8 @@ until you put a 0 in the box`)
 
             letDealerPlay(dealerCards)
 
+            let usedReset = false;
+
             let aurl = msg.member?.user.avatarURL()
             while (true) {
                 let embed = new EmbedBuilder()
@@ -1901,7 +1903,7 @@ until you put a 0 in the box`)
                     giveRandomCard(cards, playersCards)
                 }
 
-                if (choice === 'reset' && hasItem(msg.author.id, "reset")) {
+                if (choice === 'reset' && hasItem(msg.author.id, "reset") && !usedReset) {
 
                     useItem(msg.author.id, "reset")
 
@@ -1925,6 +1927,8 @@ until you put a 0 in the box`)
                     }
 
                     letDealerPlay(dealerCards)
+
+                    usedReset = true
                 }
                 if ((choice === 'stand' && (hardMode == false || calculateTotal(playersCards).total >= 17)) || calculateTotal(playersCards).total > 21) {
                     break
