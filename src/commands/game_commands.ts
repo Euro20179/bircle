@@ -1027,7 +1027,7 @@ until you put a 0 in the box`)
                     if (globals.userUsingCommand(m.author.id, "roulette")) return false
                     let [amount, ...location] = m.content.split(" ")
                     let money = economy.calculateAmountFromString(m.author.id, amount)
-                    if (!economy.canBetAmount(m.author.id, money) || money < 0) {
+                    if (!economy.canBetAmount(m.author.id, money) || money <= 0) {
                         return false
                     }
                     if (isValidGuess(location.join(" "))) {
