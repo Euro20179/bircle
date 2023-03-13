@@ -972,14 +972,19 @@ until you put a 0 in the box`)
                 return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
             }
 
-            let money = economy.calculateAmountFromString(msg.author.id, reqMoney)
+            let min =  economy.calculateAmountFromNetWorth(msg.author.id, "0.02%")
+            let money = economy.calculateAmountFromString(msg.author.id, reqMoney, {
+                min: () => {
+                    return min
+                }
+            })
 
             if (!economy.canBetAmount(msg.author.id, money)) {
                 globals.endCommand(msg.author.id, "roulette")
                 return crv(`You do not have ${sign}${money}`)
             }
-            if (money <= 0) {
-                return crv("Cannot bet a negative amount")
+            if (money <= min) {
+                return crv("Cannot less than 0.02%")
             }
 
             const thirds = {
@@ -1026,8 +1031,11 @@ until you put a 0 in the box`)
                 filter: m => {
                     if (globals.userUsingCommand(m.author.id, "roulette")) return false
                     let [amount, ...location] = m.content.split(" ")
-                    let money = economy.calculateAmountFromString(m.author.id, amount)
-                    if (!economy.canBetAmount(m.author.id, money) || money <= 0) {
+                    let min = economy.calculateAmountFromNetWorth(m.author.id, "0.02%")
+                    let money = economy.calculateAmountFromString(m.author.id, amount, {
+                        min: () => min
+                    })
+                    if (!economy.canBetAmount(m.author.id, money) || money <= min) {
                         return false
                     }
                     if (isValidGuess(location.join(" "))) {
