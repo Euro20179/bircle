@@ -9,7 +9,7 @@ import user_options from '../src/user-options'
 import { saveItems } from '../src/shop'
 import vars from '../src/vars'
 import pets from '../src/pets'
-import { generateHTMLFromCommandHelp } from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension } from '../src/util'
 
 const {prefix, client} = require("../src/common")
 
@@ -344,13 +344,25 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             break;
         }
         case "commands": {
-                let commands = common_to_commands.getCommands()
-                let commandsToUse = Object.fromEntries(commands.entries())
-                let html = '<link rel="stylesheet" href="/help-styles.css"><body><section>'
-                for (let command in commandsToUse) {
-                    html += generateHTMLFromCommandHelp(command, commands.get(command) as Command | CommandV2)
+                let category = subPaths[0]
+                let search = urlParams?.get("search")
+                let cmds = common_to_commands.getCommands()
+                let commands = Array.from(cmds.entries())
+                if(category)
+                    commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category))
+                if(search){
+                    let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
+                    let results = searchList(search, infos, true)
+                    commands = listComprehension(Object.entries(results).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
+                        name = name.split("\n")[0]
+                        return [`${name} <span class='cmd-search-strength'>(${strength})</span>`, common_to_commands.getCommands().get(name) as Command | CommandV2]
+                    }))
                 }
-                html += "</section></body>"
+                let html = '<link rel="stylesheet" href="/help-styles.css"><body><input type="text" id="search-box" placeholder="search"><section>'
+                for (let [name, command] of commands) {
+                    html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
+                }
+                html += "</section></body><script src='/commands.js'></script>"
                 res.writeHead(200)
                 res.end(html)
                 break;

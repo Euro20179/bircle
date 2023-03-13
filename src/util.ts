@@ -1636,10 +1636,11 @@ function recursiveSum(start: number): number {
     return start + recursiveSum(start - 1)
 }
 
-function searchList(search: string, list_of_strings: string[]) {
+function searchList(search: string, list_of_strings: string[], caseSentive=false) {
     let results: { [key: string]: number } = {}
     for (let str of list_of_strings) {
-        str = str.toLowerCase()
+        if(caseSentive === false)
+            str = str.toLowerCase()
         let score = 0
         let inARow = 0
         let maxInARow = 0;
