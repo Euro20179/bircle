@@ -488,11 +488,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let deleted = []
                 for (let name of names) {
                     if (delPrefix && !name.startsWith("!")) {
-                        if(vars.delPrefix(name, msg.author.id)){
+                        if (vars.delPrefix(name, msg.author.id)) {
                             deleted.push(name)
                         }
                     }
-                    else if(!delPrefix){
+                    else if (!delPrefix) {
                         if (vars.delVar(name, prefix, msg.author.id, false)) {
                             deleted.push(name)
                         }
@@ -924,7 +924,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 a: createHelpOption("Test if the first argument is an alias"),
                 a1: createHelpOption("Test if the first argument is an aliasv1"),
                 u: createHelpOption("Test if first argument is a user in bot's cache"),
-                U: createHelpOption("Test if first argument is a user")
+                U: createHelpOption("Test if first argument is a user"),
+                n: createHelpOption("Test if there is text"),
+                z: createHelpOption("Test if there is not text")
             },
             helpArguments: {
                 "value 1": createHelpArgument("The first value", true),
