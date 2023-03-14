@@ -153,6 +153,9 @@ yield[createMatchCommand(async ({ msg, match }) => {
 
 yield[createMatchCommand(async ({ msg, match }) => {
     let prefix = match[1]
+    if(prefix?.startsWith("!")){
+        return {noSend: true, status: StatusCode.ERR}
+    }
     let name = match[2]
     let quoteType = match[3]
     let data = match[4]
@@ -166,7 +169,7 @@ yield[createMatchCommand(async ({ msg, match }) => {
 
     vars.setVarEasy(msg, name, data, prefix)
     return { noSend: true, status: StatusCode.RETURN }
-}, /(?:(%):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
+}, /(?:([^ ]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
     info: "var=\"data\" or var='data'",
     arguments: {
         name: createHelpArgument("Name of the variable", true),
