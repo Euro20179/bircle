@@ -2242,6 +2242,13 @@ ${fs.readdirSync("./command-results").join("\n")}
             //-1 because chain starts with the original alias
             return { content: String(chain.length - 1), status: StatusCode.RETURN }
         }
+        if(opts.getBool("l", opts.getBool("last", false))){
+            return crv(chain[chain.length - 1])
+        }
+        let nth = opts.get("i", false, v => !isNaN(Number(v)) ? Number(v) : undefined)
+        if(nth !== false){
+            return crv(chain[nth - 1])
+        }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
     }, CAT, "Get the cmd chain of an alias", {
@@ -2250,7 +2257,9 @@ ${fs.readdirSync("./command-results").join("\n")}
     }, {
         e: createHelpOption("get the expansion count"),
         n: createHelpOption("put the names of the expanded commands only"),
-        F: createHelpOption("Dont fill placeholders such as {args..}")
+        F: createHelpOption("Dont fill placeholders such as {args..}"),
+        l: createHelpOption("Get the last expansion of the chain", ["last"]),
+        i: createHelpOption("Get the ith expansion of the chain")
     })]
 
     yield [
