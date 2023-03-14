@@ -5,13 +5,11 @@ import vars from '../vars'
 import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
-import economy = require("../economy")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
-import { registerCommand } from "../common_to_commands"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
@@ -1569,7 +1567,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             while (globals.SPAMS[id] && times--) {
                 await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
-
             }
             delete globals.SPAMS[id]
             return {
