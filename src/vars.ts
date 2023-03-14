@@ -73,6 +73,7 @@ function delVar(varName: string, prefix?: string, id?: string, systemDel: boolea
 
 function getPrefixAndVarname(varName: string){
         let [prefix, ...v] = varName.split(":")
+        if(v[0] === "") return [prefix, ""]
         varName = v.join(":")
         if (!varName) {
             varName = prefix
@@ -102,7 +103,7 @@ function setVar(varName: string, value: string | Function, prefix?: string, id?:
     if (prefix === "__global__") {
         path = vars["__global__"]
     }
-    if (prefix && id) {
+    else if (prefix && id) {
         if (!vars[id]) {
             vars[id] = {}
         }
@@ -145,34 +146,47 @@ function readVarVal(msg: Message, variableData: Function | any) {
 
 function getVar(msg: Message, varName: string, prefix?: string, id?: string) {
     if (!prefix) {
-        if (!prefix) {
-            [prefix, varName] = getPrefixAndVarname(varName)
-        }
+        [prefix, varName] = getPrefixAndVarname(varName)
     }
     if (prefix === "%") {
         prefix = id ?? msg.author.id
     }
 
+    let varPrefixObj;
     if(prefix.includes(".") && prefix.slice(0, 18).match(/\d{18}/)){
         let user;
         [user, prefix] = prefix.split(".")
-        if(vars[user]?.[prefix]?.[varName])
-            return readVarVal(msg, vars[user]?.[prefix][varName])
+        if(vars[user]?.[prefix])
+            varPrefixObj = vars[user]?.[prefix]
+            // return readVarVal(msg, vars[user]?.[prefix][varName])
     }
 
     //global vars
-    else if (prefix === "__global__" && vars[prefix][varName] !== undefined) {
-        return readVarVal(msg, vars[prefix][varName])
+    else if (prefix === "__global__" && vars[prefix] !== undefined) {
+        varPrefixObj = vars[prefix]
+        // return readVarVal(msg, vars[prefix][varName])
     }
     //for standard user vars
-    else if (prefix.match(/^\d{18}$/) && vars[prefix]?.[varName] !== undefined) {
-        return readVarVal(msg, vars[prefix][varName])
+    else if (prefix.match(/^\d{18}$/) && vars[prefix] !== undefined) {
+        varPrefixObj = vars[prefix]
+        // return readVarVal(msg, vars[prefix][varName])
     }
     //for prefixed vars
-    else if (vars[id ?? msg.author.id]?.[prefix]?.[varName] !== undefined) {
-        return readVarVal(msg, vars[id ?? msg.author.id][prefix][varName])
+    else if (vars[id ?? msg.author.id]?.[prefix] !== undefined) {
+        varPrefixObj = vars[id ?? msg.author.id][prefix]
+        // return readVarVal(msg, vars[id ?? msg.author.id][prefix][varName])
     }
-    return false
+
+    if(!varPrefixObj)
+        return false
+
+    if(!varName){
+        return Object.entries(varPrefixObj).map(v => `${v[0]} = ${v[1]}`).join("\n")
+    }
+    else if(varPrefixObj[varName] === undefined)
+        return false;
+
+    return readVarVal(msg, varPrefixObj[varName])
 }
 
 export default {
