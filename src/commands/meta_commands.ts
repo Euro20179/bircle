@@ -823,6 +823,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: `You must end the check with ]`, status: StatusCode.ERR }
             }
 
+            args = new ArgList(args.slice(0, -1))
+
             let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}").trim()
             let elseCommand = ""
             if (args.lastIndexOf("else") > 0) {
@@ -865,6 +867,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return await handleFalsiness()
                 }
                 return await fetchUser(msg.guild, args[0]) ? await handleTruthiness() : await handleFalsiness()
+            }
+
+            else if(opts.getBool("n", false)){
+                return args.join(" ") ? handleTruthiness() : handleFalsiness()
+            }
+
+            else if (opts.getBool("z", false)){
+                return args.join(" ") ? handleFalsiness() : handleTruthiness()
             }
 
             else {
