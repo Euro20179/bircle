@@ -2076,29 +2076,17 @@ ${fs.readdirSync("./command-results").join("\n")}
     yield [
         'get-source()', ccmdV2(async function({ args, opts }) {
             if (opts.getBool("l", false)) {
-                return { content: `modules:\`\`\`\nutil\ncommon_to_commands\nglobals\ncommon\n\`\`\``, status: StatusCode.RETURN }
-            }
-
-            let mod;
-
-            if (mod = opts.getString("of", "")) {
-                let keyValues: string[] = []
-                switch (mod) {
-                    case 'util':
-                        keyValues = Object.keys(require("./util"))
-                        break
-                }
-                return {
-                    content: keyValues.join('\n'),
-                    status: StatusCode.RETURN
-                }
+                return { content: `modules:\`\`\`\nutil\ncommon_to_commands\nglobals\ncommon\neconomy\ntimer\npets\`\`\``, status: StatusCode.RETURN }
             }
 
             let data = safeEval(args.join(" "), {
                 util: require("../util"),
                 common_to_commands: require("../common_to_commands").default,
                 globals: require("../globals"),
-                common: require("../common")
+                common: require("../common"),
+                economy: require("../economy").default,
+                timer: require("../timer").default,
+                pets: require("../pets").default
             }, {})
             return {
                 content: `\`\`\`javascript\n${String(data)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
@@ -2109,7 +2097,6 @@ ${fs.readdirSync("./command-results").join("\n")}
         }, "Stringifies an internal function", {
             helpOptions: {
                 l: createHelpOption("List the different modules"),
-                of: createHelpOption("List the different functions in a module")
             }
         })
     ]
