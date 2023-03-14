@@ -1036,9 +1036,6 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (!sendCallback && rv.sendCallback) {
         sendCallback = rv.sendCallback
     }
-    if (!sendCallback && rv.dm) {
-        sendCallback = msg.author.send.bind(msg.author.dmChannel)
-    }
     else if (!sendCallback && rv.channel) {
         sendCallback = rv.channel.send.bind(rv.channel)
     }

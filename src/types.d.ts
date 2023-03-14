@@ -35,10 +35,6 @@ declare global {
         delete?: boolean
         noSend?: boolean,
         allowedMentions?: MessageMentionOptions,
-        /**
-            * @deprecated use the channel property instead
-        */
-        dm?: boolean,
         recurse?: boolean | { categories?: CommandCategory[], commands?: string[] },
         do_change_cmd_user_expansion?: boolean
         channel?: TextChannel | DMChannel,
