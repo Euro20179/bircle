@@ -9,7 +9,7 @@ import economy = require("../economy")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateFileName, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
 import { registerCommand } from "../common_to_commands"
 import { execSync } from 'child_process'
@@ -2079,7 +2079,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 return { content: `modules:\`\`\`\nutil\ncommon_to_commands\nglobals\ncommon\neconomy\ntimer\npets\`\`\``, status: StatusCode.RETURN }
             }
 
-            let data = safeEval(args.join(" "), {
+            let data = {
                 util: require("../util"),
                 common_to_commands: require("../common_to_commands").default,
                 globals: require("../globals"),
@@ -2087,9 +2087,17 @@ ${fs.readdirSync("./command-results").join("\n")}
                 economy: require("../economy").default,
                 timer: require("../timer").default,
                 pets: require("../pets").default
-            }, {})
+            }
+            if(args[0].includes(".")){
+                args = new ArgList(args.join(" ").split("."))
+            }
+            let curObj = data
+            for(let prop of args){
+                //@ts-ignore
+                curObj = curObj[prop]
+            }
             return {
-                content: `\`\`\`javascript\n${String(data)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
+                content: `\`\`\`javascript\n${String(curObj)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
                     rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
                     return rv
                 }
