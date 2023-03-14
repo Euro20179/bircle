@@ -13,7 +13,6 @@ import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgu
 import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
-import { randomInt } from 'crypto'
 import { DEVBOT } from '../globals'
 import achievements from '../achievements'
 const { buyItem, hasItem, useItem } = require('../shop')

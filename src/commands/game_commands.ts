@@ -1874,7 +1874,8 @@ until you put a 0 in the box`)
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
 
-                await handleSending(msg, { embeds: [embed], status: StatusCode.INFO }, sendCallback)
+
+                await handleSending(msg, { embeds: [embed], status: StatusCode.INFO })
 
                 let response, collectedMessages
                 collectedMessages = await msg.channel.awaitMessages({
@@ -1956,9 +1957,9 @@ until you put a 0 in the box`)
                     let UserHp = 60;
                     let SpiderHp = 50;
 
-                    await handleSending(msg, { status: StatusCode.INFO, content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)" }, sendCallback);
+                    await handleSending(msg, { status: StatusCode.INFO, content: "a spider jum pon tablew!121 You must defend honor!1 (attack/heal)" });
 
-                    let newmsg = await handleSending(msg, { status: StatusCode.INFO, content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}` }, sendCallback);
+                    let newmsg = await handleSending(msg, { status: StatusCode.INFO, content: `UserHp: ${UserHp}\nSpiderHp: ${SpiderHp}` });
                     while (UserHp >= 0 && SpiderHp >= 0) {
                         let action = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, max: 1 })
                         let actionMessage = action.at(0)
