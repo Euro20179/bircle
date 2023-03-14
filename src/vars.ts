@@ -71,6 +71,14 @@ function delVar(varName: string, prefix?: string, id?: string, systemDel: boolea
     return true
 }
 
+function delPrefix(prefixName: string, id: string){
+    if(vars[id]?.[prefixName]){
+        delete vars[id][prefixName]
+        return true
+    }
+    return false
+}
+
 function getPrefixAndVarname(varName: string){
         let [prefix, ...v] = varName.split(":")
         if(v[0] === "") return [prefix, ""]
@@ -199,5 +207,6 @@ export default {
     readVars,
     saveVars,
     delVar,
-    getPrefixAndVarname
+    getPrefixAndVarname,
+    delPrefix
 }

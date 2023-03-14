@@ -292,9 +292,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 catch (err) {
                     return crv("Could not read json file", { status: StatusCode.ERR })
                 }
-                if(!data) return crv('Could not read json file', {status: StatusCode.ERR})
+                if (!data) return crv('Could not read json file', { status: StatusCode.ERR })
                 user_options.getUserOptions()[msg.author.id] = data
-                return crv(`Loaded: ${JSON.stringify(data)}`, {status: StatusCode.RETURN})
+                return crv(`Loaded: ${JSON.stringify(data)}`, { status: StatusCode.RETURN })
             }
             let userOpts = user_options.getUserOptions()[user]
             if (opts['e'] || opts['export']) {
@@ -484,10 +484,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     prefix = msg.author.id
                 }
                 let names = args
+                let delPrefix = opts['p'] ? true : false
                 let deleted = []
                 for (let name of names) {
-                    if (vars.delVar(name, prefix, msg.author.id, false)) {
-                        deleted.push(name)
+                    if (delPrefix && !name.startsWith("!")) {
+                        if(vars.delPrefix(name, msg.author.id)){
+                            deleted.push(name)
+                        }
+                    }
+                    else if(!delPrefix){
+                        if (vars.delVar(name, prefix, msg.author.id, false)) {
+                            deleted.push(name)
+                        }
                     }
                 }
                 return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
@@ -504,6 +512,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     u: {
                         description: "Delete a user variable"
                     },
+                    p: createHelpOption("Delete a prefix instead of a var"),
                     prefix: {
                         description: "Delete  a variable from the specified prefix"
                     }
@@ -869,11 +878,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return await fetchUser(msg.guild, args[0]) ? await handleTruthiness() : await handleFalsiness()
             }
 
-            else if(opts.getBool("n", false)){
+            else if (opts.getBool("n", false)) {
                 return args.join(" ") ? handleTruthiness() : handleFalsiness()
             }
 
-            else if (opts.getBool("z", false)){
+            else if (opts.getBool("z", false)) {
                 return args.join(" ") ? handleFalsiness() : handleTruthiness()
             }
 
@@ -2097,11 +2106,11 @@ ${fs.readdirSync("./command-results").join("\n")}
                 timer: require("../timer").default,
                 pets: require("../pets").default
             }
-            if(args[0].includes(".")){
+            if (args[0].includes(".")) {
                 args = new ArgList(args.join(" ").split("."))
             }
             let curObj = data
-            for(let prop of args){
+            for (let prop of args) {
                 //@ts-ignore
                 curObj = curObj[prop]
             }
