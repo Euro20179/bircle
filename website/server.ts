@@ -368,7 +368,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                     html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
                 }
                 html += "</main></body><script src='/commands.js'></script>"
-                res.writeHead(200)
+                res.writeHead(200, {"Content-Type": "text/html"})
                 res.end(html)
                 break;
         }
