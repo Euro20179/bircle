@@ -1725,10 +1725,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "vars", createCommandV2(async ({ args, opts }) => {
             if (opts.getBool("p", false)) {
-                return { content: Object.keys(vars).join("\n"), status: StatusCode.RETURN }
+                return { content: Object.keys(vars.vars).join("\n"), status: StatusCode.RETURN }
             }
             let inPrefix = args[0] ?? ""
-            let rv = Object.entries(vars).filter(([prefix, _data]) => inPrefix ? inPrefix === prefix : true).map(([prefix, varData]) => {
+            let rv = Object.entries(vars.vars).filter(([prefix, _data]) => inPrefix ? inPrefix === prefix : true).map(([prefix, varData]) => {
                 return `**${prefix.replaceAll("_", "\\_")}**:\n` +
                     Object.keys(varData)
                         .map(v => `${v.replaceAll("_", "\\_")}`)
