@@ -2871,7 +2871,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             rv.delete = true
         }
         if (opts.getBool("dm", false)) {
-            rv.dm = true
+            if(msg.author.dmChannel)
+                rv.channel = msg.author.dmChannel
         }
         if (sendToVar = opts.getString("v", "")) {
             rv.noSend = true

@@ -1500,9 +1500,6 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     if (helpData.docs) {
         textInfo += renderHTML(helpData.docs)
     }
-    if (helpData.aliases) {
-        aliasInfo = `Aliases: ${helpData.aliases.join(", ")}\n`
-    }
     if (helpData.accepts_stdin) {
         argInfo += "__stdin__:\n"
         if (typeof helpData.accepts_stdin === 'string') {
@@ -1563,7 +1560,6 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
     let help = command["help"]
     if (help) {
         let info = help["info"] || ""
-        let aliases = help["aliases"] || []
         let options = help["options"] || {}
         let args = help["arguments"] || {}
         if (info !== "") {
@@ -1613,13 +1609,6 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
             }
             html += "</ul>"
 
-        }
-        if (aliases) {
-            html += `<h2 class="command-aliases">Aliases</h2><ul class="command-alias-list">`
-            for (let alias of aliases) {
-                html += `<li class="command-alias">${alias}</li>`
-            }
-            html += "</ul>"
         }
     }
     return `${html}</div><hr>`
