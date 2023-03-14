@@ -5,9 +5,9 @@ import vars from './vars';
 
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST,  getUserMatchCommands, prefix, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement,  RedirModifier, TypingModifier, SkipModifier } from './parsing';
-import { ArgList, cmdCatToStr,  generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex, isMsgChannel } from './util';
+import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
+import { Parser, Token, T, Modifier, parseAliasReplacement, RedirModifier, TypingModifier, SkipModifier } from './parsing';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex, isMsgChannel } from './util';
 import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
@@ -48,7 +48,7 @@ export enum CommandCategory {
 }
 
 export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>) {
-    if(!isMsgChannel(msg.channel)) return false
+    if (!isMsgChannel(msg.channel)) return false
     await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
     let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: 30000, max: 1 })
     let m = msgs.at(0)
@@ -234,7 +234,7 @@ export class AliasV2 {
         //we dont know if the user gave the args and should only be interpreted or if the args are from the alias and should be double interpreted
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
-            //the reason for this is that handleSending is never called, and handleSending puts it in a file
+        //the reason for this is that handleSending is never called, and handleSending puts it in a file
         let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
@@ -639,7 +639,7 @@ export class Interpreter {
     }
 
     async runAlias() {
-        if(!isMsgChannel(this.#msg.channel)) return crv("IN stage channel", {status: StatusCode.ERR})
+        if (!isMsgChannel(this.#msg.channel)) return crv("IN stage channel", { status: StatusCode.ERR })
         //alias is actually the real command
         //aliasPreArgs are the arguments taht go after the commnad
         let [alias, aliasPreArgs] = this.alias as [string, string[]]
@@ -748,7 +748,7 @@ export class Interpreter {
             }
             if (canRun) {
 
-                let varname =  `!stats:cmd-usage.${this.real_cmd}`
+                let varname = `!stats:cmd-usage.${this.real_cmd}`
                 vars.setVarEasy(this.#msg, varname, String(Number(vars.getVar(this.#msg, varname)) + 1))
 
                 if (this.#shouldType || cmdObject?.make_bot_type)
@@ -860,18 +860,20 @@ export class Interpreter {
             //instead force sendCallback to get the result
             int.sendCallback = async (o) => {
                 let obj = o as CommandReturn
-                commandReturn = obj as CommandReturn
-                //if a file contains content that was previously supposed to be sent to chat, dont keep in file
-                for (let i = 0; i < (obj.files?.length ?? 0); i++) {
-                    if (obj.files?.[i].wasContent) {
-                        commandReturn.content = obj.files[i].wasContent
-                        obj.files = obj.files.filter((_v, idx) => idx !== i)
-                    }
+                //only return values should be put through this function
+                if (obj.status !== StatusCode.RETURN && obj.status !== StatusCode.ERR) {
+                    //return early
+                    return handleSending(int.getMessage(), obj, this.sendCallback)
                 }
+
+                commandReturn = obj as CommandReturn
                 return int.getMessage()
             }
 
             await int.run() as CommandReturn
+
+            commandReturn = defileCommandReturn(commandReturn)
+
             if (allowedMentions) {
                 //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
                 commandReturn.allowedMentions = { parse: [] }
@@ -941,6 +943,7 @@ export class Interpreter {
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
         if (intPipeData.length) {
             this.sendCallback = (async function(this: Interpreter, options: string | MessageCreateOptions | MessagePayload) {
+                options = defileCommandReturn(options as CommandReturn)
                 options = await this.handlePipes(options as CommandReturn)
                 return handleSending(this.#msg, options as CommandReturn, undefined)
             }).bind(this)
@@ -1013,9 +1016,20 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     }
     return [command, aliasPreArgs]
 }
+function defileCommandReturn(rv: CommandReturn) {
+    //if a file contains content that was previously supposed to be sent to chat, dont keep in file
+    for (let i = 0; i < (rv.files?.length ?? 0); i++) {
+        if (rv.files?.[i].wasContent) {
+            rv.content = rv.files[i].wasContent
+            rv.files = rv.files.filter((_v, idx) => idx !== i)
+        }
+    }
+    return rv
+}
+
 
 export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
-    if(!isMsgChannel(msg.channel)) return msg
+    if (!isMsgChannel(msg.channel)) return msg
     if (!Object.keys(rv).length) {
         return msg
     }

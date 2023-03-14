@@ -49,6 +49,7 @@ declare global {
         mimetype?: `${string}/${string}`,
         onOver2kLimit?: (msg: Message, rv: CommandReturn) => CommandReturn
         attachments?: Message['attachments']
+        fromHandleSending?: boolean
     }
 
     interface CommandHelpArguments {
