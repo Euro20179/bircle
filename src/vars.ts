@@ -103,6 +103,12 @@ function setVar(varName: string, value: string | Function, prefix?: string, id?:
     if (prefix === "__global__") {
         path = vars["__global__"]
     }
+    else if(prefix.match(/\d{18}/)){
+        if(!vars[prefix]){
+            vars[prefix] = {}
+        }
+        path = vars[prefix]
+    }
     else if (prefix && id) {
         if (!vars[id]) {
             vars[id] = {}
@@ -111,12 +117,6 @@ function setVar(varName: string, value: string | Function, prefix?: string, id?:
             vars[id][prefix] = {}
         }
         path = vars[id][prefix]
-    }
-    else if(prefix.match(/\d{18}/)){
-        if(!vars[prefix]){
-            vars[prefix] = {}
-        }
-        path = vars[prefix]
     }
     //functions are builtin vars and should not be overwritten
     if(typeof path[varName] === 'function'){

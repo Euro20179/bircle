@@ -1910,7 +1910,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 else {
                     vars.setVarEasy(msg, realName, realVal, prefix)
-                    console.log(vars.vars)
                     if (!opts['silent'])
                         return {
                             content: vars.getVar(msg, name),
