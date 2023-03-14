@@ -2227,7 +2227,18 @@ ${fs.readdirSync("./command-results").join("\n")}
             return { noSend: true, status: StatusCode.RETURN }
         }
 
-        let result = v2.expand(msg, args.slice(1), getOpts(rawArgs)[0], (alias: any, preArgs: any) => {
+        let simulatedOpts: Opts = {}
+
+        let argList = args.slice(1)
+
+        while(argList[0] === '-opt'){
+            let nextArg = argList[1]
+            let [key, value] = nextArg.split("=")
+            simulatedOpts[key] = value ?? true
+            argList = argList.slice(2)
+        }
+
+        let result = v2.expand(msg, argList, simulatedOpts, (alias: any, preArgs: any) => {
             chain.push(showArgs ? preArgs : alias)
             return true
         }, !opts.getBool("F", false))
@@ -2252,8 +2263,9 @@ ${fs.readdirSync("./command-results").join("\n")}
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
 
     }, CAT, "Get the cmd chain of an alias", {
-        alias: createHelpArgument("The alias to get the chain of"),
-        "...args": createHelpArgument("Fake args to give the alias")
+        alias: createHelpArgument("The alias to get the chain of", true),
+        "-opt": createHelpArgument("Provide fake options<br>syntax: <code>-opt opt-name=value</code><br>Can be used as many times as necessary", false, "alias"),
+        "...args": createHelpArgument("Fake args to give the alias", false, "alias")
     }, {
         e: createHelpOption("get the expansion count"),
         n: createHelpOption("put the names of the expanded commands only"),
