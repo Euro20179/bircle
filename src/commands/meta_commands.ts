@@ -832,7 +832,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: `You must end the check with ]`, status: StatusCode.ERR }
             }
 
-            args = new ArgList(args.slice(0, -1))
+            let testText = args.slice(0, args.indexOf("]"))
 
             let commandToRun = parseBracketPair(args.slice(args.indexOf("]")).join(" "), "{}").trim()
             let elseCommand = ""
@@ -879,11 +879,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
 
             else if (opts.getBool("n", false)) {
-                return args.join(" ") ? handleTruthiness() : handleFalsiness()
+                return testText.length ? handleTruthiness() : handleFalsiness()
             }
 
             else if (opts.getBool("z", false)) {
-                return args.join(" ") ? handleFalsiness() : handleTruthiness()
+                return testText.join(" ") ? handleFalsiness() : handleTruthiness()
             }
 
             else {
