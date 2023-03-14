@@ -341,6 +341,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             break;
         }
         case "leaderboard": {
+            sendFile(res, "./website/leaderboard.html")
             break;
         }
         case "commands": {

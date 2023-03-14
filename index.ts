@@ -184,11 +184,20 @@ client.on(Events.MessageCreate, async (m: Message) => {
 
         percent += .0001 * pcount
 
-        if(hasItem(m.author.id, "capitalism hat")){
+        if (hasItem(m.author.id, "capitalism hat")) {
             percent += .002
         }
-        if(ap === 'cat'){
+        if (ap === 'cat') {
             percent += .002
+        }
+
+        let nw =economy.playerLooseNetWorth(m.author.id)
+
+        if (nw < 100 && economy.getEconomy()[m.author.id].hasReached100 === false) {
+            economy.addMoney(m.author.id, 100 / 10)
+        }
+        else if(nw >= 100){
+            economy.hasReached100(m.author.id)
         }
 
         economy.earnMoney(m.author.id, percent)
@@ -200,6 +209,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
                 await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
         }
+
     }
 
     if (content.slice(0, local_prefix.length) == local_prefix) {
