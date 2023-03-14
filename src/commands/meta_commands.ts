@@ -412,7 +412,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield ["code-info", createCommandV2(async () => {
-        let info = execSync("wc -l *.ts src/**/*.ts src/*.ts").toString("utf-8")
+        let info = execSync("wc -l *.ts src/**/*.ts src/*.ts website/*.ts website/*.html website/css/* website/js/*.ts").toString("utf-8")
         return { content: info, status: StatusCode.RETURN }
     }, CAT)]
 
