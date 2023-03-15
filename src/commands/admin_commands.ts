@@ -164,7 +164,9 @@ export default function*(): Generator<[string, Command| CommandV2]> {
             }
             giveItem(player.user.id, args.slice(1).join(" "), 1)
             return crv(`Gave ${player.displayName} 1 ${args.slice(1).join(" ")}`)
-        }, "Adds an item to a players inventory")
+        }, "Adds an item to a players inventory", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [
