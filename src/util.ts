@@ -6,7 +6,7 @@ import htmlRenderer from "./html-renderer"
 import vm from 'vm'
 import fs from 'fs'
 
-import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, DMChannel, EmbedBuilder, EmbedData, Guild, GuildMember, Message, PartialDMChannel, PrivateThreadChannel, StageChannel, TextChannel, ThreadChannel } from "discord.js"
+import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
 import { existsSync } from "fs"
 import { client } from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
@@ -19,19 +19,12 @@ export type MimeType = `${string}/${string}`
 export type UnixTime = number
 
 function getToolIp() {
-    let ip;
-    if (fs.existsSync("./data/ip.key")) {
-
-        ip = fs.readFileSync("./data/ip.key");
-    }
-    return ip
-
+    return fs.existsSync("./data/ip.key") ? fs.readFileSync("./data/ip.key", "utf-8") : undefined
 }
 
 //discord.js' isTextBased thing is absolutely useless
 function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclude<Channel, { type: ChannelType.GuildStageVoice }> {
-    let type = channel.type
-    return type !== ChannelType.GuildStageVoice
+    return channel.type !== ChannelType.GuildStageVoice
 }
 
 function databaseFileToArray(name: string) {
@@ -53,21 +46,15 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
     let innerPairs: [string, string][] = []
     let escape = false
     let curPair = ""
-    let inBracket = false
-    let validBracket = false
     let buildingOr = false
     let currentOr = ""
     for (let i = 0; i < string.lastIndexOf("}") + 1; i++) {
         let ch = string[i]
 
         if (ch === "{" && !escape) {
-            inBracket = true
-            validBracket = false
             continue
         }
         else if (ch === "}" && !escape) {
-            inBracket = false
-            buildingOr = false
             if (hasToMatch.test(curPair)) {
                 innerPairs.push([curPair, currentOr])
                 onMatch && onMatch(curPair, currentOr)
@@ -90,8 +77,6 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
         }
 
         if (!buildingOr && !validStartsWithValues.filter(v => v.length > curPair.length ? v.startsWith(curPair) : curPair.startsWith(v)).length) {
-            inBracket = false
-            validBracket = false
             buildingOr = false
             curPair = ""
             currentOr = ""
