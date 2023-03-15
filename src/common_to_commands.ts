@@ -902,6 +902,7 @@ export class Interpreter {
 
             let pipeIndex = this.tokens.findIndex(v => v.type === T.pipe)
 
+            // filters out all do firsts from this.#i until the first pipe
             this.tokens = this.tokens.slice(this.#i === -1 ? 0 : this.#i, pipeIndex === -1 ? undefined : pipeIndex + 1).filter(v => v.type !== T.dofirst)
 
             while (this.advance()) {
@@ -919,7 +920,7 @@ export class Interpreter {
                 }
             }
 
-            if(this.#pipeData)
+            if (this.#pipeData)
                 this.#deletePipeDataVars()
         }
 
@@ -965,28 +966,27 @@ export class Interpreter {
         }
         let userMatchCmds = getUserMatchCommands()?.get(msg.author.id) ?? []
         for (let [_name, [regex, run]] of userMatchCmds) {
-            let m;
-            if (m = content.match(regex)) {
-                const argsRegex = /^(match\d+)$/
-                let innerPairs = getInnerPairsAndDeafultBasedOnRegex(run, ["match"], argsRegex)
+            let m = content.match(regex);
+            if (!m) continue;
 
-                let tempExec = run
+            const argsRegex = /^(match\d+)$/
+            let innerPairs = getInnerPairsAndDeafultBasedOnRegex(run, ["match"], argsRegex)
 
-                for (let [match, or] of innerPairs) {
-                    let innerText = `{${match}${or}}`
-                    or = or.slice(2)
-                    let n = Number(match.slice("match".length))
-                    tempExec = tempExec.replace(innerText, m[n] ?? or)
-                }
+            let tempExec = run
 
-                try {
-                    await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })
-                }
-                catch (err) {
-                    console.error(err)
-                    //@ts-ignore
-                    await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
-                }
+            for (let [match, or] of innerPairs) {
+                let innerText = `{${match}${or}}`
+                or = or.slice(2)
+                let n = Number(match.slice("match".length))
+                tempExec = tempExec.replace(innerText, m[n] ?? or)
+            }
+
+            try {
+                await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })
+            }
+            catch (err) {
+                console.error(err)
+                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
             }
         }
     }
