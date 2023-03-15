@@ -429,21 +429,16 @@ export class Interpreter {
     }
 
     #initializePipeDataVars() {
-        if (this.#pipeData) {
-            //FIXME: using stdin as prefix can lead to race condition where if 2 people run pipes at the same time, the data may get jumbled.
-            //possible solution: make all prefixes user based instead of accessed globally, then have just one __global__ prefix
-            vars.setVar("content", this.#pipeData.content ?? "", "stdin", this.#msg.author.id)
-            vars.setVar("status", statusCodeToStr(this.#pipeData.status), "stdin", this.#msg.author.id)
-            vars.setVar("raw", JSON.stringify(this.#pipeData), "stdin", this.#msg.author.id)
-        }
+        vars.setVar("content", this.#pipeData?.content ?? "", "stdin", this.#msg.author.id)
+        vars.setVar("status", statusCodeToStr(this.#pipeData?.status), "stdin", this.#msg.author.id)
+        vars.setVar("raw", JSON.stringify(this.#pipeData), "stdin", this.#msg.author.id)
     }
 
     #deletePipeDataVars() {
-        if (this.#pipeData) {
-            vars.delVar("content", "stdin", this.#msg.author.id)
-            vars.delVar("status", "stdin", this.#msg.author.id)
-            vars.delVar("raw", "stdin", this.#msg.author.id)
-        }
+        vars.delVar("content", "stdin", this.#msg.author.id)
+        vars.delVar("status", "stdin", this.#msg.author.id)
+        vars.delVar("raw", "stdin", this.#msg.author.id)
+
     }
 
     getMessage() {
@@ -898,7 +893,8 @@ export class Interpreter {
         }
         else {
 
-            this.#initializePipeDataVars()
+            if (this.#pipeData)
+                this.#initializePipeDataVars()
 
             for (let doFirst of this.tokens.slice(this.#i === -1 ? 0 : this.#i).filter(v => v.type === T.dofirst)) {
                 await this[1](doFirst)
@@ -923,7 +919,8 @@ export class Interpreter {
                 }
             }
 
-            this.#deletePipeDataVars()
+            if(this.#pipeData)
+                this.#deletePipeDataVars()
         }
 
         //null comes from %{-1}doFirsts
