@@ -1626,13 +1626,6 @@ function weirdMulStr(text: string[], ...count: string[]) {
     return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
 
-function recursiveSum(start: number): number {
-    if (start === 0) {
-        return 0
-    }
-    return start + recursiveSum(start - 1)
-}
-
 function searchList(search: string, list_of_strings: string[], caseSentive=false) {
     let results: { [key: string]: number } = {}
     for (let str of list_of_strings) {
