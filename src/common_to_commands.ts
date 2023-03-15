@@ -1031,35 +1031,29 @@ function defileCommandReturn(rv: CommandReturn) {
 
 
 export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
+
     if (!isMsgChannel(msg.channel)) return msg
+
     if (!Object.keys(rv).length) {
         return msg
     }
-    if (!sendCallback && rv.sendCallback) {
-        sendCallback = rv.sendCallback
-    }
-    else if (!sendCallback && rv.channel) {
-        sendCallback = rv.channel.send.bind(rv.channel)
-    }
-    else if (!sendCallback) {
-        sendCallback = msg.channel.send.bind(msg.channel)
+
+    events.botEvents.emit(events.HandleSend, msg, rv, sendCallback, recursion)
+
+    if(!sendCallback){
+        sendCallback = rv.sendCallback ||
+                       rv.channel?.send.bind(rv.channel) ||
+                       msg.channel.send.bind(msg.channel)
     }
 
     if (rv.delete && msg.deletable) {
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
+
     if (rv.noSend) {
-        //${%:?} should still be set despite nosend
-        if (rv.do_change_cmd_user_expansion !== false) vars.setVar("?", rv.status, msg.author.id)
         return msg
     }
-    //we only want to do this if the return cant expand into a cmd
-    if (rv.do_change_cmd_user_expansion !== false) {
-        vars.setVar("?", rv.status, msg.author.id)
-        let c = getContentFromResult(rv, "\n")
-        vars.setVar("_!", c, msg.author.id)
-        vars.setVar("_!", c)
-    }
+
     if (rv.content && rv.do_change_cmd_user_expansion !== false) {
         //if not empty, save in the _! variable
 
