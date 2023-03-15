@@ -253,7 +253,7 @@ function work(id: string) {
     if (!ECONOMY[id])
         return false
     ECONOMY[id].lastWork = Date.now()
-    let minimumWage = .001 * (economyLooseGrandTotal().total)
+    let minimumWage = .01 * (economyLooseGrandTotal().total)
     if (addMoney(id, minimumWage)) {
         return minimumWage
     }

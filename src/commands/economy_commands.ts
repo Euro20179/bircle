@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp } from '../util'
+import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp, choice } from '../util'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
@@ -797,6 +797,54 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 "no-round": createHelpOption("No rounding"),
             }
         ),
+    ]
+
+    yield [
+        "work",
+        {
+            run: async (msg, _args, sendCallback) => {
+                let canWork = economy.canWork(msg.author.id)
+                let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
+                let ip = getToolIp()
+                if (!ip) {
+                    return crv("No ip", { status: StatusCode.ERR })
+                }
+                let res = await fetch.default(`http://${ip}`)
+                let json = await res.json()
+                //0 means that it has been an hour, but they are not broke
+                if (canWork === 0 && json[msg.author.id]?.major === 'graduated') {
+                    let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
+                        fired: (amount) => {
+                            return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
+                        },
+                        murderer: (amount) => {
+                            return { message: `There was an asassin waiting for you at the door, luckily they missed your heart but you had to pay ${currency_sign}${amount * 2} at the hospital`, gain: 0, lose: amount * 2 }
+                        },
+                        toolbox: (amount) => {
+                            return { message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0 }
+                        }
+                    }
+                    let amount = economy.work(msg.author.id)
+                    if (Math.random() > .95 && amount) {
+                        let event = choice(Object.values(events))(amount)
+                        if (event) {
+                            economy.addMoney(msg.author.id, event.gain)
+                            economy.loseMoneyToBank(msg.author.id, event.lose)
+                            return { content: event.message, status: StatusCode.RETURN }
+                        }
+                    }
+                    return { content: `Congrats, you grad student, here's ${currency_sign}${amount} from your job`, status: StatusCode.RETURN }
+                }
+                if (canWork) {
+                    let amount = economy.work(msg.author.id)
+                    return { content: `You earned: ${currency_sign}${amount}`, status: StatusCode.RETURN }
+                }
+                return { content: "No working for you bubs", status: StatusCode.ERR }
+            }, category: CommandCategory.ECONOMY,
+            help: {
+                info: `Earn money (.1% of the economy) if your net worth is below 0 or if you graduated #school\nYou can work once per hour`
+            }
+        },
     ]
 
     yield [
