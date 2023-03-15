@@ -3002,69 +3002,56 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             run: async (msg, args, sendCallback) => {
                 let opts;
                 [opts, args] = getOpts(args)
-                let vname = args[0]
-                let varValRet
-                let mainScope = "__global__"
-                let secondaryScope = msg.author.id
-                if (opts['u']) {
-                    mainScope = msg.author.id
-                    secondaryScope = "__global__"
+
+                let prefix = ""
+                if(opts['u']){
+                    prefix = msg.author.id
                 }
-                let vardict = vars.vars[mainScope]
-                if (isNaN(parseFloat(vname))) {
-                    let vvalue = vars.getVar(msg, vname, mainScope)
-                    if (vvalue === false) {
-                        vardict = vars.vars[secondaryScope]
-                        vvalue = vars.getVar(msg, vname, secondaryScope)
-                    }
-                    if (vvalue === undefined) {
-                        vardict = vars.vars[mainScope]
-                        vars.setVar(vname, "0", mainScope)
-                        vvalue = vars.getVar(msg, vname, mainScope)
-                    }
-                    varValRet = vvalue
+
+                let left = args[0]
+
+                let leftN = Number(left)
+                if(isNaN(leftN)){
+                    leftN = Number(vars.getVar(msg, left, prefix))
                 }
-                else {
-                    varValRet = vname
-                    vname = "__expr"
+                if(isNaN(leftN)){
+                    return crv(`${left} is not a number`, {status: StatusCode.ERR})
                 }
+
                 let op = args[1]
-                let expr = args[2]
-                if (expr && isNaN(parseFloat(expr))) {
-                    expr = vars.getVar(msg, expr, mainScope)
-                    if (expr === undefined) {
-                        vars.setVar(vname, "0", mainScope)
-                        expr = vars.getVar(msg, expr, mainScope)
-                    }
-                    if (expr === undefined) {
-                        return { content: `var: **${expr}** does not exist`, status: StatusCode.ERR }
-                    }
+
+                let right = args[2]
+
+                let rightN = Number(right)
+                if(isNaN(rightN) && right){
+                    rightN = Number(vars.getVar(msg, right, prefix))
                 }
+                if(isNaN(rightN) && right){
+                    return crv(`${right} is not a number`, {status: StatusCode.ERR})
+                }
+
                 let ans: any
                 switch (op) {
                     case "++":
 
-                        ans = parseFloat(varValRet) + 1
+                        ans = leftN + 1
                         break
                     case "--":
-                        ans = parseFloat(varValRet) - 1
+                        ans = leftN - 1
                         break
                     case "floor":
-                        ans = Math.floor(parseFloat(varValRet))
+                        ans = Math.floor(leftN)
                         break;
                     case "ceil":
-                        ans = Math.ceil(parseFloat(varValRet))
-                        break;
-                    case ":":
-                        ans = parseFloat(varValRet)
+                        ans = Math.ceil(leftN)
                         break;
                     case ",":
                         ans = ""
-                        for (let i = 0; i < varValRet.length; i++) {
+                        for (let i = 0; i < left.length; i++) {
                             if (i % 3 == 0 && i != 0) {
                                 ans += ","
                             }
-                            ans += varValRet[varValRet.length - i - 1]
+                            ans += left[left.length - i - 1]
                         }
                         let newAns = ""
                         for (let i = ans.length - 1; i >= 0; i--) {
@@ -3073,25 +3060,25 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         ans = newAns
                         break;
                     case "+":
-                        ans = parseFloat(varValRet) + parseFloat(expr)
+                        ans = leftN + rightN
                         break
                     case "-":
-                        ans = parseFloat(varValRet) - parseFloat(expr)
+                        ans = leftN - rightN
                         break
                     case "*":
-                        ans = parseFloat(varValRet) * parseFloat(expr)
+                        ans = leftN * rightN
                         break
                     case "/":
-                        ans = parseFloat(varValRet) / parseFloat(expr)
+                        ans = leftN / rightN
                         break
                     case "^":
-                        ans = parseFloat(varValRet) ^ parseFloat(expr)
+                        ans = leftN ^ rightN
                         break;
                     case "%":
-                        ans = parseFloat(varValRet) % parseFloat(expr)
+                        ans = leftN % rightN
                         break;
                 }
-                vardict[vname] = ans
+                vars.setVarEasy(msg, left, String(ans), prefix)
                 return { content: String(ans), status: StatusCode.RETURN }
             },
             help: {

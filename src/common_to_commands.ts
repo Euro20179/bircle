@@ -1018,6 +1018,7 @@ export async function expandAlias(command: string, onExpand?: (alias: string, pr
     }
     return [command, aliasPreArgs]
 }
+
 function defileCommandReturn(rv: CommandReturn) {
     //if a file contains content that was previously supposed to be sent to chat, dont keep in file
     for (let i = 0; i < (rv.files?.length ?? 0); i++) {
@@ -1026,6 +1027,32 @@ function defileCommandReturn(rv: CommandReturn) {
             rv.files = rv.files.filter((_v, idx) => idx !== i)
         }
     }
+    return rv
+}
+
+function cmdUserExpansion(msg: Message, rv: CommandReturn) {
+    let optionToGet: user_options.UserOption = ({
+        [StatusCode.ERR]: "change-cmd-error",
+        [StatusCode.INFO]: "change-cmd-info",
+        [StatusCode.PROMPT]: "change-cmd-prompt",
+        [StatusCode.RETURN]: "change-cmd-return",
+        [StatusCode.WARNING]: "change-cmd-warning"
+    } as { [key: number]: user_options.UserOption })[rv.status] as user_options.UserOption
+
+    let opt = user_options.getOpt(msg.author.id, optionToGet, "")
+
+    if (opt === "") return rv;
+
+    rv.content = opt
+    if (rv.recurse && rv.recurse !== true) {
+        //if rv specified different bans, we want those to take priority
+        rv.recurse = { ...rv.recurse }
+    }
+    else {
+        rv.recurse = true
+    }
+    rv.do_change_cmd_user_expansion = false
+
     return rv
 }
 
@@ -1040,10 +1067,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 
     events.botEvents.emit(events.HandleSend, msg, rv, sendCallback, recursion)
 
-    if(!sendCallback){
+    if (!sendCallback) {
         sendCallback = rv.sendCallback ||
-                       rv.channel?.send.bind(rv.channel) ||
-                       msg.channel.send.bind(msg.channel)
+            rv.channel?.send.bind(rv.channel) ||
+            msg.channel.send.bind(msg.channel)
     }
 
     if (rv.delete && msg.deletable) {
@@ -1055,30 +1082,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
 
     if (rv.content && rv.do_change_cmd_user_expansion !== false) {
-        //if not empty, save in the _! variable
-
-
-        let optionToGet: user_options.UserOption = ({
-            [StatusCode.ERR]: "change-cmd-error",
-            [StatusCode.INFO]: "change-cmd-info",
-            [StatusCode.PROMPT]: "change-cmd-prompt",
-            [StatusCode.RETURN]: "change-cmd-return",
-            [StatusCode.WARNING]: "change-cmd-warning"
-        } as { [key: number]: user_options.UserOption })[rv.status] as user_options.UserOption
-
-
-        let opt = user_options.getOpt(msg.author.id, optionToGet, "")
-        if (opt !== "") {
-            rv.content = opt
-            if (rv.recurse && rv.recurse !== true) {
-                //if rv specified different bans, we want those to take priority
-                rv.recurse = { ...rv.recurse }
-            }
-            else {
-                rv.recurse = true
-            }
-            rv.do_change_cmd_user_expansion = false
-        }
+        rv = cmdUserExpansion(msg, rv)
     }
 
     if (!rv?.content) {
