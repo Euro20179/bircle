@@ -307,8 +307,25 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
 
     yield ["use-item", createCommandV2(async ({ args, msg, opts }) => {
-        let recipes: [[string, ...string[]], () => CommandReturn][] = [
-            [["balanced breakfast"], () => {
+        let recipes: [[string, ...string[]], (count?: number) => Promise<CommandReturn>][] = [
+            [['oil'], async(count?: number) => {
+
+                let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+                let gallonToBarrel = 1/42
+                let res = await fetch.default("https://oilprice.com/oil-price-charts")
+                let html = await res.text()
+
+                let prices = html.match(/>(\d+.\d+)</)
+                let crudeOil = Number(prices?.[1])
+                if(!crudeOil || isNaN(crudeOil)){
+                    return crv("Could not get the price of oil", {status: StatusCode.ERR})
+                }
+
+                let price = (crudeOil * gallonToBarrel) * (count || 1)
+                economy.addMoney(msg.author.id, price)
+                return crv(`You earned ${sign}${crudeOil * gallonToBarrel} per gallon for a total of ${sign}${price}`)
+            }],
+            [["balanced breakfast"], async() => {
                 let pets = pet.getUserPets(msg.author.id)
                 let petShop = pet.getPetShop()
                 for (let p in pets) {
@@ -319,7 +336,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: "All of your pets have full health, there is some leftover smell :nose:", status: StatusCode.RETURN }
             }
             ],
-            [["mumbo stink"], () => {
+            [["mumbo stink"], async() => {
                 if (Math.random() > .85) {
                     let amount = economy.playerLooseNetWorth(msg.author.id) * 0.01
                     economy.loseMoneyToBank(msg.author.id, amount)
@@ -327,7 +344,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 return { content: "You got rid of the mumbo stink", status: StatusCode.RETURN }
             }],
-            [["ghostly's nose"], () => {
+            [["ghostly's nose"], async() => {
                 return {
                     files: [
                         {
@@ -339,35 +356,35 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             ],
-            [["ghostly's nose", "baguette"], () => {
+            [["ghostly's nose", "baguette"], async() => {
                 let ach = achievements.achievementGet(msg, "stale bread")
                 if(ach){
                     handleSending(msg, ach)
                 }
                 return crv("You sniff the baguette but are dissapointed because it is stale")
             }],
-            [["a fine quarter"], () => {
+            [["a fine quarter"], async() => {
                 let amount = economy.economyLooseGrandTotal().total
                 economy.addMoney(msg.author.id, amount * 0.0026)
                 return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} :+1:`, status: StatusCode.RETURN }
             }],
-            [["pirate's gold tooth", "a fine quarter"], () => {
+            [["pirate's gold tooth", "a fine quarter"], async() => {
                 giveItem(msg.author.id, "pawn shop", 1)
                 return { content: "With all of your valuables, you decide to open a pawn shop", status: StatusCode.RETURN }
             }],
-            [["a fine grain of sand"], () => {
+            [["a fine grain of sand"], async() => {
                 economy.increaseSandCounter(msg.author.id, 1)
                 return { content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)}`, status: StatusCode.RETURN }
             }],
-            [["stinky ol' boot", "mumbo meal"], () => {
+            [["stinky ol' boot", "mumbo meal"], async() => {
                 giveItem(msg.author.id, "balanced breakfast", 1)
                 return { content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN }
             }],
-            [["amelia earhart"], () => {
+            [["amelia earhart"], async() => {
                 giveItem(msg.author.id, "airplane", 1)
                 return { content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN }
             }],
-            [["the titanic"], () => {
+            [["the titanic"], async() => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
                 let itemJ = JSON.parse(items)
                 let itemNames = Object.keys(itemJ)
@@ -376,15 +393,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
                 return { content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
-            [["amelia earhart", "the titanic"], () => {
+            [["amelia earhart", "the titanic"], async() => {
                 giveItem(msg.author.id, "conspiracy", 1)
                 return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
             }],
-            [["ship wreck"], () => {
+            [["ship wreck"], async() => {
                 let amount = Math.random() * economy.playerLooseNetWorth(msg.author.id) * 0.05
                 return { content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
-            [["item yoinker"], () => {
+            [["item yoinker"], async() => {
                 let inv = INVENTORY()
                 let text = ""
                 for (let user in inv) {
@@ -415,6 +432,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: `You do not have a ${item}`, status: StatusCode.ERR }
             }
         }
+
         let chosen_recipe = recipes.filter(v => {
             for (let item of items) {
                 if (!v[0].includes(item)) {
@@ -423,13 +441,28 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             return true
         })[0]
+
         if (!chosen_recipe) {
             return { content: `${items.join(" + ")} is not a valid combination`, status: StatusCode.ERR }
         }
-        for (let item of chosen_recipe[0]) {
-            useItem(msg.author.id, item, 1)
+
+        let countOfItem = opts.getNumber('count', 1)
+
+
+        //if they are using 1 item in the recipe, and want to use more than 1 of that item at once
+        if(chosen_recipe[0].length === 1 && countOfItem ){
+            if(countOfItem > hasItem(msg.author.id, chosen_recipe[0][0])){
+                return crv(`You do not have that much of ${chosen_recipe[0][0]}`)
+            }
+            useItem(msg.author.id, chosen_recipe[0][0], countOfItem)
         }
-        return chosen_recipe[1]()
+        else {
+            for (let item of chosen_recipe[0]) {
+                useItem(msg.author.id, item, 1)
+            }
+        }
+
+        return await chosen_recipe[1](countOfItem)
     }, CommandCategory.FUN, "Use and combine items to do something!<br>See `[use-item -l` to see a list of recipes<br>usage: `[use-item <item1> + <item2> `")]
 
     yield [
