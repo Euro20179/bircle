@@ -208,6 +208,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
                 return { noSend: true, status: StatusCode.RETURN }
             },
+            "social security": async() => {
+                let amount = economy.economyLooseGrandTotal().total * 0.04
+                return {
+                    content: `You got ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} in social security benifits`,
+                    status: StatusCode.RETURN
+                }
+            },
             "doing bingo night": async () => {
                 economy.addMoney(msg.author.id, economy.calculateAmountFromString(msg.author.id, "1%"))
                 return crv("YOU WIN!!!!", {
