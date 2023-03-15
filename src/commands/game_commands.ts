@@ -1578,7 +1578,7 @@ until you put a 0 in the box`)
                                     let member = msg.guild?.members.cache.get(player)
                                     let netWorth = economy.playerLooseNetWorth(player)
                                     let gain = netWorth * (data[player] / 100)
-                                    gain += data_floor[player] ? data_floor[player] : 0
+                                    gain += data_floor[player] > 0 ? data_floor[player] : 0
                                     if (member) {
                                         e.addFields(efd([String(member.nickname || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`]))
                                     }
