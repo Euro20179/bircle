@@ -2871,7 +2871,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             rv.delete = true
         }
         if (opts.getBool("dm", false)) {
-            if(msg.author.dmChannel)
+            if (msg.author.dmChannel)
                 rv.channel = msg.author.dmChannel
         }
         if (sendToVar = opts.getString("v", "")) {
@@ -3004,50 +3004,56 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 [opts, args] = getOpts(args)
 
                 let prefix = ""
-                if(opts['u']){
+                if (opts['u']) {
                     prefix = msg.author.id
                 }
 
                 let left = args[0]
 
-                let leftN = Number(left)
-                if(isNaN(leftN)){
-                    leftN = Number(vars.getVar(msg, left, prefix))
+                let convFn = opts['s'] ? String : Number
+
+                let isBad = opts['s'] ? (s: string) => s ? false : true : isNaN
+
+                let leftVal = convFn(left)
+                if (isBad(leftVal)) {
+                    leftVal = convFn(vars.getVar(msg, left, prefix))
                 }
-                if(isNaN(leftN)){
-                    return crv(`${left} is not a number`, {status: StatusCode.ERR})
+                if (isBad(leftVal)) {
+                    return crv(`${left} did not pass the ${convFn.name} check`, { status: StatusCode.ERR })
                 }
 
                 let op = args[1]
 
                 let right = args[2]
 
-                let rightN = Number(right)
-                if(isNaN(rightN) && right){
-                    rightN = Number(vars.getVar(msg, right, prefix))
+                let rightVal = convFn(right)
+                if (right && isBad(rightVal)) {
+                    rightVal = convFn(vars.getVar(msg, right, prefix))
                 }
-                if(isNaN(rightN) && right){
-                    return crv(`${right} is not a number`, {status: StatusCode.ERR})
+                if (right && isBad(rightVal)) {
+                    return crv(`${right} is not a number`, { status: StatusCode.ERR })
                 }
 
                 let ans: any
                 switch (op) {
                     case "++":
-
-                        ans = leftN + 1
+                        ans = typeof leftVal === 'string' ? leftVal.repeat(2) : leftVal + 1
                         break
                     case "--":
-                        ans = leftN - 1
+                        if (typeof leftVal === 'string') {
+                            ans = NaN
+                        }
+                        else ans = leftVal - 1
                         break
                     case "floor":
-                        ans = Math.floor(leftN)
+                        ans = typeof leftVal === 'string' ? NaN : Math.floor(leftVal)
                         break;
                     case "ceil":
-                        ans = Math.ceil(leftN)
+                        ans = typeof leftVal === 'string' ? NaN : Math.ceil(leftVal)
                         break;
                     case ",":
                         ans = ""
-                        for (let i = 0; i < left.length; i++) {
+                        for (let i = 0; i < String(leftVal).length; i++) {
                             if (i % 3 == 0 && i != 0) {
                                 ans += ","
                             }
@@ -3060,22 +3066,33 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         ans = newAns
                         break;
                     case "+":
-                        ans = leftN + rightN
+                        //@ts-ignore
+                        ans = leftVal + rightVal
                         break
                     case "-":
-                        ans = leftN - rightN
+                        if (typeof leftVal === 'string' && typeof rightVal === 'string') {
+                            ans = leftVal.replaceAll(rightVal, "")
+                        }
+                        else if (typeof leftVal === 'number' && typeof rightVal == 'number') ans = leftVal - rightVal
                         break
                     case "*":
-                        ans = leftN * rightN
+                        if (!isNaN(Number(rightVal)) && typeof leftVal === 'string') {
+                            ans = leftVal.repeat(Number(rightVal))
+                        }
+                        else if (typeof leftVal === 'number' && typeof rightVal === 'number')
+                            ans = leftVal * rightVal
                         break
                     case "/":
-                        ans = leftN / rightN
+                        if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
+                        else ans = leftVal / rightVal
                         break
                     case "^":
-                        ans = leftN ^ rightN
+                        if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
+                        else ans = leftVal ^ rightVal
                         break;
                     case "%":
-                        ans = leftN % rightN
+                        if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
+                        else ans = leftVal % rightVal
                         break;
                 }
                 vars.setVarEasy(msg, left, String(ans), prefix)
@@ -3093,6 +3110,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     "num2": {
                         description: "The other number (can be a variable)"
                     }
+                }, 
+                options: {
+                    s: createHelpOption("Treat each value as a string, and do not do variable lookup"),
+                    u: createHelpOption("Treat each word as a user variable")
                 }
             },
             category: CommandCategory.UTIL
