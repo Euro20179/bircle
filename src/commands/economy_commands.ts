@@ -43,6 +43,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     }, "Total amount on tools bot")]
 
     yield ["retire", ccmdV2(async function({ msg }) {
+        if(Object.keys(economy.getEconomy()).length < 3){
+            return crv("Cannot retire if there are 2 or less people in the economy", {status: StatusCode.ERR})
+        }
         let percentage = economy.playerLooseNetWorth(msg.author.id) / economy.economyLooseGrandTotal().total
         if (percentage >= 0.5) {
             economy.retirePlayer(msg.author.id)
