@@ -9,7 +9,7 @@ import vars from '../vars'
 
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
-import { ccmdV2, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp, choice } from '../util'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -729,7 +729,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "nw", createCommand(async (msg, args) => {
+        "nw", createCommandV2(async ({ msg, args }) => {
             let user;
 
             if (!args.join(" ")) {
@@ -751,9 +751,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "money", createCommand(async (msg, args) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        "money", createCommandV2(async ({rawOpts: opts, msg, args }) => {
             let user = msg.member
             if (args.join(" "))
                 //@ts-ignore
@@ -915,7 +913,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "give-stock", createCommand(async (msg, args) => {
+        "give-stock", createCommandV2(async ({msg, args}) => {
             let stock = args[0]
             let a = args[1]
             let sn = stock
@@ -1042,7 +1040,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "tax", createCommand(async (msg, args, sendCallback) => {
+        "tax", createCommandV2(async ({msg, rawOpts: opts, args, sendCallback}) => {
             if (msg.author.bot) {
                 return { content: "Bots cannot steal", status: StatusCode.ERR }
             }
@@ -1061,8 +1059,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: "You can only tax every 1.7 seconds", status: StatusCode.ERR }
             }
 
-            let opts;
-            [opts, args] = getOpts(args)
             if (!args.length) {
                 await handleSending(msg, { content: "No user specified, erasing balance", status: StatusCode.INFO }, sendCallback)
                 await new Promise(res => setTimeout(res, 1000))

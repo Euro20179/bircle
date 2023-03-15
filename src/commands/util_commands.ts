@@ -14,7 +14,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild } from '../util'
 
 import vars from '../vars'
@@ -235,12 +235,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "help", createCommand(async (_msg, args) => {
+        "help", createCommandV2(async ({rawOpts: opts, args }) => {
 
             const matchCmds = getMatchCommands()
             let commands = { ...Object.fromEntries(getCommands().entries()), ...matchCmds }
-            let opts
-            [opts, args] = getOpts(args)
             if (opts["g"]) {
                 let text = fs.readFileSync("./website/help-web.html", "utf-8")
                 return {
@@ -353,13 +351,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "ed", createCommand(async (msg, args, _, __, ___, rec, bans) => {
+        "ed", createCommandV2(async ({ msg, rawOpts: opts, args, recursionCount: rec, commandBans: bans }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             if (globals.EDS[msg.author.id]) {
                 return { content: "Ur already editing", status: StatusCode.ERR }
             }
-            let opts: Opts;
-            [opts, args] = getOpts(args)
             let mode: "normal" | "insert" = "normal"
             let canEdit: (string | undefined)[] = String(opts['editors']).split(",")
             canEdit.push(msg.author.id)
@@ -537,7 +533,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (opts['text-after']) {
                 let newArgs;
                 [newArgs, ...text] = args.join(" ").split(String(opts['text-after']))
-                args = newArgs.split(" ")
+                args = new ArgList(newArgs.split(" "))
                 text = text.join(String(opts['text-after'])).split("\n").map(v => v.trim())
                 currentLine = text.length
             }
@@ -707,7 +703,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "stk", createCommand(async (msg, args, sendCallback) => {
+        "stk", createCommandV2(async ({ msg, args, sendCallback }) => {
             https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+stock`, resp => {
                 let data = new Stream.Transform()
                 resp.on("data", chunk => {
@@ -1320,9 +1316,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "aheist", createCommand(async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        "aheist", createCommandV2(async ({ msg, args, rawOpts: opts}) => {
             let text = args.join(" ")
             let damageUsers = opts['lose'] || opts['l']
             let healUsers = opts['gain'] || opts['g']
@@ -1750,7 +1744,7 @@ middle
     ]
 
     yield [
-        "string", createCommand(async (_msg, args) => {
+        "string", createCommandV2(async ({ args }) => {
             let operation = args[0]
             let string = args.slice(1).join(" ")
             let operations: { [key: string]: (string: string) => string } = {
@@ -1904,7 +1898,7 @@ middle
     ]
 
     yield [
-        "render-html", createCommand(async (msg, _, sc, opts, args) => {
+        "render-html", createCommandV2(async ({ msg, args }) => {
             return { content: htmlRenderer.renderHTML(args.join(" "), 0), status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Renders <code>html</code>", {
             html: {
@@ -1951,15 +1945,15 @@ middle
     ]
 
     yield [
-        "get", createCommand(async (msg, _, sendCallback, cmd_opts, opts) => {
-            let operator = opts[0]
-            let object = opts[1]
+        "get", createCommandV2(async ({ msg, rawOpts: opts, args }) => {
+            let operator = args[0]
+            let object = args[1]
             let filterInfo: { type: "with" | "without" | "with!" | "without!", attribute: string, search: string } | null = null
             let filter = function(_k: any, _v: any) {
                 return true
             }
-            if (["with", "without", "with!"].includes(opts[2])) {
-                filterInfo = { type: opts[2] as "with" | "without" | "without!" | "with!", attribute: opts[3], search: opts.slice(4).join(" ") }
+            if (["with", "without", "with!"].includes(args[2])) {
+                filterInfo = { type: args[2] as "with" | "without" | "without!" | "with!", attribute: args[3], search: args.slice(4).join(" ") }
                 filter = function(v: any, k: any) {
                     let search = filterInfo?.search
                     let val = v;
@@ -1986,7 +1980,7 @@ middle
                 }
             }
             let data: Collection<any, any> | undefined;
-            let number = parseInt(String(cmd_opts['n']))
+            let number = parseInt(String(opts['n']))
             data = await {
                 "channel": async () => await msg.guild?.channels.fetch(),
                 "role": async () => await msg.guild?.roles.fetch(),
@@ -2038,10 +2032,8 @@ middle
     ]
 
     yield [
-        "embed", createCommand(
-            async (msg, args) => {
-                let opts;
-                [opts, args] = getOpts(args)
+        "embed", createCommandV2(
+            async ({ rawOpts: opts, args }) => {
                 let embed = new EmbedBuilder()
                 for (let arg of args.join(" ").split("\n")) {
                     let [type, ...typeArgs] = arg.split(" ")
@@ -3179,7 +3171,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "b64m", createCommand(async (msg, _, sc, opts, args) => {
+        "b64m", createCommandV2(async ({ args }) => {
             let table: { [key: number]: string } = {}
             let j = 0;
             for (let char of "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") {
@@ -3287,7 +3279,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     })]
 
     yield [
-        "timer", createCommand(async (msg, _, sc, opts, args) => {
+        "timer", createCommandV2(async ({ msg, args }) => {
             let action = args[0]?.toLowerCase()
             let actions = ["create", "delete", "get", "list", "lap", "has-x-units-passed"]
 

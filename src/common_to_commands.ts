@@ -1152,33 +1152,6 @@ export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand
     }
 }
 
-/**
-    * @deprecated use createCommandV2
-*/
-export function createCommand(
-    cb: (msg: Message, args: ArgumentList, sendCallback: (_data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>,
-    category: CommandCategory,
-    helpInfo?: string,
-    helpArguments?: CommandHelpArguments | null,
-    helpOptions?: CommandHelpOptions | null,
-    tags?: string[] | null,
-    permCheck?: (m: Message) => boolean,
-    use_result_cache?: boolean): Command {
-    return {
-        run: cb,
-        help: {
-            info: helpInfo,
-            arguments: helpArguments ? helpArguments : undefined,
-            options: helpOptions ? helpOptions : undefined,
-            tags: tags ? tags : undefined
-        },
-        category: category,
-        permCheck: permCheck,
-        use_result_cache: use_result_cache,
-        cmd_std_version: 1
-    }
-}
-
 export function createCommandV2(
     cb: CommandV2Run,
     category: CommandCategory,
@@ -1472,7 +1445,6 @@ export default {
     aliasesV2,
     isCmd,
     expandAlias,
-    createCommand,
     createCommandV2,
     crv,
     ccmdV2,

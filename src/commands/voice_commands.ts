@@ -5,7 +5,7 @@ import fetch = require("node-fetch")
 
 
 
-import { CommandCategory, createCommand, createCommandV2, currently_playing, setCurrentlyPlaying, StatusCode } from '../common_to_commands'
+import { CommandCategory, createCommandV2, currently_playing, setCurrentlyPlaying, StatusCode } from '../common_to_commands'
 import {  generateFileName } from '../util'
 import { EmbedBuilder } from 'discord.js'
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
@@ -82,7 +82,7 @@ player.on(AudioPlayerStatus.Idle, (_err) => {
 
 export default function*() {
     yield [
-        'play', createCommand(async (msg, args) => {
+        'play', createCommandV2(async ({msg, args}) => {
             let link = args.join(" ")
             let attachment = msg.attachments.at(0)
             if (attachment) {
@@ -125,7 +125,7 @@ export default function*() {
     }, CommandCategory.VOICE, "Unpause the current song")]
 
     yield [
-        'queue', createCommand(async () => {
+        'queue', createCommandV2(async () => {
             let embed = new EmbedBuilder()
             embed.setTitle("queue")
             embed.setDescription(String(currently_playing?.link) || "None")
@@ -134,7 +134,7 @@ export default function*() {
     ]
 
     yield [
-        'next', createCommand(async (msg, args) => {
+        'next', createCommandV2(async ({msg}) => {
             let voice_state = msg.member?.voice
             if (!voice_state?.channelId) {
                 return { content: "No voice", status: StatusCode.ERR }
@@ -146,7 +146,7 @@ export default function*() {
     ]
 
     yield [
-    'leave', createCommand(async (msg, args) => {
+    'leave', createCommandV2(async ({msg}) => {
         vc_queue = []
         let voice_state = msg.member?.voice
         if (!voice_state?.channelId) {

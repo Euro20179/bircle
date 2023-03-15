@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars from '../vars'
 
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
+import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -206,7 +206,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
 
-        "option", createCommand(async (msg, args) => {
+        "option", createCommandV2(async ({ msg, args }) => {
             let [optname, ...value] = args
             if (!user_options.isValidOption(optname)) {
                 return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
@@ -234,7 +234,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "UNSET", createCommand(async (msg, args) => {
+        "UNSET", createCommandV2(async ({ msg, args }) => {
             let [user, optname] = args
             if (!user_options.isValidOption(optname)) {
                 return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
@@ -251,7 +251,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "options", createCommand(async (msg, _, __, opts, args) => {
+        "options", createCommandV2(async ({ msg, rawOpts: opts, args }) => {
             let user: string = msg.author.id
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
@@ -585,7 +585,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "dwiki", createCommand(async (msg, args) => {
+        "dwiki", createCommandV2(async ({ args }) => {
             if (fs.existsSync(`./wiki/${args.join(" ")}.txt`)) {
                 fs.rmSync(`./wiki/${args.join(" ")}.txt`)
                 return { content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN }
@@ -669,7 +669,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "analyze-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
+        "analyze-cmd", createCommandV2(async ({ msg, sendCallback: sc, rawOpts: opts, args, recursionCount: rec, commandBans: bans }) => {
             let results = []
 
             let text = args.join(" ").trim()
@@ -940,7 +940,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "if-cmd", createCommand(async (msg, _, sc, opts, args, rec, bans) => {
+        "if-cmd", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans }) => {
 
             async function runIf(c: string, operator: string, value: string) {
                 let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans })).rv as CommandReturn
@@ -1319,7 +1319,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "variablize", createCommand(async (msg, _, sc, opts, args) => {
+        "variablize", createCommandV2(async ({ msg, args }) => {
             let reqVars = args
             let str = reqVars.map(v => {
                 if (v.startsWith("\\")) {

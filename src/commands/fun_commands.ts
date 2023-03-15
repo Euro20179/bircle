@@ -18,7 +18,7 @@ import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -557,7 +557,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "count", createCommand(async (msg, args, _, __, ___, rec, disable) => {
+        "count", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
             if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode}
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
@@ -852,7 +852,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "search-wiki", createCommand(async (_msg, _, __, opts, args) => {
+        "search-wiki", createCommandV2(async ({ rawOpts: opts, args }) => {
             let search = args.join(" ").toLowerCase()
             let results: { [key: string]: number } = searchList(search, fs.readdirSync("./wiki").map(v => v.replaceAll("%2f", "/").slice(0, -4).toLowerCase()))
             if (opts['all']) {
@@ -863,7 +863,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "awiki", createCommand(async (msg, args) => {
+        "awiki", createCommandV2(async ({ args }) => {
             let [title, ...txt] = args.join(" ").split("|")
             title = title.trim().replaceAll("/", "%2f")
             let text = txt.join("|")
@@ -877,7 +877,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "ewiki", createCommand(async (msg, _, cb, opts, args) => {
+        "ewiki", createCommandV2(async ({ args }) => {
             let [page, type, ...text] = args
             let valid_types = ["new", "n", "append", "a"]
             type = type.toLowerCase()

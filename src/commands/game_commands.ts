@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel } from "discord.js"
-import { createCommand, handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
+import { handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
 
 import globals = require("../globals")
 import economy from '../economy'
@@ -379,7 +379,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield [
-        "yahtzee", createCommand(async (msg, _, sc, opts, args) => {
+        "yahtzee", createCommandV2(async ({msg, rawOpts: opts, args}) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
             let new_rules = Boolean(opts['new-rules'])
@@ -1189,9 +1189,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "heist", createCommand(async (msg, args, sendCallback) => {
-            let opts: Opts;
-            [opts, args] = getOpts(args)
+        "heist", createCommandV2(async ({msg, rawOpts: opts, args, sendCallback}) => {
             if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
                 return { content: "U dingus u are already in the game", status: StatusCode.ERR }
             }

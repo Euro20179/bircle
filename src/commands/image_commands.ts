@@ -6,7 +6,7 @@ import fetch = require("node-fetch")
 
 import { Stream } from 'stream'
 
-import { CommandCategory, createCommand, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { CommandCategory,  createCommandV2, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts, getOpts, intoColorList, isMsgChannel, Pipe, randomColor, rgbToHex } from '../util'
 import { parsePosition } from '../parsing'
 import { prefix } from '../common'
@@ -75,9 +75,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "picsum.photos", createCommand(async (msg, args) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        "picsum.photos", createCommandV2(async ({rawOpts: opts, msg, args}) => {
             let width = parseInt(args[0]) || 100;
             let height = parseInt(args[1]) || 100;
             let data = await fetch.default(`https://picsum.photos/${width}/${height}`);
@@ -225,10 +223,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "draw", createCommand(async (msg, args, sendCallback) => {
+        "draw", createCommandV2(async ({ rawOpts: opts, msg, args, sendCallback }) => {
             if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
-            let opts;
-            [opts, args] = getOpts(args)
             let width = Pipe.start(opts['w']).default(500).next((v: any) => String(v)).done()
             let height = Pipe.start(opts['h']).default(500).next((v: any) => String(v)).done()
             let canv = new canvas.Canvas(width, height, "image")
@@ -1227,9 +1223,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "img-info", createCommand(async (msg, args, sendCallback) => {
-            let opts;
-            [opts, args] = getOpts(args)
+        "img-info", createCommandV2(async ({opts, msg, sendCallback}) => {
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
                 return { content: "No image given", status: StatusCode.ERR }
@@ -1241,7 +1235,7 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "overlay", createCommand(async (msg, _, sc, opts, args) => {
+        "overlay", createCommandV2(async ({msg, rawOpts: opts, args}) => {
             let [img1, img2] = args.join(" ").split("|")
             img1 = img1.trim()
             img2 = img2.trim()
