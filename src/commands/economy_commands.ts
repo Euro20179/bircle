@@ -230,6 +230,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         return { content: "You already have this pet", status: StatusCode.ERR }
                     }
                     case "item": {
+                        if(Object.keys(economy.getEconomy()).length < 2){
+                            return crv("There are not enough people in the economy to use this", {status: StatusCode.ERR})
+                        }
                         if (!amount)
                             amount = 1
                         if (msg.author.bot) {
