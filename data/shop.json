@@ -56,5 +56,10 @@
         "description": "Possibly a legitimate passport",
         "uses": 1,
         "cost": ["7%"]
+    },
+    "donation card": {
+        "description": "Allows you to run the give command",
+        "uses": 1,
+        "cost": ["99"]
     }
 }

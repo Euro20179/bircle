@@ -9,7 +9,7 @@ import timer from "./timer"
 
 type Stock = { buyPrice: number, shares: number }
 
-export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number, hasReached100?: boolean }
+export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -119,13 +119,9 @@ function newLottery() {
     lottery = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 }
 
-function createPlayer(id: string, startingCash = 1) {
+function createPlayer(id: string, startingCash = 100) {
     timer.createTimer(id, "%can-earn")
-    ECONOMY[id] = { money: startingCash, stocks: {}, retired: false, hasReached100: false }
-}
-
-function hasReached100(id: string){
-    ECONOMY[id].hasReached100 = true
+    ECONOMY[id] = { money: startingCash, stocks: {}, retired: false }
 }
 
 function addMoney(id: string, amount: number) {
@@ -639,6 +635,5 @@ export default {
     getSandCounter,
     isRetired,
     retirePlayer,
-    hasReached100
     // tradeItems
 }

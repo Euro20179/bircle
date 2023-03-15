@@ -802,6 +802,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "give", {
             run: async (msg, args, sendCallback) => {
+
+                if(!hasItem(msg.author.id, "donation card")){
+                    return crv("You must have the donation card", {status: StatusCode.ERR})
+                }
                 let user: User = msg.author;
                 let amount;
                 if (msg.mentions.users.at(0)) {

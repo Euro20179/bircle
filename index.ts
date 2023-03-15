@@ -191,14 +191,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
             percent += .002
         }
 
-        let nw =economy.playerLooseNetWorth(m.author.id)
-
-        if (nw < 100 && economy.getEconomy()[m.author.id].hasReached100 === false) {
-            economy.addMoney(m.author.id, 100 / 10)
-        }
-        else if(nw >= 100){
-            economy.hasReached100(m.author.id)
-        }
+        economy.createPlayer(m.author.id, 100)
 
         economy.earnMoney(m.author.id, percent)
 

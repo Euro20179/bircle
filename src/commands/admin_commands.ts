@@ -6,7 +6,7 @@ import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
 import timer from '../timer'
-import { saveItems } from '../shop'
+import { giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'
 import { Message, User } from 'discord.js'
 import { fetchUser, fetchUserFromClient, listComprehension } from '../util'
@@ -153,6 +153,18 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 info: "Reset's a players inventory"
             }
         },
+    ]
+
+    yield [
+        "GIVE_ITEM", ccmdV2(async function({msg, args}){
+            if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
+            let player = await fetchUser(msg.guild, args[0])
+            if(!player){
+                return crv(`${args[0]} not found`)
+            }
+            giveItem(player.user.id, args.slice(1).join(" "), 1)
+            return crv(`Gave ${player.displayName} 1 ${args.slice(1).join(" ")}`)
+        }, "Adds an item to a players inventory")
     ]
 
     yield [
