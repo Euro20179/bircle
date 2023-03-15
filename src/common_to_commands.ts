@@ -3,6 +3,8 @@ import fs from 'fs'
 
 import vars from './vars';
 
+import events from './events';
+
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
@@ -748,8 +750,8 @@ export class Interpreter {
             }
             if (canRun) {
 
-                let varname = `!stats:cmd-usage.${this.real_cmd}`
-                vars.setVarEasy(this.#msg, varname, String(Number(vars.getVar(this.#msg, varname)) + 1))
+                events.botEvents.emit(events.CmdRun, this)
+
 
                 if (this.#shouldType || cmdObject?.make_bot_type)
                     //@ts-ignore
