@@ -139,7 +139,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     await handleSending(msg, ach)
             }
             
-            let nAmount = Number(amount)
+            let nAmount = amount
             if (!economy.canBetAmount(msg.author.id, nAmount)) {
                 return { content: `You do not have this much money`, status: StatusCode.ERR }
             }
