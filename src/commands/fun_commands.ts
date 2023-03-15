@@ -1558,11 +1558,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (items === BADVALUE) {
                 return crv("expected list")
             }
-            let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep)
-            return {
-                content: ans.trim() || "```invalid message```",
-                status: StatusCode.RETURN
-            }
+            let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep).trim()
+            return ans ? crv(ans) : crv("```invalid message```", {status: StatusCode.ERR})
 
         }, "Choose a random item from a list of items separated by a |", {
             helpArguments: {
