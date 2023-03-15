@@ -9,7 +9,7 @@ import vars from '../vars'
 
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
 import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp, choice } from '../util'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -97,9 +97,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }
     })]
 
-    yield ['inflation', ccmdV2(async function({msg, args}){
-        return crv(`${economy.getInflation() * 100}%`)
-    }, "Gets the inflation% over the past minute")]
+    yield ['inflation', ccmdV2(async () => crv(`${economy.getInflation() * 100}%`),  "Gets the inflation% over the past minute")]
 
     yield [
         "exchange", ccmdV2(async function({ args, msg }) {
