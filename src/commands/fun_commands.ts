@@ -12,8 +12,8 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
-import { client,  GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName,  fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel } from "../util"
+import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -177,7 +177,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
-        let isRetired = economy.isRetired( msg.author.id)
+        let isRetired = economy.isRetired(msg.author.id)
         let firstTime = false
         if (!timer.getTimer(msg.author.id, "%retirement-activity")) {
             firstTime = true
@@ -209,7 +209,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
                 return { noSend: true, status: StatusCode.RETURN }
             },
-            "social security": async() => {
+            "social security": async () => {
                 let amount = economy.economyLooseGrandTotal().total * 0.04
                 return {
                     content: `You got ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} in social security benifits`,
@@ -309,24 +309,24 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield ["use-item", createCommandV2(async ({ args, msg, opts }) => {
         let recipes: [[string, ...string[]], (count?: number) => Promise<CommandReturn>][] = [
-            [['oil'], async(count?: number) => {
+            [['oil'], async (count?: number) => {
 
                 let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
-                let gallonToBarrel = 1/42
+                let gallonToBarrel = 1 / 42
                 let res = await fetch.default("https://oilprice.com/oil-price-charts")
                 let html = await res.text()
 
                 let prices = html.match(/>(\d+.\d+)</)
                 let crudeOil = Number(prices?.[1])
-                if(!crudeOil || isNaN(crudeOil)){
-                    return crv("Could not get the price of oil", {status: StatusCode.ERR})
+                if (!crudeOil || isNaN(crudeOil)) {
+                    return crv("Could not get the price of oil", { status: StatusCode.ERR })
                 }
 
                 let price = (crudeOil * gallonToBarrel) * (count || 1)
                 economy.addMoney(msg.author.id, price)
                 return crv(`You earned ${sign}${crudeOil * gallonToBarrel} per gallon for a total of ${sign}${price}`)
             }],
-            [["balanced breakfast"], async() => {
+            [["balanced breakfast"], async () => {
                 let pets = pet.getUserPets(msg.author.id)
                 let petShop = pet.getPetShop()
                 for (let p in pets) {
@@ -337,7 +337,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: "All of your pets have full health, there is some leftover smell :nose:", status: StatusCode.RETURN }
             }
             ],
-            [["mumbo stink"], async() => {
+            [["mumbo stink"], async () => {
                 if (Math.random() > .85) {
                     let amount = economy.playerLooseNetWorth(msg.author.id) * 0.01
                     economy.loseMoneyToBank(msg.author.id, amount)
@@ -345,7 +345,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 return { content: "You got rid of the mumbo stink", status: StatusCode.RETURN }
             }],
-            [["ghostly's nose"], async() => {
+            [["ghostly's nose"], async () => {
                 return {
                     files: [
                         {
@@ -357,35 +357,35 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             }
             ],
-            [["ghostly's nose", "baguette"], async() => {
+            [["ghostly's nose", "baguette"], async () => {
                 let ach = achievements.achievementGet(msg, "stale bread")
-                if(ach){
+                if (ach) {
                     handleSending(msg, ach)
                 }
                 return crv("You sniff the baguette but are dissapointed because it is stale")
             }],
-            [["a fine quarter"], async() => {
+            [["a fine quarter"], async () => {
                 let amount = economy.economyLooseGrandTotal().total
                 economy.addMoney(msg.author.id, amount * 0.0026)
                 return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} :+1:`, status: StatusCode.RETURN }
             }],
-            [["pirate's gold tooth", "a fine quarter"], async() => {
+            [["pirate's gold tooth", "a fine quarter"], async () => {
                 giveItem(msg.author.id, "pawn shop", 1)
                 return { content: "With all of your valuables, you decide to open a pawn shop", status: StatusCode.RETURN }
             }],
-            [["a fine grain of sand"], async() => {
+            [["a fine grain of sand"], async () => {
                 economy.increaseSandCounter(msg.author.id, 1)
                 return { content: `You have increased your sand counter by 1, you are now at ${economy.getSandCounter(msg.author.id)}`, status: StatusCode.RETURN }
             }],
-            [["stinky ol' boot", "mumbo meal"], async() => {
+            [["stinky ol' boot", "mumbo meal"], async () => {
                 giveItem(msg.author.id, "balanced breakfast", 1)
                 return { content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN }
             }],
-            [["amelia earhart"], async() => {
+            [["amelia earhart"], async () => {
                 giveItem(msg.author.id, "airplane", 1)
                 return { content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN }
             }],
-            [["the titanic"], async() => {
+            [["the titanic"], async () => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
                 let itemJ = JSON.parse(items)
                 let itemNames = Object.keys(itemJ)
@@ -394,15 +394,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
                 return { content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
-            [["amelia earhart", "the titanic"], async() => {
+            [["amelia earhart", "the titanic"], async () => {
                 giveItem(msg.author.id, "conspiracy", 1)
                 return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
             }],
-            [["ship wreck"], async() => {
+            [["ship wreck"], async () => {
                 let amount = Math.random() * economy.playerLooseNetWorth(msg.author.id) * 0.05
                 return { content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
-            [["item yoinker"], async() => {
+            [["item yoinker"], async () => {
                 let inv = INVENTORY()
                 let text = ""
                 for (let user in inv) {
@@ -451,8 +451,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
 
         //if they are using 1 item in the recipe, and want to use more than 1 of that item at once
-        if(chosen_recipe[0].length === 1 && countOfItem ){
-            if(countOfItem > hasItem(msg.author.id, chosen_recipe[0][0])){
+        if (chosen_recipe[0].length === 1 && countOfItem) {
+            if (countOfItem > hasItem(msg.author.id, chosen_recipe[0][0])) {
                 return crv(`You do not have that much of ${chosen_recipe[0][0]}`)
             }
             useItem(msg.author.id, chosen_recipe[0][0], countOfItem)
@@ -558,7 +558,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "count", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
-            if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode}
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode }
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
             }
@@ -1171,8 +1171,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 let text = args.join(" ") || "hi"
                 let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
-                let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary})
-                let row = new ActionRowBuilder<ButtonBuilder>({ type:ComponentType.Button, components: [button] })
+                let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary })
+                let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [button] })
                 let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
                 let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
                 collector.on("collect", async (interaction) => {
@@ -1264,7 +1264,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 actionMsg = await handleSending(msg, crv(textToSend, { components: [actionRow], status: StatusCode.PROMPT }))
             }
 
-            let collector = actionMsg.createMessageComponentCollector({ componentType: ComponentType.StringSelect})
+            let collector = actionMsg.createMessageComponentCollector({ componentType: ComponentType.StringSelect })
 
             collector.on("collect", async (int) => {
                 if (!int.isStringSelectMenu()) return
@@ -1348,7 +1348,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             run: async (msg, _, sendCallback, opts, args) => {
                 if (opts['t']) {
                     handleSending(msg, { content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1 }, sendCallback).then(_m => {
-                        if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+                        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
                         try {
                             let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
                             let start = Date.now()
@@ -1362,7 +1362,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     })
                 }
                 else {
-                    let button = new ButtonBuilder({ customId: `button:${msg.author.id} `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: ButtonStyle.Danger})
+                    let button = new ButtonBuilder({ customId: `button:${msg.author.id} `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: ButtonStyle.Danger })
                     let row = new ActionRowBuilder<ButtonBuilder>({ components: [button] })
                     let start = Date.now()
                     let message = await handleSending(msg, { components: [row], status: StatusCode.PROMPT }, sendCallback)
@@ -1550,7 +1550,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "choose", createCommandV2(async ({ args, opts }) => {
+        "choose", ccmdV2(async ({ args, opts }) => {
             args.beginIter()
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
@@ -1564,11 +1564,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 status: StatusCode.RETURN
             }
 
-        }, CommandCategory.FUN, "Choose a random item from a list of items separated by a |", {
-            items: createHelpArgument("The items", true)
-        }, {
-            sep: createHelpOption("The seperator to seperate each chosen item by", ["s"], "\\n"),
-            t: createHelpOption("The amount of items to choose", undefined, "1")
+        }, "Choose a random item from a list of items separated by a |", {
+            helpArguments: {
+                items: createHelpArgument("The items", true)
+            },
+            helpOptions: {
+                sep: createHelpOption("The seperator to seperate each chosen item by", ["s"], "\\n"),
+                t: createHelpOption("The amount of items to choose", undefined, "1")
+            }
         })
     ]
 
