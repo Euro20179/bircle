@@ -1229,19 +1229,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let actionRow = new ActionRowBuilder<StringSelectMenuBuilder>()
             let id = String(Math.floor(Math.random() * 100000000))
 
-            let choices = []
-            for (let arg of args.join(" ").split("|")) {
-                if (!arg.trim()) {
-                    continue
-                }
-                choices.push({ label: arg, value: arg })
-            }
+            args.beginIter()
+            let choices = args.expectList("|", Infinity)
 
-            if (choices.length < 1) {
+            if (choices === BADVALUE || choices.length < 1) {
                 return { status: StatusCode.ERR, content: "no options given" }
             }
 
-            let selection = new StringSelectMenuBuilder({ customId: `poll: ${id}`, placeholder: "Select one", options: choices })
+            let options = choices.map(v => { return { label: v, value: v } })
+
+            let selection = new StringSelectMenuBuilder({ customId: `poll: ${id}`, placeholder: "Select one", options: options })
             actionRow.addComponents(selection)
 
             globals.POLLS[`poll: ${id}`] = { title: opts.getString("title", "select one"), votes: {} }
