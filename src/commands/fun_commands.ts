@@ -13,7 +13,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel } from "../util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -1604,16 +1604,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     tempC = 843902438
                     tempF = tempC * 9 / 5 + 32
                 }
-                let color = "DARK_BUT_NOT_BLACK"
-                if (tempF >= 110) color = "#aa0000"
-                if (tempF < 110) color = "#ff0000"
-                if (tempF < 100) color = "#ff412e"
-                if (tempF < 90) color = "ORANGE"
-                if (tempF < 75) color = "YELLOW"
-                if (tempF < 60) color = "GREEN"
-                if (tempF < 45) color = "BLUE"
-                if (tempF < 32) color = "#5be6ff"
-                if (tempF < 0) color = "PURPLE"
+                let color = {
+                    [isBetween(110, tempF, Infinity) ? 1 : 0]: "#aa0000",
+                    [isBetween(100, tempF, 110) ? 1 : 0]: "#ff0000",
+                    [isBetween(90, tempF, 100) ? 1 : 0]: "#ff412e",
+                    [isBetween(75, tempF, 90) ? 1 : 0]: "Orange",
+                    [isBetween(60, tempF, 75) ? 1 : 0]: "Yellow",
+                    [isBetween(45, tempF, 60) ? 1 : 0]: "Green",
+                    [isBetween(32, tempF, 45) ? 1 : 0]: "Blue",
+                    [isBetween(0, tempF, 32) ? 1 : 0]: "#5be6ff",
+                    [isBetween(-Infinity, tempF, 0) ? 1 : 0]: "Purple",
+                }[1] ?? "DarkButNotBlack"
                 let embed = new EmbedBuilder()
                 embed.setTitle(town)
                 embed.setColor(color as ColorResolvable)
