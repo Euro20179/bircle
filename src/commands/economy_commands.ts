@@ -147,8 +147,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: `You do not have this much money`, status: StatusCode.ERR }
             }
 
-
-
             let amountAfterExchangeRate = nAmount * exchangeRate
 
             let response = await fetch.default(`http://${ip}/exchange`,
@@ -244,7 +242,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         if (!ITEMS()[item]) {
                             return { content: `${item} does not exist`, status: StatusCode.ERR }
                         }
-                        let itemData = ITEMS()[item]
                         let totalSpent = 0
                         for (let i = 0; i < amount; i++) {
                             let totalCost = 0

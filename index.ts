@@ -142,6 +142,11 @@ client.on(Events.MessageCreate, async (m: Message) => {
         timer.createTimer(m.author.id, "%can-earn")
     }
 
+    //you get reset if you have less than -40% of the economy
+    if((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4){
+        economy.createPlayer(m.author.id)
+    }
+
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
