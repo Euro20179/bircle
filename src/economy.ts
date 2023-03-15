@@ -193,7 +193,9 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
     timer.restartTimer(id, "%last-taxed")
     let total = playerEconomyLooseTotal(id)
     if (taxPercent === false) {
-        taxPercent = randInt(0.001, 0.008)
+        if(isRetired(id))
+            taxPercent = randInt(0.01, 0.02)
+        else taxPercent = randInt(0.001, 0.008)
     }
     if (pet.getActivePet(id) == 'tiger') {
         taxPercent = pet.PETACTIONS['tiger']()
