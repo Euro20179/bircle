@@ -743,7 +743,7 @@ async function fetchUser(guild: Guild, find: string) {
     return user
 }
 
-async function fetchUserFromClientOrGuild(find: string, guild?: Guild) {
+async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
     if (guild) {
         return (await fetchUser(guild, find))?.user
     }

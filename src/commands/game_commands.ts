@@ -11,7 +11,7 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween, isMsgChannel } from "../util"
+import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild } from "../util"
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common"
 import vars from '../vars'
 import timer from '../timer'
@@ -33,7 +33,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
         let players: (User | undefined)[] = [msg.author]
         if (args.length) {
-            players[1] = msg.guild ? (await fetchUser(msg.guild, args.join(" ")))?.user : await fetchUserFromClient(client, args.join(" "))
+            players[1] = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
             if (players[1] === players[0]) {
                 return { content: ":watching:", status: StatusCode.ERR }
             }
