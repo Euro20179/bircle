@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser, format, getOpts, efd, fetchUserFromClient, listComprehension, getToolIp, choice } from '../util'
+import { fetchUser, format, efd, fetchUserFromClient, listComprehension, getToolIp, choice } from '../util'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
@@ -461,9 +461,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "shop", {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (msg, args, sendCallback, opts) => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
                 //@ts-ignore
                 let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
@@ -527,7 +525,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "profits", {
-            run: async (msg, args, sendCallback) => {
+            run: async (msg, args, sendCallback, opts) => {
                 if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
                     return { content: "You own no stocks", status: StatusCode.ERR }
                 }
@@ -536,8 +534,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let text = ""
                 let totalValue = 0
                 let promises = []
-                let opts;
-                [opts, args] = getOpts(args)
                 let fmt = args.join(" ") || "%i"
                 let ffmt = opts['ffmt'] || "%i\n%f"
                 for (let stock in economy.getEconomy()[msg.author.id].stocks) {
@@ -1131,9 +1127,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "leaderboard", {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (msg, args, sendCallback, opts) => {
                 let place = Number(args[0]) || 10
                 if (opts['top']) {
                     place = parseInt(String(opts['top']))
