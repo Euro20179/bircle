@@ -1383,10 +1383,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "nick", ccmdV2(async function({ msg, args, opts }) {
             args.beginIter()
-            let newName = args.expect(() => true, i => {
-                let v = i.join(" ")
-                return v.length > 31 ? BADVALUE : v
-            })
+            let newName = args.expectSizedString(30, () => true)
 
             if (newName === BADVALUE)
                 return { content: "Name not given, or is too long", status: StatusCode.ERR }
@@ -1470,7 +1467,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
             },
             category: CommandCategory.FUN
-
         },
     ]
 

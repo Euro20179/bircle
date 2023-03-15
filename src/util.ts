@@ -6,7 +6,7 @@ import htmlRenderer from "./html-renderer"
 import vm from 'vm'
 import fs from 'fs'
 
-import { APIEmbedField, BaseChannel, Channel, ChannelType, Client,  DMChannel,  EmbedBuilder,  EmbedData,  Guild, GuildMember, Message, PartialDMChannel, PrivateThreadChannel, StageChannel, TextChannel, ThreadChannel } from "discord.js"
+import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, DMChannel, EmbedBuilder, EmbedData, Guild, GuildMember, Message, PartialDMChannel, PrivateThreadChannel, StageChannel, TextChannel, ThreadChannel } from "discord.js"
 import { existsSync } from "fs"
 import { client } from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
@@ -29,12 +29,12 @@ function getToolIp() {
 }
 
 //discord.js' isTextBased thing is absolutely useless
-function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclude<Channel, {type: ChannelType.GuildStageVoice}>{
+function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclude<Channel, { type: ChannelType.GuildStageVoice }> {
     let type = channel.type
     return type !== ChannelType.GuildStageVoice
 }
 
-function databaseFileToArray(name: string){
+function databaseFileToArray(name: string) {
     return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
 
@@ -758,8 +758,8 @@ async function fetchUser(guild: Guild, find: string) {
     return user
 }
 
-async function fetchUserFromClientOrGuild(find: string, guild?: Guild){
-    if(guild){
+async function fetchUserFromClientOrGuild(find: string, guild?: Guild) {
+    if (guild) {
         return (await fetchUser(guild, find))?.user
     }
     return await fetchUserFromClient(client, find)
@@ -1017,7 +1017,7 @@ class ArgList extends Array {
     #i: number
     #curArg: string | null
     IFS: string
-    constructor(args: string[], IFS=" ") {
+    constructor(args: string[], IFS = " ") {
         super(args.length)
         for (let index in args) {
             Reflect.set(this, index, args[index])
@@ -1044,16 +1044,16 @@ class ArgList extends Array {
         this.#curArg = this[this.#i]
         return this.#curArg
     }
-    get currentIndex(){
+    get currentIndex() {
         return this.#i
     }
     #createArgList(amountOfArgs: AmountOfArgs) {
         let argsToUse = []
         if (typeof amountOfArgs === 'number') {
-            if(this.#i === -1)
+            if (this.#i === -1)
                 this.advance()
-            for(let start = this.#i; this.#i < start + amountOfArgs; this.advance()){
-                if(this.#curArg !== undefined && this.#curArg !== null){
+            for (let start = this.#i; this.#i < start + amountOfArgs; this.advance()) {
+                if (this.#curArg !== undefined && this.#curArg !== null) {
                     argsToUse.push(this.#curArg)
                 }
                 else {
@@ -1062,7 +1062,7 @@ class ArgList extends Array {
             }
         }
         else {
-            if(this.#i === -1)
+            if (this.#i === -1)
                 this.advance()
             while (this.#curArg && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)) {
                 argsToUse.push(this.#curArg as string)
@@ -1099,26 +1099,26 @@ class ArgList extends Array {
             list.includes(i.join(" "))
         })
     }
-    expectList(splitter: string, amountOfListItems: number = 1){
+    expectList(splitter: string, amountOfListItems: number = 1) {
         let resArr: string[] = []
         let curItem = 0
         return this.expect((arg) => {
-            if(resArr[curItem] === undefined){
+            if (resArr[curItem] === undefined) {
                 resArr[curItem] = ""
             }
-            if(arg === splitter){
+            if (arg === splitter) {
                 curItem++;
             }
-            else if(arg.includes(splitter)){
+            else if (arg.includes(splitter)) {
                 let [last, ...rest] = arg.split(splitter)
                 resArr[curItem] += last + this.IFS
-                if(resArr.length > amountOfListItems){
+                if (resArr.length > amountOfListItems) {
                     return false
                 }
-                if(resArr.length + rest.length > amountOfListItems){
+                if (resArr.length + rest.length > amountOfListItems) {
                     rest.length = amountOfListItems - resArr.length
                 }
-                if(rest.length){
+                if (rest.length) {
                     rest[rest.length - 1] += this.IFS
                     resArr = resArr.concat(rest)
                 }
@@ -1126,8 +1126,15 @@ class ArgList extends Array {
             }
             else resArr[curItem] += arg + this.IFS
             return resArr.length < amountOfListItems
-        //slicing here removes the extra IFS at the end of each item
+            //slicing here removes the extra IFS at the end of each item
         }, () => resArr.map(v => v.slice(0, -1))) as string[] | typeof BADVALUE
+    }
+    expectSizedString(size: number, amountOfArgs: AmountOfArgs = 1) {
+        return this.expect(amountOfArgs, i => {
+            let v = i.join(" ")
+            return v.length >= size? BADVALUE : v
+        })
+
     }
     expectString(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.length ? i.join(this.IFS) : BADVALUE)
@@ -1427,9 +1434,9 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
     <details class="command-argument-details-label" data-required="${required}" title="required: ${required}">
         <summary class="command-argument-summary" data-required="${required}">${argName}`
 
-        if(default_) html += `&nbsp; (default: ${default_})`
+                if (default_) html += `&nbsp; (default: ${default_})`
 
-        html += `</summary>
+                html += `</summary>
         ${argument}<br>${extraText}
         </details>
     </li>`
@@ -1467,10 +1474,10 @@ function weirdMulStr(text: string[], ...count: string[]) {
     return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
 
-function searchList(search: string, list_of_strings: string[], caseSentive=false) {
+function searchList(search: string, list_of_strings: string[], caseSentive = false) {
     let results: { [key: string]: number } = {}
     for (let str of list_of_strings) {
-        if(caseSentive === false)
+        if (caseSentive === false)
             str = str.toLowerCase()
         let score = 0
         let inARow = 0
@@ -1538,7 +1545,7 @@ function strToCommandCat(category: string) {
     return catNum
 }
 
-function isBetween(low: number, checking: number, high: number){
+function isBetween(low: number, checking: number, high: number) {
     return checking > low && checking < high
 }
 
