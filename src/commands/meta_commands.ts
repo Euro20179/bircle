@@ -327,9 +327,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         'get-source',
         {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (_msg, args, sendCallback, opts) => {
 
                 let commands = getCommands()
                 if (opts['of-file']) {
@@ -476,9 +474,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "del-var",
         {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (msg, args, sendCallback, opts) => {
                 let prefix = String(opts['prefix'] || "__global__")
                 if (opts['u']) {
                     prefix = msg.author.id
@@ -1757,12 +1753,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "run",
         {
-            run: async (msg: Message, args, sendCallback, _, _2, recursion, bans) => {
+            run: async (msg: Message, args, sendCallback, opts, _2, recursion, bans) => {
                 if (recursion >= globals.RECURSION_LIMIT) {
                     return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
                 }
-                let opts: Opts;
-                [opts, args] = getOpts(args)
                 let file = msg.attachments.at(0)
                 let text;
                 if (!file) {
@@ -1894,9 +1888,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "var",
         {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (msg: Message, args: ArgumentList, sendCallback, opts) => {
                 let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
@@ -2039,9 +2031,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "command-file",
         {
-            run: async (_msg: Message, args: ArgumentList, sendCallback) => {
-                let opts
-                [opts, args] = getOpts(args)
+            run: async (_msg: Message, args: ArgumentList, sendCallback, opts) => {
                 if (opts["l"]) {
                     return {
                         content: `\`\`\`
@@ -2276,9 +2266,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     yield [
         "cmd-chainv1",
         {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (msg, args, sendCallback, opts) => {
                 let showArgs = true
                 let expand = opts['e'] || false
                 if (opts['n'] || opts['no-args']) {
@@ -2408,11 +2396,8 @@ ${fs.readdirSync("./command-results").join("\n")}
     yield [
         "ht", {
             //help command
-            run: async (msg, args, sendCallback) => {
-
+            run: async (msg, args, sendCallback, opts) => {
                 let commands = getCommands()
-                let opts
-                [opts, args] = getOpts(args)
                 let files = []
                 let commandsToUse = Object.fromEntries(commands.entries())
                 if (args[0] && args[0] !== "?") {
@@ -2607,9 +2592,7 @@ ${styles}
     yield [
         "cmd-use",
         {
-            run: async (_msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (_msg: Message, args: ArgumentList, sendCallback, opts) => {
                 let data = globals.generateCmdUseFile()
                     .split("\n")
                     .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
@@ -2845,9 +2828,7 @@ ${styles}
     yield [
         "!!",
         {
-            run: async (msg: Message, args: ArgumentList, sendCallback, _, __, rec, bans) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (msg: Message, args: ArgumentList, sendCallback, opts, __, rec, bans) => {
                 if (opts['check'] || opts['print'] || opts['see'])
                     return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
                 if (!lastCommand[msg.author.id]) {
@@ -2948,9 +2929,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     yield [
         "changelog",
         {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+            run: async (_msg, args, sendCallback, opts) => {
                 if (opts['l']) {
                     return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
                 }
