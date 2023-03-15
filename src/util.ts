@@ -1583,7 +1583,14 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
                     extraText = `<span class="requires">requires: ${requires}</span>`
                 }
                 html += `<li class="command-argument" data-required="${required}">
-    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}&nbsp; (default: ${default_})</summary>${argument}<br>${extraText}</details>
+    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}">
+        <summary class="command-argument-summary" data-required="${required}">${argName}`
+
+        if(default_) html += `&nbsp; (default: ${default_})`
+
+        html += `</summary>
+        ${argument}<br>${extraText}
+        </details>
     </li>`
             }
             html += "</ul>"
@@ -1596,7 +1603,8 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
                 // let requiresValue = options[option].requiresValue || false
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
-    <details class="command-option-details-label"><summary class="command-option-summary" title="default: ${default_}">-${option}</summary>${desc}</details>`
+    <details class="command-option-details-label">
+    <summary class="command-option-summary"${default_ ? 'title="default: ${default_}' : ""}>-${option}</summary>${desc}</details>`
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
