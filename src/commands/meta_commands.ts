@@ -2,18 +2,20 @@ import fs from 'fs'
 
 import vars from '../vars'
 
+
 import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommand, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
 import { parseAliasReplacement, Parser } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateHTMLFromCommandHelp, renderHTML, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 
 import fetch from 'node-fetch'
+import htmlRenderer from '../html-renderer'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
@@ -272,7 +274,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (!user_options.userOptionsInfo[n]) {
                         console.warn(`${n} no info`)
                     }
-                    text.push(`${n}: ${renderHTML(user_options.userOptionsInfo[n] ?? "")}`)
+                    text.push(`${n}: ${htmlRenderer.renderHTML(user_options.userOptionsInfo[n] ?? "")}`)
 
                 }
                 return { content: text.join("\n--------------------\n"), status: StatusCode.RETURN }
@@ -569,7 +571,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!allResults.length) {
                 return crv("No results", { status: StatusCode.ERR })
             }
-            return crv(allResults.reduce((p, cur) => `${p}\n--------------------\n${renderHTML(cur[0])} (${cur[1]})`, ""), { status: StatusCode.RETURN })
+            return crv(allResults.reduce((p, cur) => `${p}\n--------------------\n${htmlRenderer.renderHTML(cur[0])} (${cur[1]})`, ""), { status: StatusCode.RETURN })
         }, "Search for commands with a search query", {
             helpOptions: {
                 top: createHelpOption("Show for the top <code>n</code> results", undefined, "10"),

@@ -4,6 +4,7 @@ import https from 'https'
 import { Stream } from 'stream'
 
 import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, SelectMenuOptionBuilder, User, SelectMenuBuilder, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed } from "discord.js";
+
 import fetch = require("node-fetch")
 
 import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
@@ -12,7 +13,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import { client,  GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, renderHTML, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel } from "../util"
+import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName,  fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel } from "../util"
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -26,8 +27,8 @@ import { hasItem, useItem } from '../shop'
 const { INVENTORY } = require("../shop")
 
 import travel_countries from '../travel/travel';
-import { IUserCountry } from '../travel/user-country';
 import achievements from '../achievements';
+import htmlRenderer from '../html-renderer';
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -938,7 +939,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     const title = $("h1#firstHeading").text().trim()
                     fs.writeFileSync(fn, respText)
                     if (opts['all']) {
-                        rvText = renderHTML(respText)
+                        rvText = htmlRenderer.renderHTML(respText)
                     }
                     else {
                         let text = $(".mw-parser-output p").text().trim().split("\n")

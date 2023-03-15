@@ -1,6 +1,8 @@
 import { Interpreter } from "./common_to_commands";
 import { strToTT, T, Token } from "./parsing";
-import { getContentFromResult, renderHTML } from "./util";
+import { getContentFromResult } from "./util";
+
+import htmlRenderer from "./html-renderer";
 
 import economy from './economy'
 import timer from "./timer";
@@ -130,7 +132,7 @@ export default {
         )
     },
 
-    parse_html: async (_, __, args) => renderHTML(args.join("|")),
+    parse_html: async (_, __, args) => htmlRenderer.renderHTML(args.join("|")),
 
     parse_time: async (_, __, args) => {
         let date = new Date()

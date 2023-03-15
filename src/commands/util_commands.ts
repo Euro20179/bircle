@@ -11,9 +11,11 @@ import economy from '../economy'
 import pet from "../pets"
 import timer from '../timer'
 
+import htmlRenderer from '../html-renderer'
+
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, renderHTML, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild } from '../util'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
@@ -1903,7 +1905,7 @@ middle
 
     yield [
         "render-html", createCommand(async (msg, _, sc, opts, args) => {
-            return { content: renderHTML(args.join(" "), 0), status: StatusCode.RETURN }
+            return { content: htmlRenderer.renderHTML(args.join(" "), 0), status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Renders <code>html</code>", {
             html: {
                 description: "The html to render",
@@ -2696,7 +2698,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         if (!cmd?.help?.info) {
                             return text
                         }
-                        return renderHTML(cmd.help?.info as string)
+                        return htmlRenderer.renderHTML(cmd.help?.info as string)
                 }
             }
             static parseFormatSpecifier(format: string): string | Format {
