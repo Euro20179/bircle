@@ -156,13 +156,13 @@ export default function*(): Generator<[string, Command| CommandV2]> {
     ]
 
     yield [
-        "GIVE_ITEM", ccmdV2(async function({msg, args}){
+        "GIVE_ITEM", ccmdV2(async function({msg, args, opts}){
             if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
             let player = await fetchUser(msg.guild, args[0])
             if(!player){
                 return crv(`${args[0]} not found`)
             }
-            giveItem(player.user.id, args.slice(1).join(" "), 1)
+            giveItem(player.user.id, args.slice(1).join(" "), opts.getNumber("count", 1))
             return crv(`Gave ${player.displayName} 1 ${args.slice(1).join(" ")}`)
         }, "Adds an item to a players inventory", {
             permCheck: m => ADMINS.includes(m.author.id)
