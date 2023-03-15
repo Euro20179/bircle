@@ -191,7 +191,9 @@ client.on(Events.MessageCreate, async (m: Message) => {
             percent += .002
         }
 
-        economy.createPlayer(m.author.id, 100)
+        if(!economy.getEconomy()[m.author.id] && !m.author.bot){
+            economy.createPlayer(m.author.id, 100)
+        }
 
         economy.earnMoney(m.author.id, percent)
 
