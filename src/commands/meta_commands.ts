@@ -1926,7 +1926,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 }
 
-                if (file.match(/\/?\.\.\//)) {
+                if (!isSafeFilePath(file)) {
                     return {
                         content: "invalid file",
                         status: StatusCode.ERR
@@ -2120,7 +2120,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                         status: StatusCode.ERR
                     }
                 }
-                if (file.match(/[\.]/)) {
+                if (!isSafeFilePath(file)) {
                     return {
                         content: "invalid command",
                         status: StatusCode.ERR
