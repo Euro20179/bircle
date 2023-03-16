@@ -1,4 +1,4 @@
-import { Channel, ChannelType, Message, MessageCreateOptions, MessagePayload, PartialMessage, StageChannel } from 'discord.js';
+import { Channel, ChannelType, ChatInputCommandInteraction, Message, MessageCreateOptions, MessagePayload, PartialMessage, StageChannel } from 'discord.js';
 import fs from 'fs'
 
 import vars from './vars';
@@ -945,8 +945,8 @@ export class Interpreter {
         //if the pipe is open, all calls to handleSending, and returns should run through the pipe
         if (intPipeData.length) {
             this.sendCallback = (async function(this: Interpreter, options: string | MessageCreateOptions | MessagePayload) {
-                options = defileCommandReturn(options as CommandReturn)
-                options = await this.handlePipes(options as CommandReturn)
+                options = defileCommandReturn(options as CommandReturn) as typeof options
+                options = await this.handlePipes(options as CommandReturn) as typeof options
                 return handleSending(this.#msg, options as CommandReturn, undefined)
             }).bind(this)
         }
@@ -1055,7 +1055,6 @@ function cmdUserExpansion(msg: Message, rv: CommandReturn) {
     return rv
 }
 
-
 export async function handleSending(msg: Message, rv: CommandReturn, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, recursion = 0): Promise<Message> {
 
     if (!isMsgChannel(msg.channel)) return msg
@@ -1117,7 +1116,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     }
     let newMsg
     try {
-        newMsg = await sendCallback(rv)
+        newMsg = await sendCallback(rv as MessageCreateOptions)
     }
     catch (err) {
         //usually happens when there is nothing to send
@@ -1271,161 +1270,6 @@ export function getAliases(refresh?: boolean) {
     return aliases
 }
 
-export function createChatCommandOption(type: number, name: string, description: string, { min, max, required }: { min?: number, max?: number | null, required?: boolean }) {
-    let obj: { [key: string]: any } = {
-        type: type,
-        name: name,
-        description: description,
-        required: required || false
-    }
-    if (min) {
-        obj["min"] = min
-    }
-    if (max) {
-        obj["max"] = max
-    }
-    return obj
-}
-
-function createChatCommand(name: string, description: string, options: any) {
-    return {
-        name: name,
-        description: description,
-        options: options
-    }
-}
-
-const STRING = 3
-const INTEGER = 4
-const USER = 6
-
-
-
-export const slashCommands = [
-    createChatCommand("attack", "attacks chris, and no one else", [createChatCommandOption(USER, "user", "who to attack", { required: true })]),
-    createChatCommand("ping", "Pings a user for some time", [
-        createChatCommandOption(USER, "user", "who to ping twice", { required: true }),
-        createChatCommandOption(INTEGER, "evilness", "on a scale of 1 to 10 how evil are you", {})
-    ]),
-    createChatCommand("img", "create an image", [
-        createChatCommandOption(INTEGER, "width", "width of image", { required: true, min: 0, max: 5000 }),
-        createChatCommandOption(INTEGER, "height", "height of image", { required: true, min: 0, max: 5000 }),
-        createChatCommandOption(STRING, "color", "color of image", {})
-    ]),
-    createChatCommand("rps", "Rock paper scissors", [
-        createChatCommandOption(USER, "opponent", "opponent", { required: true }),
-        createChatCommandOption(STRING, "choice", "choice", { required: true }),
-        createChatCommandOption(STRING, "bet", "bet", { required: false })
-    ]),
-    createChatCommand("md", "say markdown", [
-        createChatCommandOption(STRING, "text", "The text to say", { required: true })
-    ]),
-    {
-        name: 'aheist',
-        description: 'Add a heist response',
-        options: [
-            {
-                type: STRING,
-                name: "stage",
-                required: true,
-                description: "The stage (getting_in, robbing, escape)",
-
-            },
-            {
-                type: STRING,
-                name: "gain-or-lose",
-                description: "Whether to gain or lose money",
-                required: true,
-                choices: [
-                    {
-                        name: "gain",
-                        value: "GAIN",
-                    },
-                    {
-                        name: "lose",
-                        value: "LOSE",
-                    }
-                ]
-            },
-            {
-                type: STRING,
-                name: "users-to-gain-or-lose",
-                description: "User numbers (or all) seperated by ,",
-                required: true
-            },
-            {
-                type: STRING,
-                name: "amount",
-                description: "The amount to gain/lose",
-                required: true,
-                choices: [
-                    {
-                        name: "none",
-                        value: "none"
-                    },
-                    {
-                        name: "normal",
-                        value: "normal",
-                    },
-                    {
-                        name: "cents",
-                        value: "cents",
-                    }
-                ]
-            },
-            {
-                type: STRING,
-                name: "message",
-                description: "The message, {user1} is replaced w/ user 1, {userall} with all users, and {amount} with amount",
-                required: true
-            },
-            {
-                type: STRING,
-                name: "nextstage",
-                description: "The stage to enter into after this response",
-                required: false,
-            },
-            {
-                type: STRING,
-                name: "location",
-                description: "The location of this response",
-                required: false,
-            },
-            {
-                type: STRING,
-                name: "set-location",
-                description: "The location that this response will set the game to",
-                required: false
-            },
-            {
-                type: STRING,
-                name: "button-response",
-                description: "Reply that happens if set-location is multiple locations",
-                required: false
-            },
-            {
-                type: STRING,
-                name: "if",
-                description: "This response can only happen under this condition",
-                required: false
-            }
-        ]
-    },
-    createChatCommand("help", "get help", []),
-    {
-        name: "ping",
-        type: 2
-    },
-    {
-        name: "info",
-        type: 2
-    },
-    {
-        name: "fileify",
-        type: 3
-    }
-]
-
 export default {
     StatusCode,
     statusCodeToStr,
@@ -1456,8 +1300,6 @@ export default {
     getMatchCommands,
     getAliasesV2,
     getAliases,
-    createChatCommandOption,
-    slashCommands,
     cmd,
     handleSending,
     Interpreter

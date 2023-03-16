@@ -4,7 +4,7 @@ import fs from 'fs'
 //TODO: add ArgumentList class to interact with args
 //can be added to commandV2 as arguments in the object given to the fn
 
-import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType,  Events } from "discord.js"
+import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType,  Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -13,6 +13,8 @@ import { Routes } from "discord-api-types/v9"
 import pet from './src/pets'
 
 require("./src/commands/commands")
+import {slashCmds } from "./src/slashCommands"
+
 import command_commons from './src/common_to_commands'
 
 import globals = require("./src/globals")
@@ -65,7 +67,7 @@ Object.defineProperty(User.prototype, "netWorth", {
 
         await rest.put(
             Routes.applicationGuildCommands(globals.CLIENT_ID, globals.GUILD_ID),
-            { body: command_commons.slashCommands },
+            { body: slashCmds },
         );
 
         console.log('Successfully reloaded application (/) commands.');
@@ -290,165 +292,11 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
             interaction.reply({ content: "You are blacklisted from this" }).catch(console.error)
             return
         }
-        globals.addToCmdUse(`/${interaction.commandName}`)
-        if (interaction.commandName == 'attack') {
-            let user = interaction.options.get("user")?.['value']
-            if (!user) {
-                interaction.reply("NO USER GIVEN???").catch(console.error)
-                return
+        for(let cmd of slashCmds){
+            if(cmd.name === interaction.commandName){
+                globals.addToCmdUse(`/${interaction.commandName}`)
+                cmd.run(interaction as ChatInputCommandInteraction)
             }
-            interaction.reply(`Attacking ${user}...`).catch(console.error)
-            if (interaction.channel && isMsgChannel(interaction.channel))
-                interaction.channel?.send(`${user} has been attacked by <@${interaction.user.id}>`).catch(console.error)
-        }
-        else if (interaction.commandName === 'md') {
-            interaction.reply({
-                //@ts-ignore
-                type: InteractionResponseType.ChannelMessageWithSource,
-                content: interaction.options.get("text")?.value as string ?? "Hi"
-            })
-        }
-        else if (interaction.commandName == 'aheist') {
-            let userId = interaction.user.id
-            let stage = interaction.options.get("stage")?.value
-            if (!stage) {
-                interaction.reply(`${stage} is not a valid stage`).catch(console.error)
-                return
-            }
-            let gainOrLose = interaction.options.get("gain-or-lose")?.value as string
-            if (!gainOrLose) {
-                interaction.reply("You messed up bubs").catch(console.error)
-                return
-            }
-            let users = interaction.options.get("users-to-gain-or-lose")?.value as string
-            if (!users) {
-                interaction.reply("You messed up bubs").catch(console.error)
-                return
-            }
-            if (!users.match(/^(:?(\d+|all),?)+$/)) {
-                interaction.reply(`${users} does not match ((digit|all),)+`).catch(console.error)
-                return
-            }
-            let amount = interaction.options.get("amount")?.value
-            if (!amount) {
-                interaction.reply("You messed up bubs").catch(console.error)
-                return
-            }
-            let message = interaction.options.get("message")?.value
-            if (!message) {
-                interaction.reply("You messed up bubs").catch(console.error)
-                return
-            }
-            let text = `${userId}: ${message} AMOUNT=${amount} STAGE=${stage} ${gainOrLose.toUpperCase()}=${users}`
-            let substage = interaction.options.get("nextstage")?.value
-            if (substage)
-                text += ` SUBSTAGE=${substage}`
-            let location = interaction.options.get("location")?.value
-            if (location)
-                text += ` LOCATION=${location}`
-            let set_location = interaction.options.get("set-location")?.value
-            if (set_location)
-                text += ` SET_LOCATION=${set_location}`
-            let button_response = interaction.options.get("button-response")?.value
-            if (button_response) {
-                text += ` BUTTONCLICK=${button_response} ENDBUTTONCLICK`
-            }
-            let condition = interaction.options.get("if")?.value
-            if (condition) {
-                text += ` IF=${condition}`
-            }
-            fs.appendFileSync(`./command-results/heist`, `${text};END\n`)
-            interaction.reply(`Added:\n${text}`).catch(console.error)
-        }
-        else if (interaction.commandName == 'ping') {
-            let user = interaction.options.get("user")?.value || `<@${interaction.user.id}>`
-            let times = interaction.options.get("evilness")?.value || 1
-            interaction.reply("Pinging...").catch(console.error)
-            globals.SPAM_ALLOWED = true
-            for (let i = 0; i < times; i++) {
-                if (!globals.SPAM_ALLOWED) break
-                await interaction.reply(`<@${user}> has been pinged`)
-                await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
-            }
-        }
-        else if (interaction.commandName == 'img') {
-            //@ts-ignore
-            let rv = await (command_commons.commands.get("img") as Command).run(interaction as Message, [interaction.options.get("width")?.value as string, interaction.options.get("height")?.value, interaction.options.get("color")?.value], interaction.channel.send.bind(interaction.channel), {}, [interaction.options.get("width")?.value, interaction.options.get("height")?.value, interaction.options.get("color")?.value], 0, undefined)
-            interaction.reply(rv as InteractionReplyOptions).catch(console.error)
-            if (rv.files) {
-                for (let file of rv.files) {
-                    fs.rmSync(file.attachment)
-                }
-            }
-        }
-        else if (interaction.commandName == 'help') {
-            interaction.reply({
-                content: "use `[help`, slash commands r boring, so i will not support them that much\nhere is some documentation",
-                files: [{
-                    attachment: './help-web.html',
-                    name: "heres some help.html",
-                    description: "lmao"
-                }]
-            }).catch(console.error)
-        }
-        else if (interaction.commandName == 'rps') {
-            let opponent = interaction.options.get("opponent")?.value
-            let choice = interaction.options.get("choice")?.value as string
-            let bet = interaction.options.get("bet")?.value as string
-            let nBet = 0
-            if (bet) {
-                if (interaction.member?.user.id) {
-                    nBet = economy.calculateAmountFromString(interaction.member.user.id, bet)
-                    if (!economy.canBetAmount(interaction.member.user.id, nBet) || nBet < 0) {
-                        interaction.reply({ content: "You cant bet this much" }).catch(console.error)
-                        return
-                    }
-                }
-            }
-            let rock = new ButtonBuilder({ customId: `button.rock:${opponent}`, label: "rock", style: ButtonStyle.Primary })
-            let paper = new ButtonBuilder({ customId: `button.paper:${opponent}`, label: "paper", style: ButtonStyle.Primary })
-            let scissors = new ButtonBuilder({ customId: `button.scissors:${opponent}`, label: "scissors", style: ButtonStyle.Primary })
-            globals.BUTTONS[`button.rock:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            globals.BUTTONS[`button.paper:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            globals.BUTTONS[`button.scissors:${opponent}`] = `${choice}:${interaction.member?.user.id}:${nBet}`
-            let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [rock, paper, scissors] })
-            interaction.reply({ components: [row], content: `<@${opponent}>, Rock, paper.... or scissors BUM BUM BUUUMMMM (idfk)` }).catch(console.error)
-        }
-    }
-    else if (interaction.isUserContextMenuCommand() && !interaction.replied) {
-        globals.addToCmdUse(`${interaction.commandName}:user`)
-        if (interaction.commandName == 'ping') {
-            interaction.reply(`<@${interaction.user.id}> has pinged <@${interaction.targetUser.id}> by right clicking them`).catch(console.error)
-        }
-        else if (interaction.commandName == 'info') {
-            const user = interaction.targetUser
-            const member: GuildMember = interaction.targetMember as GuildMember
-            let embed = new EmbedBuilder()
-            embed.setColor(member.displayColor)
-            let aurl = user.avatarURL()
-            if (aurl)
-                embed.setThumbnail(aurl)
-            embed.addFields(efd(
-                ["Id", user.id || "#!N/A", true],
-                ["Username", user.username || "#!N/A", true],
-                ["Nickname", member?.nickname || "#!N/A", true],
-                ["0xColor", member?.displayHexColor?.toString() || "#!N/A", true],
-                ["Color", member?.displayColor?.toString() || "#!N/A", true],
-                ["Created at", user.createdAt.toString() || "#!N/A", true],
-                ["Joined at", member?.joinedAt?.toString() || "#!N/A", true],
-                ["Boosting since", member?.premiumSince?.toString() || "#!N/A", true])
-            )
-            interaction.reply({ embeds: [embed] }).catch(console.error)
-        }
-    }
-    else if (interaction.isMessageContextMenuCommand() && !interaction.replied) {
-        globals.addToCmdUse(`${interaction.commandName}:message`)
-        if (interaction.commandName == 'fileify') {
-            let fn = generateFileName("fileify", interaction.user.id)
-            fs.writeFileSync(fn, interaction.targetMessage.content)
-            interaction.reply({ files: [{ attachment: fn, description: "Your file, sir" }] }).then(() => {
-                fs.rmSync(fn)
-            }).catch(console.error)
         }
     }
 })

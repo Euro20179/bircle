@@ -18,7 +18,7 @@ import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, slashCommands, snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand,  snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -29,6 +29,7 @@ const { INVENTORY } = require("../shop")
 import travel_countries from '../travel/travel';
 import achievements from '../achievements';
 import htmlRenderer from '../html-renderer';
+import { slashCmds } from '../slashCommands';
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -1907,10 +1908,8 @@ Valid formats:
                 for (let cmd in getCommands()) {
                     values += `${cmd}\n`
                 }
-                for (let cmd of slashCommands) {
-                    //@ts-ignore
+                for (let cmd of slashCmds) {
                     if (cmd.type) {
-                        //@ts-ignore
                         values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
                     }
                     else values += `/${cmd["name"]}\n`

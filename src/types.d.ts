@@ -1,4 +1,4 @@
-import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User } from "discord.js"
+import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User, Interaction, ChatInputCommandInteraction, CommandInteraction } from "discord.js"
 
 import { ArgList, Options } from './util'
 
@@ -45,7 +45,8 @@ declare global {
         mimetype?: `${string}/${string}`,
         onOver2kLimit?: (msg: Message, rv: CommandReturn) => CommandReturn
         attachments?: Message['attachments']
-        fromHandleSending?: boolean
+        fromHandleSending?: boolean,
+        reply?: boolean
     }
 
     interface CommandHelpArguments {
@@ -107,6 +108,11 @@ declare global {
         use_result_cache?: boolean
         cmd_std_version?: 2,
         prompt_before_run?: boolean
+    }
+
+    interface SlashCommand {
+        run: (interaction: CommandInteraction) => Promise<unknown>,
+        description: string,
     }
 
     interface MatchCommand{
