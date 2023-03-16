@@ -233,7 +233,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "help", createCommandV2(async ({rawOpts: opts, args }) => {
+        "help", createCommandV2(async ({ rawOpts: opts, args }) => {
 
             const matchCmds = getMatchCommands()
             let commands = { ...Object.fromEntries(getCommands().entries()), ...matchCmds }
@@ -1266,7 +1266,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "aheist", createCommandV2(async ({ msg, args, rawOpts: opts}) => {
+        "aheist", createCommandV2(async ({ msg, args, rawOpts: opts }) => {
             let text = args.join(" ")
             let damageUsers = opts['lose'] || opts['l']
             let healUsers = opts['gain'] || opts['g']
@@ -3054,7 +3054,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     "num2": {
                         description: "The other number (can be a variable)"
                     }
-                }, 
+                },
                 options: {
                     s: createHelpOption("Treat each value as a string, and do not do variable lookup"),
                     u: createHelpOption("Treat each word as a user variable")
@@ -3907,7 +3907,7 @@ valid formats:<br>
     ]
 
     yield [
-        "grep", createCommandV2(async ({ msg, argList, stdin, opts, args }) => {
+        "grep", ccmdV2(async ({ msg, argList, stdin, opts, args }) => {
             argList.beginIter()
             let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
             if (regex === BADVALUE) {
@@ -3951,11 +3951,15 @@ valid formats:<br>
                 content: finds,
                 status: StatusCode.RETURN
             }
-        }, CommandCategory.UTIL, "Search through text with a search", {
-            search: createHelpArgument("A regex search", true),
-            data: createHelpArgument("Text or a file to search through<br>If data is given through pipe, all arguments become the search")
-        }, {
-            s: createHelpOption("dont give back the extra \"found x at char...\" text")
+        }, "Search through text with a search", {
+            helpArguments: {
+                search: createHelpArgument("A regex search", true),
+                data: createHelpArgument("Text or a file to search through")
+            },
+            helpOptions: {
+                s: createHelpOption("dont give back the extra \"found x at char...\" text")
+            },
+            accepts_stdin: "Can be used instead of <code>data</code>"
         })
     ]
 }
