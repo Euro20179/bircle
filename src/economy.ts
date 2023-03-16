@@ -399,14 +399,6 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         let [start, end] = amount.slice("rand(".length, -1).split(",")
         return randInt(calculateAmountOfMoneyFromString(id, money, start, extras, fallbackFn), calculateAmountOfMoneyFromString(id, money, end, extras, fallbackFn))
     }
-    else if (match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)) {
-        let id = match[1]
-        let amount = match[2]
-        if (fallbackFn) {
-            return fallbackFn(id, amount, extras)
-        }
-        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn)
-    }
     else if (match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)) {
         let side1 = match[1]
         let operator = match[2]
