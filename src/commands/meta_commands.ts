@@ -1861,31 +1861,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "gvar",
-        {
-            run: async (msg, args, sendCallback) => {
-                let [scope, ...nameList] = args.join(" ").split(":")
-                let name = nameList.join(":")
-                if (scope == "%") {
-                    scope = msg.author.id
-                }
-                else if (scope == ".") {
-                    let v = vars.getVar(msg, name)
-                    if (v)
-                        return { content: String(v), status: StatusCode.RETURN }
-                    else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
-                }
-                let v = vars.getVar(msg, name, scope)
-                if (v)
-                    return { content: String(v), status: StatusCode.RETURN }
-                else return { content: `\\v{${args.join(" ")}}`, status: StatusCode.RETURN }
-            }, category: CAT,
-            help: {
-                info: "Get the value of a variable"
-            }
-        },
-    ]
-    yield [
         "var",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback, opts) => {
