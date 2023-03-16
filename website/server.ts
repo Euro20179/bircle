@@ -2,14 +2,14 @@ import fs from 'fs'
 
 import { Collection, Message, MessageFlagsBitField, MessageType, TextChannel } from 'discord.js'
 import http from 'http'
-import common_to_commands from '../src/common_to_commands'
+import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
 import { saveItems } from '../src/shop'
 import vars from '../src/vars'
 import pets from '../src/pets'
-import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension } from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension, isCommandCategory } from '../src/util'
 
 const {prefix, client} = require("../src/common")
 
@@ -350,8 +350,9 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 let cmdToGet = urlParams?.get("cmd")
                 let cmds = common_to_commands.getCommands()
                 let commands = Array.from(cmds.entries())
-                if(category)
-                    commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category))
+                if(category && isCommandCategory(category))
+                    commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category as keyof typeof CommandCategory))
+
                 if(search){
                     let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
                     let results = searchList(search, infos, true)

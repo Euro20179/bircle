@@ -36,18 +36,20 @@ export function statusCodeToStr(code: StatusCode) {
     }[code]
 }
 
-export enum CommandCategory {
-    UTIL,
-    GAME,
-    FUN,
-    META,
-    IMAGES,
-    ECONOMY,
-    VOICE,
-    ADMIN,
-    MATCH,
-    ALIASV2
-}
+export const CommandCategory = {
+    UTIL: 0,
+    GAME: 1,
+    FUN: 2,
+    META: 3,
+    IMAGES: 4,
+    ECONOMY: 5,
+    VOICE: 6,
+    ADMIN: 7,
+    MATCH: 8,
+    ALIASV2: 9
+} as const
+
+
 
 export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>) {
     if (!isMsgChannel(msg.channel)) return false

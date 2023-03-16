@@ -460,3 +460,4 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 })
 
 client.login(globals.token)
+

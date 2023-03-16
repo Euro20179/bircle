@@ -1501,28 +1501,12 @@ function searchList(search: string, list_of_strings: string[], caseSentive = fal
     return results
 }
 
-function strToCommandCat(category: string) {
-    let catNum;
+function strToCommandCat(category: keyof typeof CommandCategory) {
+    return CommandCategory[category.toUpperCase() as keyof typeof CommandCategory]
+}
 
-    switch (category.toLowerCase()) {
-        case "meta":
-            catNum = CommandCategory.META
-            break;
-        case "util":
-            catNum = CommandCategory.UTIL
-            break;
-        case "game":
-            catNum = CommandCategory.GAME; break;
-        case "fun":
-            catNum = CommandCategory.FUN; break;
-        case "image": catNum = CommandCategory.IMAGES; break;
-        case "economy": catNum = CommandCategory.ECONOMY; break;
-        case "voice": catNum = CommandCategory.VOICE; break;
-        case "admin": catNum = CommandCategory.ADMIN; break;
-        case "match": catNum = CommandCategory.MATCH; break;
-        default: catNum = -1
-    }
-    return catNum
+function isCommandCategory(category: string): category is keyof typeof CommandCategory{
+    return CommandCategory[category as keyof typeof CommandCategory] !== undefined ? true : false
 }
 
 function isBetween(low: number, checking: number, high: number) {
@@ -1582,6 +1566,7 @@ export {
     generateDocSummary,
     isBetween,
     databaseFileToArray,
-    isMsgChannel
+    isMsgChannel,
+    isCommandCategory
 }
 

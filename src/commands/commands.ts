@@ -2,7 +2,7 @@ import { CommandCategory, registerCommand, registerMatchCommand } from "../commo
 import { strToCommandCat } from "../util"
 
 
-for(let path of ["util", "fun", "game", "admin", "voice", "economy", "meta", "image"]){
+for(let path of ["UTIL", "FUN", "GAME", "ADMIN", "VOICE", "ECONOMY", "META", "IMAGE"] as (keyof typeof CommandCategory)[]){
     for(let [name, cmd] of require(`./${path}_commands`).default(strToCommandCat(path))){
         registerCommand(name, cmd, strToCommandCat(path))
     }
