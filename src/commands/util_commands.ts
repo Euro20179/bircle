@@ -3895,7 +3895,7 @@ valid formats:<br>
     ]
 
     yield [
-        "nl", createCommandV2(async ({ msg, args, stdin }) => {
+        "nl", ccmdV2(async ({ msg, args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split('\n')
             let rv = ""
             for (let i = 1; i < text.length + 1; i++) {
@@ -3903,7 +3903,10 @@ valid formats:<br>
             }
             return { content: rv, status: StatusCode.RETURN }
 
-        }, CommandCategory.UTIL, "Number the lines of text")
+        }, "Number the lines of text", {
+            helpArguments: {"...text": createHelpArgument("The text to number each line of", false)},
+            accepts_stdin: "Can be used instead of <code>...text</code>"
+        })
     ]
 
     yield [
