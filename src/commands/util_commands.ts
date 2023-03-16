@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
@@ -3897,11 +3897,7 @@ valid formats:<br>
     yield [
         "nl", ccmdV2(async ({ msg, args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split('\n')
-            let rv = ""
-            for (let i = 1; i < text.length + 1; i++) {
-                rv += `${i}: ${text[i - 1]}\n`
-            }
-            return { content: rv, status: StatusCode.RETURN }
+            return crv(listComprehension(enumerate(text), ([i, line]) => `${i + 1}: ${line}`).join("\n"))
 
         }, "Number the lines of text", {
             helpArguments: {"...text": createHelpArgument("The text to number each line of", false)},
