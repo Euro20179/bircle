@@ -1,7 +1,7 @@
 import fs from 'fs'
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList } from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -13,6 +13,15 @@ import { fetchUser, fetchUserFromClient, listComprehension } from '../util'
 const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('../shop')
 
 export default function*(): Generator<[string, Command| CommandV2]> {
+
+    yield [
+        "CLEAR_INTERPRETER_CACHE", ccmdV2(async function(){
+            Interpreter.resultCache = new Map()
+            return crv("Cache cleared")
+        }, "Clears the interpreter cache", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
+    ]
 
     yield [
         "eval",
