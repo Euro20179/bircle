@@ -6,6 +6,11 @@
     --secondary: #505053ff;
 }
 
+::selection {
+    background: var(--selection);
+    color: var(--main);
+}
+
 * {
     font-family: Arial, Helvetica, sans-serif;
 }
