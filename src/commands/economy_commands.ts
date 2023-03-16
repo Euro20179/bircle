@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser, format, efd, fetchUserFromClient, listComprehension, getToolIp, choice } from '../util'
+import { fetchUser, format, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE } from '../util'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
@@ -43,8 +43,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     }, "Total amount on tools bot")]
 
     yield ["retire", ccmdV2(async function({ msg }) {
-        if(Object.keys(economy.getEconomy()).length < 3){
-            return crv("Cannot retire if there are 2 or less people in the economy", {status: StatusCode.ERR})
+        if (Object.keys(economy.getEconomy()).length < 3) {
+            return crv("Cannot retire if there are 2 or less people in the economy", { status: StatusCode.ERR })
         }
         let percentage = economy.playerLooseNetWorth(msg.author.id) / economy.economyLooseGrandTotal().total
         if (percentage >= 0.5) {
@@ -97,7 +97,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }
     })]
 
-    yield ['inflation', ccmdV2(async () => crv(`${economy.getInflation() * 100}%`),  "Gets the inflation% over the past minute")]
+    yield ['inflation', ccmdV2(async () => crv(`${economy.getInflation() * 100}%`), "Gets the inflation% over the past minute")]
 
     yield [
         "exchange", ccmdV2(async function({ args, msg }) {
@@ -111,7 +111,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let canExchange = timer.has_x_m_passed(msg.author.id, "%exchange", 3, true)
 
-            if(!canExchange){
+            if (!canExchange) {
                 let lap = Number(timer.do_lap(msg.author.id, "%exchange")) / 1000 / 60
                 return crv(`You must wait ${3 - (lap)} minutes`)
             }
@@ -134,12 +134,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let amount = economy.calculateAmountFromString(msg.author.id, args[0])
 
-            if(amount / economy.playerLooseNetWorth(msg.author.id) >= .5){
+            if (amount / economy.playerLooseNetWorth(msg.author.id) >= .5) {
                 let ach = achievements.achievementGet(msg, "even transfer")
-                if(ach)
+                if (ach)
                     await handleSending(msg, ach)
             }
-            
+
             let nAmount = amount
             if (!economy.canBetAmount(msg.author.id, nAmount)) {
                 return { content: `You do not have this much money`, status: StatusCode.ERR }
@@ -151,7 +151,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: msg.author.id, money: amountAfterExchangeRate }) }
             )
 
-            if(response.status === 400){
+            if (response.status === 400) {
                 return crv(`Transaction denied (less than 1 dollar after transfer)`)
             }
 
@@ -169,130 +169,131 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "buy", {
-            run: async (msg, args, sendCallback, _, _2, recursion) => {
-                let allowedTypes = ["stock", "pet", "item"]
-                let type = args[0]
-                let item = args.slice(1).join(" ")
-                if (!item) {
-                    return { content: "No item specified", status: StatusCode.ERR }
-                }
-                let amount = Number(args[args.length - 1])
-                if (!isNaN(amount)) {
-                    item = item.split(" ").slice(0, -1).join(" ")
-                }
-                if (!allowedTypes.includes(type)) {
-                    //else
-                    return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
-                }
-                switch (type) {
-                    case "stock": {
-                        if (!amount || amount < 0) {
-                            return { content: `${amount} is an invalid amount`, status: StatusCode.ERR }
-                        }
-                        let data = await economy.getStockInformation(item)
-                        if (data === false) {
-                            return { content: `${item} does not exist`, status: StatusCode.ERR }
-                        }
-                        let realStock = economy.userHasStockSymbol(msg.author.id, item)
-                        if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
-                            return { content: "You cannot afford this", status: StatusCode.ERR }
-                        }
-                        if (realStock) {
-                            economy.buyStock(msg.author.id, realStock.name, amount, data.price)
-                        }
-                        else {
-                            economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
-                        }
-                        return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }
+        "buy", ccmdV2(async function({ msg, args }) {
+            args.beginIter()
+
+            let allowedTypes = ["stock", "pet", "item"]
+
+            let type = args.expectOneOf(1, allowedTypes)
+            if(type === BADVALUE){
+                return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
+            }
+
+            let item = args.slice(1).join(" ")
+            if (!item) {
+                return { content: "No item specified", status: StatusCode.ERR }
+            }
+            let amount = Number(args[args.length - 1])
+            if (!isNaN(amount)) {
+                item = item.split(" ").slice(0, -1).join(" ")
+            }
+
+            switch (type) {
+                case "stock": {
+                    if (!amount || amount < 0) {
+                        return { content: `${amount} is an invalid amount`, status: StatusCode.ERR }
                     }
-                    case "pet": {
-                        if (!item) {
-                            return { content: "You didnt specify a pet", status: StatusCode.ERR }
-                        }
-                        let shopData = pet.getPetShop()
-                        item = item.toLowerCase()
-                        if (!shopData[item]) {
-                            return { content: `${item}: not a valid pet`, status: StatusCode.ERR }
-                        }
-                        let petData = shopData[item]
+                    let data = await economy.getStockInformation(item)
+                    if (data === false) {
+                        return { content: `${item} does not exist`, status: StatusCode.ERR }
+                    }
+                    let realStock = economy.userHasStockSymbol(msg.author.id, item)
+                    if (!economy.canBetAmount(msg.author.id, data.price * amount)) {
+                        return { content: "You cannot afford this", status: StatusCode.ERR }
+                    }
+                    if (realStock) {
+                        economy.buyStock(msg.author.id, realStock.name, amount, data.price)
+                    }
+                    else {
+                        economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
+                    }
+                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }
+                }
+                case "pet": {
+                    if (!item) {
+                        return { content: "You didnt specify a pet", status: StatusCode.ERR }
+                    }
+                    let shopData = pet.getPetShop()
+                    item = item.toLowerCase()
+                    if (!shopData[item]) {
+                        return { content: `${item}: not a valid pet`, status: StatusCode.ERR }
+                    }
+                    let petData = shopData[item]
+                    let totalCost = 0
+                    for (let cost of petData.cost) {
+                        totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
+                    }
+                    if (!economy.canBetAmount(msg.author.id, totalCost)) {
+                        return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
+                    }
+                    if (pet.buyPet(msg.author.id, item)) {
+                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${prefix}sapet ${item}`, status: StatusCode.RETURN }
+                    }
+                    return { content: "You already have this pet", status: StatusCode.ERR }
+                }
+                case "item": {
+                    if (Object.keys(economy.getEconomy()).length < 2) {
+                        return crv("There are not enough people in the economy to use this", { status: StatusCode.ERR })
+                    }
+                    if (!amount)
+                        amount = 1
+                    if (msg.author.bot) {
+                        return { content: "Bots cannot buy items", status: StatusCode.ERR }
+                    }
+                    if (!ITEMS()[item]) {
+                        return { content: `${item} does not exist`, status: StatusCode.ERR }
+                    }
+                    let totalSpent = 0
+                    for (let i = 0; i < amount; i++) {
                         let totalCost = 0
-                        for (let cost of petData.cost) {
-                            totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
+                        let { total } = economy.economyLooseGrandTotal()
+                        for (let cost of ITEMS()[item].cost) {
+                            totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, total, `${cost}`)
                         }
-                        if (!economy.canBetAmount(msg.author.id, totalCost)) {
-                            return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
-                        }
-                        if (pet.buyPet(msg.author.id, item)) {
-                            return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${prefix}sapet ${item}`, status: StatusCode.RETURN }
-                        }
-                        return { content: "You already have this pet", status: StatusCode.ERR }
-                    }
-                    case "item": {
-                        if(Object.keys(economy.getEconomy()).length < 2){
-                            return crv("There are not enough people in the economy to use this", {status: StatusCode.ERR})
-                        }
-                        if (!amount)
-                            amount = 1
-                        if (msg.author.bot) {
-                            return { content: "Bots cannot buy items", status: StatusCode.ERR }
-                        }
-                        if (!ITEMS()[item]) {
-                            return { content: `${item} does not exist`, status: StatusCode.ERR }
-                        }
-                        let totalSpent = 0
-                        for (let i = 0; i < amount; i++) {
-                            let totalCost = 0
-                            let { total } = economy.economyLooseGrandTotal()
-                            for (let cost of ITEMS()[item].cost) {
-                                totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, total, `${cost}`)
-                            }
-                            if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
-                                if (buyItem(msg.author.id, item)) {
-                                    if(item === 'reset economy'){
-                                        let ach = achievements.achievementGet(msg, "capitalist")
-                                        if(ach){
-                                            await handleSending(msg, ach)
-                                        }
+                        if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
+                            if (buyItem(msg.author.id, item)) {
+                                if (item === 'reset economy') {
+                                    let ach = achievements.achievementGet(msg, "capitalist")
+                                    if (ach) {
+                                        await handleSending(msg, ach)
                                     }
-                                    economy.loseMoneyToBank(msg.author.id, totalCost)
-                                    totalSpent += totalCost
                                 }
-                                else {
-                                    return { content: `You already have the maximum of ${item}`, status: StatusCode.ERR }
-                                }
+                                economy.loseMoneyToBank(msg.author.id, totalCost)
+                                totalSpent += totalCost
                             }
                             else {
-                                if (i > 0) {
-                                    return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`, status: StatusCode.RETURN }
-                                }
-                                return { content: `This item is too expensive for u`, status: StatusCode.ERR }
+                                return { content: `You already have the maximum of ${item}`, status: StatusCode.ERR }
                             }
                         }
-                        if(totalSpent < 0){
-                            return crv("Cannot spend negative money in shop", {status: StatusCode.ERR})
+                        else {
+                            if (i > 0) {
+                                return { content: `You ran out of money but bought ${i} item(s) for ${totalSpent}`, status: StatusCode.RETURN }
+                            }
+                            return { content: `This item is too expensive for u`, status: StatusCode.ERR }
                         }
-                        return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
                     }
-                }
-                return { noSend: true, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Buy stuff!",
-                arguments: {
-                    shop: {
-                        description: "can be either: <code>stock, pet, item</code>"
-                    },
-                    item: {
-                        description: "What to buy from the  specified shop"
-                    },
-                    amount: {
-                        description: "The  amount of items to buy from <q>shop</q>",
-                        required: false
+                    if (totalSpent < 0) {
+                        return crv("Cannot spend negative money in shop", { status: StatusCode.ERR })
                     }
+                    return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
                 }
             }
-        },
+            return { noSend: true, status: StatusCode.RETURN }
+
+        }, "Buy stuff", {
+            helpArguments: {
+                shop: {
+                    description: "can be either: <code>stock, pet, item</code>"
+                },
+                item: {
+                    description: "What to buy from the  specified shop"
+                },
+                amount: {
+                    description: "The  amount of items to buy from <q>shop</q>",
+                    required: false
+                }
+            }
+        })
     ]
 
 
@@ -745,7 +746,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "money", createCommandV2(async ({rawOpts: opts, msg, args }) => {
+        "money", createCommandV2(async ({ rawOpts: opts, msg, args }) => {
             let user = msg.member
             if (args.join(" "))
                 //@ts-ignore
@@ -846,8 +847,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "give", {
             run: async (msg, args, sendCallback) => {
 
-                if(!hasItem(msg.author.id, "donation card")){
-                    return crv("You must have the donation card", {status: StatusCode.ERR})
+                if (!hasItem(msg.author.id, "donation card")) {
+                    return crv("You must have the donation card", { status: StatusCode.ERR })
                 }
                 let user: User = msg.author;
                 let amount;
@@ -864,10 +865,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     if (!userSearch) {
                         return { content: "No user to search for", status: StatusCode.ERR }
                     }
-                    if(msg.guild){
+                    if (msg.guild) {
                         user = (await fetchUser(msg.guild as Guild, userSearch))?.user as User
                     }
-                    else{
+                    else {
                         user = await fetchUserFromClient(client, userSearch) as User
                     }
                     if (!user)
@@ -907,7 +908,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "give-stock", createCommandV2(async ({msg, args}) => {
+        "give-stock", createCommandV2(async ({ msg, args }) => {
             let stock = args[0]
             let a = args[1]
             let sn = stock
@@ -974,12 +975,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "").trim()).filter(v => v)
                     user = msg.mentions.users.at(0) as User
                 }
-                else{
+                else {
                     let search = args.slice(-1)[0]
-                    if(msg.guild){
+                    if (msg.guild) {
                         user = (await fetchUser(msg.guild as Guild, search))?.user as User
                     }
-                    else{
+                    else {
                         user = (await fetchUserFromClient(client, search)) as User
                     }
                     if (!user) {
@@ -1034,14 +1035,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "tax", createCommandV2(async ({msg, rawOpts: opts, args, sendCallback}) => {
+        "tax", createCommandV2(async ({ msg, rawOpts: opts, args, sendCallback }) => {
             if (msg.author.bot) {
                 return { content: "Bots cannot steal", status: StatusCode.ERR }
             }
             let canTax = timer.has_x_s_passed(msg.author.id, "%tax", 1.7, true)
 
-            if(!canTax){
-                let lap = Number(timer.do_lap(msg.author.id, "%tax")) / 1000 
+            if (!canTax) {
+                let lap = Number(timer.do_lap(msg.author.id, "%tax")) / 1000
                 return crv(`You must wait ${1.7 - lap} seconds`)
             }
 
