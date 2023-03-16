@@ -9,8 +9,8 @@ import timer from '../timer'
 import { giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'
 import { Message, User } from 'discord.js'
-import { fetchUser, fetchUserFromClient, listComprehension } from '../util'
-const { hasItem, useItem, resetPlayerItems, resetPlayer, resetItems } = require('../shop')
+import { fetchUser, fetchUserFromClient } from '../util'
+const { hasItem, useItem, resetPlayerItems, resetItems } = require('../shop')
 
 export default function*(): Generator<[string, Command| CommandV2]> {
 
@@ -75,7 +75,7 @@ export default function*(): Generator<[string, Command| CommandV2]> {
             async({rawArgs: args}) => {
                 let name = args[0]
                 args = args.slice(1)
-                let func = new (Object.getPrototypeOf(async function(){})).constructor("msg", "rawArgs", "sendCallback", "opts", "args", "recursion_count", "command_bans", args.join(" "))
+                let func = new (Object.getPrototypeOf(async function(){})).constructor("data", args.join(" "))
 
                 registerCommand(name, createCommandV2(func, CommandCategory.FUN), CommandCategory.FUN)
                 return {content: "test", status: StatusCode.RETURN}
