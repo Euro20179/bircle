@@ -1164,65 +1164,6 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "filter",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                /*
-                    let opts;
-                    [opts, args] = getOpts(args)
-                    let stringArgs = args.join(" ")
-                    let filters = stringArgs.split("|")
-                    let img = getImgFromMsgAndOpts(opts, msg)
-                    if(!img){
-                        return {content: "no img found"}
-                    }
-                    https.request(img, resp => {
-                        let data = new Stream.Transform()
-                        resp.on("data", chunk => {
-                            data.push(chunk)
-                        })
-                        let fn = `${generateFileName("scale", msg.author.id)}.png`
-                        resp.on("end", async() => {
-                            fs.writeFileSync(fn, data.read())
-                            let img = await canvas.loadImage(fn)
-                            fs.rmSync(fn)
-                            let canv = new canvas.Canvas(img.width, img.height)
-                            let ctx = canv.getContext("2d")
-                            ctx.drawImage(img, 0, 0, img.width, img.height)
-                            let buffer = canv.toBuffer("image/png")
-                            let jimpImg = await jimp.read(buffer)
-                            for(let filter of filters){
-                                let args;
-                                [filter, args] = filter.split(":")
-                                jimpImg = await applyJimpFilter(jimpImg, filter, args)
-                            }
-                            buffer = await jimpImg.getBufferAsync("image/png")
-                            fs.writeFileSync(fn, buffer)
-                            sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
-                                fs.rmSync(fn)
-                            }).catch(err => {
-                            })
-                        })
-                    }).end()
-                */
-                return {
-                    content: "generating img",
-                    status: StatusCode.INFO
-                }
-            },
-            help: {
-                info: "Filters:<br>rotate[:angle]<br>flip[:hor|vert]<br>brightness[:val]<br>grey|greyscale|gray|grayscale<br>invert<br>contrast[:val]",
-                arguments: {
-                    filter: {
-                        description: "The filters to use, each filter is seperated by |"
-                    }
-                }
-            },
-            category: CommandCategory.IMAGES
-        },
-    ]
-
-    yield [
         "img-info", createCommandV2(async ({opts, msg, sendCallback}) => {
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
