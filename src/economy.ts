@@ -193,7 +193,7 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
     timer.restartTimer(id, "%last-taxed")
     let total = playerEconomyLooseTotal(id)
     if (taxPercent === false) {
-        if(isRetired(id))
+        if (isRetired(id))
             taxPercent = randInt(0.01, 0.02)
         else taxPercent = randInt(0.001, 0.008)
     }
@@ -395,6 +395,10 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         let amounts = amount.slice("min(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(id, money, v, extras, fallbackFn))
         return min(amounts) as number
     }
+    else if (amount.startsWith("rand(") && amount.endsWith(")")) {
+        let [start, end] = amount.slice("rand(".length, -1).split(",")
+        return randInt(calculateAmountOfMoneyFromString(id, money, start, extras, fallbackFn), calculateAmountOfMoneyFromString(id, money, end, extras, fallbackFn))
+    }
     else if (match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)) {
         let id = match[1]
         let amount = match[2]
@@ -458,8 +462,8 @@ function resetEconomy() {
     loadEconomy()
 }
 
-function retirePlayer(id: string){
-    if(!ECONOMY[id]){
+function retirePlayer(id: string) {
+    if (!ECONOMY[id]) {
         return false
     }
     return ECONOMY[id].retired = true

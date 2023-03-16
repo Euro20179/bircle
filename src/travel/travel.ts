@@ -12,7 +12,7 @@ import achievements from '../achievements'
 
 import { GLOBAL_CURRENCY_SIGN } from "../common"
 import vars from '../vars'
-import { giveItem } from "../shop"
+import { giveItem, hasItem, useItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
 
 class Activity {
@@ -139,6 +139,12 @@ class Country {
 class Canada extends Country {
     init() {
         this.badFlightChance = .2
+        this.registerActivity("sit at fireplace", "rand(1, 10%)", this.sitAtFireplace.bind(this))
+    }
+
+    async sitAtFireplace({msg}: CommandV2RunArg){
+        let amount = Math.floor(Math.random() * 100)
+        return crv(`You sit with your blanket at a fireplace\nSomeone thinks you're homeless, and gives you ${this.getSign(msg)}${amount}`)
     }
 
     async badFlightHome(): Promise<CommandReturn> {
@@ -147,6 +153,10 @@ class Canada extends Country {
 
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
         this.onVisit(arguments[0])
+        if(hasItem(msg.author.id, "blanket")){
+            useItem(msg.author.id, 'blanket')
+            return super.go(arguments[0])
+        }
         if (Math.random() < .1) {
             let costBack = economy.calculateAmountFromStringIncludingStocks(msg.author.id, "10%")
             economy.loseMoneyToBank(msg.author.id, costBack)
