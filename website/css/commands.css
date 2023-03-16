@@ -8,7 +8,7 @@ section{
     outline: none;
 }
 
-section:focus{
+section:focus-visible{
     outline: 1px solid var(--highlight);
 }
 

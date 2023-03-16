@@ -55,7 +55,12 @@ summary:hover{
     color: var(--highlight);
 }
 
-summary:focus,
+summary:focus-visible {
+    border: 1px solid var(--selection);
+    border-radius: 5px;
+}
+
+summary:focus-visible,
 details[open] summary{
     color: var(--selection);
 }
