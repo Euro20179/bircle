@@ -885,7 +885,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         escapeShell,
         randomColor,
         mulStr,
-        mul_t: weirdMulStr,
         choice,
         Units,
         Pipe,
@@ -1453,10 +1452,6 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
         }
     }
     return `${html}</div><hr>`
-}
-
-function weirdMulStr(text: string[], ...count: string[]) {
-    return mulStr(text.join(" "), Number(count[0]) ?? 1)
 }
 
 function searchList(search: string, list_of_strings: string[], caseSentive = false) {
