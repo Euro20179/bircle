@@ -33,6 +33,13 @@ function restartTimer(for_user: string, name: string){
     }
 }
 
+function createOrRestartTimer(for_user: string, name: string){
+    if(!TIMERS[for_user]){
+        TIMERS[for_user] = {}
+    }
+    TIMERS[for_user][name] = Date.now()
+}
+
 function getTimer(for_user: string, name: string){
     return TIMERS[for_user]?.[name]
 }
@@ -89,5 +96,6 @@ export default{
     getTimer,
     getTimersOfUser,
     restartTimer,
-    timerExists
+    timerExists,
+    createOrRestartTimer
 }

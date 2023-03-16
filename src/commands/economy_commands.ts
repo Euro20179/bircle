@@ -116,7 +116,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return crv(`You must wait ${3 - (lap)} minutes`)
             }
 
-            timer.restartTimer(msg.author.id, "%exchange")
+            timer.createOrRestartTimer(msg.author.id, "%exchange")
 
             let res;
             try {
