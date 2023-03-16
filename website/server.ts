@@ -288,8 +288,8 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             switch(subPaths.length){
                 case 1: {
                     if(!search)
-                        category = subPaths[0]
-                    else search = subPaths[0];
+                        search = subPaths[0]
+                    else category = subPaths[0];
                     break;
                 }
                 case 2: {
@@ -309,6 +309,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                     let obj = cmd
                     for(let prop of hasAttr?.split(".") || ""){
                         obj = obj[prop as keyof typeof obj]
+                        if(obj === undefined) break;
                     }
                     return obj ? true : false
                 })
