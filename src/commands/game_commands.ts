@@ -379,7 +379,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield [
-        "yahtzee", createCommandV2(async ({msg, rawOpts: opts, args}) => {
+        "yahtzee", createCommandV2(async ({ msg, rawOpts: opts, args }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
             let new_rules = Boolean(opts['new-rules'])
@@ -972,7 +972,7 @@ until you put a 0 in the box`)
                 return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
             }
 
-            let min =  economy.calculateAmountFromNetWorth(msg.author.id, "0.02%")
+            let min = economy.calculateAmountFromNetWorth(msg.author.id, "0.02%")
             let money = economy.calculateAmountFromString(msg.author.id, reqMoney, {
                 min: () => {
                     return min
@@ -1189,7 +1189,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "heist", createCommandV2(async ({msg, rawOpts: opts, args, sendCallback}) => {
+        "heist", ccmdV2(async ({ msg, rawOpts: opts, args, sendCallback }) => {
             if (globals.HEIST_PLAYERS.includes(msg.author.id)) {
                 return { content: "U dingus u are already in the game", status: StatusCode.ERR }
             }
@@ -1600,16 +1600,17 @@ until you put a 0 in the box`)
             let heistJoinFormat = user_options.getOpt(msg.author.id, "heist-join", `${msg.author} joined the heist`)
             return { content: heistJoinFormat, recurse: true, status: StatusCode.INFO, do_change_cmd_user_expansion: false }
 
-        }, CommandCategory.GAME,
-            "Go on a \"heist\"",
-            undefined,
-            {
-                "no-stats": createHelpOption("Display only the amount gained/lost from the heist", ['ns']),
-                "no-adventure-order": createHelpOption("Do not display  the  adventure order", ["noa"]),
-                "no-location-stats": createHelpOption("Do not display amount gained/lost from each location", ["nls"]),
-                "no-total": createHelpOption("Do not display the amount gained/lost", ["nt"]),
+        },
+            "Go on a \"heist\"", {
+                docs: "<p>Heist is a game where you go from stage to stage and location to location</p><h2>Stages</h2><p>Each location has stages, by default each location has 3 stages<ul><li>getting_in</li><li>robbing</li><li>escape</li></ul> However more can be added.<br><h2>Locations</h2><p>By default there is only 1 location, <code>__generic__</code></p>",
+                helpOptions: {
+                    "no-stats": createHelpOption("Display only the amount gained/lost from the heist", ['ns']),
+                    "no-adventure-order": createHelpOption("Do not display  the  adventure order", ["noa"]),
+                    "no-location-stats": createHelpOption("Do not display amount gained/lost from each location", ["nls"]),
+                    "no-total": createHelpOption("Do not display the amount gained/lost", ["nt"]),
+                }
             }
-        ),
+        )
     ]
 
     yield [
@@ -2013,7 +2014,7 @@ until you put a 0 in the box`)
         "coin",
         {
             run: async (msg, args, sendCallback) => {
-                if(!args.length){
+                if (!args.length) {
                     return crv(choice(['heads', 'tails']))
                 }
                 let opts;
@@ -2569,7 +2570,7 @@ until you put a 0 in the box`)
                     catch (err) {
                         return { content: "2K char limit reached", status: StatusCode.ERR }
                     }
-                    if(!isMsgChannel(msg.channel)) return {noSend: true, status: StatusCode.ERR}
+                    if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
                     let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
                     let gameIsGoing = true
                     collection.on("collect", async (m) => {
@@ -2658,7 +2659,7 @@ until you put a 0 in the box`)
                         return { content: "no channels found", status: StatusCode.ERR }
                     }
                     let channel = choice(channels)
-                    if(!isMsgChannel(channel as BaseChannel)) return {content: "Not a text channel", status: StatusCode.ERR}
+                    if (!isMsgChannel(channel as BaseChannel)) return { content: "Not a text channel", status: StatusCode.ERR }
                     if (channel === null) {
                         return { content: "Cannot do random in this non-channel", status: StatusCode.ERR }
                     }
