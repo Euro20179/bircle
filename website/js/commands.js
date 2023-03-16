@@ -4,11 +4,6 @@ const resultDisplay = document.getElementById("result-display")
 
 let page = document.querySelector("main")
 
-let resultCount = document.querySelectorAll(".command-section").length
-
-resultDisplay.setAttribute("data-result-count", String(resultCount))
-
-resultDisplay.innerText = String(resultCount)
 
 document.addEventListener("keydown", e => {
     if (document.activeElement === searchBox) return
@@ -34,6 +29,7 @@ document.addEventListener("keydown", e => {
     }
     else if (e.key === '/') {
         searchBox.focus()
+        searchBox.value = ""
         e.preventDefault()
     }
     else if (e.key === "@") {
@@ -41,7 +37,7 @@ document.addEventListener("keydown", e => {
         searchBox.value = "@"
         e.preventDefault()
     }
-    else if(e.key === "?"){
+    else if (e.key === "?") {
         searchBox.focus()
         searchBox.value = "?"
         e.preventDefault()
@@ -50,13 +46,42 @@ document.addEventListener("keydown", e => {
 
 searchBox.addEventListener("keydown", e => {
     if (e.key === 'Enter') {
+        page.innerHTML = ""
         let search = e.target.value
+        document.activeElement.blur()
         if (search.startsWith("@")) {
-            window.location = `/commands/${search.slice(1)}`
+            fetch(`/api/command-search?category=${encodeURI(search.slice(1))}`).then(res => {
+                res.text().then(html => {
+                    page.insertAdjacentHTML("beforeend", html)
+                    let resultCount = document.querySelectorAll(".command-section").length
+
+                    resultDisplay.setAttribute("data-result-count", String(resultCount))
+
+                    resultDisplay.innerText = String(resultCount)
+                })
+            })
         }
-        else if(search.startsWith("?")){
-            window.location = `/commands?cmd=${search.slice(1)}`
+        else if (search.startsWith("?")) {
+            fetch(`/api/command-search?cmd=${encodeURI(search.slice(1))}`).then(res => {
+                res.text().then(html => {
+                    page.insertAdjacentHTML("beforeend", html)
+                    let resultCount = document.querySelectorAll(".command-section").length
+
+                    resultDisplay.setAttribute("data-result-count", String(resultCount))
+
+                    resultDisplay.innerText = String(resultCount)
+                })
+            })
         }
-        else window.location = `${window.location.pathname}?search=${search}`
+        else fetch(`api/command-search/${encodeURI(search)}`).then(res => {
+            res.text().then(html => {
+                page.insertAdjacentHTML("beforeend", html)
+                let resultCount = document.querySelectorAll(".command-section").length
+
+                resultDisplay.setAttribute("data-result-count", String(resultCount))
+
+                resultDisplay.innerText = String(resultCount)
+            })
+        })
     }
 })

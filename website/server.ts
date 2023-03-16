@@ -11,16 +11,16 @@ import vars from '../src/vars'
 import pets from '../src/pets'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension, isCommandCategory } from '../src/util'
 
-const {prefix, client} = require("../src/common")
+const { prefix, client } = require("../src/common")
 
 let VALID_API_KEYS: string[] = []
-if(fs.existsSync("./data/valid-api-keys.key")){
+if (fs.existsSync("./data/valid-api-keys.key")) {
     VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
 }
 
-function sendFile(res: http.ServerResponse, fp: string, contentType?: string){
+function sendFile(res: http.ServerResponse, fp: string, contentType?: string) {
     let stat = fs.statSync(fp)
-    res.writeHead(200, {content: contentType ?? "text/html", "Content-Length": stat.size})
+    res.writeHead(200, { content: contentType ?? "text/html", "Content-Length": stat.size })
     let stream = fs.createReadStream(fp)
     stream.pipe(res).on("finish", () => {
         res.end()
@@ -125,7 +125,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 //prevents from sending to chat
                 let oldSend = channel.send
                 //@ts-ignore
-                channel.send = (async() => msg).bind(channel)
+                channel.send = (async () => msg).bind(channel)
                 common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true }).then(rv => {
                     res.writeHead(200)
                     res.end(JSON.stringify(rv))
@@ -181,18 +181,18 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             break;
         }
         case "reload-api-keys": {
-            if(!urlParams){
+            if (!urlParams) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;
             }
             let apiKey = urlParams.get("key") || ""
-            if(!VALID_API_KEYS.includes(apiKey)){
+            if (!VALID_API_KEYS.includes(apiKey)) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;
             }
-            if(fs.existsSync("./data/valid-api-keys.key")){
+            if (fs.existsSync("./data/valid-api-keys.key")) {
                 VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
             }
             res.writeHead(200)
@@ -200,13 +200,13 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             break;
         }
         case "give-money": {
-            if(!urlParams){
+            if (!urlParams) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;
             }
             let apiKey = urlParams.get("key") || ""
-            if(!VALID_API_KEYS.includes(apiKey)){
+            if (!VALID_API_KEYS.includes(apiKey)) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;
@@ -282,6 +282,41 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             server.close()
             break;
         }
+        case "command-search": {
+            let search = subPaths[0] || urlParams?.get("search")
+            let category = urlParams?.get("category")
+            let cmdToGet = urlParams?.get("cmd")
+            let cmds = common_to_commands.getCommands()
+            let commands: [(string | [string, string]), Command | CommandV2][] = Array.from(cmds.entries())
+            if (category && isCommandCategory(category.toUpperCase()))
+                commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category as keyof typeof CommandCategory))
+
+            if (search && search !== '*') {
+                let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
+                let results = searchList(search, infos, true)
+                commands = listComprehension(Object.entries(results).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
+                    name = name.split("\n")[0]
+                    return [[name, `<span class='cmd-search-strength'>(${strength})</span>`], common_to_commands.getCommands().get(name) as Command | CommandV2]
+                }))
+            }
+            else if (cmdToGet) {
+                commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as Command | CommandV2]]
+            }
+
+            //the input only works nicely when it's inside of main for some reason
+            let html = ''
+            for (let [name, command] of commands) {
+                if (!command) continue
+                if(typeof name === 'object'){
+                    name = name[0]
+                }
+                html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
+            }
+            html += ""
+            res.writeHead(200, { "Content-Type": "text/html" })
+            res.end(html)
+            break;
+        }
         case "send": {
             let text = urlParams?.get("text")
             if (!text) {
@@ -327,11 +362,11 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
     }
     let [_blank, mainPath, ...subPaths] = path.split("/")
 
-    if(mainPath.endsWith(".css") && fs.existsSync(`./website/css/${mainPath}`)){
+    if (mainPath.endsWith(".css") && fs.existsSync(`./website/css/${mainPath}`)) {
         sendFile(res, `./website/css/${mainPath}`, "text/css")
         return
     }
-    else if(mainPath.endsWith(".js") && fs.existsSync(`./website/js/${mainPath}`)) {
+    else if (mainPath.endsWith(".js") && fs.existsSync(`./website/js/${mainPath}`)) {
         sendFile(res, `./website/js/${mainPath}`, "application/javascript")
         return
     }
@@ -345,35 +380,8 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             break;
         }
         case "commands": {
-                let category = subPaths[0]
-                let search = urlParams?.get("search")
-                let cmdToGet = urlParams?.get("cmd")
-                let cmds = common_to_commands.getCommands()
-                let commands = Array.from(cmds.entries())
-                if(category && isCommandCategory(category))
-                    commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category as keyof typeof CommandCategory))
-
-                if(search){
-                    let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
-                    let results = searchList(search, infos, true)
-                    commands = listComprehension(Object.entries(results).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
-                        name = name.split("\n")[0]
-                        return [`${name} <span class='cmd-search-strength'>(${strength})</span>`, common_to_commands.getCommands().get(name) as Command | CommandV2]
-                    }))
-                }
-                else if(cmdToGet){
-                    commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as Command | CommandV2]]
-                }
-                //the input only works nicely when it's inside of main for some reason
-                let html = '<link rel="stylesheet" href="/commands.css"><body><header><span id="result-display"></span></header><main><input enterkeyhint="search" type="text" id="search-box" placeholder="search">'
-                for (let [name, command] of commands) {
-                    if(!command) continue
-                    html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
-                }
-                html += "</main></body><script src='/commands.js'></script>"
-                res.writeHead(200, {"Content-Type": "text/html"})
-                res.end(html)
-                break;
+            sendFile(res, "./website/commands.html")
+            break;
         }
         case "help": {
             sendFile(res, "./website/help-web.html")
