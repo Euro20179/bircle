@@ -72,6 +72,10 @@ function has_x_s_passed(for_user: string, name: string, x_s: number, canBeUndef 
     return has_x_ms_passed(for_user, name, x_s * 1000, canBeUndef)
 }
 
+function has_x_m_passed(for_user: string, name: string, x_m: number, canBeUndef = false){
+    return has_x_s_passed(for_user, name, x_m * 60, canBeUndef)
+}
+
 function saveTimers(){
     fs.writeFileSync("./timers.json", JSON.stringify(TIMERS))
 }
@@ -91,6 +95,7 @@ export default{
     do_lap,
     has_x_ms_passed,
     has_x_s_passed,
+    has_x_m_passed,
     saveTimers,
     loadTimers,
     getTimer,

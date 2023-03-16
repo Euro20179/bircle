@@ -109,7 +109,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 })
             }
 
-            let canExchange = timer.has_x_s_passed(msg.author.id, "%exchange", 60 * 3, true)
+            let canExchange = timer.has_x_m_passed(msg.author.id, "%exchange", 3, true)
 
             if(!canExchange){
                 let lap = Number(timer.do_lap(msg.author.id, "%exchange")) / 1000 / 60
