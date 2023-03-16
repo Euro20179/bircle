@@ -1317,9 +1317,6 @@ export const slashCommands = [
         createChatCommandOption(STRING, "choice", "choice", { required: true }),
         createChatCommandOption(STRING, "bet", "bet", { required: false })
     ]),
-    createChatCommand("say", "says something", [
-        createChatCommandOption(STRING, "something", "the something to say", { required: true })
-    ]),
     createChatCommand("md", "say markdown", [
         createChatCommandOption(STRING, "text", "The text to say", { required: true })
     ]),

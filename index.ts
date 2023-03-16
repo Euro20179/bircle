@@ -4,9 +4,7 @@ import fs from 'fs'
 //TODO: add ArgumentList class to interact with args
 //can be added to commandV2 as arguments in the object given to the fn
 
-import http from 'http'
-
-import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, TextChannel, Collection, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType, MessageFlagsBitField, MessageType, Events } from "discord.js"
+import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType,  Events } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -18,7 +16,6 @@ require("./src/commands/commands")
 import command_commons from './src/common_to_commands'
 
 import globals = require("./src/globals")
-import { URLSearchParams } from "url"
 import { efd, format, isMsgChannel } from "./src/util"
 import { getOpt } from "./src/user-options"
 import { GLOBAL_CURRENCY_SIGN } from './src/common'
@@ -39,7 +36,7 @@ let { client, purgeSnipe, prefix, BLACKLIST } = require("./src/common")
 import vars from './src/vars'
 import { server } from './website/server'
 
-const rest = new REST({ version: "9" }).setToken(globals.token);
+const rest = new REST({ version: "10" }).setToken(globals.token);
 
 Object.defineProperty(User.prototype, "balance", {
     "get": function() {
@@ -393,9 +390,6 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                     description: "lmao"
                 }]
             }).catch(console.error)
-        }
-        else if (interaction.commandName == 'say') {
-            interaction.reply(interaction.options.get("something")?.value as string | null || "How did we get here").catch(console.error)
         }
         else if (interaction.commandName == 'rps') {
             let opponent = interaction.options.get("opponent")?.value
