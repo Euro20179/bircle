@@ -85,7 +85,7 @@ searchBox.addEventListener("keydown", e => {
                     search = search.slice(spaceIdx + 1)
                 }
             }
-            else if (search.startsWith("${paramsChar}")) {
+            else if (search.startsWith("?")) {
                 let spaceIdx = search.indexOf(" ")
                 if (spaceIdx === -1) {
                     endPoint += `${paramsChar}cmd=${encodeURI(search.slice(1))}`

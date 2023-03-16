@@ -271,17 +271,6 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             res.end(JSON.stringify(data))
             break
         }
-        case "end": {
-            economy.saveEconomy()
-            saveItems()
-            vars.saveVars()
-            pets.savePetData()
-            client.destroy()
-            res.writeHead(200)
-            res.end(JSON.stringify({ success: "Successfully ended bot" }))
-            server.close()
-            break;
-        }
         case "command-search": {
             let search = urlParams?.get("search")
             let category = urlParams?.get("category")
