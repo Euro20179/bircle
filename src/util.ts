@@ -1436,7 +1436,7 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
     <details class="command-option-details-label">
-    <summary class="command-option-summary"${default_ ? 'title="default: ${default_}' : ""}>-${option}</summary>${desc}</details>`
+    <summary class="command-option-summary"${default_ ? ` title="default: ${default_}"` : ""}>-${option}</summary>${desc}</details>` 
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
