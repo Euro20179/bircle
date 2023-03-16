@@ -60,19 +60,8 @@ searchBox.addEventListener("keydown", e => {
         page.innerHTML = ""
         let search = e.target.value
         document.activeElement.blur()
-        if (search.startsWith("@")) {
-            fetch(`/api/command-search?category=${encodeURI(search.slice(1))}`).then(res => {
-                res.text().then(html => {
-                    page.insertAdjacentHTML("beforeend", html)
-                    let resultCount = document.querySelectorAll(".command-section").length
-
-                    resultDisplay.setAttribute("data-result-count", String(resultCount))
-
-                    resultDisplay.innerText = String(resultCount)
-                })
-            })
-        }
-        else if (search.startsWith("?")) {
+        let endPoint = `/api/command-search`
+        if (search.startsWith("?")) {
             fetch(`/api/command-search?cmd=${encodeURI(search.slice(1))}`).then(res => {
                 res.text().then(html => {
                     page.insertAdjacentHTML("beforeend", html)
@@ -84,15 +73,28 @@ searchBox.addEventListener("keydown", e => {
                 })
             })
         }
-        else fetch(`api/command-search/${encodeURI(search)}`).then(res => {
-            res.text().then(html => {
-                page.insertAdjacentHTML("beforeend", html)
-                let resultCount = document.querySelectorAll(".command-section").length
+        else {
+            if (search.startsWith("@")) {
+                endPoint += `?category=${encodeURI(search.slice(1))}`
+                search = search.slice(1)
+            }
+            else if (search.startsWith('[') && search.endsWith("]")) {
+                let attrToCheck = search.slice(1, -1)
+                endPoint += `?has-attr=${encodeURI(attrToCheck)}`
+            }
+            else {
+                endPoint += `?search=${encodeURI(search)}`
+            }
+            fetch(endPoint).then(res => {
+                res.text().then(html => {
+                    page.insertAdjacentHTML("beforeend", html)
+                    let resultCount = document.querySelectorAll(".command-section").length
 
-                resultDisplay.setAttribute("data-result-count", String(resultCount))
+                    resultDisplay.setAttribute("data-result-count", String(resultCount))
 
-                resultDisplay.innerText = String(resultCount)
+                    resultDisplay.innerText = String(resultCount)
+                })
             })
-        })
+        }
     }
 })

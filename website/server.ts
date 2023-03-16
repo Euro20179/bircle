@@ -283,13 +283,36 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             break;
         }
         case "command-search": {
-            let search = subPaths[0] || urlParams?.get("search")
+            let search = urlParams?.get("search")
             let category = urlParams?.get("category")
+            switch(subPaths.length){
+                case 1: {
+                    if(!search)
+                        category = subPaths[0]
+                    else search = subPaths[0];
+                    break;
+                }
+                case 2: {
+                    [category, search] = subPaths
+                    break;
+                }
+            }
             let cmdToGet = urlParams?.get("cmd")
+            let hasAttr = urlParams?.get("has-attr")
             let cmds = common_to_commands.getCommands()
             let commands: [(string | [string, string]), Command | CommandV2][] = Array.from(cmds.entries())
             if (category && isCommandCategory(category.toUpperCase()))
                 commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category as keyof typeof CommandCategory))
+
+            if(hasAttr){
+                commands = commands.filter(([_name, cmd]) => {
+                    let obj = cmd
+                    for(let prop of hasAttr?.split(".") || ""){
+                        obj = obj[prop as keyof typeof obj]
+                    }
+                    return obj ? true : false
+                })
+            }
 
             if (search && search !== '*') {
                 let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
