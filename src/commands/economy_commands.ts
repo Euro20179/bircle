@@ -1038,16 +1038,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (msg.author.bot) {
                 return { content: "Bots cannot steal", status: StatusCode.ERR }
             }
-            let canTax = false
-            if (!timer.getTimer(msg.author.id, "%tax")) {
-                canTax = true
-                timer.createTimer(msg.author.id, "%tax")
+            let canTax = timer.has_x_s_passed(msg.author.id, "%tax", 1.7, true)
+
+            if(!canTax){
+                let lap = Number(timer.do_lap(msg.author.id, "%tax")) / 1000 
+                return crv(`You must wait ${1.7 - lap} seconds`)
             }
 
-            if (timer.has_x_s_passed(msg.author.id, "%tax", 1.7)) {
-                canTax = true
-                timer.restartTimer(msg.author.id, "%tax")
-            }
+            timer.createOrRestartTimer(msg.author.id, "%tax")
 
             if (!canTax) {
                 return { content: "You can only tax every 1.7 seconds", status: StatusCode.ERR }
