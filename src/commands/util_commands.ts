@@ -221,9 +221,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             for (let i = 0; i < args.length; i += 1) {
                 unit = unit.toUnit(Units.LengthUnit.fromUnitName(args[i]))
             }
-            //eval complains Units is not defined, but this works for some reason
-            let unitRef = Units
-            return { content: `${unit.value.toFixed(roundTo)}${eval(`unitRef.${unit.constructor.name}.shorthand`)}`, status: StatusCode.RETURN }
+            return { content: `${unit.value.toFixed(roundTo)}${Units[unit.constructor.name as keyof typeof Units].shorthand}`, status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Converts a unit to a different unit", {
             unit1: createHelpArgument("The first unit in the form of &lt;amount&gt;&lt;unit&gt;"),
             to: createHelpArgument("The unit to convert to"),

@@ -65,6 +65,10 @@ details[open] summary{
     color: var(--selection);
 }
 
+details[open] summary{
+    font-weight: bolder;
+}
+
 summary:hover{
     cursor: pointer;
 }
