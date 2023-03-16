@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>hi</title>
+    <title>Bircle</title>
     <link rel="stylesheet" href="/common.css" media="all">
     <style>
         .soft-hr {
@@ -18,6 +18,7 @@
             display: flex;
             flex-direction: column
         }
+
 
         .embed{
             display: grid;
@@ -107,13 +108,13 @@
     </ul>
 
     <div id="form">
-        <input type='text' id='channel-id' placeholder='channel id'></textarea>
-        <textarea type='text' id='command' placeholder='run a command'></textarea>
+        <input type='text' id='channel-id' placeholder='channel id' enterkeyhind='next'></textarea>
+        <textarea type='text' id='command' placeholder='run a command' enterkeyhint='enter'></textarea>
         <br>
         <button id='run-button'>run</button>
     </div>
 
-    <div id="command-output">
+    <div id="command-output" contenteditable>
         
     </div>
 

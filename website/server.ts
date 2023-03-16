@@ -365,7 +365,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                     commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as Command | CommandV2]]
                 }
                 //the input only works nicely when it's inside of main for some reason
-                let html = '<link rel="stylesheet" href="/commands.css"><body><header><span id="result-display"></span></header><main><input type="text" id="search-box" placeholder="search">'
+                let html = '<link rel="stylesheet" href="/commands.css"><body><header><span id="result-display"></span></header><main><input enterkeyhint="search" type="text" id="search-box" placeholder="search">'
                 for (let [name, command] of commands) {
                     if(!command) continue
                     html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
