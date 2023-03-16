@@ -307,10 +307,11 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             let html = ''
             for (let [name, command] of commands) {
                 if (!command) continue
+                let resultPriority = ""
                 if(typeof name === 'object'){
-                    name = name[0]
+                    [name, resultPriority] = name
                 }
-                html += generateHTMLFromCommandHelp(name, command as Command | CommandV2)
+                html += generateHTMLFromCommandHelp(name, command as Command | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
             }
             html += ""
             res.writeHead(200, { "Content-Type": "text/html" })
