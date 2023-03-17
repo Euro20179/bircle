@@ -156,6 +156,7 @@ class Lexer {
                     this.tokens.push(new Token(TT.div, "/"))
                     break
                 }
+                case "x":
                 case "*": {
                     this.tokens.push(new Token(TT.mul, "*"))
                     break
