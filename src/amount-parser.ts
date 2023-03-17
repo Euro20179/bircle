@@ -345,11 +345,6 @@ class Parser {
         let name = this.#curTok
         //skip name
         this.advance()
-        //TODO: treat special literals closer to functions, so that this is possible for the end user specialLiteral(3, 4)
-        //if we aren't using a (, that means that this is not a function
-        if(this.#curTok?.type !== TT.lparen && name?.type === TT.special_literal){
-            return new SpecialLiteralNode((name as Token<TT.special_literal>).data, this.specialLiterals[name.data])
-        }
         //skip (
         this.advance()
         if (this.#curTok?.type === TT.rparen) {
@@ -383,7 +378,18 @@ class Parser {
             this.advance()
             return new LiteralNode(tok as Token<TT.literal>)
         }
-        return this.func()
+        let nameTok = this.#curTok
+        if(!nameTok){
+            return new NumberNode(new Token(TT.number, 0))
+        }
+        this.advance()
+        if(this.#curTok?.type === TT.lparen){
+            this.back()
+            return this.func()
+        }
+        if(this.specialLiterals[nameTok.data])
+            return new SpecialLiteralNode((nameTok as Token<TT.special_literal>).data, this.specialLiterals[nameTok.data])
+        return new NumberNode(new Token(TT.number, 0))
     }
 
     factor(): Node {

@@ -1248,7 +1248,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
                 }
                 let dollarSign = opts['sign'] || ""
-                let amount = amountParser.calculateAmountRelativeTo(money, amountStr)
+                let amount = amountParser.calculateAmountRelativeTo(money, amountStr )
                 if (dollarSign === true) {
                     return { content: `${amount}`, status: StatusCode.RETURN }
                 }
