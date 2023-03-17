@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import vars from '../vars'
+import vars, { VarType } from '../vars'
 
 
 import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
@@ -1863,12 +1863,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "var",
         {
-            run: async (msg: Message, args: ArgumentList, sendCallback, opts) => {
+            run: async (msg: Message, _, sendCallback, opts, args) => {
                 let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
                 if (!value.length) {
                     return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
                 }
-                let realVal = value.join("=")
+                let realVal: string | number = value.join("=")
                 let [prefix, realName] = name.split(":")
                 if (prefix && realName && prefix.startsWith("!")) {
                     return { content: `prefix cannot start with !`, status: StatusCode.ERR }
@@ -1877,8 +1877,23 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     realName = prefix
                     prefix = "__global__"
                 }
+                let type = String(opts['type'] || "string")
+                if (type === 'function') {
+                    return crv("Cannot create functions", { status: StatusCode.ERR })
+                }
+                if (!Object.keys(vars.VarType).includes(type)) {
+                    return crv("Not a valid type", { status: StatusCode.ERR })
+                }
+
+                if (type === 'number') {
+                    realVal = Number(realVal)
+                }
+
                 if (opts['u']) {
-                    vars.setVar(name, realVal, msg.author.id)
+                    if (prefix !== '__global__') {
+                        return crv("Invalid prefix", { status: StatusCode.ERR })
+                    }
+                    vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
                     if (!opts['silent'])
                         return {
                             content: vars.getVar(msg, name, msg.author.id),
@@ -1886,7 +1901,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                 }
                 else {
-                    vars.setVarEasy(msg, realName, realVal, prefix)
+                    vars.createVar(type as VarType, `${prefix}:${realName}`, realVal, msg.author.id)
                     if (!opts['silent'])
                         return {
                             content: vars.getVar(msg, name),
@@ -2195,7 +2210,7 @@ ${fs.readdirSync("./command-results").join("\n")}
 
         let argList = args.slice(1)
 
-        while(argList[0] === '-opt'){
+        while (argList[0] === '-opt') {
             let nextArg = argList[1]
             let [key, value] = nextArg.split("=")
             simulatedOpts[key] = value ?? true
@@ -2217,11 +2232,11 @@ ${fs.readdirSync("./command-results").join("\n")}
             //-1 because chain starts with the original alias
             return { content: String(chain.length - 1), status: StatusCode.RETURN }
         }
-        if(opts.getBool("l", opts.getBool("last", false))){
+        if (opts.getBool("l", opts.getBool("last", false))) {
             return crv(chain[chain.length - 1])
         }
         let nth = opts.get("i", false, v => !isNaN(Number(v)) ? Number(v) : undefined)
-        if(nth !== false){
+        if (nth !== false) {
             return crv(chain[nth - 1])
         }
         return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
