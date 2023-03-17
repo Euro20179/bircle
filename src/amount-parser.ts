@@ -453,16 +453,20 @@ class Interpreter {
     }
 }
 
-
-function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
+function calculateAmountRelativeToInternals(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>){
     let lexer = new Lexer(amount, Object.keys(extras ?? {}))
     lexer.tokenize()
     let parser = new Parser(lexer.tokens, extras)
     let expression = parser.parse()
     const int = new Interpreter(expression, money)
-    return int.visit()
+    return {lexer, parser, interpreter: int}
+}
+
+function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
+    return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()
 }
 
 export default {
-    calculateAmountRelativeTo
+    calculateAmountRelativeTo,
+    calculateAmountRelativeToInternals
 }

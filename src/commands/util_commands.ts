@@ -24,6 +24,7 @@ import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } 
 import { spawn, spawnSync } from 'child_process'
 import { isNaN } from 'lodash'
 import units from '../units'
+import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
@@ -1247,8 +1248,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
                 }
                 let dollarSign = opts['sign'] || ""
-                //the id here doesn't really matter since we're basing this off a predetermined number
-                let amount = economy.calculateAmountOfMoneyFromString(money, amountStr)
+                let amount = amountParser.calculateAmountRelativeTo(money, amountStr)
                 if (dollarSign === true) {
                     return { content: `${amount}`, status: StatusCode.RETURN }
                 }
