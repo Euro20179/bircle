@@ -11,9 +11,9 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser,  getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild } from "../util"
+import { choice, cycle, efd, fetchUser, listComprehension, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild } from "../util"
 
-import {format} from '../parsing'
+import { format, getOpts } from '../parsing'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common"
 import vars from '../vars'
@@ -1605,14 +1605,14 @@ until you put a 0 in the box`)
 
         },
             "Go on a \"heist\"", {
-                docs: "<p>Heist is a game where you go from stage to stage and location to location</p><h2>Stages</h2><p>Each location has stages, by default each location has 3 stages<ul><li>getting_in</li><li>robbing</li><li>escape</li></ul> However more can be added.<br><h2>Locations</h2><p>By default there is only 1 location, <code>__generic__</code></p>",
-                helpOptions: {
-                    "no-stats": createHelpOption("Display only the amount gained/lost from the heist", ['ns']),
-                    "no-adventure-order": createHelpOption("Do not display  the  adventure order", ["noa"]),
-                    "no-location-stats": createHelpOption("Do not display amount gained/lost from each location", ["nls"]),
-                    "no-total": createHelpOption("Do not display the amount gained/lost", ["nt"]),
-                }
+            docs: "<p>Heist is a game where you go from stage to stage and location to location</p><h2>Stages</h2><p>Each location has stages, by default each location has 3 stages<ul><li>getting_in</li><li>robbing</li><li>escape</li></ul> However more can be added.<br><h2>Locations</h2><p>By default there is only 1 location, <code>__generic__</code></p>",
+            helpOptions: {
+                "no-stats": createHelpOption("Display only the amount gained/lost from the heist", ['ns']),
+                "no-adventure-order": createHelpOption("Do not display  the  adventure order", ["noa"]),
+                "no-location-stats": createHelpOption("Do not display amount gained/lost from each location", ["nls"]),
+                "no-total": createHelpOption("Do not display the amount gained/lost", ["nt"]),
             }
+        }
         )
     ]
 

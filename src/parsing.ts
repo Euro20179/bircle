@@ -3,7 +3,6 @@ import vars from "./vars"
 import { Interpreter } from "./common_to_commands"
 
 const { getOpt } = require("./user-options")
-const { getOpts } = require('./util.js')
 enum T {
     str,
     dofirst,
@@ -967,6 +966,49 @@ function format(str: string, formats: Replacements, recursion = false) {
     return formatPercentStr(formatBracePairs(str, formats, "{}", recursion), formats)
 }
 
+function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
+    let opts: Opts = {}
+    let arg, idxOfFirstRealArg = -1
+    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
+        if (arg === '--') {
+            idxOfFirstRealArg++;
+            break;
+        }
+        else if (arg.startsWith("--")) {
+            let name = arg.slice(2)
+            let value = args[++idxOfFirstRealArg];
+            opts[name] = value
+        }
+        else if (arg.startsWith("-")) {
+            for (let char of arg.slice(1)) {
+                opts[char] = true
+            }
+        }
+        else {
+            break;
+        }
+    }
+    return [opts, args.slice(idxOfFirstRealArg)]
+}
+
+function getOpts(args: ArgumentList): [Opts, ArgumentList] {
+    let opts = {}
+    let arg, idxOfFirstRealArg = -1;
+    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
+        if (arg[1]) {
+            let [opt, ...value] = arg.slice(1).split("=")
+            if (opt === '-') {
+                //needs to be increased one more time
+                idxOfFirstRealArg++
+                break
+            }
+            //@ts-ignore
+            opts[opt] = value[0] == undefined ? true : value.join("=");
+        }
+    }
+    return [opts, args.slice(idxOfFirstRealArg)]
+}
+
 export {
     parsePosition,
     parseAliasReplacement,
@@ -986,5 +1028,7 @@ export {
     formatPercentStr,
     formatBracePairs,
     parsePercentFormat,
-    parseBracketPair
+    parseBracketPair,
+    getOpts,
+    getOptsUnix
 }

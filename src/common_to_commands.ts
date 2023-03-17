@@ -9,9 +9,9 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement, RedirModifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult,  Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
 
-import { parseBracketPair } from './parsing'
+import { parseBracketPair, getOpts } from './parsing'
 
 import { cloneDeep } from 'lodash';
 

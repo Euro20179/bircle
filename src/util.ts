@@ -404,8 +404,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         mimeTypeToFileExtension,
         searchList,
         renderHTML: htmlRenderer.renderHTML,
-        getOpts,
-        getOptsUnix,
         generateCommandSummary,
         user_options: {
             formatMoney: formatMoney,
@@ -715,48 +713,6 @@ class Options extends Map {
     }
 }
 
-function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
-    let opts: Opts = {}
-    let arg, idxOfFirstRealArg = -1
-    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
-        if (arg === '--') {
-            idxOfFirstRealArg++;
-            break;
-        }
-        else if (arg.startsWith("--")) {
-            let name = arg.slice(2)
-            let value = args[++idxOfFirstRealArg];
-            opts[name] = value
-        }
-        else if (arg.startsWith("-")) {
-            for (let char of arg.slice(1)) {
-                opts[char] = true
-            }
-        }
-        else {
-            break;
-        }
-    }
-    return [opts, args.slice(idxOfFirstRealArg)]
-}
-
-function getOpts(args: ArgumentList): [Opts, ArgumentList] {
-    let opts = {}
-    let arg, idxOfFirstRealArg = -1;
-    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
-        if (arg[1]) {
-            let [opt, ...value] = arg.slice(1).split("=")
-            if (opt === '-') {
-                //needs to be increased one more time
-                idxOfFirstRealArg++
-                break
-            }
-            //@ts-ignore
-            opts[opt] = value[0] == undefined ? true : value.join("=");
-        }
-    }
-    return [opts, args.slice(idxOfFirstRealArg)]
-}
 
 function getContentFromResult(result: CommandReturn, end = "") {
     let res = ""
@@ -1027,8 +983,6 @@ export {
     UTF8String,
     cmdCatToStr,
     getImgFromMsgAndOpts,
-    getOpts,
-    getOptsUnix,
     fetchUserFromClient,
     fetchUserFromClientOrGuild,
     generateSafeEvalContextFromMessage,

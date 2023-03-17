@@ -7,9 +7,9 @@ import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createComman
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
-import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format } from "../parsing"
+import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts,  safeEval,  choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr,  isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts,   safeEval,  choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr,  isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList } from "../util"
 
 
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
