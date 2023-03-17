@@ -19,7 +19,8 @@ enum TT {
     "minus",
     "mul",
     "div",
-    "number_suffix"
+    "number_suffix",
+    "special_literal"
 }
 
 const LITERALS = ['all', 'all!', 'infinity'] as const
@@ -37,7 +38,8 @@ type TokenDataType = {
     [TT.plus]: "+",
     [TT.minus]: "-",
     [TT.mul]: "*",
-    [TT.div]: "/"
+    [TT.div]: "/",
+    [TT.special_literal]: string
 }
 
 class Token<TokenType extends TT> {
@@ -53,6 +55,9 @@ const NUMBERSUFFIXES = ['k', 'm', 'b', 't',] as const
 class Lexer {
     tokens: Token<TT>[] = []
     data: string
+
+    specialLiterals: string[]
+
     #curChar: string[number] | undefined
     #i: number = -1
 
@@ -60,8 +65,9 @@ class Lexer {
     #whitespace = "\n\t "
 
 
-    constructor(data: string) {
+    constructor(data: string, specialLiterals?: string[]) {
         this.data = data
+        this.specialLiterals = specialLiterals ?? []
     }
 
     advance() {
@@ -112,10 +118,6 @@ class Lexer {
                 this.tokens.push(new Token(TT.number, this.parseNumber()))
                 continue;
             }
-            if (NUMBERSUFFIXES.includes(this.#curChar as typeof NUMBERSUFFIXES[number])) {
-                this.tokens.push(new Token(TT.number_suffix, this.#curChar as typeof NUMBERSUFFIXES[number]))
-                continue;
-            }
             switch (this.#curChar) {
                 case "#": {
                     this.tokens.push(new Token(TT.hash, "#"))
@@ -163,6 +165,13 @@ class Lexer {
                     if (str === 'all' || str === 'all!' || str === 'infinity') {
                         this.tokens.push(new Token(TT.literal, str))
                     }
+                    else if (this.specialLiterals.includes(str)) {
+                        this.tokens.push(new Token(TT.special_literal, str))
+                    }
+                    else if (NUMBERSUFFIXES.includes(str as 'm' | 'b' | 'k' | 't')) {
+                        this.tokens.push(new Token(TT.number_suffix, str as 'k' | 'm' | 'b' | "t"))
+                        continue;
+                    }
                     else this.tokens.push(new Token(TT.string, str))
                 }
             }
@@ -206,6 +215,19 @@ class NumberNode extends Node {
     }
     visit(relativeTo: number): number {
         return this.data.data
+    }
+}
+
+class SpecialLiteralNode extends Node {
+    name: string
+    onVisit: (total: number, k: string) => number
+    constructor(name: string, onVisit: (total: number, k: string) => number) {
+        super()
+        this.name = name
+        this.onVisit = onVisit
+    }
+    visit(relativeTo: number): number {
+        return this.onVisit(relativeTo, this.name)
     }
 }
 
@@ -283,16 +305,16 @@ class FunctionNode extends Node {
     }
 }
 
-class EOFNode extends Node { }
-
 class Parser {
     tokens: Token<TT>[]
     nodes: Node[] = []
+    specialLiterals: Record<string, (total: number, k: string) => number>
     #i = -1
     #curTok: Token<TT> | undefined = undefined
 
-    constructor(tokens: Token<TT>[]) {
+    constructor(tokens: Token<TT>[], specialLiterals?: Record<string, (total: number, k: string) => number>) {
         this.tokens = tokens
+        this.specialLiterals = specialLiterals ?? {}
         this.advance()
     }
 
@@ -350,6 +372,10 @@ class Parser {
         else if (tok?.type === TT.literal) {
             this.advance()
             return new LiteralNode(tok as Token<TT.literal>)
+        }
+        else if (tok?.type === TT.special_literal) {
+            this.advance()
+            return new SpecialLiteralNode((tok as Token<TT.special_literal>).data, this.specialLiterals[tok.data])
         }
         return this.func()
     }
@@ -422,10 +448,10 @@ class Interpreter {
 }
 
 
-function calculateAmountRelativeTo(money: number, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
-    let lexer = new Lexer(amount)
+function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
+    let lexer = new Lexer(amount, Object.keys(extras ?? {}))
     lexer.tokenize()
-    let parser = new Parser(lexer.tokens)
+    let parser = new Parser(lexer.tokens, extras)
     let expression = parser.parse()
     const int = new Interpreter(expression, money)
     return int.visit()

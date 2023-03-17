@@ -1142,8 +1142,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     as = msg.author.id
 
                 let amount = economy.calculateAmountFromString(String(as), args.join(" "), {
-                    ticketmin: (total, _k, _data) => total * 0.005,
-                    battlemin: (total, _k, _data) => total * 0.002
+                    ticketmin: (total, _k) => total * 0.005,
+                    battlemin: (total, _k) => total * 0.002
                 })
                 if (dollarSign === true) {
                     return { content: `${amount}`, status: StatusCode.RETURN }

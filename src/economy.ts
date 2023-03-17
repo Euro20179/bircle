@@ -305,7 +305,7 @@ function setMoney(id: string, amount: number) {
 //  it might be possible to do the above by making backupFn use a bound method where the first arument is bound to the user id
 //  see below for example
 
-function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
@@ -318,7 +318,7 @@ function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key
     return amount_parser.calculateAmountRelativeTo(total, amount, extras)
 }
 
-function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
@@ -339,7 +339,7 @@ function calculateStockAmountFromString(id: string, shareCount: number, amount: 
     return amount_parser.calculateAmountRelativeTo(shareCount, amount)
 }
 
-function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
+function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     let loanDebt = ECONOMY[id]?.loanUsed
     if (!loanDebt)
         return 0
@@ -347,7 +347,7 @@ function calculateLoanAmountFromString(id: string, amount: string, extras?: { [k
 }
 
 
-function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
