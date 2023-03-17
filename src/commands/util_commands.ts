@@ -1248,6 +1248,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
                 }
                 let dollarSign = opts['sign'] || ""
+                if(opts['tree']){
+                    return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr())
+                }
                 let amount = amountParser.calculateAmountRelativeTo(money, amountStr )
                 if (dollarSign === true) {
                     return { content: `${amount}`, status: StatusCode.RETURN }
@@ -1261,7 +1264,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     amount: createHelpArgument("The amount of the total to calculate", true)
                 },
                 options: {
-                    sign: createHelpOption("The currency symbol", undefined, "")
+                    sign: createHelpOption("The currency symbol", undefined, ""),
+                    tree: createHelpOption("See the calculation syntax tree")
                 }
             }
         },

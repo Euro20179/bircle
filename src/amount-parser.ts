@@ -185,6 +185,10 @@ class Node {
     visit(relativeTo: number): number {
         return 0
     }
+
+    repr(indent=0){
+        return ""
+    }
 }
 
 class LiteralNode extends Node {
@@ -207,6 +211,12 @@ class LiteralNode extends Node {
             }
         }
     }
+
+    repr(indent=0) {
+        return `Literal(
+${'\t'.repeat(indent + 1)}${this.data.data}
+${'\t'.repeat(indent)})`
+    }
 }
 
 class NumberNode extends Node {
@@ -218,6 +228,11 @@ class NumberNode extends Node {
     visit(relativeTo: number): number {
         return this.data.data
     }
+
+    repr(indent=0){
+        return `Number(${this.data.data})`
+    }
+
 }
 
 class SpecialLiteralNode extends Node {
@@ -230,6 +245,12 @@ class SpecialLiteralNode extends Node {
     }
     visit(relativeTo: number): number {
         return this.onVisit(relativeTo, this.name)
+    }
+
+    repr(indent = 0){
+        return `Special(
+${'\t'.repeat(indent + 1)}${this.name}
+${'\t'.repeat(indent)})`
     }
 }
 
@@ -261,6 +282,22 @@ class UnOpNode extends Node {
             }
         }
     }
+
+    repr(indent=0){
+        let left ;
+        let right;
+        if(this.left instanceof Node){
+            left = this.left.repr(indent + 1)
+        }
+        else {left = "op(#)"}
+        if(this.operator instanceof Node){
+            right = this.operator.repr(indent + 1)
+        }
+        else right = `op(${this.operator.data})`
+        return `UnOp(
+${'\t'.repeat(indent + 1)}${left} ${right}
+${'\t'.repeat(indent)})`
+    }
 }
 
 class BinOpNode extends Node {
@@ -282,6 +319,14 @@ class BinOpNode extends Node {
             case '*': return left * right;
             case '/': return left / right;
         }
+    }
+
+    repr(indent=0){
+        return `BinOp(
+${'\t'.repeat(indent + 1)}${this.left.repr(indent + 1)}
+${'\t'.repeat(indent + 1)}op(${this.operator.data})
+${'\t'.repeat(indent + 1)}${this.right.repr(indent + 1)}
+${'\t'.repeat(indent)})`
     }
 }
 
@@ -307,6 +352,14 @@ class FunctionNode extends Node {
             case 'round': return Math.round(values[0] ?? 0)
         }
         return 0
+    }
+
+    repr(indent=0){
+        return `Function(
+${'\t'.repeat(indent + 1)}${this.name.data}(
+${'\t'.repeat(indent + 2)}${this.nodes.map(v => v.repr(indent + 2)).join(", ")}
+${'\t'.repeat(indent + 1)})
+${'\t'.repeat(indent)})`
     }
 }
 
@@ -465,7 +518,7 @@ function calculateAmountRelativeToInternals(money: number, amount: string, extra
     let parser = new Parser(lexer.tokens, extras)
     let expression = parser.parse()
     const int = new Interpreter(expression, money)
-    return {lexer, parser, interpreter: int}
+    return {lexer, parser, interpreter: int, expression}
 }
 
 function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
