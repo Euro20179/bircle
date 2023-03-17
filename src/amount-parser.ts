@@ -61,8 +61,8 @@ class Lexer {
     #curChar: string[number] | undefined
     #i: number = -1
 
-    #specialChars = "#,()+-*/÷"
     #whitespace = "\n\t "
+    #specialChars = `#,()+-*/÷ ${this.#whitespace}`
 
 
     constructor(data: string, specialLiterals?: string[]) {
@@ -413,16 +413,6 @@ class Parser {
         return node
     }
 
-    arith_expr(): Node {
-        let node = this.mutate_expr()
-        while ([TT.plus, TT.minus].includes(this.#curTok?.type as TT)) {
-            let token = this.#curTok as Token<any>
-            this.advance()
-            node = new BinOpNode(node, token, this.mutate_expr())
-        }
-        return node
-    }
-
     mutate_expr() {
         if (this.#curTok?.type === TT.hash) {
             let tok = this.#curTok as Token<TT.hash>
@@ -433,7 +423,17 @@ class Parser {
         if ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
             let next = this.#curTok as Token<any>
             this.advance()
-            return new UnOpNode(node, next)
+            node = new UnOpNode(node, next)
+        }
+        return node
+    }
+
+    arith_expr(): Node {
+        let node = this.mutate_expr()
+        while ([TT.plus, TT.minus].includes(this.#curTok?.type as TT)) {
+            let token = this.#curTok as Token<any>
+            this.advance()
+            node = new BinOpNode(node, token, this.mutate_expr())
         }
         return node
     }

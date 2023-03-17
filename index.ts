@@ -89,7 +89,6 @@ client.on(Events.GuildMemberAdd, async (m: Message) => {
 
 client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
-    amountParser.calculateAmountRelativeTo(43243, "4+4*3")
     Object.keys(user_options.USER_OPTIONS).forEach((v) => {
         if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
             client.users.fetch(v).then((u: any) => {
