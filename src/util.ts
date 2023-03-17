@@ -432,30 +432,18 @@ function strlen(text: string) {
 }
 
 function cmdCatToStr(cat: number) {
-    switch (cat) {
-        case 0:
-            return "util"
-        case 1:
-            return "game"
-        case 2:
-            return "fun"
-        case 3:
-            return "meta"
-        case 4:
-            return "images"
-        case 5:
-            return "economy"
-        case 6:
-            return "voice"
-        case 7:
-            return "admin"
-        case 8:
-            return "match"
-        case 9:
-            return "aliasv2"
-        default:
-            return "UNKNOWN"
-    }
+    return {
+        [CommandCategory.UTIL]: "util",
+        [CommandCategory.GAME]: "game",
+        [CommandCategory.FUN]: "fun",
+        [CommandCategory.META]: "meta",
+        [CommandCategory.IMAGES]: "images",
+        [CommandCategory.ECONOMY]: "economy",
+        [CommandCategory.VOICE]: "voice",
+        [CommandCategory.ADMIN]: "admin",
+        [CommandCategory.MATCH]: "match",
+        [CommandCategory.ALIASV2]: "aliasv2"
+    }[cat] ?? "UNKNOWN"
 }
 
 function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean) {
