@@ -298,13 +298,6 @@ function setMoney(id: string, amount: number) {
     }
 }
 
-//TODO:
-//create a proper lexer/parser/interpreter for the amount syntax to allow cooler and more robust syntax
-//
-//create a function called calculateAmountRelativeTo that does not require a user id
-//  it might be possible to do the above by making backupFn use a bound method where the first arument is bound to the user id
-//  see below for example
-
 function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
@@ -312,9 +305,6 @@ function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key
 
     let total = playerLooseNetWorth(id)
 
-    //**********************
-        //EXAMPLE
-    //**********************
     return amount_parser.calculateAmountRelativeTo(total, amount, extras)
 }
 

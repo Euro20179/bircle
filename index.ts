@@ -1,9 +1,6 @@
 ///<reference path="src/types.d.ts" />
 import fs from 'fs'
 
-//TODO: add ArgumentList class to interact with args
-//can be added to commandV2 as arguments in the object given to the fn
-
 import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType,  Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'

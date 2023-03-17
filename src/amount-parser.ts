@@ -345,6 +345,7 @@ class Parser {
         let name = this.#curTok
         //skip name
         this.advance()
+        //TODO: treat special literals closer to functions, so that this is possible for the end user specialLiteral(3, 4)
         //if we aren't using a (, that means that this is not a function
         if(this.#curTok?.type !== TT.lparen && name?.type === TT.special_literal){
             return new SpecialLiteralNode((name as Token<TT.special_literal>).data, this.specialLiterals[name.data])

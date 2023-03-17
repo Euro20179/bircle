@@ -1,14 +1,3 @@
-//TODO: add pets, and pet shop
-//you have to keep your pet alive by feeding it
-//each pet has an ability
-//looses hunger slowly, food will be cheap
-//nothing happens on death, just must be bought again
-//eg: cat, gain .3% from talking instead of .1%
-//eg: tiger, get taxed from .1 - .6% instead of .1 - .8%
-//eg: dog, every 60 seconds, there is a 1% chance to dig up a treasure
-//you can own as many pets as you like, you just must keep them alive, but you can only have one active at a time
-//
-
 import { Message } from 'discord.js'
 
 import fs = require("fs")
