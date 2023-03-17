@@ -221,7 +221,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let petData = shopData[item]
                     let totalCost = 0
                     for (let cost of petData.cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
+                        totalCost += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(msg.author.id), cost)
                     }
                     if (!economy.canBetAmount(msg.author.id, totalCost)) {
                         return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
@@ -248,7 +248,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         let totalCost = 0
                         let { total } = economy.economyLooseGrandTotal()
                         for (let cost of ITEMS()[item].cost) {
-                            totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, total, `${cost}`)
+                            totalCost += economy.calculateAmountOfMoneyFromString(total, `${cost}`)
                         }
                         if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
                             if (buyItem(msg.author.id, item)) {
@@ -415,7 +415,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let data = shopData[pet]
                     let totalCost = 0
                     for (let cost of data.cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(msg.author.id, economy.playerLooseNetWorth(msg.author.id), cost)
+                        totalCost += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(msg.author.id), cost)
                     }
                     embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
                 }
@@ -490,7 +490,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let totalCost = 0
                     let { total } = economy.economyLooseGrandTotal()
                     for (let cost of itemJ[item].cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(userCheckingShop.id, total, cost)
+                        totalCost += economy.calculateAmountOfMoneyFromString(total, cost)
                     }
                     if (round) {
                         totalCost = Math.floor(totalCost * 100) / 100
@@ -1012,7 +1012,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: `You do not have ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }
 
-                let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(msg.author.id, itemData, count))
+                let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(itemData, count))
                 if (countnum <= 0 || countnum > itemData) {
                     return { content: `You only have ${itemData} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }

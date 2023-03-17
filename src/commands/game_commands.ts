@@ -733,7 +733,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 bets[msg.author.id] = bet
             }
             if (mode === 'multi') {
-                let bet = economy.calculateAmountFromString(msg.author.id, args[1], { min: (total, k, data, match) => total * .001 })
+                let bet = economy.calculateAmountFromString(msg.author.id, args[1], { min: (total) => total * .001 })
                 if (!bet) {
                     return { content: `Not a valid bet`, status: StatusCode.ERR }
                 }
@@ -759,7 +759,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                                 return false
                             let args = m.content.split(/\s/).map(v => v.toLowerCase())
                             if (args[0] === "join") {
-                                let bet = economy.calculateAmountFromString(m.author.id, args[1], { min: (total, k, data, match) => total * .001 })
+                                let bet = economy.calculateAmountFromString(m.author.id, args[1], { min: (total) => total * .001 })
                                 if (!bet || bet < 0) {
                                     m.reply("No bet")
                                     return false
@@ -1157,7 +1157,7 @@ until you put a 0 in the box`)
                 e.setFooter({ text: `Cost: ${amount}` })
                 if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
                     let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
-                    let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")
+                    let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "0.2%")
                     economy.addMoney(msg.author.id, winningAmount)
                     economy.newLottery()
                     if (userFormat !== "__default__") {

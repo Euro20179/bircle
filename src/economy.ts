@@ -296,17 +296,27 @@ function setMoney(id: string, amount: number) {
     }
 }
 
-function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+//TODO:
+//create a proper lexer/parser/interpreter for the amount syntax to allow cooler and more robust syntax
+//
+//create a function called calculateAmountRelativeTo that does not require a user id
+//  it might be possible to do the above by making backupFn use a bound method where the first arument is bound to the user id
+//  see below for example
+
+function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
 
     let total = playerLooseNetWorth(id)
 
-    return calculateAmountOfMoneyFromString(id, total, amount, extras, calculateAmountFromNetWorth)
+    //**********************
+        //EXAMPLE
+    //**********************
+    return calculateAmountOfMoneyFromString(total, amount, extras, calculateAmountFromNetWorth.bind(globalThis, id))
 }
 
-function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
@@ -317,24 +327,24 @@ function calculateAmountFromStringIncludingStocks(id: string, amount: string, ex
             total += stocks[stock].buyPrice * stocks[stock].shares
         }
     }
-    return calculateAmountOfMoneyFromString(id, total, amount, extras, calculateAmountFromStringIncludingStocks)
+    return calculateAmountOfMoneyFromString(total, amount, extras, calculateAmountFromStringIncludingStocks.bind(globalThis, id))
 }
 
 function calculateStockAmountFromString(id: string, shareCount: number, amount: string) {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
-    return calculateAmountOfMoneyFromString(id, shareCount, amount)
+    return calculateAmountOfMoneyFromString(shareCount, amount)
 }
 
-function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
     let loanDebt = ECONOMY[id]?.loanUsed
     if (!loanDebt)
         return 0
-    return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras, calculateLoanAmountFromString)
+    return calculateAmountOfMoneyFromString(loanDebt, amount, extras, calculateLoanAmountFromString.bind(globalThis, id))
 }
 
-function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }, fallbackFn?: (id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }) => number): number {
+function calculateAmountOfMoneyFromString(money: number, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }, fallbackFn?: (amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }) => number): number {
     if (amount == undefined || amount == null) {
         return NaN
     }
@@ -385,19 +395,19 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
     }
     else if (amount.startsWith("neg(") && amount.endsWith(")")) {
         let req = amount.slice("neg(".length, -1)
-        return (fallbackFn ? fallbackFn(id, req, extras) : calculateAmountOfMoneyFromString(id, money, req, extras, fallbackFn)) * -1;
+        return (fallbackFn ? fallbackFn(req, extras) : calculateAmountOfMoneyFromString(money, req, extras, fallbackFn)) * -1;
     }
     else if (amount.startsWith("max(") && amount.endsWith(")")) {
-        let amounts = amount.slice("max(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(id, money, v, extras, fallbackFn))
+        let amounts = amount.slice("max(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(money, v, extras, fallbackFn))
         return max(amounts) as number
     }
     else if (amount.startsWith("min(") && amount.endsWith(")")) {
-        let amounts = amount.slice("min(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(id, money, v, extras, fallbackFn))
+        let amounts = amount.slice("min(".length, -1).split(",").map(v => calculateAmountOfMoneyFromString(money, v, extras, fallbackFn))
         return min(amounts) as number
     }
     else if (amount.startsWith("rand(") && amount.endsWith(")")) {
         let [start, end] = amount.slice("rand(".length, -1).split(",")
-        return randInt(calculateAmountOfMoneyFromString(id, money, start, extras, fallbackFn), calculateAmountOfMoneyFromString(id, money, end, extras, fallbackFn))
+        return randInt(calculateAmountOfMoneyFromString(money, start, extras, fallbackFn), calculateAmountOfMoneyFromString(money, end, extras, fallbackFn))
     }
     else if (match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)) {
         let side1 = match[1]
@@ -405,12 +415,12 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
         let side2 = match[3]
         let amount1, amount2
         if (!fallbackFn) {
-            amount1 = calculateAmountOfMoneyFromString(id, money, side1, extras, fallbackFn)
-            amount2 = calculateAmountOfMoneyFromString(id, money, side2, extras, fallbackFn)
+            amount1 = calculateAmountOfMoneyFromString(money, side1, extras, fallbackFn)
+            amount2 = calculateAmountOfMoneyFromString(money, side2, extras, fallbackFn)
         }
         else {
-            amount1 = fallbackFn(id, side1, extras)
-            amount2 = fallbackFn(id, side2, extras)
+            amount1 = fallbackFn(side1, extras)
+            amount2 = fallbackFn(side2, extras)
         }
         switch (operator) {
             case "+": return amount1 + amount2
@@ -422,7 +432,7 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
     for (let e in extras) {
         let match;
         if (match = amount.match(e)) {
-            return extras[e](money, amount, ECONOMY[id], match)
+            return extras[e](money, amount, match)
         }
     }
     if (Number(amount)) {
@@ -441,11 +451,11 @@ function calculateAmountOfMoneyFromString(id: string, money: number, amount: str
     return 0
 }
 
-function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, match: RegExpMatchArray) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
-    return calculateAmountOfMoneyFromString(id, ECONOMY[id].money, amount, extras, calculateAmountFromString)
+    return calculateAmountOfMoneyFromString(ECONOMY[id].money, amount, extras, calculateAmountFromString.bind(globalThis, id))
 }
 
 function resetEconomy() {

@@ -97,7 +97,7 @@ function buyPet(id: string, pet: string){
         PETINVENTORY[id][pet] = {health: PETSHOP[pet]["max-hunger"], name: pet}
         let total = 0
         for (let cost of PETSHOP[pet].cost) {
-            total += economy.calculateAmountOfMoneyFromString(id, economy.playerLooseNetWorth(id), cost)
+            total += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(id), cost)
         }
         economy.loseMoneyToBank(id, total)
         return true
@@ -106,7 +106,7 @@ function buyPet(id: string, pet: string){
         PETINVENTORY[id] = {[pet]: {health: PETSHOP[pet]["max-hunger"], name: pet}}
         let total = 0
         for (let cost of PETSHOP[pet].cost) {
-            total += economy.calculateAmountOfMoneyFromString(id, economy.playerLooseNetWorth(id), cost)
+            total += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(id), cost)
         }
         economy.loseMoneyToBank(id, total)
         return true

@@ -1107,10 +1107,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
                 let reqAmount = args.join(" ") || "all!"
                 let { money, stocks, loan, total: _ } = economy.economyLooseGrandTotal()
-                let moneyAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, reqAmount)
-                let stockAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, stocks, reqAmount)
-                let loanAmount = economy.calculateAmountOfMoneyFromString(msg.author.id, loan, reqAmount)
-                let grandTotal = economy.calculateAmountOfMoneyFromString(msg.author.id, money + stocks - loan, reqAmount)
+                let moneyAmount = economy.calculateAmountOfMoneyFromString(money, reqAmount)
+                let stockAmount = economy.calculateAmountOfMoneyFromString(stocks, reqAmount)
+                let loanAmount = economy.calculateAmountOfMoneyFromString(loan, reqAmount)
+                let grandTotal = economy.calculateAmountOfMoneyFromString(money + stocks - loan, reqAmount)
                 return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }), status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {
@@ -1246,7 +1246,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 let dollarSign = opts['sign'] || ""
                 //the id here doesn't really matter since we're basing this off a predetermined number
-                let amount = economy.calculateAmountOfMoneyFromString(msg.author.id, money, amountStr)
+                let amount = economy.calculateAmountOfMoneyFromString(money, amountStr)
                 if (dollarSign === true) {
                     return { content: `${amount}`, status: StatusCode.RETURN }
                 }

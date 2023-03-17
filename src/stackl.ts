@@ -1278,7 +1278,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
                 if (typeof ans === 'undefined') {
                     return { err: true, content: `Cannot save undefined as variable` }
                 }
-                vars.vars["__global__"][arg] = ans
+                vars.createVar('string', `arg`, String(ans))
                 stack.push(ans)
             }
             else if (stack[stack.length - 1] == '%lvar') {

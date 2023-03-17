@@ -73,7 +73,7 @@ createSlashCommand("attack", "attacks chris and no one else", async (int) => {
 
 createSlashCommand("ping", "Pings a user for some time", async (int) => {
     let user = int.options.get("user")?.value || `<@${int.user.id}>`
-    let times = int.options.get("evilness")?.value || 1
+    let times = Number(int.options.get("evilness")?.value) || 1
     int.reply("Pinging...").catch(console.error)
     globals.SPAM_ALLOWED = true
     for (let i = 0; i < times; i++) {

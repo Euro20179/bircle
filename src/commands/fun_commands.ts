@@ -453,7 +453,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         //if they are using 1 item in the recipe, and want to use more than 1 of that item at once
         if (chosen_recipe[0].length === 1 && countOfItem) {
-            if (countOfItem > hasItem(msg.author.id, chosen_recipe[0][0])) {
+            if (countOfItem > Number(hasItem(msg.author.id, chosen_recipe[0][0]))) {
                 return crv(`You do not have that much of ${chosen_recipe[0][0]}`)
             }
             useItem(msg.author.id, chosen_recipe[0][0], countOfItem)
@@ -688,7 +688,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "lottery",
         {
             run: async (msg, _args, sendCallback) => {
-                return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(msg.author.id, economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
+                return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
             }, category: CommandCategory.FUN,
             help: {
                 info: "Get the current lottery pool"
