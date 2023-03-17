@@ -461,14 +461,19 @@ class Parser {
         return this.atom()
     }
 
-    mutate_expr() {
+    left_unary_op(){
         let node;
         if (this.#curTok?.type === TT.hash) {
             let tok = this.#curTok as Token<TT.hash>
             this.advance()
-            return new LeftUnOpNode(this.factor(), tok)
+            node = new LeftUnOpNode(this.factor(), tok)
         }
         else node = this.factor()
+        return node
+    }
+
+    mutate_expr() {
+        let node = this.left_unary_op();
         while ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
             let next = this.#curTok as Token<any>
             this.advance()
