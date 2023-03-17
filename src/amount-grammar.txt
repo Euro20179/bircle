@@ -11,15 +11,10 @@ left-unary-op: #
 
 factor: atom | LPAREN expr RPAREN
 
-mutate-expr
-          : left-unary-op? factor
-          : factor right-unary-op*
+mutate-expr: left-unary-op? factor right-unary-op?
 
 term: mutate-expr ((MUL | DIV) mutate-expr)*
 
-
-
 arith-expr : term ((PLUS| MINUS) term)*
-
 
 expr: arith-expr | literal
