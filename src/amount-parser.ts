@@ -56,7 +56,7 @@ class Lexer {
     #curChar: string[number] | undefined
     #i: number = -1
 
-    #specialChars = "#,()"
+    #specialChars = "#,()+-*/"
     #whitespace = "\n\t "
 
 
