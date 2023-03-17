@@ -13,7 +13,8 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser, format, getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween } from "../util"
+import { choice, fetchUser,  getImgFromMsgAndOpts, getOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween } from "../util"
+import { format } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")

@@ -14,13 +14,14 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval,  BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
+import { choice, cmdCatToStr, fetchChannel, fetchUser,  generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval,  BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE,  MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
+
+import { format } from '../parsing'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
-import { getOpt } from '../user-options'
 import { isNaN } from 'lodash'
 import units from '../units'
 

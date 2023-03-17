@@ -3,7 +3,7 @@ import vars from "./vars"
 import { Interpreter } from "./common_to_commands"
 
 const { getOpt } = require("./user-options")
-const { getOpts, parseBracketPair } = require('./util.js')
+const { getOpts } = require('./util.js')
 enum T {
     str,
     dofirst,
@@ -855,6 +855,118 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
     return innerPairs
 }
 
+type Replacements = { [key: string]: (() => string) | string }
+
+function handleReplacement(replacement: Replacements[string]) {
+    if (typeof replacement === 'function') {
+        return replacement()
+    }
+    return replacement
+}
+
+
+function parsePercentFormat(string: string, replacements?: Replacements) {
+    let formats = []
+    let ploc = -1;
+    while ((ploc = string.indexOf("%")) > -1) {
+        string = string.slice(ploc + 1)
+        let char = string[0]
+        if (char === undefined)
+            break
+        else if (char === "%") {
+            formats.push("%")
+        }
+        else if (replacements) {
+            formats.push(handleReplacement(replacements[char]) || char)
+        }
+        else {
+            formats.push(char)
+        }
+        //skip past char
+        string = string.slice(1)
+    }
+    return formats
+}
+
+function formatPercentStr(string: string, replacements: Replacements) {
+    let ploc = -1;
+    let newStr = ""
+    while ((ploc = string.indexOf("%")) > -1) {
+        newStr += string.slice(0, ploc)
+        string = string.slice(ploc + 1)
+        let char = string[0]
+        if (char === undefined)
+            break
+        if (char !== "%") {
+            newStr += handleReplacement(replacements[char]) ?? `%${char}`
+        }
+        else {
+            newStr += "%"
+        }
+        //get past char
+        string = string.slice(1)
+    }
+    newStr += string
+    return newStr
+}
+
+function formatBracePairs(string: string, replacements: Replacements, pair = "{}", recursion = true) {
+    let newStr = ""
+    let escape = false
+    for (let i = 0; i < string.length; i++) {
+        let ch = string[i]
+        if (ch === "\\" && !escape) {
+            escape = true
+        }
+        else if (ch == pair[0] && !escape) {
+            let inner = parseBracketPair(string.slice(i), pair)
+            if (recursion) {
+                newStr += handleReplacement(replacements[inner]) ?? `${pair[0]}${formatBracePairs(inner, replacements, pair, recursion)}${pair[1]}`
+            }
+            else {
+                newStr += handleReplacement(replacements[inner]) ?? `${pair[0]}${inner}${pair[1]}`
+            }
+            i += inner.length + 1
+        }
+        else {
+            escape = false
+            newStr += ch
+        }
+    }
+    return newStr
+}
+
+function parseBracketPair(string: string, pair: string, start = -1) {
+    let count = 1;
+    if (string.indexOf(pair[0]) === -1) {
+        return ""
+    }
+    let curStr = ""
+    start = start === -1 ? string.indexOf(pair[0]) + 1 : start
+    for (let i = start; i < string.length; i++) {
+        let ch = string[i]
+        if (ch == pair[0]) {
+            count++;
+        }
+        if (ch == pair[1]) {
+            count--;
+        }
+        if (count == 0) {
+            return curStr
+        }
+        //sspecial case when the pairs are the same
+        if (count == 1 && pair[0] == ch && pair[1] == pair[0] && curStr) {
+            return curStr
+        }
+        curStr += ch
+    }
+    return curStr
+}
+
+function format(str: string, formats: Replacements, recursion = false) {
+    return formatPercentStr(formatBracePairs(str, formats, "{}", recursion), formats)
+}
+
 export {
     parsePosition,
     parseAliasReplacement,
@@ -869,5 +981,10 @@ export {
     SkipModifier,
     RedirModifier,
     SilentModifier,
-    getInnerPairsAndDeafultBasedOnRegex
+    getInnerPairsAndDeafultBasedOnRegex,
+    format,
+    formatPercentStr,
+    formatBracePairs,
+    parsePercentFormat,
+    parseBracketPair
 }

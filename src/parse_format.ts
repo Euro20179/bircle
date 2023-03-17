@@ -1,12 +1,11 @@
 import { Interpreter } from "./common_to_commands";
-import { strToTT, T, Token } from "./parsing";
+import { strToTT, T, Token, format } from "./parsing";
 import { getContentFromResult } from "./util";
 
 import htmlRenderer from "./html-renderer";
 
 import economy from './economy'
 import timer from "./timer";
-import { format } from "./util";
 
 export default {
     ["parse_%"]: async (_token, _char, _, int) => {

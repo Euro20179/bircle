@@ -18,7 +18,8 @@ import {slashCmds } from "./src/slashCommands"
 import command_commons from './src/common_to_commands'
 
 import globals = require("./src/globals")
-import { efd, format, isMsgChannel } from "./src/util"
+import { efd, isMsgChannel } from "./src/util"
+import { format } from './src/parsing'
 import { getOpt } from "./src/user-options"
 import { GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'

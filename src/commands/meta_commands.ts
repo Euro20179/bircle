@@ -7,9 +7,11 @@ import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createComman
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
-import { parseAliasReplacement, Parser } from "../parsing"
+import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts, parseBracketPair, safeEval, format, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, formatPercentStr, isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, getOpts,  safeEval,  choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr,  isSafeFilePath, BADVALUE, fetchUserFromClient, getOptsUnix, searchList, isMsgChannel, ArgList } from "../util"
+
+
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
 import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'

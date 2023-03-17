@@ -11,7 +11,10 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, format, getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild } from "../util"
+import { choice, cycle, efd, fetchUser,  getOpts, listComprehension, mulStr, range, strlen, fetchUserFromClient, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild } from "../util"
+
+import {format} from '../parsing'
+
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common"
 import vars from '../vars'
 import timer from '../timer'
