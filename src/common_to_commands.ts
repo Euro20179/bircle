@@ -8,8 +8,9 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, RedirModifier, TypingModifier, SkipModifier } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, getInnerPairsAndDeafultBasedOnRegex, isMsgChannel } from './util';
+import { Parser, Token, T, Modifier, parseAliasReplacement, RedirModifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, getOpts, Options, safeEval, parseBracketPair, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
+
 import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';

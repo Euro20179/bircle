@@ -3,11 +3,7 @@ import vars from "./vars"
 import { Interpreter } from "./common_to_commands"
 
 const { getOpt } = require("./user-options")
-const { prefix } = require('./common.js')
-const { format, safeEval, getOpts, generateSafeEvalContextFromMessage, parseBracketPair } = require('./util.js')
-const economy = require('./economy.js')
-const timer = require("./timer.js")
-
+const { getOpts, parseBracketPair } = require('./util.js')
 enum T {
     str,
     dofirst,
@@ -804,6 +800,61 @@ function parsePosition(position: string, areaSize: number, objectSize?: number, 
     return operateOnPositionValues(firstVal as string, operator as string, secondVal, areaSize, objectSize, numberConv)
 }
 
+function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValues: string[], hasToMatch: RegExp, onMatch?: (match: string, or: string) => any) {
+    let innerPairs: [string, string][] = []
+    let escape = false
+    let curPair = ""
+    let buildingOr = false
+    let currentOr = ""
+    for (let i = 0; i < string.lastIndexOf("}") + 1; i++) {
+        let ch = string[i]
+
+        if (ch === "{" && !escape) {
+            continue
+        }
+        else if (ch === "}" && !escape) {
+            if (hasToMatch.test(curPair)) {
+                innerPairs.push([curPair, currentOr])
+                onMatch && onMatch(curPair, currentOr)
+            }
+            curPair = ""
+            currentOr = ""
+            continue
+        }
+        else if (ch === "|" && string[i + 1] === "|") {
+            i++;
+            buildingOr = true;
+            currentOr = "||"
+            continue;
+        }
+        else if (buildingOr) {
+            currentOr += ch
+        }
+        else {
+            curPair += ch
+        }
+
+        if (!buildingOr && !validStartsWithValues.filter(v => v.length > curPair.length ? v.startsWith(curPair) : curPair.startsWith(v)).length) {
+            buildingOr = false
+            curPair = ""
+            currentOr = ""
+        }
+
+        //this needs to be its own if chain because we want escape to be false if it's not \\, this includes {}
+        if (ch === "\\") {
+            escape = true
+        }
+        else {
+            escape = false
+        }
+
+    }
+    if (curPair) {
+        innerPairs.push([curPair, currentOr])
+    }
+    return innerPairs
+}
+
 export {
     parsePosition,
     parseAliasReplacement,
@@ -818,4 +869,5 @@ export {
     SkipModifier,
     RedirModifier,
     SilentModifier,
+    getInnerPairsAndDeafultBasedOnRegex
 }

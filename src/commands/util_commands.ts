@@ -15,13 +15,14 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, registerCommand, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval, Units, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, format, generateFileName, generateTextFromCommandHelp, getContentFromResult, getOpts, mulStr, Pipe, safeEval,  BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, parseBracketPair, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
 
 import vars from '../vars'
 import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { getOpt } from '../user-options'
 import { isNaN } from 'lodash'
+import units from '../units'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
@@ -199,11 +200,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let roundTo = opts.getNumber("round-to", 10)
             if (opts.get("l", false)) {
                 let compareToUnit = opts.getString("l", "yd")
-                let units: [typeof Units.LengthUnit, number][] = []
-                Object.entries(Units).forEach(kv => {
-                    units.push([kv[1], Number((new kv[1](1)).toUnit(Units.LengthUnit.fromUnitName(compareToUnit)).value.toFixed(roundTo))])
+                let unitList: [typeof units.LengthUnit, number][] = []
+                Object.entries(units).forEach(kv => {
+                    unitList.push([kv[1], Number((new kv[1](1)).toUnit(units.LengthUnit.fromUnitName(compareToUnit)).value.toFixed(roundTo))])
                 })
-                return { content: units.sort((a, b) => a[1] - b[1]).map(v => `${v[0].longname} (${v[0].shorthand}) (${v[1]}${compareToUnit})`).join("\n"), status: StatusCode.RETURN }
+                return { content: unitList.sort((a, b) => a[1] - b[1]).map(v => `${v[0].longname} (${v[0].shorthand}) (${v[1]}${compareToUnit})`).join("\n"), status: StatusCode.RETURN }
             }
             if (args.length < 2) {
                 return { content: "Command usage: `[units <number><unit> <convert-to-unit>`", status: StatusCode.ERR }
@@ -211,17 +212,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let number = Number(args[0])
             let unit;
             if (isNaN(number)) {
-                unit = Units.LengthUnit.fromUnitRepr(args[0] as `${number}${string}`)
+                unit = units.LengthUnit.fromUnitRepr(args[0] as `${number}${string}`)
             }
             else {
                 args = new ArgList(args.slice(1))
-                unit = new (Units.LengthUnit.fromUnitName(args[0]))(number)
+                unit = new (units.LengthUnit.fromUnitName(args[0]))(number)
             }
             args = new ArgList(args.slice(1))
             for (let i = 0; i < args.length; i += 1) {
-                unit = unit.toUnit(Units.LengthUnit.fromUnitName(args[i]))
+                unit = unit.toUnit(units.LengthUnit.fromUnitName(args[i]))
             }
-            return { content: `${unit.value.toFixed(roundTo)}${Units[unit.constructor.name as keyof typeof Units].shorthand}`, status: StatusCode.RETURN }
+            return { content: `${unit.value.toFixed(roundTo)}${units[unit.constructor.name as keyof typeof units].shorthand}`, status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Converts a unit to a different unit", {
             unit1: createHelpArgument("The first unit in the form of &lt;amount&gt;&lt;unit&gt;"),
             to: createHelpArgument("The unit to convert to"),
