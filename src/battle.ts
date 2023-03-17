@@ -4,7 +4,7 @@ import pet from './pets'
 
 import fs = require("fs")
 
-const { getOpts } = require("./util.js")
+import { getOpts } from './parsing'
 
 //const { calculateAmountFromString, getEconomy, canBetAmount, addMoney, loseMoneyToBank } = require("./economy.js")
 import economy from './economy'
