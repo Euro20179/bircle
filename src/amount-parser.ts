@@ -300,6 +300,9 @@ class FunctionNode extends Node {
             case 'needed': return (values[0] ?? 0) - relativeTo
             case 'ineeded': return relativeTo - (values[0] ?? 0)
             case 'neg': return (values[0] ?? 0) * -1
+            case 'floor': return Math.floor(values[0] ?? 0)
+            case 'ceil': return Math.ceil(values[0] ?? 0)
+            case 'round': return Math.round(values[0] ?? 0)
         }
         return 0
     }
@@ -340,6 +343,10 @@ class Parser {
         let name = this.#curTok
         //skip name
         this.advance()
+        //if we aren't using a (, that means that this is not a function
+        if(this.#curTok?.type !== TT.lparen && name?.type === TT.special_literal){
+            return new SpecialLiteralNode((name as Token<TT.special_literal>).data, this.specialLiterals[name.data])
+        }
         //skip (
         this.advance()
         if (this.#curTok?.type === TT.rparen) {
@@ -372,10 +379,6 @@ class Parser {
         else if (tok?.type === TT.literal) {
             this.advance()
             return new LiteralNode(tok as Token<TT.literal>)
-        }
-        else if (tok?.type === TT.special_literal) {
-            this.advance()
-            return new SpecialLiteralNode((tok as Token<TT.special_literal>).data, this.specialLiterals[tok.data])
         }
         return this.func()
     }
