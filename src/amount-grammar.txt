@@ -1,0 +1,25 @@
+literal: "all" | "all!" | "infinity"
+
+special-literal: STRING //provided at runtime can be mapped to any function that returns a number
+
+function: NAME "(" expr(","expr)* ")"
+
+atom: number | function | literal | special-literal
+
+right-unary-op: % | # | "k" | "m" | "b" | "t"
+left-unary-op: #
+
+factor: atom | LPAREN expr RPAREN
+
+mutate-expr
+          : left-unary-op? factor
+          : factor right-unary-op*
+
+term: mutate-expr ((MUL | DIV) mutate-expr)*
+
+
+
+arith-expr : term ((PLUS| MINUS) term)*
+
+
+expr: arith-expr | literal
