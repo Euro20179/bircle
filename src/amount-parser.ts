@@ -61,7 +61,7 @@ class Lexer {
     #curChar: string[number] | undefined
     #i: number = -1
 
-    #specialChars = "#,()+-*/"
+    #specialChars = "#,()+-*/÷"
     #whitespace = "\n\t "
 
 
@@ -152,6 +152,7 @@ class Lexer {
                     this.tokens.push(new Token(TT.minus, "-"))
                     break
                 }
+                case "÷":
                 case "/": {
                     this.tokens.push(new Token(TT.div, "/"))
                     break
