@@ -27,7 +27,6 @@ botEvents.on(HandleSend, async(msg: Message, rv: CommandReturn) => {
         vars.setVarEasy(msg, `%:?`, rv.status)
         let c = getContentFromResult(rv, "\n")
         vars.setVarEasy(msg, "%:_!", c)
-        vars.setVar("_!", c)
     }
 })
 
