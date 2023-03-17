@@ -966,6 +966,13 @@ function isBetween(low: number, checking: number, high: number) {
     return checking > low && checking < high
 }
 
+function isNumeric(string: string){
+    if(string.match(/^[0-9]+$/)){
+        return true
+    }
+    return false
+}
+
 export {
     strToCommandCat,
     fetchUser,
@@ -1009,8 +1016,9 @@ export {
     getToolIp,
     generateDocSummary,
     isBetween,
+    isNumeric,
     databaseFileToArray,
     isMsgChannel,
-    isCommandCategory
+    isCommandCategory,
 }
 
