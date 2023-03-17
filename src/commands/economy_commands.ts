@@ -171,12 +171,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "buy", ccmdV2(async function({ msg, args }) {
-            args.beginIter()
 
             let allowedTypes = ["stock", "pet", "item"]
 
-            let type = args.expectOneOf(1, allowedTypes)
-            if(type === BADVALUE){
+            let type = args[0]
+
+            if(!allowedTypes.includes(type)){
                 return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
             }
 
