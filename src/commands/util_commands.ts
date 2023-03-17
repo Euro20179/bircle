@@ -2210,9 +2210,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 catch (err) {
                     console.log(err)
                 }
-                if (ret && ret.length) {
-                    vars.setVar("__calc", ret, msg.author.id)
-                }
                 return { content: ret, status: StatusCode.RETURN }
             },
             help: {
