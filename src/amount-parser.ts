@@ -186,7 +186,7 @@ class Node {
         return 0
     }
 
-    repr(indent=0){
+    repr(indent = 0) {
         return ""
     }
 }
@@ -212,7 +212,7 @@ class LiteralNode extends Node {
         }
     }
 
-    repr(indent=0) {
+    repr(indent = 0) {
         return `Literal(
 ${'\t'.repeat(indent + 1)}${this.data.data}
 ${'\t'.repeat(indent)})`
@@ -229,7 +229,7 @@ class NumberNode extends Node {
         return this.data.data
     }
 
-    repr(indent=0){
+    repr(indent = 0) {
         return `Number(${this.data.data})`
     }
 
@@ -247,54 +247,59 @@ class SpecialLiteralNode extends Node {
         return this.onVisit(relativeTo, this.name)
     }
 
-    repr(indent = 0){
+    repr(indent = 0) {
         return `Special(
 ${'\t'.repeat(indent + 1)}${this.name}
 ${'\t'.repeat(indent)})`
     }
 }
 
-class UnOpNode extends Node {
-    left: Node | Token<TT.hash>
-    operator: Token<TT.percent | TT.hash | TT.number_suffix> | Node
-    constructor(left: Node | Token<TT.hash>, operator: Token<TT.percent | TT.hash> | Node) {
+class RightUnOpNode extends Node {
+    left: Node
+    operator: Token<TT.percent | TT.hash | TT.number_suffix>
+    constructor(left: Node, operator: Token<TT.percent | TT.hash | TT.number_suffix>) {
         super()
         this.left = left
         this.operator = operator
     }
     visit(relativeTo: number): number {
-        let number = 0
-        if (this.left instanceof Node) {
-            number = this.left.visit(relativeTo)
-        }
-        if (this.operator instanceof Node) {
-            number = this.operator.visit(relativeTo)
-            return number - (relativeTo % relativeTo)
-        }
-        else {
-            switch (this.operator.data) {
-                case '#': return relativeTo % number
-                case '%': return (number / 100) * relativeTo
-                case 'k': return number * 1000
-                case 'm': return number * 1_000_000
-                case 'b': return number * 1_000_000_000
-                case 't': return number * 1_000_000_000_000
-            }
+        let number = this.left.visit(relativeTo)
+        switch (this.operator.data) {
+            case '#': return relativeTo % number
+            case '%': return (number / 100) * relativeTo
+            case 'k': return number * 1000
+            case 'm': return number * 1_000_000
+            case 'b': return number * 1_000_000_000
+            case 't': return number * 1_000_000_000_000
         }
     }
 
-    repr(indent=0){
-        let left ;
-        let right;
-        if(this.left instanceof Node){
-            left = this.left.repr(indent + 1)
-        }
-        else {left = "op(#)"}
-        if(this.operator instanceof Node){
-            right = this.operator.repr(indent + 1)
-        }
-        else right = `op(${this.operator.data})`
-        return `UnOp(
+    repr(indent = 0) {
+        let left = this.left.repr(indent + 1);
+        let right = `op(${this.operator.data})`;
+        return `RightUnOp(
+${'\t'.repeat(indent + 1)}${left} ${right}
+${'\t'.repeat(indent)})`
+    }
+}
+
+class LeftUnOpNode extends Node {
+    left: Node
+    operator: Token<TT.hash>
+    constructor(left: Node, operator: Token<TT.hash>) {
+        super()
+        this.left = left
+        this.operator = operator
+    }
+    visit(relativeTo: number): number {
+        let number = this.left.visit(relativeTo)
+        return number - (relativeTo % number)
+    }
+
+    repr(indent = 0) {
+        let right = this.left.repr(indent + 1);
+        let left = `op(${this.operator.data})`;
+        return `LeftUnOpNode(
 ${'\t'.repeat(indent + 1)}${left} ${right}
 ${'\t'.repeat(indent)})`
     }
@@ -321,7 +326,7 @@ class BinOpNode extends Node {
         }
     }
 
-    repr(indent=0){
+    repr(indent = 0) {
         return `BinOp(
 ${'\t'.repeat(indent + 1)}${this.left.repr(indent + 1)}
 ${'\t'.repeat(indent + 1)}op(${this.operator.data})
@@ -354,7 +359,7 @@ class FunctionNode extends Node {
         return 0
     }
 
-    repr(indent=0){
+    repr(indent = 0) {
         return `Function(
 ${'\t'.repeat(indent + 1)}${this.name.data}(
 ${'\t'.repeat(indent + 2)}${this.nodes.map(v => v.repr(indent + 2)).join(", ")}
@@ -432,15 +437,15 @@ class Parser {
             return new LiteralNode(tok as Token<TT.literal>)
         }
         let nameTok = this.#curTok
-        if(!nameTok){
+        if (!nameTok) {
             return new NumberNode(new Token(TT.number, 0))
         }
         this.advance()
-        if(this.#curTok?.type === TT.lparen){
+        if (this.#curTok?.type === TT.lparen) {
             this.back()
             return this.func()
         }
-        if(this.specialLiterals[nameTok.data])
+        if (this.specialLiterals[nameTok.data])
             return new SpecialLiteralNode((nameTok as Token<TT.special_literal>).data, this.specialLiterals[nameTok.data])
         return new NumberNode(new Token(TT.number, 0))
     }
@@ -456,37 +461,38 @@ class Parser {
         return this.atom()
     }
 
-    term(): Node {
-        let node = this.factor()
-        while ([TT.mul, TT.div].includes(this.#curTok?.type as TT)) {
-            let token = this.#curTok as Token<any>
+    mutate_expr() {
+        let node;
+        if (this.#curTok?.type === TT.hash) {
+            let tok = this.#curTok as Token<TT.hash>
             this.advance()
-            node = new BinOpNode(node, token, this.factor())
+            return new LeftUnOpNode(this.factor(), tok)
+        }
+        else node = this.factor()
+        while ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
+            let next = this.#curTok as Token<any>
+            this.advance()
+            node = new RightUnOpNode(node, next)
         }
         return node
     }
 
-    mutate_expr() {
-        if (this.#curTok?.type === TT.hash) {
-            let tok = this.#curTok as Token<TT.hash>
+    term(): Node {
+        let node = this.mutate_expr()
+        while ([TT.mul, TT.div].includes(this.#curTok?.type as TT)) {
+            let token = this.#curTok as Token<any>
             this.advance()
-            return new UnOpNode(tok, this.term())
-        }
-        let node = this.term()
-        if ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
-            let next = this.#curTok as Token<any>
-            this.advance()
-            node = new UnOpNode(node, next)
+            node = new BinOpNode(node, token, this.mutate_expr())
         }
         return node
     }
 
     arith_expr(): Node {
-        let node = this.mutate_expr()
+        let node = this.term()
         while ([TT.plus, TT.minus].includes(this.#curTok?.type as TT)) {
             let token = this.#curTok as Token<any>
             this.advance()
-            node = new BinOpNode(node, token, this.mutate_expr())
+            node = new BinOpNode(node, token, this.term())
         }
         return node
     }
@@ -512,13 +518,13 @@ class Interpreter {
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>){
+function calculateAmountRelativeToInternals(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>) {
     let lexer = new Lexer(amount, Object.keys(extras ?? {}))
     lexer.tokenize()
     let parser = new Parser(lexer.tokens, extras)
     let expression = parser.parse()
     const int = new Interpreter(expression, money)
-    return {lexer, parser, interpreter: int, expression}
+    return { lexer, parser, interpreter: int, expression }
 }
 
 function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
