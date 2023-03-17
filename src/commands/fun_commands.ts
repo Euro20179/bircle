@@ -213,6 +213,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             },
             "social security": async () => {
                 let amount = economy.economyLooseGrandTotal().total * 0.04
+                economy.addMoney(msg.author.id, amount)
                 return {
                     content: `You got ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} in social security benifits`,
                     status: StatusCode.RETURN
