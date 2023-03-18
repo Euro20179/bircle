@@ -143,6 +143,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
     //you get reset if you have less than -40% of the economy
     if((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4){
         economy.createPlayer(m.author.id)
+        economy.setMoney(m.author.id, 0)
     }
 
     let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
