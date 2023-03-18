@@ -11,6 +11,8 @@ import { existsSync } from "fs"
 import { client } from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
 
+import events from './events'
+
 import { formatMoney, getOpt } from "./user-options"
 
 
@@ -973,6 +975,13 @@ function isNumeric(string: string){
     return false
 }
 
+function emitsEvent<T extends (...args: any[]) => any>(fn: T){
+    return function(...data: Parameters<T>): ReturnType<T>{
+        events.botEvents.emit(events.FuncUsed, fn)
+        return fn(...data)
+    }
+}
+
 export {
     strToCommandCat,
     fetchUser,
@@ -1020,5 +1029,6 @@ export {
     databaseFileToArray,
     isMsgChannel,
     isCommandCategory,
+    emitsEvent
 }
 

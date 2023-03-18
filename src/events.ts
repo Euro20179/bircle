@@ -11,6 +11,8 @@ import { getContentFromResult } from "./util";
 */
 const CmdRun = Symbol("cmd")
 
+const FuncUsed = Symbol('func-used')
+
 const HandleSend = Symbol("handle-send")
 
 const botEvents = new EventEmitter()
@@ -34,4 +36,5 @@ export default {
     CmdRun,
     HandleSend,
     botEvents,
+    FuncUsed
 }

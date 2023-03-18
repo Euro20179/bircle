@@ -1,5 +1,5 @@
 import { max, min } from "lodash"
-import { enumerate, isNumeric, listComprehension } from "./util"
+import { enumerate, isBetween, isNumeric, listComprehension } from "./util"
 
 function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
@@ -355,6 +355,19 @@ class FunctionNode extends Node {
             case 'floor': return Math.floor(values[0] ?? 0)
             case 'ceil': return Math.ceil(values[0] ?? 0)
             case 'round': return Math.round(values[0] ?? 0)
+            case 'minmax': {
+                let min = values[0] ?? 0
+                let value = values[1] ?? 0
+                let max = values[2] ?? 0
+                if (isBetween(min, value, max)) {
+                    return value
+                }
+                else if (value > max) {
+                    return max
+                }
+                return min
+
+            }
         }
         return 0
     }
@@ -461,7 +474,7 @@ class Parser {
         return this.atom()
     }
 
-    left_unary_op(){
+    left_unary_op() {
         let node;
         if (this.#curTok?.type === TT.hash) {
             let tok = this.#curTok as Token<TT.hash>
@@ -535,6 +548,8 @@ function calculateAmountRelativeToInternals(money: number, amount: string, extra
 function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
     return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()
 }
+
+calculateAmountRelativeTo(3, '44')
 
 export default {
     calculateAmountRelativeTo,
