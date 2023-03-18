@@ -2963,7 +2963,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
                 let leftVal = convFn(left)
                 if (isBad(leftVal)) {
-                    leftVal = convFn(vars.getVar(msg, left, prefix))
+                    leftVal = convFn(vars.getVar(msg, `${prefix}:${left}`))
                 }
                 if (isBad(leftVal)) {
                     return crv(`${left} did not pass the ${convFn.name} check`, { status: StatusCode.ERR })
@@ -2975,7 +2975,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
                 let rightVal = convFn(right)
                 if (right && isBad(rightVal)) {
-                    rightVal = convFn(vars.getVar(msg, right, prefix))
+                    rightVal = convFn(vars.getVar(msg, `${prefix}:${right}`))
                 }
                 if (right && isBad(rightVal)) {
                     return crv(`${right} is not a number`, { status: StatusCode.ERR })
