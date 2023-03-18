@@ -33,6 +33,10 @@ enum TT {
 
 const LITERALS = ['all', 'all!', 'infinity'] as const
 
+function strIsLiteral(str: string): str is typeof LITERALS[number]{
+    return LITERALS.includes(str as typeof LITERALS[number])
+}
+
 type TokenDataType = {
     [TT.hash]: "#",
     [TT.string]: string,
@@ -182,7 +186,6 @@ class Lexer {
                 case "x": {
                     this.tokens.push(new Token(TT.mul, "*"))
                     break
-
                 }
                 case "*": {
                     this.tokens.push(this.buildMul())
@@ -190,7 +193,7 @@ class Lexer {
                 }
                 default: {
                     let str = this.parseString()
-                    if (str === 'all' || str === 'all!' || str === 'infinity') {
+                    if (strIsLiteral(str)) {
                         this.tokens.push(new Token(TT.literal, str))
                     }
                     else if (this.specialLiterals.includes(str)) {
@@ -207,14 +210,9 @@ class Lexer {
     }
 }
 
-class Node {
-    visit(relativeTo: number): number {
-        return 0
-    }
-
-    repr(indent = 0) {
-        return ""
-    }
+abstract class Node {
+    abstract visit(relativeTo: number): number 
+    abstract repr(indent: number): string
 }
 
 class LiteralNode extends Node {
@@ -251,11 +249,11 @@ class NumberNode extends Node {
         super()
         this.data = n
     }
-    visit(relativeTo: number): number {
+    visit(): number {
         return this.data.data
     }
 
-    repr(indent = 0) {
+    repr() {
         return `Number(${this.data.data})`
     }
 
