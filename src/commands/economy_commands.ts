@@ -247,7 +247,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let totalSpent = 0
                     for (let i = 0; i < amount; i++) {
                         let totalCost = 0
-                        let { total } = economy.economyLooseGrandTotal()
+                        let { moneyAndStocks: total } = economy.economyLooseGrandTotal()
                         for (let cost of ITEMS()[item].cost) {
                             totalCost += economy.calculateAmountOfMoneyFromString(total, `${cost}`)
                         }
@@ -489,7 +489,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let item in itemJ) {
                     i++;
                     let totalCost = 0
-                    let { total } = economy.economyLooseGrandTotal()
+                    let { moneyAndStocks: total } = economy.economyLooseGrandTotal()
                     for (let cost of itemJ[item].cost) {
                         totalCost += economy.calculateAmountOfMoneyFromString(total, cost)
                     }
