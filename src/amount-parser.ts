@@ -1,13 +1,13 @@
 import { max, min } from "lodash"
-import { enumerate, isBetween, isNumeric, listComprehension } from "./util"
+import { emitsEvent, enumerate, isBetween, isNumeric, listComprehension } from "./util"
 
 function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
 }
 
 
-class FunctionError extends Error{
-    constructor(msg: string){
+class FunctionError extends Error {
+    constructor(msg: string) {
         super(msg)
         this.name = "FunctionError"
     }
@@ -33,7 +33,7 @@ enum TT {
 
 const LITERALS = ['all', 'all!', 'infinity'] as const
 
-function strIsLiteral(str: string): str is typeof LITERALS[number]{
+function strIsLiteral(str: string): str is typeof LITERALS[number] {
     return LITERALS.includes(str as typeof LITERALS[number])
 }
 
@@ -123,9 +123,9 @@ class Lexer {
         return s
     }
 
-    buildMul(){
+    buildMul() {
         this.advance()
-        if(this.#curChar === '*'){
+        if (this.#curChar === '*') {
             return new Token(TT.pow, '^')
         }
         this.back()
@@ -211,7 +211,7 @@ class Lexer {
 }
 
 abstract class Node {
-    abstract visit(relativeTo: number): number 
+    abstract visit(relativeTo: number): number
     abstract repr(indent: number): string
 }
 
@@ -380,7 +380,7 @@ class FunctionNode extends Node {
             'round': 1,
             'minmax': 3
         }
-        if(this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]){
+        if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
@@ -533,9 +533,9 @@ class Parser {
         return node
     }
 
-    higher_order_term(){
+    higher_order_term() {
         let node = this.mutate_expr()
-        while(this.#curTok?.type === TT.pow){
+        while (this.#curTok?.type === TT.pow) {
             let token = this.#curTok as Token<any>
             this.advance()
             node = new BinOpNode(node, token, this.mutate_expr())
@@ -596,8 +596,6 @@ function calculateAmountRelativeToInternals(money: number, amount: string, extra
 function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
     return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()
 }
-
-calculateAmountRelativeTo(3, '44')
 
 export default {
     calculateAmountRelativeTo,
