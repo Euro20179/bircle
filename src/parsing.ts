@@ -126,7 +126,7 @@ class RedirModifier extends Modifier{
             let prefix = m[2] //matches the text before the  : in the parens in redir
             //the variable name
             let name = m[3] //matches the text after the :  in the parens in redir
-            vars.setVar(name, "", prefix, int.getMessage().author.id)
+            vars.setVar(`${prefix}:${name}`, "", int.getMessage().author.id)
     }
     stringify(){
         let str = "redir"

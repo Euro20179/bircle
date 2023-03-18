@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement, RedirModifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult,  Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -434,15 +434,15 @@ export class Interpreter {
     }
 
     #initializePipeDataVars() {
-        vars.setVar("content", this.#pipeData?.content ?? "", "stdin", this.#msg.author.id)
-        vars.setVar("status", statusCodeToStr(this.#pipeData?.status), "stdin", this.#msg.author.id)
-        vars.setVar("raw", JSON.stringify(this.#pipeData), "stdin", this.#msg.author.id)
+        vars.setVar("stdin:content", this.#pipeData?.content ?? "", this.#msg.author.id)
+        vars.setVar("stdin:status", statusCodeToStr(this.#pipeData?.status), this.#msg.author.id)
+        vars.setVar("stdin:raw", JSON.stringify(this.#pipeData), this.#msg.author.id)
     }
 
     #deletePipeDataVars() {
-        vars.delVar("content", "stdin", this.#msg.author.id)
-        vars.delVar("status", "stdin", this.#msg.author.id)
-        vars.delVar("raw", "stdin", this.#msg.author.id)
+        vars.delVar("stdin:content", this.#msg.author.id)
+        vars.delVar("stdin:status", this.#msg.author.id)
+        vars.delVar("stdin:raw", this.#msg.author.id)
 
     }
 
@@ -671,9 +671,9 @@ export class Interpreter {
         if (data) {
             let oldData = vars.getVar(this.#msg, name, place)
             if (oldData === false) {
-                vars.setVar(name, data, place, this.#msg.author.id)
+                vars.setVar(`${place}:${name}`, data, this.#msg.author.id)
             }
-            else vars.setVar(name, oldData + "\n" + data, place, this.#msg.author.id)
+            else vars.setVar(`${place}:${name}`, oldData + "\n" + data, this.#msg.author.id)
         }
         return this.#msg
 
@@ -818,12 +818,14 @@ export class Interpreter {
         }
         let m
         if (m = this.modifiers.filter(v => v instanceof RedirModifier)[0]?.data) {
-            let [_all, place, name] = m
-            let data = vars.getVar(this.#msg, name, place)
+            console.log(m)
+            let [_, _all, place, name] = m
+            console.log(place, name)
+            let data = vars.getVar(this.#msg, `${place}:${name}`, this.#msg.author.id)
             if (data !== false) {
                 data += getContentFromResult(rv, "\n")
             }
-            vars.setVar(name, data, place, this.#msg.author.id)
+            vars.setVar(`${place}:${name}`, data, this.#msg.author.id)
             return { noSend: true, status: StatusCode.RETURN }
         }
         //handles the rv protocol

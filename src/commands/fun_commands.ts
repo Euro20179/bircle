@@ -2137,12 +2137,12 @@ Valid formats:
                 return crv(`You cannot affort to go to ${userGoingTo}`)
             }
 
-            let beenTo = vars.getVar(msg, "visited-countries", '!stats', msg.author.id)
+            let beenTo = vars.getVar(msg, "!stats:visited-countries", msg.author.id)
             if (beenTo === false) {
                 beenTo = userGoingTo + ","
             }
             else if (!beenTo.includes(userGoingTo + ",")) beenTo += userGoingTo + ","
-            vars.setVar("visited-countries", beenTo, "!stats", msg.author.id)
+            vars.setVar("!stats:visited-countries", beenTo, msg.author.id)
 
             //TODO: add this when there are a lot more locations
             // if(beenTo.slice(0, -1) === Object.keys(defaultCountries).reduce((p, c) => p + `${c},`, "0")){

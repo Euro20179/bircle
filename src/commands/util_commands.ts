@@ -2828,7 +2828,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (formatSpecifierList.filter(v => typeof v === 'string').length === formatSpecifierList.length) {
             rv.content = formatSpecifierList.join("")
             if (sendToVar) {
-                vars.setVarEasy(msg, sendToVar, rv.content)
+                vars.setVarEasy(sendToVar, rv.content, msg.author.id)
             }
             return rv
         }
@@ -2851,7 +2851,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }
         rv.content = text
         if (sendToVar) {
-            vars.setVarEasy(msg, sendToVar, rv.content)
+            vars.setVarEasy(sendToVar, rv.content, msg.author.id)
         }
         return rv
     }, CAT, "Similar to echo", {
@@ -3043,7 +3043,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         break;
                 }
                 if(prefix === msg.author.id) prefix = "%"
-                vars.setVarEasy(msg, left, String(ans), prefix)
+                vars.setVarEasy(`${prefix}:left`, String(ans), msg.author.id)
                 return { content: String(ans), status: StatusCode.RETURN }
             },
             help: {

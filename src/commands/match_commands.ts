@@ -167,7 +167,7 @@ yield[createMatchCommand(async ({ msg, match }) => {
         data = (await int.interprate()).join(" ")
     }
 
-    vars.setVarEasy(msg, name, data, prefix)
+    vars.setVarEasy(`${prefix}:${name}`, data, msg.author.id)
     return { noSend: true, status: StatusCode.RETURN }
 }, /(?:([^ ]+):)?([A-za-z-_]+)=(['"])(.*)\3$/m, "match:create-var", {
     info: "var=\"data\" or var='data'",

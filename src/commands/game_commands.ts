@@ -116,16 +116,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let user of players as User[]) {
                     globals.endCommand(user.id, 'connect4')
                     if (user !== player) {
-                        vars.setVar("losses", String(Number(vars.getVar(msg, "losses", "!connect4", user.id)) + 1), "!connect4", user.id)
+                        vars.setVar("!connect4:losses", String(Number(vars.getVar(msg, "!connect4:losses")) + 1), user.id)
                         economy.addMoney(user.id, economy.calculateAmountFromNetWorth(user.id, "neg(0.05%)"))
                     }
                 }
                 listener.stop()
 
-                let wins = Number(vars.getVar(msg, "wins", "!connect4", player.id)) + 1
-                let losses = Number(vars.getVar(msg, "losses", "!connect4", player.id))
+                let wins = Number(vars.getVar(msg, "!connect4:wins", player.id)) + 1
+                let losses = Number(vars.getVar(msg, "!connect4:losses", player.id))
 
-                vars.setVar("wins", String(wins), "!connect4", player.id)
+                vars.setVar("!connect4:wins", String(wins), player.id)
                 vars.saveVars()
 
                 let winnings = economy.calculateAmountFromNetWorth(player.id, "0.1%")
@@ -1671,9 +1671,9 @@ until you put a 0 in the box`)
                         }
                     }
 
-                    vars.setVarEasy(msg, "!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1))
-                    vars.setVarEasy(msg, "!stats:last-run.last", String(amount))
-                    vars.setVarEasy(msg, "!stats:last-run.total", String(Number(vars.getVar(msg, "!stats:last-run.total")) + amount))
+                    vars.setVarEasy("!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1), msg.author.id)
+                    vars.setVarEasy("!stats:last-run.last", String(amount))
+                    vars.setVarEasy("!stats:last-run.total", String(Number(vars.getVar(msg, "!stats:last-run.total")) + amount), msg.author.id)
                     vars.saveVars()
 
                     fmt += `\n{earnings}`

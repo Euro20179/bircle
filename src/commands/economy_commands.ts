@@ -52,7 +52,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             economy.retirePlayer(msg.author.id)
             return crv("CONGRATS, you retired")
         }
-        vars.setVar('retired', 'false', '!retire', msg.author.id)
+        vars.setVar('!retire:retired', 'false', msg.author.id)
         return crv("You cannot retire :( you must have >= 50% of the economy")
     }, "lets you retire and get retirement benifits")]
 

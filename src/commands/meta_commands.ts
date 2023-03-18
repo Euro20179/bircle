@@ -491,7 +491,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                     }
                     else if (!delPrefix) {
-                        if (vars.delVar(name, prefix, msg.author.id, false)) {
+                        if (vars.delVar(`${prefix}:${name}`, msg.author.id, false)) {
                             deleted.push(name)
                         }
                     }

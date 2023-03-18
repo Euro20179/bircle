@@ -5,6 +5,8 @@ import { GLOBAL_CURRENCY_SIGN, prefix } from "./common"
 import economy from "./economy"
 import { allowedOptions, getOpt } from "./user-options"
 
+export type VarName = `${string}:${string}` | string
+
 
 //TODO:
 //add types
@@ -103,19 +105,45 @@ function readVars() {
 
 readVars()
 
-function delVar(varName: string, prefix?: string, id?: string, systemDel: boolean = true) {
-    prefix ??= "__global__"
-    let path
-    if (prefix === "__global__" && vars[prefix]?.[varName]) {
-        path = vars[prefix]
+function getPathFromPrefix(prefix: string, id?: string){
+    if(prefix === '__global__'){
+        return vars[prefix]
     }
-    else if (prefix.match(/\d{18}/) && vars[prefix]?.[varName]) {
-        path = vars[prefix]
+    else if(prefix.match(/^\d{18}$/)){
+        if(!vars[prefix]){
+            return (vars[prefix] = {})
+        }
+        return vars[prefix]
     }
-    else if (id && (vars[id]?.[prefix] as VarPrefix)?.[varName] !== undefined) {
-        path = vars[id][prefix]
+    else if(prefix.includes('.') && prefix.match(/^\d{18}\./)){
+        let user;
+        [user, prefix] = prefix.split(".")
+        if(!vars[user]){
+            vars[user] = {}
+        }
+        if(vars[user][prefix]){
+            return (vars[user][prefix] = {})
+        }
+        return vars[user][prefix]
     }
-    else return false
+    else if(id && prefix){
+        if(!vars[id]){
+            vars[id] = {}
+        }
+        if(!vars[id][prefix]){
+            return (vars[id][prefix] = {})
+        }
+        return vars[id][prefix]
+    }
+    return false
+}
+
+function delVar(varName: string, id?: string, systemDel: boolean = true) {
+    let prefix;
+    [prefix, varName] = getPrefixAndVarname(varName)
+    let path = getPathFromPrefix(prefix, id)
+
+    if(path === false) return false
 
     if(path instanceof Variable) return false;
 
@@ -138,49 +166,24 @@ function delPrefix(prefixName: string, id: string){
 
 function getPrefixAndVarname(varName: string){
         let [prefix, ...v] = varName.split(":")
+        //for the ${x:} case
         if(v[0] === "") return [prefix, ""]
         varName = v.join(":")
+        //for the ${x} case
         if (!varName) {
             varName = prefix
+            prefix = "__global__"
+        }
+        //for the ${:x} case
+        if(!prefix && v.length){
             prefix = "__global__"
         }
         return [prefix, varName]
 }
 
-function setVarEasy(msg: Message, varName: string, value: string, prefix?: string) {
-    if (!prefix) {
-        [prefix, varName] = getPrefixAndVarname(varName)
-    }
-    if (prefix.match(/\d{18}/)) {
-        return false
-    }
-    if (prefix === "%") {
-        prefix = msg.author.id
-    }
-    return setVar(varName, value, prefix, msg.author.id)
-}
-
-function createVar<T extends VarType>(type: T, varName: string, value: VarTypeValType<T>, id?: string){
+function createVar<T extends VarType>(type: T, varName: VarName, value: VarTypeValType<T>, id?: string){
     let [prefix, name] = getPrefixAndVarname(varName)
-    let path;
-    if (prefix === "__global__") {
-        path = vars["__global__"]
-    }
-    else if(prefix.match(/\d{18}/)){
-        if(!vars[prefix]){
-            vars[prefix] = {}
-        }
-        path = vars[prefix]
-    }
-    else if (prefix && id) {
-        if (!vars[id]) {
-            vars[id] = {}
-        }
-        if(!vars[id][prefix]){
-            vars[id][prefix] = {}
-        }
-        path = vars[id][prefix]
-    }
+    let path = getPathFromPrefix(prefix, id)
 
     if(!path) return false;
     if(path instanceof Variable) return false
@@ -188,29 +191,21 @@ function createVar<T extends VarType>(type: T, varName: string, value: VarTypeVa
     return path[name] = new Variable(type, value)
 }
 
-function setVar(varName: string, value: string, prefix?: string, id?: string) {
-    if (!prefix) {
-        [prefix, varName] = getPrefixAndVarname(varName)
+function setVarEasy(varName: VarName, value: string, id?: string) {
+    let prefix;
+    [prefix, varName] = getPrefixAndVarname(varName)
+    if (prefix === "%") {
+        if(id)
+            prefix = id
+        else return false
     }
-    let path;
-    if (prefix === "__global__") {
-        path = vars["__global__"]
-    }
-    else if(prefix.match(/\d{18}/)){
-        if(!vars[prefix]){
-            vars[prefix] = {}
-        }
-        path = vars[prefix]
-    }
-    else if (prefix && id) {
-        if (!vars[id]) {
-            vars[id] = {}
-        }
-        if(!vars[id][prefix]){
-            vars[id][prefix] = {}
-        }
-        path = vars[id][prefix]
-    }
+    return setVar(varName, value, id)
+}
+
+function setVar(varName: VarName, value: string, id?: string) {
+    let prefix;
+    [prefix, varName] = getPrefixAndVarname(varName)
+    let path = getPathFromPrefix(prefix, id)
 
     if(!path) return false;
     if(path instanceof Variable) return false
@@ -244,38 +239,15 @@ function readVarVal(msg: Message, variableData: Variable<any> | VarPrefix) {
     }
 }
 
-function getVar(msg: Message, varName: string, prefix?: string, id?: string) {
-    if (!prefix) {
-        [prefix, varName] = getPrefixAndVarname(varName)
-    }
+function getVar(msg: Message, varName: string, id?: string) {
+    let prefix;
+    [prefix, varName] = getPrefixAndVarname(varName)
+
     if (prefix === "%") {
         prefix = id ?? msg.author.id
     }
 
-    let varPrefixObj;
-    if(prefix.includes(".") && prefix.slice(0, 18).match(/\d{18}/)){
-        let user;
-        [user, prefix] = prefix.split(".")
-        if(vars[user]?.[prefix])
-            varPrefixObj = vars[user]?.[prefix]
-            // return readVarVal(msg, vars[user]?.[prefix][varName])
-    }
-
-    //global vars
-    else if (prefix === "__global__" && vars[prefix] !== undefined) {
-        varPrefixObj = vars[prefix]
-        // return readVarVal(msg, vars[prefix][varName])
-    }
-    //for standard user vars
-    else if (prefix.match(/^\d{18}$/) && vars[prefix] !== undefined) {
-        varPrefixObj = vars[prefix]
-        // return readVarVal(msg, vars[prefix][varName])
-    }
-    //for prefixed vars
-    else if (vars[id ?? msg.author.id]?.[prefix] !== undefined) {
-        varPrefixObj = vars[id ?? msg.author.id][prefix]
-        // return readVarVal(msg, vars[id ?? msg.author.id][prefix][varName])
-    }
+    let varPrefixObj = getPathFromPrefix(prefix, id ?? msg.author.id);
 
     if(!varPrefixObj)
         return false
