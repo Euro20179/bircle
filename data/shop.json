@@ -12,7 +12,7 @@
     "loan": {
         "description": "Gives you enough money to get to $1, with a maximum of however much money first place has",
         "uses": 1,
-        "cost": ["Infinity"],
+        "cost": ["infinity"],
         "max": 1
     },
     "tax shield": {
@@ -29,7 +29,7 @@
     "puffle chat": {
         "description": "get an extra .01% every minute talking",
         "uses": 1,
-        "cost": ["Infinity"]
+        "cost": ["infinity"]
     },
     "reset economy": {
         "description": "Allows you to run RESET_ECONOMY",
@@ -45,7 +45,7 @@
     "item yoinker": {
         "description": "Steal a random item from everyone that has item, use `[use-item item yoinker` to use this item",
         "uses": 1,
-        "cost": ["Infinity"]
+        "cost": ["infinity"]
     },
     "mumbo meal":  {
         "description": "Combine this with a stinky ol' boot to give all your pets full health",
