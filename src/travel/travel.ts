@@ -190,6 +190,7 @@ class Mexico extends Country {
         }
         let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "10%")
         economy.addMoney(msg.author.id, amount)
+
         return crv(`You join a drug cartel and form new friendships you should'nt have believed to be possible\nAfter many years of service you accumulate ${this.getSign(msg)}${amount}`)
     }
 
@@ -352,7 +353,7 @@ class France extends Country {
             components: [row]
         }))
 
-        let b = await actionMsg.awaitMessageComponent({ componentType: ComponentType.Button, time: 30000 })
+        let b = await actionMsg.awaitMessageComponent({ componentType: ComponentType.Button, time: 30000, filter: m => m.user.id === msg.author.id })
         if (!b) {
             return crv("You decided not to get anything")
         }
