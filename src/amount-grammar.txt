@@ -13,7 +13,9 @@ factor: atom | LPAREN expr RPAREN
 
 mutate-expr: left-unary-op? factor right-unary-op?
 
-term: mutate-expr ((MUL | DIV) mutate-expr)*
+higher-order-term: mutate-expr ((POW) mutate-expr)*
+
+term: higher-order-term ((MUL | DIV) higher-order-term)*
 
 arith-expr : term ((PLUS| MINUS) term)*
 

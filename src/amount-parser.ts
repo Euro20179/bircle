@@ -26,6 +26,7 @@ enum TT {
     "minus",
     "mul",
     "div",
+    'pow',
     "number_suffix",
     "special_literal"
 }
@@ -46,6 +47,7 @@ type TokenDataType = {
     [TT.minus]: "-",
     [TT.mul]: "*",
     [TT.div]: "/",
+    [TT.pow]: "^",
     [TT.special_literal]: string
 }
 
@@ -117,6 +119,15 @@ class Lexer {
         return s
     }
 
+    buildMul(){
+        this.advance()
+        if(this.#curChar === '*'){
+            return new Token(TT.pow, '^')
+        }
+        this.back()
+        return new Token(TT.mul, '*')
+    }
+
     tokenize() {
         //this.advance() could return empty string which is still technically valid
         while (this.advance() !== false) {
@@ -164,10 +175,18 @@ class Lexer {
                     this.tokens.push(new Token(TT.div, "/"))
                     break
                 }
-                case "x":
-                case "*": {
+                case "^": {
+                    this.tokens.push(new Token(TT.pow, "^"))
+                    break;
+                }
+                case "x": {
                     this.tokens.push(new Token(TT.mul, "*"))
                     break
+
+                }
+                case "*": {
+                    this.tokens.push(this.buildMul())
+                    break;
                 }
                 default: {
                     let str = this.parseString()
@@ -314,9 +333,9 @@ ${'\t'.repeat(indent)})`
 
 class BinOpNode extends Node {
     left: Node
-    operator: Token<TT.mul | TT.div | TT.plus | TT.minus>
+    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow>
     right: Node
-    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus>, right: Node) {
+    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow>, right: Node) {
         super()
         this.left = left
         this.operator = operator
@@ -330,6 +349,7 @@ class BinOpNode extends Node {
             case '-': return left - right;
             case '*': return left * right;
             case '/': return left / right;
+            case '^': return Math.pow(left, right);
         }
     }
 
@@ -515,12 +535,22 @@ class Parser {
         return node
     }
 
-    term(): Node {
+    higher_order_term(){
         let node = this.mutate_expr()
-        while ([TT.mul, TT.div].includes(this.#curTok?.type as TT)) {
+        while(this.#curTok?.type === TT.pow){
             let token = this.#curTok as Token<any>
             this.advance()
             node = new BinOpNode(node, token, this.mutate_expr())
+        }
+        return node
+    }
+
+    term(): Node {
+        let node = this.higher_order_term()
+        while ([TT.mul, TT.div].includes(this.#curTok?.type as TT)) {
+            let token = this.#curTok as Token<any>
+            this.advance()
+            node = new BinOpNode(node, token, this.higher_order_term())
         }
         return node
     }
