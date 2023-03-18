@@ -2126,7 +2126,7 @@ Valid formats:
                 return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
 
-            let cost = economy.calculateAmountFromString(msg.author.id, countries[userGoingTo].cost)
+            let cost = economy.calculateAmountFromNetWorth(msg.author.id, countries[userGoingTo].cost)
 
             if (hasPassport) {
                 cost = 0

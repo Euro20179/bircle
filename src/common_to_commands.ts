@@ -140,6 +140,7 @@ export class AliasV2 {
 
             if (innerText.startsWith('args[')) {
                 let innerBracket = parseBracketPair(innerText, "[]")
+                console.log(innerBracket, args.length)
                 innerOr = JSON.stringify([innerOr])
                 if (!innerBracket) {
                     tempExec = tempExec.replace(toReplace, args.length ? JSON.stringify(args) : innerOr)

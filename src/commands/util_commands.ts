@@ -1249,7 +1249,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 let dollarSign = opts['sign'] || ""
                 if(opts['tree']){
-                    return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr())
+                    return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
                 }
                 let amount = amountParser.calculateAmountRelativeTo(money, amountStr )
                 if (dollarSign === true) {

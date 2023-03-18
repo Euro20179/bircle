@@ -378,7 +378,8 @@ class FunctionNode extends Node {
             'floor': 1,
             'ceil': 1,
             'round': 1,
-            'minmax': 3
+            'minmax': 3,
+            'aspercent': 1
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
@@ -393,6 +394,7 @@ class FunctionNode extends Node {
             case 'floor': return Math.floor(values[0] ?? 0)
             case 'ceil': return Math.ceil(values[0] ?? 0)
             case 'round': return Math.round(values[0] ?? 0)
+            case 'aspercent': return values[0] / relativeTo
             case 'minmax': {
                 let min = values[0] ?? 0
                 let value = values[1] ?? 0

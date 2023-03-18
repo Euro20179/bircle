@@ -285,6 +285,9 @@ function canBetAmount(id: string, amount: number) {
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
         return true
     }
+    if(amount < 0){
+        return false
+    }
     return false
 }
 
