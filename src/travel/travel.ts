@@ -172,11 +172,12 @@ class Canada extends Country {
 class Mexico extends Country {
     init() {
         this.registerActivity("mayan temple", "3%", this.mayanTemple.bind(this))
-        this.registerActivity("cartel", "neg(1)", this.drugCartel.bind(this))
+        this.registerActivity("cartel", "0", this.drugCartel.bind(this))
         return this
     }
 
     async drugCartel({ msg }: CommandV2RunArg) {
+        economy.addMoney(msg.author.id, 1)
         if (Math.random() > .7) {
             let amount = economy.calculateAmountFromNetWorth(msg.author.id, "neg(30%)")
             economy.addMoney(msg.author.id, amount)
