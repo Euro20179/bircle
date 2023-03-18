@@ -199,7 +199,34 @@ function setVarEasy(varName: VarName, value: string, id?: string) {
             prefix = id
         else return false
     }
-    return setVar(varName, value, id)
+    return setVar(`${prefix}:${varName}`, value, id)
+}
+
+function changeVar(varName: VarName, add: string | number, id?: string){
+    let prefix;
+    [prefix, varName] = getPrefixAndVarname(varName);
+    let path = getPathFromPrefix(prefix, id)
+
+    if(!path) return false;
+    if(path instanceof Variable) return false
+
+    if(path[varName]?.type === 'function'){
+        return false
+    }
+
+    switch(path[varName].type){
+        case 'string': {
+            path[varName].value += String(add)
+            break;
+        }
+        case 'number': {
+            path[varName].value += Number(add)
+            break;
+        }
+        default: {
+            return false
+        }
+    }
 }
 
 function setVar(varName: VarName, value: string, id?: string) {
@@ -278,5 +305,6 @@ export default {
     getPrefixAndVarname,
     delPrefix,
     createVar,
-    VarType
+    VarType,
+    changeVar
 }

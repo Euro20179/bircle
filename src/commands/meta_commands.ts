@@ -1898,7 +1898,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
                     if (!opts['silent'])
                         return {
-                            content: vars.getVar(msg, name, msg.author.id),
+                            content: vars.getVar(msg, `${msg.author.id}:${name}`),
                             status: StatusCode.RETURN
                         }
                 }

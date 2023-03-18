@@ -3043,7 +3043,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         break;
                 }
                 if(prefix === msg.author.id) prefix = "%"
-                vars.setVarEasy(`${prefix}:left`, String(ans), msg.author.id)
+                vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
                 return { content: String(ans), status: StatusCode.RETURN }
             },
             help: {
