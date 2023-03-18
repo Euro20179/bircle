@@ -6,6 +6,13 @@ function randInt(min: number, max: number) {
 }
 
 
+class FunctionError extends Error{
+    constructor(msg: string){
+        super(msg)
+        this.name = "FunctionError"
+    }
+}
+
 enum TT {
     "hash",
     "string",
@@ -345,6 +352,19 @@ class FunctionNode extends Node {
     }
     visit(relativeTo: number): number {
         let values = this.nodes.map(v => v.visit(relativeTo)) ?? [0]
+        let argCount = {
+            'rand': 2,
+            'needed': 1,
+            'ineeded': 1,
+            'neg': 1,
+            'floor': 1,
+            'ceil': 1,
+            'round': 1,
+            'minmax': 3
+        }
+        if(this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]){
+            throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
+        }
         switch (this.name.data) {
             case 'min': return min(values) ?? 0
             case 'max': return max(values) ?? 0
