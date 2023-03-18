@@ -152,7 +152,7 @@ yield[createMatchCommand(async ({ msg, match }) => {
 }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
 
 yield[createMatchCommand(async ({ msg, match }) => {
-    let prefix = match[1]
+    let prefix = match[1] ?? "__global__"
     if(prefix?.startsWith("!")){
         return {noSend: true, status: StatusCode.ERR}
     }
