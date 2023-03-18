@@ -472,7 +472,7 @@ class Parser {
             nodes.push(this.expr())
         }
         if (this.#curTok === undefined) {
-            throw new SyntaxError("Expected ')'")
+            throw new SyntaxError(`Expected ')' after '${name?.data}(...`)
         }
         //skip )
         this.advance()
