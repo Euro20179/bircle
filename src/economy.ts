@@ -282,11 +282,11 @@ function canBetAmount(id: string, amount: number) {
     if (isNaN(amount)) {
         return false
     }
-    if (ECONOMY[id] && amount <= ECONOMY[id].money) {
-        return true
-    }
     if(amount < 0){
         return false
+    }
+    if (ECONOMY[id] && amount <= ECONOMY[id].money) {
+        return true
     }
     return false
 }
