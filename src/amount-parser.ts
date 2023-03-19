@@ -336,7 +336,7 @@ class StringNode extends Node {
     }
 
     repr(indent: number): string {
-        return `String("${JSON.stringify(this.data.data)}")`
+        return `String(${JSON.stringify(this.data.data)})`
     }
 }
 
@@ -474,7 +474,7 @@ class FunctionNode extends Node {
         this.name = name
         this.nodes = nodes
     }
-    visit(relativeTo: number): number {
+    visit(relativeTo: number): number | string {
         let values = this.nodes.map(v => v.visit(relativeTo)) ?? [0]
         let argCount = {
             'rand': 2,
@@ -485,7 +485,8 @@ class FunctionNode extends Node {
             'ceil': 1,
             'round': 1,
             'minmax': 3,
-            'aspercent': 1
+            'aspercent': 1,
+            "length": 1,
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
@@ -501,6 +502,8 @@ class FunctionNode extends Node {
             case 'ceil': return Math.ceil(Number(values[0]) ?? 0)
             case 'round': return Math.round(Number(values[0]) ?? 0)
             case 'aspercent': return (Number(values[0]) / relativeTo) * 100
+            case 'length': return String(values[0]).length
+            case 'concat': return values.map(v => String(v)).join("")
             case 'minmax': {
                 let min = values[0] ?? 0
                 let value = values[1] ?? 0
