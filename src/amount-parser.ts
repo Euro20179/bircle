@@ -215,6 +215,24 @@ abstract class Node {
     abstract repr(indent: number): string
 }
 
+class ExpressionNode extends Node{
+    node: Node
+    constructor(n: Node){
+        super()
+        this.node = n
+    }
+
+    visit(relativeTo: number): number {
+        return this.node.visit(relativeTo)
+    }
+
+    repr(indent: number = 0): string {
+        return `Expr(
+${'\t'.repeat(indent + 1)}${this.node.repr(indent + 1)}
+${'\t'.repeat(indent)})`
+    }
+}
+
 class LiteralNode extends Node {
     data: Token<TT.literal>
     constructor(t: Token<TT.literal>) {
@@ -394,7 +412,7 @@ class FunctionNode extends Node {
             case 'floor': return Math.floor(values[0] ?? 0)
             case 'ceil': return Math.ceil(values[0] ?? 0)
             case 'round': return Math.round(values[0] ?? 0)
-            case 'aspercent': return values[0] / relativeTo
+            case 'aspercent': return (values[0] / relativeTo) * 100
             case 'minmax': {
                 let min = values[0] ?? 0
                 let value = values[1] ?? 0
@@ -566,7 +584,7 @@ class Parser {
     }
 
     expr(): Node {
-        return this.arith_expr()
+        return new ExpressionNode(this.arith_expr())
     }
 
     parse(): Node {
