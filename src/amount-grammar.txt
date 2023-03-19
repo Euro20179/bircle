@@ -20,3 +20,5 @@ term: higher-order-term ((MUL | DIV) higher-order-term)*
 arith-expr : term ((PLUS| MINUS) term)*
 
 expr: arith-expr | literal
+
+program: expr (SEMI expr)*

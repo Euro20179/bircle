@@ -27,6 +27,7 @@ enum TT {
     "mul",
     "div",
     'pow',
+    semi,
     "number_suffix",
     "special_literal"
 }
@@ -52,7 +53,8 @@ type TokenDataType = {
     [TT.mul]: "*",
     [TT.div]: "/",
     [TT.pow]: "^",
-    [TT.special_literal]: string
+    [TT.special_literal]: string,
+    [TT.semi]: ';'
 }
 
 class Token<TokenType extends TT> {
@@ -75,7 +77,7 @@ class Lexer {
     #i: number = -1
 
     #whitespace = "\n\t "
-    #specialChars = `#,()+-*/÷ ${this.#whitespace}`
+    #specialChars = `#,()+-*/÷ ${this.#whitespace};`
 
 
     constructor(data: string, specialLiterals?: string[]) {
@@ -141,6 +143,10 @@ class Lexer {
                 continue;
             }
             switch (this.#curChar) {
+                case ';': {
+                    this.tokens.push(new Token(TT.semi, ';'))
+                    break;
+                }
                 case "#": {
                     this.tokens.push(new Token(TT.hash, "#"))
                     break;
@@ -213,6 +219,33 @@ class Lexer {
 abstract class Node {
     abstract visit(relativeTo: number): number
     abstract repr(indent: number): string
+}
+
+abstract class Program{
+    abstract visit(relativeTo: number): number[]
+    abstract repr(indent: number): string
+}
+
+class ProgramNode extends Program{
+    expressions: Exclude<Node, ProgramNode>[]
+    constructor(ns: Node[]){
+        super()
+        this.expressions = ns
+    }
+
+    visit(relativeTo: number): number[] {
+        return this.expressions.map(v => v.visit(relativeTo)).flat()
+    }
+
+    repr(indent: number = 0): string {
+        let text = `Program(\n`
+        for(let node of this.expressions){
+            text += "\t".repeat(indent + 1)
+            text += `${node.repr(indent +1)}\n`
+        }
+        text += `${'\t'.repeat(indent)})`
+        return text
+    }
 }
 
 class ExpressionNode extends Node{
@@ -587,20 +620,29 @@ class Parser {
         return new ExpressionNode(this.arith_expr())
     }
 
-    parse(): Node {
-        return this.expr()
+    program(): ProgramNode {
+        let nodeArr = [this.expr()]
+        while(this.#curTok?.type === TT.semi){
+            this.advance()
+            nodeArr.push(this.expr())
+        }
+        return new ProgramNode(nodeArr)
+    }
+
+    parse(): ProgramNode {
+        return this.program()
     }
 }
 
 class Interpreter {
-    node: Node
+    program: ProgramNode
     relativeTo: number
-    constructor(node: Node, relativeTo: number) {
-        this.node = node
+    constructor(program: ProgramNode, relativeTo: number) {
+        this.program = program
         this.relativeTo = relativeTo
     }
-    visit(): number {
-        return this.node.visit(this.relativeTo)
+    visit(): number[] {
+        return this.program.visit(this.relativeTo)
     }
 }
 
@@ -614,10 +656,15 @@ function calculateAmountRelativeToInternals(money: number, amount: string, extra
 }
 
 function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
-    return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()
+    return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()[0]
+}
+
+function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number[]{
+    return calculateAmountRelativeToInternals(relativeTo, amount, extras).interpreter.visit()
 }
 
 export default {
     calculateAmountRelativeTo,
-    calculateAmountRelativeToInternals
+    calculateAmountRelativeToInternals,
+    runRelativeCalculator
 }

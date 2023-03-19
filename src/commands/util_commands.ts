@@ -1251,11 +1251,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if(opts['tree']){
                     return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
                 }
-                let amount = amountParser.calculateAmountRelativeTo(money, amountStr )
-                if (dollarSign === true) {
-                    return { content: `${amount}`, status: StatusCode.RETURN }
+                let amount = [NaN];
+                if(opts['a']){
+                    amount = amountParser.runRelativeCalculator(money, amountStr)
                 }
-                return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
+                else amount = [amountParser.calculateAmountRelativeTo(money, amountStr )]
+                if (dollarSign === true) {
+                    return { content: `${amount.join("\n")}`, status: StatusCode.RETURN }
+                }
+                return { content: amount.map(v => `${dollarSign}${v}`).join("\n"), status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {
                 info: "Calculate an amount",
