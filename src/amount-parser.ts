@@ -13,6 +13,13 @@ class FunctionError extends Error {
     }
 }
 
+class OperatorError extends Error {
+    constructor(msg: string) {
+        super(msg)
+        this.name = 'OperatorError'
+    }
+}
+
 enum TT {
     "hash",
     "string",
@@ -28,6 +35,7 @@ enum TT {
     "div",
     'pow',
     semi,
+    ident,
     "number_suffix",
     "special_literal"
 }
@@ -54,7 +62,8 @@ type TokenDataType = {
     [TT.div]: "/",
     [TT.pow]: "^",
     [TT.special_literal]: string,
-    [TT.semi]: ';'
+    [TT.semi]: ';',
+    [TT.ident]: string
 }
 
 class Token<TokenType extends TT> {
@@ -115,7 +124,7 @@ class Lexer {
         return Number(n)
     }
 
-    parseString() {
+    parseLiteral() {
         let s = this.#curChar as string
         while (this.advance() !== false && !this.#specialChars.includes(this.#curChar as string)) {
             s += this.#curChar as string
@@ -123,6 +132,21 @@ class Lexer {
         //only go back if we have not reached the end
         if (!this.atEnd) this.back()
         return s
+    }
+
+    parseString() {
+        let quoteType = this.#curChar
+        let s = ""
+        let escaped = false
+        while (this.advance() !== false && (this.#curChar !== quoteType && !escaped)) {
+            if (this.#curChar === '\\') {
+                escaped = true;
+                continue;
+            }
+            escaped = false;
+            s += this.#curChar;
+        }
+        return s;
     }
 
     buildMul() {
@@ -197,8 +221,13 @@ class Lexer {
                     this.tokens.push(this.buildMul())
                     break;
                 }
+                case "'":
+                case '"': {
+                    this.tokens.push(new Token(TT.string, this.parseString()))
+                    break;
+                }
                 default: {
-                    let str = this.parseString()
+                    let str = this.parseLiteral()
                     if (strIsLiteral(str)) {
                         this.tokens.push(new Token(TT.literal, str))
                     }
@@ -209,7 +238,7 @@ class Lexer {
                         this.tokens.push(new Token(TT.number_suffix, str as 'k' | 'm' | 'b' | "t"))
                         continue;
                     }
-                    else this.tokens.push(new Token(TT.string, str))
+                    else this.tokens.push(new Token(TT.ident, str))
                 }
             }
         }
@@ -217,45 +246,45 @@ class Lexer {
 }
 
 abstract class Node {
-    abstract visit(relativeTo: number): number
+    abstract visit(relativeTo: number): number | string
     abstract repr(indent: number): string
 }
 
-abstract class Program{
+abstract class Program {
     abstract visit(relativeTo: number): number[]
     abstract repr(indent: number): string
 }
 
-class ProgramNode extends Program{
+class ProgramNode extends Program {
     expressions: Exclude<Node, ProgramNode>[]
-    constructor(ns: Node[]){
+    constructor(ns: Node[]) {
         super()
         this.expressions = ns
     }
 
     visit(relativeTo: number): number[] {
-        return this.expressions.map(v => v.visit(relativeTo)).flat()
+        return this.expressions.map(v => v.visit(relativeTo)).flat().map(v => Number(v))
     }
 
     repr(indent: number = 0): string {
         let text = `Program(\n`
-        for(let node of this.expressions){
+        for (let node of this.expressions) {
             text += "\t".repeat(indent + 1)
-            text += `${node.repr(indent +1)}\n`
+            text += `${node.repr(indent + 1)}\n`
         }
         text += `${'\t'.repeat(indent)})`
         return text
     }
 }
 
-class ExpressionNode extends Node{
+class ExpressionNode extends Node {
     node: Node
-    constructor(n: Node){
+    constructor(n: Node) {
         super()
         this.node = n
     }
 
-    visit(relativeTo: number): number {
+    visit(relativeTo: number): number | string {
         return this.node.visit(relativeTo)
     }
 
@@ -291,6 +320,23 @@ class LiteralNode extends Node {
         return `Literal(
 ${'\t'.repeat(indent + 1)}${this.data.data}
 ${'\t'.repeat(indent)})`
+    }
+}
+
+class StringNode extends Node {
+    data: Token<TT.string>
+
+    constructor(n: Token<TT.string>) {
+        super()
+        this.data = n
+    }
+
+    visit(relativeTo: number): string {
+        return this.data.data
+    }
+
+    repr(indent: number): string {
+        return `String("${JSON.stringify(this.data.data)}")`
     }
 }
 
@@ -339,6 +385,9 @@ class RightUnOpNode extends Node {
     }
     visit(relativeTo: number): number {
         let number = this.left.visit(relativeTo)
+        if (typeof number === 'string') {
+            throw new OperatorError(`'${this.operator.data}' expected number, found string`)
+        }
         switch (this.operator.data) {
             case '#': return relativeTo % number
             case '%': return (number / 100) * relativeTo
@@ -368,6 +417,9 @@ class LeftUnOpNode extends Node {
     }
     visit(relativeTo: number): number {
         let number = this.left.visit(relativeTo)
+        if (typeof number === 'string') {
+            throw new OperatorError(`'${this.operator.data}' expected number, found string`)
+        }
         return number - (relativeTo % number)
     }
 
@@ -393,6 +445,9 @@ class BinOpNode extends Node {
     visit(relativeTo: number): number {
         let left = this.left.visit(relativeTo)
         let right = this.right.visit(relativeTo)
+        if (typeof left !== 'number' || typeof right !== 'number') {
+            throw new OperatorError(`${this.operator.data} expected 2 numbers, but found ${typeof left} and ${typeof right}`)
+        }
         switch (this.operator.data) {
             case '+': return left + right;
             case '-': return left - right;
@@ -412,9 +467,9 @@ ${'\t'.repeat(indent)})`
 }
 
 class FunctionNode extends Node {
-    name: Token<TT.string>
+    name: Token<TT.ident>
     nodes: Node[]
-    constructor(name: Token<TT.string>, nodes: Node[]) {
+    constructor(name: Token<TT.ident>, nodes: Node[]) {
         super()
         this.name = name
         this.nodes = nodes
@@ -436,27 +491,27 @@ class FunctionNode extends Node {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
-            case 'min': return min(values) ?? 0
-            case 'max': return max(values) ?? 0
-            case 'rand': return randInt(values[0] ?? 0, values[1] ?? 0)
-            case 'needed': return (values[0] ?? 0) - relativeTo
-            case 'ineeded': return relativeTo - (values[0] ?? 0)
-            case 'neg': return (values[0] ?? 0) * -1
-            case 'floor': return Math.floor(values[0] ?? 0)
-            case 'ceil': return Math.ceil(values[0] ?? 0)
-            case 'round': return Math.round(values[0] ?? 0)
-            case 'aspercent': return (values[0] / relativeTo) * 100
+            case 'min': return min(values.map(v => Number(v))) ?? 0
+            case 'max': return max(values.map(v => Number(v))) ?? 0
+            case 'rand': return randInt(Number(values[0]) ?? 0, Number(values[1]) ?? 0)
+            case 'needed': return (Number(values[0]) ?? 0) - relativeTo
+            case 'ineeded': return relativeTo - (Number(values[0]) ?? 0)
+            case 'neg': return (Number(values[0]) ?? 0) * -1
+            case 'floor': return Math.floor(Number(values[0]) ?? 0)
+            case 'ceil': return Math.ceil(Number(values[0]) ?? 0)
+            case 'round': return Math.round(Number(values[0]) ?? 0)
+            case 'aspercent': return (Number(values[0]) / relativeTo) * 100
             case 'minmax': {
                 let min = values[0] ?? 0
                 let value = values[1] ?? 0
                 let max = values[2] ?? 0
-                if (isBetween(min, value, max)) {
-                    return value
+                if (isBetween(Number(min), Number(value), Number(max))) {
+                    return Number(value)
                 }
                 else if (value > max) {
-                    return max
+                    return Number(max)
                 }
-                return min
+                return Number(min)
 
             }
         }
@@ -511,7 +566,7 @@ class Parser {
         this.advance()
         if (this.#curTok?.type === TT.rparen) {
             this.advance()
-            return new FunctionNode(name as Token<TT.string>, [])
+            return new FunctionNode(name as Token<TT.ident>, [])
         }
         if (this.#curTok === undefined) {
             throw new SyntaxError(`Expected expression after '${name?.data}('`)
@@ -527,7 +582,7 @@ class Parser {
         }
         //skip )
         this.advance()
-        return new FunctionNode(name as Token<TT.string>, nodes)
+        return new FunctionNode(name as Token<TT.ident>, nodes)
     }
 
     atom(): Node {
@@ -535,6 +590,10 @@ class Parser {
         if (tok?.type === TT.number) {
             this.advance()
             return new NumberNode(tok as Token<TT.number>)
+        }
+        else if (tok?.type === TT.string) {
+            this.advance()
+            return new StringNode(tok as Token<TT.string>)
         }
         else if (tok?.type === TT.literal) {
             this.advance()
@@ -622,7 +681,7 @@ class Parser {
 
     program(): ProgramNode {
         let nodeArr = [this.expr()]
-        while(this.#curTok?.type === TT.semi){
+        while (this.#curTok?.type === TT.semi) {
             this.advance()
             nodeArr.push(this.expr())
         }
@@ -659,7 +718,7 @@ function calculateAmountRelativeTo(money: number, amount: string, extras?: Recor
     return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()[0]
 }
 
-function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number[]{
+function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number[] {
     return calculateAmountRelativeToInternals(relativeTo, amount, extras).interpreter.visit()
 }
 

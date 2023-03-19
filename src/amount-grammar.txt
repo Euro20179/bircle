@@ -1,10 +1,10 @@
-literal: "all" | "all!" | "infinity"
+literal: "all" | "all!" | "infinity" //these are all identifiers
 
-special-literal: STRING //provided at runtime can be mapped to any function that returns a number
+special-literal: IDENT //provided at runtime can be mapped to any function that returns a number
 
-function: NAME "(" expr(","expr)* ")"
+function: IDENT "(" expr(","expr)* ")"
 
-atom: number | function | literal | special-literal
+atom: number | function | literal | special-literal | string
 
 right-unary-op: % | # | "k" | "m" | "b" | "t"
 left-unary-op: #
