@@ -120,6 +120,15 @@ class Lexer {
             if (this.#curChar === '.') hasDot = true
             n += this.#curChar as string
         }
+        let number = Number(n)
+        if('kmbt'.includes(this.#curChar as string)){
+            switch(this.#curChar){
+                case 'k': number *= 1000; break;
+                case 'm': number *= 1_000_000; break;
+                case 'b': number *= 1_000_000_000; break;
+                case 't': number *= 1_000_000_000_000; break;
+            }
+        }
         //only go back if we have not reached the end
         if (!this.atEnd) this.back()
         return Number(n)
