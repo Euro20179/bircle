@@ -16,6 +16,7 @@ import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
 import achievements from '../achievements'
+import amountParser from '../amount-parser'
 const { buyItem, hasItem, useItem } = require('../shop')
 
 const { ITEMS, INVENTORY } = require("../shop")
@@ -819,6 +820,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         },
                         toolbox: (amount) => {
                             return { message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0 }
+                        },
+                        "back-ally-deal": amount => {
+                            let gain = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "25%")
+                            return {message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0}
                         }
                     }
                     let amount = economy.work(msg.author.id)
