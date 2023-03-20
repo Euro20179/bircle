@@ -129,9 +129,11 @@ class Lexer {
                 case 't': number *= 1_000_000_000_000; break;
             }
         }
-        //only go back if we have not reached the end
-        if (!this.atEnd) this.back()
-        return Number(n)
+        //only go back if we have not reached the end and is not a special case suffix
+        else if(!this.atEnd){
+            this.back()
+        }
+        return number
     }
 
     parseLiteral() {
