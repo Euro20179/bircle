@@ -34,6 +34,7 @@ enum TT {
     "mul",
     "div",
     'pow',
+    root,
     semi,
     ident,
     keyword,
@@ -59,6 +60,7 @@ type TokenDataType = {
     [TT.mul]: "*",
     [TT.div]: "/",
     [TT.pow]: "^",
+    [TT.root]: "^/",
     [TT.special_literal]: string,
     [TT.semi]: ';',
     [TT.ident]: string,
@@ -203,8 +205,15 @@ class Lexer {
                     this.tokens.push(new Token(TT.minus, "-"))
                     break
                 }
-                case "÷":
                 case "/": {
+                    if(this.tokens[this.tokens.length - 1].type === TT.pow){
+                        this.tokens.pop()
+                        this.tokens.push(new Token(TT.root, '^/'))
+                        break;
+                    }
+                    //unintentional no break here so it moves to next div case
+                }
+                case "÷": {
                     this.tokens.push(new Token(TT.div, "/"))
                     break
                 }
@@ -553,9 +562,9 @@ ${'\t'.repeat(indent)})`
 
 class BinOpNode extends Node {
     left: Node
-    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow>
+    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root>
     right: Node
-    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow>, right: Node) {
+    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root>, right: Node) {
         super()
         this.left = left
         this.operator = operator
@@ -574,6 +583,7 @@ class BinOpNode extends Node {
             case '*': return left.imul(right)
             case '/': return left.idiv(right)
             case '^': data = Math.pow(left.access(), right.access()); break;
+            case '^/': data = Math.pow(right.access(), (1/left.access())); break;
         }
         return new NumberType(data)
     }
@@ -767,7 +777,7 @@ class Parser {
 
     higher_order_term() {
         let node = this.mutate_expr()
-        while (this.#curTok?.type === TT.pow) {
+        while (TT.pow === this.#curTok?.type) {
             let token = this.#curTok as Token<any>
             this.advance()
             node = new BinOpNode(node, token, this.mutate_expr())
@@ -785,12 +795,22 @@ class Parser {
         return node
     }
 
-    arith_expr(): Node {
+    arithmetic(): Node {
         let node = this.term()
         while ([TT.plus, TT.minus].includes(this.#curTok?.type as TT)) {
             let token = this.#curTok as Token<any>
             this.advance()
             node = new BinOpNode(node, token, this.term())
+        }
+        return node
+    }
+
+    root(): Node {
+        let node = this.arithmetic()
+        while(this.#curTok?.type === TT.root){
+            let token = this.#curTok as Token<TT.root>
+            this.advance()
+            node = new BinOpNode(node, token, this.arithmetic())
         }
         return node
     }
@@ -810,7 +830,7 @@ class Parser {
         if (this.#curTok?.type === TT.keyword && this.#curTok.data === 'var') {
             return this.var_assign()
         }
-        return new ExpressionNode(this.arith_expr())
+        return new ExpressionNode(this.root())
     }
 
     program(): ProgramNode {

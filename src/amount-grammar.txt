@@ -19,10 +19,12 @@ higher-order-term: mutate-expr ((POW) mutate-expr)*
 
 term: higher-order-term ((MUL | DIV) higher-order-term)*
 
-arith-expr : term ((PLUS| MINUS) term)*
+arithmetic: term ((PLUS| MINUS) term)*
+
+root: arithmetic ((ROOT) arithmetic)*
 
 var-assign: IDENT "=" expr
 
-expr: arith-expr | var-assign
+expr: root | var-assign
 
 program: expr (SEMI expr)*
