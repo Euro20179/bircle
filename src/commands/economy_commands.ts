@@ -1167,6 +1167,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         totalEconomy += value.money
                     }
                 }
+                let excludeNeg = opts['no-neg'] ? true : false
                 place = 0
                 for (let user of sortedEconomy) {
                     let id = user[0]
@@ -1177,6 +1178,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     else if (opts['loan']) {
                         money = econ[id].loanUsed || 0
                     }
+                    if(money < 0 && excludeNeg) continue;
                     let percent = money / totalEconomy * 100
                     if (!opts['no-round']) {
                         money = Math.round(money * 100) / 100
