@@ -1,5 +1,5 @@
 import { max, min } from "lodash"
-import { emitsEvent, enumerate, isBetween, isNumeric, listComprehension } from "./util"
+import { emitsEvent, enumerate, isBetween, isNumeric, listComprehension, choice } from "./util"
 
 function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
@@ -495,6 +495,7 @@ class FunctionNode extends Node {
             case 'min': return min(values.map(v => Number(v))) ?? 0
             case 'max': return max(values.map(v => Number(v))) ?? 0
             case 'rand': return randInt(Number(values[0]) ?? 0, Number(values[1]) ?? 0)
+            case 'choose': return choice(values ?? [0])
             case 'needed': return (Number(values[0]) ?? 0) - relativeTo
             case 'ineeded': return relativeTo - (Number(values[0]) ?? 0)
             case 'neg': return (Number(values[0]) ?? 0) * -1
