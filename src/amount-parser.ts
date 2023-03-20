@@ -54,7 +54,7 @@ type TokenDataType = {
     [TT.lparen]: "(",
     [TT.rparen]: ")",
     [TT.percent]: "%",
-    [TT.number_suffix]: 'k' | 'm' | 'b' | 't'
+    [TT.number_suffix]: 'K' | 'M' | 'B' | 'T'
     [TT.plus]: "+",
     [TT.minus]: "-",
     [TT.mul]: "*",
@@ -87,7 +87,7 @@ class Lexer {
     #i: number = -1
 
     #whitespace = "\n\t "
-    #specialChars = `#,()+-*/÷${this.#whitespace};=`
+    #specialChars = `#,()+-*/÷${this.#whitespace};="'`
 
 
     constructor(data: string, specialLiterals?: string[]) {
@@ -234,7 +234,7 @@ class Lexer {
                     this.tokens.push(new Token(TT.eq, '='))
                     break;
                 }
-                case 'm': case 'b': case 'k': case 't': {
+                case 'M': case 'B': case 'K': case 'T': {
                     this.tokens.push(new Token(TT.number_suffix, this.#curChar))
                     break;
                 }
@@ -529,10 +529,10 @@ class RightUnOpNode extends Node {
         switch (this.operator.data) {
             case '#': data = relativeTo % n; break;
             case '%': data = (n / 100) * relativeTo; break;
-            case 'k': data = n * 1000; break;
-            case 'm': data = n * 1_000_000; break;
-            case 'b': data = n * 1_000_000_000; break;
-            case 't': data = n * 1_000_000_000_000; break;
+            case 'K': data = n * 1000; break;
+            case 'M': data = n * 1_000_000; break;
+            case 'B': data = n * 1_000_000_000; break;
+            case 'T': data = n * 1_000_000_000_000; break;
         }
         return new NumberType(data)
     }
@@ -713,6 +713,7 @@ class Parser {
         let name = this.#curTok
         //skip name
         this.advance()
+
         //skip (
         this.advance()
         if (this.#curTok?.type === TT.rparen) {
@@ -751,15 +752,12 @@ class Parser {
             return new NumberNode(new Token(TT.number, 0))
         }
         this.advance()
+
         if (this.#curTok?.type === TT.lparen) {
             this.back()
             return this.func()
         }
 
-        //makes it so idents can start with number suffixes
-        if(nameTok.type === TT.number_suffix && this.#curTok){
-            nameTok = new Token(TT.ident, nameTok.data + String(this.#curTok?.data))
-        }
 
         if (nameTok.type === TT.ident)
             return new VarAccessNode(nameTok as Token<TT.ident>)
