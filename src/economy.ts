@@ -232,12 +232,14 @@ function playerLooseNetWorth(id: string) {
     return playerEconomyLooseTotal(id) - (ECONOMY[id]?.loanUsed || 0)
 }
 
-function economyLooseGrandTotal() {
+function economyLooseGrandTotal(countNegative = true) {
     let moneyTotal = 0
     let stockTotal = 0
     let loanTotal = 0
     let econ = getEconomy()
     for (let player in econ) {
+        let nw = playerLooseNetWorth(player)
+        if(nw < 0 && !countNegative) continue;
         let pst = 0
         moneyTotal += econ[player].money
         for (let stock in econ[player].stocks) {
