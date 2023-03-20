@@ -36,11 +36,15 @@ enum TT {
     'pow',
     semi,
     ident,
+    keyword,
+    eq,
     "number_suffix",
     "special_literal"
 }
 
 const LITERALS = ['all', 'all!', 'infinity'] as const
+
+const KEYWORDS = ['var'] as const
 
 function strIsLiteral(str: string): str is typeof LITERALS[number] {
     return LITERALS.includes(str as typeof LITERALS[number])
@@ -63,7 +67,9 @@ type TokenDataType = {
     [TT.pow]: "^",
     [TT.special_literal]: string,
     [TT.semi]: ';',
-    [TT.ident]: string
+    [TT.ident]: string,
+    [TT.eq]: '=',
+    [TT.keyword]: typeof KEYWORDS[number]
 }
 
 class Token<TokenType extends TT> {
@@ -213,10 +219,6 @@ class Lexer {
                     this.tokens.push(new Token(TT.pow, "^"))
                     break;
                 }
-                case "x": {
-                    this.tokens.push(new Token(TT.mul, "*"))
-                    break
-                }
                 case "*": {
                     this.tokens.push(this.buildMul())
                     break;
@@ -226,9 +228,16 @@ class Lexer {
                     this.tokens.push(new Token(TT.string, this.parseString()))
                     break;
                 }
+                case '=': {
+                    this.tokens.push(new Token(TT.eq, '='))
+                    break;
+                }
                 default: {
                     let str = this.parseLiteral()
-                    if (strIsLiteral(str)) {
+                    if(KEYWORDS.includes(str as typeof KEYWORDS[number])){
+                        this.tokens.push(new Token(TT.keyword, str as typeof KEYWORDS[number]))
+                    }
+                    else if (strIsLiteral(str)) {
                         this.tokens.push(new Token(TT.literal, str))
                     }
                     else if (this.specialLiterals.includes(str)) {
@@ -245,13 +254,16 @@ class Lexer {
     }
 }
 
+class SymbolTable extends Map{
+}
+
 abstract class Node {
-    abstract visit(relativeTo: number): number | string
+    abstract visit(relativeTo: number, table: SymbolTable): number | string
     abstract repr(indent: number): string
 }
 
 abstract class Program {
-    abstract visit(relativeTo: number): number[]
+    abstract visit(relativeTo: number, table: SymbolTable): number[]
     abstract repr(indent: number): string
 }
 
@@ -262,8 +274,8 @@ class ProgramNode extends Program {
         this.expressions = ns
     }
 
-    visit(relativeTo: number): number[] {
-        return this.expressions.map(v => v.visit(relativeTo)).flat().map(v => Number(v))
+    visit(relativeTo: number, table: SymbolTable): number[] {
+        return this.expressions.map(v => v.visit(relativeTo, table)).flat().map(v => Number(v))
     }
 
     repr(indent: number = 0): string {
@@ -284,14 +296,55 @@ class ExpressionNode extends Node {
         this.node = n
     }
 
-    visit(relativeTo: number): number | string {
-        return this.node.visit(relativeTo)
+    visit(relativeTo: number, table: SymbolTable): number | string {
+        return this.node.visit(relativeTo, table)
     }
 
     repr(indent: number = 0): string {
         return `Expr(
 ${'\t'.repeat(indent + 1)}${this.node.repr(indent + 1)}
 ${'\t'.repeat(indent)})`
+    }
+}
+
+class VariableAssignNode extends Node{
+    name: Token<TT.ident>
+    value: Node
+    constructor(name: Token<TT.ident>, value: Node){
+        super()
+        this.name = name
+        this.value = value
+    }
+
+    visit(relativeTo: number, table: SymbolTable): string | number {
+        let val = this.value.visit(relativeTo, table)
+        table.set(this.name.data, val)
+        return val
+    }
+
+    repr(indent: number = 0): string {
+        return `VarAssign(
+${'\t'.repeat(indent + 1)}${this.name.data}
+${'\t'.repeat(indent + 1)}=
+${'\t'.repeat(indent + 1)}${this.value.repr(indent + 1)}
+${'\t'.repeat(indent)})`
+    }
+}
+
+class VarAccessNode extends Node{
+    name: Token<TT.ident>
+    constructor(name: Token<TT.ident>){
+        super()
+        this.name = name
+    }
+
+    visit(relativeTo: number, table: SymbolTable): string | number {
+        console.log(table, this.name)
+        return table.get(this.name.data) ?? 0
+    }
+
+    repr(indent: number): string {
+        return `VarAccess(${this.name.data})`
     }
 }
 
@@ -302,7 +355,7 @@ class LiteralNode extends Node {
         this.data = t
     }
 
-    visit(relativeTo: number): number {
+    visit(relativeTo: number, table: SymbolTable): number {
         switch (this.data.data) {
             case 'all': {
                 return relativeTo * .99
@@ -331,7 +384,7 @@ class StringNode extends Node {
         this.data = n
     }
 
-    visit(relativeTo: number): string {
+    visit(relativeTo: number, table: SymbolTable): string {
         return this.data.data
     }
 
@@ -364,7 +417,7 @@ class SpecialLiteralNode extends Node {
         this.name = name
         this.onVisit = onVisit
     }
-    visit(relativeTo: number): number {
+    visit(relativeTo: number, table: SymbolTable): number {
         return this.onVisit(relativeTo, this.name)
     }
 
@@ -383,8 +436,8 @@ class RightUnOpNode extends Node {
         this.left = left
         this.operator = operator
     }
-    visit(relativeTo: number): number {
-        let number = this.left.visit(relativeTo)
+    visit(relativeTo: number, table: SymbolTable): number {
+        let number = this.left.visit(relativeTo, table)
         if (typeof number === 'string') {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
@@ -415,8 +468,8 @@ class LeftUnOpNode extends Node {
         this.left = left
         this.operator = operator
     }
-    visit(relativeTo: number): number {
-        let number = this.left.visit(relativeTo)
+    visit(relativeTo: number, table: SymbolTable): number {
+        let number = this.left.visit(relativeTo, table)
         if (typeof number === 'string') {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
@@ -442,9 +495,9 @@ class BinOpNode extends Node {
         this.operator = operator
         this.right = right
     }
-    visit(relativeTo: number): number {
-        let left = this.left.visit(relativeTo)
-        let right = this.right.visit(relativeTo)
+    visit(relativeTo: number, table: SymbolTable): number {
+        let left = this.left.visit(relativeTo, table)
+        let right = this.right.visit(relativeTo, table)
         if (typeof left !== 'number' || typeof right !== 'number') {
             throw new OperatorError(`${this.operator.data} expected 2 numbers, but found ${typeof left} and ${typeof right}`)
         }
@@ -474,8 +527,8 @@ class FunctionNode extends Node {
         this.name = name
         this.nodes = nodes
     }
-    visit(relativeTo: number): number | string {
-        let values = this.nodes.map(v => v.visit(relativeTo)) ?? [0]
+    visit(relativeTo: number, table: SymbolTable): number | string {
+        let values = this.nodes.map(v => v.visit(relativeTo, table)) ?? [0]
         let argCount = {
             'rand': 2,
             'needed': 1,
@@ -614,6 +667,9 @@ class Parser {
         }
         if (this.specialLiterals[nameTok.data])
             return new SpecialLiteralNode((nameTok as Token<TT.special_literal>).data, this.specialLiterals[nameTok.data])
+
+        if(nameTok.type === TT.ident)
+            return new VarAccessNode(nameTok as Token<TT.ident>)
         return new NumberNode(new Token(TT.number, 0))
     }
 
@@ -679,7 +735,21 @@ class Parser {
         return node
     }
 
+    var_assign(): Node {
+        this.advance()
+        let name = this.#curTok as Token<TT.ident>
+        this.advance()
+        if(this.#curTok?.type === TT.eq){
+            this.advance()
+            return new VariableAssignNode(name, this.arith_expr())
+        }
+        throw new SyntaxError(`Expected '=' after ${name.data}`)
+    }
+
     expr(): Node {
+        if(this.#curTok?.type === TT.keyword && this.#curTok.data === 'var'){
+            return this.var_assign()
+        }
         return new ExpressionNode(this.arith_expr())
     }
 
@@ -700,12 +770,14 @@ class Parser {
 class Interpreter {
     program: ProgramNode
     relativeTo: number
+    symbolTable: SymbolTable
     constructor(program: ProgramNode, relativeTo: number) {
         this.program = program
         this.relativeTo = relativeTo
+        this.symbolTable = new SymbolTable()
     }
     visit(): number[] {
-        return this.program.visit(this.relativeTo)
+        return this.program.visit(this.relativeTo, this.symbolTable)
     }
 }
 
@@ -719,7 +791,7 @@ function calculateAmountRelativeToInternals(money: number, amount: string, extra
 }
 
 function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
-    return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit()[0]
+    return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit().slice(-1)[0]
 }
 
 function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number[] {

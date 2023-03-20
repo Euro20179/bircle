@@ -4,7 +4,9 @@ special-literal: IDENT //provided at runtime can be mapped to any function that 
 
 function: IDENT "(" expr(","expr)* ")"
 
-atom: number | function | literal | special-literal | string
+var-access: IDENT
+
+atom: number | function | literal | special-literal | string | var-access
 
 right-unary-op: % | # | "k" | "m" | "b" | "t"
 left-unary-op: #
@@ -19,6 +21,8 @@ term: higher-order-term ((MUL | DIV) higher-order-term)*
 
 arith-expr : term ((PLUS| MINUS) term)*
 
-expr: arith-expr | literal
+var-assign: IDENT "=" arith-expr
+
+expr: arith-expr | var-assign
 
 program: expr (SEMI expr)*
