@@ -178,15 +178,15 @@ class Mexico extends Country {
 
     async drugCartel({ msg }: CommandV2RunArg) {
         economy.addMoney(msg.author.id, 1)
-        if (Math.random() > .7) {
+        if (Math.random() > .9) {
             let amount = economy.calculateAmountFromNetWorth(msg.author.id, "neg(30%)")
             economy.addMoney(msg.author.id, amount)
             return crv(`The drug cartel kills you and you had to spend ${this.getSign(msg)}${-amount} reviving yourself with a tire pump`)
         }
-        if (Math.random() > .05) {
+        if (Math.random() > .15) {
             let amount = economy.calculateAmountFromString(msg.author.id, "neg(3%)")
             economy.addMoney(msg.author.id, amount)
-            return crv(`The drug cartel steals ${this.getSign(msg)}${String(-amount).split(".")[0]} and ${String(-amount).split(".")[1]} cents from your pocket`)
+            return crv(`The drug cartel steals ${this.getSign(msg)}${String(-amount).split(".")[0]} and 0.${String(-amount).split(".")[1]} cents from your pocket`)
         }
         let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "10%")
         economy.addMoney(msg.author.id, amount)
