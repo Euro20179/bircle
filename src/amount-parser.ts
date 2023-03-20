@@ -618,6 +618,7 @@ class FunctionNode extends Node {
             'minmax': 3,
             'aspercent': 1,
             "length": 1,
+            "abs": 1,
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
@@ -636,6 +637,7 @@ class FunctionNode extends Node {
             case 'aspercent': return new NumberType((values[0].access() / relativeTo) * 100)
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
+            case 'abs': return new NumberType(Math.abs(values[0].access()))
             case 'minmax': {
                 let min = values[0].access() ?? 0
                 let value = values[1].access() ?? 0
