@@ -257,6 +257,17 @@ class SymbolTable extends Map {
             this.set(key, base[key])
         }
     }
+
+    get(key: any) {
+        let val = super.get(key)
+        if(typeof val === 'string'){
+            return new StringType(val)
+        }
+        else if(typeof val === 'number'){
+            return new NumberType(val)
+        }
+        return val
+    }
 }
 
 abstract class Node {
@@ -456,9 +467,9 @@ class VarAccessNode extends Node {
     visit(relativeTo: number, table: SymbolTable): Type<any>{
         let val = table.get(this.name.data)
         if(typeof val === 'function'){
-            return val(relativeTo, this.name.data)
+            return new NumberType(val(relativeTo, this.name.data))
         }
-        return val ?? 0
+        return val ?? new NumberType(0)
     }
 
     repr(indent: number): string {
@@ -743,6 +754,11 @@ class Parser {
         if (this.#curTok?.type === TT.lparen) {
             this.back()
             return this.func()
+        }
+
+        //makes it so idents can start with number suffixes
+        if(nameTok.type === TT.number_suffix && this.#curTok){
+            nameTok = new Token(TT.ident, nameTok.data + String(this.#curTok?.data))
         }
 
         if (nameTok.type === TT.ident)

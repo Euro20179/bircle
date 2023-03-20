@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser,  generateFileName, generateTextFromCommandHelp, getContentFromResult,  mulStr, Pipe, safeEval,  BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE,  MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
 
 import { format, getOpts } from '../parsing'
 
@@ -1142,6 +1142,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!as)
                     as = msg.author.id
 
+                if (opts['tree']) {
+                    return crv(amountParser.calculateAmountRelativeToInternals(economy.calculateAmountFromString(String(as), "100%"), args.join(" "), {
+                        ticketmin: (total, _k) => total * 0.005,
+                        battlemin: (total, _k) => total * 0.002
+                    }).expression.repr(0))
+                }
+
                 let amount = economy.calculateAmountFromString(String(as), args.join(" "), {
                     ticketmin: (total, _k) => total * 0.005,
                     battlemin: (total, _k) => total * 0.002
@@ -1248,14 +1255,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
                 }
                 let dollarSign = opts['sign'] || ""
-                if(opts['tree']){
+                if (opts['tree']) {
                     return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
                 }
                 let amount = [NaN];
-                if(opts['a']){
+                if (opts['a']) {
                     amount = amountParser.runRelativeCalculator(money, amountStr)
                 }
-                else amount = [amountParser.calculateAmountRelativeTo(money, amountStr )]
+                else amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
                 if (dollarSign === true) {
                     return { content: `${amount.join("\n")}`, status: StatusCode.RETURN }
                 }
@@ -3046,7 +3053,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         else ans = leftVal % rightVal
                         break;
                 }
-                if(prefix === msg.author.id) prefix = "%"
+                if (prefix === msg.author.id) prefix = "%"
                 vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
                 return { content: String(ans), status: StatusCode.RETURN }
             },
@@ -3908,7 +3915,7 @@ valid formats:<br>
             return crv(listComprehension(enumerate(text), ([i, line]) => `${i + 1}: ${line}`).join("\n"))
 
         }, "Number the lines of text", {
-            helpArguments: {"...text": createHelpArgument("The text to number each line of", false)},
+            helpArguments: { "...text": createHelpArgument("The text to number each line of", false) },
             accepts_stdin: "Can be used instead of <code>...text</code>"
         })
     ]
