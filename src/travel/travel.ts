@@ -235,12 +235,26 @@ class UnitedStates extends Country {
         this.registerActivity("car accident", "0", this.carAccident.bind(this))
         this.registerActivity("museum of liberty", "max(25,5%)", this.museumOfLiberty.bind(this))
         this.registerActivity("second street", "0.02", this.secondStreet.bind(this))
+        this.registerActivity("hawaii", "10000", this.hawaii.bind(this))
         return this
     }
 
     async secondStreet({ msg }: CommandV2RunArg) {
         economy.addMoney(msg.author.id, 0.01)
         return crv(`You found a penny on second street\ngain ${this.getSign(msg)}.01!!!`)
+    }
+
+    async hawaii({msg}: CommandV2RunArg){
+        if(Math.random() > .9){
+            if(Math.random() > .5){
+                giveItem(msg.author.id, 'snorkling mask', 1)
+                return crv(`A sexy life gaurd saves you from the ocean, and gives you a snorkling mask`)
+            }
+            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "1%")
+            economy.addMoney(msg.author.id, amount)
+            return crv(`You died in the ocean, and had to pay ${this.getSign(msg)}${amount} for the funeral fees`)
+        }
+        return crv("You had a very pleasant time in hawaii")
     }
 
     async freeHotdog({ msg }: CommandV2RunArg) {
