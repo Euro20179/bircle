@@ -92,7 +92,7 @@ class Lexer {
     #i: number = -1
 
     #whitespace = "\n\t "
-    #specialChars = `#,()+-*/÷ ${this.#whitespace};`
+    #specialChars = `#,()+-*/÷${this.#whitespace};=`
 
 
     constructor(data: string, specialLiterals?: string[]) {
@@ -741,7 +741,7 @@ class Parser {
         this.advance()
         if(this.#curTok?.type === TT.eq){
             this.advance()
-            return new VariableAssignNode(name, this.arith_expr())
+            return new VariableAssignNode(name, this.expr())
         }
         throw new SyntaxError(`Expected '=' after ${name.data}`)
     }

@@ -21,7 +21,7 @@ term: higher-order-term ((MUL | DIV) higher-order-term)*
 
 arith-expr : term ((PLUS| MINUS) term)*
 
-var-assign: IDENT "=" arith-expr
+var-assign: IDENT "=" expr
 
 expr: arith-expr | var-assign
 
