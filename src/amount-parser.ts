@@ -114,7 +114,7 @@ class Lexer {
 
     parseNumber() {
         let n = this.#curChar as string
-        let hasDot = false
+        let hasDot = n === '.'
         while (this.advance() !== false && (isNumeric(this.#curChar as string) || (this.#curChar === '.' && !hasDot))) {
             if (this.#curChar === '.') hasDot = true
             n += this.#curChar as string
@@ -162,7 +162,7 @@ class Lexer {
         //this.advance() could return empty string which is still technically valid
         while (this.advance() !== false) {
             if (this.#whitespace.includes(this.#curChar as string)) continue;
-            if (isNumeric(this.#curChar as string)) {
+            if (isNumeric(this.#curChar as string) || this.#curChar === '.') {
                 this.tokens.push(new Token(TT.number, this.parseNumber()))
                 continue;
             }
