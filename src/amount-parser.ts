@@ -232,6 +232,10 @@ class Lexer {
                     this.tokens.push(new Token(TT.eq, '='))
                     break;
                 }
+                case 'm': case 'b': case 'k': case 't': {
+                    this.tokens.push(new Token(TT.number_suffix, this.#curChar))
+                    break;
+                }
                 default: {
                     let str = this.parseLiteral()
                     if(KEYWORDS.includes(str as typeof KEYWORDS[number])){
@@ -242,10 +246,6 @@ class Lexer {
                     }
                     else if (this.specialLiterals.includes(str)) {
                         this.tokens.push(new Token(TT.special_literal, str))
-                    }
-                    else if (NUMBERSUFFIXES.includes(str as 'm' | 'b' | 'k' | 't')) {
-                        this.tokens.push(new Token(TT.number_suffix, str as 'k' | 'm' | 'b' | "t"))
-                        continue;
                     }
                     else this.tokens.push(new Token(TT.ident, str))
                 }
