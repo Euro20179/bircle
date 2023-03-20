@@ -28,7 +28,6 @@ enum TT {
     "lparen",
     "rparen",
     "percent",
-    "literal",
     "plus",
     "minus",
     "mul",
@@ -42,13 +41,8 @@ enum TT {
     "special_literal"
 }
 
-const LITERALS = ['all', 'all!', 'infinity'] as const
-
 const KEYWORDS = ['var'] as const
 
-function strIsLiteral(str: string): str is typeof LITERALS[number] {
-    return LITERALS.includes(str as typeof LITERALS[number])
-}
 
 type TokenDataType = {
     [TT.hash]: "#",
@@ -58,7 +52,6 @@ type TokenDataType = {
     [TT.lparen]: "(",
     [TT.rparen]: ")",
     [TT.percent]: "%",
-    [TT.literal]: typeof LITERALS[number],
     [TT.number_suffix]: 'k' | 'm' | 'b' | 't'
     [TT.plus]: "+",
     [TT.minus]: "-",
@@ -238,14 +231,8 @@ class Lexer {
                 }
                 default: {
                     let str = this.parseLiteral()
-                    if(KEYWORDS.includes(str as typeof KEYWORDS[number])){
+                    if (KEYWORDS.includes(str as typeof KEYWORDS[number])) {
                         this.tokens.push(new Token(TT.keyword, str as typeof KEYWORDS[number]))
-                    }
-                    else if (strIsLiteral(str)) {
-                        this.tokens.push(new Token(TT.literal, str))
-                    }
-                    else if (this.specialLiterals.includes(str)) {
-                        this.tokens.push(new Token(TT.special_literal, str))
                     }
                     else this.tokens.push(new Token(TT.ident, str))
                 }
@@ -254,7 +241,13 @@ class Lexer {
     }
 }
 
-class SymbolTable extends Map{
+class SymbolTable extends Map {
+    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string>){
+        super()
+        for(let key in base){
+            this.set(key, base[key])
+        }
+    }
 }
 
 abstract class Node {
@@ -307,10 +300,10 @@ ${'\t'.repeat(indent)})`
     }
 }
 
-class VariableAssignNode extends Node{
+class VariableAssignNode extends Node {
     name: Token<TT.ident>
     value: Node
-    constructor(name: Token<TT.ident>, value: Node){
+    constructor(name: Token<TT.ident>, value: Node) {
         super()
         this.name = name
         this.value = value
@@ -331,16 +324,19 @@ ${'\t'.repeat(indent)})`
     }
 }
 
-class VarAccessNode extends Node{
+class VarAccessNode extends Node {
     name: Token<TT.ident>
-    constructor(name: Token<TT.ident>){
+    constructor(name: Token<TT.ident>) {
         super()
         this.name = name
     }
 
     visit(relativeTo: number, table: SymbolTable): string | number {
-        console.log(table, this.name)
-        return table.get(this.name.data) ?? 0
+        let val = table.get(this.name.data)
+        if(typeof val === 'function'){
+            return val(relativeTo, this.name.data)
+        }
+        return val ?? 0
     }
 
     repr(indent: number): string {
@@ -348,33 +344,6 @@ class VarAccessNode extends Node{
     }
 }
 
-class LiteralNode extends Node {
-    data: Token<TT.literal>
-    constructor(t: Token<TT.literal>) {
-        super()
-        this.data = t
-    }
-
-    visit(relativeTo: number, table: SymbolTable): number {
-        switch (this.data.data) {
-            case 'all': {
-                return relativeTo * .99
-            }
-            case 'all!': {
-                return relativeTo
-            }
-            case 'infinity': {
-                return Infinity
-            }
-        }
-    }
-
-    repr(indent = 0) {
-        return `Literal(
-${'\t'.repeat(indent + 1)}${this.data.data}
-${'\t'.repeat(indent)})`
-    }
-}
 
 class StringNode extends Node {
     data: Token<TT.string>
@@ -587,13 +556,11 @@ ${'\t'.repeat(indent)})`
 class Parser {
     tokens: Token<TT>[]
     nodes: Node[] = []
-    specialLiterals: Record<string, (total: number, k: string) => number>
     #i = -1
     #curTok: Token<TT> | undefined = undefined
 
-    constructor(tokens: Token<TT>[], specialLiterals?: Record<string, (total: number, k: string) => number>) {
+    constructor(tokens: Token<TT>[]) {
         this.tokens = tokens
-        this.specialLiterals = specialLiterals ?? {}
         this.advance()
     }
 
@@ -652,10 +619,6 @@ class Parser {
             this.advance()
             return new StringNode(tok as Token<TT.string>)
         }
-        else if (tok?.type === TT.literal) {
-            this.advance()
-            return new LiteralNode(tok as Token<TT.literal>)
-        }
         let nameTok = this.#curTok
         if (!nameTok) {
             return new NumberNode(new Token(TT.number, 0))
@@ -665,10 +628,8 @@ class Parser {
             this.back()
             return this.func()
         }
-        if (this.specialLiterals[nameTok.data])
-            return new SpecialLiteralNode((nameTok as Token<TT.special_literal>).data, this.specialLiterals[nameTok.data])
 
-        if(nameTok.type === TT.ident)
+        if (nameTok.type === TT.ident)
             return new VarAccessNode(nameTok as Token<TT.ident>)
         return new NumberNode(new Token(TT.number, 0))
     }
@@ -739,7 +700,7 @@ class Parser {
         this.advance()
         let name = this.#curTok as Token<TT.ident>
         this.advance()
-        if(this.#curTok?.type === TT.eq){
+        if (this.#curTok?.type === TT.eq) {
             this.advance()
             return new VariableAssignNode(name, this.expr())
         }
@@ -747,7 +708,7 @@ class Parser {
     }
 
     expr(): Node {
-        if(this.#curTok?.type === TT.keyword && this.#curTok.data === 'var'){
+        if (this.#curTok?.type === TT.keyword && this.#curTok.data === 'var') {
             return this.var_assign()
         }
         return new ExpressionNode(this.arith_expr())
@@ -771,10 +732,10 @@ class Interpreter {
     program: ProgramNode
     relativeTo: number
     symbolTable: SymbolTable
-    constructor(program: ProgramNode, relativeTo: number) {
+    constructor(program: ProgramNode, relativeTo: number, baseEnv: Record<string, (total: number, k: string) => number>) {
         this.program = program
         this.relativeTo = relativeTo
-        this.symbolTable = new SymbolTable()
+        this.symbolTable = new SymbolTable(baseEnv)
     }
     visit(): number[] {
         return this.program.visit(this.relativeTo, this.symbolTable)
@@ -784,9 +745,15 @@ class Interpreter {
 function calculateAmountRelativeToInternals(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>) {
     let lexer = new Lexer(amount, Object.keys(extras ?? {}))
     lexer.tokenize()
-    let parser = new Parser(lexer.tokens, extras)
+    let parser = new Parser(lexer.tokens)
     let expression = parser.parse()
-    const int = new Interpreter(expression, money)
+    let env = {
+        'all': (total: number) => total * .99,
+        'all!': (total: number) => total,
+        'infinity': () => Infinity,
+        ...(extras ?? {})
+    }
+    const int = new Interpreter(expression, money, env)
     return { lexer, parser, interpreter: int, expression }
 }
 
