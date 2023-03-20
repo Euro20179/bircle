@@ -1,5 +1,6 @@
 import { max, min } from "lodash"
 import { emitsEvent, enumerate, isBetween, isNumeric, listComprehension, choice } from "./util"
+import units, { LengthUnit } from "./units"
 
 function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
@@ -74,7 +75,6 @@ class Token<TokenType extends TT> {
     }
 }
 
-const NUMBERSUFFIXES = ['k', 'm', 'b', 't',] as const
 class Lexer {
     tokens: Token<TT>[] = []
     data: string
@@ -251,13 +251,126 @@ class SymbolTable extends Map {
 }
 
 abstract class Node {
-    abstract visit(relativeTo: number, table: SymbolTable): number | string
+    abstract visit(relativeTo: number, table: SymbolTable): Type<any>
     abstract repr(indent: number): string
 }
 
 abstract class Program {
     abstract visit(relativeTo: number, table: SymbolTable): number[]
     abstract repr(indent: number): string
+}
+
+abstract class Type<JSType>{
+    protected data: JSType
+    constructor(internalData: JSType){
+        this.data = internalData
+    }
+    abstract access(): JSType
+    abstract add(other: Type<any>): Type<JSType>
+    abstract iadd(other: Type<any>): Type<JSType>
+    abstract mul(other: Type<any>): Type<JSType>
+    abstract imul(other: Type<any>): Type<JSType>
+    abstract sub(other: Type<any>): Type<JSType>
+    abstract isub(other: Type<any>): Type<JSType>
+    abstract div(other: Type<any>): Type<JSType>
+    abstract idiv(other: Type<any>): Type<JSType>
+
+    abstract string(): Type<string>
+    abstract number(): Type<number>
+}
+
+class NumberType extends Type<number>{
+    access(): number {
+        return this.data
+    }
+
+    add(other: Type<any>): NumberType {
+        return new NumberType(this.data + other.access())
+    }
+
+    iadd(other: Type<any>): NumberType {
+        this.data += other.access()
+        return this
+    }
+
+    mul(other: Type<number>): Type<number> {
+        return new NumberType(this.data + other.access())
+    }
+
+    imul(other: Type<number>): Type<number>{
+        this.data += other.access()
+        return this
+    }
+
+    sub(other: Type<any>): Type<number> {
+        return new NumberType(this.data - other.access())
+    }
+
+    isub(other: Type<any>): Type<number> {
+        this.data -= other.access()
+        return this
+    }
+
+    div(other: Type<any>): Type<number> {
+        return new NumberType(this.data / other.access())
+    }
+
+    idiv(other: Type<any>): Type<number> {
+        this.data /= other.access()
+        return this
+    }
+
+    string(): Type<string> {
+        return new StringType(this.data.toString())
+    }
+
+    number(): Type<number> {
+        return this
+    }
+}
+
+class StringType extends Type<string>{
+    access(): string {
+        return this.data
+    }
+    add(other: Type<string>): Type<string> {
+        return new StringType(this.data + String(other.access()))
+    }
+    iadd(other: Type<string>): Type<string> {
+        this.data += other.access()
+        return this
+    }
+    mul(other: Type<number>): Type<string> {
+        return new StringType(this.data.repeat(other.access()))
+    }
+    imul(other: Type<any>): Type<string> {
+        this.data = this.data.repeat(other.access())
+        return this
+    }
+
+    sub(other: Type<any>): Type<string> {
+        throw new TypeError("Cannot subtract strings")
+    }
+
+    isub(other: Type<any>): Type<string> {
+        throw new TypeError("Cannot subtract strings")
+    }
+
+    div(other: Type<any>): Type<string> {
+        throw new TypeError("Cannot divide strings")
+    }
+
+    idiv(other: Type<any>): Type<string> {
+        throw new TypeError("Cannot divide strings")
+    }
+
+    string(): Type<string> {
+        return this
+    }
+
+    number(): Type<number> {
+        return new NumberType(NaN)
+    }
 }
 
 class ProgramNode extends Program {
@@ -268,7 +381,7 @@ class ProgramNode extends Program {
     }
 
     visit(relativeTo: number, table: SymbolTable): number[] {
-        return this.expressions.map(v => v.visit(relativeTo, table)).flat().map(v => Number(v))
+        return this.expressions.map(v => v.visit(relativeTo, table)).flat().map(v => Number(v.access()))
     }
 
     repr(indent: number = 0): string {
@@ -289,7 +402,7 @@ class ExpressionNode extends Node {
         this.node = n
     }
 
-    visit(relativeTo: number, table: SymbolTable): number | string {
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
         return this.node.visit(relativeTo, table)
     }
 
@@ -309,7 +422,7 @@ class VariableAssignNode extends Node {
         this.value = value
     }
 
-    visit(relativeTo: number, table: SymbolTable): string | number {
+    visit(relativeTo: number, table: SymbolTable): Type<any>{
         let val = this.value.visit(relativeTo, table)
         table.set(this.name.data, val)
         return val
@@ -331,7 +444,7 @@ class VarAccessNode extends Node {
         this.name = name
     }
 
-    visit(relativeTo: number, table: SymbolTable): string | number {
+    visit(relativeTo: number, table: SymbolTable): Type<any>{
         let val = table.get(this.name.data)
         if(typeof val === 'function'){
             return val(relativeTo, this.name.data)
@@ -353,8 +466,8 @@ class StringNode extends Node {
         this.data = n
     }
 
-    visit(relativeTo: number, table: SymbolTable): string {
-        return this.data.data
+    visit(relativeTo: number, table: SymbolTable): StringType {
+        return new StringType(this.data.data)
     }
 
     repr(indent: number): string {
@@ -368,33 +481,14 @@ class NumberNode extends Node {
         super()
         this.data = n
     }
-    visit(): number {
-        return this.data.data
+    visit(): NumberType {
+        return new NumberType(this.data.data)
     }
 
     repr() {
         return `Number(${this.data.data})`
     }
 
-}
-
-class SpecialLiteralNode extends Node {
-    name: string
-    onVisit: (total: number, k: string) => number
-    constructor(name: string, onVisit: (total: number, k: string) => number) {
-        super()
-        this.name = name
-        this.onVisit = onVisit
-    }
-    visit(relativeTo: number, table: SymbolTable): number {
-        return this.onVisit(relativeTo, this.name)
-    }
-
-    repr(indent = 0) {
-        return `Special(
-${'\t'.repeat(indent + 1)}${this.name}
-${'\t'.repeat(indent)})`
-    }
 }
 
 class RightUnOpNode extends Node {
@@ -405,19 +499,22 @@ class RightUnOpNode extends Node {
         this.left = left
         this.operator = operator
     }
-    visit(relativeTo: number, table: SymbolTable): number {
+    visit(relativeTo: number, table: SymbolTable): NumberType {
         let number = this.left.visit(relativeTo, table)
-        if (typeof number === 'string') {
+        if (!(number instanceof NumberType)) {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
+        let n = number.access()
+        let data: number;
         switch (this.operator.data) {
-            case '#': return relativeTo % number
-            case '%': return (number / 100) * relativeTo
-            case 'k': return number * 1000
-            case 'm': return number * 1_000_000
-            case 'b': return number * 1_000_000_000
-            case 't': return number * 1_000_000_000_000
+            case '#': data = relativeTo % n; break;
+            case '%': data = (n / 100) * relativeTo; break;
+            case 'k': data = n * 1000; break;
+            case 'm': data = n * 1_000_000; break;
+            case 'b': data = n * 1_000_000_000; break;
+            case 't': data = n * 1_000_000_000_000; break;
         }
+        return new NumberType(data)
     }
 
     repr(indent = 0) {
@@ -437,12 +534,12 @@ class LeftUnOpNode extends Node {
         this.left = left
         this.operator = operator
     }
-    visit(relativeTo: number, table: SymbolTable): number {
-        let number = this.left.visit(relativeTo, table)
+    visit(relativeTo: number, table: SymbolTable): NumberType {
+        let number = this.left.visit(relativeTo, table).access()
         if (typeof number === 'string') {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
-        return number - (relativeTo % number)
+        return new NumberType(number - (relativeTo % number))
     }
 
     repr(indent = 0) {
@@ -464,19 +561,21 @@ class BinOpNode extends Node {
         this.operator = operator
         this.right = right
     }
-    visit(relativeTo: number, table: SymbolTable): number {
+    visit(relativeTo: number, table: SymbolTable): NumberType {
         let left = this.left.visit(relativeTo, table)
         let right = this.right.visit(relativeTo, table)
-        if (typeof left !== 'number' || typeof right !== 'number') {
-            throw new OperatorError(`${this.operator.data} expected 2 numbers, but found ${typeof left} and ${typeof right}`)
+        if (!(left instanceof NumberType) || !(right instanceof NumberType)) {
+            throw new OperatorError(`${this.operator.data} expected 2 numbers, but found ${left.constructor.name.split("Type")[0]} and ${right.constructor.name.split("Type")[0]}`)
         }
+        let data;
         switch (this.operator.data) {
-            case '+': return left + right;
-            case '-': return left - right;
-            case '*': return left * right;
-            case '/': return left / right;
-            case '^': return Math.pow(left, right);
+            case '+': return left.iadd(right)
+            case '-': return left.isub(right)
+            case '*': return left.imul(right)
+            case '/': return left.idiv(right)
+            case '^': data = Math.pow(left.access(), right.access()); break;
         }
+        return new NumberType(data)
     }
 
     repr(indent = 0) {
@@ -496,8 +595,8 @@ class FunctionNode extends Node {
         this.name = name
         this.nodes = nodes
     }
-    visit(relativeTo: number, table: SymbolTable): number | string {
-        let values = this.nodes.map(v => v.visit(relativeTo, table)) ?? [0]
+    visit(relativeTo: number, table: SymbolTable): NumberType | StringType{
+        let values = this.nodes.map(v => v.visit(relativeTo, table)) ?? [new NumberType(0)]
         let argCount = {
             'rand': 2,
             'needed': 1,
@@ -514,34 +613,34 @@ class FunctionNode extends Node {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
-            case 'min': return min(values.map(v => Number(v))) ?? 0
-            case 'max': return max(values.map(v => Number(v))) ?? 0
-            case 'rand': return randInt(Number(values[0]) ?? 0, Number(values[1]) ?? 0)
-            case 'choose': return choice(values ?? [0])
-            case 'needed': return (Number(values[0]) ?? 0) - relativeTo
-            case 'ineeded': return relativeTo - (Number(values[0]) ?? 0)
-            case 'neg': return (Number(values[0]) ?? 0) * -1
-            case 'floor': return Math.floor(Number(values[0]) ?? 0)
-            case 'ceil': return Math.ceil(Number(values[0]) ?? 0)
-            case 'round': return Math.round(Number(values[0]) ?? 0)
-            case 'aspercent': return (Number(values[0]) / relativeTo) * 100
-            case 'length': return String(values[0]).length
-            case 'concat': return values.map(v => String(v)).join("")
+            case 'min': return new NumberType(min(values.map(v => v.access())))
+            case 'max': return new NumberType(max(values.map(v => v.access())))
+            case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
+            case 'choose': return choice(values)
+            case 'needed': return new NumberType(values[0].access() - relativeTo)
+            case 'ineeded': return new NumberType(relativeTo - (values[0].access()))
+            case 'neg': return values[0].mul(new NumberType(-1))
+            case 'floor': return new NumberType(Math.floor(values[0].access()))
+            case 'ceil': return new NumberType(Math.ceil(values[0].access()))
+            case 'round': return new NumberType(Math.round(values[0].access()))
+            case 'aspercent': return new NumberType((values[0].access() / relativeTo) * 100)
+            case 'length': return new NumberType(String(values[0]).length)
+            case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'minmax': {
-                let min = values[0] ?? 0
-                let value = values[1] ?? 0
-                let max = values[2] ?? 0
+                let min = values[0].access() ?? 0
+                let value = values[1].access() ?? 0
+                let max = values[2].access() ?? 0
                 if (isBetween(Number(min), Number(value), Number(max))) {
-                    return Number(value)
+                    return new NumberType(value)
                 }
                 else if (value > max) {
-                    return Number(max)
+                    return new NumberType(max)
                 }
-                return Number(min)
+                return new NumberType(min)
 
             }
         }
-        return 0
+        return new NumberType(0)
     }
 
     repr(indent = 0) {

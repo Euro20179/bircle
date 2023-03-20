@@ -1,4 +1,4 @@
-class LengthUnit {
+export class LengthUnit {
     value: number
 
     /**
