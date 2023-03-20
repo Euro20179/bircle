@@ -9,11 +9,12 @@ var-access: IDENT
 atom: number | function | literal | special-literal | string | var-access
 
 right-unary-op: % | # | "k" | "m" | "b" | "t"
-left-unary-op: #
+left-unary-op: # | -
 
 factor: atom | LPAREN expr RPAREN
 
-mutate-expr: left-unary-op? factor right-unary-op?
+mutate-expr: factor
+           : (left-unary-op)* mutate-expr (right-unary-op)*
 
 higher-order-term: mutate-expr ((POW) mutate-expr)*
 

@@ -303,11 +303,11 @@ class NumberType extends Type<number>{
     }
 
     mul(other: Type<number>): Type<number> {
-        return new NumberType(this.data + other.access())
+        return new NumberType(this.data * other.access())
     }
 
     imul(other: Type<number>): Type<number>{
-        this.data += other.access()
+        this.data *= other.access()
         return this
     }
 
@@ -537,8 +537,8 @@ ${'\t'.repeat(indent)})`
 
 class LeftUnOpNode extends Node {
     left: Node
-    operator: Token<TT.hash>
-    constructor(left: Node, operator: Token<TT.hash>) {
+    operator: Token<TT.hash | TT.minus>
+    constructor(left: Node, operator: Token<TT.hash | TT.minus>) {
         super()
         this.left = left
         this.operator = operator
@@ -548,7 +548,12 @@ class LeftUnOpNode extends Node {
         if (typeof number === 'string') {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
-        return new NumberType(number - (relativeTo % number))
+        switch(this.operator.type){
+            case TT.hash:
+                return new NumberType(number - (relativeTo % number))
+            case TT.minus:
+                return new NumberType(number * -1)
+        }
     }
 
     repr(indent = 0) {
@@ -756,18 +761,20 @@ class Parser {
         return this.atom()
     }
 
-    left_unary_op() {
+    left_unary_op(): Node {
         let node;
-        if (this.#curTok?.type === TT.hash) {
-            let tok = this.#curTok as Token<TT.hash>
+        let isOp = false
+        while ([TT.hash, TT.minus].includes(this.#curTok?.type as TT)) {
+            isOp = true
+            let tok = this.#curTok as Token<TT.hash | TT.minus>
             this.advance()
-            node = new LeftUnOpNode(this.factor(), tok)
+            node = new LeftUnOpNode(this.mutate_expr(), tok)
         }
-        else node = this.factor()
-        return node
+        if(!isOp) node = this.factor()
+        return node as Node
     }
 
-    mutate_expr() {
+    mutate_expr(): Node {
         let node = this.left_unary_op();
         while ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
             let next = this.#curTok as Token<any>
