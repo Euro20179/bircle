@@ -61,5 +61,5 @@
         "description": "Allows you to run the give command",
         "uses": 1,
         "cost": ["99"]
-    },
+    }
 }
