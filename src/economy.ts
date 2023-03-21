@@ -191,11 +191,11 @@ function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
 }
 
-function taxPlayer(id: string, max: number, taxPercent: number | boolean = false) {
+function taxPlayer(id: string, max: number, taxPercent: number | boolean = false, taxerIsRetired = false) {
     timer.restartTimer(id, "%last-taxed")
     let total = playerEconomyLooseTotal(id)
     if (taxPercent === false) {
-        if (isRetired(id))
+        if (taxerIsRetired)
             taxPercent = randInt(0.01, 0.02)
         else taxPercent = randInt(0.001, 0.008)
     }
