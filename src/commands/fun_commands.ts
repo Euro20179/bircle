@@ -329,6 +329,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 economy.addMoney(msg.author.id, price)
                 return crv(`You earned ${sign}${crudeOil * gallonToBarrel} per gallon for a total of ${sign}${price}`)
             }],
+            [["white powder", "green leaf", "organic mushroom"], async () => {
+                giveItem(msg.author.id, 'organic mixture', 1)
+                return crv(`You have created an organic mixture`)
+            }],
             [["balanced breakfast"], async () => {
                 let pets = pet.getUserPets(msg.author.id)
                 let petShop = pet.getPetShop()

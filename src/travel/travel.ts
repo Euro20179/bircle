@@ -14,6 +14,7 @@ import { GLOBAL_CURRENCY_SIGN } from "../common"
 import vars from '../vars'
 import { giveItem, hasItem, useItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
+import amountParser from '../amount-parser'
 
 class Activity {
     cost: string
@@ -182,7 +183,11 @@ class Mexico extends Country {
         if(Math.random() > .8){
             let cartelGives = choice(["white powder", "green leaf", "organic mushroom"])
             giveItem(msg.author.id, cartelGives, 1)
-            await handleSending(msg, crv(`The cartel gives you ${cartelGives}`))
+            await handleSending(msg, crv(`The cartel gives you ${cartelGives}`, {status: StatusCode.INFO}))
+        }
+        if(hasItem(msg.author.id, "organic mixture")){
+            let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, 'max(100,20%)')
+            return crv(`You give the cartel your organic mixture, and they pay you ${this.getSign(msg)}${amount} for your great creation`)
         }
         if (Math.random() > .9) {
             let amount = economy.calculateAmountFromNetWorth(msg.author.id, "neg(30%)")
@@ -194,7 +199,7 @@ class Mexico extends Country {
             economy.addMoney(msg.author.id, amount)
             return crv(`The drug cartel steals ${this.getSign(msg)}${String(-amount).split(".")[0]} and 0.${String(-amount).split(".")[1]} cents from your pocket`)
         }
-        let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "10%")
+        let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().moneyAndStocks, "10%")
         economy.addMoney(msg.author.id, amount)
 
         return crv(`You join a drug cartel and form new friendships you should'nt have believed to be possible\nAfter many years of service you accumulate ${this.getSign(msg)}${amount}`)
@@ -202,7 +207,7 @@ class Mexico extends Country {
 
     async mayanTemple({ msg }: CommandV2RunArg) {
         if (Math.random() < .03) {
-            let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "1%")
+            let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().moneyAndStocks, "1%")
             economy.addMoney(msg.author.id, amount)
             return crv(`You found a secret gold stash worth: ${this.getSign(msg)}${amount}`)
         }
