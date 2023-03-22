@@ -77,6 +77,8 @@ const POSSIBLE_ACHIEVEMENTS = {
     "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(5%,300)"),
     "stale bread": new MoneyRewardAchievement("stale bread", "Sniff a stale baguette", "max(1%,50)"),
     "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1]),
+    "breaking good": new MoneyRewardAchievement("breaking good", "Create the organic mixture", "max(25%, 250)"),
+    "dealer": new ItemRewardAchievement("dealer", "Sell your organic mixture to the cartel", ["cartel's best wishes", 1])
 } as const
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};

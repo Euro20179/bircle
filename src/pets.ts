@@ -147,13 +147,17 @@ function feedPet(id: string, pet: string, itemName: string){
             break
         }
         case "baguette": {
-            amount = Math.floor(Math.random() * 10 + 5)
+            amount = Math.floor(Math.random() * 8 + 3)
             break;
         }
         case "paris special": {
             amount = 50
             canGoPastMax = true
             break;
+        }
+        case "meat": {
+             amount = Math.floor(Math.random() * 8 + 5)
+             break;
         }
         default:
             return false
