@@ -74,11 +74,12 @@ const POSSIBLE_ACHIEVEMENTS = {
     iraq: new ItemRewardAchievement("iraq", "travel to iraq", ["oil", 30]),
     traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
-    "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(5%,300)"),
+    "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(50%,500)"),
     "stale bread": new MoneyRewardAchievement("stale bread", "Sniff a stale baguette", "max(1%,50)"),
     "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1]),
     "breaking good": new MoneyRewardAchievement("breaking good", "Create the organic mixture", "max(25%, 250)"),
-    "dealer": new ItemRewardAchievement("dealer", "Sell your organic mixture to the cartel", ["cartel's best wishes", 1])
+    "dealer": new ItemRewardAchievement("dealer", "Sell your organic mixture to the cartel", ["cartel's best wishes", 1]),
+    "conspiracy theorist": new MoneyRewardAchievement("conspiracy theorist", "Obtain the conspiracy", "max(100%,1000)")
 } as const
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};

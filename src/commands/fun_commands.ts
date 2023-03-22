@@ -403,6 +403,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }],
             [["amelia earhart", "the titanic"], async () => {
                 giveItem(msg.author.id, "conspiracy", 1)
+                let ach = achievements.achievementGet(msg, "conspiracy theorist")
+                if(ach){
+                    await handleSending(msg, ach)
+                }
                 return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
             }],
             [["ship wreck"], async () => {
