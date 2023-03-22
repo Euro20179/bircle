@@ -247,12 +247,24 @@ class UnitedStates extends Country {
         this.registerActivity("museum of liberty", "max(25,5%)", this.museumOfLiberty.bind(this))
         this.registerActivity("second street", "0.02", this.secondStreet.bind(this))
         this.registerActivity("hawaii", "10000", this.hawaii.bind(this))
+        this.registerActivity('hunting', "2", this.huntingTrip.bind(this))
         return this
     }
 
     async secondStreet({ msg }: CommandV2RunArg) {
         economy.addMoney(msg.author.id, 0.01)
         return crv(`You found a penny on second street\ngain ${this.getSign(msg)}.01!!!`)
+    }
+
+    async huntingTrip({msg}: CommandV2RunArg){
+        if(!hasItem(msg.author.id, 'gun')){
+            return crv("The hunting trip was very boring because you dont have a gun")
+        }
+        let meat = choice(["pig", "cow", "deer"])
+        let boneCount = Math.floor(Math.random() * 5)
+        giveItem(msg.author.id, "bone", boneCount)
+        giveItem(msg.author.id, "meat", 1)
+        return crv(`You found a ${meat} and killed it and got ${boneCount} bones and 1 meat`)
     }
 
     async hawaii({msg}: CommandV2RunArg){
