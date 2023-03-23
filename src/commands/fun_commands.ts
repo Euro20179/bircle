@@ -330,6 +330,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return crv(`You earned ${sign}${crudeOil * gallonToBarrel} per gallon for a total of ${sign}${price}`)
             }],
             [["white powder", "green leaf", "organic mushroom"], async () => {
+                let ach = achievements.achievementGet(msg.author.id, "dealer")
+                if(ach){
+                    await handleSending(msg, ach)
+                }
                 giveItem(msg.author.id, 'organic mixture', 1)
                 return crv(`You have created an organic mixture`)
             }],

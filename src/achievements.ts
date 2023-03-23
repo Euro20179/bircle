@@ -114,8 +114,8 @@ function isAchievement(name: string){
 
 type AchievementMessage = CommandReturn
 
-function achievementGet(msg: Message, achievement: keyof typeof POSSIBLE_ACHIEVEMENTS): AchievementMessage | false{
-    let id = msg.author.id
+function achievementGet(msgOrId: Message | string, achievement: keyof typeof POSSIBLE_ACHIEVEMENTS): AchievementMessage | false{
+    let id = typeof msgOrId === 'string' ? msgOrId : msgOrId.author.id
     if(!cachedAchievements){
         cachedAchievements = getAchievements()
     }
@@ -138,7 +138,7 @@ function achievementGet(msg: Message, achievement: keyof typeof POSSIBLE_ACHIEVE
 
     saveAchievements()
 
-    return achievementObj.earn(msg.author.id)
+    return achievementObj.earn(id)
 }
 
 function getAchievementsOf(user: string){
