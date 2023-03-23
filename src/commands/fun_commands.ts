@@ -31,7 +31,6 @@ import travel_countries from '../travel/travel';
 import achievements from '../achievements';
 import htmlRenderer from '../html-renderer';
 import { slashCmds } from '../slashCommands';
-import amountParser from '../amount-parser';
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -2139,7 +2138,7 @@ Valid formats:
                 return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
 
-            let cost = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, countries[userGoingTo].cost)
+            let cost = economy.calculateAmountFromNetWorth(msg.author.id, countries[userGoingTo].cost)
 
             if (hasPassport) {
                 cost = 0
