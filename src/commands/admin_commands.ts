@@ -13,10 +13,10 @@ import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../u
 import achievements from '../achievements'
 const { hasItem, useItem, resetPlayerItems, resetItems } = require('../shop')
 
-export default function*(): Generator<[string, Command| CommandV2]> {
+export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
-        "CLEAR_INTERPRETER_CACHE", ccmdV2(async function(){
+        "CLEAR_INTERPRETER_CACHE", ccmdV2(async function() {
             Interpreter.resultCache = new Map()
             return crv("Cache cleared")
         }, "Clears the interpreter cache", {
@@ -39,18 +39,18 @@ export default function*(): Generator<[string, Command| CommandV2]> {
     ]
 
     yield [
-        "REMOVE_TRAVEL_LOCATION", ccmdV2(async function({msg, args}){
+        "REMOVE_TRAVEL_LOCATION", ccmdV2(async function({ msg, args }) {
             let creator = args[0]
             let user: User | undefined = msg.author
-            if(msg.guild)
+            if (msg.guild)
                 user = (await fetchUser(msg.guild, creator))?.user
             else
                 user = await fetchUserFromClient(client, creator)
-            if(!user){
+            if (!user) {
                 return crv(`${creator} not found`)
             }
             let location = args.slice(1).join(" ").trim()
-            if(user_country.removeCountry(user.id, location)){
+            if (user_country.removeCountry(user.id, location)) {
                 return crv(`Successfuly removed ${location}`)
             }
             return crv(`Could not remove ${location}`)
@@ -60,26 +60,26 @@ export default function*(): Generator<[string, Command| CommandV2]> {
     ]
 
     yield [
-        "TRASH_EMPTY", ccmdV2(async ({msg, sendCallback}) => {
-            fs.readdir("./garbage-files", async(err, files) => {
-                for(let file of files){
+        "TRASH_EMPTY", ccmdV2(async ({ msg, sendCallback }) => {
+            fs.readdir("./garbage-files", async (err, files) => {
+                for (let file of files) {
                     fs.rmSync(`./garbage-files/${file}`)
                 }
                 await handleSending(msg, crv(`Deleted all files`), sendCallback)
             })
-            return crv("Emptying files", {status: StatusCode.INFO})
+            return crv("Emptying files", { status: StatusCode.INFO })
         }, "Empties the garbage-files folder")
     ]
 
     yield [
         "REGISTER_COMMAND", createCommandV2(
-            async({rawArgs: args}) => {
+            async ({ rawArgs: args }) => {
                 let name = args[0]
                 args = args.slice(1)
-                let func = new (Object.getPrototypeOf(async function(){})).constructor("data", args.join(" "))
+                let func = new (Object.getPrototypeOf(async function() { })).constructor("data", args.join(" "))
 
                 registerCommand(name, createCommandV2(func, CommandCategory.FUN), CommandCategory.FUN)
-                return {content: "test", status: StatusCode.RETURN}
+                return { content: "test", status: StatusCode.RETURN }
             },
             CommandCategory.META,
             "Create a command",
@@ -101,9 +101,19 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 if (hasItem(msg.author.id, "reset economy")) {
                     useItem(msg.author.id, "reset economy")
                 }
+
+                fs.cpSync("./economy.json", "economy-old.json")
+
                 economy.resetEconomy()
 
-                return { content: "Economy reset", status: StatusCode.RETURN }
+                return {
+                    content: "Economy reset", status: StatusCode.RETURN, files: [
+                        {
+                            attachment: "./economy-old.json",
+                            name: "economy-old.json",
+                        }
+                    ],
+                }
 
             }, category: CommandCategory.ADMIN,
             permCheck: (m) => ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy"),
@@ -113,8 +123,7 @@ export default function*(): Generator<[string, Command| CommandV2]> {
         },
     ]
 
-    yield [
-        "RESET_LOTTERY",
+    yield ["RESET_LOTTERY",
         {
             run: async (msg, args, sb) => {
                 economy.newLottery()
@@ -166,17 +175,17 @@ export default function*(): Generator<[string, Command| CommandV2]> {
     ]
 
     yield [
-        "GIVE_ACHIEVEMENT", ccmdV2(async function({msg, args}){
+        "GIVE_ACHIEVEMENT", ccmdV2(async function({ msg, args }) {
             let [p, ach] = args
             let player = await fetchUserFromClientOrGuild(p, msg.guild)
-            if(!player){
+            if (!player) {
                 return crv(`${p} not found`)
             }
-            if(!achievements.isAchievement(ach)){
+            if (!achievements.isAchievement(ach)) {
                 return crv(`${ach} is not a valid achievement`)
             }
             let achText = achievements.achievementGet(player.id, ach)
-            if(achText){
+            if (achText) {
                 return achText
             }
             return crv(`${player.username} already has ${ach}`)
@@ -184,10 +193,10 @@ export default function*(): Generator<[string, Command| CommandV2]> {
     ]
 
     yield [
-        "GIVE_ITEM", ccmdV2(async function({msg, args, opts}){
-            if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
+        "GIVE_ITEM", ccmdV2(async function({ msg, args, opts }) {
+            if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
             let player = await fetchUser(msg.guild, args[0])
-            if(!player){
+            if (!player) {
                 return crv(`${args[0]} not found`)
             }
             giveItem(player.user.id, args.slice(1).join(" "), opts.getNumber("count", 1))
@@ -300,7 +309,7 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                     }
                     catch (err) { }
                 }
-                await handleSending(msg, {content: "STOPPING", status: StatusCode.RETURN}, sendCallback)
+                await handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
                 economy.saveEconomy()
                 saveItems()
                 vars.saveVars()
