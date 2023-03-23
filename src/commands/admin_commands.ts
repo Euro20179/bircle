@@ -9,7 +9,8 @@ import timer from '../timer'
 import { giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'
 import { Message, User } from 'discord.js'
-import { fetchUser, fetchUserFromClient } from '../util'
+import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
+import achievements from '../achievements'
 const { hasItem, useItem, resetPlayerItems, resetItems } = require('../shop')
 
 export default function*(): Generator<[string, Command| CommandV2]> {
@@ -162,6 +163,24 @@ export default function*(): Generator<[string, Command| CommandV2]> {
                 info: "Reset's a players inventory"
             }
         },
+    ]
+
+    yield [
+        "GIVE_ACHIEVEMENT", ccmdV2(async function({msg, args}){
+            let [p, ach] = args
+            let player = await fetchUserFromClientOrGuild(p, msg.guild)
+            if(!player){
+                return crv(`${p} not found`)
+            }
+            if(!achievements.isAchievement(ach)){
+                return crv(`${ach} is not a valid achievement`)
+            }
+            let achText = achievements.achievementGet(player.id, ach)
+            if(achText){
+                return achText
+            }
+            return crv(`${player.username} already has ${ach}`)
+        }, "Give a player an achievement")
     ]
 
     yield [
