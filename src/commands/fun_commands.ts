@@ -378,7 +378,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             [["a fine quarter"], async () => {
                 let amount = economy.economyLooseGrandTotal().total
                 economy.addMoney(msg.author.id, amount * 0.0026)
-                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} :+1:`, status: StatusCode.RETURN }
+                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount * 0.0026} :+1:`, status: StatusCode.RETURN }
             }],
             [["pirate's gold tooth", "a fine quarter"], async () => {
                 giveItem(msg.author.id, "pawn shop", 1)
