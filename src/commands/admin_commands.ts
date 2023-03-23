@@ -202,8 +202,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (!player) {
                 return crv(`${user} not found`)
             }
-            if(INVENTORY[player.id]?.[itemName] !== undefined){
-                delete INVENTORY[player.id][itemName]
+            if(INVENTORY()[player.id]?.[itemName] !== undefined){
+                delete INVENTORY()[player.id][itemName]
                 return crv(`${itemName} deleted form ${player}'s inventory`, {
                     allowedMentions: {parse: []}
                 })
