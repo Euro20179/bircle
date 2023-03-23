@@ -11,7 +11,7 @@ import user_country from '../travel/user-country'
 import { Message, User } from 'discord.js'
 import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
 import achievements from '../achievements'
-const { hasItem, useItem, resetPlayerItems, resetItems } = require('../shop')
+const { hasItem, useItem, resetPlayerItems, resetItems, INVENTORY } = require('../shop')
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -189,7 +189,31 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return achText
             }
             return crv(`${player.username} already has ${ach}`)
-        }, "Give a player an achievement")
+        }, "Give a player an achievement", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
+    ]
+
+    yield [
+        "DELETE_ITEM", ccmdV2(async function({msg, args}){
+            let [user, ...item] = args
+            let itemName = item.join(" ")
+            let player = await fetchUserFromClientOrGuild(user, msg.guild)
+            if (!player) {
+                return crv(`${user} not found`)
+            }
+            if(INVENTORY[player.id]?.[itemName] !== undefined){
+                delete INVENTORY[player.id][itemName]
+                return crv(`${itemName} deleted form ${player}'s inventory`, {
+                    allowedMentions: {parse: []}
+                })
+            }
+            return crv(`${player} does not have ${itemName}`, {
+                allowedMentions: {parse: []}
+            })
+        }, "Deletes an item from players inventory", {
+            permCheck:  m => ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [
