@@ -949,7 +949,7 @@ class Parser {
         let tok = this.#curTok as Token<TT>
         if (tok?.type === TT.lparen) {
             this.advance()
-            let node = this.expr()
+            let node = this.pipe()
             this.advance()
             return node
         }
@@ -1071,10 +1071,13 @@ class Parser {
     }
 
     pipe(): Node {
-        let node = new PipeNode(this.expr())
+        let node = this.expr()
         while(this.#curTok?.type === TT.pipe){
-            this.advance()
-            node.addToChain(this.expr())
+            if(!(node instanceof PipeNode)) {
+                node = new PipeNode(node)
+            }
+            this.advance();
+            (node as PipeNode).addToChain(this.expr())
         }
         return node
     }
