@@ -124,7 +124,7 @@ export class AliasV2 {
         }
 
         for (let opt of Object.entries(opts)) {
-            vars.setVar(`-${opt[0]}`, String(opt[1]), msg.author.id)
+            vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
@@ -252,7 +252,7 @@ export class AliasV2 {
         //     rv.sendCallback = interpreter?.sendCallback
 
         for (let opt of Object.entries(opts)) {
-            vars.delVar(`-${opt[0]}`, msg.author.id)
+            vars.delVar(`${msg.author.id}:-${opt[0]}`)
         }
 
         if (this.standardizeOpts) {

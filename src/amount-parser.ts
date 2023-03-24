@@ -41,10 +41,14 @@ enum TT {
     eq,
     "number_suffix",
     "special_literal",
-    "pipe"
+    "pipe",
+    "lt",
+    "le",
+    gt,
+    ge,
 }
 
-const KEYWORDS = ['var', 'end'] as const
+const KEYWORDS = ['var', 'end', 'if', 'then', 'else', 'elif'] as const
 
 
 type TokenDataType = {
@@ -67,7 +71,11 @@ type TokenDataType = {
     [TT.ident]: string,
     [TT.eq]: '=',
     [TT.keyword]: typeof KEYWORDS[number],
-    [TT.pipe]: "|"
+    [TT.pipe]: "|",
+    [TT.le]: "<=",
+    [TT.lt]: "<",
+    [TT.gt]: ">",
+    [TT.ge]: ">="
 }
 
 class Token<TokenType extends TT> {
@@ -172,6 +180,15 @@ class Lexer {
         return new Token(TT.mul, '*')
     }
 
+    buildInequality() {
+        let start = this.#curChar
+        if (this.advance() && this.#curChar === '=') {
+            return start + '='
+        }
+        this.back()
+        return start
+    }
+
     tokenize() {
         //this.advance() could return empty string which is still technically valid
         while (this.advance() !== false) {
@@ -251,6 +268,20 @@ class Lexer {
                     this.tokens.push(new Token(TT.eq, '='))
                     break;
                 }
+                case '>': {
+                    let data = this.buildInequality()
+                    this.tokens.push(
+                        data === ">" ? new Token(TT.gt, ">") : new Token(TT.ge, ">=")
+                    )
+                    break;
+                }
+                case '<': {
+                    let data = this.buildInequality()
+                    this.tokens.push(
+                        data === "<" ? new Token(TT.lt, "<") : new Token(TT.le, "<=")
+                    )
+                    break;
+                }
                 case 'M': case 'B': case 'K': case 'T': {
                     this.tokens.push(new Token(TT.number_suffix, this.#curChar))
                     break;
@@ -314,6 +345,7 @@ abstract class Type<JSType>{
     abstract div(other: Type<any>): Type<JSType>
     abstract idiv(other: Type<any>): Type<JSType>
 
+    abstract truthy(): boolean
 
     abstract string(): Type<string>
     abstract number(): Type<number>
@@ -322,6 +354,10 @@ abstract class Type<JSType>{
 class NumberType extends Type<number>{
     access(): number {
         return this.data
+    }
+
+    truthy(): boolean {
+        return this.data !== 0
     }
 
     add(other: Type<any>): NumberType {
@@ -374,6 +410,9 @@ class StringType extends Type<string>{
     access(): string {
         return this.data
     }
+    truthy(): boolean {
+        return this.data !== ""
+    }
     add(other: Type<string>): Type<string> {
         return new StringType(this.data + String(other.access()))
     }
@@ -420,6 +459,10 @@ class FunctionType extends Type<UserFunction> {
         return this.data
     }
 
+    truthy(): boolean {
+        return true
+    }
+
     mul(other: Type<any>): Type<UserFunction> {
         throw new OperatorError("Cannot use * with function")
     }
@@ -449,7 +492,7 @@ class FunctionType extends Type<UserFunction> {
     }
 
     string(): Type<string> {
-        return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.text}`)
+        return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.toString()}`)
     }
 
     number(): Type<number> {
@@ -462,12 +505,12 @@ class FunctionType extends Type<UserFunction> {
 }
 
 class UserFunction {
-    text: string
+    codeToks: Token<TT>[]
     argIdents: string[]
     name: string
     code: ProgramNode | undefined
-    constructor(name: string, text: string, argIdents: string[]) {
-        this.text = text
+    constructor(name: string, codeToks: Token<any>[], argIdents: string[]) {
+        this.codeToks = codeToks
         this.argIdents = argIdents
         this.name = name
     }
@@ -480,14 +523,14 @@ class UserFunction {
             argRecord[this.argIdents[i]] = args[i]
         }
         if (!this.code) {
-            let data = calculateAmountRelativeToInternals(relativeTo, this.text, argRecord).expression
+            let data = calculateAmountRelativeToInternals(relativeTo, this.codeToks, argRecord).expression
             this.code = data
         }
         let data = this.code.visit(relativeTo, new SymbolTable(argRecord))
         return data[data.length - 1]
     }
     toString() {
-        return this.text
+        return this.codeToks.reduce((p, c) => p + " " + c.data, "")
     }
 }
 
@@ -522,7 +565,7 @@ class PipeNode extends Node {
         this.chain = []
     }
 
-    addToChain(node: Node){
+    addToChain(node: Node) {
         this.chain.push(node)
     }
 
@@ -587,11 +630,62 @@ ${'\t'.repeat(indent)})`
     }
 }
 
+class IfNode extends Node {
+    condition: Node
+    code: ProgramNode
+    elifPrograms: [Node, ProgramNode][]
+    elseProgram?: ProgramNode
+    constructor(condition: Node, code: ProgramNode, elifPrograms?: [Node, ProgramNode][], elseProgram?: ProgramNode) {
+        super()
+        this.condition = condition
+        this.code = code
+        this.elseProgram = elseProgram
+        this.elifPrograms = elifPrograms ?? []
+    }
+
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
+        if (this.condition.visit(relativeTo, table).truthy()) {
+            return new NumberType(this.code.visit(relativeTo, table).slice(-1)[0])
+        }
+        if(this.elifPrograms){
+            for(let [check, program] of this.elifPrograms){
+                if(check.visit(relativeTo, table).truthy()){
+                    return new NumberType(program.visit(relativeTo, table).splice(-1)[0])
+                }
+            }
+        }
+        if (this.elseProgram) {
+            return new NumberType(this.elseProgram.visit(relativeTo, table).slice(-1)[0])
+        }
+        return new NumberType(0)
+    }
+
+    repr(indent: number): string {
+        let text = `IfNode(
+${'\t'.repeat(indent + 1)}check(${this.condition.repr(indent + 1)})
+${'\t'.repeat(indent + 1)}(
+${'\t'.repeat(indent + 2)}${this.code.repr(indent + 2)}
+${'\t'.repeat(indent + 1)})\n`
+        for(let [_, program] of this.elifPrograms){
+            text += `${'\t'.repeat(indent + 1)}Elif(
+${'\t'.repeat(indent + 2)}${program.repr(indent + 2)}
+${'\t'.repeat(indent + 1)})\n`
+        }
+        if (this.elseProgram) {
+            text += `${'\t'.repeat(indent + 1)}Else(
+${'\t'.repeat(indent + 2)}${this.elseProgram.repr(indent + 2)}
+${'\t'.repeat(indent + 1)})\n`
+        }
+        text += '\t'.repeat(indent) + ")"
+        return text
+    }
+}
+
 class FuncCreateNode extends Node {
     name: Token<TT.ident>
-    code: string
+    code: Token<TT>[]
     parameterNames: Token<TT.ident>[]
-    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: string) {
+    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: Token<any>[]) {
         super()
         this.name = name
         this.code = code
@@ -607,7 +701,7 @@ class FuncCreateNode extends Node {
         return `FunctionCreate(
 ${'\t'.repeat(indent + 1)}${this.name.data}(${this.parameterNames.map(v => v.data)})
 ${'\t'.repeat(indent + 1)}(
-${'\t'.repeat(indent + 2)}${this.code}
+${'\t'.repeat(indent + 2)}${this.code.reduce((p, c) => p + " " + c.data, "")}
 ${'\t'.repeat(indent + 1)})
 ${'\t'.repeat(indent)})`
     }
@@ -738,9 +832,9 @@ ${'\t'.repeat(indent)})`
 
 class BinOpNode extends Node {
     left: Node
-    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root>
+    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>
     right: Node
-    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root>, right: Node) {
+    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>, right: Node) {
         super()
         this.left = left
         this.operator = operator
@@ -760,6 +854,11 @@ class BinOpNode extends Node {
             case '/': return left.idiv(right)
             case '^': data = Math.pow(left.access(), right.access()); break;
             case '^/': data = Math.pow(right.access(), (1 / left.access())); break;
+            case '<=': data = Number(left.access() <= right.access()); break;
+            case '>=': data = Number(left.access() >= right.access()); break;
+            case '>': data = Number(left.access() > right.access()); break;
+            case '<': data = Number(left.access() < right.access()); break;
+            case '=': data = Number(left.access() === right.access()); break;
         }
         return new NumberType(data)
     }
@@ -949,7 +1048,7 @@ class Parser {
         let tok = this.#curTok as Token<TT>
         if (tok?.type === TT.lparen) {
             this.advance()
-            let node = this.pipe()
+            let node = this.statement()
             this.advance()
             return node
         }
@@ -1025,7 +1124,7 @@ class Parser {
         this.advance()
         if (this.#curTok?.type === TT.eq) {
             this.advance()
-            return new VariableAssignNode(name, this.expr())
+            return new VariableAssignNode(name, this.comp())
         }
         else if (this.#curTok?.type === TT.lparen) {
             let idents: Token<TT.ident>[] = []
@@ -1048,10 +1147,10 @@ class Parser {
                 throw new SyntaxError("Expected '='")
             }
 
-            let code = ""
+            let code: Token<any>[] = []
 
             while (this.advance() && (this.#curTok?.type as TT !== TT.keyword && this.#curTok?.data !== 'end')) {
-                code += this.#curTok.data + " "
+                code.push(this.#curTok)
             }
 
             this.advance()
@@ -1063,17 +1162,13 @@ class Parser {
     }
 
     expr(): Node {
-        if (this.#curTok?.type === TT.keyword) {
-            if (this.#curTok.data === 'var')
-                return this.var_assign()
-        }
         return new ExpressionNode(this.root())
     }
 
     pipe(): Node {
         let node = this.expr()
-        while(this.#curTok?.type === TT.pipe){
-            if(!(node instanceof PipeNode)) {
+        while (this.#curTok?.type === TT.pipe) {
+            if (!(node instanceof PipeNode)) {
                 node = new PipeNode(node)
             }
             this.advance();
@@ -1082,11 +1177,63 @@ class Parser {
         return node
     }
 
+    comp(): Node {
+        let left = this.pipe()
+        if ([TT.lt, TT.le, TT.eq, TT.gt, TT.ge].includes(this.#curTok?.type as TT)) {
+            let op = this.#curTok as Token<any>
+            this.advance()
+            left = new BinOpNode(left, op, this.pipe())
+        }
+        return left
+    }
+
+    if_statement() {
+        this.advance()
+        let comp = this.comp()
+        if (this.#curTok?.type !== TT.keyword || this.#curTok?.data !== 'then') {
+            throw new SyntaxError("Expected 'then' to start if block")
+        }
+        this.advance()
+        let code = this.program()
+        let elseNode
+        let elifPrograms: [Node, ProgramNode][] = []
+        while(this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'elif'){
+            this.advance()
+            let check = this.comp()
+            if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'then') {
+                throw new SyntaxError("Expected 'then' to start the elif block")
+            }
+            this.advance()
+            let program = this.program()
+            elifPrograms.push([check, program])
+        }
+        if (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'else') {
+            this.advance()
+            elseNode = this.program()
+        }
+        if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'end') {
+            throw new SyntaxError("Expected 'end' to end if block")
+        }
+        this.advance()
+        return new IfNode(comp, code, elifPrograms, elseNode)
+    }
+
+    statement() {
+        if (this.#curTok?.type === TT.keyword) {
+            if (this.#curTok.data === 'var')
+                return this.var_assign()
+            else if (this.#curTok.data === 'if') {
+                return this.if_statement()
+            }
+        }
+        return this.comp()
+    }
+
     program(): ProgramNode {
-        let nodeArr = [this.pipe()]
+        let nodeArr = [this.statement()]
         while (this.#curTok?.type === TT.semi) {
             this.advance()
-            nodeArr.push(this.pipe())
+            nodeArr.push(this.statement())
         }
         return new ProgramNode(nodeArr)
     }
@@ -1110,10 +1257,16 @@ class Interpreter {
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>) {
-    let lexer = new Lexer(amount, Object.keys(extras ?? {}))
-    lexer.tokenize()
-    let parser = new Parser(lexer.tokens)
+function calculateAmountRelativeToInternals(money: number, amount: string | Token<any>[], extras?: Record<string, (total: number, k: string) => number>) {
+    let tokens, lexer;
+    if (typeof amount !== 'object') {
+        let lexer = new Lexer(amount, Object.keys(extras ?? {}))
+        lexer.tokenize()
+
+        tokens = lexer.tokens
+    }
+    else tokens = amount
+    let parser = new Parser(tokens)
     let expression = parser.parse()
     let env = {
         'all': (total: number) => total * .99,
