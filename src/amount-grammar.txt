@@ -11,7 +11,7 @@ atom: number | function | literal | special-literal | string | var-access
 right-unary-op: % | # | "k" | "m" | "b" | "t"
 left-unary-op: # | -
 
-factor: atom | LPAREN expr RPAREN
+factor: atom | LPAREN pipe RPAREN
 
 mutate-expr: factor
            : (left-unary-op)* mutate-expr (right-unary-op)*
@@ -24,8 +24,10 @@ arithmetic: term ((PLUS| MINUS) term)*
 
 root: arithmetic ((ROOT) arithmetic)*
 
-var-assign: IDENT "=" expr
+var-assign: "var" (IDENT "=" expr | IDENT LPAREN ((IDNET ("," IDENT)*)*) RPAREN "=" code "end")
 
 expr: root | var-assign
 
-program: expr (SEMI expr)*
+pipe: expr ("|" expr)*
+
+program: pipe (SEMI pipe)*
