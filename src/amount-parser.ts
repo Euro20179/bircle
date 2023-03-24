@@ -41,7 +41,11 @@ enum TT {
     eq,
     "number_suffix",
     "special_literal",
-    "pipe"
+    "pipe",
+    "lt",
+    "le",
+    gt,
+    ge,
 }
 
 const KEYWORDS = ['var', 'end'] as const
@@ -67,7 +71,11 @@ type TokenDataType = {
     [TT.ident]: string,
     [TT.eq]: '=',
     [TT.keyword]: typeof KEYWORDS[number],
-    [TT.pipe]: "|"
+    [TT.pipe]: "|",
+    [TT.le]: "<=",
+    [TT.lt]: "<",
+    [TT.gt]: ">",
+    [TT.ge]: ">="
 }
 
 class Token<TokenType extends TT> {
@@ -172,6 +180,15 @@ class Lexer {
         return new Token(TT.mul, '*')
     }
 
+    buildInequality() {
+        let start = this.#curChar
+        if (this.advance() && this.#curChar === '=') {
+            return start + '='
+        }
+        this.back()
+        return start
+    }
+
     tokenize() {
         //this.advance() could return empty string which is still technically valid
         while (this.advance() !== false) {
@@ -249,6 +266,20 @@ class Lexer {
                 }
                 case '=': {
                     this.tokens.push(new Token(TT.eq, '='))
+                    break;
+                }
+                case '>': {
+                    let data = this.buildInequality()
+                    this.tokens.push(
+                        data === ">" ? new Token(TT.gt, ">") : new Token(TT.ge, ">=")
+                    )
+                    break;
+                }
+                case '<': {
+                    let data = this.buildInequality()
+                    this.tokens.push(
+                        data === "<" ? new Token(TT.lt, "<") : new Token(TT.le, "<=")
+                    )
                     break;
                 }
                 case 'M': case 'B': case 'K': case 'T': {
@@ -522,7 +553,7 @@ class PipeNode extends Node {
         this.chain = []
     }
 
-    addToChain(node: Node){
+    addToChain(node: Node) {
         this.chain.push(node)
     }
 
@@ -738,9 +769,9 @@ ${'\t'.repeat(indent)})`
 
 class BinOpNode extends Node {
     left: Node
-    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root>
+    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>
     right: Node
-    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root>, right: Node) {
+    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>, right: Node) {
         super()
         this.left = left
         this.operator = operator
@@ -760,6 +791,11 @@ class BinOpNode extends Node {
             case '/': return left.idiv(right)
             case '^': data = Math.pow(left.access(), right.access()); break;
             case '^/': data = Math.pow(right.access(), (1 / left.access())); break;
+            case '<=': data = Number(left.access() <= right.access()); break;
+            case '>=': data = Number(left.access() >= right.access()); break;
+            case '>': data = Number(left.access() > right.access()); break;
+            case '<': data = Number(left.access() < right.access()); break;
+            case '=': data = Number(left.access() === right.access()); break;
         }
         return new NumberType(data)
     }
@@ -949,7 +985,7 @@ class Parser {
         let tok = this.#curTok as Token<TT>
         if (tok?.type === TT.lparen) {
             this.advance()
-            let node = this.pipe()
+            let node = this.statement()
             this.advance()
             return node
         }
@@ -1025,7 +1061,7 @@ class Parser {
         this.advance()
         if (this.#curTok?.type === TT.eq) {
             this.advance()
-            return new VariableAssignNode(name, this.expr())
+            return new VariableAssignNode(name, this.comp())
         }
         else if (this.#curTok?.type === TT.lparen) {
             let idents: Token<TT.ident>[] = []
@@ -1063,17 +1099,13 @@ class Parser {
     }
 
     expr(): Node {
-        if (this.#curTok?.type === TT.keyword) {
-            if (this.#curTok.data === 'var')
-                return this.var_assign()
-        }
         return new ExpressionNode(this.root())
     }
 
     pipe(): Node {
         let node = this.expr()
-        while(this.#curTok?.type === TT.pipe){
-            if(!(node instanceof PipeNode)) {
+        while (this.#curTok?.type === TT.pipe) {
+            if (!(node instanceof PipeNode)) {
                 node = new PipeNode(node)
             }
             this.advance();
@@ -1082,11 +1114,29 @@ class Parser {
         return node
     }
 
+    comp(): Node {
+        let left = this.pipe()
+        if ([TT.lt, TT.le, TT.eq, TT.gt, TT.ge].includes(this.#curTok?.type as TT)) {
+            let op = this.#curTok as Token<any>
+            this.advance()
+            left = new BinOpNode(left, op, this.pipe())
+        }
+        return left
+    }
+
+    statement() {
+        if (this.#curTok?.type === TT.keyword) {
+            if (this.#curTok.data === 'var')
+                return this.var_assign()
+        }
+        return this.comp()
+    }
+
     program(): ProgramNode {
-        let nodeArr = [this.pipe()]
+        let nodeArr = [this.statement()]
         while (this.#curTok?.type === TT.semi) {
             this.advance()
-            nodeArr.push(this.pipe())
+            nodeArr.push(this.statement())
         }
         return new ProgramNode(nodeArr)
     }
