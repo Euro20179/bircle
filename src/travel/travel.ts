@@ -144,7 +144,8 @@ class Canada extends Country {
     }
 
     async sitAtFireplace({msg}: CommandV2RunArg){
-        let amount = Math.floor(Math.random() * 100)
+        //total based on cash because that's what you would get if someone thought you were homeless
+        let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().money, "rand(max(1,1%), max(100,3%))")
         economy.addMoney(msg.author.id, amount)
         return crv(`You sit with your blanket at a fireplace\nSomeone thinks you're homeless, and gives you ${this.getSign(msg)}${amount}`)
     }
