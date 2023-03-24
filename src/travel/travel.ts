@@ -63,7 +63,7 @@ class Country {
 
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
         let activitiesText = listComprehension(this.activities.entries(), ([name, activity], idx) => {
-            return `${idx + 1}: ${name} (cost: ${activity.cost})`
+            return `${idx + 1}: ${name} (cost: ${economy.calculateAmountFromNetWorth(msg.author.id, activity.cost)})`
         }).join("\n")
 
         let name = "name" in this ? this.name : this.constructor.name

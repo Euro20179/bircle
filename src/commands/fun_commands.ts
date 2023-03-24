@@ -2121,7 +2121,6 @@ Valid formats:
 
             let defaultCountries = travel_countries.getCountries("default")
 
-
             let hasPassport = hasItem(msg.author.id, "passport")
 
             if (opts.getBool("countries", opts.getBool("l", false))) {
