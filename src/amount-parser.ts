@@ -48,7 +48,7 @@ enum TT {
     ge,
 }
 
-const KEYWORDS = ['var', 'end'] as const
+const KEYWORDS = ['var', 'end', 'if', 'then'] as const
 
 
 type TokenDataType = {
@@ -480,7 +480,7 @@ class FunctionType extends Type<UserFunction> {
     }
 
     string(): Type<string> {
-        return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.text}`)
+        return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.toString()}`)
     }
 
     number(): Type<number> {
@@ -493,12 +493,12 @@ class FunctionType extends Type<UserFunction> {
 }
 
 class UserFunction {
-    text: string
+    codeToks: Token<TT>[]
     argIdents: string[]
     name: string
     code: ProgramNode | undefined
-    constructor(name: string, text: string, argIdents: string[]) {
-        this.text = text
+    constructor(name: string, codeToks: Token<any>[], argIdents: string[]) {
+        this.codeToks= codeToks
         this.argIdents = argIdents
         this.name = name
     }
@@ -511,14 +511,14 @@ class UserFunction {
             argRecord[this.argIdents[i]] = args[i]
         }
         if (!this.code) {
-            let data = calculateAmountRelativeToInternals(relativeTo, this.text, argRecord).expression
+            let data = calculateAmountRelativeToInternals(relativeTo, this.codeToks, argRecord).expression
             this.code = data
         }
         let data = this.code.visit(relativeTo, new SymbolTable(argRecord))
         return data[data.length - 1]
     }
     toString() {
-        return this.text
+        return this.codeToks.reduce((p, c) => p + " " + c.data, "")
     }
 }
 
@@ -620,9 +620,9 @@ ${'\t'.repeat(indent)})`
 
 class FuncCreateNode extends Node {
     name: Token<TT.ident>
-    code: string
+    code: Token<any>[]
     parameterNames: Token<TT.ident>[]
-    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: string) {
+    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: Token<any>[]) {
         super()
         this.name = name
         this.code = code
@@ -638,7 +638,7 @@ class FuncCreateNode extends Node {
         return `FunctionCreate(
 ${'\t'.repeat(indent + 1)}${this.name.data}(${this.parameterNames.map(v => v.data)})
 ${'\t'.repeat(indent + 1)}(
-${'\t'.repeat(indent + 2)}${this.code}
+${'\t'.repeat(indent + 2)}${this.code.reduce((p, c) => p + " " + c.data, "")}
 ${'\t'.repeat(indent + 1)})
 ${'\t'.repeat(indent)})`
     }
@@ -1084,10 +1084,10 @@ class Parser {
                 throw new SyntaxError("Expected '='")
             }
 
-            let code = ""
+            let code: Token<any>[] = []
 
             while (this.advance() && (this.#curTok?.type as TT !== TT.keyword && this.#curTok?.data !== 'end')) {
-                code += this.#curTok.data + " "
+                code.push(this.#curTok)
             }
 
             this.advance()
@@ -1160,10 +1160,16 @@ class Interpreter {
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>) {
-    let lexer = new Lexer(amount, Object.keys(extras ?? {}))
-    lexer.tokenize()
-    let parser = new Parser(lexer.tokens)
+function calculateAmountRelativeToInternals(money: number, amount: string | Token<any>[], extras?: Record<string, (total: number, k: string) => number>) {
+    let tokens, lexer;
+    if(typeof amount !== 'object'){
+        let lexer = new Lexer(amount, Object.keys(extras ?? {}))
+        lexer.tokenize()
+        
+        tokens = lexer.tokens
+    }
+    else tokens = amount
+    let parser = new Parser(tokens)
     let expression = parser.parse()
     let env = {
         'all': (total: number) => total * .99,
