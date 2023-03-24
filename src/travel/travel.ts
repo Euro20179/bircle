@@ -187,6 +187,8 @@ class Mexico extends Country {
         }
         if(hasItem(msg.author.id, "organic mixture")){
             let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, 'max(100,20%)')
+            let ach = achievements.achievementGet(msg.author.id, "dealer")
+            if(ach) await handleSending(msg, ach)
             return crv(`You give the cartel your organic mixture, and they pay you ${this.getSign(msg)}${amount} for your great creation`)
         }
         if (Math.random() > .9) {
