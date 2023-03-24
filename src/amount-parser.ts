@@ -43,7 +43,7 @@ enum TT {
     "special_literal"
 }
 
-const KEYWORDS = ['var'] as const
+const KEYWORDS = ['var', 'end'] as const
 
 
 type TokenDataType = {
@@ -121,8 +121,8 @@ class Lexer {
             n += this.#curChar as string
         }
         let number = Number(n)
-        if('kmbt'.includes(this.#curChar as string)){
-            switch(this.#curChar){
+        if ('kmbt'.includes(this.#curChar as string)) {
+            switch (this.#curChar) {
                 case 'k': number *= 1000; break;
                 case 'm': number *= 1_000_000; break;
                 case 'b': number *= 1_000_000_000; break;
@@ -130,7 +130,7 @@ class Lexer {
             }
         }
         //only go back if we have not reached the end and is not a special case suffix
-        else if(!this.atEnd){
+        else if (!this.atEnd) {
             this.back()
         }
         return number
@@ -217,7 +217,7 @@ class Lexer {
                     break
                 }
                 case "/": {
-                    if(this.tokens[this.tokens.length - 1].type === TT.pow){
+                    if (this.tokens[this.tokens.length - 1].type === TT.pow) {
                         this.tokens.pop()
                         this.tokens.push(new Token(TT.root, '^/'))
                         break;
@@ -262,19 +262,19 @@ class Lexer {
 }
 
 class SymbolTable extends Map {
-    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string>){
+    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string>) {
         super()
-        for(let key in base){
+        for (let key in base) {
             this.set(key, base[key])
         }
     }
 
     get(key: any) {
         let val = super.get(key)
-        if(typeof val === 'string'){
+        if (typeof val === 'string') {
             return new StringType(val)
         }
-        else if(typeof val === 'number'){
+        else if (typeof val === 'number') {
             return new NumberType(val)
         }
         return val
@@ -293,7 +293,7 @@ abstract class Program {
 
 abstract class Type<JSType>{
     protected data: JSType
-    constructor(internalData: JSType){
+    constructor(internalData: JSType) {
         this.data = internalData
     }
     abstract access(): JSType
@@ -328,7 +328,7 @@ class NumberType extends Type<number>{
         return new NumberType(this.data * other.access())
     }
 
-    imul(other: Type<number>): Type<number>{
+    imul(other: Type<number>): Type<number> {
         this.data *= other.access()
         return this
     }
@@ -404,6 +404,36 @@ class StringType extends Type<string>{
     }
 }
 
+class UserFunction {
+    text: string
+    argIdents: string[]
+    name: string
+    code: ProgramNode | undefined
+    constructor(name: string, text: string, argIdents: string[]) {
+        this.text = text
+        this.argIdents = argIdents
+        this.name = name
+    }
+    run(relativeTo: number, args: Type<any>[]) {
+        let argRecord: { [key: string]: any } = {}
+        if (args.length < this.argIdents.length) {
+            throw new TypeError(`${this.name} expected ${this.argIdents.length} arguments but got ${args.length}`)
+        }
+        for (let i = 0; i < this.argIdents.length; i++) {
+            argRecord[this.argIdents[i]] = args[i]
+        }
+        if(!this.code){
+            let data = calculateAmountRelativeToInternals(relativeTo, this.text, argRecord).expression
+            this.code = data
+        }
+        let data = this.code.visit(relativeTo, new SymbolTable(argRecord))
+        return data[data.length - 1]
+    }
+    toString() {
+        return this.text
+    }
+}
+
 class ProgramNode extends Program {
     expressions: Exclude<Node, ProgramNode>[]
     constructor(ns: Node[]) {
@@ -453,7 +483,7 @@ class VariableAssignNode extends Node {
         this.value = value
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any>{
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
         let val = this.value.visit(relativeTo, table)
         table.set(this.name.data, val)
         return val
@@ -468,6 +498,32 @@ ${'\t'.repeat(indent)})`
     }
 }
 
+class FuncCreateNode extends Node {
+    name: Token<TT.ident>
+    code: string
+    parameterNames: Token<TT.ident>[]
+    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: string) {
+        super()
+        this.name = name
+        this.code = code
+        this.parameterNames = parameterNames
+    }
+
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
+        table.set(this.name.data, new UserFunction(this.name.data, this.code, this.parameterNames.map(v => v.data)))
+        return new NumberType(0)
+    }
+
+    repr(indent: number): string {
+        return `FunctionCreate(
+${'\t'.repeat(indent + 1)}${this.name.data}(${this.parameterNames.map(v => v.data)})
+${'\t'.repeat(indent + 1)}(
+${'\t'.repeat(indent + 2)}${this.code}
+${'\t'.repeat(indent + 1)})
+${'\t'.repeat(indent)})`
+    }
+}
+
 class VarAccessNode extends Node {
     name: Token<TT.ident>
     constructor(name: Token<TT.ident>) {
@@ -475,10 +531,14 @@ class VarAccessNode extends Node {
         this.name = name
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any>{
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
         let val = table.get(this.name.data)
-        if(typeof val === 'function'){
+        if (typeof val === 'function') {
             return new NumberType(val(relativeTo, this.name.data))
+        }
+        else if(val instanceof ProgramNode){
+            let data = val.visit(relativeTo, Object.assign({}, table))
+            return new NumberType(data[data.length])
         }
         return val ?? new NumberType(0)
     }
@@ -570,7 +630,7 @@ class LeftUnOpNode extends Node {
         if (typeof number === 'string') {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
-        switch(this.operator.type){
+        switch (this.operator.type) {
             case TT.hash:
                 return new NumberType(number - (relativeTo % number))
             case TT.minus:
@@ -610,7 +670,7 @@ class BinOpNode extends Node {
             case '*': return left.imul(right)
             case '/': return left.idiv(right)
             case '^': data = Math.pow(left.access(), right.access()); break;
-            case '^/': data = Math.pow(right.access(), (1/left.access())); break;
+            case '^/': data = Math.pow(right.access(), (1 / left.access())); break;
         }
         return new NumberType(data)
     }
@@ -632,7 +692,7 @@ class FunctionNode extends Node {
         this.name = name
         this.nodes = nodes
     }
-    visit(relativeTo: number, table: SymbolTable): NumberType | StringType{
+    visit(relativeTo: number, table: SymbolTable): NumberType | StringType {
         let values = this.nodes.map(v => v.visit(relativeTo, table)) ?? [new NumberType(0)]
         let argCount = {
             'rand': 2,
@@ -665,6 +725,19 @@ class FunctionNode extends Node {
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'abs': return new NumberType(Math.abs(values[0].access()))
+            case 'sum': return function(){
+                switch(typeof values[0].access()){
+                    case 'string': return new StringType(values.reduce((p, c) => p + c.access(), ""))
+                    case 'number': return new NumberType(values.reduce((p, c) => p + c.access(), 0))
+                    default: return new NumberType(0)
+                }
+            }()
+            case 'product': {
+                if(typeof values[0].access() === 'number'){
+                    return new NumberType(values.reduce((p, c) => p * c.access(), 0))
+                }
+                return new NumberType(0)
+            }
             case 'minmax': {
                 let min = values[0].access() ?? 0
                 let value = values[1].access() ?? 0
@@ -677,6 +750,14 @@ class FunctionNode extends Node {
                 }
                 return new NumberType(min)
 
+            }
+            default: {
+                let code = table.get(this.name.data)
+                if (!(code instanceof UserFunction)) {
+                    break;
+                }
+
+                return new NumberType(code.run(relativeTo, values))
             }
         }
         return new NumberType(0)
@@ -795,7 +876,7 @@ class Parser {
             this.advance()
             node = new LeftUnOpNode(this.mutate_expr(), tok)
         }
-        if(!isOp) node = this.factor()
+        if (!isOp) node = this.factor()
         return node as Node
     }
 
@@ -841,7 +922,7 @@ class Parser {
 
     root(): Node {
         let node = this.arithmetic()
-        while(this.#curTok?.type === TT.root){
+        while (this.#curTok?.type === TT.root) {
             let token = this.#curTok as Token<TT.root>
             this.advance()
             node = new BinOpNode(node, token, this.arithmetic())
@@ -857,12 +938,45 @@ class Parser {
             this.advance()
             return new VariableAssignNode(name, this.expr())
         }
+        else if (this.#curTok?.type === TT.lparen) {
+            let idents: Token<TT.ident>[] = []
+
+            while (this.advance() && this.#curTok?.type as TT === TT.ident) {
+                idents.push(this.#curTok as Token<TT.ident>)
+                this.advance()
+                if (this.#curTok?.type as TT !== TT.comma) {
+                    break;
+                }
+            }
+
+            if (this.#curTok?.type as TT !== TT.rparen) {
+                throw new SyntaxError("Expected ')'")
+            }
+
+            this.advance()
+
+            if (this.#curTok?.type as TT !== TT.eq) {
+                throw new SyntaxError("Expected '='")
+            }
+
+            let code = ""
+
+            while (this.advance() && (this.#curTok?.type as TT !== TT.keyword && this.#curTok?.data !== 'end')) {
+                code += this.#curTok.data + " "
+            }
+
+            this.advance()
+
+            return new FuncCreateNode(name, idents, code)
+
+        }
         throw new SyntaxError(`Expected '=' after ${name.data}`)
     }
 
     expr(): Node {
-        if (this.#curTok?.type === TT.keyword && this.#curTok.data === 'var') {
-            return this.var_assign()
+        if (this.#curTok?.type === TT.keyword) {
+            if (this.#curTok.data === 'var')
+                return this.var_assign()
         }
         return new ExpressionNode(this.root())
     }

@@ -24,7 +24,7 @@ arithmetic: term ((PLUS| MINUS) term)*
 
 root: arithmetic ((ROOT) arithmetic)*
 
-var-assign: IDENT "=" expr
+var-assign: "var" (IDENT "=" expr | IDENT LPAREN ((IDNET ("," IDENT)*)*) RPAREN "=" code "end")
 
 expr: root | var-assign
 
