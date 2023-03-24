@@ -28,4 +28,6 @@ var-assign: "var" (IDENT "=" expr | IDENT LPAREN ((IDNET ("," IDENT)*)*) RPAREN 
 
 expr: root | var-assign
 
-program: expr (SEMI expr)*
+pipe: expr ("|" expr)*
+
+program: pipe (SEMI pipe)*

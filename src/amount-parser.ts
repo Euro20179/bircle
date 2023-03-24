@@ -40,7 +40,8 @@ enum TT {
     keyword,
     eq,
     "number_suffix",
-    "special_literal"
+    "special_literal",
+    "pipe"
 }
 
 const KEYWORDS = ['var', 'end'] as const
@@ -65,7 +66,8 @@ type TokenDataType = {
     [TT.semi]: ';',
     [TT.ident]: string,
     [TT.eq]: '=',
-    [TT.keyword]: typeof KEYWORDS[number]
+    [TT.keyword]: typeof KEYWORDS[number],
+    [TT.pipe]: "|"
 }
 
 class Token<TokenType extends TT> {
@@ -195,6 +197,10 @@ class Lexer {
                     this.tokens.push(new Token(TT.rparen, ")"))
                     break;
                 }
+                case '|': {
+                    this.tokens.push(new Token(TT.pipe, '|'))
+                    break;
+                }
                 case ",": {
                     this.tokens.push(new Token(TT.comma, ","))
                     break;
@@ -291,7 +297,7 @@ abstract class Program {
     abstract repr(indent: number): string
 }
 
-type ValidJSTypes = string  | number | UserFunction
+type ValidJSTypes = string | number | UserFunction
 
 abstract class Type<JSType>{
     protected data: JSType
@@ -450,7 +456,7 @@ class FunctionType extends Type<UserFunction> {
         return new NumberType(0)
     }
 
-    run(relativeTo: number, args: Type<any>[]){
+    run(relativeTo: number, args: Type<any>[]) {
         return this.data.run(relativeTo, args)
     }
 }
@@ -473,7 +479,7 @@ class UserFunction {
         for (let i = 0; i < this.argIdents.length; i++) {
             argRecord[this.argIdents[i]] = args[i]
         }
-        if(!this.code){
+        if (!this.code) {
             let data = calculateAmountRelativeToInternals(relativeTo, this.text, argRecord).expression
             this.code = data
         }
@@ -504,6 +510,38 @@ class ProgramNode extends Program {
         }
         text += `${'\t'.repeat(indent)})`
         return text
+    }
+}
+
+class PipeNode extends Node {
+    start: Node
+    chain: Node[]
+    constructor(start: Node) {
+        super()
+        this.start = start
+        this.chain = []
+    }
+
+    addToChain(node: Node){
+        this.chain.push(node)
+    }
+
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
+        let final: Type<any> = this.start.visit(relativeTo, table);
+        for (let node of this.chain) {
+            table.set('pipe!', final)
+            final = node.visit(relativeTo, table)
+        }
+        return final
+    }
+
+    repr(indent: number): string {
+        let text = `Pipechain(\n`;
+        for (let node of [this.start, ...this.chain]) {
+            text += '\t'.repeat(indent + 1) + node.repr(indent + 1) + "\n"
+        }
+        text += '\t'.repeat(indent).concat(")")
+        return text;
     }
 }
 
@@ -587,7 +625,7 @@ class VarAccessNode extends Node {
         if (typeof val === 'function') {
             return new NumberType(val(relativeTo, this.name.data))
         }
-        else if(val instanceof ProgramNode){
+        else if (val instanceof ProgramNode) {
             let data = val.visit(relativeTo, Object.assign({}, table))
             return new NumberType(data[data.length])
         }
@@ -776,15 +814,15 @@ class FunctionNode extends Node {
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'abs': return new NumberType(Math.abs(values[0].access()))
-            case 'sum': return function(){
-                switch(typeof values[0].access()){
+            case 'sum': return function() {
+                switch (typeof values[0].access()) {
                     case 'string': return new StringType(values.reduce((p, c) => p + c.access(), ""))
                     case 'number': return new NumberType(values.reduce((p, c) => p + c.access(), 0))
                     default: return new NumberType(0)
                 }
             }()
             case 'product': {
-                if(typeof values[0].access() === 'number'){
+                if (typeof values[0].access() === 'number') {
                     return new NumberType(values.reduce((p, c) => p * c.access(), 0))
                 }
                 return new NumberType(0)
@@ -1032,11 +1070,20 @@ class Parser {
         return new ExpressionNode(this.root())
     }
 
+    pipe(): Node {
+        let node = new PipeNode(this.expr())
+        while(this.#curTok?.type === TT.pipe){
+            this.advance()
+            node.addToChain(this.expr())
+        }
+        return node
+    }
+
     program(): ProgramNode {
-        let nodeArr = [this.expr()]
+        let nodeArr = [this.pipe()]
         while (this.#curTok?.type === TT.semi) {
             this.advance()
-            nodeArr.push(this.expr())
+            nodeArr.push(this.pipe())
         }
         return new ProgramNode(nodeArr)
     }
