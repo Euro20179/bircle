@@ -1671,6 +1671,11 @@ until you put a 0 in the box`)
                         }
                     }
 
+                    if(Number(days) === 0 && Number(hours) === 0 && Number(minutes) === 0 && Number(seconds) === 0){
+                        let ach = achievements.achievementGet(msg, "impatient")
+                        if(ach) await handleSending(msg, ach)
+                    }
+
                     vars.setVarEasy("!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1), msg.author.id)
                     vars.setVarEasy("!stats:last-run.last", String(amount))
                     vars.setVarEasy("!stats:last-run.total", String(Number(vars.getVar(msg, "!stats:last-run.total")) + amount), msg.author.id)

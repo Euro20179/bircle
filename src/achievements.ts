@@ -75,6 +75,7 @@ const POSSIBLE_ACHIEVEMENTS = {
     traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
     "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(50%,500)"),
+    "impatient": new MoneyRewardAchievement("impatient", "get last run within 1 second of someone else getting it", "max(10%, 100)"),
     "stale bread": new MoneyRewardAchievement("stale bread", "Sniff a stale baguette", "max(1%,50)"),
     "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1]),
     "breaking good": new MoneyRewardAchievement("breaking good", "Create the organic mixture", "max(25%, 250)"),
