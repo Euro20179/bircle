@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser,  efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE } from '../util'
+import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -177,7 +177,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let type = args[0]
 
-            if(!allowedTypes.includes(type)){
+            if (!allowedTypes.includes(type)) {
                 return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
             }
 
@@ -248,7 +248,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let totalSpent = 0
                     for (let i = 0; i < amount; i++) {
                         let totalCost = 0
-                        let {total} = economy.economyLooseGrandTotal(false)
+                        let { total } = economy.economyLooseGrandTotal(false)
                         for (let cost of ITEMS()[item].cost) {
                             totalCost += economy.calculateAmountOfMoneyFromString(total, `${cost}`)
                         }
@@ -389,15 +389,81 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let user = await fetchUserFromClient(client, args[0] ?? msg.author.id)
                 if (!user)
                     return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
-                let e = new EmbedBuilder()
-                e.setTitle("ITEMS")
+
+                const ITEMS_PER_PAGE = 20
+
+                const PLAYER_INV = Object.entries(INVENTORY()[user.id])
+
+                const embedPages: EmbedBuilder[] = []
+
+                let currentPage = 0
+
                 let au = user.avatarURL()
-                if (au)
-                    e.setThumbnail(au)
-                for (let item in INVENTORY()[user.id]) {
-                    e.addFields(efd([item, `${INVENTORY()[user.id][item]}`, true]))
+
+                const totalPages = Math.ceil(PLAYER_INV.length / ITEMS_PER_PAGE)
+
+                for (let chunk = 0; chunk < PLAYER_INV.length; chunk += ITEMS_PER_PAGE) {
+                    let e = new EmbedBuilder().setTitle("ITEMS")
+                    if (au)
+                        e.setThumbnail(au)
+
+                    for (let [name, count] of PLAYER_INV.slice(chunk, chunk + ITEMS_PER_PAGE)) {
+                        e.addFields({ name, value: String(count), inline: true })
+                    }
+
+                    e.setDescription(`page: ${(chunk + 20) / 20} / ${totalPages}`)
+                    e.setFooter({text: `type n/p to go to the next/previous page\nor type a page number to go to that page`})
+                    embedPages.push(e)
                 }
-                return { embeds: [e], status: StatusCode.RETURN }
+
+                let eMsg = await handleSending(msg, { embeds: [embedPages[currentPage]], status: StatusCode.INFO })
+
+                if (!isMsgChannel(msg.channel)) return crv("You are in a stage channel", { status: StatusCode.ERR })
+
+                const collector = msg.channel.createMessageCollector({
+                    filter: m => m.author === msg.author && (
+                        isNumeric(m.content) ||
+                        ['n', 'next', 'p', 'previous', 'prev'].includes(m.content.toLowerCase()) ||
+                        "+-".includes(m.content[0])
+                    ),
+                })
+
+                let clearTO = setTimeout(collector.stop.bind(collector), 30000)
+
+                collector.on("collect", m => {
+                    clearTimeout(clearTO)
+                    clearTO = setTimeout(collector.stop.bind(collector), 30000)
+
+                    if (m.deletable) m.delete()
+                    const action = m.content.toLowerCase()
+
+                    if (['n', 'next'].includes(action)) {
+                        currentPage++;
+                    }
+                    else if (['p', 'prev', 'previous'].includes(action)) {
+                        currentPage--;
+                    }
+                    else if ("+" === action[0]) {
+                        currentPage += Number(action.slice(1))
+                    }
+                    else if ("-" === action[0]) {
+                        currentPage -= Number(action.slice(1))
+                    }
+                    else {
+                        currentPage = Number(action) - 1
+                    }
+
+                    if (currentPage >= embedPages.length) {
+                        currentPage = 0
+                    }
+                    else if (currentPage < 0) {
+                        currentPage = embedPages.length - 1
+                    }
+
+                    eMsg.edit({ embeds: [embedPages[currentPage]] }).catch(console.error)
+                })
+
+                return { noSend: true, status: StatusCode.INFO }
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "Get the inventory of a user",
@@ -490,7 +556,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 for (let item in itemJ) {
                     i++;
                     let totalCost = 0
-                    let {total} = economy.economyLooseGrandTotal(false)
+                    let { total } = economy.economyLooseGrandTotal(false)
                     for (let cost of itemJ[item].cost) {
                         totalCost += economy.calculateAmountOfMoneyFromString(total, cost)
                     }
@@ -823,7 +889,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         },
                         "back-ally-deal": amount => {
                             let gain = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "25%")
-                            return {message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0}
+                            return { message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0 }
                         }
                     }
                     let amount = economy.work(msg.author.id)
@@ -1183,7 +1249,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     else if (opts['loan']) {
                         money = econ[id].loanUsed || 0
                     }
-                    if(money < 0 && excludeNeg) continue;
+                    if (money < 0 && excludeNeg) continue;
                     let percent = money / totalEconomy * 100
                     if (!opts['no-round']) {
                         money = Math.round(money * 100) / 100
