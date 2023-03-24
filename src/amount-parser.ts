@@ -48,7 +48,7 @@ enum TT {
     ge,
 }
 
-const KEYWORDS = ['var', 'end', 'if', 'then'] as const
+const KEYWORDS = ['var', 'end', 'if', 'then', 'else', 'elif'] as const
 
 
 type TokenDataType = {
@@ -510,7 +510,7 @@ class UserFunction {
     name: string
     code: ProgramNode | undefined
     constructor(name: string, codeToks: Token<any>[], argIdents: string[]) {
-        this.codeToks= codeToks
+        this.codeToks = codeToks
         this.argIdents = argIdents
         this.name = name
     }
@@ -633,23 +633,51 @@ ${'\t'.repeat(indent)})`
 class IfNode extends Node {
     condition: Node
     code: ProgramNode
-    constructor(condition: Node, code: ProgramNode){
+    elifPrograms: [Node, ProgramNode][]
+    elseProgram?: ProgramNode
+    constructor(condition: Node, code: ProgramNode, elifPrograms?: [Node, ProgramNode][], elseProgram?: ProgramNode) {
         super()
         this.condition = condition
         this.code = code
+        this.elseProgram = elseProgram
+        this.elifPrograms = elifPrograms ?? []
     }
 
     visit(relativeTo: number, table: SymbolTable): Type<any> {
-        if(this.condition.visit(relativeTo, table).truthy()){
+        if (this.condition.visit(relativeTo, table).truthy()) {
             return new NumberType(this.code.visit(relativeTo, table).slice(-1)[0])
+        }
+        if(this.elifPrograms){
+            for(let [check, program] of this.elifPrograms){
+                if(check.visit(relativeTo, table).truthy()){
+                    return new NumberType(program.visit(relativeTo, table).splice(-1)[0])
+                }
+            }
+        }
+        if (this.elseProgram) {
+            return new NumberType(this.elseProgram.visit(relativeTo, table).slice(-1)[0])
         }
         return new NumberType(0)
     }
 
     repr(indent: number): string {
-        return `IfNode(
-${'\t'.repeat(indent + 1)}${this.condition.repr(indent + 1)}
-${'\t'.repeat(indent)})`
+        let text = `IfNode(
+${'\t'.repeat(indent + 1)}check(${this.condition.repr(indent + 1)})
+${'\t'.repeat(indent + 1)}(
+${'\t'.repeat(indent + 2)}${this.code.repr(indent + 2)}
+${'\t'.repeat(indent + 1)})\n`
+        for(let [_, program] of this.elifPrograms){
+            text += `${'\t'.repeat(indent + 1)}Elif(
+${'\t'.repeat(indent + 2)}${program.repr(indent + 2)}
+${'\t'.repeat(indent + 1)})\n`
+        }
+        if (this.elseProgram) {
+            text += `${'\t'.repeat(indent + 1)}Else(
+${'\t'.repeat(indent + 2)}${this.elseProgram.repr(indent + 2)}
+${'\t'.repeat(indent + 1)})\n`
+        }
+        text += '\t'.repeat(indent) + ")"
+        return text
     }
 }
 
@@ -1159,26 +1187,42 @@ class Parser {
         return left
     }
 
-    if_statement(){
+    if_statement() {
         this.advance()
         let comp = this.comp()
-        if(this.#curTok?.type !== TT.keyword || this.#curTok?.data !== 'then'){
+        if (this.#curTok?.type !== TT.keyword || this.#curTok?.data !== 'then') {
             throw new SyntaxError("Expected 'then' to start if block")
         }
         this.advance()
         let code = this.program()
-        if(this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'end'){
+        let elseNode
+        let elifPrograms: [Node, ProgramNode][] = []
+        while(this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'elif'){
+            this.advance()
+            let check = this.comp()
+            if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'then') {
+                throw new SyntaxError("Expected 'then' to start the elif block")
+            }
+            this.advance()
+            let program = this.program()
+            elifPrograms.push([check, program])
+        }
+        if (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'else') {
+            this.advance()
+            elseNode = this.program()
+        }
+        if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'end') {
             throw new SyntaxError("Expected 'end' to end if block")
         }
         this.advance()
-        return new IfNode(comp, code)
+        return new IfNode(comp, code, elifPrograms, elseNode)
     }
 
     statement() {
         if (this.#curTok?.type === TT.keyword) {
             if (this.#curTok.data === 'var')
                 return this.var_assign()
-            else if(this.#curTok.data === 'if'){
+            else if (this.#curTok.data === 'if') {
                 return this.if_statement()
             }
         }
@@ -1215,10 +1259,10 @@ class Interpreter {
 
 function calculateAmountRelativeToInternals(money: number, amount: string | Token<any>[], extras?: Record<string, (total: number, k: string) => number>) {
     let tokens, lexer;
-    if(typeof amount !== 'object'){
+    if (typeof amount !== 'object') {
         let lexer = new Lexer(amount, Object.keys(extras ?? {}))
         lexer.tokenize()
-        
+
         tokens = lexer.tokens
     }
     else tokens = amount
