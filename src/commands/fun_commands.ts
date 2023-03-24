@@ -2115,6 +2115,20 @@ Valid formats:
         "travel", ccmdV2(async function({ msg, args, opts }) {
             args.beginIter()
 
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+
+            let countries = travel_countries.getCountries()
+
+            let defaultCountries = travel_countries.getCountries("default")
+
+            let hasPassport = hasItem(msg.author.id, "passport")
+
+            if (opts.getBool("countries", opts.getBool("l", false))) {
+                return crv(Object.entries(countries).map((v) => {
+                    return `${v[0]}: ${sign}${hasPassport ? 0 : economy.calculateAmountFromStringIncludingStocks(msg.author.id, v[1].cost)}`
+                }).join("\n"))
+            }
+
             let canTravel = timer.has_x_m_passed(msg.author.id, "%travel", 5, true)
             if(!canTravel){
                 return crv(`You must wait ${5 - Number(timer.do_lap(msg.author.id, "%travel")) / 1000 / 60}`)
@@ -2122,20 +2136,6 @@ Valid formats:
 
             timer.createOrRestartTimer(msg.author.id, "%travel")
 
-            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
-
-            let countries = travel_countries.getCountries()
-
-            let defaultCountries = travel_countries.getCountries("default")
-
-
-            let hasPassport = hasItem(msg.author.id, "passport")
-
-            if (opts.getBool("countries", opts.getBool("l", false))) {
-                return crv(Object.entries(countries).map((v) => {
-                    return `${v[0]}: ${sign}${hasPassport ? 0 : v[1].cost}`
-                }).join("\n"))
-            }
 
             let userGoingTo = args.expect(() => true, i => {
                 let text = i.join(" ").toLowerCase()
