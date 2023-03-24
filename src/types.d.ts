@@ -3,6 +3,7 @@ import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, Mes
 import { ArgList, Options } from './util'
 
 declare global {
+
     type ArgumentList = Array<string>
 
     type Opts = { [k: string]: string | boolean }
