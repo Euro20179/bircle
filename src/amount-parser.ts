@@ -291,6 +291,8 @@ abstract class Program {
     abstract repr(indent: number): string
 }
 
+type ValidJSTypes = string  | number | UserFunction
+
 abstract class Type<JSType>{
     protected data: JSType
     constructor(internalData: JSType) {
@@ -305,6 +307,7 @@ abstract class Type<JSType>{
     abstract isub(other: Type<any>): Type<JSType>
     abstract div(other: Type<any>): Type<JSType>
     abstract idiv(other: Type<any>): Type<JSType>
+
 
     abstract string(): Type<string>
     abstract number(): Type<number>
@@ -358,6 +361,7 @@ class NumberType extends Type<number>{
     number(): Type<number> {
         return this
     }
+
 }
 
 class StringType extends Type<string>{
@@ -401,6 +405,53 @@ class StringType extends Type<string>{
 
     number(): Type<number> {
         return new NumberType(NaN)
+    }
+
+}
+
+class FunctionType extends Type<UserFunction> {
+    access(): UserFunction {
+        return this.data
+    }
+
+    mul(other: Type<any>): Type<UserFunction> {
+        throw new OperatorError("Cannot use * with function")
+    }
+    imul(other: Type<any>): Type<UserFunction> {
+        return this.mul(other)
+    }
+
+    div(other: Type<any>): Type<UserFunction> {
+        throw new OperatorError("Cannot use / with function")
+    }
+    idiv(other: Type<any>): Type<UserFunction> {
+        return this.div(other)
+    }
+
+    sub(other: Type<any>): Type<UserFunction> {
+        throw new OperatorError("Cannot use - with function")
+    }
+    isub(other: Type<any>): Type<UserFunction> {
+        return this.sub(other)
+    }
+
+    add(other: Type<any>): Type<UserFunction> {
+        throw new OperatorError("Cannot use + with function")
+    }
+    iadd(other: Type<any>): Type<UserFunction> {
+        return this.add(other)
+    }
+
+    string(): Type<string> {
+        return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.text}`)
+    }
+
+    number(): Type<number> {
+        return new NumberType(0)
+    }
+
+    run(relativeTo: number, args: Type<any>[]){
+        return this.data.run(relativeTo, args)
     }
 }
 
@@ -483,7 +534,7 @@ class VariableAssignNode extends Node {
         this.value = value
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
+    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
         let val = this.value.visit(relativeTo, table)
         table.set(this.name.data, val)
         return val
@@ -509,8 +560,8 @@ class FuncCreateNode extends Node {
         this.parameterNames = parameterNames
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
-        table.set(this.name.data, new UserFunction(this.name.data, this.code, this.parameterNames.map(v => v.data)))
+    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
+        table.set(this.name.data, new FunctionType(new UserFunction(this.name.data, this.code, this.parameterNames.map(v => v.data))))
         return new NumberType(0)
     }
 
@@ -531,7 +582,7 @@ class VarAccessNode extends Node {
         this.name = name
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
+    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
         let val = table.get(this.name.data)
         if (typeof val === 'function') {
             return new NumberType(val(relativeTo, this.name.data))
@@ -711,8 +762,8 @@ class FunctionNode extends Node {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
-            case 'min': return new NumberType(min(values.map(v => v.access())))
-            case 'max': return new NumberType(max(values.map(v => v.access())))
+            case 'min': return new NumberType(min(values.map(v => v.access())) as number)
+            case 'max': return new NumberType(max(values.map(v => v.access())) as number)
             case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
             case 'choose': return choice(values)
             case 'needed': return new NumberType(values[0].access() - relativeTo)
@@ -753,7 +804,7 @@ class FunctionNode extends Node {
             }
             default: {
                 let code = table.get(this.name.data)
-                if (!(code instanceof UserFunction)) {
+                if (!(code instanceof FunctionType)) {
                     break;
                 }
 
