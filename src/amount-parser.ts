@@ -345,6 +345,7 @@ abstract class Type<JSType>{
     abstract div(other: Type<any>): Type<JSType>
     abstract idiv(other: Type<any>): Type<JSType>
 
+    abstract truthy(): boolean
 
     abstract string(): Type<string>
     abstract number(): Type<number>
@@ -353,6 +354,10 @@ abstract class Type<JSType>{
 class NumberType extends Type<number>{
     access(): number {
         return this.data
+    }
+
+    truthy(): boolean {
+        return this.data !== 0
     }
 
     add(other: Type<any>): NumberType {
@@ -405,6 +410,9 @@ class StringType extends Type<string>{
     access(): string {
         return this.data
     }
+    truthy(): boolean {
+        return this.data !== ""
+    }
     add(other: Type<string>): Type<string> {
         return new StringType(this.data + String(other.access()))
     }
@@ -449,6 +457,10 @@ class StringType extends Type<string>{
 class FunctionType extends Type<UserFunction> {
     access(): UserFunction {
         return this.data
+    }
+
+    truthy(): boolean {
+        return true
     }
 
     mul(other: Type<any>): Type<UserFunction> {
@@ -618,9 +630,32 @@ ${'\t'.repeat(indent)})`
     }
 }
 
+class IfNode extends Node {
+    condition: Node
+    code: ProgramNode
+    constructor(condition: Node, code: ProgramNode){
+        super()
+        this.condition = condition
+        this.code = code
+    }
+
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
+        if(this.condition.visit(relativeTo, table).truthy()){
+            return new NumberType(this.code.visit(relativeTo, table).slice(-1)[0])
+        }
+        return new NumberType(0)
+    }
+
+    repr(indent: number): string {
+        return `IfNode(
+${'\t'.repeat(indent + 1)}${this.condition.repr(indent + 1)}
+${'\t'.repeat(indent)})`
+    }
+}
+
 class FuncCreateNode extends Node {
     name: Token<TT.ident>
-    code: Token<any>[]
+    code: Token<TT>[]
     parameterNames: Token<TT.ident>[]
     constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: Token<any>[]) {
         super()
@@ -1124,10 +1159,28 @@ class Parser {
         return left
     }
 
+    if_statement(){
+        this.advance()
+        let comp = this.comp()
+        if(this.#curTok?.type !== TT.keyword || this.#curTok?.data !== 'then'){
+            throw new SyntaxError("Expected 'then' to start if block")
+        }
+        this.advance()
+        let code = this.program()
+        if(this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'end'){
+            throw new SyntaxError("Expected 'end' to end if block")
+        }
+        this.advance()
+        return new IfNode(comp, code)
+    }
+
     statement() {
         if (this.#curTok?.type === TT.keyword) {
             if (this.#curTok.data === 'var')
                 return this.var_assign()
+            else if(this.#curTok.data === 'if'){
+                return this.if_statement()
+            }
         }
         return this.comp()
     }
