@@ -2126,7 +2126,7 @@ Valid formats:
 
             if (opts.getBool("countries", opts.getBool("l", false))) {
                 return crv(Object.entries(countries).map((v) => {
-                    return `${v[0]}: ${sign}${hasPassport ? 0 : v[1].cost}`
+                    return `${v[0]}: ${sign}${hasPassport ? 0 : economy.calculateAmountFromStringIncludingStocks(msg.author.id, v[1].cost)}`
                 }).join("\n"))
             }
 
