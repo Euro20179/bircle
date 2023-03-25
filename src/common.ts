@@ -1,29 +1,80 @@
-import { Message, User } from "discord.js";
-import { allowedOptions, getOpt } from "./user-options";
+import fs from 'fs'
 
-const { readFileSync, writeFileSync, existsSync } = require("fs");
-import { Client, Intents } from "discord.js"
-const economy = require("./economy");
-const prefix = readFileSync("./data/prefix", "utf-8").trim()
+import { User } from "discord.js";
+
+import { Client, GatewayIntentBits } from "discord.js"
+const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 
 const ADMINS = ["334538784043696130"]
 
-const LOGFILE = "log.txt"
+const VERSION = { major: 6, minor: 5, bug: 35, part: "", beta: false, alpha: false }
 
-const VERSION = { major: 5, minor: 8, bug: 11, part: "", beta: false, alpha: false }
-
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_VOICE_STATES], allowedMentions: { parse: ["users"] } })
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
 let USER_SETTINGS = {}
 
 let WHITELIST: { [key: string]: string[] } = {}
 let BLACKLIST: { [key: string]: string[] } = {}
 
-function reloadList(list: string, listHolder: {[key: string]: string[]}){
-    let lf = readFileSync(`command-perms/${list}`, "utf-8")
-    for(let line of lf.split("\n")){
-        if(!line) continue;
+let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
+
+function loadMatchCommands() {
+    if (fs.existsSync("./data/match-commands")) {
+        let data = fs.readFileSync("./data/match-commands", "utf-8")
+        let jsonData: { [id: string]: { [name: string]: [string, string] } } = JSON.parse(data)
+        let final: typeof USER_MATCH_COMMANDS = new Map()
+        for (let user in jsonData) {
+            let data: Map<string, [RegExp, string]> = new Map()
+            for (let [name, [regexp, run]] of Object.entries(jsonData[user])) {
+                data.set(name, [new RegExp(regexp), run])
+            }
+            final.set(user, data)
+        }
+        USER_MATCH_COMMANDS = final
+    }
+    return USER_MATCH_COMMANDS
+}
+
+function removeUserMatchCommand(user: string, name: string) {
+    return USER_MATCH_COMMANDS.get(user)?.delete(name)
+}
+
+function addUserMatchCommand(user: string, name: string, search: RegExp, run: string) {
+    if (USER_MATCH_COMMANDS.get(user)) {
+        (USER_MATCH_COMMANDS.get(user) as Map<string, [RegExp, string]>).set(name, [search, run])
+    }
+    else {
+        let m: Map<string, [RegExp, string]> = new Map()
+        m.set(name, [search, run])
+        USER_MATCH_COMMANDS.set(user, m)
+    }
+}
+
+function saveMatchCommands() {
+    let data: { [id: string]: { [name: string]: [string, string] } } = {}
+    for (let user of USER_MATCH_COMMANDS.keys()) {
+        let userData: typeof data[string] = {}
+        let userCmds = USER_MATCH_COMMANDS.get(user)
+        if (!userCmds) continue;
+        for (let [name, [regexp, run]] of userCmds.entries()) {
+            userData[name] = [regexp.toString().replace(/^\//, "").replace(/\/$/, ""), run]
+        }
+        data[user] = userData
+    }
+    fs.writeFileSync("./data/match-commands", JSON.stringify(data))
+}
+
+function getUserMatchCommands() {
+    return USER_MATCH_COMMANDS
+}
+
+loadMatchCommands()
+
+function reloadList(list: string, listHolder: { [key: string]: string[] }) {
+    let lf = fs.readFileSync(`command-perms/${list}`, "utf-8")
+    for (let line of lf.split("\n")) {
+        if (!line) continue;
         let [user, cmdlist] = line.split(":").map((v: any) => v.trim())
         listHolder[user] = cmdlist.split(" ")
     }
@@ -37,7 +88,7 @@ reloadWhiteList()
 
 function savePermList(list: { [key: string]: string[] }, listFile: string) {
     let data = Object.entries(list).map(([user, perms]) => `${user}: ${perms.join(" ")}`).join("\n")
-    writeFileSync(`command-perms/${listFile}`, data)
+    fs.writeFileSync(`command-perms/${listFile}`, data)
 }
 
 function addToPermList(list: { [key: string]: string[] }, listFile: string, user: User, cmds: string[]) {
@@ -61,130 +112,9 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
 const GLOBAL_CURRENCY_SIGN = "$"
 
-let defaultVars = {
-    random: () => Math.random(),
-    rand: () => Math.random(),
-    prefix: (msg: Message) => getOpt(msg.author.id, "prefix", prefix),
-    scopecount: () => Object.keys(vars).length,
-    sender: (msg: Message) => `<@${msg.author.id}>`,
-    carson: () => "The all legendary Carson Williams",
-    money: (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "$": (msg: Message) => economy.getEconomy()[msg.author.id] ? economy.getEconomy()[msg.author.id].money : 0,
-    "__global_currency_sign": () => GLOBAL_CURRENCY_SIGN,
-    "_": (msg: Message) => getVar(msg, "_!", msg.author.id)
-}
-
-for(let v of allowedOptions){
-    //@ts-ignore
-    defaultVars[`__${v.replaceAll("-", "_")}`] = (msg: Message) => getOpt(msg.author.id, v, "unset")
-}
-
-let vars: { [key: string]: { [key: string]: Function | any } } = {
-    "__global__": {
-        ...defaultVars
-    }
-}
-
-function saveVars() {
-    for (let vname in vars['__global__']) {
-        if (Object.keys(defaultVars).includes(vname)) {
-            delete vars['__global__'][vname]
-        }
-    }
-    writeFileSync("./data/vars", JSON.stringify(vars))
-    vars['__global__'] = {...vars['__global__'], ...defaultVars}
-}
-
-function readVars() {
-    if (existsSync("./data/vars")) {
-        vars = JSON.parse(readFileSync("./data/vars", "utf-8"))
-        vars["__global__"] = { ...vars["__global__"], ...defaultVars }
-    }
-}
-
-readVars()
-
-function delVar(varName: string, prefix?: string){
-    delete vars[prefix ?? "__global__"][varName]
-}
-
-function setVarEasy(msg: Message, varName: string, value: string, prefix?: string){
-    if (!prefix) {
-        let v;
-        [prefix, ...v] = varName.split(":")
-        varName = v.join(":")
-        if(!varName){
-            varName = prefix
-            prefix = "__global__"
-        }
-    }
-    if(prefix.match(/\d{19}/)){
-        return false
-    }
-    if(prefix === "%"){
-        prefix = msg.author.id
-    }
-    return setVar(varName, value, prefix)
-}
-
-function setVar(varName: string, value: string, prefix?: string) {
-    if (!prefix) {
-        let v;
-        [prefix, ...v] = varName.split(":")
-        varName = v.join(":")
-        if(!varName){
-            varName = prefix
-            prefix = "__global__"
-        }
-    }
-    if (!vars[prefix]) {
-        vars[prefix] = { [varName]: value }
-    }
-    else if (vars[prefix]) {
-        vars[prefix][varName] = value
-    }
-    return true
-}
-
-function readVarVal(msg: Message, variableData: Function | any) {
-    if (typeof variableData === 'string') {
-        return variableData
-    }
-    else if (typeof variableData === 'function') {
-        return variableData(msg)
-    }
-    else if (typeof variableData === 'number') {
-        return String(variableData)
-    }
-    else {
-        return String(variableData)
-    }
-}
-
-function getVar(msg: Message, varName: string, prefix?: string) {
-    if (!prefix) {
-        let name
-        [prefix, ...name] = varName.split(":")
-        if (!name.length) {
-            varName = prefix
-            prefix = "__global__"
-        }
-        else if (prefix === "%") {
-            prefix = msg.author.id
-            varName = name.join(":")
-        }
-        else varName = name.join(":");
-    }
-    if (vars[prefix] && vars[prefix][varName] !== undefined) {
-        return readVarVal(msg, vars[prefix][varName])
-    }
-    return false
-}
-
 
 export {
     prefix,
-    vars,
     ADMINS,
     FILE_SHORTCUTS,
     WHITELIST,
@@ -193,16 +123,13 @@ export {
     reloadWhiteList,
     addToPermList,
     removeFromPermList,
-    LOGFILE,
     VERSION,
     USER_SETTINGS,
     client,
-    setVar,
-    setVarEasy,
-    readVars,
-    saveVars,
-    getVar,
-    delVar,
-    GLOBAL_CURRENCY_SIGN
+    GLOBAL_CURRENCY_SIGN,
+    getUserMatchCommands,
+    saveMatchCommands,
+    addUserMatchCommand,
+    removeUserMatchCommand
 }
 

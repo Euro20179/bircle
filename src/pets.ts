@@ -1,18 +1,7 @@
-//TODO: add pets, and pet shop
-//you have to keep your pet alive by feeding it
-//each pet has an ability
-//looses hunger slowly, food will be cheap
-//nothing happens on death, just must be bought again
-//eg: cat, gain .3% from talking instead of .1%
-//eg: tiger, get taxed from .1 - .6% instead of .1 - .8%
-//eg: dog, every 60 seconds, there is a 1% chance to dig up a treasure
-//you can own as many pets as you like, you just must keep them alive, but you can only have one active at a time
-//
-
 import { Message } from 'discord.js'
 
 import fs = require("fs")
-import economy = require("./economy")
+import economy from './economy'
 
 const { buyItem } = require("./shop.js")
 
@@ -23,11 +12,11 @@ let PETINVENTORY: {[id: string]: UserPetData} = {}
 
 let PETACTIONS: {[key: string]: Function} = {
     cat: () => {
-        return .003 //increases chat bonus by .003%
+        return .001 //increases chat bonus by .01%
     },
     puffle: async(m: Message) => {
         let stuff: {money: number, items: string[]} = {money: 0, items: []}
-        if(Math.random() <= .01){ // 1% chance
+        if(Math.random() <= .02){ // 1% chance
             if(Math.random() >= .30){ //70% for money
                 let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
                 economy.addMoney(m.author.id, amount)
@@ -97,7 +86,7 @@ function buyPet(id: string, pet: string){
         PETINVENTORY[id][pet] = {health: PETSHOP[pet]["max-hunger"], name: pet}
         let total = 0
         for (let cost of PETSHOP[pet].cost) {
-            total += economy.calculateAmountOfMoneyFromString(id, economy.playerLooseNetWorth(id), cost)
+            total += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(id), cost)
         }
         economy.loseMoneyToBank(id, total)
         return true
@@ -106,7 +95,7 @@ function buyPet(id: string, pet: string){
         PETINVENTORY[id] = {[pet]: {health: PETSHOP[pet]["max-hunger"], name: pet}}
         let total = 0
         for (let cost of PETSHOP[pet].cost) {
-            total += economy.calculateAmountOfMoneyFromString(id, economy.playerLooseNetWorth(id), cost)
+            total += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(id), cost)
         }
         economy.loseMoneyToBank(id, total)
         return true
@@ -143,6 +132,7 @@ function feedPet(id: string, pet: string, itemName: string){
     }
     let amount
     let max = PETSHOP[pet]["max-hunger"]
+    let canGoPastMax = false
     switch(itemName){
         case "bone": {
             amount =  Math.floor(Math.random() * 4 + 3)
@@ -156,6 +146,19 @@ function feedPet(id: string, pet: string, itemName: string){
             amount = Math.floor(Math.random() * 7 + 4)
             break
         }
+        case "baguette": {
+            amount = Math.floor(Math.random() * 8 + 3)
+            break;
+        }
+        case "paris special": {
+            amount = 50
+            canGoPastMax = true
+            break;
+        }
+        case "meat": {
+             amount = Math.floor(Math.random() * 8 + 5)
+             break;
+        }
         default:
             return false
     }
@@ -164,7 +167,7 @@ function feedPet(id: string, pet: string, itemName: string){
         amount *= 2
     }
     PETINVENTORY[id][pet].health += amount
-    if(PETINVENTORY[id][pet].health > max){
+    if(PETINVENTORY[id][pet].health > max && !canGoPastMax){
         PETINVENTORY[id][pet].health = max
     }
     return amount
@@ -217,6 +220,13 @@ function  killPet(id: string, pet: string){
     return false
 }
 
+function setPetToFullHealth(id: string, pet: string){
+    if(PETINVENTORY[id]?.[pet] === undefined){
+        return false
+    }
+    return PETINVENTORY[id][pet].health = PETSHOP[pet]['max-hunger']
+}
+
 function damagePet(id: string, pet: string){
     if(PETINVENTORY[id]?.[pet] !== undefined){
         PETINVENTORY[id][pet].health -= Math.floor(Math.random() * 4 + 1)
@@ -232,7 +242,7 @@ function damagePet(id: string, pet: string){
 function damageUserPetsRandomly(id:  string){
     let deaths = []
     for(let p in getUserPets(id)){
-        if(Math.random() > .90){
+        if(Math.random() > .95){
             let rv =  damagePet(id, p)
             if(rv  == 2){
                 deaths.push(p)
@@ -252,7 +262,7 @@ function namePet(id: string, pet: string, name: string){
 
 loadPets()
 
-export{
+export default{
     getPetInventory,
     getPetShop,
     buyPet,
@@ -269,5 +279,6 @@ export{
     getPetTypeByName,
     namePet,
     hasPetByNameOrType,
-    getFavoriteFoodOfPetType
+    getFavoriteFoodOfPetType,
+    setPetToFullHealth
 }

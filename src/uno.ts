@@ -358,14 +358,14 @@ function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }) 
     numberMax ||= 9
     let numbers = listComprehension(range(0, numberMax), i => String(i))
     let cards = []
+    let specialCards = [WildCard, SkipCard, Plus2Card, Plus4Card]
     for (let color of colors) {
         for (let number of numbers) {
             cards.push(new Card(color, number))
         }
-        cards.push(new WildCard(color))
-        cards.push(new SkipCard(color))
-        cards.push(new Plus2Card(color))
-        cards.push(new Plus4Card(color))
+        for(let special of specialCards){
+            cards.push(new special(color))
+        }
         if (enableGive) {
             cards.push(new GiveCard(color))
         }

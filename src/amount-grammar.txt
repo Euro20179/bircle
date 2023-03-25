@@ -1,0 +1,39 @@
+literal: "all" | "all!" | "infinity" //these are all identifiers
+
+special-literal: IDENT //provided at runtime can be mapped to any function that returns a number
+
+function: IDENT "(" expr(","expr)* ")"
+
+var-access: IDENT
+
+atom: number | function | literal | special-literal | string | var-access
+
+right-unary-op: % | # | "k" | "m" | "b" | "t"
+left-unary-op: # | -
+
+factor: atom | LPAREN statement RPAREN
+
+mutate-expr: factor
+           : (left-unary-op)* mutate-expr (right-unary-op)*
+
+higher-order-term: mutate-expr ((POW) mutate-expr)*
+
+term: higher-order-term ((MUL | DIV) higher-order-term)*
+
+arithmetic: term ((PLUS| MINUS) term)*
+
+root: arithmetic ((ROOT) arithmetic)*
+
+var-assign: KEYWORD:"var" (IDENT "=" comp | IDENT LPAREN ((IDNET ("," IDENT)*)*) RPAREN "=" code KEYWORD:"end")
+
+expr: root
+
+pipe: expr ("|" expr)*
+
+comp: pipe ((GE | GT | LE | LT | EQ) pipe)?
+
+if-statement: KEYWORD:"if" comp KEYWORD:"then" program (KEYWORD:"elif" comp KEYWORD:"then" program)* (KEYWORD:"else" program)? KEYWORD:"end"
+
+statement: comp | var-assign | if-statement
+
+program: statement (SEMI statement)*

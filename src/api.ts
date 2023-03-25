@@ -1,8 +1,11 @@
 import { Message, CollectorFilter } from "discord.js"
-import economy = require("./economy")
-import pet = require('./pets')
+import economy from './economy'
+import pet from './pets'
+import timer from './timer'
 import shop = require("./shop")
-import fetch = require('node-fetch')
+import { cmd } from "./common_to_commands"
+import { RECURSION_LIMIT } from "./globals"
+import { isMsgChannel } from "./util"
 
 const { fetchUser, getFonts } = require("./util.js")
 
@@ -29,7 +32,11 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     },
     canEarnMoney: {
         requirements: ["id"],
-        exec: async({ id }: {id: string}) => economy.canEarn(id)
+        exec: async({ id }: {id: string}) => timer.has_x_s_passed(id, "%can-earn", 60)
+    },
+    isRetired: {
+        requirements: ["id"],
+        exec: async({ id }: {id: string}) => economy.isRetired(id)
     },
     listPets:  {
         requirements: [],
@@ -50,6 +57,13 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
             if(data)
                 return JSON.stringify(data)
             return false
+        }
+    },
+    run: {
+        requirements: ["cmd"],
+        extra: ['msg'],
+        exec: async({msg, cmd: command}: {msg: Message, cmd: string}) => {
+            return JSON.stringify((await cmd({msg, command_excluding_prefix: command, recursion: RECURSION_LIMIT - 1, returnJson: true})).rv)
         }
     },
     economyLooseGrandTotal: {
@@ -81,6 +95,9 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
             if(pet.getActivePet(id) === "cat"){
                 base_amount += pet.PETACTIONS['cat']()
             }
+            if(shop.hasItem(id, 'capitalism hat')){
+                base_amount += 0.002
+            }
             let puffle_chat = shop.hasItem(id, "puffle chat")
             if(puffle_chat){
                 base_amount += .0001 * puffle_chat
@@ -91,6 +108,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
     },
     "input": {
         exec: async ({msg, prompt, who, timeout}: {msg: Message, prompt?: string, who?: boolean | string | number, timeout?: number}) => {
+            if(!isMsgChannel(msg.channel)) return "0"
             if (prompt && typeof prompt === 'string') {
                 await msg.channel.send(prompt)
             }
@@ -121,16 +139,6 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         optional: ["who", "timeout"],
         extra: ['msg']
     },
-    // fetchURL: {
-    //     requirements: ["url", "data"],
-    //     exec: async({ url, data }: {url: string, data: "text"}) => {
-    //         console.log(url)
-    //         let respData = await fetch.default(encodeURI(url))
-    //         if(data == "text"){
-    //             return respData.text()
-    //         }
-    //     }
-    // }
 }
 
 export async function handleApiArgumentType(msg: Message, t: string, argument: string): Promise<any>{
@@ -148,20 +156,14 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
             if(Number(argument) === 0){
                 return 0
             }
-            else{
-                return await handleApiArgumentType(msg, "id", argument)
-            }
+            return await handleApiArgumentType(msg, "id", argument)
         }
         case "timeout":
             return parseFloat(argument)
-        case "role":
-        case "url":
-        case "prompt":
-        case "data":
-        case "symbol": {
+        case "role": case "url": case "prompt": case "data": case "cmd": case "symbol": {
             return argument
         }
         default:
-            return false
+            throw new Error(`${t} not implemented in handleApiArgumentType`)
     }
 }

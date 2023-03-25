@@ -1,0 +1,91 @@
+@import "common.css";
+
+* {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+section{
+    outline: none;
+}
+
+section:focus-visible{
+    outline: 1px solid var(--highlight);
+}
+
+summary::marker {
+    color: var(--highlight);
+}
+
+li:has(summary)::marker{
+    content: "";
+}
+
+.command-section:has(.command-alias-list:empty) .command-aliases{
+    display: none;
+}
+
+.command-section > h1{
+    color: var(--highlight);
+}
+
+.cmd-search-strength{
+    filter: brightness(80%);
+    font-size: 0.8em;
+}
+
+@media (max-width: 450px){
+    .cmd-search-strength{
+        display: block;
+    }
+}
+
+#search-box{
+    text-indent: 2px;
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    translate: -50%;
+    color: var(--link-color);
+    background-color: #1E1E2E;
+    border-style: dashed;
+    font-size: 1.2em;
+    border-radius: 5px;
+    outline: none;
+    background-color: #ffffff22;
+    width: 50vw;
+}
+
+#search-box:focus {
+    border-color: var(--selection);
+    color: var(--selection);
+}
+
+@media only screen and (hover: none) and (pointer: coarse) {
+    #search-box {
+        font-size: 2em;
+    }
+}
+
+@media (max-width: 250px){
+    #search-box {
+        display: none;
+    }
+}
+
+#result-display {
+    font-size: 2.5rem;
+    color: var(--highlight);
+    filter: brightness(70%);
+    text-align: center;
+    padding-top: 2.5rem;
+    display: block;
+
+}
+
+#result-display::after{
+    content: " results";
+}
+
+#result-display[data-result-count="1"]::after{
+    content: " result";
+}

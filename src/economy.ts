@@ -1,21 +1,30 @@
 const fs = require("fs")
+import { Message } from "discord.js"
+import { max, min } from "lodash"
 import fetch = require("node-fetch")
 
-import pet = require("./pets")
+import pet from "./pets"
+import timer from "./timer"
+
+import amount_parser from './amount-parser'
 
 
-type Stock = {buyPrice:  number, shares: number}
+type Stock = { buyPrice: number, shares: number }
 
-export type EconomyData = { money: number, lastTalk: number, lastTaxed?: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
+export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
 
+function isRetired(id: string) {
+    return ECONOMY[id]?.retired
+}
 
-function setUserStockSymbol(id: string, symbol: string, data: {name: string, info: Stock}){
-    if(!ECONOMY[id])
+
+function setUserStockSymbol(id: string, symbol: string, data: { name: string, info: Stock }) {
+    if (!ECONOMY[id])
         return false
-    if(!ECONOMY[id].stocks){
+    if (!ECONOMY[id].stocks) {
         ECONOMY[id].stocks = {}
     }
     //@ts-ignore
@@ -23,19 +32,19 @@ function setUserStockSymbol(id: string, symbol: string, data: {name: string, inf
     return true
 }
 
-function increaseSandCounter(id: string, amount  = 1){
-    if(ECONOMY[id]?.sandCounter !== undefined){
+function increaseSandCounter(id: string, amount = 1) {
+    if (ECONOMY[id]?.sandCounter !== undefined) {
         //@ts-ignore
         ECONOMY[id].sandCounter += amount
         return true
     }
-    else if(ECONOMY[id]){
+    else if (ECONOMY[id]) {
         ECONOMY[id].sandCounter = amount
     }
     return false
 }
 
-function getSandCounter(id: string){
+function getSandCounter(id: string) {
     return ECONOMY[id]?.sandCounter
 }
 
@@ -113,7 +122,8 @@ function newLottery() {
 }
 
 function createPlayer(id: string, startingCash = 100) {
-    ECONOMY[id] = { money: startingCash, lastTalk: 0, lastTaxed: 0, stocks: {} }
+    timer.createTimer(id, "%can-earn")
+    ECONOMY[id] = { money: startingCash, stocks: {}, retired: false }
 }
 
 function addMoney(id: string, amount: number) {
@@ -141,7 +151,7 @@ function loseMoneyToPlayer(id: string, amount: number, otherId: string) {
 }
 
 function earnMoney(id: string, percent = 1.001) {
-    ECONOMY[id].lastTalk = Date.now()
+    timer.restartTimer(id, "%can-earn")
     ECONOMY[id].money *= percent
 }
 
@@ -181,11 +191,13 @@ function randInt(min: number, max: number) {
     return Math.random() * (max - min) + min
 }
 
-function taxPlayer(id: string, max: number, taxPercent: number | boolean = false) {
-    ECONOMY[id].lastTaxed = Date.now()
+function taxPlayer(id: string, max: number, taxPercent: number | boolean = false, taxerIsRetired = false) {
+    timer.restartTimer(id, "%last-taxed")
     let total = playerEconomyLooseTotal(id)
-    if(taxPercent === false){
-        taxPercent = randInt(0.001, 0.008)
+    if (taxPercent === false) {
+        if (taxerIsRetired)
+            taxPercent = randInt(0.01, 0.02)
+        else taxPercent = randInt(0.001, 0.008)
     }
     if (pet.getActivePet(id) == 'tiger') {
         taxPercent = pet.PETACTIONS['tiger']()
@@ -197,26 +209,16 @@ function taxPlayer(id: string, max: number, taxPercent: number | boolean = false
     return { amount: amountTaxed, percent: taxPercent as number }
 }
 
-function canEarn(id: string) {
-    if (!ECONOMY[id])
-        return false
-    let secondsDiff = (Date.now() - ECONOMY[id].lastTalk) / 1000
-    if (secondsDiff > 60) {
-        return true
-    }
-    return false
-}
-
-function canWork(id: string){
-    if(!ECONOMY[id]){
+function canWork(id: string) {
+    if (!ECONOMY[id]) {
         return false
     }
     let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
     let total = playerEconomyLooseTotal(id)
     //not broke but it has been 1 hour
-    if(total >= 0 && secondsDiff > 3600)
+    if (total >= 0 && secondsDiff > 3600)
         return 0;
-    if(total < 0 && secondsDiff > 3600){
+    if (total < 0 && secondsDiff > 3600) {
         //broke and has been 1 hour
         return true
     }
@@ -224,39 +226,41 @@ function canWork(id: string){
     return false
 }
 
-function playerLooseNetWorth(id: string){
-    if(!ECONOMY[id])
+function playerLooseNetWorth(id: string) {
+    if (!ECONOMY[id])
         return 0
     return playerEconomyLooseTotal(id) - (ECONOMY[id]?.loanUsed || 0)
 }
 
-function economyLooseGrandTotal(){
+function economyLooseGrandTotal(countNegative = true) {
     let moneyTotal = 0
     let stockTotal = 0
     let loanTotal = 0
     let econ = getEconomy()
-    for(let player in econ){
+    for (let player in econ) {
+        let nw = playerLooseNetWorth(player)
+        if(nw < 0 && !countNegative) continue;
         let pst = 0
         moneyTotal += econ[player].money
-        for(let stock in econ[player].stocks){
+        for (let stock in econ[player].stocks) {
             //@ts-ignore
             pst += econ[player].stocks[stock].shares * econ[player].stocks[stock].buyPrice
         }
         stockTotal += pst
-        if(econ[player].loanUsed){
+        if (econ[player].loanUsed) {
             //@ts-ignore
             loanTotal += econ[player].loanUsed
         }
     }
-    return {money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal}
+    return { money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal }
 }
 
-function work(id: string){
-    if(!ECONOMY[id])
+function work(id: string) {
+    if (!ECONOMY[id])
         return false
     ECONOMY[id].lastWork = Date.now()
-    let minimumWage = .001 * (economyLooseGrandTotal().total)
-    if(addMoney(id, minimumWage)){
+    let minimumWage = .01 * (economyLooseGrandTotal().total)
+    if (addMoney(id, minimumWage)) {
         return minimumWage
     }
     return false
@@ -265,27 +269,24 @@ function work(id: string){
 function canTax(id: string, bonusTime?: number) {
     if (!ECONOMY[id])
         return false
-    if (!ECONOMY[id].lastTaxed) {
-        ECONOMY[id].lastTaxed = 0
+    if (!timer.getTimer(id, "%last-taxed")) {
+        timer.createTimer(id, "%last-taxed")
         return true
     }
     let total = playerEconomyLooseTotal(id)
     if (total === 0) {
         return false
     }
-    //@ts-ignore
-    let secondsDiff = (Date.now() - ECONOMY[id].lastTaxed) / 1000
-    //5 minutes
-    if (bonusTime && secondsDiff > 900 + bonusTime) {
-        return true
-    }
-    else if (!bonusTime && secondsDiff > 900) {
-        return true
-    }
-    return false
+    return timer.has_x_s_passed(id, "%last-taxed", 900 + (bonusTime || 0))
 }
 
 function canBetAmount(id: string, amount: number) {
+    if (isNaN(amount)) {
+        return false
+    }
+    if(amount < 0){
+        return false
+    }
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
         return true
     }
@@ -302,7 +303,17 @@ function setMoney(id: string, amount: number) {
     }
 }
 
-function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
+    if (ECONOMY[id] === undefined) {
+        return NaN
+    }
+
+    let total = playerLooseNetWorth(id)
+
+    return amount_parser.calculateAmountRelativeTo(total, amount, extras)
+}
+
+function calculateAmountFromStringIncludingStocks(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
@@ -313,132 +324,42 @@ function calculateAmountFromStringIncludingStocks(id: string, amount: string, ex
             total += stocks[stock].buyPrice * stocks[stock].shares
         }
     }
-    return calculateAmountOfMoneyFromString(id, total, amount, extras, calculateAmountFromStringIncludingStocks)
+    return amount_parser.calculateAmountRelativeTo(total, amount, extras)
 }
 
 function calculateStockAmountFromString(id: string, shareCount: number, amount: string) {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
-    return calculateAmountOfMoneyFromString(id, shareCount, amount)
+    return amount_parser.calculateAmountRelativeTo(shareCount, amount)
 }
 
-function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+function calculateLoanAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     let loanDebt = ECONOMY[id]?.loanUsed
     if (!loanDebt)
         return 0
-    return calculateAmountOfMoneyFromString(id, loanDebt, amount, extras, calculateLoanAmountFromString)
+    return amount_parser.calculateAmountRelativeTo(loanDebt, amount, extras)
 }
 
-function calculateAmountOfMoneyFromString(id: string, money: number, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }, fallbackFn?: (id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number}) => number ): number {
-    if (amount == undefined || amount == null) {
-        return NaN
-    }
-    if (amount === 'Infinity')
-        return Infinity
-    amount = amount.toLowerCase()
-    let match //for else if(match =...)
-    if (amount == "all") {
-        return money * .99
-    }
-    else if (amount == "all!") {
-        return money
-    }
-    else if (amount.startsWith('#')) {
-        let toNextMultipleOf = Number(amount.slice(1))
-        if (isNaN(toNextMultipleOf)) {
-            return NaN
-        }
-        return toNextMultipleOf - (money % toNextMultipleOf)
-    }
-    else if(amount.endsWith("#")){
-        let toNextMultipleOf = Number(amount.slice(0, -1))
-        if(isNaN(toNextMultipleOf)){
-            return NaN
-        }
-        return money % toNextMultipleOf
-    }
-    else if(amount.endsWith("k")){
-        return Number(amount.slice(0, -1)) * 1000
-    }
-    else if(amount.endsWith("m")){
-        return Number(amount.slice(0, -1)) * 1000000
-    }
-    else if(amount.endsWith("b")){
-        return Number(amount.slice(0, -1)) * 1000000000
-    }
-    else if(amount.endsWith("t")){
-        return Number(amount.slice(0, -1)) * 1000000000000
-    }
-    else if (amount.startsWith("needed(") && amount.endsWith(")")) {
-        let wantedAmount = parseFloat(amount.slice("needed(".length))
-        return wantedAmount - money
-    }
-    else if (amount.startsWith("ineeded(") && amount.endsWith(")")) {
-        let wantedAmount = parseFloat(amount.slice("ineeded(".length))
-        return money - wantedAmount
-    }
-    else if(match = amount.match(/^(\d{18}):([\d%\$\.]+)$/)){
-        let id = match[1]
-        let amount = match[2]
-        if(fallbackFn){
-            return fallbackFn(id, amount, extras)
-        }
-        return calculateAmountOfMoneyFromString(id, money, amount, extras, fallbackFn)
-    }
-    else if(match = amount.match(/^(.+)([\+\-\/\*]+)(.+)$/)){
-        let side1 = match[1]
-        let operator = match[2]
-        let side2 = match[3]
-        let amount1, amount2
-        if(!fallbackFn){
-            amount1 = calculateAmountOfMoneyFromString(id, money, side1, extras, fallbackFn)
-            amount2 = calculateAmountOfMoneyFromString(id, money, side2, extras, fallbackFn)
-        }
-        else{
-            amount1 = fallbackFn(id, side1, extras)
-            amount2 = fallbackFn(id, side2, extras)
-        }
-        switch(operator){
-            case "+": return amount1 + amount2
-            case "-": return amount1 - amount2
-            case "*": return amount1 * amount2
-            case "/": return amount1 / amount2
-        }
-    }
-    for (let e in extras) {
-        let match;
-        if (match = amount.match(e)) {
-            return extras[e](money, amount, ECONOMY[id], match)
-        }
-    }
-    if (Number(amount)) {
-        return Number(amount)
-    }
-    else if (amount[0] === "$" && Number(amount.slice(1))) {
-        return Number(amount.slice(1))
-    }
-    else if (amount[amount.length - 1] === "%") {
-        let percent = Number(amount.slice(0, -1))
-        if (!percent) {
-            return 0
-        }
-        return money * percent / 100
-    }
-    return 0
-}
 
-function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string, data: EconomyData, match: RegExpMatchArray) => number }): number {
+function calculateAmountFromString(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
     if (ECONOMY[id] === undefined) {
         return NaN
     }
-    return calculateAmountOfMoneyFromString(id, ECONOMY[id].money, amount, extras, calculateAmountFromString)
+    return amount_parser.calculateAmountRelativeTo(ECONOMY[id].money, amount, extras)
 }
 
 function resetEconomy() {
     ECONOMY = {}
     saveEconomy()
     loadEconomy()
+}
+
+function retirePlayer(id: string) {
+    if (!ECONOMY[id]) {
+        return false
+    }
+    return ECONOMY[id].retired = true
 }
 
 function resetPlayer(id: string) {
@@ -513,9 +434,6 @@ function _get_active_pet(id: string) {
     return ECONOMY[id].activePet
 }
 
-loadEconomy()
-
-
 function getEconomy() {
     return ECONOMY
 }
@@ -530,11 +448,11 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
         return false
     let data: { change: number, price: number, "%change": string, volume: string, name: string } = { change: 0, price: 0, "%change": "0%", volume: "0", name: quote.toUpperCase() }
     let html
-    try{
+    try {
         html = await (await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(quote)}`)).text()
     }
-    catch(err){
-        if(fail)
+    catch (err) {
+        if (fail)
             fail(err)
         return false
     }
@@ -565,12 +483,18 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
     return data
 }
 
-export {
+let lastEconomyTotal = economyLooseGrandTotal().total
+let inflation = 0
+setInterval(() => {
+    inflation = (economyLooseGrandTotal().total - lastEconomyTotal) / lastEconomyTotal
+}, 60000)
+
+export default {
+    getInflation: () => inflation,
     loadEconomy,
     saveEconomy,
     createPlayer,
     earnMoney,
-    canEarn,
     addMoney,
     canBetAmount,
     canTax,
@@ -583,6 +507,7 @@ export {
     buyStock,
     calculateStockAmountFromString,
     calculateAmountFromStringIncludingStocks,
+    calculateAmountFromNetWorth,
     sellStock,
     buyLotteryTicket,
     newLottery,
@@ -599,13 +524,19 @@ export {
     getLottery,
     playerEconomyLooseTotal,
     getStockInformation,
-    calculateAmountOfMoneyFromString,
+    /**
+        * @deprecated use amount_parser.calculateAmountRelativeTo instead
+    */
+    calculateAmountOfMoneyFromString: amount_parser.calculateAmountRelativeTo,
     work,
     economyLooseGrandTotal,
     playerLooseNetWorth,
     canWork,
     setUserStockSymbol,
     increaseSandCounter,
-    getSandCounter
+    getSandCounter,
+    isRetired,
+    retirePlayer,
+    randInt
     // tradeItems
 }

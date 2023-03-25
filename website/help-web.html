@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html>
+<style>
+    .soft-hr {
+        border-style: dotted
+    }
+</style>
+
+<head>
+    <title>Bircle syntax</title>
+    <link rel="stylesheet" href="common.css" media="all">
+</head>
+
+<body>
+
+    <h1 id="list-of-commands"><a href="/commands">List of Commands</a></h1>
+
+    <h1 id="Usage">Basic usage</h1>
+    <code>[command [options...] [arguments...]</code>
+
+    <h1 id="Arguments">
+        Arguments
+    </h1>
+    <p>
+        Arguments are (mostly) space separated text.
+    </p>
+
+    <h1 id="Options">Options</h1>
+    <code>-&lt;name&gt;[=data]</code>
+    <p>
+        All options go before the arguments and start with <code>-</code>
+        <br>
+        They then have a name, and optionally data after an = sign.
+        <br>
+        data must be 1 argument.
+        <br>
+        To signal the end of options use <code>--</code>
+        <br>
+        If <code>--</code> is not given,
+        <br>
+        the end of options will be signaled when an argument does not start with <code>-</code>
+        <br>
+    <p>
+        All commands accept the <code>-?</code> option, which will run <code>help &lt;the-command&gt;</code> instead
+    </p>
+    </p>
+
+    <h1 id="Escapes">Escape Sequences</h1>
+    <code>\&lt;char&gt;[{data}]</code>
+    <p>
+        Escape sequences are a backslash, a character, then optionally {} with text in it.
+        <br>
+        Depending on the sequence, the optional data will be handled differently.
+        <br>
+    </p>
+
+    <h3>List of escape sequences</h3>
+    <p>
+    <ul id="esc-sequence-list">
+        <li>
+            <code>n</code>
+            : Add a new line
+        </li>
+        <li>
+            <code>t</code>
+            : Add a tab
+        </li>
+        <li>
+            <code>u</code>
+            : data gets parsed as a unicode code point
+        </li>
+        <li>
+            <code>s</code>
+            : data gets parsed as one argument (even if there are spaces)
+            <ul>
+                <li>If there is no data, adds a space into the current argument</li>
+            </ul>
+        </li>
+        <li>
+            <code>y</code>
+            : treats the data as bircle syntax and gets parsed as one argument
+            <ul>
+                <li>If there is no data, adds a space into the current argument</li>
+            </ul>
+        </li>
+        <li>
+            <code>Y</code>
+            : Treats the data as bircle syntax and will split into different arguments by a space
+        </li>
+        <li>
+            <code>A</code>
+            : splits the data by each character into different arguments
+            <ul>
+                <li>If no data is given, an empty string is added as an argument</li>
+            </ul>
+        </li>
+        <li>
+            <code>b</code>
+            : makes the data bold
+        </li>
+        <li>
+            <code>i</code>
+            : makes the data italic
+        </li>
+        <li>
+            <code>S</code>
+            : makes the data strikethrogh
+        </li>
+        <li>
+            <code>d</code>
+            : turns data into a date
+        </li>
+        <li>
+            <code>D</code>
+            : treats data as a unix time stamp and turns it into a date
+        </li>
+        <li>
+            <code>T</code>
+            : gets the current unix time
+            <ul>
+                <li>If data is given, divides the timestamp by the data</li>
+                <li>If data is not given, get just the current unix time</li>
+            </ul>
+        </li>
+        <li><code>V</code>
+            : reads a varable, see <a href="#Variables">variables</a> for more information<br>
+            <code>%</code> acts as the user scope, <code>.</code> acts as the global scope<br>
+            defaults to global scope
+        </li>
+        <li><code>v</code>
+            : reads a variable, see <a href="#Variables">variables</a> for more information<br>
+            defaults to user scope, uses global scope as backup
+        </li>
+        <li><code>\</code>
+            : Backslash (<code>\</code>)
+        </li>
+    </ul>
+    </p>
+
+    <h1 id="Formats">Formats</h1>
+    <p><code>{&lt;name&gt;[|arg1|arg2...]}</code></p>
+    <p>
+        Formats are similar to escape sequences in what they do<br>
+        however can accept more than 1 arg to work with<br>
+        and can use words instead of chars.<br>
+        Each arg is seperated by |.
+    </p>
+    <h3 id="list-of-formats">List of formats</h3>
+    <p>
+    <ul>
+        <li>
+            <code>%</code>
+            : Gets replaced with the content from stdin<br>
+            see <a href="#Stdin">stdin</a> for more information.
+        </li>
+        <li>
+            <code>-%</code>
+            : Gets replaced with the content from stdin
+            <br>
+            and sets stdin to undefined
+        </li>
+        <li>
+            <code>cmd</code>
+            : The command being run
+        </li>
+        <li>
+            <code>fhex <b>or</b> fbase|&lt;number&gt;|&lt;base&gt;</code>
+            : Converts a number to base 10 from a base
+        </li>
+        <li>
+            <code>hex <b>or</b> base|&lt;number&gt;|&lt;base&;gt</code>
+            : converts a number to base from base 10
+        </li>
+        <li>
+            <code>token|&lt;token-type&gt;|&lt;data&gt;</code>
+            : treats data as token-type
+        </li>
+        <li>
+            <code>rev|&lt;data&gt;</code>
+            : reverses the text.
+            <ul>
+                <li>
+                    If more than 1 arg is given, reverse the order of the args
+                </li>
+            </ul>
+        </li>
+        <li>
+            <code>channel[|format]</code>
+            : Formats the current channel
+            <ul>
+                <li>The default format is: </li>
+                <code>&lt;#%i&gt;</code>
+                <br>
+                formats:
+                <ul>
+                    <li><b>i</b>: channel id</li>
+                    <li><b>n</b>: channel name</li>
+                    <li>
+                        <b>N!</b>
+                        : Is nsfw
+                    </li>
+                    <li>
+                        <b>c</b>
+                        : created at timestamp
+                    </li>
+                </ul>
+            </ul>
+        </li>
+        <li>
+            <code>user[|format]</code>
+            : Formats the user running the command
+            <ul>
+                <li>The default format is: </li>
+                <code>&lt;@%i&gt;</code>
+                <br>
+                formats
+                <ul>
+                    <li>
+                        <b>i</b>
+                        : user id
+                    </li>
+                    <li>
+                        <b>u</b>
+                        : username
+                    </li>
+                    <li>
+                        <b>n</b>
+                        : nickname
+                    </li>
+                    <li>
+                        <b>X</b>
+                        : display hex color
+                    </li>
+                    <li>
+                        <b>x</b>
+                        : display color
+                    </li>
+                    <li>
+                        <b>c</b>
+                        : created at time stamp
+                    </li>
+                    <li>
+                        <b>j</b>
+                        : joined at time stamp
+                    </li>
+                    <li>
+                        <b>b</b>
+                        : premium since timestamp
+                    </li>
+                    <li>
+                        <b>a</b>
+                        : avatar url
+                    </li>
+                </ul>
+            </ul>
+        </li>
+        <li>
+            <code>ruser[|format]</code>
+            : Formats a random user
+            <ul>
+                <li>The default format is: </li>
+                <code>%u</code>
+                <br>
+                formats
+                <ul>
+                    <li>
+                        <b>i</b>
+                        : user id
+                    </li>
+                    <li>
+                        <b>u</b>
+                        : username
+                    </li>
+                    <li>
+                        <b>n</b>
+                        : nickname
+                    </li>
+                    <li>
+                        <b>X</b>
+                        : display hex color
+                    </li>
+                    <li>
+                        <b>x</b>
+                        : display color
+                    </li>
+                    <li>
+                        <b>c</b>
+                        : created at time stamp
+                    </li>
+                    <li>
+                        <b>j</b>
+                        : joined at time stamp
+                    </li>
+                    <li>
+                        <b>b</b>
+                        : premium since timestamp
+                    </li>
+                </ul>
+            </ul>
+        </li>
+        <li>
+            <code>$</code>
+            : The amount of money you have
+        </li>
+        <li>
+            <code>$l</code>
+            : The amount of loan debt you have
+        </li>
+        <li>
+            <code>$t</code>
+            : The total amount of money you have
+        </li>
+        <li>
+            <code>$n</code>
+            : Your net worth
+        </li>
+        <li>
+            <code>timer|[-]&lt;timer&gt;</code>
+            : Gets the unix time stamp when timer started
+            <br>
+            If the - is given, get the number of ms since timer started
+        </li>
+        <li>
+            <code>rand|&lt;arg&gt;|...</code>
+            pick a random arg from the arg list
+        </li>
+        <li>
+            <code>num <b>or</b> number[|low[|high[|round]]]</code>
+            <p>
+                picks a random number<br>
+            <ul>
+                <li>If <code>[low]</code> is given, that is the lowest the number can be (high will default to 10).<br>
+                </li>
+                <li>If <code>[high]</code> is given, that is the highest the number can be.<br></li>
+                <li>If <code>[round]</code> is given as <code>true</code> round the answer.</li>
+            </ul>
+            </p>
+        </li>
+        <li>
+            <code>html|&lt;data&gt;</code>
+            : render data as discord markdown from html
+        </li>
+        <li>
+            <code>time[|12][|format]</code>
+            : format the current time
+            <br>
+            if <code>12</code> is given, use 12 hour time
+            <br>
+            formats:
+            <ul>
+                <li>
+                    <b>d</b>
+                    : the current date
+                </li>
+                <li>
+                    <b>H</b>
+                    : The current hour
+                </li>
+                <li>
+                    <b>M</b>
+                    : The current minute
+                </li>
+                <li>
+                    <b>S</b>
+                    : The current second
+                </li>
+                <li>
+                    <b>T</b>
+                    : same as %H:%M:%S
+                </li>
+                <li>
+                    <b>t</b>
+                    : same as %H:%M
+                </li>
+                <li>
+                    <b>1</b>
+                    : gets the current ms
+                </li>
+                <li>
+                    <b>z</b>
+                    : Gets tiemzone offset
+                </li>
+                <li>
+                    <b>x</b>
+                    : Gets whether or not its AM or PM
+                </li>
+                <li>
+                    <b>D</b>
+                    : same as %m/%d/%Y
+                </li>
+                <li>
+                    <b>m</b>
+                    : Gets the current number month
+                </li>
+                <li>
+                    <b>Y</b>
+                    : Gets the full year
+                </li>
+                <li>
+                    <b>w</b>
+                    : Gets the weekday number
+                </li>
+            </ul>
+        </li>
+        <li>
+            <code>arg</code>
+            : Repeats the current argument
+        </li>
+    </ul>
+    </p>
+
+
+    <h1 id="Calc">Calculate</h1>
+    <code>$[javascript expression]</code>
+    <p>
+        Evaluates the javascript expression and replaces itself with the result
+    </p>
+
+    <h1 id="Do-first">Do first</h1>
+    <code>$(command)</code>
+    <p>
+        Runs command and replaces the corresponding <a href="#Do-first-replace">Do first replacement</a> with it's
+        value.
+        <br>
+        If no dofirstreplace is given for the dofirst, it will replace itself with the result of the command.
+    </p>
+
+    <h1 id="Do-first-replace">Do first replace</h1>
+    <code>%{dofirstindex:argindex}</code>
+    <p>
+        <code>dofirstindex</code> refers to the index of the dofirst that should replace this. (starting at 0)
+        <br>
+        <code>argindex</code> refers to the argument index of the content that is created from the dofirst (staring at
+        0).
+    </p>
+    <br>
+    <code>%{argindex}</code>
+    <p>
+        If this version of dofirstreplace is used, it must be in the same argument as the dofirst that's supposed to
+        replace it.
+        <br>
+        <code>argindex</code> can be any positive integer, or -1
+        <br>
+        If it is -1 the dofirst will be replaced with nothing
+        <br>
+        Otherwise dofirstreplace will be replaced with the corresponding arg number from the dofirst
+    </p>
+
+    <h1 id="Variables">Variables</h1>
+    <p>
+        Variables are text that contain other text.
+        <br>
+        There are 4 kinds of variables:
+    <ul>
+        <li><a href="#global-vars"><code>global</code></a></li>
+        <li><a href="#prefixed-vars"><code>prefixed</code></a></li>
+        <li><a href="#user-vars"><code>user</code></a></li>
+        <li><a href="#builtin-vars"><code>builtin</code></a></li>
+    </ul>
+    There are 3 ways of accessing variables
+    <ul>
+        <li><code>\v{variable}</code> (see the \v escape sequence)</li>
+        <li>
+            <code>\V{variable}</code> (see the \V escape sequence)
+        </li>
+        <li>
+            <code>${variable}</code>
+            is similar to <code>\V</code> in function, except <code>.</code> does not act as a global prefix.
+            <br>
+            <code>${variable||default}</code> can be used, and <code>default</code> will appear if variable is unset.
+        </li>
+    </ul>
+    </p>
+
+    <h2 id="global-vars">Global vars</h2>
+    <p>
+        Global vars are variables that anyone can change.
+        <br>
+        They can be accessed with either <code>${var-name}</code> or <code>\V{.:var-name}</code>
+        <br>
+        To create a global var, use the <code>var</code> command
+
+    <h2 id="prefixed-vars">Prefixed vars</h2>
+    <p>
+        Prefixed vars are specific for each user, but have a special prefix.
+        <br>
+        Prefixes cannot start with <code>!</code> as those are reserved.
+        <br>
+        To access another user's prefixed variable the following may be used <code>${user-id.prefix:var}</code>
+        <br>
+        They can be accessed with either <code>${prefix:var-name}</code> or <code>\V{prefix:var-name}</code>
+        <br>
+        To create a prefixed var, use the <code>var</code> command with the <code>-p=prefix</code> option
+    </p>
+
+    <h2 id="user-vars">User vars</h2>
+    <p>
+        User vars are vars that are attached to a user and have a prefix that is the user id that created it.
+        <br>
+        Only that user can create and change user vars.
+        <br>
+        They can be accessed with either <code>${%:var-name}</code>, <code>\v{var-name}</code>, or
+        <code>\V{%:var-name}</code>
+        <br>
+        To create a user var, use the <code>var</code> commadn with the <code>-u</code> option
+    </p>
+
+    <h2 id="builtin-vars">Builtin vars</h2>
+    <p>
+        Builtin vars are vars that cannot be changed or created by users, instead are created when the bot starts.
+        <br>
+        Builtin vars can be accessed with either <code>${var-name}</code> or <code>\V{var-name}</code>
+        <br>
+        A list of builtin vars
+    <ul>
+        <li>
+            <code>random</code>
+            : Generate a random number
+        </li>
+        <li>
+            <code>stdin:content</code>
+            : Gets the content from stdin
+        </li>
+        <li>
+            <code>stdin:status</code>
+            : Gets the status from stdin
+        </li>
+        <li>
+            <code>stdin:raw</code>
+            : Gets the json from stdin
+        </li>
+        <li>
+            <code>rand</code>
+            : Generate a random number
+        </li>
+        <li>
+            <code>prefix</code>
+            : Get the prefix being used
+        </li>
+        <li>
+            <code>scopecount</code>
+            : The amount of used variable prefixes
+        </li>
+        <li>
+            <code>sender</code>
+            : Ping the person that sent the message
+        </li>
+        <li>
+            <code>carson</code>
+            : :))))))))))))))))))))))))))))
+        </li>
+        <li>
+            <code>money</code>
+            : The amount of money you have
+        </li>
+        <li>
+            <code>$</code>
+            : Same as <code>${money}</code>
+        </li>
+        <li>
+            <code>%:_!</code>
+            : The result of the last command that you ran
+        </li>
+        <li>
+            <code>_!</code>
+            : the result of the last command ran
+        </li>
+        <li>
+            <code>%:?</code>
+            : The status code of the last command run
+        </li>
+        <li>
+            <code>_</code>
+            : Same as <code>${_!}</code>
+        </li>
+        <li>
+            <code>last-run:last</code>
+            : gets the amount you earned from last-run last time
+        </li>
+        <li>
+            <code>last-run:total</code>
+            : gets the total amount you earned from last-run
+        </li>
+        <li>
+            <code>connect4:wins</code>
+            : Your total wins from connect4
+        </li>
+        <li>
+            <code>connect4:losses</code>
+            : Your total losses in connect4
+        </li>
+    </ul>
+    <br>
+    In addition to these builtin variables, there is a variable for each option that can be set.
+    <br>
+    To access these variables use <code>${__&lt;option_name&gt;}</code> Be sure to use <code>_</code> instead of
+    <code>-</code>
+    <br>
+    To get a list of options run <code>[options -l</code>
+    </p>
+
+    <h1 id="Stdin">Stdin</h1>
+    <p>Stdin is recieved when a pipe is used on a command</p>
+
+    <h1 id="Pipes">Pipes</h1>
+    <code>[command1 ... &gt;pipe&gt; command2</code>
+    <p>
+        The result from command1 will be given to command2 as stdin
+        <br>
+        stdin is read seperately from args, and thus only some commands support it.
+        <br>
+        {%} can be used to be replaced with the content of stdin.
+
+
+    <h1 id="Special-prefixes">Special prefixes</h1>
+    <p>
+        These are prefixes which have special functionality
+    </p>
+    <ul>
+        <li><b>s!</b>: If used, it will unset your <code>prefix</code> option (if set)</li>
+        <li>
+            <b>u!</b>: Used for commands that other bots may implement
+        </li>
+    </ul>
+
+    <h1 id="Match-commands">Match commands</h1>
+    <p>
+        Match commands are commands that do not start with a prefix
+        <br>
+        List of match commands:
+    <ul>
+        <li>
+            <b>^find^replace</b>: Will run the last command you ran, and replace all instes of <code>find</code> with
+            <code>replace</code>
+        </li>
+        <li>
+            <b>[prefix:]name="value"</b>
+            <p>
+                <code>prefix</code> is optional, by default the global prefix is used. (<code>%</code> can be used for
+                user prefix)
+                <br>
+                <code>name</code> is the name of the variable
+                <br>
+                <code>value</code> is the value and MUST be surrounded in quotes, it will also be interpreted.
+            </p>
+        </li>
+        <li>
+            <b>[prefix:]name='value'</b>
+            <p>
+                Same as using double quotes, but <code>value</code> will not be interpreted.
+            </p>
+        </li>
+        <li>
+            <b>[count]:/(search|start,[end])/[commands/[...]]</b>
+            <p>
+                <code>count</code> will specify how many to find (if search is used)
+                <br>
+                Either <code>search</code> or <code>start,[end]</code> can be used but not both.
+                <br>
+                If <code>search</code> is used, the bot will find messages that contain search and run them through each
+                command
+                <br>
+                If <code>start,[end]</code> is used, the bot will find the messages starting from <code>start</code>
+                above, and ending <code>end</code> above the current message.
+            </p>
+        </li>
+    </ul>
+    </p>
+
+    <h1 id="Api">API</h1>
+    <p>
+        All api endpoints start with /api/
+    </p>
+    <p>
+        Here is a list of endpoints
+    </p>
+    <h2 id="api-economy">Economy endpoints</h2>
+
+    <hr class='soft-hr'>
+
+    <h3 id="/economy">/economy</h3>
+    Gets the json of the economy data
+    <ul>
+        <li>
+            <code>/economy/total</code>
+            : Gets the total value of the economy
+        </li>
+        <li>
+            <code>/economy/&lt;user-id&gt;</code>
+            : Gets the economy data of a user
+        </li>
+    </ul>
+
+    <hr class='soft-hr'>
+
+    <h3 id="/give-money">/give-money</h3>
+
+    <code>/give-money/&lt;user-id&gt;/&lt;amount&gt;?key=&lt;key&gt;</code>
+    <p>gives amount to the user with the discord id of user-id</p>
+    <p>Requires an api key which is put in place of <code>key</code></p>
+
+    <hr>
+
+    <h2 id='api-other'>Other endpoints</h2>
+
+    <h3 id="/option">/option</h3>
+    <code>/option/&lt;user-id&gt;?option=&lt;option-name&gt;</code>
+    <p>Gets the value of an option that user-id set</p>
+
+    <h3 id="/command-search">Command Search</h3>
+    <code>/command-search/search?category=cat&amp;cmd=cmd</code>
+    <p>All parameters and subpaths are options, ie: the search, category, and cmd</p>
+</body>
+
+</html>

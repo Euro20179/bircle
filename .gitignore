@@ -65,6 +65,7 @@ make-changelog
 
 out
 *.bircle
+tags
 
 ###############
 #   INCLUDE   #
@@ -73,3 +74,4 @@ out
 !wiki/index.txt
 !help.txt
 !command-perms/holder
+!assets/

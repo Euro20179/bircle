@@ -79,7 +79,7 @@ export function buyItem(user: string, item: string, count?: number, forceBuy?: b
     }
 }
 
-function useItem(user: string, item: string, times?: number){
+export function useItem(user: string, item: string, times?: number){
     if(INVENTORY[user]?.[item]){
         INVENTORY[user][item] -= times ?? 1
         if(INVENTORY[user][item] === 0){

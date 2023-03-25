@@ -8,6 +8,8 @@ export const GUILD_ID = fs.readFileSync("./data/GUILD", "utf-8").trim()
 
 export let SPAM_ALLOWED = true
 
+export let DEVBOT = fs.existsSync("./data/IS-DEV-BOT")
+
 export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
 export let SPAMS: { [id: string]: boolean } = {}
@@ -25,6 +27,27 @@ export let YAHTZEE_WAITING_FOR_PLAYERS = false
 
 export let KNOW_YOUR_MEME_TIMEOUT: NodeJS.Timeout;
 export let KNOW_YOUR_MEME_PLAYERS: User[] = []
+
+//an array of commands that the user is running
+export let USER_IN_COMMANDS: {[id: string]: string[]} = {}
+
+export function startCommand(id: string, command: string){
+    if(!USER_IN_COMMANDS[id]){
+        USER_IN_COMMANDS[id] = [command]
+    }
+    else{
+        USER_IN_COMMANDS[id].push(command)
+    }
+}
+export function endCommand(id: string, command: string){
+    if(!USER_IN_COMMANDS[id]){
+        return;
+    }
+    USER_IN_COMMANDS[id] = USER_IN_COMMANDS[id].filter(v => v!==command)
+}
+export function userUsingCommand(id: string, command: string){
+    return USER_IN_COMMANDS[id]?.includes(command) ? true : false
+}
 
 export const RECURSION_LIMIT = 20
 
@@ -48,7 +71,7 @@ export let SCALLYWAG_TOKENS: {[key: string]: number} = loadScallyWagTokens()
 
 
 function _generateUsageFile(OBJECT: {[key: string]: string | number}){
-    return listComprehension<string, typeof OBJECT, string>(Object.keys(OBJECT), key => `${key}:${OBJECT[key]}`).join("\n")
+    return listComprehension(Object.keys(OBJECT), key => `${key}:${OBJECT[key]}`).join("\n")
 }
 
 export function generateCmdUseFile() {
@@ -75,6 +98,10 @@ export function addToCmdUse(cmd: string) {
     } else {
         CMDUSE[cmd] = 1
     }
+}
+
+export function removeFromCmdUse(cmd: string){
+    CMDUSE[cmd] -= 1
 }
 
 export function writeCmdUse() {

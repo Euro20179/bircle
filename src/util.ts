@@ -1,439 +1,72 @@
 import cheerio = require("cheerio")
 import { spawnSync } from "child_process"
 
-const vm = require('vm')
-const fs = require('fs')
+import htmlRenderer from "./html-renderer"
 
-import { Client, Guild, GuildMember, Message, MessageEmbed } from "discord.js"
+import vm from 'vm'
+import fs from 'fs'
+
+import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
+import { existsSync } from "fs"
 import { client } from "./common"
-import { AliasV2 } from "./common_to_commands"
+import { AliasV2, CommandCategory } from "./common_to_commands"
 
-import globals = require("./globals")
+import events from './events'
 
-const { execFileSync, exec } = require('child_process')
-const { vars, setVar, aliases, prefix, BLACKLIST, WHITELIST, getVar } = require("./common.js")
+import { formatMoney, getOpt } from "./user-options"
 
-class LengthUnit {
-    value: number
 
-    /**
-        * @abstract
-    */
-    static shorthand: string = "units"
+export type MimeType = `${string}/${string}`
 
-    /**
-        * @abstract
-    */
-    static longname: string = "units"
+export type UnixTime = number
 
-    constructor(value: number) {
-        this.value = value
-    }
-
-    static fromUnitName(name: string): typeof LengthUnit {
-        let convTable: { [key: string]: typeof LengthUnit } = {}
-        for (let unit of Object.values(Units)) {
-            convTable[unit.shorthand] = unit
-            convTable[unit.longname] = unit
-        }
-        //@ts-ignore
-        return Reflect.get(convTable, name, convTable) ?? Yard
-    }
-
-    static fromUnitRepr(repr: `${number}${string}`) {
-        let numberPart = ""
-        let unitPart = ""
-        for (let ch of repr) {
-            if (!"0123456789".includes(ch)) {
-                unitPart += ch
-            }
-            else {
-                numberPart += ch
-            }
-        }
-        return new (this.fromUnitName(unitPart))(Number(numberPart))
-    }
-
-    /**
-        * @abstract
-    */
-    yards(): number {
-        return 0
-    }
-
-    toUnit(cls: typeof LengthUnit) {
-        let inYards = this.yards()
-        let amountOfUnitsInYards = (new cls(1)).yards()
-        return new cls(inYards / amountOfUnitsInYards)
-    }
+function getToolIp() {
+    return fs.existsSync("./data/ip.key") ? fs.readFileSync("./data/ip.key", "utf-8") : undefined
 }
 
-class AstronomicalUnit extends LengthUnit {
-    static longname = 'astronomicalunit'
-    static shorthand = 'AU'
-    yards() {
-        return this.value * 92955807.267433 * 1760
-    }
+//discord.js' isTextBased thing is absolutely useless
+function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclude<Channel, { type: ChannelType.GuildStageVoice }> {
+    return channel.type !== ChannelType.GuildStageVoice
 }
 
-class Mile extends LengthUnit {
-    static longname = "mile"
-    static shorthand = "mi"
-    yards() {
-        return this.value * 1760
-    }
+function databaseFileToArray(name: string) {
+    return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
 
-class Yard extends LengthUnit {
-    static longname = "yard"
-    static shorthand = "yd"
-    yards() {
-        return 1
-    }
+function mimeTypeToFileExtension(mime: MimeType) {
+    let [_, specific] = mime.split("/")
+    return {
+        "typescript": "ts",
+        "javascript": "js",
+        "text": "txt",
+        "markdown": "md",
+        "html": "html"
+    }[specific] ?? "dat"
 }
 
-class Foot extends LengthUnit {
-    static longname = "foot"
-    static shorthand = "ft"
-    yards() {
-        return this.value / 3
+function isSafeFilePath(fp: string) {
+    if (fp.match(/\/?\.\.\//)) {
+        return false
     }
+    else if (fp.match(/[^A-Z_a-z0-9\.,-]/)) {
+        return false
+    }
+    return true
 }
 
-class MetricFoot extends LengthUnit {
-    static longname = 'metricfoot'
-    static shorthand = 'metricft'
-    yards() {
-        return (new Inch(11.811)).toUnit(Foot).value / 3
-    }
+function createEmbedFieldData(name: string, value: string, inline?: boolean): APIEmbedField {
+    return { name: name, value: value, inline: inline ?? false }
 }
 
-class Inch extends LengthUnit {
-    static longname = "inch"
-    static shorthand = "in"
-    yards() {
-        return this.value / 3 / 12
-    }
-}
-
-class Kilometer extends LengthUnit {
-    static longname = 'kilometer'
-    static shorthand = 'km'
-    yards() {
-        return (new Meter(this.value * 1000)).yards()
-    }
-}
-
-class Hectometer extends LengthUnit {
-    static longname = 'hectometer'
-    static shorthand = 'hm'
-    yards() {
-        return (new Meter(this.value * 100)).yards()
-    }
+/**
+    * @description Creates an array of embedfielddata
+*/
+function efd(...data: [string, string, boolean?][]) {
+    return listComprehension<[string, string, boolean?], APIEmbedField>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
 }
 
 
-class Dekameter extends LengthUnit {
-    static longname = 'dekameter'
-    static shorthand = 'dam'
-    yards() {
-        return (new Meter(this.value * 10)).yards()
-    }
-}
 
-class Meter extends LengthUnit {
-    static longname = 'meter'
-    static shorthand = 'm'
-    yards() {
-        return (new Centimeter(this.value * 100)).yards()
-    }
-}
-
-class Decimeter extends LengthUnit {
-    static longname = 'decimeter'
-    static shorthand = 'dm'
-    yards() {
-        return (new Centimeter(this.value * 10)).yards()
-    }
-}
-
-class Centimeter extends LengthUnit {
-    static longname = "centimeter"
-    static shorthand = "cm"
-    yards() {
-        return this.value / 2.54 / 36
-    }
-}
-
-class Millimeter extends LengthUnit {
-    static longname = 'millimeter'
-    static shorthand = 'mm'
-    yards() {
-        return (this.value / 10) / 2.54 / 36
-    }
-}
-
-class Micrometer extends LengthUnit {
-    static longname = 'micrometer'
-    static shorthand = 'µm'
-    yards() {
-        return (this.value / 100) / 2.54 / 36
-    }
-}
-
-class Nanometer extends LengthUnit {
-    static longname = 'nanometer'
-    static shortname = 'nm'
-    yards() {
-        return (this.value / 1000) / 2.54 / 36
-    }
-}
-
-class Horse extends LengthUnit {
-    static longname = 'horse'
-    static shorthand = 'horse'
-    yards() {
-        return (new Foot(this.value * 8)).yards()
-    }
-}
-
-class Hand extends LengthUnit {
-    static longname = "hand"
-    static shorthand = "hand"
-
-    yards() {
-        return (new Inch(this.value * 4)).yards()
-    }
-}
-
-class ValveSourceHammer extends LengthUnit {
-    static longname = "ValveSourcehammer"
-    static shorthand = "VShammer"
-    yards() {
-        return this.value / 3 / 16
-    }
-}
-
-class Mickey extends LengthUnit {
-    static longname = 'Mickey'
-    static shorthand = 'Mickey'
-    yards() {
-        return this.value / 16000 / 36
-    }
-}
-
-class Smoot extends LengthUnit {
-    static longname = 'Smoot'
-    static shorthand = 'Smoot'
-    yards() {
-        return (new Centimeter(170)).yards()
-    }
-}
-
-class Footballfield extends LengthUnit {
-    static longname = 'footballfield'
-    static shorthand = 'footballfield'
-    yards() {
-        return this.value * 100
-    }
-}
-
-class Minecraftblock extends LengthUnit {
-    static longname = 'Minecraftblock'
-    static shorthand = 'MCblock'
-    yards() {
-        return (new Meter(this.value * 100)).yards()
-    }
-}
-
-
-class Lightyear extends LengthUnit {
-    static longname = 'lightyear'
-    static shorthand = 'lighty'
-    yards() {
-        return (new AstronomicalUnit(this.value * 63241.08)).yards()
-    }
-}
-
-class Lightmonth extends LengthUnit {
-    static longname = 'lightmonth'
-    static shorthand = 'lightm'
-    yards() {
-        return (new Lightyear(this.value / 12.175)).yards()
-    }
-}
-
-class Lightweek extends LengthUnit {
-    static longname = 'lightweek'
-    static shorthand = 'lightw'
-    yards() {
-        return (new Lightmonth(this.value * .233333333333333333333333)).yards()
-    }
-}
-
-class Lightday extends LengthUnit {
-    static longname = 'lightday'
-    static shorthand = 'lightd'
-    yards() {
-        return (new Lightweek(this.value / 7)).yards()
-    }
-}
-
-class Lighthour extends LengthUnit {
-    static longname = 'lighthour'
-    static shorthand = 'lightH'
-    yards() {
-        return (new Lightday(this.value / 24)).yards()
-    }
-}
-
-class Lightminute extends LengthUnit {
-    static longname = 'lightminute'
-    static shorthand = 'lightM'
-    yards() {
-        return (new Lighthour(this.value / 60)).yards()
-    }
-}
-
-class Lightsecond extends LengthUnit {
-    static longname = 'lightsecond'
-    static shorthand = 'lightS'
-    yards() {
-        return (new Lightminute(this.value / 60)).yards()
-    }
-}
-
-const Units = {
-    LengthUnit,
-    AstronomicalUnit,
-    Mile,
-    Yard,
-    Foot,
-    Inch,
-    Hand,
-    ValveSourceHammer,
-    MetricFoot,
-    Centimeter,
-    Millimeter,
-    Micrometer,
-    Nanometer,
-    Meter,
-    Kilometer,
-    Decimeter,
-    Dekameter,
-    Hectometer,
-    Horse,
-    Mickey,
-    Smoot,
-    Footballfield,
-    Minecraftblock,
-    Lightmonth,
-    Lightyear,
-    Lightweek,
-    Lightday,
-    Lighthour,
-    Lightminute,
-    Lightsecond
-}
-
-
-function parsePercentFormat(string: string, replacements?: { [key: string]: string }) {
-    let formats = []
-    let ploc = -1;
-    while ((ploc = string.indexOf("%")) > -1) {
-        string = string.slice(ploc + 1)
-        let char = string[0]
-        if (char === undefined)
-            break
-        else if (char === "%") {
-            formats.push("%")
-        }
-        else if (replacements) {
-            formats.push(replacements[char] || char)
-        }
-        else {
-            formats.push(char)
-        }
-        //skip past char
-        string = string.slice(1)
-    }
-    return formats
-}
-
-function formatPercentStr(string: string, replacements: { [key: string]: string }) {
-    let ploc = -1;
-    let newStr = ""
-    while ((ploc = string.indexOf("%")) > -1) {
-        newStr += string.slice(0, ploc)
-        string = string.slice(ploc + 1)
-        let char = string[0]
-        if (char === undefined)
-            break
-        if (char !== "%") {
-            newStr += replacements[char] ?? `%${char}`
-        }
-        else {
-            newStr += "%"
-        }
-        //get past char
-        string = string.slice(1)
-    }
-    newStr += string
-    return newStr
-}
-
-function formatBracePairs(string: string, replacements: { [key: string]: string }, pair = "{}", recursion = true) {
-    let newStr = ""
-    let escape = false
-    for (let i = 0; i < string.length; i++) {
-        let ch = string[i]
-        if (ch === "\\" && !escape) {
-            escape = true
-        }
-        else if (ch == pair[0] && !escape) {
-            let inner = parseBracketPair(string.slice(i), pair)
-            if (recursion) {
-                newStr += replacements[inner] ?? `${pair[0]}${formatBracePairs(inner, replacements, pair, recursion)}${pair[1]}`
-            }
-            else {
-                newStr += replacements[inner] ?? `${pair[0]}${inner}${pair[1]}`
-            }
-            i += inner.length + 1
-        }
-        else {
-            escape = false
-            newStr += ch
-        }
-    }
-    return newStr
-}
-
-function parseBracketPair(string: string, pair: string, start = -1) {
-    let count = 1;
-    if (string.indexOf(pair[0]) === -1) {
-        return string
-    }
-    let curStr = ""
-    start = start === -1 ? string.indexOf(pair[0]) + 1 : start
-    for (let i = start; i < string.length; i++) {
-        let ch = string[i]
-        if (ch == pair[0]) {
-            count++;
-        }
-        if (ch == pair[1]) {
-            count--;
-        }
-        if (count == 0) {
-            return curStr
-        }
-        //sspecial case when the pairs are the same
-        if (count == 1 && pair[0] == ch && pair[1] == pair[0] && curStr) {
-            return curStr
-        }
-        curStr += ch
-    }
-    return curStr
-}
 
 class Pipe {
     data: any[]
@@ -508,22 +141,23 @@ class UTF8String {
     }
 }
 
-function* enumerate<T>(iterable: T[]): Generator<[number, T]>{
-    for(let i = 0; i < iterable.length; i++){
-        yield [i, iterable[i]]
+function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
+    let i = 0
+    for (let item of iterable) {
+        yield [i++, item]
     }
 }
 
-function* range(start: number, stop: number, step: number = 1){
-    for(let i = start; i < stop; i += step){
+function* range(start: number, stop: number, step: number = 1) {
+    for (let i = start; i < stop; i += step) {
         yield i
     }
 }
 
-function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: (i: T) => TReturn): TReturn[]{
+function listComprehension<T, TReturn>(l: Iterable<T>, fn: (i: T, index: number) => TReturn): TReturn[] {
     let newList = []
-    for(let item of l){
-        newList.push(fn(item))
+    for (let [i, item] of enumerate(l)) {
+        newList.push(fn(item, i))
     }
     return newList
 }
@@ -533,7 +167,7 @@ function listComprehension<T, TList extends Iterable<T>, TReturn>(l: TList, fn: 
  * @param {function(number):void} [onNext]
  * @returns {Iterable}
  */
-function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T>{
+function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
     for (let i = 0; true; i++) {
         if (onNext)
             onNext(i)
@@ -572,20 +206,39 @@ async function fetchChannel(guild: Guild, find: string) {
     return channel
 }
 
+/**
+    * @description Finds a user from the client cache
+*/
 async function fetchUserFromClient(client: Client, find: string) {
+    let res;
+    if (res = find.match(/<@!?(\d{18})>/)) {
+        find = res[1]
+    }
+    find = find.toLowerCase()
     let user = client.users.cache.find((v, k) => {
-        return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find || `<@${v.id}>` === find || `<@!${v.id}>` === find
+        return v.username.toLowerCase() === find || v.username.toLowerCase().startsWith(find) || v.id === find
     })
+    if (!user) {
+        try {
+            user = await client.users.fetch(find)
+        }
+        catch (err) {
+            return user
+        }
+    }
     return user
 }
 
+/**
+    * @description finds the member in a guild
+*/
 async function fetchUser(guild: Guild, find: string) {
     let res;
     if (res = find?.match(/<@!?(\d{18})>/)) {
         find = res[1]
     }
     find = find.toLowerCase()
-    let user = guild.members.cache.find((v, k) => {
+    let user = guild.members.cache.find((v) => {
         return v.user.username.toLowerCase().startsWith(find) ||
             v.nickname?.toLowerCase().startsWith(find) ||
             v.id === find ||
@@ -605,19 +258,19 @@ async function fetchUser(guild: Guild, find: string) {
         if (!user) {
             user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
         }
-        if(!user){
-            fetchUserFromClient(client, find)
-        }
     }
     return user
 }
 
-function generateFileName(cmd: string, userId: string) {
-    return `${cmd}::${userId}.txt`
+async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
+    if (guild) {
+        return (await fetchUser(guild, find))?.user
+    }
+    return await fetchUserFromClient(client, find)
 }
 
-function downloadSync(url: string) {
-    return execFileSync(`curl`, ['--silent', url])
+function generateFileName(cmd: string, userId: string, ext: string = "txt") {
+    return `garbage-files/${cmd}-${userId}.${ext}`
 }
 
 function escapeRegex(str: string) {
@@ -641,9 +294,6 @@ function escapeRegex(str: string) {
     return finalString
 }
 
-function format(str: string, formats: { [key: string]: string }, recursion = false) {
-    return formatPercentStr(formatBracePairs(str, formats, "{}", recursion), formats)
-}
 
 async function createGradient(gradient: string[], width: number | string, height: number | string) {
     let gradientSvg = "<linearGradient id=\"gradient\">"
@@ -721,7 +371,7 @@ function rgbToHex(r: number, g: number, b: number) {
 }
 
 function generateSafeEvalContextFromMessage(msg: Message) {
-    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, Units: Units }
+    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, Units: require("./units").default }
 }
 
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {
@@ -745,22 +395,22 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     Object.entries({
         yes: true,
         false: false,
+        efd,
         rgbToHex,
         escapeRegex,
         escapeShell,
         randomColor,
         mulStr,
-        mul_t: weirdMulStr,
         choice,
-        Units,
         Pipe,
-        parseBracketPair,
-        parsePercentFormat,
-        formatPercentStr,
-        formatBracePairs,
+        mimeTypeToFileExtension,
         searchList,
-        renderHTML,
-        getOpts
+        renderHTML: htmlRenderer.renderHTML,
+        generateCommandSummary,
+        user_options: {
+            formatMoney: formatMoney,
+            getOpt: getOpt
+        },
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
@@ -782,45 +432,60 @@ function strlen(text: string) {
 }
 
 function cmdCatToStr(cat: number) {
-    switch (cat) {
-        case 0:
-            return "util"
-        case 1:
-            return "game"
-        case 2:
-            return "fun"
-        case 3:
-            return "meta"
-        case 4:
-            return "images"
-        case 5:
-            return "economy"
-        case 6:
-            return "voice"
-        case 7:
-            return "admin"
-        case 8:
-            return "match"
-    }
+    return {
+        [CommandCategory.UTIL]: "util",
+        [CommandCategory.GAME]: "game",
+        [CommandCategory.FUN]: "fun",
+        [CommandCategory.META]: "meta",
+        [CommandCategory.IMAGES]: "images",
+        [CommandCategory.ECONOMY]: "economy",
+        [CommandCategory.VOICE]: "voice",
+        [CommandCategory.ADMIN]: "admin",
+        [CommandCategory.MATCH]: "match",
+        [CommandCategory.ALIASV2]: "aliasv2"
+    }[cat] ?? "UNKNOWN"
 }
 
-function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
-    let img = opts['img']
-    if (msg.attachments?.at(0)) {
-        //@ts-ignore
-        img = msg.attachments.at(0)?.attachment
+function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean) {
+    let img;
+    if (opts instanceof Options) {
+        img = opts.getString("img", "")
+        if (img && pop)
+            opts.delete("img")
     }
-    else if(msg.stickers?.at(0)){
-        //@ts-ignore
-        img = msg.stickers.at(0).url as string
+    if (!img && !(opts instanceof Options) && typeof opts['img'] === 'string') {
+        img = opts['img']
+        if (img && pop)
+            delete opts['img']
     }
-    else if (msg.embeds?.at(0)?.image?.url) {
-        //@ts-ignore
+    if (!img && stdin?.files) {
+        img = stdin?.files[0]?.attachment
+        if (img && pop)
+            delete stdin.files[0]
+    }
+    if (!img && msg.attachments?.at(0)) {
+        img = msg.attachments.at(0)?.url
+        if (img && pop)
+            msg.attachments.delete(msg.attachments.keyAt(0) as string)
+    }
+    if (!img && msg.stickers?.at(0)) {
+        img = msg.stickers.at(0)?.url as string
+        if (img && pop)
+            msg.stickers.delete(msg.stickers.keyAt(0) as string)
+    }
+    if (!img && msg.embeds?.at(0)?.image?.url) {
         img = msg.embeds?.at(0)?.image?.url
     }
-    else if (!img || img == true) {
-        //@ts-ignore
-        img = msg.channel.messages.cache.filter((m) => m.attachments?.last()?.size ? true : false)?.last()?.attachments?.first()?.attachment
+    if (!img && msg.channel.type === ChannelType.GuildText) {
+        img = msg.channel.messages.cache.filter(
+            (m) => m.attachments?.last()?.size ? true : false
+        )?.last()?.attachments.last()?.url
+    }
+    //ts complains when these are the same check even though it's the same god damn thing
+    if (!img && msg.channel.type === ChannelType.DM) {
+        img = msg.channel.messages.cache.filter(
+            (m) => m.attachments?.last()?.size ? true : false
+        )?.last()?.attachments.last()?.url
     }
     return img
 }
@@ -828,102 +493,155 @@ function getImgFromMsgAndOpts(opts: Opts, msg: Message) {
 const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
-type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => boolean)
-class ArgList extends Array{
+type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
+class ArgList extends Array {
     #i: number
     #curArg: string | null
-    constructor(args: string[]) {
+    IFS: string
+    constructor(args: string[], IFS = " ") {
         super(args.length)
         for (let index in args) {
             Reflect.set(this, index, args[index])
         }
         this.#i = NaN
         this.#curArg = null
+        this.IFS = IFS
     }
-    beginIter(){
+    beginIter() {
         this.#i = -1
         this.#curArg = this[this.#i]
     }
     //mainly for semantics
-    reset(){
+    reset() {
         this.beginIter()
     }
-    advance(){
+    advance() {
         this.#i++;
         this.#curArg = this[this.#i]
         return this.#curArg
     }
-    back(){
+    back() {
         this.#i--;
         this.#curArg = this[this.#i]
         return this.#curArg
     }
-    #createArgList(amountOfArgs: AmountOfArgs){
+    get currentIndex() {
+        return this.#i
+    }
+    #createArgList(amountOfArgs: AmountOfArgs) {
         let argsToUse = []
-        if(typeof amountOfArgs === 'number'){
-            this.advance()
-            argsToUse = listComprehension(range(this.#i, this.#i + amountOfArgs), (i: number) => this[i])
+        if (typeof amountOfArgs === 'number') {
+            if (this.#i === -1)
+                this.advance()
+            for (let start = this.#i; this.#i < start + amountOfArgs; this.advance()) {
+                if (this.#curArg !== undefined && this.#curArg !== null) {
+                    argsToUse.push(this.#curArg)
+                }
+                else {
+                    return []
+                }
+            }
         }
-        else{
-            while(this.advance() && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)){
-                argsToUse.push(this.#curArg)
+        else {
+            if (this.#i === -1)
+                this.advance()
+            while (this.#curArg && amountOfArgs(this.#curArg as string, this.#i, argsToUse.length)) {
+                argsToUse.push(this.#curArg as string)
+                this.advance()
             }
             this.back()
         }
         return argsToUse
     }
-    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T){
-        if(this.#curArg === null){
+    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
+        if (this.#curArg === null) {
             throw new Error("beginIter must be run before this function")
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if((res = filter(argsToUse)) !== BADVALUE){
+        if ((res = filter.bind(this)(argsToUse)) !== false && res !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
-        return null
+        return BADVALUE
     }
-    async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T){
-        if(this.#curArg === null){
+    async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
+        if (this.#curArg === null) {
             throw new Error("beginIter must be run before this function")
         }
         let argsToUse = this.#createArgList(amountOfArgs)
         let res;
-        if((res = (await filter(argsToUse))) !== BADVALUE){
+        if ((res = (await filter(argsToUse))) !== BADVALUE && res !== false) {
             return res === GOODVALUE ? this.#curArg : res
         }
-        return null
+        return BADVALUE
     }
-    expectOneOf(amountOfArgs: AmountOfArgs, list: string[]){
+    expectOneOf(amountOfArgs: AmountOfArgs, list: string[]) {
         return this.expect(amountOfArgs, i => {
             list.includes(i.join(" "))
         })
     }
-    expectString(amountOfArgs: AmountOfArgs = 1){
-        return this.expect(amountOfArgs, i => i.join(" "))
+    expectList(splitter: string, amountOfListItems: number = 1) {
+        let resArr: string[] = []
+        let curItem = 0
+        return this.expect((arg) => {
+            if (resArr[curItem] === undefined) {
+                resArr[curItem] = ""
+            }
+            if (arg === splitter) {
+                curItem++;
+            }
+            else if (arg.includes(splitter)) {
+                let [last, ...rest] = arg.split(splitter)
+                resArr[curItem] += last + this.IFS
+                if (resArr.length > amountOfListItems) {
+                    return false
+                }
+                if (resArr.length + rest.length > amountOfListItems) {
+                    rest.length = amountOfListItems - resArr.length
+                }
+                if (rest.length) {
+                    rest[rest.length - 1] += this.IFS
+                    resArr = resArr.concat(rest)
+                }
+                curItem = resArr.length - 1
+            }
+            else resArr[curItem] += arg + this.IFS
+            return resArr.length < amountOfListItems
+            //slicing here removes the extra IFS at the end of each item
+        }, () => resArr.map(v => v.slice(0, -1))) as string[] | typeof BADVALUE
     }
-    expectInt(amountOfArgs: AmountOfArgs = 1){
-        return this.expect(amountOfArgs, i => i.join(" ").match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
-    }
-    expectBool(amountOfArgs: AmountOfArgs = 1){
+    expectSizedString(size: number, amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {
-            let s = i.join(" ").toLowerCase()
-            if(s === 'true'){
+            let v = i.join(" ")
+            return v.length >= size? BADVALUE : v
+        })
+
+    }
+    expectString(amountOfArgs: AmountOfArgs = 1) {
+        return this.expect(amountOfArgs, i => i.length ? i.join(this.IFS) : BADVALUE)
+    }
+    expectInt(amountOfArgs: AmountOfArgs = 1) {
+        return this.expect(amountOfArgs, i => i.join(this.IFS).match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
+    }
+    expectBool(amountOfArgs: AmountOfArgs = 1) {
+        return this.expect(amountOfArgs, i => {
+            let s = i.join(this.IFS).toLowerCase()
+            if (s === 'true') {
                 return true
             }
-            else if(s === 'false'){
+            else if (s === 'false') {
                 return false
             }
             return BADVALUE
         })
     }
-    async expectRole(guild: Guild, amountOfArgs: AmountOfArgs = 1){
-        return await this.expectAsync(amountOfArgs, async(i) => {
+    async expectRole(guild: Guild, amountOfArgs: AmountOfArgs = 1) {
+        return await this.expectAsync(amountOfArgs, async (i) => {
             let roles = await guild.roles.fetch()
-            if(!roles){
+            if (!roles) {
                 return BADVALUE
             }
-            let s = i.join(" ")
+            let s = i.join(this.IFS)
             let foundRoles = roles.filter(r => r.name.toLowerCase() === s ? true : false)
             if (!foundRoles.size) {
                 foundRoles = roles.filter(r => r.name.toLowerCase().match(s) ? true : false)
@@ -938,16 +656,16 @@ class ArgList extends Array{
             return role
         })
     }
-    async assertIndexIs<T>(index: number, assertion: (data: string) => Promise<T | undefined>, fallback: T): Promise<T>{
+    async assertIndexIs<T>(index: number, assertion: (data: string) => Promise<T | undefined>, fallback: T): Promise<T> {
         return await assertion(this.at(index)) ?? fallback
     }
 
-    async assertIndexIsUser(guild: Guild, index: number, fallback: GuildMember){
-        return await this.assertIndexIs(index, async(data) => await fetchUser(guild, data), fallback)
+    async assertIndexIsUser(guild: Guild, index: number, fallback: GuildMember) {
+        return await this.assertIndexIs(index, async (data) => await fetchUser(guild, data), fallback)
     }
 }
 
-class Options extends Map{
+class Options extends Map {
     constructor(opts: Opts) {
         super()
         for (let op in opts) {
@@ -959,8 +677,8 @@ class Options extends Map{
     */
     //overriding the default map.get
     //@ts-ignore
-    get<T>(key: string, default_: T, assert: (v: any) => undefined | any = (_v) => _v) {
-        let rv = Reflect.get(this, key, this)
+    get<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
+        let rv = super.get(key)
         return assert(rv) ?? default_
     }
 
@@ -997,197 +715,66 @@ class Options extends Map{
     }
 }
 
-function getOpts(args: ArgumentList): [Opts, ArgumentList] {
-    let opts = {}
-    let newArgs = []
-    let idxOfFirstRealArg = 0
-    for (let arg of args) {
-        if (arg[0] == "-") {
-            idxOfFirstRealArg++;
-            if (arg[1] && arg[1] === '-') {
-                break
-            }
-            if (arg[1]) {
-                let [opt, ...value] = arg.slice(1).split("=")
-                //@ts-ignore
-                opts[opt] = value[0] == undefined ? true : value.join("=");
-            }
-        }
-        else{
-            break
-        }
-    }
-    newArgs = args.slice(idxOfFirstRealArg)
-    return [opts, newArgs]
-}
 
-function getContentFromResult(result: CommandReturn, end="") {
+function getContentFromResult(result: CommandReturn, end = "") {
     let res = ""
     if (result.content)
-        res += result.content + end
+        res += result.content
     if (result.files) {
         for (let file of result.files) {
-            res += fs.readFileSync(file.attachment, "base64") + "\n"
+            if (existsSync(file.attachment))
+                res += end + fs.readFileSync(file.attachment, "base64")
         }
     }
     if (result.embeds) {
         for (let embed of result.embeds) {
-            res += `${JSON.stringify(embed.toJSON())}\n`
+            res += `${end}${JSON.stringify(embed.toJSON())}`
         }
     }
     return res
 }
 
-function renderElementChildren(elem: cheerio.Element, indentation = 0) {
-    let text = ""
 
-    if(elem.type == "text")
-        return elem.data
-    else if(elem.type == "comment")
-        return ""
-
-    for (let child of elem.children) {
-        if (child.type === "text") {
-            text += child.data?.replaceAll(/\s+/g, " ")
-        }
-        else if (child.type === "tag") {
-            text += renderELEMENT(child, indentation)
-        }
-    }
-    return text
+function generateDocSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+    let summary = generateCommandSummary(name, command)
+    summary += htmlRenderer.renderHTML(`<br><br><b>docs</b><br>${command['help']?.['docs'] || ""}`)
+    return summary
 }
 
-function renderLiElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
-    if(elem.type === "text" || elem.type === "comment"){
-        return ""
-    }
-    marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
-    return "\t".repeat(indentation) + marker + renderElementChildren(elem, indentation + 1) + "\n"
-}
+function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+    let summary = `***${name}***`
 
-function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t") {
-    let text = ""
-    if(elem.type === "text" || elem.type === "comment"){
-        return ""
+    if (command.help?.accepts_stdin) {
+        summary = `\\[<command> >pipe>] ${summary}`
     }
 
-    marker = Object.entries(elem.attribs).filter(v => v[0] === "marker")?.[0]?.[1] ?? marker
-    for (let child of elem.children) {
-        if (child.type === "tag") {
-            if (child.name === "li") {
-                text += renderLiElement(child, indentation + 1, marker)
-            }
-        }
-        else if (child.type === "text") {
-            text += child.data?.replaceAll(/\s+/g, " ")
-        }
-    }
-    return text
-}
-
-function renderLHElement(elem: cheerio.Element, indentation = 0) {
-    return `__${renderElementChildren(elem, indentation)}__`
-}
-
-function renderBElement(elem: cheerio.Element, indentation = 0) {
-    return `**${renderElementChildren(elem, indentation)}**`
-}
-
-function renderIElement(elem: cheerio.Element, indentation = 0) {
-    return `*${renderElementChildren(elem, indentation)}*`
-}
-function renderSElement(elem: cheerio.Element, indentation = 0) {
-    return `~~${renderElementChildren(elem, indentation)}~~`
-}
-
-function renderAElement(elem: cheerio.TagElement, indentation = 0){
-    let href = Object.entries(elem.attribs).filter(v => v[0] === "href")?.[0]?.[1] ?? ""
-    return `[${renderElementChildren(elem)}](${href})`
-}
-
-function renderBlockcodeElement(elem: cheerio.TagElement, indentation = 0){
-    return `> ${renderElementChildren(elem)}`
-}
-
-function renderCodeElement(elem: cheerio.Element, indentation = 0) {
-    let text = "`"
-    if(elem.type === "text" || elem.type === "comment"){
-        return ""
+    if (command.help?.options) {
+        summary += ` [-options...]`
     }
 
-    let lang = Object.entries(elem.attribs).filter(v => v[0] === "lang")?.[0]?.[1]
-    if (lang) {
-        text += `\`\`${lang}\`\`\n`
-    }
-    text += renderElementChildren(elem, indentation)
-    if (lang) {
-        text += "\n``"
-    }
-    return text + "`"
-}
-
-function renderPElement(elem: cheerio.TagElement, indentation = 0){
-    return `\n${renderElementChildren(elem, indentation)}\n`
-}
-
-function renderELEMENT(elem: cheerio.Element, indentation = 0) {
-    let text = ""
-    if (elem.type === "tag") {
-        if (elem.name === "br") {
-            text += `\n${"\t".repeat(indentation)}`
-        }
-        else if (elem.name === "ul") {
-            text += `\n${renderUlElement(elem, indentation)}${"\t".repeat(indentation)}`
-        }
-        else if(elem.name === "a"){
-            text += renderAElement(elem, indentation)
-        }
-        else if (elem.name === "lh") {
-            text += renderLHElement(elem, indentation)
-        }
-        else if (elem.name === "code") {
-            text += renderCodeElement(elem, indentation)
-        }
-        else if(elem.name === "blockquote") {
-            text += renderBlockcodeElement(elem, indentation)
-        }
-        else if (["strong", "b"].includes(elem.name)) {
-            text += renderBElement(elem, indentation)
-        }
-        else if (["i"].includes(elem.name)) {
-            text += renderIElement(elem, indentation)
-        }
-        else if (["del"].includes(elem.name)) {
-            text += renderSElement(elem, indentation)
-        }
-        else if(elem.name === "p"){
-            text += renderPElement(elem, indentation)
+    for (let arg in command.help?.arguments) {
+        let argData = command.help?.arguments[arg]
+        if (argData?.required !== false) {
+            summary += ` <${arg}>`
         }
         else {
-            for (let child of elem.children ?? []) {
-                text += renderELEMENT(child, indentation)
+            summary += ` [${arg}`;
+            if (argData.default) {
+                summary += ` (${argData.default})`
             }
+            summary += ']'
         }
     }
-    if (elem.type === "text") {
-        text += elem.data?.replaceAll(/\s+/g, " ")
-    }
-    return text
-
+    return summary
 }
 
-function renderHTML(text: string, indentation = 0) {
-    let h = cheerio.load(text)("body")[0]
-    return renderELEMENT(h, indentation)
-}
-
-function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2) {
-    let text =""
+function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let helpData = command.help
-    if (!helpData)
-        return text
 
-    let nameInfo = `***${name}***`
+    let nameInfo = generateCommandSummary(name, command)
+
+    if (!helpData)
+        return nameInfo + "\n"
     let textInfo = "";
     let aliasInfo = "";
     let argInfo = "";
@@ -1195,10 +782,20 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     let tagInfo = "";
 
     if (helpData.info) {
-        textInfo = "\n\n" + renderHTML(helpData.info) + "\n\n"
+        textInfo = "\n\n" + htmlRenderer.renderHTML(helpData.info) + "\n\n"
     }
-    if (helpData.aliases) {
-        aliasInfo = `Aliases: ${helpData.aliases.join(", ")}\n`
+    if (helpData.docs) {
+        textInfo += htmlRenderer.renderHTML(`<h1>docs</h1>` + helpData.docs) + '\n\n'
+    }
+    if (helpData.accepts_stdin) {
+        argInfo += "__stdin__:\n"
+        if (typeof helpData.accepts_stdin === 'string') {
+            argInfo += htmlRenderer.renderHTML(helpData.accepts_stdin, 2)
+        }
+        else {
+            argInfo += 'true'
+        }
+        argInfo += '\n'
     }
     if (helpData.arguments) {
         argInfo += "__Arguments__:\n"
@@ -1206,20 +803,15 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
             argInfo += `\t* **${arg}**`
             if (helpData.arguments[arg].required !== false) {
                 argInfo += " (required) "
-                nameInfo += ` <${arg}>`
-            }
-            else{
-                nameInfo += ` [${arg}]`
             }
             if (helpData.arguments[arg].requires) {
                 argInfo += ` (requires: ${helpData.arguments[arg].requires}) `
             }
             if (helpData.arguments[arg].default) {
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
-                nameInfo += ` [${arg} (${helpData.arguments[arg].default})]`
             }
             let html = cheerio.load(helpData.arguments[arg].description)
-            argInfo += `:\n\t\t- ${renderELEMENT(html("*")[0], 2).trim()}`
+            argInfo += `:\n\t\t- ${htmlRenderer.renderELEMENT(html("*")[0], 2).trim()}`
             //we want exactly 2 new lines
             while (!argInfo.endsWith("\n\n")) {
                 argInfo += "\n"
@@ -1234,7 +826,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 optInfo += ` (default: ${helpData.options[op].default})`
             }
             optInfo += ': '
-            optInfo += renderHTML(helpData.options[op].description, 2).trim()
+            optInfo += htmlRenderer.renderHTML(helpData.options[op].description, 2).trim()
             if (helpData.options[op].alternates) {
                 optInfo += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
@@ -1250,16 +842,21 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     return (nameInfo + "\n\n" + textInfo + aliasInfo + argInfo + optInfo + tagInfo).replace("\n\n\n", "\n")
 }
 
-function generateHTMLFromCommandHelp(name: string, command: any) {
-    let html = `<div class="command-section"><h1 class="command-title">${name}</h1>`
+function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2) {
+    let html = `<div class="command-section" tabindex=0><h1 class="command-title" id="${name}">${name}</h1>`
     let help = command["help"]
     if (help) {
         let info = help["info"] || ""
-        let aliases = help["aliases"] || []
         let options = help["options"] || {}
         let args = help["arguments"] || {}
         if (info !== "") {
             html += `<h2 class="command-info">Info</h2><p class="command-info">${info}</p>`
+        }
+        if (help['docs']) {
+            html += `<h2 class="command-doc">Docs</h2><p class="command-doc">${help['docs']}</p>`
+        }
+        if (help["accepts_stdin"]) {
+            html += `<h2 class="command-stdin">Stdin</h2><p class="stdin-text">${help['accepts_stdin']}</p>`
         }
         if (args && Object.keys(args).length) {
             html += `<h2 class="command-arguments">Arguments</h2><ul class="command-argument-list">`
@@ -1273,7 +870,14 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
                     extraText = `<span class="requires">requires: ${requires}</span>`
                 }
                 html += `<li class="command-argument" data-required="${required}">
-    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}"><summary class="command-argument-summary" data-required="${required}">${argName}&nbsp; (default: ${default_})</summary>${argument}<br>${extraText}</details>
+    <details class="command-argument-details-label" data-required="${required}" title="required: ${required}">
+        <summary class="command-argument-summary" data-required="${required}">${argName}`
+
+                if (default_) html += `&nbsp; (default: ${default_})`
+
+                html += `</summary>
+        ${argument}<br>${extraText}
+        </details>
     </li>`
             }
             html += "</ul>"
@@ -1282,11 +886,12 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for (let option in options) {
                 let desc = options[option].description || ""
-                let alternates = options[option].alternates || 0
+                let alternates = options[option].alternates
                 // let requiresValue = options[option].requiresValue || false
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
-    <summary class="command-option-summary" title="default: ${default_}">-${option}&nbsp</summary> ${desc}</details>`
+    <details class="command-option-details-label">
+    <summary class="command-option-summary"${default_ ? ` title="default: ${default_}"` : ""}>-${option}</summary>${desc}</details>` 
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
@@ -1300,63 +905,88 @@ function generateHTMLFromCommandHelp(name: string, command: any) {
             html += "</ul>"
 
         }
-        if (aliases) {
-            html += `<h2 class="command-aliases">Aliases</h2><ul class="command-alias-list">`
-            for (let alias of aliases) {
-                html += `<li class="command-alias">${alias}</li>`
-            }
-            html += "</ul>"
-        }
     }
     return `${html}</div><hr>`
 }
 
-function weirdMulStr(text: string[], ...count: string[]) {
-    return mulStr(text.join(" "), Number(count[0]) ?? 1)
-}
+function searchList(search: string, list_of_strings: string[], caseSentive = false) {
+    let results: { [key: string]: number } = {}
+    for (let str of list_of_strings) {
+        if (caseSentive === false)
+            str = str.toLowerCase()
+        let score = 0
+        let inARow = 0
+        let maxInARow = 0;
+        let lastMatchI = 0;
+        let lastMatchJ = 0;
+        for (let i = 0; i < str.length; i++) {
+            let foundMatch = false
+            for (let j = lastMatchJ + 1; j < search.length; j++) {
+                if (str[i] === search[j]) {
+                    if (i === lastMatchI + 1) {
+                        inARow++;
+                        score += j
+                    }
+                    else {
+                        inARow = 1
+                    }
+                    if (inARow > maxInARow) {
+                        maxInARow = inARow
+                    }
+                    lastMatchI = i
+                    lastMatchJ = j
+                    if (inARow > maxInARow)
+                        maxInARow = inARow
 
-function searchList(search: string, list_of_strings: string[]) {
-    let results: { [key: string]: number } =  { }
-    for(let str of list_of_strings){
-        let lastMatch = 0;
-        let matchIndicies: number[] = []
-        for (let i = 0; i < search.length; i++) {
-            // let foundMatch = false
-            for (let j = lastMatch; j < str.length; j++) {
-                if (str[j] === search[i]) {
-                    matchIndicies.push(j)
-                    lastMatch = j
-                    // accuracy += (j - i) * sequence * (file.length - j)
-                    // sequence += 1
-                    // foundMatch = true
-                    // break
+                    foundMatch = true
+                    break;
                 }
-                // else if(i === j)
-                //     sequence = 1
             }
-            // if(!foundMatch){
-            //     accuracy -= file.length
-            //     sequence = 1
-            // }
-        }
-        let total = 0
-        for (let i = 1; i < matchIndicies.length; i++) {
-            if (matchIndicies[i] - matchIndicies[i - 1] === 0) {
-                continue
+            if (!foundMatch) {
+                if (maxInARow / search.length < .7) {
+                    score /= 2
+                }
+                inARow = 0;
+                lastMatchJ = 0
+                lastMatchI = 0
             }
-            total += matchIndicies.length / (matchIndicies[i] - matchIndicies[i - 1])
         }
-        results[str] = total
+        results[str] = score * maxInARow
     }
     return results
 }
 
+function strToCommandCat(category: keyof typeof CommandCategory) {
+    return CommandCategory[category.toUpperCase() as keyof typeof CommandCategory]
+}
+
+function isCommandCategory(category: string): category is keyof typeof CommandCategory{
+    return CommandCategory[category as keyof typeof CommandCategory] !== undefined ? true : false
+}
+
+function isBetween(low: number, checking: number, high: number) {
+    return checking > low && checking < high
+}
+
+function isNumeric(string: string){
+    if(string.match(/^[0-9]+$/)){
+        return true
+    }
+    return false
+}
+
+function emitsEvent<T extends (...args: any[]) => any>(fn: T){
+    return function(...data: Parameters<T>): ReturnType<T>{
+        events.botEvents.emit(events.FuncUsed, fn)
+        return fn(...data)
+    }
+}
+
 export {
+    strToCommandCat,
     fetchUser,
     fetchChannel,
     generateFileName,
-    downloadSync,
-    format,
     createGradient,
     applyJimpFilter,
     randomColor,
@@ -1369,8 +999,8 @@ export {
     UTF8String,
     cmdCatToStr,
     getImgFromMsgAndOpts,
-    getOpts,
     fetchUserFromClient,
+    fetchUserFromClientOrGuild,
     generateSafeEvalContextFromMessage,
     choice,
     getContentFromResult,
@@ -1379,17 +1009,26 @@ export {
     Pipe,
     getFonts,
     intoColorList,
-    renderHTML,
-    parseBracketPair,
     Options,
-    Units,
-    formatPercentStr,
-    parsePercentFormat,
-    formatBracePairs,
     ArgList,
     searchList,
     listComprehension,
     range,
-    enumerate
+    enumerate,
+    BADVALUE,
+    GOODVALUE,
+    createEmbedFieldData,
+    efd,
+    generateCommandSummary,
+    isSafeFilePath,
+    mimeTypeToFileExtension,
+    getToolIp,
+    generateDocSummary,
+    isBetween,
+    isNumeric,
+    databaseFileToArray,
+    isMsgChannel,
+    isCommandCategory,
+    emitsEvent
 }
 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Bircle</title>
+    <link rel="stylesheet" href="/common.css" media="all">
+    <style>
+        .soft-hr {
+            border-style: dotted
+        }
+
+        #command-output{
+            padding: 25px;
+            border: 3px solid white;
+            border-radius: 3px;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column
+        }
+
+
+        .embed{
+            display: grid;
+            margin: 1ex 0;
+            grid-template-columns: repeat(3, 1fr);
+            border: 3px solid #93969fff;
+            border-radius: 3px;
+        }
+
+        .embed-title{
+            grid-column: 1 / -1;
+            font-size: 1.5rem;
+            padding: 0 1rem;
+            text-align: center;
+            color: white;
+        }
+        .embed-description{
+            grid-column: 1 / -1;
+            font-size: 0.9rem;
+            padding: 0 1rem;
+            text-align: center;
+        }
+
+        .embed hr{
+            min-width: 100%;
+            grid-column: 1 / -1;
+        }
+
+
+        .embed-fieldbox{
+            padding-left: 3em;
+        }
+
+        .embed-fieldbox.full-grid-column {
+            grid-column: 1 / -1;
+        }
+
+        .embed-field {
+            font-size: .7rem;
+        }
+
+        .embed-field-name{
+            font-weight: bolder;
+            font-size: 1.2rem;
+        }
+
+        .embed-field-value {
+            font-size: 1rem;
+        }
+
+        /* .embed-field { */
+        /*     display: grid; */
+        /*     grid-template-rows: repeat(1fr, 2); */
+        /* } */
+
+        #form{
+            display: flex;
+            flex-direction: column;
+            width: 50%;
+        }
+
+        textarea{
+            display: inline-block;
+            resize: vertical;
+            margin: 1ex 0;
+        }
+
+        #form  button{
+            padding: 0.5rem;
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Welcome to Bircle</h1>
+
+    <ul>
+        <li><a href="/commands">
+                List of commands
+            </a></li>
+        <li><a href="/help">
+                Bot usage
+            </a></li>
+        <li><a href="/leaderboard">Leaderboard</a></li>
+    </ul>
+
+    <div id="form">
+        <input type='text' id='channel-id' placeholder='channel id' enterkeyhind='next'></textarea>
+        <textarea type='text' id='command' placeholder='run a command' enterkeyhint='enter'></textarea>
+        <br>
+        <button id='run-button'>run</button>
+    </div>
+
+    <div id="command-output" contenteditable>
+        
+    </div>
+
+<script src="/home.js">
+</script>
+</body>
+
+</html>

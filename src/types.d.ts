@@ -1,8 +1,9 @@
-import { MessageEmbed, Message, MessageMentionOptions, MessageOptions, MessagePayload, TextChannel } from "discord.js"
+import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User, Interaction, ChatInputCommandInteraction, CommandInteraction } from "discord.js"
 
 import { ArgList, Options } from './util'
 
 declare global {
+
     type ArgumentList = Array<string>
 
     type Opts = { [k: string]: string | boolean }
@@ -13,24 +14,40 @@ declare global {
         attachment: string,
         name?: string,
         description?: string,
-        delete?: boolean
+        /**
+            * @deprecated put inside the garbage-files folder instead
+        */
+        delete?: boolean,
+        postPipeDelete?: boolean,
+        wasContent?: string
     }
 
     type FileArray = Array<CommandFile>
 
-    interface CommandReturn extends MessageOptions {
+    interface CommandReturn extends MessageCreateOptions {
         status: StatusCode
         content?: string,
         embeds?: Array<MessageEmbed>
         files?: FileArray,
+        /**
+            * @deprecated put inside the garbage-files folder instead
+        */
         deleteFiles?: boolean
         delete?: boolean
         noSend?: boolean,
         allowedMentions?: MessageMentionOptions,
-        dm?: boolean,
         recurse?: boolean | { categories?: CommandCategory[], commands?: string[] },
         do_change_cmd_user_expansion?: boolean
-        channel?: TextChannel
+        channel?: TextChannel | DMChannel,
+        sendCallback?: (data: MessageOptions | MessagePayload | string) => Promise<Message>,
+        /**
+        * @description The mimetype of the content
+        */
+        mimetype?: `${string}/${string}`,
+        onOver2kLimit?: (msg: Message, rv: CommandReturn) => CommandReturn
+        attachments?: Message['attachments']
+        fromHandleSending?: boolean,
+        reply?: boolean
     }
 
     interface CommandHelpArguments {
@@ -52,13 +69,14 @@ declare global {
 
     interface CommandHelp {
         info?: string,
-        /**
-         * @deprecated Use /ccmd <alias name> <command> <text> instead, ie: no built in aliases
-         */
-        aliases?: string[],
+        docs?: string,
         arguments?: CommandHelpArguments,
         options?: CommandHelpOptions,
-        tags?: string[]
+        tags?: string[],
+        /**
+            * @description a string for a description, boolean if it just does/does not accept stdin
+        */
+        accepts_stdin?: string | boolean
     }
 
     interface ValidationReturn extends CommandReturn {
@@ -74,12 +92,13 @@ declare global {
         category: CommandCategory,
         make_bot_type?: boolean,
         use_result_cache?: boolean
-        cmd_std_version?: 1
+        cmd_std_version?: 1,
+        prompt_before_run?: boolean
     }
 
-    interface CommandV2RunArg { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList, stdin?: CommandReturn }
+    interface CommandV2RunArg { msg: Message<boolean>, rawArgs: ArgumentList, rawOpts: Opts, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList, stdin?: CommandReturn, pipeTo?: Token[] }
 
-    type CommandV2Run = ({msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: CommandV2RunArg) => Promise<CommandReturn>;
+    type CommandV2Run = (this: [string, CommandV2], {msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: CommandV2RunArg) => Promise<CommandReturn>;
 
     interface CommandV2 {
         run: CommandV2Run
@@ -88,7 +107,13 @@ declare global {
         category: CommandCategory,
         make_bot_type?: boolean,
         use_result_cache?: boolean
-        cmd_std_version?: 2
+        cmd_std_version?: 2,
+        prompt_before_run?: boolean
+    }
+
+    interface SlashCommand {
+        run: (interaction: CommandInteraction) => Promise<unknown>,
+        description: string,
     }
 
     interface MatchCommand{
