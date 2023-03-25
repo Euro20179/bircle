@@ -6,7 +6,6 @@ import shop = require("./shop")
 import { cmd } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 import { isMsgChannel } from "./util"
-import pets from "./pets"
 
 const { fetchUser, getFonts } = require("./util.js")
 
@@ -94,7 +93,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         exec: async({id}: {id: string}) => {
             let base_amount = 1.001
             if(pet.getActivePet(id) === "cat"){
-                base_amount += pets.PETACTIONS['cat']()
+                base_amount += pet.PETACTIONS['cat']()
             }
             if(shop.hasItem(id, 'capitalism hat')){
                 base_amount += 0.002
