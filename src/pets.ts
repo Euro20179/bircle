@@ -12,7 +12,7 @@ let PETINVENTORY: {[id: string]: UserPetData} = {}
 
 let PETACTIONS: {[key: string]: Function} = {
     cat: () => {
-        return .003 //increases chat bonus by .003%
+        return .001 //increases chat bonus by .01%
     },
     puffle: async(m: Message) => {
         let stuff: {money: number, items: string[]} = {money: 0, items: []}
