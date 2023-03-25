@@ -1850,6 +1850,9 @@ until you put a 0 in the box`)
             let usedReset = false;
 
             let aurl = msg.member?.user.avatarURL()
+
+            let editMsg;
+
             while (true) {
                 let embed = new EmbedBuilder()
 
@@ -1882,7 +1885,9 @@ until you put a 0 in the box`)
                 }
 
 
-                await handleSending(msg, { embeds: [embed], status: StatusCode.INFO })
+                if(!editMsg)
+                    editMsg = await handleSending(msg, { embeds: [embed], status: StatusCode.INFO })
+                else await editMsg.edit({ embeds: [embed]})
 
                 let response, collectedMessages
                 collectedMessages = await msg.channel.awaitMessages({
@@ -1895,6 +1900,8 @@ until you put a 0 in the box`)
                     delete globals.BLACKJACK_GAMES[msg.author.id]
                     return { content: `Did not respond  in time, lost ${bet}`, status: StatusCode.ERR }
                 }
+
+                if(response.deletable) await response.delete()
 
 
                 let choice = response.content.toLowerCase()
@@ -2010,7 +2017,7 @@ until you put a 0 in the box`)
             }
             delete globals.BLACKJACK_GAMES[msg.author.id]
 
-            return { content: `**${status}**\n${stats}`, status: StatusCode.RETURN }
+            return { content: `<@${msg.author.id}>\n**${status}**\n${stats}`, status: StatusCode.RETURN }
         }, "Play a round of blackjack",
             {
                 helpArguments: { "hard": createHelpOption("You can only stand if you have 17+") },
