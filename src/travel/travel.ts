@@ -187,6 +187,7 @@ class Mexico extends Country {
             await handleSending(msg, crv(`The cartel gives you ${cartelGives}`, {status: StatusCode.INFO}))
         }
         if(hasItem(msg.author.id, "organic mixture")){
+            useItem(msg.author.id, "organic mixture")
             let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, 'max(100,20%)')
             let ach = achievements.achievementGet(msg.author.id, "dealer")
             if(ach) await handleSending(msg, ach)
