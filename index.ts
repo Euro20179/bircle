@@ -36,6 +36,7 @@ let { client, purgeSnipe, prefix, BLACKLIST } = require("./src/common")
 import vars from './src/vars'
 import { server } from './website/server'
 import amountParser from './src/amount-parser'
+import pets from './src/pets'
 
 const rest = new REST({ version: "10" }).setToken(globals.token);
 
@@ -192,7 +193,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
             percent += .002
         }
         if (ap === 'cat') {
-            percent += .002
+            percent += pets.PETACTIONS['cat']()
         }
 
         if(!economy.getEconomy()[m.author.id] && !m.author.bot){
