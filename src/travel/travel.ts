@@ -140,7 +140,7 @@ class Country {
 class Canada extends Country {
     init() {
         this.badFlightChance = .2
-        this.registerActivity("sit at fireplace", "rand(1, 10%)", this.sitAtFireplace.bind(this))
+        this.registerActivity("sit at fireplace", "rand(1, 1%)", this.sitAtFireplace.bind(this))
     }
 
     async sitAtFireplace({msg}: CommandV2RunArg){
