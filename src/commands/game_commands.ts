@@ -24,9 +24,9 @@ import achievements from '../achievements'
 
 const { useItem, hasItem } = require("../shop")
 
-export default function*(): Generator<[string, Command | CommandV2]> {
+export default function* (): Generator<[string, Command | CommandV2]> {
 
-    yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
+    yield ["connect4", ccmdV2(async function ({ msg, args, opts }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
         let board: Board = connect4.createBoard(opts.getNumber("rows", 6), opts.getNumber("cols", 7))
@@ -615,7 +615,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                     await handleSending(msg, { content: `<@${id}>  YOUR UP:\n${this.toString()}\n\n${diceRolls.join(", ")}`, status: StatusCode.INFO })
 
-                    let filter = (function(m: Message) {
+                    let filter = (function (m: Message) {
                         if (m.author.id !== id) {
                             return false
                         }
@@ -757,7 +757,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     }, 8000)
                     let playersJoining;
                     try {
-                        let filter = function(m: Message) {
+                        let filter = function (m: Message) {
                             if (m.author.bot)
                                 return false
                             let args = m.content.split(/\s/).map(v => v.toLowerCase())
@@ -878,7 +878,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "battle", ccmdV2(async function({ msg, args }) {
+        "battle", ccmdV2(async function ({ msg, args }) {
             return battle.battle(msg, args)
 
         }, `<h1>A BATTLE SIMULATOR</h1>`, {
@@ -961,7 +961,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "roulette", ccmdV2(async function({ msg, args }) {
+        "roulette", ccmdV2(async function ({ msg, args }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             globals.startCommand(msg.author.id, "roulette")
 
@@ -1671,9 +1671,9 @@ until you put a 0 in the box`)
                         }
                     }
 
-                    if(Number(days) === 0 && Number(hours) === 0 && Number(minutes) === 0 && Number(seconds) === 0){
+                    if (Number(days) === 0 && Number(hours) === 0 && Number(minutes) === 0 && Number(seconds) === 0) {
                         let ach = achievements.achievementGet(msg, "impatient")
-                        if(ach) await handleSending(msg, ach)
+                        if (ach) await handleSending(msg, ach)
                     }
 
                     vars.setVarEasy("!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1), msg.author.id)
@@ -1703,6 +1703,7 @@ until you put a 0 in the box`)
         "blackjack", ccmdV2(async ({ msg, args, rawOpts: opts, sendCallback }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let hardMode = Boolean(opts['hard'])
+            let sent = false
             let betStr = args[0]
             if (!betStr) {
                 betStr = user_options.getOpt(msg.author.id, "default-bj-bet", "0")
@@ -1880,9 +1881,13 @@ until you put a 0 in the box`)
                 else {
                     embed.setDescription(`\`hit\`: get another card\n\`stand\`: end the game\n\`double bet\`: to double your bet\n(current bet: ${bet})`)
                 }
-
-
-                await handleSending(msg, { embeds: [embed], status: StatusCode.INFO })
+                let score
+                if (sent === false) {
+                    score = await handleSending(msg, { embeds: [embed], status: StatusCode.INFO })
+                    sent = true
+                } else {
+                    score.edit({ embeds: [embed] })
+                }
 
                 let response, collectedMessages
                 collectedMessages = await msg.channel.awaitMessages({
