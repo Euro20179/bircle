@@ -898,7 +898,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                             return v1.endsWith(v2)
 
                         case "includes": case "in": case "*=":
-                            return v1.includes(v2)
+                            return v2.includes(v1)
 
                         case "<":
                             return Number(v1) < Number(v2)
