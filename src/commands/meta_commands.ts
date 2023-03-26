@@ -897,7 +897,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         case "ends-with": case "ew": case "$=":
                             return v1.endsWith(v2)
 
-                        case "includes": case "*=":
+                        case "includes": case "in": case "*=":
                             return v1.includes(v2)
 
                         case "<":
