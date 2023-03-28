@@ -25,13 +25,13 @@ class Card {
     display() {
         switch (this.color) {
             case "blue":
-                return `\`\`\`md\n# ${this.value} (${this.color})\n\`\`\``
-            case "yellow":
                 return `\`\`\`fix\n${this.value} (${this.color})\n\`\`\``
+            case "yellow":
+                return `\`\`\`html\n${this.value} (&${this.color};)\n\`\`\``
             case "red":
                 return `\`\`\`diff\n- ${this.value} (${this.color})\n\`\`\``
             case "green":
-                return `\`\`\`python\n"${this.value} (${this.color})"\n\`\`\``
+                return `\`\`\`diff\n"+ ${this.value} (${this.color})"\n\`\`\``
             default:
                 return `\`\`\`\n${this.color}: ${this.value}\n\`\`\``
         }
