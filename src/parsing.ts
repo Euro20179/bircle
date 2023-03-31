@@ -593,135 +593,20 @@ function parseAliasReplacement(msg: Message, cmdContent: string, args: string[])
 function parseDoFirstInnerBracketData(data: string) {
     if (data == "")
         return [undefined, undefined]
-    let [doFirstIndex, slice] = data.split(":")
+    let doFirstIndex: string | undefined | number, slice
+    [doFirstIndex, slice] = data.split(":")
     if (doFirstIndex == data) {
         slice = doFirstIndex
-        //@ts-ignore
         doFirstIndex = undefined
     }
     else {
-        //@ts-ignore
         doFirstIndex = Number(doFirstIndex)
         if (slice)
             slice = slice
         else
-            //@ts-ignore
             slice = undefined
     }
     return [doFirstIndex, slice]
-}
-
-function parseDoFirst(cmdData: string, doFirstCountNoToArgNo: number, args: string) {
-    let finalArgs = []
-    for (let i = 0; i < args.length; i++) {
-        let arg = args[i]
-        let argIdx = i
-        let finalArg = ""
-        for (let i = 0; i < arg.length; i++) {
-            let ch = arg[i]
-            if (ch == "%") {
-                i++
-                ch = arg[i]
-                if (ch == "{") {
-                    let data = ""
-                    for (i++; i < arg.length; i++) {
-                        ch = arg[i]
-                        if (ch == "}") break;
-                        data += ch
-                    }
-                    let [doFirstIndex, slice] = parseDoFirstInnerBracketData(data)
-                    if (doFirstIndex !== undefined && slice === undefined) {
-                        //@ts-ignore
-                        finalArg += `${cmdData[doFirstCountNoToArgNo[doFirstIndex]]}`
-                    }
-                    else if (doFirstIndex === undefined && slice !== undefined) {
-                        if (slice === "...") {
-                            let splitData = cmdData[argIdx]?.split(" ")
-                            if (splitData === undefined) {
-                                finalArg += `%{${data}}`
-                            }
-                            else {
-                                finalArg += splitData[0]
-                                finalArgs.push(finalArg)
-                                finalArg = ""
-                                for (let splitIdx = 1; splitIdx < splitData.length; splitIdx++) {
-                                    finalArgs.push(splitData[splitIdx])
-                                }
-                            }
-                        }
-                        else {
-                            //@ts-ignore
-                            slice = Number(slice)
-                            //@ts-ignore
-                            if (slice == -1) {
-                                finalArg += "__BIRCLE__UNDEFINED__"
-                            }
-                            else {
-                                let splitData = cmdData[argIdx]?.split(" ")
-                                //@ts-ignore
-                                if (splitData?.[slice] !== undefined) {
-                                    //@ts-ignore
-                                    finalArg += splitData?.[slice]
-                                }
-                                else {
-                                    finalArg += `%{${data}}`
-                                }
-                            }
-                        }
-                    }
-                    //@ts-ignore
-                    else if (doFirstIndex !== argIdx && slice !== undefined) {
-                        if (slice === "...") {
-                            //@ts-ignore
-                            if (cmdData[doFirstCountNoToArgNo[doFirstIndex]]) {
-                                //@ts-ignore
-                                let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
-                                finalArg += splitData[0]
-                                finalArgs.push(finalArg)
-                                for (let splitIdx = 1; splitIdx < splitData.length; splitIdx++) {
-                                    finalArgs.push(splitData[splitIdx])
-                                }
-                            }
-                            else {
-                                finalArg += `%{${data}}`
-                            }
-                        }
-                        else {
-                            //@ts-ignore
-                            slice = Number(slice)
-                            //@ts-ignore
-                            if (cmdData[doFirstCountNoToArgNo[doFirstIndex]]) {
-                                //@ts-ignore
-                                let splitData = cmdData[doFirstCountNoToArgNo[doFirstIndex]].split(" ")
-                                //@ts-ignore
-                                finalArg += `${splitData[slice]}`
-                            }
-                            else {
-                                finalArg += `%{${data}}`
-                            }
-                        }
-                    }
-                    //@ts-ignore
-                    else if (isNaN(doFirstIndex)) {
-                        finalArg += cmdData[argIdx]
-                    }
-                    else {
-                        finalArg += `%{${data}}`
-                    }
-                }
-                else {
-                    finalArg += "%"
-                    if (ch)
-                        finalArg += ch
-                }
-            }
-            else {
-                finalArg += ch
-            }
-        }
-        finalArgs.push(finalArg)
-    }
-    return finalArgs
 }
 
 function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize?: number, numberConv: Function = Number) {
@@ -1012,7 +897,6 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
 export {
     parsePosition,
     parseAliasReplacement,
-    parseDoFirst,
     Parser,
     Token,
     T,

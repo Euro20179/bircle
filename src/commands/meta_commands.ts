@@ -9,7 +9,7 @@ import user_options = require("../user-options")
 import API = require("../api")
 import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts,   safeEval,  choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr,  isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts,   safeEval,  choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr,  isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"
 
 
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
@@ -241,8 +241,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!user_options.isValidOption(optname)) {
                 return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
             }
-            //@ts-ignore
-            let member = await fetchUser(msg.guild, user)
+            let member = await fetchUserFromClientOrGuild( user, msg.guild)
             if (!member)
                 return { content: `${user} not found`, status: StatusCode.ERR }
             user_options.unsetOpt(member.id, optname)
@@ -369,8 +368,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let curAttr = command
                 for (let attr of attrs) {
                     for (let subAttr of attr.split(".")) {
-                        //@ts-ignore
-                        curAttr = curAttr[subAttr]
+                        curAttr = curAttr[subAttr as keyof Command | keyof CommandV2]
                         if (curAttr === undefined) break;
                     }
 
@@ -601,8 +599,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     let optional = API.APICmds[fn].optional
                     text += `${fn}: `
                     if (optional) {
-                        //@ts-ignore
-                        requirements = requirements.filter(v => !optional.includes(v))
+                        requirements = requirements.filter(v => !optional?.includes(v))
                     }
                     text += `${requirements.join(", ")} `
                     if (optional) {
@@ -694,7 +691,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                             val = val != test_ne
                         }
                         default: {
-                            //@ts-ignore
                             val = val?.[prop]
                         }
                     }
@@ -1559,8 +1555,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let id = String(Math.floor(Math.random() * 100000000))
             await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
             globals.SPAMS[id] = true
-            //@ts-ignore
-            let delay: number | null = opts.getNumber("delay", null) * 1000
+            let delay: number | null = (opts.getNumber("delay", null) ?? 1) * 1000
             if (delay < 700 || delay > 0x7FFFFFFF) {
                 delay = null
             }
@@ -1767,8 +1762,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 else {
                     let k = msg.attachments.keyAt(0) as string
                     msg.attachments.delete(k)
-                    //@ts-ignore
-                    let data = await fetch.default(file.url)
+                    let data = await fetch(file.url)
                     text = await data.text()
                     let bluecHeader = "%bluecircle37%\n"
                     if (text.slice(0, bluecHeader.length) !== bluecHeader) {
@@ -1933,8 +1927,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                //@ts-ignore
-                const file = FILE_SHORTCUTS[args[0]] || args[0]
+                const file = FILE_SHORTCUTS[args[0] as keyof typeof FILE_SHORTCUTS] || args[0]
 
                 if (!file) {
                     return {
@@ -2033,8 +2026,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                         status: StatusCode.RETURN
                     }
                 }
-                //@ts-ignore
-                const file = FILE_SHORTCUTS[args[0]] || args[0]
+                const file = FILE_SHORTCUTS[args[0] as keyof typeof FILE_SHORTCUTS] || args[0]
                 if (!file) {
                     return {
                         content: "Nothing given to add to",
@@ -2094,8 +2086,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             }
             let curObj = data
             for (let prop of args) {
-                //@ts-ignore
-                curObj = curObj[prop]
+                curObj = curObj?.[prop as keyof typeof curObj]
             }
             return {
                 content: `\`\`\`javascript\n${String(curObj)}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
@@ -2129,8 +2120,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         "add",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                //@ts-ignore
-                const file = FILE_SHORTCUTS[args[0]] || args[0]
+                const file = FILE_SHORTCUTS[args[0] as keyof typeof FILE_SHORTCUTS] || args[0]
                 if (!file) {
                     return {
                         content: "Nothing given to add to",
@@ -2447,8 +2437,7 @@ ${styles}
                 for (let fmt in opts) {
                     if (fmt.length == 1) continue
                     if (!fmt.match(/^\w+$/)) continue
-                    //@ts-ignore
-                    const ext = exts[fmt] || fmt
+                    const ext = exts[fmt as keyof typeof exts] || fmt
                     try {
                         execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
                     }
@@ -2521,7 +2510,7 @@ ${styles}
         "WHITELIST",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let user = args[0]
+                let user: string | undefined = args[0]
                 if (!user) {
                     return {
                         content: "no user given",
@@ -2542,19 +2531,17 @@ ${styles}
                         status: StatusCode.ERR
                     }
                 }
-                //@ts-ignore
-                user = await fetchUser(msg.guild, user)
+                let fetchedUser = (await fetchUserFromClientOrGuild(user, msg.guild))
+                if(!fetchedUser) return crv(`${user} not found`, {status: StatusCode.ERR})
                 if (addOrRemove == "a") {
-                    //@ts-ignore
-                    addToPermList(WHITELIST, "whitelists", user, cmds)
+                    addToPermList(WHITELIST, "whitelists", fetchedUser, cmds)
 
                     return {
                         content: `${user} has been whitelisted to use ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
                     }
                 } else {
-                    //@ts-ignore
-                    removeFromPermList(WHITELIST, "whitelists", user, cmds)
+                    removeFromPermList(WHITELIST, "whitelists", fetchedUser, cmds)
                     return {
                         content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
@@ -2589,8 +2576,7 @@ ${styles}
                     .split("\n")
                     .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
                     .filter(v => v[0] && !isNaN(Number(v[1]))) // remove empty strings
-                    //@ts-ignore
-                    .sort((a, b) => a[1] - b[1]) // sort from least to greatest
+                    .sort((a, b) => Number(a[1]) - Number(b[1])) // sort from least to greatest
                     .reverse() //sort from greatest to least
                     .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
                     .join(String(opts['s'] ?? "\n"))

@@ -694,7 +694,7 @@ class Options extends Map {
         return default_
     }
 
-    getNumber(key: string, default_: number, toNumber: (v: string) => number = Number): number {
+    getNumber<TDefault>(key: string, default_: TDefault, toNumber: (v: string) => number = Number): number | TDefault {
         let n = super.get(key)
         if (n !== undefined) {
             let number = toNumber(n)
