@@ -369,7 +369,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             canEdit = canEdit.filter(v => v)
             for (let ed of canEdit) {
-                if(!ed) continue
+                if (!ed) continue
                 globals.EDS[ed] = true
             }
             function parseNormalEdInput(input: string) {
@@ -864,14 +864,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "ustock",
         {
-            run: async (msg, args, sendCallback) => {
+            run: async (msg, args) => {
                 let user = args[1] || msg.author.id
-                //@ts-ignore
-                let member = await fetchUser(msg.guild, user)
+                let member = await fetchUserFromClientOrGuild(user, msg.guild)
                 if (!member)
-                    member = msg.member || undefined
+                    member = msg.author || undefined
                 let stockName = args[0]
-                return { content: JSON.stringify(economy.userHasStockSymbol(member?.user.id || "", stockName)), status: StatusCode.RETURN }
+                return { content: JSON.stringify(economy.userHasStockSymbol(member.id || "", stockName)), status: StatusCode.RETURN }
             }, category: CommandCategory.UTIL,
             help: {
                 info: "Check if a user has a stock",
@@ -1127,16 +1126,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "calcm",
         {
-            run: async (msg, args, sendCallback) => {
+            run: async (msg, args) => {
                 let opts;
                 [opts, args] = getOpts(args)
                 let dollarSign = opts['sign'] || ""
                 let as = opts['as'] || msg.author.id
                 if (as && typeof as === 'string') {
-                    //@ts-ignore
-                    as = (await fetchUser(msg.guild, as))?.user.id
+                    as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
                 }
-                if (!as)
+                if (typeof as !== 'string' || !as)
                     as = msg.author.id
 
                 if (opts['tree']) {
@@ -1177,10 +1175,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let dollarSign = opts['sign'] || ""
                 let as = opts['as'] || msg.author.id
                 if (as && typeof as === 'string') {
-                    //@ts-ignore
-                    as = (await fetchUser(msg.guild, as))?.user.id
+                    as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
                 }
-                if (!as)
+                if (typeof as !== 'string' || !as)
                     as = msg.author.id
                 let amount = economy.calculateLoanAmountFromString(String(as), args.join(" "))
                 if (!amount) {
@@ -1214,10 +1211,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let dollarSign = opts['sign'] || ""
                 let as = opts['as'] || msg.author.id
                 if (as && typeof as === 'string') {
-                    //@ts-ignore
-                    as = (await fetchUser(msg.guild, as))?.user.id
+                    as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
                 }
-                if (!as)
+                if (typeof as === 'boolean' || !as)
                     as = msg.author.id
                 let amount = economy.calculateAmountFromNetWorth(String(as), args.join(" ").trim())
                 if (dollarSign === true) {
@@ -1282,7 +1278,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "aheist", createCommandV2(async ({ msg, args, rawOpts: opts }) => {
             let text = args.join(" ")
-            let damageUsers = opts['lose'] || opts['l']
+            let damageUsers: string | boolean | undefined = opts['lose'] || opts['l']
             let healUsers = opts['gain'] || opts['g']
             let amounts = ['none', 'normal', 'medium', 'large', "cents"]
             let givenAmount = opts['amount'] || opts['a']
@@ -1296,7 +1292,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (isNeutral) {
                 givenAmount = 'none'
                 healUsers = 'all'
-                //@ts-ignore
                 damageUsers = undefined
             }
             let textOptions = ""
@@ -1535,8 +1530,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                     e.setFooter({ text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}` })
 
-                    //@ts-ignore
-                    e.setImage(res.videoThumbnails?.filter(v => v.quality == thumbnail_quality)[0].url)
+                    e.setImage(res.videoThumbnails?.filter((v: any) => v.quality == thumbnail_quality)[0].url)
 
                     let button = new ButtonBuilder({ label: "OPEN", style: ButtonStyle.Link, url: `https://www.youtube.com/watch?v=${res.videoId}` })
 
@@ -1575,8 +1569,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                     else if (int.customId.startsWith("yt.json")) {
                         let yt_id = int.customId.split(":")[1]
-                        //@ts-ignore
-                        let json_data = jsonData.filter(v => v.videoId == yt_id)[0]
+                        let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
                         let fn = `${generateFileName("yt", msg.author.id)}.json`
                         fs.writeFileSync(fn, JSON.stringify(json_data))
                         int.reply({
@@ -1926,7 +1919,6 @@ middle
                         if (val === undefined)
                             break
                     }
-                    //@ts-ignore
                     if (val !== undefined && search) {
                         return {
                             with: () => String(val).includes(search as string),
@@ -2329,13 +2321,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         "roles",
         {
             run: async (msg, args) => {
+                if (!msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
                 let users = []
                 for (let arg of args) {
-                    //@ts-ignore
                     users.push(await fetchUser(msg.guild, arg))
                 }
                 if (users.length == 0) {
-                    //@ts-ignore
                     users.push(await fetchUser(msg.guild, msg.author.id))
                 }
                 let embeds = []
@@ -2433,6 +2424,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         "comp-roles",
         {
             run: async (msg, args, sendCallback) => {
+                if (!msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
                 let [user1, user2] = args.join(" ").split("|")
                 user1 = user1.trim()
                 user2 = user2.trim()
@@ -2442,13 +2434,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 if (!user2) {
                     return { content: "2 users must be given", status: StatusCode.ERR }
                 }
-                //@ts-ignore
-                let realUser1: GuildMember = await fetchUser(msg.guild, user1)
+                let realUser1 = await fetchUser(msg.guild, user1)
                 if (!realUser1) {
                     return { content: `${user1} not found`, status: StatusCode.ERR }
                 }
-                //@ts-ignore
-                let realUser2: GuildMember = await fetchUser(msg.guild, user2)
+                let realUser2 = await fetchUser(msg.guild, user2)
                 if (!realUser2) {
                     return { content: `${user2} not found`, status: StatusCode.ERR }
                 }
@@ -2912,9 +2902,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
 
                 let stack = await stackl.parse(args, useStart, msg, globals.SPAMS)
-                //@ts-ignore
                 if (stack?.err) {
-                    //@ts-ignore
                     return { content: stack.content, status: StatusCode.RETURN }
                 }
 
@@ -3021,8 +3009,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         ans = newAns
                         break;
                     case "+":
-                        //@ts-ignore
-                        ans = leftVal + rightVal
+                        ans = (leftVal as string) + rightVal
                         break
                     case "-":
                         if (typeof leftVal === 'string' && typeof rightVal === 'string') {
@@ -3484,7 +3471,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         "channel-info",
         {
             run: async (msg, args) => {
-                if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
+                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
                 let channel
                 if (!args.join(" ").trim().length)
                     channel = msg.channel
