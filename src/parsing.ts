@@ -590,25 +590,6 @@ function parseAliasReplacement(msg: Message, cmdContent: string, args: string[])
     return finalText
 }
 
-function parseDoFirstInnerBracketData(data: string) {
-    if (data == "")
-        return [undefined, undefined]
-    let doFirstIndex: string | undefined | number, slice
-    [doFirstIndex, slice] = data.split(":")
-    if (doFirstIndex == data) {
-        slice = doFirstIndex
-        doFirstIndex = undefined
-    }
-    else {
-        doFirstIndex = Number(doFirstIndex)
-        if (slice)
-            slice = slice
-        else
-            slice = undefined
-    }
-    return [doFirstIndex, slice]
-}
-
 function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize?: number, numberConv: Function = Number) {
     let conversions
     if (!objectSize) {
