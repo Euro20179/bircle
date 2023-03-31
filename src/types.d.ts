@@ -1,6 +1,16 @@
 import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User, Interaction, ChatInputCommandInteraction, CommandInteraction } from "discord.js"
 
 import { ArgList, Options } from './util'
+import { EconomyData } from "./economy"
+
+declare module "discord.js" {
+    export interface User {
+        balance: number,
+        loan: number,
+        economyData: EconomyData,
+        netWorth: number
+    }
+}
 
 declare global {
 

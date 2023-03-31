@@ -361,18 +361,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let canEdit: (string | undefined)[] = String(opts['editors']).split(",")
             canEdit.push(msg.author.id)
             for (let i = 0; i < canEdit.length; i++) {
-                //@ts-ignore
-                canEdit[i] = (await fetchUser(msg.guild, canEdit[i]))?.user.id || undefined
+                canEdit[i] = (await fetchUserFromClientOrGuild(canEdit[i] as string))?.id || undefined
                 if (canEdit[i] === undefined)
                     continue
-                //@ts-ignore
-                if (globals.EDS[canEdit[i]])
-                    //@ts-ignore
+                if (globals.EDS[canEdit[i] as string])
                     canEdit[i] = undefined
             }
             canEdit = canEdit.filter(v => v)
             for (let ed of canEdit) {
-                //@ts-ignore
+                if(!ed) continue
                 globals.EDS[ed] = true
             }
             function parseNormalEdInput(input: string) {
@@ -3486,39 +3483,31 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     yield [
         "channel-info",
         {
-            run: async (msg, args, sendCallback) => {
+            run: async (msg, args) => {
+                if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
                 let channel
                 if (!args.join(" ").trim().length)
                     channel = msg.channel
-                //@ts-ignore
                 else channel = await fetchChannel(msg.guild, args.join(" ").trim())
                 if (!channel)
                     return { content: "Channel not found", status: StatusCode.ERR }
-                //@ts-ignore
-                let pinned = await channel?.messages?.fetchPinned()
                 let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
                 let embed = new EmbedBuilder()
-                //@ts-ignore
-                embed.setTitle(channel.name || "Unknown name")
-                if (pinned) {
+                embed.setTitle("name" in channel ? channel.name : "Unknown name")
+                let pinned
+                if ("messages" in channel && (pinned = await channel.messages.fetchPinned())) {
                     let pinCount = pinned.size
                     let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
                     embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", String(daysTillFull), true]))
                 }
                 embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type.toString(), true]))
-                //@ts-ignore
-                if (channel.topic) {
-                    //@ts-ignore
+                if ("topic" in channel && channel.topic) {
                     embed.addFields(efd(["Topic", channel.topic, true]))
                 }
-                //@ts-ignore
-                if (channel.nsfw) {
-                    //@ts-ignore
-                    embed.addFields(efd(["NSFW?", channel.nsfw, true]))
+                if ("nsfw" in channel) {
+                    embed.addFields(efd(["NSFW?", String(channel.nsfw), true]))
                 }
-                //@ts-ignore
-                if (channel.position) {
-                    //@ts-ignore
+                if ("position" in channel) {
                     embed.addFields(efd(["Position", channel.position.toString(), true]))
                 }
                 return { embeds: [embed], status: StatusCode.RETURN }

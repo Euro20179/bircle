@@ -124,8 +124,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 }
                 //prevents from sending to chat
                 let oldSend = channel.send
-                //@ts-ignore
-                channel.send = (async () => msg).bind(channel)
+                channel.send = (async () => msg as Message<true>).bind(channel)
                 common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true }).then(rv => {
                     res.writeHead(200)
                     res.end(JSON.stringify(rv))
