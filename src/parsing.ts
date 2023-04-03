@@ -610,33 +610,28 @@ function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: n
             "top": 0
         }
     }
+
+    let n1, n2
+
     if (conversions[v1] !== undefined) {
-        //@ts-ignore
-        v1 = conversions[v1]
-        //@ts-ignore
-    } else v1 = numberConv(v1)
+        n1 = conversions[v1]
+    } else n1 = numberConv(v1)
     if (conversions[v2] !== undefined) {
-        //@ts-ignore
-        v2 = conversions[v2]
-        //@ts-ignore
-    } else v2 = numberConv(v2)
+        n2 = conversions[v2]
+    } else n2 = numberConv(v2)
     if (v1 == undefined || v1 == null)
         return numberConv(v2)
     switch (op) {
         case "+":
-            return v1 + v2;
+            return n1 + n2;
         case "-":
-            //@ts-ignore
-            return v1 - v2;
+            return n1 - n2;
         case "*":
-            //@ts-ignore
-            return v1 * v2;
+            return n1 * n2;
         case "/":
-            //@ts-ignore
-            return Math.round(v1 / v2);
+            return Math.round(n1 / n2);
         case "%":
-            //@ts-ignore
-            return Math.round(areaSize * (v1 / 100))
+            return Math.round(areaSize * (n1 / 100))
     }
     return numberConv(v2)
 }
@@ -858,7 +853,7 @@ function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
 }
 
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
-    let opts = {}
+    let opts: Record<string, boolean | string> = {}
     let arg, idxOfFirstRealArg = -1;
     while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
         if (arg[1]) {
@@ -868,7 +863,6 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
                 idxOfFirstRealArg++
                 break
             }
-            //@ts-ignore
             opts[opt] = value[0] == undefined ? true : value.join("=");
         }
     }

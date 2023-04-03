@@ -42,6 +42,7 @@ async function handleDeath(id: string, players: {[key: string]: number}, winning
 async function game(msg: Message, players: {[key: string]: number}, ogBets: {[key: string]: number}, cooldowns: {[key: string]: number}, usedSwap: string[], usedShell: string[], bets: {[key: string]: number}, betTotal: number, useItems: boolean, winningType: "wta" | "distribute", shields: {[key: string]: boolean}){
 
     if(!isMsgChannel(msg.channel)) return
+    if(!msg.guild) return
 
 
     let midGameCollector = msg.channel.createMessageCollector({filter: m => !m.author.bot && m.content.toLowerCase() == 'join' && hasItem(m.author.id, "intrude")})
@@ -347,8 +348,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
             }
             else{
                 let playerNo = Number(pn) - 1
-                //@ts-ignore
-                playersToDoStuffTo.push(shuffledPlayers.at(playerNo))
+                playersToDoStuffTo.push(shuffledPlayers.at(playerNo) as string)
                 return `<@${shuffledPlayers.at(playerNo)}>`
             }
         })
@@ -440,7 +440,6 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
         //let healthRemainingTable = "Health Remaining:\n"
         for(let player in players){
-            //@ts-ignore
             let mem = msg.guild.members.cache.find((v) => v.id == player)
             if(!mem){
                 embed.addFields(efd([`${player}`, `${players[player]}`, true]))
@@ -472,10 +471,8 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
         let text = ""
 
         for(let elim of eliminations){
-            if(elim === 'mumbo'){
-                //@ts-ignore
+            if(elim === 'mumbo' && mumboUser){
                 text += `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`
-                //@ts-ignore
                 economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
                 mumboUser = null
                 delete players[elim]
@@ -489,10 +486,8 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
 
         for(let player in players){
             if(isNaN(players[player])){
-                if(player === 'mumbo'){
-                    //@ts-ignore
+                if(player === 'mumbo' && mumboUser){
                     await msg.channel.send( `<@${mumboUser}>'s MUMBO HAS DIED and <@${mumboUser}> LOST ${economy.getEconomy()[mumboUser]?.money * 0.005} \n`)
-                    //@ts-ignore
                     economy.loseMoneyToBank(mumboUser, economy.getEconomy()[mumboUser]?.money * 0.005)
                     mumboUser = null
                 }
@@ -579,7 +574,6 @@ async function battle(msg: Message, args: ArgumentList){
     }
     if (winningType == 'dist')
         winningType = 'distribute'
-    //@ts-ignore
     let nBet = economy.calculateAmountFromString(msg.author.id, bet, {min: (t, a) => t * 0.002})
 
     if(!nBet || !economy.canBetAmount(msg.author.id, nBet) || nBet < 0){
@@ -612,7 +606,6 @@ async function battle(msg: Message, args: ArgumentList){
         if(!isMsgChannel(msg.channel)) return
         if(players[m.author.id]) return
         let bet = m.content.split(" ")[1]
-        //@ts-ignore
         let nBet = economy.calculateAmountFromString(m.author.id, bet, {min: (t, a) => t * 0.002})
         if(!nBet || !economy.canBetAmount(m.author.id, nBet) || nBet < 0){
             await msg.channel.send(`${m.author}: ${nBet} is not a valid bet`)

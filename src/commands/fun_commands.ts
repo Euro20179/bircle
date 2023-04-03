@@ -13,7 +13,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween } from "../util"
+import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -714,6 +714,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "6",
         {
             run: async (msg, args, sendCallback) => {
+                if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
                 let opts;
                 [opts, args] = getOpts(args)
                 let getRankMode = opts['rank'] || false
@@ -726,7 +727,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${globals.GUILD_ID}`
                 let data
                 try {
-                    //@ts-ignore
                     data = await fetch.default(url)
                 }
                 catch (err) {
@@ -750,20 +750,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (!requestedUser) continue
                     let [ruser1, ruser2] = requestedUser.split("-")
                     if (ruser1.trim() && ruser2?.trim()) {
-                        //@ts-ignore
-                        let member1, member2;
+                        let member1: any, member2: any;
                         if (getRankMode) {
                             member1 = JSONData.players[Number(ruser1) - 1]
-                            //@ts-ignore
                             member1 = await fetchUser(msg.guild, member1.id)
                             member2 = JSONData.players[Number(ruser2) - 1]
-                            //@ts-ignore
                             member2 = await fetchUser(msg.guild, member2.id)
                         }
                         else {
-                            //@ts-ignore
                             member1 = await fetchUser(msg.guild, ruser1.trim())
-                            //@ts-ignore
                             member2 = await fetchUser(msg.guild, ruser2.trim())
                         }
                         if (!member1) {
@@ -772,10 +767,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         if (!member2) {
                             return { content: `Could not find ${ruser2}`, status: StatusCode.ERR }
                         }
-                        //@ts-ignore
-                        const user1Data = JSONData.players.filter(v => v.id == member1.id)?.[0]
-                        //@ts-ignore
-                        const user2Data = JSONData.players.filter(v => v.id == member2.id)?.[0]
+                        const user1Data = JSONData.players.filter((v: any) => v.id == member1.id)?.[0]
+                        const user2Data = JSONData.players.filter((v: any) => v.id == member2.id)?.[0]
                         if (!user1Data) {
                             return { content: `No data for ${member1.user.username} found`, status: StatusCode.ERR }
                         }
@@ -804,17 +797,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     let member: GuildMember;
                     if (getRankMode) {
                         member = JSONData.players[Number(requestedUser.trim()) - 1]
-                        //@ts-ignore
-                        member = await fetchUser(msg.guild, member.id)
+                        member = await fetchUser(msg.guild, member.id) as GuildMember
                     }
                     else
-                        //@ts-ignore
-                        member = await fetchUser(msg.guild, requestedUser.trim())
+                        member = await fetchUser(msg.guild, requestedUser.trim()) as GuildMember
                     if (!member) {
                         member = msg.member as GuildMember
                     }
-                    //@ts-ignore
-                    const userData = JSONData.players.filter(v => v.id == member.id)?.[0]
+                    const userData = JSONData.players.filter((v: any) => v.id == member.id)?.[0]
                     if (!userData) {
                         return { content: `No data for ${member.user.username} found`, status: StatusCode.ERR }
                     }
@@ -1730,9 +1720,7 @@ Valid formats:
         "udict",
         {
             run: async (_msg, args, sendCallback) => {
-                //@ts-ignore
                 try {
-                    //@ts-ignore
                     let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
                     let text = await data.text()
                     let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
@@ -1754,7 +1742,6 @@ Valid formats:
         {
             run: async (_msg, args, sendCallback) => {
                 let subreddit = args[0]
-                //@ts-ignore
                 let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
                 let text = await data.text()
                 if (!text) {
@@ -1765,16 +1752,12 @@ Valid formats:
                 let foundData: data[] = []
                 for (let item of $("h2.post_title a[href]")) {
                     let dataToAdd: data = {}
-                    //@ts-ignore
-                    if (item.children[0].data) {
-                        //@ts-ignore
-                        dataToAdd['text'] = item.children[0].data
+                    if ((item as cheerio.TagElement).children[0].data) {
+                        dataToAdd['text'] = (item as cheerio.TagElement).children[0].data
                     }
                     else { continue }
-                    //@ts-ignore
-                    if (item.attribs?.href) {
-                        //@ts-ignore
-                        dataToAdd['link'] = `https://libreddit.spike.codes${item.attribs?.href}`
+                    if ((item as cheerio.TagElement).attribs?.href) {
+                        dataToAdd['link'] = `https://libreddit.spike.codes${(item as cheerio.TagElement).attribs?.href}`
                     }
                     foundData.push(dataToAdd)
                 }
@@ -1829,10 +1812,8 @@ Valid formats:
                 if (!to) {
                     return { content: "No second place given, fmt: `place 1 | place 2`", status: StatusCode.ERR }
                 }
-                //@ts-ignore
-                let fromUser = await fetchUser(msg.guild, from)
-                //@ts-ignore
-                let toUser = await fetchUser(msg.guild, to)
+                let fromUser = await fetchUserFromClientOrGuild(from, msg.guild)
+                let toUser = await fetchUserFromClientOrGuild(to, msg.guild)
                 if (fromUser && toUser) {
                     let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                     return {
@@ -1849,7 +1830,6 @@ Valid formats:
                 from = encodeURI(from.trim())
                 to = encodeURI(to.trim())
                 const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
-                //@ts-ignore
                 const resp = await fetch.default(url, {
                     headers: {
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",

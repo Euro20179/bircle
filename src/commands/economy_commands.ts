@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric } from '../util'
+import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric, fetchUserFromClientOrGuild } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -338,7 +338,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: "Ur not in debt", status: StatusCode.ERR }
                 }
                 let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
-                //@ts-ignore
                 let max = top[1]?.money || 100
                 let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
                 if (needed > max) {
@@ -499,16 +498,15 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "pets", {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
-                let user = await fetchUser(msg.guild, args[0] || msg.author.id)
+                let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild)
                 if (!user)
                     return { content: "User not found", status: StatusCode.ERR }
-                let pets = pet.getUserPets(user.user.id)
+                let pets = pet.getUserPets(user.id)
                 if (!pets) {
-                    return { content: `<@${user.user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
+                    return { content: `<@${user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
                 }
                 let e = new EmbedBuilder()
-                e.setTitle(`${user.user.username}'s pets`)
+                e.setTitle(`${user.username}'s pets`)
                 let activePet = pet.getActivePet(msg.author.id)
                 e.setDescription(`active pet: ${activePet}`)
                 for (let pet in pets) {
@@ -532,12 +530,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "shop", {
             run: async (msg, args, sendCallback, opts) => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
-                //@ts-ignore
-                let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
-                if (!user) {
-                    return { content: `${opts['as']} not found`, status: StatusCode.ERR }
-                }
-                let userCheckingShop = user.user
+                let user = msg.author
+                let userCheckingShop = user
                 let itemJ = JSON.parse(items)
                 let pages = []
                 let i = 0
@@ -583,11 +577,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "List items in the shop",
-                options: {
-                    "as": {
-                        description: "View the shop as another user"
-                    }
-                }
             }
         },
     ]

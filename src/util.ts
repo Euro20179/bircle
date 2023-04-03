@@ -317,8 +317,7 @@ async function createGradient(gradient: string[], width: number | string, height
     return svg
 }
 
-//@ts-ignore
-async function applyJimpFilter(img, filter, arg) {
+async function applyJimpFilter(img: any, filter: any, arg: any) {
     switch (filter) {
         case "rotate":
             let deg, resize
@@ -377,9 +376,7 @@ function generateSafeEvalContextFromMessage(msg: Message) {
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {
 
     let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
-    //@ts-ignore
     context[resultKey] = {}
-    //@ts-ignore
     context["Buffer"] = Buffer
     let clearContext = `
       Function = undefined;
@@ -414,7 +411,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
     }).forEach(v => context[v[0]] = v[1])
     try {
         vm.runInNewContext(code, context, opts)
-        //@ts-ignore
         return context[resultKey]
     }
     catch (err) {
