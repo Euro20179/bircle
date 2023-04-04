@@ -588,8 +588,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         return false
                     }
                     for (let item of Object.keys(this)) {
-                        //@ts-ignore
-                        if (this[item] === undefined || this[item]?.length === 0) {
+                        let value = this[item as keyof this]
+                        if (value === undefined || (value && typeof value === 'object' && "length" in value && value.length === 0)) {
                             return false
                         }
                     }
@@ -2087,8 +2087,7 @@ until you put a 0 in the box`)
                     await handleSending(msg, { content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING })
                     maxNumber = 1000
                 }
-                //@ts-ignore
-                let cards = uno.createCards(maxNumber, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
+                let cards = uno.createCards(maxNumber, { enableGive: opts['give'] !== undefined, enableShuffle: opts['shuffle'] !== undefined, "enable1": opts['1'] !== undefined })
 
                 let deck = new uno.Stack(cards)
                 let pile = new uno.Stack([])
