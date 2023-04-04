@@ -1,11 +1,12 @@
 import { Interpreter } from "./common_to_commands";
 import { strToTT, T, Token, format } from "./parsing";
-import { getContentFromResult } from "./util";
+import { getContentFromResult, isMsgChannel } from "./util";
 
 import htmlRenderer from "./html-renderer";
 
 import economy from './economy'
 import timer from "./timer";
+import { ChannelType } from "discord.js";
 
 export default {
     ["parse_%"]: async (_token, _char, _, int) => {
@@ -167,10 +168,19 @@ export default {
     parse_channel: async (_, __, args, int) => {
         return format(args.join("|"), {
             "i": `${int.getMessage().channel.id}`,
-            //@ts-ignore
-            "N!": `${int.getMessage().channel.nsfw}`,
-            //@ts-ignore
-            "n": `${int.getMessage().channel.name}`,
+            "N!": `${(() => {
+
+                let ch = int.getMessage().channel
+                if(ch.type === ChannelType.GuildText)
+                    return ch.nsfw
+                return "IsNotText"
+            })()}`,
+            "n": `${(() => {
+                let ch = int.getMessage().channel
+                if(ch.type !== ChannelType.DM)
+                    return ch.name 
+                return "IsDM"
+            })()}`,
             "c": `${int.getMessage().channel.createdAt}`
         })
 

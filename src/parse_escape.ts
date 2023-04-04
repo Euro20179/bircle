@@ -91,7 +91,6 @@ export default {
     escape_V: async (token, char, sequence, int) => {
         if (!int) return [new Token(T.str, "", token.argNo)]
         let [scope, ...n] = sequence.split(":")
-        //@ts-ignore
         let name = n.join(":")
         if (scope == "%") {
             scope = int.getMessage().author.id
@@ -104,7 +103,6 @@ export default {
             return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
         }
         else if (!name) {
-            //@ts-ignore
             name = scope
             let v = vars.getVar(int.getMessage(), name)
             if (v !== false) {

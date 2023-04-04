@@ -457,23 +457,24 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
 
                 is_applied(type: string) {
-                    //@ts-ignore
-                    let val = this[type.replaceAll(" ", "_")]
-                    if (!new_rules && type !== "yahtzee") {
+                    let val = Reflect.get(this, type.replaceAll(" ","_")) as unknown
+                    if(typeof val !== 'object' || val === null) return val !== undefined
+                    if (!new_rules && type !== "yahtzee" && "length" in val) {
                         if (val?.length) {
                             return true
                         }
                     }
-                    if ((val?.length && !val?.includes(0)) || val?.length === 0) {
+                    if (Array.isArray(val) && (val?.length && !val?.includes(0) || val?.length === 0)) {
                         return false
                     }
-                    return val !== undefined
+                    return false
                 }
 
                 apply(type: string, dice: number[]) {
-
-                    //@ts-ignore
-                    this[`apply_${type.replaceAll(" ", "_")}`](dice)
+                    let fn = Reflect.get(this, `apply_${type.replaceAll(" ", "_")}`)
+                    if(fn && typeof fn === 'function'){
+                        fn(dice)
+                    }
                 }
                 apply_chance(dice: number[]) {
                     this.chance = dice.reduce((p, c) => p + c, 0)
