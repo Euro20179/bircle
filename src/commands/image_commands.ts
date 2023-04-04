@@ -1309,9 +1309,8 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let textInfo = ctx.measureText(text)
 
             if (opts['measure']) {
-                if (opts['measure'] !== true) {
-                    //@ts-ignore
-                    return { content: String(textInfo[opts['measure']]), status: StatusCode.RETURN }
+                if (opts['measure'] !== true && opts['measure'] in textInfo) {
+                    return { content: String(textInfo[opts['measure'] as keyof TextMetrics]), status: StatusCode.RETURN }
                 }
                 return { content: JSON.stringify(textInfo), status: StatusCode.RETURN }
             }
