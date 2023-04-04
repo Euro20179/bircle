@@ -353,8 +353,7 @@ function getWinners(players: { [k: string]: Hand }) {
     return false
 }
 
-//@ts-ignore
-function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }) {
+function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }: {enableGive: boolean, enableShuffle: boolean, enable1: boolean}) {
     numberMax ||= 9
     let numbers = listComprehension(range(0, numberMax), i => String(i))
     let cards = []

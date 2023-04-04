@@ -398,8 +398,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                         let n = Number(match)
                         let p = [n]
                         if(match == 'all')
-                            //@ts-ignore
-                            p = Object.keys(shuffledPlayers)
+                            p = Object.keys(shuffledPlayers).map(v => Number(v))
                         for(let id of p){
                             players[shuffledPlayers.at(id - 1) as string] += nAmount
                         }
@@ -413,8 +412,7 @@ async function game(msg: Message, players: {[key: string]: number}, ogBets: {[ke
                         let n = Number(player)
                         let p = [n]
                         if(player == 'all')
-                            //@ts-ignore
-                            p = Object.keys(shuffledPlayers)
+                            p = Object.keys(shuffledPlayers).map(v => Number(v))
                         for(let id of p){
                             if(shields[shuffledPlayers.at(id - 1) as string]){
                                 shields[shuffledPlayers.at(id - 1) as string] = false

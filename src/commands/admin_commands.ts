@@ -140,7 +140,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "RESET_PLAYER",
         {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
+                if(!msg.guild) return crv("Not in aguild", {status: StatusCode.ERR})
                 let player = await fetchUser(msg.guild, args[0])
                 if (!player)
                     return { content: "No player found", status: StatusCode.ERR }
@@ -159,7 +159,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "RESET_PLAYER_ITEMS",
         {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
+                if(!msg.guild) return crv("Not in aguild", {status: StatusCode.ERR})
                 let player = await fetchUser(msg.guild, args[0])
                 if (!player)
                     return { content: "No player found", status: StatusCode.ERR }
@@ -249,7 +249,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "SETMONEY",
         {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
+            if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
                 let user = await fetchUser(msg.guild, args[0])
                 if (!user) {
                     return { content: "user not found", status: StatusCode.ERR }
@@ -293,19 +293,19 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         status: StatusCode.ERR
                     }
                 }
-                //@ts-ignore
-                user = await fetchUser(msg.guild, user)
+                let member = await fetchUserFromClientOrGuild(user, msg.guild)
+                if(!member){
+                    return crv("Member not found", {status: StatusCode.ERR})
+                }
                 if (addOrRemove == "a") {
-                    //@ts-ignore
-                    addToPermList(BLACKLIST, "blacklists", user as User, cmds)
+                    addToPermList(BLACKLIST, "blacklists", member, cmds)
 
                     return {
                         content: `${user} has been blacklisted from ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
                     }
                 } else {
-                    //@ts-ignore
-                    removeFromPermList(BLACKLIST, "blacklists", user, cmds)
+                    removeFromPermList(BLACKLIST, "blacklists", member, cmds)
                     return {
                         content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`,
                         status: StatusCode.RETURN

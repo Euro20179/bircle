@@ -639,8 +639,7 @@ The commands below, only work after **path** has been run:
                     }//}}}
                     case 'text-baseline': {//{{{
                         try {
-                            //@ts-ignore
-                            ctx.textBaseline = args.join(" ")
+                            ctx.textBaseline = args.join(" ") as CanvasTextBaseline
                         }
                         catch (err) {
                             ctx.textBaseline = 'top'
@@ -961,16 +960,13 @@ The commands below, only work after **path** has been run:
                     y = typeof opts['y'] === 'string' ? opts['y'] : "0"
                 }
                 if (!width) {
-                    //@ts-ignore
-                    width = opts['w'] || opts['width'] || opts['size'] || "50"
+                    width = String(opts['w'] || opts['width'] || opts['size'] || "50")
                 }
                 if (!height) {
-                    //@ts-ignore
-                    height = opts['h'] || opts['height'] || opts['size'] || width || "50"
+                    height = String(opts['h'] || opts['height'] || opts['size'] || width || "50")
                 }
                 let intWidth = parseInt(width as string) || 50
                 let intHeight = parseInt(height as string) || 50
-                //@ts-ignore
                 https.request(img, resp => {
                     let data = new Stream.Transform()
                     resp.on("data", chunk => {
