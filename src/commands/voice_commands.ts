@@ -96,6 +96,7 @@ export default function*() {
                 channelId: voice_state.channelId,
                 guildId: msg.guildId as string,
                 //dont unleash the beast that is this massive error message that doesn't even do anything
+                //@ts-ignore
                 adapterCreator: voice_state.guild.voiceAdapterCreator
             })
 

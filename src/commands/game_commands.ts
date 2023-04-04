@@ -2087,6 +2087,7 @@ until you put a 0 in the box`)
                     await handleSending(msg, { content: "The maximum is to high, defaulting to 1000", status: StatusCode.WARNING })
                     maxNumber = 1000
                 }
+                //@ts-ignore
                 let cards = uno.createCards(maxNumber, { enableGive: opts['give'], enableShuffle: opts['shuffle'], "enable1": opts['1'] })
 
                 let deck = new uno.Stack(cards)

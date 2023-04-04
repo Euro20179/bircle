@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder} from "discord.js"
+import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, InteractionResponseType} from "discord.js"
 import { StatusCode } from "./common_to_commands"
 import { efd, fetchUser, isMsgChannel } from "./util"
 

@@ -825,9 +825,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: text, status: StatusCode.RETURN }
                 }
                 if (opts['no-round']) {
-                    return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                    return { content: format(money_format, { user: user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                 }
-                return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                return { content: format(money_format, { user: user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
             return { content: "none", status: StatusCode.RETURN }
         }, CommandCategory.ECONOMY,
