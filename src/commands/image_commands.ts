@@ -44,8 +44,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
 
                 let diffData = data1.data.map((v, idx) => {
-                    let mod = idx % 4 == 3
-                    //@ts-ignore
+                    let mod = idx % 4 == 3 ? 1 : 0
                     return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod ^ 1))
                 })
 
@@ -1270,8 +1269,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ctx.font = `${font_size} ${font}`
                 let textInfo = ctx.measureText(text)
                 width ||= textInfo.width
-                //@ts-ignore
-                height ||= parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
+                height ||= parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
             }
 
             let canv, ctx;
@@ -1323,27 +1321,23 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             let req_x = String(opts['x'] || 0)
             let x = parsePosition(req_x, width, textInfo.width)
             let req_y = String(opts['y'] || 0)
-            //@ts-ignore
-            let y = parsePosition(req_y, width, parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+            let y = parsePosition(req_y, width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
 
             let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
             if (bg_colors.length == 1) {
                 if (bg_colors[0] !== 'transparent') {
                     ctx.fillStyle = bg_colors[0]
-                    //@ts-ignore
-                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                    ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 }
             }
             else {
-                //@ts-ignore
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 let interval = 1 / (bg_colors.length - 1)
                 for (let i = 0; i < bg_colors.length; i++) {
                     grad.addColorStop(interval * i, bg_colors[i])
                 }
                 ctx.fillStyle = grad
-                //@ts-ignore
-                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + (textInfo.emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
             }
 
             let colors = intoColorList(String(opts['color'] || "red"))
@@ -1351,8 +1345,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 ctx.fillStyle = colors[0]
             }
             else {
-                //@ts-ignore
-                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + (textInfo.emHeightDescent / lineCount))
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + ((textInfo as any).emHeightDescent / lineCount))
                 let interval = 1 / (colors.length - 1)
                 for (let i = 0; i < colors.length; i++) {
                     grad.addColorStop(interval * i, colors[i])

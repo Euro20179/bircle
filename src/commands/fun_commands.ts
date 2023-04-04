@@ -2044,8 +2044,7 @@ Valid formats:
             return crv(`No name given`, { status: StatusCode.ERR })
         }
 
-        //@ts-ignore
-        if (travel_countries.getCountries()[name] !== undefined) {
+        if (Reflect.get(travel_countries.getCountries(), name) !== undefined) {
             return { content: `${name} is already a location`, status: StatusCode.ERR }
         }
 
