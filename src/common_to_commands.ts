@@ -749,13 +749,12 @@ export class Interpreter {
             ) {
                 canRun = false
             }
-            if (canRun) {
+            if (canRun && isMsgChannel(this.#msg.channel)) {
 
                 events.botEvents.emit(events.CmdRun, this)
 
 
-                if (this.#shouldType || cmdObject?.make_bot_type)
-                    //@ts-ignore
+                if ((this.#shouldType || cmdObject?.make_bot_type))
                     await this.#msg.channel.sendTyping()
 
                 if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
@@ -767,7 +766,6 @@ export class Interpreter {
                         msg: this.#msg,
                         rawArgs: args,
                         args: new ArgList(args2),
-                        //@ts-ignore
                         sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
                         recursionCount: this.recursion,
                         commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
@@ -784,7 +782,6 @@ export class Interpreter {
                     rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
                 }
                 else {
-                    //@ts-ignore
                     rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
                 }
                 if (cmdObject?.use_result_cache === true) {

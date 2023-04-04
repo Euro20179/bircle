@@ -1531,10 +1531,8 @@ until you put a 0 in the box`)
                             current_location = '__generic__'
                         }
                         else {
-                            //@ts-ignore
-                            if (legacyNextStages[lastLegacyStage]) {
-                                //@ts-ignore
-                                stage = legacyNextStages[lastLegacyStage]
+                            if (legacyNextStages[lastLegacyStage as keyof typeof legacyNextStages]) {
+                                stage = legacyNextStages[lastLegacyStage as keyof typeof legacyNextStages]
                                 lastLegacyStage = stage
                             }
                             else {
@@ -2516,7 +2514,8 @@ until you put a 0 in the box`)
         {
             run: async (msg, args, sendCallback) => {
                 if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                let opponent = msg.author
+                if(!msg.guild || !msg.member) return crv("Not in a guild", {status: StatusCode.ERR})
+                let opponent: GuildMember | undefined = msg.member
                 let opts: Opts;
                 [opts, args] = getOpts(args)
                 let caseSensitive = opts['case']
@@ -2529,7 +2528,6 @@ until you put a 0 in the box`)
                         everyone = true
                         break
                     }
-                    //@ts-ignore
                     opponent = await fetchUser(msg.guild, arg)
                     if (opponent) {
                         users.push(opponent)
@@ -2624,7 +2622,6 @@ until you put a 0 in the box`)
                         let correctIndecies: { [k: number]: string } = {}
                         for (let i = 0; i < strlen(guessed); i++) {
                             let letter = [...guessed][i]
-                            //@ts-ignore
                             let tempWord = [...word]
                             let totalIdx = 0
                             let idx;
