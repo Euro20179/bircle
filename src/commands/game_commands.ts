@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel } from "discord.js"
+import { Message, Collection, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonInteraction, Guild, User, ButtonStyle, ComponentType, BaseChannel, GuildMember, NonThreadGuildBasedChannel, ChannelType } from "discord.js"
 import { handleSending, registerCommand, StatusCode, createHelpArgument, createHelpOption, CommandCategory, createCommandV2, ccmdV2, crv } from "../common_to_commands"
 
 import globals = require("../globals")
@@ -177,7 +177,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let inPromptSection = false
         let currentPrompt = ""
 
+
         const processPrompt = async (prompt: string) => {
+            if(!isMsgChannel(msg.channel)) return ""
             if (prompt.startsWith("$")) {
                 prompt = prompt.slice(1)
                 if (variables.get(prompt) !== undefined) {
@@ -185,7 +187,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 else {
                     await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
-                    //@ts-ignore
                     let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                     let resp = msgs.at(0)
                     variables.set(prompt, resp?.content || "")
@@ -195,7 +196,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             else if (prompt.includes(":=")) {
                 let [varName, newPrompt] = prompt.split(":=")
                 await handleSending(msg, { content: newPrompt, status: StatusCode.PROMPT }, sendCallback)
-                //@ts-ignore
                 let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                 let resp = msgs.at(0)
                 variables.set(varName, resp?.content || "")
@@ -203,7 +203,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             else {
                 await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
-                //@ts-ignore
                 let msgs = await msg.channel.awaitMessages({ time: 30000, filter: m => m.author.id === msg.author.id, max: 1 })
                 let resp = msgs.at(0)
                 return resp?.content || ""
@@ -258,7 +257,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (globals.KNOW_YOUR_MEME_PLAYERS.length < 2) {
                 globals.KNOW_YOUR_MEME_PLAYERS = []
                 await handleSending(msg, { content: "Game not starting with 1 player", status: StatusCode.ERR }, sendCallback)
-                //@ts-ignore
                 globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
                 return 0
             }
@@ -359,7 +357,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let mostCommon = Object.entries(votes).sort((a, b) => a[1] - b[1])[0]
                 await handleSending(msg, { content: `gif: ${Number(mostCommon[0]) + 1} has won with ${mostCommon[1]} vote`, status: StatusCode.RETURN })
             }
-            //@ts-ignore
             globals.KNOW_YOUR_MEME_TIMEOUT = undefined;
             globals.KNOW_YOUR_MEME_PLAYERS = []
         }
@@ -526,8 +523,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let fullHouseNumbs: { 2: number, 3: number } = { 2: 0, 3: 0 }
                     for (let number of new Set(dice)) {
                         let count = dice.filter(v => v === number).length
-                        //@ts-ignore
-                        if (fullHouseNumbs[count] === undefined) {
+                        if (fullHouseNumbs[count as keyof typeof fullHouseNumbs] === undefined) {
                             break
                         }
                         if (fullHouseNumbs[count as 2 | 3]) {
@@ -615,7 +611,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                     await handleSending(msg, { content: `<@${id}>  YOUR UP:\n${this.toString()}\n\n${diceRolls.join(", ")}`, status: StatusCode.INFO })
 
-                    let filter = (function(m: Message) {
+                    let filter = (function(this: ScoreSheet, m: Message) {
                         if (m.author.id !== id) {
                             return false
                         }
@@ -624,8 +620,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         if (!(options.includes(choiceArgs[0].toLowerCase()) || Object.keys(aliases).includes(choiceArgs[0].toLowerCase()))) {
                             return false
                         }
-                        //@ts-ignore
-                        let choice: string = aliases[choiceArgs[0].toLowerCase()] as (undefined | string) ?? choiceArgs[0].toLowerCase()
+                        let choice: string = aliases[choiceArgs[0].toLowerCase() as keyof typeof aliases] ?? choiceArgs[0].toLowerCase()
 
                         if (choice == "reroll") {
                             if (rollCount >= 3) {
@@ -633,7 +628,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                                 return false
                             }
                         }
-                        //@ts-ignore
                         if (this.is_applied(choice)) {
                             m.reply("U did that already")
                             return false
@@ -651,8 +645,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                     let choiceArgs = choiceMessage.content.split(/\s+/)
 
-                    //@ts-ignore
-                    let choice: string = aliases[choiceArgs[0].toLowerCase()] as (undefined | string) ?? choiceArgs[0].toLowerCase()
+                    let choice: string = aliases[choiceArgs[0].toLowerCase() as keyof typeof aliases] ?? choiceArgs[0].toLowerCase()
 
                     if (choice == "reroll") {
                         let diceToReRoll = new Set()
@@ -789,8 +782,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         if (users[playersJoining?.at(i)?.author.id]) {
                             continue
                         }
-                        //@ts-ignore
-                        users[playersJoining.at(i)?.author.id as string] = new ScoreSheet()
+                        users[(playersJoining as Collection<any, any>).at(i)?.author.id as string] = new ScoreSheet()
                     }
                 }
             }
@@ -847,17 +839,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (score - bet < 0) {
                     amount_earned *= -1
                 }
-                //@ts-ignore
-                let money_earned = economy.calculateAmountFromString(Object.keys(users).at(0), `${amount_earned}%`)
-                //@ts-ignore
-                economy.addMoney(Object.keys(users).at(0), money_earned)
+                let money_earned = economy.calculateAmountFromString(Object.keys(users).at(0) as string, `${amount_earned}%`)
+                economy.addMoney(Object.keys(users).at(0) as string, money_earned)
                 await handleSending(msg, { content: `You earned $${money_earned}`, status: StatusCode.INFO })
             }
             embed.addFields(fields)
 
             globals.YAHTZEE_WAITING_FOR_PLAYERS = false
 
-            //@ts-ignore
             return { content: `Game Over!!`, status: StatusCode.INFO, embeds: [embed] }
 
         }, CommandCategory.GAME, "play a game of yahtzee, can be single or multi player",
@@ -1386,7 +1375,6 @@ until you put a 0 in the box`)
                             amount = Math.random() / 100
                         }
                         else {
-                            //@ts-ignore
                             let multiplier = Number({ "none": 0, "normal": 1, "medium": 1, "large": 1 }[amountType[1]])
                             amount *= multiplier
                         }
@@ -2080,11 +2068,10 @@ until you put a 0 in the box`)
         "uno",
         {
             run: async (msg, _, sendCallback, opts, args) => {
+                if(!msg.member || !msg.guild) return crv("Not in a guild", {status: StatusCode.ERR})
                 let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
-                //@ts-ignore
-                let players: (GuildMember)[] = [msg.member]
+                let players: GuildMember[] = [msg.member]
                 for (let player of requestPlayers) {
-                    //@ts-ignore
                     let p = await fetchUser(msg.guild, player)
                     if (!p) {
                         await handleSending(msg, { content: `${player} not found`, status: StatusCode.ERR }, sendCallback)
@@ -2673,25 +2660,23 @@ until you put a 0 in the box`)
                     if (!channels) {
                         return { content: "no channels found", status: StatusCode.ERR }
                     }
-                    let channel = choice(channels)
-                    if (!isMsgChannel(channel as BaseChannel)) return { content: "Not a text channel", status: StatusCode.ERR }
+                    let channel = choice(channels as NonThreadGuildBasedChannel[])
+                    if (!isMsgChannel(channel)) return { content: "Not a text channel", status: StatusCode.ERR }
                     if (channel === null) {
                         return { content: "Cannot do random in this non-channel", status: StatusCode.ERR }
                     }
-                    //@ts-ignore
-                    while (!channel.isText())
-                        channel = choice(channels)
+                    while (!isMsgChannel(channel) || channel.type === ChannelType.GuildCategory)
+                        channel = choice(channels as NonThreadGuildBasedChannel[])
+                    if (!isMsgChannel(channel)) return { content: "Not a text channel", status: StatusCode.ERR }
                     let messages
                     try {
-                        //@ts-ignore
                         messages = await channel?.messages.fetch({ limit: 100 })
                     }
                     catch (err) {
                         messages = await msg.channel.messages.fetch({ limit: 100 })
                     }
                     let times = 0;
-                    //@ts-ignore
-                    while (!(wordstr = messages.random()?.content)) {
+                    while (!(wordstr = messages.random()?.content ?? "UNDEFINED")) {
                         times++
                         if (times > 20) break
                     }
