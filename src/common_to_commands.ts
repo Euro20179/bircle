@@ -17,6 +17,7 @@ import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
+import { MessageOptions } from 'child_process';
 
 
 export enum StatusCode {
@@ -667,8 +668,17 @@ export class Interpreter {
         return (await cmd({ msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable })).rv
     }
 
-    async sendDataToVariable(place: string, name: string, _data: CommandReturn) {
-        let data = _data.content
+    async sendDataToVariable(place: string, name: string, _data: CommandReturn | string | MessagePayload | MessageCreateOptions) {
+        let data;
+        if(typeof _data === 'string'){
+            data = _data
+        }
+        else if("content" in _data){
+            data = _data.content
+        }
+        else {
+            data = "__BIRCLE_UNDEFINED__"
+        }
         if (data) {
             let oldData = vars.getVar(this.#msg, name, place)
             if (oldData === false) {

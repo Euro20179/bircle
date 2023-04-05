@@ -119,7 +119,6 @@ class RedirModifier extends Modifier{
                 let prefix = m[2] //matches the text before the  : in the parens in redir
                 //the variable name
                 let name = m[3] //matches the text after the :  in the parens in redir
-                //@ts-ignore
                 int.sendCallback = int.sendDataToVariable.bind(int, prefix, name)
             }
             //the variable scope
