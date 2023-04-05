@@ -743,7 +743,17 @@ export class Interpreter {
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
-        else runnerIf: if (cmdObject) {
+        else if(!cmdObject){
+            //We dont want to keep running commands if the command doens't exist
+            //fixes the [[[[[[[[[[[[[[[[[ exploit
+            if (this.real_cmd.startsWith(prefix)) {
+                this.real_cmd = `\\${this.real_cmd}`
+            }
+            if (user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true")
+                rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
+            else rv = { noSend: true, status: StatusCode.ERR }
+        }
+        else runnerIf: {
             //make sure it passes the command's perm check if it has one
             if (!(cmdObject instanceof AliasV2) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
                 rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
@@ -818,16 +828,6 @@ export class Interpreter {
                 globals.addToCmdUse(this.real_cmd)
             }
         }
-        else {
-            //We dont want to keep running commands if the command doens't exist
-            //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (this.real_cmd.startsWith(prefix)) {
-                this.real_cmd = `\\${this.real_cmd}`
-            }
-            if (user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true")
-                rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
-            else rv = { noSend: true, status: StatusCode.ERR }
-        }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
         if (!illegalLastCmds.includes(this.real_cmd)) {
@@ -838,10 +838,8 @@ export class Interpreter {
             return this.handlePipes(rv)
         }
         let m
-        if (m = this.modifiers.filter(v => v instanceof RedirModifier)[0]?.data) {
-            console.log(m)
+        if (m = this.modifiers.find(v => v instanceof RedirModifier)?.data) {
             let [_, _all, place, name] = m
-            console.log(place, name)
             let data = vars.getVar(this.#msg, `${place}:${name}`, this.#msg.author.id)
             if (data !== false) {
                 data += getContentFromResult(rv, "\n")
