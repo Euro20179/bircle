@@ -54,7 +54,7 @@ export default {
 
     escape_a: async(token, _, seq, int) => {
         if(seq === "*"){
-            return [new Token(T.str, int.programArgs.join(" "), token.argNo)]
+            return [new Token(T.str, int.programArgs.join(int.IFS[0]), token.argNo)]
         }
         else if(seq === "@"){
             return listComprehension(int.programArgs, arg => new Token(T.str, arg, ++token.argNo))

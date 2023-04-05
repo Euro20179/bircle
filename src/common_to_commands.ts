@@ -399,6 +399,8 @@ export class Interpreter {
 
     modifiers: Modifier[]
 
+    IFS: string
+
     static commandUndefined = new Object()
 
     static resultCache = new Map()
@@ -417,6 +419,8 @@ export class Interpreter {
         this.aliasV2 = false
 
         this.programArgs = programArgs ?? []
+
+        this.IFS = user_options.getOpt(msg.author.id, 'IFS', "\t\n ")
 
         this.#pipeData = pipeData
         this.#pipeTo = []

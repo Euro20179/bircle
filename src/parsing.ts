@@ -194,7 +194,7 @@ class Parser {
         this.#msg = msg
         this.#isParsingCmd = isCmd
         this.modifiers = []
-        this.IFS = getOpt(msg.author.id, "IFS", " ")
+        this.IFS = " "
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
 
         this.#parseQuotedString = getOpt(msg.author.id, "1-arg-string", "false") === "true" ? true : false
