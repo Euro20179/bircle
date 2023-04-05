@@ -222,7 +222,6 @@ export class AliasV2 {
         globals.removeFromCmdUse(lastCmd)
 
         const optsThatNeedStandardizing = [
-            ["IFS", " "],
             ["pipe-symbol", ">pipe>"],
             ["1-arg-string", ""]
         ] as const
@@ -420,7 +419,7 @@ export class Interpreter {
 
         this.programArgs = programArgs ?? []
 
-        this.IFS = user_options.getOpt(msg.author.id, 'IFS', "\t\n ")
+        this.IFS = vars.getVar(msg, "!env:IFS", msg.author.id) || " "
 
         this.#pipeData = pipeData
         this.#pipeTo = []

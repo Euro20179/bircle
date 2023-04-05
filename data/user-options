@@ -4,8 +4,6 @@ default-bj-bet:The default bet for blackjack when no bet is given (0 by default)
 
 pingresponse:When you are pinged the bot will say this (none by default)
 
-IFS:The splitter character between args (space by default)
-
 bj-screen:When you get blackjack, this is what will be said<br>&nbsp;<b>{amount}</b> will be replaced with the amount you won
 
 warn-cmds:A list of commands that when you run, will confirm that you want to run them (none by default)
