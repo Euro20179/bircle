@@ -1,4 +1,4 @@
-import { Channel, ChannelType, ChatInputCommandInteraction, Message, MessageCreateOptions, MessagePayload, PartialMessage, StageChannel } from 'discord.js';
+import { Message, MessageCreateOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
 import vars from './vars';
@@ -17,7 +17,6 @@ import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
-import { MessageOptions } from 'child_process';
 
 
 export enum StatusCode {
@@ -30,14 +29,7 @@ export enum StatusCode {
 }
 
 export function statusCodeToStr(code: StatusCode) {
-    return {
-        [StatusCode.ACHIEVEMENT]: "-3",
-        [StatusCode.PROMPT]: "-2",
-        [StatusCode.INFO]: "-1",
-        [StatusCode.RETURN]: "0",
-        [StatusCode.WARNING]: "1",
-        [StatusCode.ERR]: "2"
-    }[code]
+    return String(code)
 }
 
 export const CommandCategory = {
@@ -53,8 +45,6 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-
-
 export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>) {
     if (!isMsgChannel(msg.channel)) return false
     await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
@@ -64,7 +54,6 @@ export async function promptUser(msg: Message, prompt: string, sendCallback?: (d
         return false
     }
     return m
-
 }
 
 export class AliasV2 {
@@ -759,7 +748,7 @@ export class Interpreter {
 
             if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(this.real_cmd)) {
                 let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-                if (!m ||  m.content.toLowerCase() !== 'y') {
+                if (!m || m.content.toLowerCase() !== 'y') {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
                     break runnerIf
                 }
