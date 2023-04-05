@@ -371,6 +371,7 @@ export async function cmd({
 export class Interpreter {
     tokens: Token[]
     args: string[]
+    programArgs: string[]
     cmd: string
     real_cmd: string
     recursion: number
@@ -402,7 +403,7 @@ export class Interpreter {
 
     static resultCache = new Map()
 
-    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn) {
+    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, programArgs?: string[]) {
         this.tokens = cloneDeep(tokens)
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
@@ -414,6 +415,8 @@ export class Interpreter {
         this.sendCallback = sendCallback
         this.alias = false
         this.aliasV2 = false
+
+        this.programArgs = programArgs ?? []
 
         this.#pipeData = pipeData
         this.#pipeTo = []
@@ -783,7 +786,8 @@ export class Interpreter {
                         rawOpts: opts,
                         argList: new ArgList(args2),
                         stdin: this.#pipeData,
-                        pipeTo: this.#pipeTo
+                        pipeTo: this.#pipeTo,
+                        interpreter: this
                     };
                     let cmd = cmdObject as CommandV2
                     rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
@@ -865,7 +869,7 @@ export class Interpreter {
         while (tks.length && !commandReturn.noSend) {
             tks[0] = tks[0].convertToCommand()
             //we cant return json or it will double pipe
-            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, false, this.disable, undefined, commandReturn)
+            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, false, this.disable, undefined, commandReturn, this.programArgs)
 
             await int.interprate()
 

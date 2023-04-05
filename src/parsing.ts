@@ -372,7 +372,7 @@ class Parser {
 
     parseEscape(msg: Message) {
 
-        const escChars = "ntUusyYAbiSdDTVv\\ "
+        const escChars = "ntUusyYAbiSdDTVv\\ a"
 
         if (!this.advance()) {
             return new Token(T.str, "\\", this.#curArgNo)

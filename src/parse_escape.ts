@@ -52,6 +52,20 @@ export default {
         return [];
     },
 
+    escape_a: async(token, _, seq, int) => {
+        if(seq === "*"){
+            return [new Token(T.str, int.programArgs.join(" "), token.argNo)]
+        }
+        else if(seq === "@"){
+            return listComprehension(int.programArgs, arg => new Token(T.str, arg, ++token.argNo))
+        }
+        let n = Number(seq)
+        if(!isNaN(n)){
+            return [new Token(T.str, int.programArgs[n] ?? "", token.argNo)]
+        }
+        return []
+    },
+
     escape_A: async (token, _, seq) => {
         if (seq) {
             return listComprehension(seq, item => new Token(T.str, item, ++token.argNo))

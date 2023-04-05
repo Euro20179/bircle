@@ -87,6 +87,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return { noSend: true, status: StatusCode.RETURN }
     }, "Runs a .bircle file")]
 
+    yield ["set", ccmdV2(async ({args, interpreter}) => {
+        interpreter.programArgs = args.slice(0)
+        return crv(interpreter.programArgs.join(" "))
+    }, "Sets program arguments")]
+
     yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;
         try {
