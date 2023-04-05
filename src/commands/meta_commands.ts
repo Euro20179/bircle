@@ -9,7 +9,7 @@ import user_options = require("../user-options")
 import API = require("../api")
 import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
 import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts,   safeEval,  choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr,  isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"
 
 
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
@@ -61,17 +61,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     }, CAT, "get specific data from stdin/pipe")]
 
-    yield [".bircle", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback, args }) {
+    yield [".bircle", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback, args, interpreter }) {
         let file = msg.attachments.at(0)
         let url;
-        if (file)
+        if (file) {
             url = file.url
+            msg.attachments.delete(msg.attachments.keyAt(0) as string)
+            interpreter.programArgs = args
+        }
         if (!file) {
+            interpreter.programArgs = args.slice(1)
+
             if (args[0].match(/https?:\/\/.*/)) {
                 url = args[0]
             }
         }
-        else {
+        if (!file) {
             return { content: "No file url or attachment given", status: StatusCode.RETURN }
         }
         let resp = await fetch(url)
@@ -82,12 +87,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (line.startsWith(prefix)) {
                 line = line.slice(prefix.length)
             }
-            await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
+            await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback, programArgs: interpreter.programArgs })
         }
         return { noSend: true, status: StatusCode.RETURN }
-    }, "Runs a .bircle file")]
+    }, "Runs a .bircle file", {
+        helpArguments: {
+            "args": createHelpArgument("Program arguments to pass to the file")
+        }
+    })]
 
-    yield ["set", ccmdV2(async ({args, interpreter}) => {
+    yield ["set", ccmdV2(async ({ args, interpreter }) => {
         interpreter.programArgs = args.slice(0)
         return crv(interpreter.programArgs.join(" "))
     }, "Sets program arguments")]
@@ -246,7 +255,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!user_options.isValidOption(optname)) {
                 return { content: `${optname} is not a valid option`, status: StatusCode.ERR }
             }
-            let member = await fetchUserFromClientOrGuild( user, msg.guild)
+            let member = await fetchUserFromClientOrGuild(user, msg.guild)
             if (!member)
                 return { content: `${user} not found`, status: StatusCode.ERR }
             user_options.unsetOpt(member.id, optname)
@@ -2537,7 +2546,7 @@ ${styles}
                     }
                 }
                 let fetchedUser = (await fetchUserFromClientOrGuild(user, msg.guild))
-                if(!fetchedUser) return crv(`${user} not found`, {status: StatusCode.ERR})
+                if (!fetchedUser) return crv(`${user} not found`, { status: StatusCode.ERR })
                 if (addOrRemove == "a") {
                     addToPermList(WHITELIST, "whitelists", fetchedUser, cmds)
 
