@@ -96,10 +96,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
     })]
 
-    yield ["set", ccmdV2(async ({ args, interpreter }) => {
-        interpreter.programArgs = args.slice(0)
-        return crv(interpreter.programArgs.join(" "))
-    }, "Sets program arguments")]
+    yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
+        let newIfs = opts.getString("IFS", "")
+        if(newIfs){
+            vars.setVarEasy("!env:IFS", newIfs, msg.author.id)
+        }
+        let newProgArgs = args.slice(0)
+        if(newProgArgs.length){
+            interpreter.programArgs = newProgArgs
+            return crv(interpreter.programArgs.join(" "))
+        }
+        return {noSend: true, status: StatusCode.RETURN}
+    }, "Sets program arguments", {
+        helpOptions: {
+            IFS: createHelpOption("set field seperator for variable expansion and \\a{*}")
+        }
+    })]
 
     yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;

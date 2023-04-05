@@ -243,7 +243,7 @@ export class AliasV2 {
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
-        let { rv, interpreter } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
+        let { rv } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
