@@ -759,7 +759,7 @@ export class Interpreter {
 
             if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(this.real_cmd)) {
                 let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-                if (!m || (m && m.content.toLowerCase() !== 'y')) {
+                if (!m ||  m.content.toLowerCase() !== 'y') {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
                     break runnerIf
                 }
