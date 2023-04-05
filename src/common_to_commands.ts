@@ -362,7 +362,7 @@ export async function cmd({
         //  go through each chunk and run with new interpreter like we're doing now
         //  have a context class that keeps track of the current context, ie program args, and env vars like IFS
         //  pass context class into interpreter which can pass it to commandV2s
-        for(let line of command_excluding_prefix.split("[;")){
+        for (let line of command_excluding_prefix.split("[;")) {
             let parser = new Parser(msg, line)
             await parser.parse()
             let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
@@ -685,10 +685,10 @@ export class Interpreter {
 
     async sendDataToVariable(place: string, name: string, _data: CommandReturn | string | MessagePayload | MessageCreateOptions) {
         let data;
-        if(typeof _data === 'string'){
+        if (typeof _data === 'string') {
             data = _data
         }
-        else if("content" in _data){
+        else if ("content" in _data) {
             data = _data.content
         }
         else {
@@ -743,10 +743,11 @@ export class Interpreter {
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
-        else if (cmdObject) {
+        else runnerIf: if (cmdObject) {
             //make sure it passes the command's perm check if it has one
-            if (!(cmdObject instanceof AliasV2) && cmdObject?.permCheck) {
-                canRun = (cmdObject as Command | CommandV2)?.permCheck?.(this.#msg) ?? true
+            if (!(cmdObject instanceof AliasV2) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
+                rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+                break runnerIf
             }
 
             let declined = false
@@ -760,66 +761,62 @@ export class Interpreter {
                 }
             }
 
-            //is whitelisted
-            if (WHITELIST[this.#msg.author.id]?.includes(this.real_cmd)) {
-                canRun = true
-            }
-            //is blacklisted
-            if (BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd)) {
-                canRun = false
-            }
+            //if any are true, the user cannot run the command
             if (
+                //is whitelisted
+                WHITELIST[this.#msg.author.id]?.includes(this.real_cmd) ||
+                //is blacklisted
+                BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd) || 
+                //is disabled from the caller
                 this.disable?.commands && this.disable.commands.includes(this.real_cmd) ||
-                this.disable?.commands && this.disable.categories?.includes(cmdObject?.category)
+                this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
+                //is a stage channel
+                !isMsgChannel(this.#msg.channel)
+
             ) {
-                canRun = false
+                break runnerIf;
             }
-            if (canRun && isMsgChannel(this.#msg.channel)) {
 
-                events.botEvents.emit(events.CmdRun, this)
+            events.botEvents.emit(events.CmdRun, this)
 
+            if ((this.#shouldType || cmdObject?.make_bot_type))
+                await this.#msg.channel.sendTyping()
 
-                if ((this.#shouldType || cmdObject?.make_bot_type))
-                    await this.#msg.channel.sendTyping()
-
-                if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
-                    rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
-                }
-
-                else if (cmdObject?.cmd_std_version == 2) {
-                    let obj: CommandV2RunArg = {
-                        msg: this.#msg,
-                        rawArgs: args,
-                        args: new ArgList(args2),
-                        sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
-                        recursionCount: this.recursion,
-                        commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
-                        opts: new Options(opts),
-                        rawOpts: opts,
-                        argList: new ArgList(args2),
-                        stdin: this.#pipeData,
-                        pipeTo: this.#pipeTo,
-                        interpreter: this
-                    };
-                    let cmd = cmdObject as CommandV2
-                    rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
-                }
-                else if (cmdObject instanceof AliasV2) {
-                    rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
-                }
-                else {
-                    rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
-                }
-                if (cmdObject?.use_result_cache === true) {
-                    Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
-                }
-                //it will double add this if it's an alias
-                if (!this.alias && !this.aliasV2) {
-                    globals.addToCmdUse(this.real_cmd)
-                }
-                //if normal command, it counts as use
+            if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
+                rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
             }
-            else if (!declined) rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+
+            else if (cmdObject?.cmd_std_version == 2) {
+                let obj: CommandV2RunArg = {
+                    msg: this.#msg,
+                    rawArgs: args,
+                    args: new ArgList(args2),
+                    sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
+                    recursionCount: this.recursion,
+                    commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
+                    opts: new Options(opts),
+                    rawOpts: opts,
+                    argList: new ArgList(args2),
+                    stdin: this.#pipeData,
+                    pipeTo: this.#pipeTo,
+                    interpreter: this
+                };
+                let cmd = cmdObject as CommandV2
+                rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
+            }
+            else if (cmdObject instanceof AliasV2) {
+                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
+            }
+            else {
+                rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+            }
+            if (cmdObject?.use_result_cache === true) {
+                Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
+            }
+            //it will double add this if it's an alias
+            if (!this.alias && !this.aliasV2) {
+                globals.addToCmdUse(this.real_cmd)
+            }
         }
         else {
             //We dont want to keep running commands if the command doens't exist
