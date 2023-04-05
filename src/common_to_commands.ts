@@ -707,9 +707,6 @@ export class Interpreter {
 
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
-        //canRun is true if the user is not BLACKLISTED from a command
-        //it is also  true if the user is WHITELISTED for a command
-        let canRun = true
 
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
@@ -743,15 +740,15 @@ export class Interpreter {
         else if (this.alias && !this.#aliasExpandSuccess) {
             rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
         }
-        else if(!cmdObject){
+        else if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
             if (this.real_cmd.startsWith(prefix)) {
                 this.real_cmd = `\\${this.real_cmd}`
             }
-            if (user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true")
-                rv = { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR }
-            else rv = { noSend: true, status: StatusCode.ERR }
+            rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
+                { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR } :
+                { noSend: true, status: StatusCode.ERR }
         }
         else runnerIf: {
             //make sure it passes the command's perm check if it has one
@@ -760,14 +757,11 @@ export class Interpreter {
                 break runnerIf
             }
 
-            let declined = false
-
             if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(this.real_cmd)) {
                 let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
                 if (!m || (m && m.content.toLowerCase() !== 'y')) {
                     rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
-                    declined = true
-                    canRun = false
+                    break runnerIf
                 }
             }
 
@@ -776,7 +770,7 @@ export class Interpreter {
                 //is whitelisted
                 WHITELIST[this.#msg.author.id]?.includes(this.real_cmd) ||
                 //is blacklisted
-                BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd) || 
+                BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd) ||
                 //is disabled from the caller
                 this.disable?.commands && this.disable.commands.includes(this.real_cmd) ||
                 this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
