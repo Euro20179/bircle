@@ -352,14 +352,23 @@ export async function cmd({
     enableUserMatch,
     programArgs
 }: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[] }) {
-    let parser = new Parser(msg, command_excluding_prefix)
-    await parser.parse()
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
-        let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
-        //this previously ored to false
-        rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
+        //TODO:
+        //instead of splitting by [;
+        //  parse it as a token in the parser
+        //  break tokenlist into chunks seperated by [; token
+        //  go through each chunk and run with new interpreter like we're doing now
+        //  have a context class that keeps track of the current context, ie program args, and env vars like IFS
+        //  pass context class into interpreter which can pass it to commandV2s
+        for(let line of command_excluding_prefix.split("[;")){
+            let parser = new Parser(msg, line)
+            await parser.parse()
+            let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
+            //this previously ored to false
+            rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
+        }
     }
     return {
         rv: rv,
