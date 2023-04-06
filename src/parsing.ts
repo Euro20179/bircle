@@ -398,21 +398,8 @@ class Parser {
             return new Token(T.calc, inside, this.#curArgNo)
         }
         else if (this.#curChar === "(") {
-            let containsDoFirstRepl = false
-            for (let token of this.tokens.filter(v => v.argNo === this.#curArgNo)) {
-                if (token.type === T.dofirstrepl) {
-                    containsDoFirstRepl = true
-                    break
-                }
-            }
-            if (!containsDoFirstRepl) {
-                this.tokens.push(new Token(T.dofirstrepl, "", this.#curArgNo))
-            }
-
-            let inside = ""
-
             this.advance()
-            inside += parseBracketPair(this.string, "()", this.#i)
+            const inside = parseBracketPair(this.string, "()", this.#i)
             this.advance(inside.length)
 
             return new Token(T.dofirst, inside, this.#curArgNo)

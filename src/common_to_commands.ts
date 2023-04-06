@@ -494,7 +494,7 @@ export class Interpreter {
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
-        return []
+        return [new Token(T.str, data, token.argNo)]
     }
     async [T.calc](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data as string, false)
@@ -791,16 +791,6 @@ export class Interpreter {
 
             if (this.#pipeData)
                 this.#initializePipeDataVars()
-
-            
-            for (let doFirst of this.tokens.filter((v, idx) => v.type === T.dofirst && idx > this.#i)) {
-                await this[1](doFirst)
-            }
-
-            let pipeIndex = this.tokens.findIndex(v => v.type === T.pipe)
-
-            // filters out all do firsts from this.#i until the first pipe
-            this.tokens = this.tokens.filter((v, idx) => v.type !== T.dofirst && isBetween(this.#i, idx, pipeIndex === -1 ? Infinity : pipeIndex + 1))
 
             let tokList
             while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
