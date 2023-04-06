@@ -1494,7 +1494,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         await new Promise(res => setTimeout(res, parseFloat(edit.slice(1, -1))))
                         continue
                     }
-                    if (edit[0] == "-") {
+                    else if (edit[0] == "-") {
                         edit = lastEdit.replaceAll(edit.slice(1), "")
                     }
                     else if (edit[0] == "+") {
