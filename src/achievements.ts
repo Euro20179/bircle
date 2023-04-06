@@ -4,6 +4,8 @@ import { crv, StatusCode } from './common_to_commands';
 import economy from './economy';
 import { giveItem } from './shop';
 import { UnixTime } from './util';
+import { getOpt } from './user-options';
+import { GLOBAL_CURRENCY_SIGN } from './common';
 
 class Achievement{
     name: string
@@ -16,7 +18,7 @@ class Achievement{
     }
     earn(id: string, reward: string): CommandReturn{
         let embed = new EmbedBuilder()
-        embed.setTitle(`Achievement Get: ${this.name}`)
+        embed.setTitle(`Achievement Get: ${getOpt(id, "currency-sign", GLOBAL_CURRENCY_SIGN)}{this.name}`)
         embed.setDescription(`reward: ${reward}`)
         return {embeds: [embed], status: StatusCode.ACHIEVEMENT, do_change_cmd_user_expansion: false}
     }
