@@ -833,7 +833,7 @@ export class Interpreter {
                 returnJson: true,
                 disable: this.disable,
                 pipeData: commandReturn,
-                programArgs: this.context.programArgs
+                context: this.context
             })
 
             await int.interprate()
