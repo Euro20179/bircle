@@ -9,20 +9,22 @@ import timer from "./timer";
 import { ChannelType } from "discord.js";
 
 export default {
-    ["parse_%"]: async (_token, _char, _, int) => {
-        if (int.getPipeData()) {
-            return getContentFromResult(int.getPipeData() as CommandReturn)
+    ["parse_%"]: async (_token, _char, args, int) => {
+        let data = int.getPipeData()
+        if (data) {
+            if(!args.length)
+                return getContentFromResult(int.getPipeData() as CommandReturn)
+            else if(args[0] === "?")
+                return data.status
+            else if(args[0] === "raw")
+                return JSON.stringify(data)
+            else {
+                return `{%|${args.join("|")}}`
+            }
         }
         else {
             return "{%}"
         }
-    },
-
-    ["parse_-%"]: async (_token, _, __, int) => {
-        if (int.getPipeData())
-            return getContentFromResult(int.getPipeData() as CommandReturn)
-        else
-            return "{-%}"
     },
 
     parse_cmd: async (_, __, ___, int) => {

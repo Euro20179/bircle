@@ -470,19 +470,6 @@ export class Interpreter {
         this.#shouldType = bool ?? true
     }
 
-    #initializePipeDataVars() {
-        vars.setVar("stdin:content", this.#pipeData?.content ?? "", this.#msg.author.id)
-        vars.setVar("stdin:status", statusCodeToStr(this.#pipeData?.status), this.#msg.author.id)
-        vars.setVar("stdin:raw", JSON.stringify(this.#pipeData), this.#msg.author.id)
-    }
-
-    #deletePipeDataVars() {
-        vars.delVar("stdin:content", this.#msg.author.id)
-        vars.delVar("stdin:status", this.#msg.author.id)
-        vars.delVar("stdin:raw", this.#msg.author.id)
-
-    }
-
     getMessage() {
         return this.#msg
     }
@@ -888,24 +875,19 @@ export class Interpreter {
         if (this.#interprated) {
             return this.args
         }
-        if (this.hasModifier(SkipModifier)) {
-            await this.interprateAllAsToken(T.str)
-        }
-        else {
 
-            if (this.#pipeData)
-                this.#initializePipeDataVars()
+        // if (this.#pipeData)
+        //     this.#initializePipeDataVars()
 
-            let tokList
-            while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
-                for (let tok of tokList) {
-                    this.addTokenToArgList(tok)
-                }
+        let tokList
+        while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
+            for (let tok of tokList) {
+                this.addTokenToArgList(tok)
             }
-
-            if (this.#pipeData)
-                this.#deletePipeDataVars()
         }
+
+        // if (this.#pipeData)
+        //     this.#deletePipeDataVars()
 
         //null comes from %{-1}doFirsts
         this.args = this.args.filter(v => v !== null)

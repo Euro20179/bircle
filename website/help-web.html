@@ -156,15 +156,11 @@
     <p>
     <ul>
         <li>
-            <code>%</code>
+            <code>%[| &lt;?&gt; OR &lt;raw&gt;]</code>
             : Gets replaced with the content from stdin<br>
+            if <code>?</code> is given, get the status<br>
+            if <code>raw</code> is given, get the stdin as json<br>
             see <a href="#Stdin">stdin</a> for more information.
-        </li>
-        <li>
-            <code>-%</code>
-            : Gets replaced with the content from stdin
-            <br>
-            and sets stdin to undefined
         </li>
         <li>
             <code>cmd</code>
@@ -524,18 +520,6 @@
         <li>
             <code>random</code>
             : Generate a random number
-        </li>
-        <li>
-            <code>stdin:content</code>
-            : Gets the content from stdin
-        </li>
-        <li>
-            <code>stdin:status</code>
-            : Gets the status from stdin
-        </li>
-        <li>
-            <code>stdin:raw</code>
-            : Gets the json from stdin
         </li>
         <li>
             <code>rand</code>
