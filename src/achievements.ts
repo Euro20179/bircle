@@ -4,6 +4,8 @@ import { crv, StatusCode } from './common_to_commands';
 import economy from './economy';
 import { giveItem } from './shop';
 import { UnixTime } from './util';
+import { getOpt } from './user-options';
+import { GLOBAL_CURRENCY_SIGN } from './common';
 
 class Achievement{
     name: string
@@ -16,7 +18,7 @@ class Achievement{
     }
     earn(id: string, reward: string): CommandReturn{
         let embed = new EmbedBuilder()
-        embed.setTitle(`Achievement Get: ${this.name}`)
+        embed.setTitle(`Achievement Get: ${getOpt(id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${this.name}`)
         embed.setDescription(`reward: ${reward}`)
         return {embeds: [embed], status: StatusCode.ACHIEVEMENT, do_change_cmd_user_expansion: false}
     }
@@ -72,6 +74,8 @@ const POSSIBLE_ACHIEVEMENTS = {
     "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
     france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
     iraq: new ItemRewardAchievement("iraq", "travel to iraq", ["oil", 30]),
+    russia: new ItemRewardAchievement("russia", "travel to russia", ["hammer and sickle", 1]),
+    conquerer: new MoneyRewardAchievement("conquerer", "take over russia", "max(200, 5%)"),
     // traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
     "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(50%,500)"),

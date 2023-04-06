@@ -329,6 +329,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 economy.addMoney(msg.author.id, price)
                 return crv(`You earned ${sign}${crudeOil * gallonToBarrel} per gallon for a total of ${sign}${price}`)
             }],
+            [['hammer', 'sickle'], async () => {
+                giveItem(msg.author.id, "hammer and sickle", 1)
+                return crv("You have created a hammer and sickle")
+            }],
             [["white powder", "green leaf", "organic mushroom"], async () => {
                 let ach = achievements.achievementGet(msg.author.id, "breaking good")
                 if(ach){

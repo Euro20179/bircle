@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
-import { crv, generateDefaultRecurseBans, handleSending, StatusCode } from "../common_to_commands"
+import { crv, generateDefaultRecurseBans, handleSending, promptUser, StatusCode } from "../common_to_commands"
 import { choice, isBetween, listComprehension } from "../util"
 
 import pets from "../pets"
@@ -93,6 +93,9 @@ class Country {
         let activity = this.activities.get(activityOfChoice) || Array.from(this.activities.values())[Number(activityOfChoice) - 1]
 
         let cost = economy.calculateAmountFromNetWorth(msg.author.id, activity.cost)
+        if (cost < 0) {
+            return crv("The matrix does not allow you to spend negative money")
+        }
         if (!economy.canBetAmount(msg.author.id, cost)) {
             return crv(`You could not afford to do the activities you wanted and left sadly`)
         }
@@ -137,13 +140,93 @@ class Country {
     }
 }
 
+class Russia extends Country {
+
+    init() {
+        this.registerActivity("siberia", "1%", this.siberia.bind(this))
+        this.registerActivity("moscow", "3%", this.moscow.bind(this))
+    }
+
+    async farmingShop({ msg }: CommandV2RunArg) {
+        const items = {
+            hammer: economy.calculateAmountFromNetWorth(msg.author.id, "1%"),
+            sickle: economy.calculateAmountFromNetWorth(msg.author.id, "1%")
+        }
+
+        let ans = await promptUser(msg, `Would you like to buy\nhammer ($${items['hammer']})\nor\nsickle ($${items['sickle']})\n:)`)
+        if (!ans) {
+            return crv("You chose to buy neither")
+        }
+        ans.content = ans.content.toLowerCase()
+        if (ans.content === "hammer") {
+            economy.loseMoneyToBank(msg.author.id, items['hammer'])
+            giveItem(msg.author.id, 'hammer', 1)
+        }
+        else if (ans.content === 'sickle') {
+            economy.loseMoneyToBank(msg.author.id, items['sickle'])
+            giveItem(msg.author.id, 'sickle', 1)
+        }
+        else {
+            giveItem(msg.author.id, "lawn mower", 1)
+            return crv(`You got the secret lawn mower for free!!!`)
+        }
+        return crv(`You bought a ${ans.content}`)
+    }
+
+    async moscow({ msg }: CommandV2RunArg) {
+        let pet = pets.getActivePet(msg.author.id)
+        if (pet === "woolly mammoth") {
+            let ach = achievements.achievementGet(msg.author.id, "conquerer")
+            if (ach) await handleSending(msg, ach)
+            return crv(`You and ${pets.hasPet(msg.author.id, pet).name} ravage through Moscow and take over the city, claiming Russia for yourself`)
+        }
+        if (Math.random() > .99) {
+            giveItem(msg.author.id, "russian citizen", 1)
+            return crv("You decided to kidnap a russian citizen because you believe them to be a communist sympathizer")
+        }
+        return crv("You had a wonderful time in moscow, and you got to meet some of the locals")
+    }
+
+    async siberia({ msg }: CommandV2RunArg) {
+        if (Math.random() > .9 && !pets.hasPet(msg.author.id, "woolly mammoth")) {
+            pets.addPet(msg.author.id, "woolly mammoth")
+            return crv("You found a woolly mammoth and decided to keep it as a pet")
+        }
+        if (hasItem(msg.author.id, "scarf")) {
+            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "3%")
+            useItem(msg.author.id, "scarf", 1)
+            return crv(`Your scarf let you travel through siberia unharmed, and you earned an award for bravest traveler\nYou get ${this.getSign(msg)}${amount} for your travels`)
+        }
+        return crv("It was very cold and you almost froze to death")
+    }
+
+    async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
+        if (Math.random() > .999) {
+            let econ = economy.getEconomy()
+            let moneySum = 0
+            for (let player in econ) {
+                moneySum += econ[player].money
+                econ[player].stocks = {}
+            }
+            let avg = moneySum / Object.keys(econ).length
+            for (let player in econ) {
+                economy.setMoney(player, avg)
+            }
+
+            return crv("By traveling to russia you have accidentally started a communist revolution across the world\nall money has been redistributed and all stocks have been destroyed")
+        }
+        else
+            return super.go(arguments[0])
+    }
+}
+
 class Canada extends Country {
     init() {
         this.badFlightChance = .2
         this.registerActivity("sit at fireplace", "rand(1, 1%)", this.sitAtFireplace.bind(this))
     }
 
-    async sitAtFireplace({msg}: CommandV2RunArg){
+    async sitAtFireplace({ msg }: CommandV2RunArg) {
         //total based on cash because that's what you would get if someone thought you were homeless
         let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().money, "rand(max(1,1%), max(100,3%))")
         economy.addMoney(msg.author.id, amount)
@@ -156,7 +239,7 @@ class Canada extends Country {
 
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
         this.onVisit(arguments[0])
-        if(hasItem(msg.author.id, "blanket")){
+        if (hasItem(msg.author.id, "blanket")) {
             useItem(msg.author.id, 'blanket')
             return super.go(arguments[0])
         }
@@ -181,16 +264,16 @@ class Mexico extends Country {
 
     async drugCartel({ msg }: CommandV2RunArg) {
         economy.addMoney(msg.author.id, 1)
-        if(Math.random() > .85){
+        if (Math.random() > .85) {
             let cartelGives = choice(["white powder", "green leaf", "organic mushroom"])
             giveItem(msg.author.id, cartelGives, 1)
-            await handleSending(msg, crv(`The cartel gives you ${cartelGives}`, {status: StatusCode.INFO}))
+            await handleSending(msg, crv(`The cartel gives you ${cartelGives}`, { status: StatusCode.INFO }))
         }
-        if(hasItem(msg.author.id, "organic mixture")){
+        if (hasItem(msg.author.id, "organic mixture")) {
             useItem(msg.author.id, "organic mixture")
             let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, 'max(100,20%)')
             let ach = achievements.achievementGet(msg.author.id, "dealer")
-            if(ach) await handleSending(msg, ach)
+            if (ach) await handleSending(msg, ach)
             economy.addMoney(msg.author.id, amount)
             return crv(`You give the cartel your organic mixture, and they pay you ${this.getSign(msg)}${amount} for your great creation`)
         }
@@ -227,7 +310,7 @@ class Mexico extends Country {
         }))
 
         let ratingMsg;
-        if(msg.channel.type !== ChannelType.GuildStageVoice){
+        if (msg.channel.type !== ChannelType.GuildStageVoice) {
             let msgs = await msg.channel.awaitMessages({ filter: m => isBetween(0, Number(m.content), 6) && m.author.id === msg.author.id, max: 1, time: 30000 })
             ratingMsg = msgs.at(0)
         }
@@ -261,8 +344,8 @@ class UnitedStates extends Country {
         return crv(`You found a penny on second street\ngain ${this.getSign(msg)}.01!!!`)
     }
 
-    async huntingTrip({msg}: CommandV2RunArg){
-        if(!hasItem(msg.author.id, 'gun')){
+    async huntingTrip({ msg }: CommandV2RunArg) {
+        if (!hasItem(msg.author.id, 'gun')) {
             return crv("The hunting trip was very boring because you dont have a gun")
         }
         let meat = choice(["pig", "cow", "deer"])
@@ -272,9 +355,9 @@ class UnitedStates extends Country {
         return crv(`You found a ${meat} and killed it and got ${boneCount} bones and 1 meat`)
     }
 
-    async hawaii({msg}: CommandV2RunArg){
-        if(Math.random() > .9){
-            if(Math.random() > .5){
+    async hawaii({ msg }: CommandV2RunArg) {
+        if (Math.random() > .9) {
+            if (Math.random() > .5) {
                 giveItem(msg.author.id, 'snorkling mask', 1)
                 return crv(`A sexy life gaurd saves you from the ocean, and gives you a snorkling mask`)
             }
@@ -319,8 +402,8 @@ class UnitedStates extends Country {
         if (Math.random() < .1) {
             row.addComponents(
                 new ButtonBuilder()
-                    .setCustomId( `${msg.author.id}.museum.1`)
-                    .setLabel(`1️⃣` )
+                    .setCustomId(`${msg.author.id}.museum.1`)
+                    .setLabel(`1️⃣`)
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder({ customId: `${msg.author.id}.museum.2`, style: ButtonStyle.Primary, label: `2️⃣` }),
                 new ButtonBuilder({ customId: `${msg.author.id}.museum.3`, style: ButtonStyle.Primary, label: `3️⃣` })
@@ -333,11 +416,11 @@ class UnitedStates extends Country {
         }
 
         let m = await handleSending(msg, crv("Welcome to the museum of liberty!!! Would you like to\n1: look around\n2: steal a bald eagle\n3: express your freedom", {
-            components: [ row]
+            components: [row]
         }))
 
 
-        let b = await m.awaitMessageComponent({ componentType: ComponentType.Button})
+        let b = await m.awaitMessageComponent({ componentType: ComponentType.Button })
         switch (b.customId.slice(`${msg.author.id}.museum.`.length)) {
             case '1':
                 return crv("You look around like an npc, the end.")
@@ -446,7 +529,8 @@ let defaultCountries = {
     "canada": new Canada({ cost: "2%+10" }),
     "mexico": (new Mexico({ cost: "1%+5", greeting: "Welcome to mexico🪇" })),
     "france": new France({ cost: "5%+30", greeting: "Bonjour!🍞", currencySign: '💶' }),
-    "iraq": new Iraq({ cost: "3%", badFlightChance: .5 })
+    "iraq": new Iraq({ cost: "3%", badFlightChance: .5 }),
+    "russia": new Russia({ cost: "rand(1%, 10%)", greeting: "Velcome to ze motherland", currencySign: "☭", badFlightChance: .3 })
 }
 
 

@@ -43,7 +43,10 @@ export default {
         if (seq && int) {
             let p = new Parser(int.getMessage(), seq, false)
             await p.parse()
-            let i = new Interpreter(int.getMessage(), p.tokens, p.modifiers, int.recursion + 1)
+            let i = new Interpreter(int.getMessage(), p.tokens, {
+                modifiers: p.modifiers,
+                recursion: int.recursion + 1
+            })
             let args = await i.interprate()
             for (let arg of args.join(" ").split(" ")) {
                 return [new Token(T.str, arg, int.args.length + 1)]

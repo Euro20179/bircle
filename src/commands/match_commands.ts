@@ -163,7 +163,10 @@ export default function*(CAT: CommandCategory) {
         if (quoteType === '"') {
             let p = new Parser(msg, data, false)
             await p.parse()
-            let int = new Interpreter(msg, p.tokens, p.modifiers, 10)
+            let int = new Interpreter(msg, p.tokens, {
+                modifiers: p.modifiers,
+                recursion: 10
+            })
             data = (await int.interprate()).join(" ")
         }
 
