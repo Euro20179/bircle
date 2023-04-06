@@ -12,11 +12,11 @@ import pet from './src/pets'
 require("./src/commands/commands")
 import {slashCmds } from "./src/slashCommands"
 
-import command_commons from './src/common_to_commands'
+import command_commons, { Interpreter } from './src/common_to_commands'
 
 import globals = require("./src/globals")
 import { efd, isMsgChannel } from "./src/util"
-import { format } from './src/parsing'
+import { Parser, format } from './src/parsing'
 import { getOpt } from "./src/user-options"
 import { ADMINS, GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
@@ -213,9 +213,17 @@ client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     let att = m.attachments.at(0)
+    let programArgs: string[] = []
     if(att?.name?.endsWith(".bircle")){
         let res = await fetch(att.url)
         m.attachments.delete(m.attachments.keyAt(0) as string)
+
+        let p = new Parser(m, m.content)
+        await p.parse()
+        let int = new Interpreter(m, p.tokens, p.modifiers, 0, false)
+        await int.interprate()
+
+        programArgs = int.args
         m.content = `${local_prefix}${await res.text()}`
         content = m.content
     }
@@ -228,7 +236,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
             m.content = `${cmd}`
             let c = m.content.slice(local_prefix.length)
             try {
-                await command_commons.cmd({ msg: m, command_excluding_prefix: c })
+                await command_commons.cmd({ msg: m, command_excluding_prefix: c, programArgs})
             }
             catch (err) {
                 console.error(err)
