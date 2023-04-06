@@ -328,21 +328,20 @@ export async function cmd({
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
-        //TODO:
-        //instead of splitting by [;
-        //  parse it as a token in the parser
-        //  break tokenlist into chunks seperated by [; token
-        //  go through each chunk and run with new interpreter like we're doing now
-        //  have a context class that keeps track of the current context, ie program args, and env vars like IFS
-        //  pass context class into interpreter which can pass it to commandV2s
+
         let parser = new Parser(msg, command_excluding_prefix)
         await parser.parse()
+
         let context = new InterpreterContext(programArgs, env)
+
         while (parser.tokens.length > 0) {
             let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
             let currentToks = parser.tokens.slice(0, eolIdx)
             parser.tokens = parser.tokens.slice(eolIdx + 1)
-            int = new Interpreter(msg, currentToks, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, undefined, context)
+            int = new Interpreter(msg, currentToks, {
+                modifiers: parser.modifiers,
+                recursion, returnJson, disable, sendCallback, pipeData, context
+            })
             //this was previously ored to false
             rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
             //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
@@ -406,24 +405,36 @@ export class Interpreter {
 
     static resultCache = new Map()
 
-    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, programArgs?: string[], context?: InterpreterContext) {
+    constructor(msg: Message, tokens: Token[], options: {
+        modifiers?: Modifier[],
+        recursion?: number,
+        returnJson?: boolean,
+        disable?: {
+            categories?: CommandCategory[],
+            commands?: string[]
+        },
+        sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>,
+        pipeData?: CommandReturn,
+        programArgs?: string[],
+        context?: InterpreterContext
+    }) {
         this.tokens = cloneDeep(tokens)
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
-        this.recursion = recursion
-        this.returnJson = returnJson
-        this.disable = disable ?? {}
-        this.sendCallback = sendCallback
+        this.recursion = options.recursion ?? 0
+        this.returnJson = options.returnJson ?? false
+        this.disable = options.disable ?? {}
+        this.sendCallback = options.sendCallback
         this.aliasV2 = false
 
-        this.context = context ?? new InterpreterContext(programArgs, {
+        this.context = options.context ?? new InterpreterContext(options.programArgs, {
             IFS: " "
         })
 
-        this.#pipeData = pipeData
+        this.#pipeData = options.pipeData
         this.#pipeTo = []
 
-        this.modifiers = modifiers
+        this.modifiers = options.modifiers ?? []
         this.#i = -1
         this.#curTok = undefined
         this.#doFirstCountValueTable = {}
@@ -523,7 +534,11 @@ export class Interpreter {
     async [T.calc](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data as string, false)
         await parser.parse()
-        let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
+        let int = new Interpreter(this.#msg, parser.tokens, {
+            modifiers: parser.modifiers,
+            recursion: this.recursion + 1,
+            disable: this.disable
+        })
         await int.interprate()
         token.data = int.args.join(" ")
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars.vars["__global__"] }, { timeout: 1000 })), token.argNo)
@@ -577,7 +592,10 @@ export class Interpreter {
     async[T.syntax](token: Token): Promise<Token[] | false> {
         let parse = new Parser(this.#msg, token.data as string, false)
         await parse.parse()
-        let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
+        let int = new Interpreter(this.#msg, parse.tokens, {
+            modifiers: parse.modifiers,
+            recursion: this.recursion + 1
+        })
         let args = await int.interprate()
         return listComprehension(args, (arg, index) => new Token(T.str, index < args.length - 1 ? `${arg} ` : arg, token.argNo))
     }
@@ -590,7 +608,7 @@ export class Interpreter {
 
     async [T.variable](token: Token): Promise<Token[] | false> {
         let [varName, ifNull] = token.data
-        if(this.context.env[varName] !== undefined){
+        if (this.context.env[varName] !== undefined) {
             return [new Token(T.str, this.context.env[varName], token.argNo)]
         }
         let _var = vars.getVar(this.#msg, varName)
@@ -809,7 +827,14 @@ export class Interpreter {
         //if noSend is given, we dont want to pipe it
         while (tks.length && !commandReturn.noSend) {
             //we cant return json or it will double pipe
-            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn, this.context.programArgs)
+            let int = new Interpreter(this.#msg, tks, {
+                modifiers: this.modifiers,
+                recursion: this.recursion,
+                returnJson: true,
+                disable: this.disable,
+                pipeData: commandReturn,
+                programArgs: this.context.programArgs
+            })
 
             await int.interprate()
 

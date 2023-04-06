@@ -154,7 +154,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "interprate", ccmdV2(async ({ msg, rawArgs: args }) => {
             let parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
-            let int = new Interpreter(msg, parser.tokens, parser.modifiers)
+            let int = new Interpreter(msg, parser.tokens, {modifiers: parser.modifiers})
             await int.interprate()
             return { content: JSON.stringify(int), status: StatusCode.RETURN }
         }, "Interprate args"),

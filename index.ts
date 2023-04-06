@@ -220,7 +220,10 @@ client.on(Events.MessageCreate, async (m: Message) => {
 
         let p = new Parser(m, m.content)
         await p.parse()
-        let int = new Interpreter(m, p.tokens, p.modifiers, 0, false)
+        let int = new Interpreter(m, p.tokens,  {
+            modifiers: p.modifiers,
+            recursion: 0
+        })
         await int.interprate()
 
         programArgs = int.args
