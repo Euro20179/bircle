@@ -555,7 +555,7 @@ export class Interpreter {
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
         let args = await int.interprate()
-        return listComprehension(args, (arg, index) => new Token(T.str, index < args.length ? `${arg} ` : arg, token.argNo))
+        return listComprehension(args, (arg, index) => new Token(T.str, index < args.length - 1 ? `${arg} ` : arg, token.argNo))
     }
 
     async[T.pipe](token: Token): Promise<Token[] | false> {
