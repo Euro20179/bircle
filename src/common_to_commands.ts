@@ -338,9 +338,12 @@ export async function cmd({
         for (let line of command_excluding_prefix.split("[;")) {
             let parser = new Parser(msg, line)
             await parser.parse()
-            let int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
+            int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
             //this previously ored to false
             rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
+            if(returnJson){
+                rv = await int.handlePipes(rv)
+            }
         }
     }
     return {
@@ -485,11 +488,11 @@ export class Interpreter {
             recursion: this.recursion + 1,
             returnJson: true,
             pipeData: this.getPipeData()
-        })).rv
-        let rv = await runCmd(token.data as string)
+        }))
+        let {rv} = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         if (rv && rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            let rv2 = await runCmd(rv.content.slice(prefix.length))
+            let {rv: rv2} = await runCmd(rv.content.slice(prefix.length))
             data = rv2 ? getContentFromResult(rv2 as CommandReturn, "\n").trim() : ""
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
@@ -720,7 +723,7 @@ export class Interpreter {
             lastCommand[this.#msg.author.id] = `[${cmd} ${this.args.join(" ")}`
         }
         if (this.returnJson) {
-            return this.handlePipes(rv)
+            return rv
         }
         //handles the rv protocol
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
@@ -750,26 +753,26 @@ export class Interpreter {
         //if noSend is given, we dont want to pipe it
         while (tks.length && !commandReturn.noSend) {
             //we cant return json or it will double pipe
-            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, false, this.disable, undefined, commandReturn, this.programArgs)
+            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn, this.programArgs)
 
             await int.interprate()
 
-            //instead force sendCallback to get the result
-            int.sendCallback = async (o) => {
-                let obj = o as CommandReturn
-                //only return values should be put through this function
-                if (obj.status !== StatusCode.RETURN && obj.status !== StatusCode.ERR) {
-                    //return early
-                    return handleSending(int.getMessage(), obj, this.sendCallback)
-                }
+            // //instead force sendCallback to get the result
+            // int.sendCallback = async (o) => {
+            //     let obj = o as CommandReturn
+            //     //only return values should be put through this function
+            //     if (obj.status !== StatusCode.RETURN && obj.status !== StatusCode.ERR) {
+            //         //return early
+            //         return handleSending(int.getMessage(), obj, this.sendCallback)
+            //     }
+            //
+            //     commandReturn = obj as CommandReturn
+            //     return int.getMessage()
+            // }
 
-                commandReturn = obj as CommandReturn
-                return int.getMessage()
-            }
+            // await int.run() as CommandReturn
 
-            await int.run() as CommandReturn
-
-            commandReturn = defileCommandReturn(commandReturn)
+            commandReturn = defileCommandReturn(await int.run() as CommandReturn)
 
             if (allowedMentions) {
                 //not sure the best way to combine 2 allowedMentions (new commandReturn + oldCommandReturn), so we're just going to set it to none
@@ -946,7 +949,8 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 
         let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
 
-        rv = ret.rv as CommandReturn
+        rv = ret.rv
+
         //we only want to override it if the command doens't explicitly want to do it
         if (rv.do_change_cmd_user_expansion !== true && do_change_cmd_user_expansion === false) {
             rv.do_change_cmd_user_expansion = do_change_cmd_user_expansion
