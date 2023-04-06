@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -471,7 +471,7 @@ export class Interpreter {
         }
     }
     removeLastTokenFromArgList() {
-        this.args = this.args.slice(0, -1)
+        this.args = this.args.splice(0, -1)
     }
 
     async [T.str](token: Token): Promise<Token[] | false> {
@@ -792,14 +792,15 @@ export class Interpreter {
             if (this.#pipeData)
                 this.#initializePipeDataVars()
 
-            for (let doFirst of this.tokens.slice(this.#i === -1 ? 0 : this.#i).filter(v => v.type === T.dofirst)) {
+            
+            for (let doFirst of this.tokens.filter((v, idx) => v.type === T.dofirst && idx > this.#i)) {
                 await this[1](doFirst)
             }
 
             let pipeIndex = this.tokens.findIndex(v => v.type === T.pipe)
 
             // filters out all do firsts from this.#i until the first pipe
-            this.tokens = this.tokens.slice(this.#i === -1 ? 0 : this.#i, pipeIndex === -1 ? undefined : pipeIndex + 1).filter(v => v.type !== T.dofirst)
+            this.tokens = this.tokens.filter((v, idx) => v.type !== T.dofirst && isBetween(this.#i, idx, pipeIndex === -1 ? Infinity : pipeIndex + 1))
 
             let tokList
             while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
@@ -821,7 +822,7 @@ export class Interpreter {
         //if it is found
         if (lastUndefIdx > -1) {
             //we basically treat everythign before it as if it didn't happen
-            this.args = this.args.slice(lastUndefIdx + 1)
+            this.args = this.args.splice(lastUndefIdx + 1)
         }
 
         this.#interprated = true

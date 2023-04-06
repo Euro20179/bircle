@@ -80,7 +80,8 @@ const POSSIBLE_ACHIEVEMENTS = {
     "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1]),
     "breaking good": new MoneyRewardAchievement("breaking good", "Create the organic mixture", "max(25%, 250)"),
     "dealer": new ItemRewardAchievement("dealer", "Sell your organic mixture to the cartel", ["cartel's best wishes", 1]),
-    "conspiracy theorist": new MoneyRewardAchievement("conspiracy theorist", "Obtain the conspiracy", "max(100%,1000)")
+    "conspiracy theorist": new MoneyRewardAchievement("conspiracy theorist", "Obtain the conspiracy", "max(100%,1000)"),
+    "syntax": new ItemRewardAchievement("syntax", "Find a new way to run `the secret command` (ping euro if you did it)", ["syntax", 1])
 } as const
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};

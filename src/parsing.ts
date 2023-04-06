@@ -141,7 +141,6 @@ class Parser {
 
     IFS: string
 
-    #skipTokenizing: boolean
     #msg: Message
     #curChar: string | undefined
     #i: number
@@ -165,7 +164,6 @@ class Parser {
         //starts at negative one for commands
         this.#curArgNo = 0
         this.#msg = msg
-        this.#skipTokenizing = false
         this.modifiers = []
         this.IFS = " "
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
