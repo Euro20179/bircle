@@ -145,6 +145,7 @@ class Russia extends Country {
     init() {
         this.registerActivity("siberia", "1%", this.siberia.bind(this))
         this.registerActivity("moscow", "3%", this.moscow.bind(this))
+        this.registerActivity("farming shop", "0.5%", this.farmingShop.bind(this))
     }
 
     async farmingShop({ msg }: CommandV2RunArg) {
