@@ -746,7 +746,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let id = Math.floor(Math.random() * 100000000)
             globals.SPAMS[id] = true
             outer: for (let i = start; i < end; i++) {
-                vars.setVar(var_name, String(i), msg.author.id)
+                vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
                     await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
                     await new Promise(res => setTimeout(res, 1000))
