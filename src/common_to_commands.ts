@@ -784,16 +784,17 @@ export class Interpreter {
             }
 
             else if (cmdObject?.cmd_std_version == 2) {
+                let argList = new ArgList(args2)
                 let obj: CommandV2RunArg = {
                     msg: this.#msg,
                     rawArgs: args,
-                    args: new ArgList(args2),
+                    args: argList,
                     sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
                     recursionCount: this.recursion,
                     commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                     opts: new Options(opts),
                     rawOpts: opts,
-                    argList: new ArgList(args2),
+                    argList: argList,
                     stdin: this.#pipeData,
                     pipeTo: this.#pipeTo,
                     interpreter: this
@@ -879,18 +880,12 @@ export class Interpreter {
             return this.args
         }
 
-        // if (this.#pipeData)
-        //     this.#initializePipeDataVars()
-
         let tokList
         while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
             for (let tok of tokList) {
                 this.addTokenToArgList(tok)
             }
         }
-
-        // if (this.#pipeData)
-        //     this.#deletePipeDataVars()
 
         //null comes from %{-1}doFirsts
         this.args = this.args.filter(v => v !== null)
