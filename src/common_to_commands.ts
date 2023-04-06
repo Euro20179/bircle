@@ -20,12 +20,12 @@ import parse_format from './parse_format';
 
 
 export enum StatusCode {
-    ACHIEVEMENT = -3,
-    PROMPT = -2,
-    INFO = -1,
-    RETURN = 0,
-    WARNING = 1,
-    ERR = 2,
+    ACHIEVEMENT,
+    PROMPT,
+    INFO,
+    RETURN,
+    WARNING,
+    ERR,
 }
 
 export function statusCodeToStr(code: StatusCode) {
@@ -297,21 +297,6 @@ export function setCurrentlyPlaying(to: { link: string, filename: string } | und
 
 export const illegalLastCmds = ["!!", "spam"]
 
-export function createAliases() {
-    let a: { [key: string]: Array<string> } = {}
-    let data = fs.readFileSync("command-results/alias", "utf-8")
-    for (let cmd of data.split(';END')) {
-        if (!cmd.trim()) continue
-        let [_, ...argList] = cmd.split(":")
-        let args = argList.join(":")
-        args = args.trim()
-        let [actualCmd, ...rest] = args.split(" ")
-        actualCmd = actualCmd.trim()
-        a[actualCmd] = rest
-    }
-    return a
-}
-
 export function createAliasesV2(): { [key: string]: AliasV2 } {
     if (fs.existsSync("./command-results/aliasV2")) {
         let j: { [key: string]: AliasV2 } = JSON.parse(fs.readFileSync("./command-results/aliasV2", "utf-8"))
@@ -323,7 +308,6 @@ export function createAliasesV2(): { [key: string]: AliasV2 } {
     return {}
 }
 
-export let aliases = createAliases()
 export let aliasesV2 = createAliasesV2()
 
 export function isCmd(text: string, prefix: string) {
@@ -375,13 +359,11 @@ export class Interpreter {
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
     sendCallback: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>) | undefined
-    alias: boolean | [string, string[]]
     aliasV2: false | AliasV2
 
     #originalTokens: Token[]
 
     #interprated: boolean
-    #aliasExpandSuccess: boolean
     #i: number
     #curTok: Token | undefined
     #doFirstCountValueTable: { [key: number]: string }
@@ -412,7 +394,6 @@ export class Interpreter {
         this.returnJson = returnJson
         this.disable = disable ?? {}
         this.sendCallback = sendCallback
-        this.alias = false
         this.aliasV2 = false
 
         this.programArgs = programArgs ?? []
@@ -430,7 +411,6 @@ export class Interpreter {
         this.#argOffset = 0
         this.#doFirstNoFromArgNo = {}
         this.#interprated = false
-        this.#aliasExpandSuccess = false
 
         this.#shouldType = false
     }
@@ -588,28 +568,7 @@ export class Interpreter {
         this.cmd = token.data as string
         this.real_cmd = token.data as string
 
-        if (!commands.get(this.cmd) && aliases[this.cmd]) {
-            let expansion = await expandAlias(this.cmd, (alias: any) => {
-                globals.addToCmdUse(alias) //for every expansion, add to cmd use
-                if (BLACKLIST[this.#msg.author.id]?.includes(alias)) { //make sure they're not blacklisted from the alias
-                    handleSending(this.#msg, { content: `You are blacklisted from ${alias}`, status: StatusCode.ERR }, this.sendCallback, this.recursion + 1)
-                    return false
-                }
-                return true
-            })
-
-
-            if (expansion) {
-                this.#aliasExpandSuccess = true
-                this.alias = expansion
-                this.real_cmd = expansion[0]
-            }
-            else {
-                this.alias = true
-            }
-        }
-
-        else if (!commands.get(this.cmd) && getAliasesV2()[this.cmd]) {
+        if (!commands.get(this.cmd) && getAliasesV2()[this.cmd]) {
             this.aliasV2 = aliasesV2[this.cmd]
         }
 
@@ -644,32 +603,6 @@ export class Interpreter {
 
     hasModifier(mod: typeof Modifier) {
         return this.modifiers.filter(v => v instanceof mod).length > 0
-    }
-
-    async runAlias() {
-        if (!isMsgChannel(this.#msg.channel)) return crv("IN stage channel", { status: StatusCode.ERR })
-        //alias is actually the real command
-        //aliasPreArgs are the arguments taht go after the commnad
-        let [alias, aliasPreArgs] = this.alias as [string, string[]]
-        let content = `${alias} ${aliasPreArgs.join(" ")}`.trim()
-        let oldC = content
-        //aliasPreArgs.join is the command  content, args is what the user typed
-        content = `${alias} ${parseAliasReplacement(this.#msg, aliasPreArgs.join(" "), this.args)}`.trim()
-        if (oldC == content) {
-            content += ` ${this.args.join(" ")}`
-        }
-
-        if (this.hasModifier(TypingModifier)) {
-            await this.#msg.channel.sendTyping()
-        }
-
-        for (let mod of this.modifiers) {
-            if (mod instanceof RedirModifier)
-                continue;
-            content = mod.stringify() + content
-        }
-
-        return (await cmd({ msg: this.#msg, command_excluding_prefix: content, recursion: this.recursion + 1, returnJson: true, disable: this.disable })).rv
     }
 
     async sendDataToVariable(place: string, name: string, _data: CommandReturn | string | MessagePayload | MessageCreateOptions) {
@@ -722,14 +655,7 @@ export class Interpreter {
             this.aliasV2 = false
         }
 
-        if (this.alias && this.#aliasExpandSuccess) {
-            await handleSending(this.#msg, { content: `Aliasv1 is deprecated, convert \`${this.cmd}\` into an aliasv2`, status: StatusCode.WARNING })
-            rv = await this.runAlias() || { content: "You found a secret", status: StatusCode.ERR }
-        }
-        else if (this.alias && !this.#aliasExpandSuccess) {
-            rv = { content: `Failed to expand ${this.cmd}`, status: StatusCode.ERR }
-        }
-        else if (!cmdObject) {
+        if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
             if (this.real_cmd.startsWith(prefix)) {
@@ -807,7 +733,7 @@ export class Interpreter {
                 Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
             }
             //it will double add this if it's an alias
-            if (!this.alias && !this.aliasV2) {
+            if (!this.aliasV2) {
                 globals.addToCmdUse(this.real_cmd)
             }
         }
@@ -999,30 +925,6 @@ export class Interpreter {
             }
         }
     }
-}
-
-export async function expandAlias(command: string, onExpand?: (alias: string, preArgs: string[]) => any): Promise<[string, string[]] | false> {
-    let expansions = 0
-    let aliasPreArgs = aliases[command]?.slice(1)
-    if (aliasPreArgs === undefined)
-        return [command, []]
-    command = aliases[command][0]
-    if (onExpand && !onExpand?.(command, aliasPreArgs)) {
-        return false
-    }
-    while (aliases[command]?.[0]) {
-        expansions++;
-        if (expansions > 1000) {
-            return false
-        }
-        let newPreArgs = aliases[command].slice(1)
-        aliasPreArgs = newPreArgs.concat(aliasPreArgs)
-        command = aliases[command][0]
-        if (onExpand && !onExpand?.(command, newPreArgs)) {
-            return false
-        }
-    }
-    return [command, aliasPreArgs]
 }
 
 function defileCommandReturn(rv: CommandReturn) {
@@ -1270,13 +1172,6 @@ export function getAliasesV2(refresh?: boolean) {
     return aliasesV2
 }
 
-export function getAliases(refresh?: boolean) {
-    if (refresh) {
-        aliases = createAliases()
-    }
-    return aliases
-}
-
 export default {
     StatusCode,
     statusCodeToStr,
@@ -1289,12 +1184,9 @@ export default {
     currently_playing,
     setCurrentlyPlaying,
     illegalLastCmds,
-    createAliases,
     createAliasesV2,
-    aliases,
     aliasesV2,
     isCmd,
-    expandAlias,
     createCommandV2,
     crv,
     ccmdV2,
@@ -1306,7 +1198,6 @@ export default {
     getCommands,
     getMatchCommands,
     getAliasesV2,
-    getAliases,
     cmd,
     handleSending,
     Interpreter

@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliases, aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, expandAlias, getAliases, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv,  getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -181,7 +181,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let matches = getMatchCommands()
             let userMatches = getUserMatchCommands()
             let cmds = getCommands()
-            let av1;
             for (let cmd of args) {
                 if (aliasV2s[cmd]) {
                     res.push("av2")
@@ -204,9 +203,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                             res.push("cmdv1")
                     }
                 }
-                else if ((av1 = await expandAlias(cmd)) && typeof av1 === 'object' && av1[0] && av1[0] !== cmd) {
-                    res.push("av1")
-                }
                 else {
                     res.push("undefined")
                 }
@@ -219,9 +215,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "is-alias", ccmdV2(async function({ args }) {
             let res = []
-            let av1;
             for (let cmd of args) {
-                if (getAliasesV2()[cmd] || ((av1 = await expandAlias(cmd)) && typeof av1 === 'object' && av1[0] && av1[0] !== cmd)) {
+                if (getAliasesV2()[cmd]) {
                     res.push(true)
                 }
                 else {
@@ -883,10 +878,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return getAliasesV2()[args[0]] ? await handleTruthiness() : await handleFalsiness()
             }
 
-            else if (opts.getBool("a1", false)) {
-                return getAliases()[args[0]] ? await handleTruthiness() : await handleFalsiness()
-            }
-
             else if (opts.getBool("u", false)) {
                 return (await fetchUserFromClient(client, args[0])) ? await handleTruthiness() : await handleFalsiness()
             }
@@ -942,7 +933,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             helpOptions: {
                 c: createHelpOption("Test if the first argument is a command"),
                 a: createHelpOption("Test if the first argument is an alias"),
-                a1: createHelpOption("Test if the first argument is an aliasv1"),
                 u: createHelpOption("Test if first argument is a user in bot's cache"),
                 U: createHelpOption("Test if first argument is a user"),
                 n: createHelpOption("Test if there is text"),
@@ -1535,13 +1525,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let id = String(Math.floor(Math.random() * 100000000))
                 await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
                 let cmdToDo = cmdArgs.split(" ")[0]
-                let expansion = await expandAlias(cmdToDo, (alias) => {
-                    if (alias === "do" || alias === "spam" || alias === "run") {
-                        return false
-                    }
-                    return true
-                })
-                if (!expansion) {
+                if (!['run', 'do', 'spam'].includes(cmdToDo)) {
                     return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
                 }
                 globals.SPAMS[id] = true
@@ -2197,10 +2181,7 @@ ${fs.readdirSync("./command-results").join("\n")}
     ]
 
     yield ["alias-type", createCommandV2(async ({ args }) => {
-        if (getAliases()[args[0]]) {
-            return { content: "V1", status: StatusCode.RETURN }
-        }
-        else if (getAliasesV2()[args[0]]) {
+        if (getAliasesV2()[args[0]]) {
             return { content: "V2", status: StatusCode.RETURN }
         }
         return { content: "None", status: StatusCode.ERR }
@@ -2208,12 +2189,6 @@ ${fs.readdirSync("./command-results").join("\n")}
     }, CAT, "Gets the type of an alias")]
 
     yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
-
-        if (getAliases()[args[0]]) {
-            await handleSending(msg, { content: `${args[0]} is an alias command, running \`cmd-chainv1\` instead`, status: StatusCode.INFO }, sendCallback);
-            return (getCommands().get('cmd-chainv1') as Command).run(msg, rawArgs, sendCallback, getOpts(rawArgs)[0], args, recursionCount, commandBans)
-        }
-
         let v2 = getAliasesV2()[args[0]]
         let showArgs = true
         if (opts.getBool("n", false) || opts.getBool("no-args", false)) {
@@ -2271,64 +2246,6 @@ ${fs.readdirSync("./command-results").join("\n")}
         i: createHelpOption("Get the ith expansion of the chain")
     })]
 
-    yield [
-        "cmd-chainv1",
-        {
-            run: async (msg, args, sendCallback, opts) => {
-                let showArgs = true
-                let expand = opts['e'] || false
-                if (opts['n'] || opts['no-args']) {
-                    showArgs = false
-                }
-                let chain: string[] = [args[0]]
-                let a = ""
-                if (getAliasesV2()[args[0]]) {
-                    return { content: `${args[0]} is an aliasv2 command, run \`cmd-chainv2\` instead`, status: StatusCode.ERR }
-                }
-                if (getAliases()[args[0]]) {
-                    let result = expandAlias(args[0], (alias: any, preArgs: any) => {
-                        if (expand) {
-                            a = parseAliasReplacement(msg, preArgs.join(" "), args.slice(1)) + " " + a + " "
-                        }
-                        else {
-                            a = preArgs.join(" ") + " " + a + " "
-                        }
-                        if (showArgs) {
-                            chain.push(`${alias} ${a}`)
-                        }
-                        else {
-                            chain.push(alias)
-                        }
-                        return true
-                    })
-                    if (!result) {
-                        return { content: "failed to expand alias", status: StatusCode.ERR }
-                    }
-                    return { content: `${chain.join(" -> ")}`, status: StatusCode.RETURN }
-                }
-                return { content: `${args[0].trim() || "No command given"}`, status: StatusCode.ERR }
-            },
-            help: {
-                info: "Shows which command the alias turns into when run",
-                arguments: {
-                    cmd: {
-                        description: "The command to get the chain for"
-                    }
-                },
-                options: {
-                    "n": {
-                        description: "Do not show extra arguments",
-                        alternates: ["no-args"]
-                    },
-                    "e": {
-                        description: "Expand alias arguments, eg: {sender}"
-                    }
-                }
-            },
-            category: CAT
-        },
-    ]
-
     yield ["rccmd", createCommandV2(async ({ msg, args, rawArgs, sendCallback, recursionCount, commandBans }) => {
         let cmdName = args[0]
         let aliasesV2 = getAliasesV2()
@@ -2338,13 +2255,7 @@ ${fs.readdirSync("./command-results").join("\n")}
             getAliasesV2(true)
             return { content: `Removed: ${cmdName}`, status: StatusCode.RETURN }
         }
-        else if (aliases[cmdName]) {
-            await handleSending(msg, crv(`${cmdName} is an aliasv1, running \`rccmdv1 ${cmdName}\``, {
-                status: StatusCode.WARNING
-            }))
-            return (getCommands().get('rccmdv1') as Command).run(msg, rawArgs, sendCallback, getOpts(rawArgs)[0], args, recursionCount, commandBans)
-        }
-        else if (!aliasesV2[cmdName]) {
+        if (!aliasesV2[cmdName]) {
             return { content: `${cmdName} does not exist`, status: StatusCode.ERR }
         }
         else {
@@ -2353,53 +2264,6 @@ ${fs.readdirSync("./command-results").join("\n")}
     }, CAT, "Removes an aliasv2", {
         name: createHelpArgument("The name of the command to remove", true)
     })]
-
-    yield [
-        "rccmdv1",
-        {
-            run: async (msg, args, sendCallback) => {
-                let name = args[0]
-                if (!name) {
-                    return {
-                        content: "No command name given",
-                        status: StatusCode.ERR
-                    }
-                }
-                let commands = args.map(v => v.trim())
-                let data = fs.readFileSync("command-results/alias", "utf-8").split(";END")
-                let successfullyRemoved = []
-                for (let i = 0; i < commands.length; i++) {
-                    let command = commands[i]
-                    let line = data.filter(v => v && v.split(" ")[1]?.trim() == command)[0]
-                    let idx = data.indexOf(line)
-                    if (idx >= 0) {
-                        let [user, _] = line.trim().split(":")
-                        user = user.trim()
-                        if (user != msg.author.id && ADMINS.indexOf(msg.author.id) < 0) {
-                            await handleSending(msg, { content: `Cannot remove ${command}`, status: StatusCode.INFO }, sendCallback)
-                        }
-                        else {
-                            successfullyRemoved.push(command)
-                            data.splice(idx, 1)
-                        }
-                    }
-                }
-                fs.writeFileSync("command-results/alias", data.join(";END"))
-                getAliases(true)
-                return {
-                    content: `Removed: ${successfullyRemoved.join(", ")}`,
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CAT,
-            help: {
-                info: "Remove an aliasv1",
-                arguments: {
-                    command: createHelpArgument("The command to remove")
-                }
-            }
-        },
-    ]
 
     yield [
         "ht", {
@@ -2651,10 +2515,8 @@ ${styles}
             if (!name) {
                 return { content: "No name given", status: StatusCode.RETURN }
             }
-            else if (aliases[cmd[0]]) {
-                return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
-            }
-            if (getCommands().get(name) || getAliases()[name] || aliasV2s[name]) {
+            
+            if (getCommands().get(name) || aliasV2s[name]) {
                 return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
@@ -2695,7 +2557,7 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
-                    if (getCommands().get(name) || getAliases()[name] || getAliasesV2()[name]) {
+                    if (getCommands().get(name) || getAliasesV2()[name]) {
                         return { content: `${name} already exists`, status: StatusCode.ERR }
                     }
                     break
@@ -2759,9 +2621,6 @@ ${styles}
         if (!name) {
             return { content: "No name given", status: StatusCode.ERR }
         }
-        else if (aliases[command.split(" ")[0]]) {
-            return { content: "Cannot expand to aliasV1", status: StatusCode.ERR }
-        }
 
         const helpMetaData: CommandHelp = {}
 
@@ -2781,10 +2640,7 @@ ${styles}
 
         const alias = new AliasV2(name, command, msg.author.id, helpMetaData, appendArgs, appendOpts, standardizeOpts)
 
-        if (getAliases()[name]) {
-            return { content: `Failed to add ${name} it already exists as an alias`, status: StatusCode.ERR }
-        }
-        else if (getAliasesV2()[name]) {
+        if (getAliasesV2()[name]) {
             return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
         }
         else if (getCommands().get(name)) {
@@ -2826,8 +2682,6 @@ ${styles}
             return { embeds: [embed], status: StatusCode.RETURN }
         } else return { content: formatPercentStr(fmt, { a: process.argv.join(" "), A: process.arch, p: String(process.pid), P: process.platform, H: String(process.memoryUsage().heapTotal / 1024 / 1024) }), status: StatusCode.RETURN }
     }, CAT, "Gets info about the process")]
-
-    yield ["aliasv1", ccmdV2(async () => crv("Creating alias v1s is disabled, used `alias` instead", { status: StatusCode.ERR }), "disabled")]
 
     yield [
         "!!",
