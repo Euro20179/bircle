@@ -527,13 +527,16 @@ export class Interpreter {
             recursion: this.recursion + 1,
             returnJson: true,
             pipeData: this.getPipeData()
-        }))
-        let { rv } = await runCmd(token.data as string)
+        })).rv
+
+        let rv = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
+
         if (rv && rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            let { rv: rv2 } = await runCmd(rv.content.slice(prefix.length))
-            data = rv2 ? getContentFromResult(rv2 as CommandReturn, "\n").trim() : ""
+            rv = await runCmd(rv.content.slice(prefix.length))
+            data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         }
+
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
         return [new Token(T.str, data, token.argNo)]
