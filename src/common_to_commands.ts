@@ -8,7 +8,7 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
+import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
@@ -130,7 +130,6 @@ export class AliasV2 {
 
             if (innerText.startsWith('args[')) {
                 let innerBracket = parseBracketPair(innerText, "[]")
-                console.log(innerBracket, args.length)
                 innerOr = JSON.stringify([innerOr])
                 if (!innerBracket) {
                     tempExec = tempExec.replace(toReplace, args.length ? JSON.stringify(args) : innerOr)
@@ -323,8 +322,9 @@ export async function cmd({
     sendCallback,
     pipeData,
     enableUserMatch,
-    programArgs
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[] }) {
+    programArgs,
+    env
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[], env?: Record<string, string> }) {
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
@@ -335,18 +335,24 @@ export async function cmd({
         //  go through each chunk and run with new interpreter like we're doing now
         //  have a context class that keeps track of the current context, ie program args, and env vars like IFS
         //  pass context class into interpreter which can pass it to commandV2s
-        for (let line of command_excluding_prefix.split("[;")) {
-            let parser = new Parser(msg, line)
-            await parser.parse()
-            int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
-            //this previously ored to false
+        let parser = new Parser(msg, command_excluding_prefix)
+        await parser.parse()
+        let context = new InterpreterContext(programArgs, env)
+        while (parser.tokens.length > 0) {
+            let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
+            let currentToks = parser.tokens.slice(0, eolIdx)
+            parser.tokens = parser.tokens.slice(eolIdx + 1)
+            int = new Interpreter(msg, currentToks, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, undefined, context)
+            //this was previously ored to false
             rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
             //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
             //  double piping is when the result pipes into itself
             //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
-            if(returnJson){
+            if (returnJson) {
                 rv = await int.handlePipes(rv)
             }
+
+            context = int.context
         }
     }
     return {
@@ -355,15 +361,29 @@ export async function cmd({
     }
 }
 
+class InterpreterContext {
+    env: Record<string, string>
+    programArgs: string[]
+    constructor(programArgs?: string[], env?: Record<string, string>) {
+        this.env = {
+            IFS: " ",
+            ...(env ?? {}),
+        }
+
+        this.programArgs = programArgs ?? []
+    }
+}
+
 export class Interpreter {
     tokens: Token[]
     args: string[]
-    programArgs: string[]
     recursion: number
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
     sendCallback: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>) | undefined
     aliasV2: false | AliasV2
+
+    context: InterpreterContext
 
     #originalTokens: Token[]
 
@@ -382,13 +402,11 @@ export class Interpreter {
 
     modifiers: Modifier[]
 
-    IFS: string
-
     static commandUndefined = new Object()
 
     static resultCache = new Map()
 
-    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, programArgs?: string[]) {
+    constructor(msg: Message, tokens: Token[], modifiers: Modifier[], recursion = 0, returnJson = false, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, programArgs?: string[], context?: InterpreterContext) {
         this.tokens = cloneDeep(tokens)
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
@@ -398,9 +416,9 @@ export class Interpreter {
         this.sendCallback = sendCallback
         this.aliasV2 = false
 
-        this.programArgs = programArgs ?? []
-
-        this.IFS = vars.getVar(msg, "!env:IFS", msg.author.id) || " "
+        this.context = context ?? new InterpreterContext(programArgs, {
+            IFS: " "
+        })
 
         this.#pipeData = pipeData
         this.#pipeTo = []
@@ -492,10 +510,10 @@ export class Interpreter {
             returnJson: true,
             pipeData: this.getPipeData()
         }))
-        let {rv} = await runCmd(token.data as string)
+        let { rv } = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         if (rv && rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            let {rv: rv2} = await runCmd(rv.content.slice(prefix.length))
+            let { rv: rv2 } = await runCmd(rv.content.slice(prefix.length))
             data = rv2 ? getContentFromResult(rv2 as CommandReturn, "\n").trim() : ""
         }
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
@@ -582,6 +600,10 @@ export class Interpreter {
         return [new Token(T.str, _var, token.argNo)]
     }
 
+    async [T.end_of_line](token: Token): Promise<false> {
+        return false
+    }
+
     hasModifier(mod: typeof Modifier) {
         return this.modifiers.filter(v => v instanceof mod).length > 0
     }
@@ -608,19 +630,49 @@ export class Interpreter {
 
     }
 
+    getModifiersFromCmd(cmd: string) {
+        let modMap = new Map<RegExp, typeof Modifier>()
+        modMap.set(/^d:/, DeleteModifier)
+        modMap.set(/^t:/, TypingModifier)
+        modMap.set(/^s:/, SilentModifier)
+        modMap.set(/^n:/, SkipModifier)
+
+        let modifiers = []
+        let foundMatch = true
+        while (foundMatch) {
+            for (let mod of modMap.keys()) {
+                let m;
+                if (m = cmd.match(mod)) {
+                    let modifier = modMap.get(mod)
+                    if (modifier) {
+                        modifiers.push(new modifier(m))
+                    }
+                    cmd = cmd.slice(m[0].length)
+                    break
+                }
+                foundMatch = false
+            }
+        }
+        return [modifiers, cmd] as const
+    }
+
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
 
-        let cmd = args[0]
+        let cmd = args[0].trim();
+
+        [this.modifiers, cmd] = this.getModifiersFromCmd(cmd)
+
+        console.log(cmd)
+
+        for (let mod of this.modifiers) {
+            mod.modify(this)
+        }
 
         args = args.slice(1)
 
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
-
-        for (let mod of this.modifiers) {
-            mod.modify(this)
-        }
 
         let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
         let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
@@ -756,7 +808,7 @@ export class Interpreter {
         //if noSend is given, we dont want to pipe it
         while (tks.length && !commandReturn.noSend) {
             //we cant return json or it will double pipe
-            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn, this.programArgs)
+            let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, true, this.disable, undefined, commandReturn, this.context.programArgs)
 
             await int.interprate()
 

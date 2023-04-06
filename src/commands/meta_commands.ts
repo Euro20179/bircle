@@ -67,10 +67,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (file) {
             url = file.url
             msg.attachments.delete(msg.attachments.keyAt(0) as string)
-            interpreter.programArgs = args
+            interpreter.context.programArgs = args
         }
         if (!file) {
-            interpreter.programArgs = args.slice(1)
+            interpreter.context.programArgs = args.slice(1)
 
             if (args[0].match(/https?:\/\/.*/)) {
                 url = args[0]
@@ -87,7 +87,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (line.startsWith(prefix)) {
                 line = line.slice(prefix.length)
             }
-            await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback, programArgs: interpreter.programArgs })
+            await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback, programArgs: interpreter.context.programArgs })
         }
         return { noSend: true, status: StatusCode.RETURN }
     }, "Runs a .bircle file", {
@@ -103,8 +103,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let newProgArgs = args.slice(0)
         if(newProgArgs.length){
-            interpreter.programArgs = newProgArgs
-            return crv(interpreter.programArgs.join(" "))
+            interpreter.context.programArgs = newProgArgs
+            return crv(interpreter.context.programArgs.join(" "))
         }
         return {noSend: true, status: StatusCode.RETURN}
     }, "Sets program arguments", {

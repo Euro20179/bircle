@@ -13,6 +13,7 @@ enum T {
     syntax,
     pipe,
     variable,
+    end_of_line
 }
 
 function strToTT(str: string) {
@@ -41,6 +42,9 @@ function strToTT(str: string) {
         case "pipe":
             return T.pipe
 
+        case 'end_of_line':
+            return T.end_of_line
+
         default:
             return T.str
     }
@@ -57,15 +61,15 @@ class Token {
         this.argNo = argNo
         this.id = Math.random()
     }
-    originalText(){
-        switch(this.type){
-            case T.dofirst: 
+    originalText() {
+        switch (this.type) {
+            case T.dofirst:
                 return `$(${this.data})`
             case T.calc:
                 return `$[${this.data}]`
-            case T.esc:{
+            case T.esc: {
                 let text = `\\${this.data[0]}`
-                if(this.data[1]){
+                if (this.data[1]) {
                     text += `{${this.data[1]}}`
                 }
                 return text
@@ -74,7 +78,7 @@ class Token {
             case T.dofirstrepl: return `%{${this.data}}`
             case T.variable: {
                 let text = `\${${this.data[0]}`
-                if(this.data[1]){
+                if (this.data[1]) {
                     text += `${this.data[1]}`
                 }
                 return text + "}"
@@ -84,6 +88,9 @@ class Token {
             }
             case T.syntax: {
                 return JSON.stringify(this.data)
+            }
+            case T.end_of_line: {
+                return '[;'
             }
         }
     }
@@ -151,9 +158,8 @@ class Parser {
 
     #parseQuotedString: boolean
 
-
     get specialChars() {
-        return `\\\$${this.IFS}{%>`
+        return `\\\$${this.IFS}{%>[`
     }
 
     constructor(msg: Message, string: string, isCmd = true) {
@@ -226,6 +232,17 @@ class Parser {
                     this.tokens.push(await this.parseFormat(this.#msg))
                     break
                 }
+                case '[': {
+                    this.advance()
+                    if (this.#curChar as string === ';') {
+                        this.tokens.push(new Token(T.end_of_line, "[;", this.#curArgNo))
+                        this.#curArgNo = 0
+                        break;
+                    }
+                    this.back()
+                    this.tokens.push(new Token(T.str, '[', this.#curArgNo))
+                    break;
+                }
                 case '"': {
                     if (this.#parseQuotedString) {
                         this.tokens.push(this.parseQuotedString())
@@ -236,39 +253,6 @@ class Parser {
                     lastWasspace = false
                     break
                 }
-                case 'd': case 't': case 's': case 'n': {
-                    let modMap = new Map<RegExp, typeof Modifier>()
-                    modMap.set(/^d:/, DeleteModifier)
-                    modMap.set(/^t:/, TypingModifier)
-                    modMap.set(/^s:/, SilentModifier)
-                    modMap.set(/^n:/, SkipModifier)
-                    
-                    let mod: string = this.#curChar
-                    modIf: if (this.#curArgNo === 0 && this.tokens.length === 0) {
-                        while(this.advance() && !(this.specialChars + "\n\t:").includes(this.#curChar)){
-                            mod += this.#curChar
-                        }
-
-                        if(this.#curChar as string !== ":"){
-                            this.back()
-                            break modIf
-                        }
-
-                        mod += ":"
-                        let foundMatch = true
-                        while(foundMatch){
-                            for (let modRegex of modMap.keys()) {
-                                let m = mod.match(modRegex)
-                                if (m) {
-                                    mod = mod.slice(m[0].length)
-                                    this.modifiers.push(new (modMap.get(modRegex) ?? Modifier)(m))
-                                } else foundMatch = false
-                            }
-                        }
-                    }
-                    this.tokens.push(new Token(T.str, mod, this.#curArgNo))
-                    break;
-                }
                 default: {
                     lastWasspace = false
                     this.tokens.push(this.parseString())
@@ -276,6 +260,7 @@ class Parser {
                 }
             }
         }
+        this.tokens.push(new Token(T.end_of_line, "[;", this.#curArgNo))
     }
 
     parseQuotedString() {
@@ -314,7 +299,7 @@ class Parser {
         }
         if (builtString === this.#pipeSign || builtString === this.#defaultPipeSign) {
             this.advance()
-            this.#curArgNo = 0
+            this.#curArgNo = -1
             this.back()
             return new Token(T.pipe, this.#defaultPipeSign, this.#curArgNo)
         }
