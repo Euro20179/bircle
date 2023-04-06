@@ -1490,10 +1490,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 edits = edits.slice(1)
                 let lastEdit = message.content
                 for (let edit of edits) {
-                    let match
-                    if (match = edit.match(/^!(\d+)!$/)) {
-                        let time = parseFloat(match[1])
-                        await new Promise(res => setTimeout(res, time * 1000))
+                    if(edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))){
+                        await new Promise(res => setTimeout(res, parseFloat(edit.slice(1, -1))))
                         continue
                     }
                     if (edit[0] == "-") {
