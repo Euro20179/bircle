@@ -212,6 +212,14 @@ client.on(Events.MessageCreate, async (m: Message) => {
 
     }
 
+    let att = m.attachments.at(0)
+    if(att?.name?.endsWith(".bircle")){
+        let res = await fetch(att.url)
+        m.attachments.delete(m.attachments.keyAt(0) as string)
+        m.content = `${local_prefix}${await res.text()}`
+        content = m.content
+    }
+
     if (content.slice(0, local_prefix.length) == local_prefix) {
         if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
             server.close()

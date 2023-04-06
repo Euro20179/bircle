@@ -61,41 +61,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     }, CAT, "get specific data from stdin/pipe")]
 
-    yield [".bircle", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback, args, interpreter }) {
-        let file = msg.attachments.at(0)
-        let url;
-        if (file) {
-            url = file.url
-            msg.attachments.delete(msg.attachments.keyAt(0) as string)
-            interpreter.context.programArgs = args
-        }
-        if (!file) {
-            interpreter.context.programArgs = args.slice(1)
-
-            if (args[0].match(/https?:\/\/.*/)) {
-                url = args[0]
-            }
-        }
-        if (!file) {
-            return { content: "No file url or attachment given", status: StatusCode.RETURN }
-        }
-        let resp = await fetch(url)
-        let text = await resp.text()
-
-        for (let line of text.split("\n[;")) {
-            line = line.trim()
-            if (line.startsWith(prefix)) {
-                line = line.slice(prefix.length)
-            }
-            await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback, programArgs: interpreter.context.programArgs })
-        }
-        return { noSend: true, status: StatusCode.RETURN }
-    }, "Runs a .bircle file", {
-        helpArguments: {
-            "args": createHelpArgument("Program arguments to pass to the file")
-        }
-    })]
-
     yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
         let newIfs = opts.getString("IFS", "")
         if(newIfs){
