@@ -562,8 +562,8 @@ export class Interpreter {
     }
 
     async[T.pipe](token: Token): Promise<Token[] | false> {
-        //dofirst tokens get removed, so we must filter them out here or offset errors occure
-        this.#pipeTo = this.#originalTokens.filter((v, i) => i < this.#i + 1 ? v.type !== T.dofirst : true).slice(this.#i + 1)
+        //gets everything after the current pipe
+        this.#pipeTo = this.#originalTokens.slice(this.#i + 1)
         return false
     }
 
