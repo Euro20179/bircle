@@ -18,7 +18,7 @@ import globals = require("./src/globals")
 import { efd, isMsgChannel } from "./src/util"
 import { format } from './src/parsing'
 import { getOpt } from "./src/user-options"
-import { GLOBAL_CURRENCY_SIGN } from './src/common'
+import { ADMINS, GLOBAL_CURRENCY_SIGN } from './src/common'
 import timer from './src/timer'
 
 import economy from './src/economy'
@@ -221,7 +221,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     if (content.slice(0, local_prefix.length) == local_prefix) {
-        if (m.content === `${local_prefix}END` && m.author.id === "334538784043696130") {
+        if (m.content === `${local_prefix}END` && ADMINS.includes(m.author.id)) {
             server.close()
         }
         for (let cmd of content.split(`\n${local_prefix};\n`)) {
