@@ -236,8 +236,7 @@ export default function*(CAT: CommandCategory) {
                 return m as Message<true>
             }
             for (let c of cmds) {
-                let rv = await cmd({ msg: m, command_excluding_prefix: `${c} ${result}`, returnJson: true })
-                //@ts-ignore
+                let {rv} = await cmd({ msg: m, command_excluding_prefix: `${c} ${result}`, returnJson: true })
                 if (rv?.content) result = rv.content
             }
             m.channel.send = oldSend

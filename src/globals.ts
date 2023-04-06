@@ -25,7 +25,7 @@ export let IN_QALC: string[] = []
 
 export let YAHTZEE_WAITING_FOR_PLAYERS = false
 
-export let KNOW_YOUR_MEME_TIMEOUT: NodeJS.Timeout;
+export let KNOW_YOUR_MEME_TIMEOUT: NodeJS.Timeout | undefined;
 export let KNOW_YOUR_MEME_PLAYERS: User[] = []
 
 //an array of commands that the user is running

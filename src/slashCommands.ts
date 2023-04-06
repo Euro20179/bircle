@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder} from "discord.js"
+import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, InteractionResponseType} from "discord.js"
 import { StatusCode } from "./common_to_commands"
 import { efd, fetchUser, isMsgChannel } from "./util"
 
@@ -12,15 +12,9 @@ export function createChatCommandOption(type: number, name: string, description:
         type: type,
         name: name,
         description: description,
-        required: required || false
-    }
-    if (min) {
-        //@ts-ignore
-        obj["min"] = min
-    }
-    if (max) {
-        //@ts-ignore
-        obj["max"] = max
+        required: required || false,
+        min_value: min,
+        max_value: max ?? undefined
     }
     return obj
 }

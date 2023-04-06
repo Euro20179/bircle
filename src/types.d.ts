@@ -1,6 +1,17 @@
 import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User, Interaction, ChatInputCommandInteraction, CommandInteraction } from "discord.js"
 
 import { ArgList, Options } from './util'
+import { EconomyData } from "./economy"
+import { Interpreter } from "./common_to_commands"
+
+declare module "discord.js" {
+    export interface User {
+        balance: number,
+        loan: number,
+        economyData: EconomyData,
+        netWorth: number
+    }
+}
 
 declare global {
 
@@ -96,9 +107,9 @@ declare global {
         prompt_before_run?: boolean
     }
 
-    interface CommandV2RunArg { msg: Message<boolean>, rawArgs: ArgumentList, rawOpts: Opts, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList, stdin?: CommandReturn, pipeTo?: Token[] }
+    interface CommandV2RunArg { msg: Message<boolean>, rawArgs: ArgumentList, rawOpts: Opts, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Options, args: ArgList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, argList: ArgList, stdin?: CommandReturn, pipeTo?: Token[], interpreter: Interpreter }
 
-    type CommandV2Run = (this: [string, CommandV2], {msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans}: CommandV2RunArg) => Promise<CommandReturn>;
+    type CommandV2Run = (this: [string, CommandV2], {msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, interpreter}: CommandV2RunArg) => Promise<CommandReturn>;
 
     interface CommandV2 {
         run: CommandV2Run

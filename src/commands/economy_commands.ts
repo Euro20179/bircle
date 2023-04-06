@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric } from '../util'
+import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric, fetchUserFromClientOrGuild } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -338,7 +338,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: "Ur not in debt", status: StatusCode.ERR }
                 }
                 let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
-                //@ts-ignore
                 let max = top[1]?.money || 100
                 let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
                 if (needed > max) {
@@ -499,16 +498,15 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "pets", {
             run: async (msg, args, sendCallback) => {
-                //@ts-ignore
-                let user = await fetchUser(msg.guild, args[0] || msg.author.id)
+                let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild)
                 if (!user)
                     return { content: "User not found", status: StatusCode.ERR }
-                let pets = pet.getUserPets(user.user.id)
+                let pets = pet.getUserPets(user.id)
                 if (!pets) {
-                    return { content: `<@${user.user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
+                    return { content: `<@${user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
                 }
                 let e = new EmbedBuilder()
-                e.setTitle(`${user.user.username}'s pets`)
+                e.setTitle(`${user.username}'s pets`)
                 let activePet = pet.getActivePet(msg.author.id)
                 e.setDescription(`active pet: ${activePet}`)
                 for (let pet in pets) {
@@ -532,12 +530,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "shop", {
             run: async (msg, args, sendCallback, opts) => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
-                //@ts-ignore
-                let user = await fetchUser(msg.guild, opts['as'] || msg.author.id)
-                if (!user) {
-                    return { content: `${opts['as']} not found`, status: StatusCode.ERR }
-                }
-                let userCheckingShop = user.user
+                let user = msg.author
+                let userCheckingShop = user
                 let itemJ = JSON.parse(items)
                 let pages = []
                 let i = 0
@@ -583,11 +577,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }, category: CommandCategory.ECONOMY,
             help: {
                 info: "List items in the shop",
-                options: {
-                    "as": {
-                        description: "View the shop as another user"
-                    }
-                }
             }
         },
     ]
@@ -731,7 +720,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let amount = args[1]
                 let data
                 try {
-                    //@ts-ignore
                     data = await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
                 }
                 catch (err) {
@@ -763,8 +751,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: "You do not own this stock", status: StatusCode.ERR }
                 }
                 else {
-                    //@ts-ignore
-                    let stockInfo = economy.getEconomy()[msg.author.id].stocks[stockName]
+                    let stockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
+                    if(!stockInfo) return crv("Could not get stock info", {status: StatusCode.ERR})
                     let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
                     if (!sellAmount || sellAmount <= 0) {
                         return { content: "You must sell a number of shares of your stock", status: StatusCode.ERR }
@@ -796,18 +784,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let user;
 
             if (!args.join(" ")) {
-                user = msg.member
+                user = msg.author
             }
             else {
-                //@ts-ignore
-                user = await fetchUser(msg.guild, args.join(" "))
+                user = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
             }
-            //@ts-ignore
-            if (!user) user = msg.member
+            if (!user) user = msg.author
             if (!user) return { content: "No user found", status: StatusCode.ERR }
             let amount = economy.playerLooseNetWorth(user.id)
             let money_format = user_options.getOpt(user.id, "money-format", "**{user}**\n${amount}")
-            return { content: format(money_format, { user: user.user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+            return { content: format(money_format, { user: user.username, amount: String(amount), ramount: String(Math.floor(amount * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
         }, CommandCategory.ECONOMY, "gets the net worth of a user", {
             user: createHelpArgument("The user to get the net worth of")
         }),
@@ -815,15 +801,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "money", createCommandV2(async ({ rawOpts: opts, msg, args }) => {
-            let user = msg.member
+            let user: User| undefined = msg.author
             if (args.join(" "))
-                //@ts-ignore
-                user = await fetchUser(msg.guild, args.join(" "))
+                user = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
             if (!user)
-                user = msg.member
-            if (!user) {
-                return { content: "How are you not a member?", status: StatusCode.ERR }
-            }
+                user = msg.author
             let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', GLOBAL_CURRENCY_SIGN)}{amount}`)
             let text = ""
             if (economy.getEconomy()[user.id]) {
@@ -843,9 +825,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: text, status: StatusCode.RETURN }
                 }
                 if (opts['no-round']) {
-                    return { content: format(money_format, { user: user.user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                    return { content: format(money_format, { user: user.username, amount: String(economy.getEconomy()[user.id].money) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                 }
-                return { content: format(money_format, { user: user.user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+                return { content: format(money_format, { user: user.username, amount: String(Math.round(economy.getEconomy()[user.id].money * 100) / 100) }, true), recurse: generateDefaultRecurseBans(), allowedMentions: { parse: [] }, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
             return { content: "none", status: StatusCode.RETURN }
         }, CommandCategory.ECONOMY,
@@ -996,7 +978,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: "You dont have that many shares", status: StatusCode.ERR }
             }
             let player = args.slice(2).join(" ")
-            //@ts-ignore
+
+            if(!msg.guild) return crv("Must be in a guild", {status: StatusCode.ERR})
+
             let member = await fetchUser(msg.guild, player)
             if (!member) {
                 return { content: `Member: ${player} not found`, status: StatusCode.ERR }
@@ -1021,7 +1005,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 otherStockInfo.info.buyPrice = (otherStockInfo.info.buyPrice * (oldShareCount / newShareCount)) + (userStockData.info.buyPrice * (amount / newShareCount))
                 otherStockInfo.info.shares += amount
             }
-            //@ts-ignore
             //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
             economy.setUserStockSymbol(msg.author.id, sn, userStockData)
             economy.setUserStockSymbol(member.id, sn, otherStockInfo)
@@ -1129,7 +1112,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 await new Promise(res => setTimeout(res, 1000))
                 return { content: "Balance erased", status: StatusCode.RETURN }
             }
-            //@ts-ignore
+
+            if(!msg.guild) return {content: "Must be in a guild", status: StatusCode.ERR}
+
             let user = await fetchUser(msg.guild, args.join(" "))
             if (!user)
                 return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }

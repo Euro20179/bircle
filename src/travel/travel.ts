@@ -181,7 +181,7 @@ class Mexico extends Country {
 
     async drugCartel({ msg }: CommandV2RunArg) {
         economy.addMoney(msg.author.id, 1)
-        if(Math.random() > .8){
+        if(Math.random() > .85){
             let cartelGives = choice(["white powder", "green leaf", "organic mushroom"])
             giveItem(msg.author.id, cartelGives, 1)
             await handleSending(msg, crv(`The cartel gives you ${cartelGives}`, {status: StatusCode.INFO}))

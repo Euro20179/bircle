@@ -72,7 +72,7 @@ const POSSIBLE_ACHIEVEMENTS = {
     "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
     france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
     iraq: new ItemRewardAchievement("iraq", "travel to iraq", ["oil", 30]),
-    traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
+    // traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
     "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(50%,500)"),
     "impatient": new MoneyRewardAchievement("impatient", "get last run within 1 second of someone else getting it", "max(10%, 100)"),
@@ -80,7 +80,8 @@ const POSSIBLE_ACHIEVEMENTS = {
     "capitalist": new ItemRewardAchievement("capitalist", "Get reset economy", ["capitalism hat", 1]),
     "breaking good": new MoneyRewardAchievement("breaking good", "Create the organic mixture", "max(25%, 250)"),
     "dealer": new ItemRewardAchievement("dealer", "Sell your organic mixture to the cartel", ["cartel's best wishes", 1]),
-    "conspiracy theorist": new MoneyRewardAchievement("conspiracy theorist", "Obtain the conspiracy", "max(100%,1000)")
+    "conspiracy theorist": new MoneyRewardAchievement("conspiracy theorist", "Obtain the conspiracy", "max(100%,1000)"),
+    "syntax": new ItemRewardAchievement("syntax", "Find a new way to run `the secret command` (ping euro if you did it)", ["syntax", 1])
 } as const
 
 let cachedAchievements: undefined | {[id: string]: AchievedAchievement[]};

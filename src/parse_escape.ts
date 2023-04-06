@@ -52,6 +52,20 @@ export default {
         return [];
     },
 
+    escape_a: async(token, _, seq, int) => {
+        if(seq === "*"){
+            return [new Token(T.str, int.programArgs.join(int.IFS[0]), token.argNo)]
+        }
+        else if(seq === "@"){
+            return listComprehension(int.programArgs, arg => new Token(T.str, arg, ++token.argNo))
+        }
+        let n = Number(seq)
+        if(!isNaN(n)){
+            return [new Token(T.str, int.programArgs[n] ?? "", token.argNo)]
+        }
+        return []
+    },
+
     escape_A: async (token, _, seq) => {
         if (seq) {
             return listComprehension(seq, item => new Token(T.str, item, ++token.argNo))
@@ -91,7 +105,6 @@ export default {
     escape_V: async (token, char, sequence, int) => {
         if (!int) return [new Token(T.str, "", token.argNo)]
         let [scope, ...n] = sequence.split(":")
-        //@ts-ignore
         let name = n.join(":")
         if (scope == "%") {
             scope = int.getMessage().author.id
@@ -104,7 +117,6 @@ export default {
             return [new Token(T.str, `\\V{${sequence}}`, token.argNo)]
         }
         else if (!name) {
-            //@ts-ignore
             name = scope
             let v = vars.getVar(int.getMessage(), name)
             if (v !== false) {

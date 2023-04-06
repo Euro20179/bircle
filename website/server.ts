@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { Collection, Message, MessageFlagsBitField, MessageType, TextChannel } from 'discord.js'
+import { Collection, Message, MessageFlagsBitField, MessageType, ReactionManager, TextChannel } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
@@ -109,8 +109,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     pinnable: false,
                     pinned: false,
                     position: null,
-                    //@ts-ignore
-                    reactions: null,
+                    reactions: new Object() as ReactionManager,
                     reference: null,
                     stickers: new Collection(),
                     system: false,
@@ -124,8 +123,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 }
                 //prevents from sending to chat
                 let oldSend = channel.send
-                //@ts-ignore
-                channel.send = (async () => msg).bind(channel)
+                channel.send = (async () => msg as Message<true>).bind(channel)
                 common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true }).then(rv => {
                     res.writeHead(200)
                     res.end(JSON.stringify(rv))

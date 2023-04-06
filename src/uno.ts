@@ -25,13 +25,13 @@ class Card {
     display() {
         switch (this.color) {
             case "blue":
-                return `\`\`\`md\n# ${this.value} (${this.color})\n\`\`\``
-            case "yellow":
                 return `\`\`\`fix\n${this.value} (${this.color})\n\`\`\``
+            case "yellow":
+                return `\`\`\`html\n${this.value} (&${this.color};)\n\`\`\``
             case "red":
                 return `\`\`\`diff\n- ${this.value} (${this.color})\n\`\`\``
             case "green":
-                return `\`\`\`python\n"${this.value} (${this.color})"\n\`\`\``
+                return `\`\`\`diff\n"+ ${this.value} (${this.color})"\n\`\`\``
             default:
                 return `\`\`\`\n${this.color}: ${this.value}\n\`\`\``
         }
@@ -353,8 +353,7 @@ function getWinners(players: { [k: string]: Hand }) {
     return false
 }
 
-//@ts-ignore
-function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }) {
+function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }: {enableGive: boolean, enableShuffle: boolean, enable1: boolean}) {
     numberMax ||= 9
     let numbers = listComprehension(range(0, numberMax), i => String(i))
     let cards = []

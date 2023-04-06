@@ -21,7 +21,6 @@ export class LengthUnit {
             convTable[unit.shorthand] = unit
             convTable[unit.longname] = unit
         }
-        //@ts-ignore
         return Reflect.get(convTable, name, convTable) ?? Yard
     }
 

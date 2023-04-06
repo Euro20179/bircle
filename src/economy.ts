@@ -22,20 +22,20 @@ function isRetired(id: string) {
 
 
 function setUserStockSymbol(id: string, symbol: string, data: { name: string, info: Stock }) {
-    if (!ECONOMY[id])
+    let userEconData = ECONOMY[id]
+    if (!userEconData)
         return false
-    if (!ECONOMY[id].stocks) {
-        ECONOMY[id].stocks = {}
+    if (!userEconData.stocks) {
+        userEconData.stocks = {}
     }
-    //@ts-ignore
-    ECONOMY[id].stocks[data.name] = data.info
+    userEconData.stocks[data.name] = data.info
     return true
 }
 
 function increaseSandCounter(id: string, amount = 1) {
-    if (ECONOMY[id]?.sandCounter !== undefined) {
-        //@ts-ignore
-        ECONOMY[id].sandCounter += amount
+    let userEconData = ECONOMY[id]
+    if (userEconData?.sandCounter !== undefined) {
+        userEconData.sandCounter += amount
         return true
     }
     else if (ECONOMY[id]) {
@@ -103,8 +103,8 @@ function saveEconomy() {
 
 function buyLotteryTicket(id: string, cost: number) {
     const LOTTERY_DELAY = 60 * 5 //minutes
-    //@ts-ignore
-    if (ECONOMY[id].lastLottery && Date.now() / 1000 - ECONOMY[id].lastLottery < LOTTERY_DELAY) {
+    let userEconData = ECONOMY[id]
+    if (userEconData.lastLottery && Date.now() / 1000 - userEconData.lastLottery < LOTTERY_DELAY) {
         return false
     }
     if (ECONOMY[id]) {
@@ -162,12 +162,11 @@ function payLoan(id: string, amount: number) {
     if (!ECONOMY[id].money)
         return
     ECONOMY[id].money -= amount * 1.01
-    if (ECONOMY[id].loanUsed) {
-        //@ts-ignore
-        ECONOMY[id].loanUsed -= amount
+    let userEconData = ECONOMY[id]
+    if (userEconData.loanUsed) {
+        userEconData.loanUsed -= amount
     }
-    //@ts-ignore
-    if (ECONOMY[id].loanUsed && ECONOMY[id].loanUsed <= 0) {
+    if (userEconData.loanUsed && userEconData.loanUsed <= 0) {
         delete ECONOMY[id].loanUsed
         return true
     }
@@ -242,14 +241,13 @@ function economyLooseGrandTotal(countNegative = true) {
         if(nw < 0 && !countNegative) continue;
         let pst = 0
         moneyTotal += econ[player].money
-        for (let stock in econ[player].stocks) {
-            //@ts-ignore
-            pst += econ[player].stocks[stock].shares * econ[player].stocks[stock].buyPrice
+        let playerData = econ[player]
+        for (let stock in playerData.stocks) {
+            pst += playerData.stocks[stock].shares * playerData.stocks[stock].buyPrice
         }
         stockTotal += pst
-        if (econ[player].loanUsed) {
-            //@ts-ignore
-            loanTotal += econ[player].loanUsed
+        if (playerData.loanUsed) {
+            loanTotal += playerData.loanUsed
         }
     }
     return { money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal }
@@ -369,35 +367,31 @@ function resetPlayer(id: string) {
 }
 
 function sellStock(id: string, stock: string, shares: number, sellPrice: number) {
-    if (ECONOMY[id].stocks?.[stock]) {
-        //@ts-ignore
-        ECONOMY[id].money += sellPrice * shares
-        //@ts-ignore
-        ECONOMY[id].stocks[stock].shares -= shares
-        //@ts-ignore
-        if (ECONOMY[id].stocks[stock].shares <= 0) {
-            //@ts-ignore
-            delete ECONOMY[id].stocks[stock]
+    let playerData = ECONOMY[id]
+    if (playerData.stocks?.[stock]) {
+        playerData.money += sellPrice * shares
+        playerData.stocks[stock].shares -= shares
+        if (playerData.stocks[stock].shares <= 0) {
+            delete playerData.stocks[stock]
         }
     }
 }
 
 function removeStock(id: string, stock: string) {
-    if (ECONOMY[id].stocks?.[stock] !== undefined) {
-        //@ts-ignore
-        delete ECONOMY[id].stocks[stock]
+    let playerData = ECONOMY[id]
+    if (playerData.stocks?.[stock] !== undefined) {
+        delete playerData.stocks[stock]
     }
 }
 
 function giveStock(id: string, stock: string, buyPrice: number, shares: number) {
-    if (ECONOMY[id].stocks) {
-        //@ts-ignore
-        ECONOMY[id].stocks[stock] = { buyPrice: buyPrice, shares: shares }
+    let playerData = ECONOMY[id]
+    if (playerData.stocks) {
+        playerData.stocks[stock] = { buyPrice: buyPrice, shares: shares }
     }
     else {
-        ECONOMY[id].stocks = {}
-        //@ts-ignore
-        ECONOMY[id].stocks[stock] = { buyPrice: buyPrice, shares: shares }
+        playerData.stocks = {}
+        playerData.stocks[stock] = { buyPrice: buyPrice, shares: shares }
     }
 }
 
@@ -405,24 +399,19 @@ function buyStock(id: string, stock: string, shares: number, cost: number) {
     if (!ECONOMY[id]) {
         return
     }
-    if (!ECONOMY[id].stocks) {
-        ECONOMY[id].stocks = {}
+    let playerData = ECONOMY[id]
+    if (!playerData.stocks) {
+        playerData.stocks = {}
     }
-    //@ts-ignore
-    if (!ECONOMY[id].stocks[stock]) {
-        //@ts-ignore
-        ECONOMY[id].stocks[stock] = { buyPrice: cost, shares: shares }
+    if (!playerData.stocks[stock]) {
+        playerData.stocks[stock] = { buyPrice: cost, shares: shares }
     }
     else {
-        //@ts-ignore
-        let oldShareCount = ECONOMY[id].stocks[stock].shares
-        //@ts-ignore
-        let oldBuyPriceWeight = ECONOMY[id].stocks[stock].buyPrice * (oldShareCount / (oldShareCount + shares))
+        let oldShareCount = playerData.stocks[stock].shares
+        let oldBuyPriceWeight = playerData.stocks[stock].buyPrice * (oldShareCount / (oldShareCount + shares))
         let newBuyPriceWeight = cost * (shares / (oldShareCount + shares))
-        //@ts-ignore
-        ECONOMY[id].stocks[stock].shares += shares
-        //@ts-ignore
-        ECONOMY[id].stocks[stock].buyPrice = oldBuyPriceWeight + newBuyPriceWeight
+        playerData.stocks[stock].shares += shares
+        playerData.stocks[stock].buyPrice = oldBuyPriceWeight + newBuyPriceWeight
     }
     loseMoneyToBank(id, cost * shares)
 }
