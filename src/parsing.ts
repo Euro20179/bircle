@@ -1,6 +1,7 @@
 import { Message } from "discord.js"
 import vars from "./vars"
 import { Interpreter } from "./common_to_commands"
+import { listComprehension } from "./util"
 
 const { getOpt } = require("./user-options")
 enum T {
@@ -197,6 +198,10 @@ class Parser {
     async parse() {
         let lastWasspace = false
         while (this.advance()) {
+            if(this.#i === 0 && this.#curChar === 'n' && this.string[1] === ':'){
+                this.tokens = listComprehension(this.string.split(" "), item => new Token(T.str, item, this.#curArgNo++))
+                break
+            }
             //remove command special case, instead treat arg[0] (after interpreting all tokens) as the command
             switch (this.#curChar) {
                 case this.IFS: {
