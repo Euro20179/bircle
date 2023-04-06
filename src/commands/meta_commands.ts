@@ -124,6 +124,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             value = value.slice(1)
         }
 
+        value = value.trim()
+
         if(!name.match(/^[A-Za-z0-9_-]+$/)){
             return crv("Name must be alphanumeric + _- only", {status: StatusCode.ERR})
         }
