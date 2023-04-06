@@ -341,6 +341,9 @@ export async function cmd({
             int = new Interpreter(msg, parser.tokens, parser.modifiers, recursion, returnJson, disable, sendCallback, pipeData, programArgs)
             //this previously ored to false
             rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
+            //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
+            //  double piping is when the result pipes into itself
+            //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
             if(returnJson){
                 rv = await int.handlePipes(rv)
             }
