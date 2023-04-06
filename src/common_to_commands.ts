@@ -666,8 +666,6 @@ export class Interpreter {
 
         [this.modifiers, cmd] = this.getModifiersFromCmd(cmd)
 
-        console.log(cmd)
-
         for (let mod of this.modifiers) {
             mod.modify(this)
         }

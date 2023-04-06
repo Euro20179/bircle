@@ -59,6 +59,9 @@ export default {
         else if(seq === "@"){
             return listComprehension(int.context.programArgs, arg => new Token(T.str, arg, ++token.argNo))
         }
+        else if(seq === "#"){
+            return [new Token(T.str, String(int.context.programArgs.length), token.argNo)]
+        }
         let n = Number(seq)
         if(!isNaN(n)){
             return [new Token(T.str, int.context.programArgs[n] ?? "", token.argNo)]
