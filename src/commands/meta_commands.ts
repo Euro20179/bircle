@@ -66,6 +66,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if(newIfs){
             interpreter.context.env["IFS"] = newIfs
         }
+
+        let explicit = opts.getBool("x", null)
+        if(explicit !== null){
+            interpreter.context.options.explicit = Number(explicit)
+        }
+
+        let dryRun = opts.getBool("d", null)
+        if(dryRun !== null)
+            interpreter.context.options.dryRun = Number(dryRun)
+
         let newProgArgs = args.slice(0)
         if(newProgArgs.length){
             interpreter.context.programArgs = newProgArgs
@@ -74,7 +84,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return {noSend: true, status: StatusCode.RETURN}
     }, "Sets program arguments", {
         helpOptions: {
-            IFS: createHelpOption("set field seperator for variable expansion and \\a{*}")
+            IFS: createHelpOption("set field seperator for variable expansion and \\a{*}"),
+            x: createHelpOption("Say what is being run for each command"),
+            d: createHelpOption("Dont actually run the command")
         }
     })]
 
