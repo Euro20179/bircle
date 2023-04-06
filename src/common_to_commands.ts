@@ -838,21 +838,6 @@ export class Interpreter {
 
             await int.interprate()
 
-            // //instead force sendCallback to get the result
-            // int.sendCallback = async (o) => {
-            //     let obj = o as CommandReturn
-            //     //only return values should be put through this function
-            //     if (obj.status !== StatusCode.RETURN && obj.status !== StatusCode.ERR) {
-            //         //return early
-            //         return handleSending(int.getMessage(), obj, this.sendCallback)
-            //     }
-            //
-            //     commandReturn = obj as CommandReturn
-            //     return int.getMessage()
-            // }
-
-            // await int.run() as CommandReturn
-
             commandReturn = defileCommandReturn(await int.run() as CommandReturn)
 
             if (allowedMentions) {
