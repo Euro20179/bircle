@@ -99,7 +99,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
         let newIfs = opts.getString("IFS", "")
         if(newIfs){
-            vars.setVarEasy("!env:IFS", newIfs, msg.author.id)
+            interpreter.context.env["IFS"] = newIfs
         }
         let newProgArgs = args.slice(0)
         if(newProgArgs.length){
@@ -112,6 +112,25 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}")
         }
     })]
+
+    yield ["env", ccmdV2(async ({interpreter}) => {
+        return crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
+    }, "Gets the interpreter env")]
+
+    yield ["export", ccmdV2(async ({interpreter, args}) => {
+        let [name, ...val] = args
+        let value = val.join(" ")
+        if(value[0] === "="){
+            value = value.slice(1)
+        }
+
+        if(!name.match(/^[A-Za-z0-9_-]+$/)){
+            return crv("Name must be alphanumeric + _- only", {status: StatusCode.ERR})
+        }
+
+        interpreter.context.env[name] = String(value)
+        return crv(`${name} = ${value}`)
+    }, "Sets a variable for the current runtime")]
 
     yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;

@@ -590,6 +590,9 @@ export class Interpreter {
 
     async [T.variable](token: Token): Promise<Token[] | false> {
         let [varName, ifNull] = token.data
+        if(this.context.env[varName] !== undefined){
+            return [new Token(T.str, this.context.env[varName], token.argNo)]
+        }
         let _var = vars.getVar(this.#msg, varName)
         if (_var === false) {
             if (ifNull) {
