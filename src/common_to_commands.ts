@@ -332,9 +332,13 @@ export async function cmd({
         let parser = new Parser(msg, command_excluding_prefix)
         await parser.parse()
 
+        let logicalLine = 1
+
         let context = new InterpreterContext(programArgs, env)
 
         while (parser.tokens.length > 0) {
+            context.env.LINENO = String(logicalLine)
+
             let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
             let currentToks = parser.tokens.slice(0, eolIdx)
             parser.tokens = parser.tokens.slice(eolIdx + 1)
@@ -357,6 +361,8 @@ export async function cmd({
             }
 
             context = int.context
+
+            logicalLine++;
         }
     }
     return {
@@ -551,7 +557,8 @@ export class Interpreter {
         let int = new Interpreter(this.#msg, parser.tokens, {
             modifiers: parser.modifiers,
             recursion: this.recursion + 1,
-            disable: this.disable
+            disable: this.disable,
+            context: this.context
         })
         await int.interprate()
         token.data = int.args.join(" ")
@@ -694,8 +701,10 @@ export class Interpreter {
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
         
+        args[0] = args[0].trim()
+
         if (this.context.options.explicit) {
-            await handleSending(this.#msg, crv(args.join(" ")))
+            await handleSending(this.#msg, crv(`${this.context.env.LINENO}\t${args.join(" ")}`))
         }
 
         if (this.context.options.dryRun) {
@@ -706,7 +715,7 @@ export class Interpreter {
             return
         }
 
-        let cmd = args[0].trim();
+        let cmd = args[0];
 
         [this.modifiers, cmd] = this.getModifiersFromCmd(cmd)
 
