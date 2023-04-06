@@ -160,7 +160,7 @@ class Parser {
     #parseQuotedString: boolean
 
     get specialChars() {
-        return `\\\$${this.IFS}{%>[`
+        return `\\\$${this.IFS}{%>;`
     }
 
     constructor(msg: Message, string: string, isCmd = true) {
@@ -237,15 +237,15 @@ class Parser {
                     this.tokens.push(await this.parseFormat(this.#msg))
                     break
                 }
-                case '[': {
+                case ';': {
                     this.advance()
                     if (this.#curChar as string === ';') {
-                        this.tokens.push(new Token(T.end_of_line, "[;", this.#curArgNo))
+                        this.tokens.push(new Token(T.end_of_line, ";;", this.#curArgNo))
                         this.#curArgNo = 0
                         break;
                     }
                     this.back()
-                    this.tokens.push(new Token(T.str, '[', this.#curArgNo))
+                    this.tokens.push(new Token(T.str, ';', this.#curArgNo))
                     break;
                 }
                 case '"': {
