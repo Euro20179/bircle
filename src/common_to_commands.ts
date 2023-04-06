@@ -113,10 +113,6 @@ export class AliasV2 {
             return this.basicPrepare(msg, args, opts)
         }
 
-        for (let opt of Object.entries(opts)) {
-            vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
-        }
-
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[[^\]]*\])$/
 
@@ -195,6 +191,10 @@ export class AliasV2 {
         let lastCmd = ""
 
         globals.addToCmdUse(this.name)
+
+        for (let opt of Object.entries(opts)) {
+            vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
+        }
 
         await this.expand(msg, args, opts, ((a, preArgs) => {
             globals.addToCmdUse(a)
