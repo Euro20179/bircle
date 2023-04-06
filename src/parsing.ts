@@ -323,16 +323,6 @@ class Parser {
         }
     }
 
-    parseCmd() {
-        let cmd = this.#curChar as string
-        while (this.advance() && !this.IFS.includes(this.#curChar as string) && this.#curChar !== "\n") {
-            cmd += this.#curChar as string
-        }
-        while (true) {
-        }
-        return new Token(T.str, cmd, this.#curArgNo++)
-    }
-
     get lastToken() {
         return this.tokens[this.tokens.length - 1]
     }
