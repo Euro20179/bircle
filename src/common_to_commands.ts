@@ -559,6 +559,8 @@ export class Interpreter {
     }
 
     async[T.pipe](token: Token): Promise<Token[] | false> {
+        //dofirst tokens get removed, so we must filter them out here or offset errors occure
+        this.#pipeTo = this.#originalTokens.filter((v, i) => i < this.#i + 1 ? v.type !== T.dofirst : true).slice(this.#i + 1)
         return false
     }
 
@@ -799,18 +801,10 @@ export class Interpreter {
             // filters out all do firsts from this.#i until the first pipe
             this.tokens = this.tokens.slice(this.#i === -1 ? 0 : this.#i, pipeIndex === -1 ? undefined : pipeIndex + 1).filter(v => v.type !== T.dofirst)
 
-            while (this.advance()) {
-                if ((this.#curTok as Token).type === T.pipe) {
-                    //dofirst tokens get removed, so we must filter them out here or offset errors occure
-                    this.#pipeTo = this.#originalTokens.filter((v, i) => i < this.#i + 1 ? v.type !== T.dofirst : true).slice(this.#i + 1)
-                    //this.returnJson = true
-                    break
-                }
-                let tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type)
-                if (tokList && tokList.length) {
-                    for (let tok of tokList) {
-                        this.addTokenToArgList(tok)
-                    }
+            let tokList
+            while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
+                for (let tok of tokList) {
+                    this.addTokenToArgList(tok)
                 }
             }
 
