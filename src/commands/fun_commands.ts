@@ -2117,6 +2117,10 @@ Valid formats:
 
             timer.createOrRestartTimer(msg.author.id, "%travel")
 
+            if(economy.playerLooseNetWorth(msg.author.id) < 0){
+                return crv("You do not have good credit, and no country wants to accept poor people", {status: StatusCode.ERR})
+            }
+
 
             let userGoingTo = args.expect(() => true, i => {
                 let text = i.join(" ").toLowerCase()

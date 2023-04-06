@@ -113,10 +113,6 @@ export class AliasV2 {
             return this.basicPrepare(msg, args, opts)
         }
 
-        for (let opt of Object.entries(opts)) {
-            vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
-        }
-
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
         const argsRegex = /^(?:args\.\.|args\d+|args\d+\.\.|args\d+\.\.\d+|#args\.\.|args\[[^\]]*\])$/
 
@@ -185,7 +181,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[] }) {
+    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers, context }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], context: InterpreterContext }) {
 
         if (BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -195,6 +191,10 @@ export class AliasV2 {
         let lastCmd = ""
 
         globals.addToCmdUse(this.name)
+
+        for (let opt of Object.entries(opts)) {
+            vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
+        }
 
         await this.expand(msg, args, opts, ((a, preArgs) => {
             globals.addToCmdUse(a)
@@ -231,7 +231,7 @@ export class AliasV2 {
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
-        let { rv } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback })
+        let { rv } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson: true, pipeData: stdin, sendCallback: sendCallback, context })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -323,8 +323,9 @@ export async function cmd({
     pipeData,
     enableUserMatch,
     programArgs,
-    env
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[], env?: Record<string, string> }) {
+    env,
+    context
+}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[], env?: Record<string, string>, context?: InterpreterContext }) {
     let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
     let int;
     if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
@@ -334,7 +335,7 @@ export async function cmd({
 
         let logicalLine = 1
 
-        let context = new InterpreterContext(programArgs, env)
+        context ??= new InterpreterContext(programArgs, env)
 
         while (parser.tokens.length > 0) {
             context.env.LINENO = String(logicalLine)
@@ -470,19 +471,6 @@ export class Interpreter {
         this.#shouldType = bool ?? true
     }
 
-    #initializePipeDataVars() {
-        vars.setVar("stdin:content", this.#pipeData?.content ?? "", this.#msg.author.id)
-        vars.setVar("stdin:status", statusCodeToStr(this.#pipeData?.status), this.#msg.author.id)
-        vars.setVar("stdin:raw", JSON.stringify(this.#pipeData), this.#msg.author.id)
-    }
-
-    #deletePipeDataVars() {
-        vars.delVar("stdin:content", this.#msg.author.id)
-        vars.delVar("stdin:status", this.#msg.author.id)
-        vars.delVar("stdin:raw", this.#msg.author.id)
-
-    }
-
     getMessage() {
         return this.#msg
     }
@@ -540,13 +528,16 @@ export class Interpreter {
             recursion: this.recursion + 1,
             returnJson: true,
             pipeData: this.getPipeData()
-        }))
-        let { rv } = await runCmd(token.data as string)
+        })).rv
+
+        let rv = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
+
         if (rv && rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            let { rv: rv2 } = await runCmd(rv.content.slice(prefix.length))
-            data = rv2 ? getContentFromResult(rv2 as CommandReturn, "\n").trim() : ""
+            rv = await runCmd(rv.content.slice(prefix.length))
+            data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         }
+
         this.#doFirstCountValueTable[Object.keys(this.#doFirstCountValueTable).length] = data
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
         return [new Token(T.str, data, token.argNo)]
@@ -794,16 +785,17 @@ export class Interpreter {
             }
 
             else if (cmdObject?.cmd_std_version == 2) {
+                let argList = new ArgList(args2)
                 let obj: CommandV2RunArg = {
                     msg: this.#msg,
                     rawArgs: args,
-                    args: new ArgList(args2),
+                    args: argList,
                     sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
                     recursionCount: this.recursion,
                     commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
                     opts: new Options(opts),
                     rawOpts: opts,
-                    argList: new ArgList(args2),
+                    argList: argList,
                     stdin: this.#pipeData,
                     pipeTo: this.#pipeTo,
                     interpreter: this
@@ -812,7 +804,7 @@ export class Interpreter {
                 rv = await cmdO.run.bind([cmd, cmdO])(obj)
             }
             else if (cmdObject instanceof AliasV2) {
-                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
+                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
             }
             else {
                 rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
@@ -888,23 +880,12 @@ export class Interpreter {
         if (this.#interprated) {
             return this.args
         }
-        if (this.hasModifier(SkipModifier)) {
-            await this.interprateAllAsToken(T.str)
-        }
-        else {
 
-            if (this.#pipeData)
-                this.#initializePipeDataVars()
-
-            let tokList
-            while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
-                for (let tok of tokList) {
-                    this.addTokenToArgList(tok)
-                }
+        let tokList
+        while (this.advance() && (tokList = await this.interprateCurrentAsToken((this.#curTok as Token).type))) {
+            for (let tok of tokList) {
+                this.addTokenToArgList(tok)
             }
-
-            if (this.#pipeData)
-                this.#deletePipeDataVars()
         }
 
         //null comes from %{-1}doFirsts
