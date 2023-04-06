@@ -338,6 +338,10 @@ export async function cmd({
             let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
             let currentToks = parser.tokens.slice(0, eolIdx)
             parser.tokens = parser.tokens.slice(eolIdx + 1)
+
+            //happens if there is some kind of empty statement
+            if(currentToks.length === 0) continue
+
             int = new Interpreter(msg, currentToks, {
                 modifiers: parser.modifiers,
                 recursion, returnJson, disable, sendCallback, pipeData, context
