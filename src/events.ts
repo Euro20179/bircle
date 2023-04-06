@@ -18,7 +18,7 @@ const HandleSend = Symbol("handle-send")
 const botEvents = new EventEmitter()
 
 botEvents.on(CmdRun, async (int: Interpreter) => {
-    let varname = `!stats:cmd-usage.${int.real_cmd}`
+    let varname = `!stats:cmd-usage.${int.args[0]}`
     let msg = int.getMessage()
     vars.setVarEasy(varname, String(Number(vars.getVar(msg, varname)) + 1), msg.author.id)
 })

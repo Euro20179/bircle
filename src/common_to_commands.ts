@@ -353,8 +353,6 @@ export class Interpreter {
     tokens: Token[]
     args: string[]
     programArgs: string[]
-    cmd: string
-    real_cmd: string
     recursion: number
     returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
@@ -388,8 +386,6 @@ export class Interpreter {
         this.tokens = cloneDeep(tokens)
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
-        this.cmd = ""
-        this.real_cmd = ""
         this.recursion = recursion
         this.returnJson = returnJson
         this.disable = disable ?? {}

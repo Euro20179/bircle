@@ -26,7 +26,7 @@ export default {
     },
 
     parse_cmd: async (_, __, ___, int) => {
-        return int.cmd
+        return int.args[0]
     },
 
     parse_fhex: async (_, __, args) => {
