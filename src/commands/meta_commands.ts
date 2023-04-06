@@ -61,50 +61,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     }, CAT, "get specific data from stdin/pipe")]
 
-    yield [".bircle", ccmdV2(async function({ msg, recursionCount, commandBans, sendCallback, args, interpreter }) {
-        let file = msg.attachments.at(0)
-        let url;
-        if (file) {
-            url = file.url
-            msg.attachments.delete(msg.attachments.keyAt(0) as string)
-            interpreter.programArgs = args
-        }
-        if (!file) {
-            interpreter.programArgs = args.slice(1)
-
-            if (args[0].match(/https?:\/\/.*/)) {
-                url = args[0]
-            }
-        }
-        if (!file) {
-            return { content: "No file url or attachment given", status: StatusCode.RETURN }
-        }
-        let resp = await fetch(url)
-        let text = await resp.text()
-
-        for (let line of text.split("\n[;")) {
-            line = line.trim()
-            if (line.startsWith(prefix)) {
-                line = line.slice(prefix.length)
-            }
-            await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback, programArgs: interpreter.programArgs })
-        }
-        return { noSend: true, status: StatusCode.RETURN }
-    }, "Runs a .bircle file", {
-        helpArguments: {
-            "args": createHelpArgument("Program arguments to pass to the file")
-        }
-    })]
-
     yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
         let newIfs = opts.getString("IFS", "")
         if(newIfs){
-            vars.setVarEasy("!env:IFS", newIfs, msg.author.id)
+            interpreter.context.env["IFS"] = newIfs
         }
         let newProgArgs = args.slice(0)
         if(newProgArgs.length){
-            interpreter.programArgs = newProgArgs
-            return crv(interpreter.programArgs.join(" "))
+            interpreter.context.programArgs = newProgArgs
+            return crv(interpreter.context.programArgs.join(" "))
         }
         return {noSend: true, status: StatusCode.RETURN}
     }, "Sets program arguments", {
@@ -112,6 +77,27 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}")
         }
     })]
+
+    yield ["env", ccmdV2(async ({interpreter}) => {
+        return crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
+    }, "Gets the interpreter env")]
+
+    yield ["export", ccmdV2(async ({interpreter, args}) => {
+        let [name, ...val] = args
+        let value = val.join(" ")
+        if(value[0] === "="){
+            value = value.slice(1)
+        }
+
+        value = value.trim()
+
+        if(!name.match(/^[A-Za-z0-9_-]+$/)){
+            return crv("Name must be alphanumeric + _- only", {status: StatusCode.ERR})
+        }
+
+        interpreter.context.env[name] = String(value)
+        return crv(`${name} = ${value}`)
+    }, "Sets a variable for the current runtime")]
 
     yield ["raw", createCommandV2(async ({ rawArgs }) => {
         let data;

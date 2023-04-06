@@ -54,14 +54,17 @@ export default {
 
     escape_a: async(token, _, seq, int) => {
         if(seq === "*"){
-            return [new Token(T.str, int.programArgs.join(int.IFS[0]), token.argNo)]
+            return [new Token(T.str, int.context.programArgs.join(int.context.env.IFS?.[0] || " "), token.argNo)]
         }
         else if(seq === "@"){
-            return listComprehension(int.programArgs, arg => new Token(T.str, arg, ++token.argNo))
+            return listComprehension(int.context.programArgs, arg => new Token(T.str, arg, ++token.argNo))
+        }
+        else if(seq === "#"){
+            return [new Token(T.str, String(int.context.programArgs.length), token.argNo)]
         }
         let n = Number(seq)
         if(!isNaN(n)){
-            return [new Token(T.str, int.programArgs[n] ?? "", token.argNo)]
+            return [new Token(T.str, int.context.programArgs[n] ?? "", token.argNo)]
         }
         return []
     },

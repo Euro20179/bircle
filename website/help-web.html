@@ -16,13 +16,20 @@
     <h1 id="list-of-commands"><a href="/commands">List of Commands</a></h1>
 
     <h1 id="Usage">Basic usage</h1>
-    <code>[command [options...] [arguments...]</code>
+    <code>[command [options...] [arguments...] [EOL]</code>
 
     <h1 id="Arguments">
         Arguments
     </h1>
     <p>
         Arguments are (mostly) space separated text.
+    </p>
+
+    <h1 id="EOL">EOL</h1>
+    <p>
+        This ends the current command, and will run the next command with the same environment
+        <br>
+        The next command should not start with the prefix.
     </p>
 
     <h1 id="Options">Options</h1>
@@ -441,8 +448,9 @@
     <p>
         Variables are text that contain other text.
         <br>
-        There are 4 kinds of variables:
+        There are 5 kinds of variables:
     <ul>
+        <li><a href="#environment-vars"><code>environment</code></a></li>
         <li><a href="#global-vars"><code>global</code></a></li>
         <li><a href="#prefixed-vars"><code>prefixed</code></a></li>
         <li><a href="#user-vars"><code>user</code></a></li>
@@ -461,6 +469,15 @@
             <code>${variable||default}</code> can be used, and <code>default</code> will appear if variable is unset.
         </li>
     </ul>
+    </p>
+
+    <h2 id="environment-vars">Environment vars</h2>
+    <p>
+        Can only be accessed using the <code>${variable}</code> syntax
+        <br>
+        to create an environment variable, use the <code>export</code> command.
+        <br>
+        at the end of the command all environment variables are lost
     </p>
 
     <h2 id="global-vars">Global vars</h2>
