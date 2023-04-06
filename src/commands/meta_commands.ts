@@ -1525,7 +1525,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let id = String(Math.floor(Math.random() * 100000000))
                 await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
                 let cmdToDo = cmdArgs.split(" ")[0]
-                if (!['run', 'do', 'spam'].includes(cmdToDo)) {
+                if (['run', 'do', 'spam'].includes(cmdToDo)) {
                     return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
                 }
                 globals.SPAMS[id] = true

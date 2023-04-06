@@ -10,7 +10,6 @@ enum T {
     esc,
     format,
     dofirstrepl,
-    command,
     syntax,
     pipe,
     variable,
@@ -36,9 +35,6 @@ function strToTT(str: string) {
         case "dofirstrepl":
             return T.dofirstrepl
 
-        case "command":
-            return T.command
-
         case "syntax":
             return T.syntax
 
@@ -61,24 +57,34 @@ class Token {
         this.argNo = argNo
         this.id = Math.random()
     }
-
-    convertToCommand() {
-        switch (this.type) {
-            case T.esc:
-                let str = `\\${this.data[0]}`
-                if (this.data[1]) {
-                    str += `{${this.data[1]}}`
+    originalText(){
+        switch(this.type){
+            case T.dofirst: 
+                return `$(${this.data})`
+            case T.calc:
+                return `$[${this.data}]`
+            case T.esc:{
+                let text = `\\${this.data[0]}`
+                if(this.data[1]){
+                    text += `{${this.data[1]}}`
                 }
-                return new Token(T.command, str, -1)
-            case T.variable: {
-                let str = `\${${this.data[0]}`
-                if (this.data[1]) {
-                    str += `||${this.data[1]}`
-                }
-                //extra } is to close braces
-                return new Token(T.command, `${str}}`, -1)
+                return text
             }
-            default: return new Token(T.command, this.data, -1)
+            case T.format: return `{${this.data}}`
+            case T.dofirstrepl: return `%{${this.data}}`
+            case T.variable: {
+                let text = `\${${this.data[0]}`
+                if(this.data[1]){
+                    text += `${this.data[1]}`
+                }
+                return text + "}"
+            }
+            case T.str: case T.pipe: {
+                return this.data
+            }
+            case T.syntax: {
+                return JSON.stringify(this.data)
+            }
         }
     }
 }
@@ -88,72 +94,41 @@ class Modifier {
     constructor(data: RegExpMatchArray) {
         this.data = data
     }
-    modify(int: Interpreter): any {}
-    stringify(): string{return "W:"}
+    modify(int: Interpreter): any { }
+    stringify(): string { return "W:" }
 }
 
-class SkipModifier extends Modifier{
-    modify(int: Interpreter){
+class SkipModifier extends Modifier {
+    modify(int: Interpreter) {
     }
-    stringify(){
+    stringify() {
         return "n:"
     }
 }
 
-class SilentModifier extends Modifier{
-    modify(int: Interpreter){
-        int.sendCallback = async(_data) => int.getMessage()
+class SilentModifier extends Modifier {
+    modify(int: Interpreter) {
+        int.sendCallback = async (_data) => int.getMessage()
     }
-    stringify(){
+    stringify() {
         return "s:"
     }
 }
 
-class RedirModifier extends Modifier{
-    modify(int: Interpreter){
-            let m = this.data
-            //whether or not to redirect *all* message sends to the variable, or just the return value from the command
-            let all = m[1] //this matches the ! after redir
-            if (all) {
-                //the variable scope
-                let prefix = m[2] //matches the text before the  : in the parens in redir
-                //the variable name
-                let name = m[3] //matches the text after the :  in the parens in redir
-                int.sendCallback = int.sendDataToVariable.bind(int, prefix, name)
-            }
-            //the variable scope
-            let prefix = m[2] //matches the text before the  : in the parens in redir
-            //the variable name
-            let name = m[3] //matches the text after the :  in the parens in redir
-            vars.setVar(`${prefix}:${name}`, "", int.getMessage().author.id)
-    }
-    stringify(){
-        let str = "redir"
-        if(this.data[1])
-            str += "!"
-        str += "("
-        if(this.data[2]){
-            str += this.data[2]
-        }
-        str += `:${this.data[3]})`
-        return str
-    }
-}
-
-class TypingModifier extends Modifier{
-    modify(int: Interpreter){
+class TypingModifier extends Modifier {
+    modify(int: Interpreter) {
         int.setTyping()
     }
-    stringify(){
+    stringify() {
         return "t:"
     }
 }
 
-class DeleteModifier extends Modifier{
-    modify(int: Interpreter){
+class DeleteModifier extends Modifier {
+    modify(int: Interpreter) {
         int.getMessage().deletable && int.getMessage().delete()
     }
-    stringify(){
+    stringify() {
         return "d:"
     }
 }
@@ -166,12 +141,11 @@ class Parser {
 
     IFS: string
 
-    #isParsingCmd: boolean
+    #skipTokenizing: boolean
     #msg: Message
     #curChar: string | undefined
     #i: number
     #curArgNo: number
-    #hasCmd: boolean
 
     #pipeSign: string = ">pipe>"
     #defaultPipeSign: string = ">pipe>"
@@ -189,10 +163,9 @@ class Parser {
         this.#i = -1
         this.#curChar = undefined
         //starts at negative one for commands
-        this.#curArgNo = isCmd ? -1 : 0
-        this.#hasCmd = false
+        this.#curArgNo = 0
         this.#msg = msg
-        this.#isParsingCmd = isCmd
+        this.#skipTokenizing = false
         this.modifiers = []
         this.IFS = " "
         this.#pipeSign = getOpt(msg.author.id, "pipe-symbol", ">pipe>")
@@ -220,18 +193,7 @@ class Parser {
     async parse() {
         let lastWasspace = false
         while (this.advance()) {
-            if (!this.#hasCmd && this.#isParsingCmd) {
-                this.tokens.push(this.parseCmd())
-                if (this.modifiers.filter(v => v instanceof SkipModifier).length) {
-                    this.tokens = this.tokens.concat(this.string.split(this.IFS).slice(1).filter(v => v !== '').map((v, i) => new Token(T.str, v, i)))
-                    break
-                }
-                //ignore new lines after cmds
-                if(this.#curChar === '\n'){
-                    this.#curArgNo++;
-                    continue;
-                }
-            }
+            //remove command special case, instead treat arg[0] (after interpreting all tokens) as the command
             switch (this.#curChar) {
                 case this.IFS: {
                     if (!lastWasspace) {
@@ -275,6 +237,39 @@ class Parser {
                     }
                     lastWasspace = false
                     break
+                }
+                case 'd': case 't': case 's': case 'n': {
+                    let modMap = new Map<RegExp, typeof Modifier>()
+                    modMap.set(/^d:/, DeleteModifier)
+                    modMap.set(/^t:/, TypingModifier)
+                    modMap.set(/^s:/, SilentModifier)
+                    modMap.set(/^n:/, SkipModifier)
+                    
+                    let mod: string = this.#curChar
+                    modIf: if (this.#curArgNo === 0 && this.tokens.length === 0) {
+                        while(this.advance() && !(this.specialChars + "\n\t:").includes(this.#curChar)){
+                            mod += this.#curChar
+                        }
+
+                        if(this.#curChar as string !== ":"){
+                            this.back()
+                            break modIf
+                        }
+
+                        mod += ":"
+                        let foundMatch = true
+                        while(foundMatch){
+                            for (let modRegex of modMap.keys()) {
+                                let m = mod.match(modRegex)
+                                if (m) {
+                                    mod = mod.slice(m[0].length)
+                                    this.modifiers.push(new (modMap.get(modRegex) ?? Modifier)(m))
+                                } else foundMatch = false
+                            }
+                        }
+                    }
+                    this.tokens.push(new Token(T.str, mod, this.#curArgNo))
+                    break;
                 }
                 default: {
                     lastWasspace = false
@@ -321,15 +316,7 @@ class Parser {
         }
         if (builtString === this.#pipeSign || builtString === this.#defaultPipeSign) {
             this.advance()
-            //ensure that the command WILL have argNo -1
-            //bit hacky though
-            if (this.#curChar === this.IFS) {
-                this.#curArgNo = -2
-            }
-            else {
-                //command Argno should start at -1
-                this.#curArgNo = -1
-            }
+            this.#curArgNo = 0
             this.back()
             return new Token(T.pipe, this.#defaultPipeSign, this.#curArgNo)
         }
@@ -340,30 +327,12 @@ class Parser {
 
     parseCmd() {
         let cmd = this.#curChar as string
-        let modMap = new Map<RegExp, typeof Modifier>()
-        modMap.set(/^redir(!)?\(([^:]*):([^:]+)\):/, RedirModifier)
-        modMap.set(/^d:/,  DeleteModifier)
-        modMap.set(/^t:/,  TypingModifier)
-        modMap.set(/^s:/,  SilentModifier)
-        modMap.set(/^n:/,  SkipModifier)
         while (this.advance() && !this.IFS.includes(this.#curChar as string) && this.#curChar !== "\n") {
             cmd += this.#curChar as string
         }
         while (true) {
-            let foundMatch = false
-            for (let modRegex of modMap.keys()) {
-                let m = cmd.match(modRegex)
-                if (m) {
-                    cmd = cmd.slice(m[0].length)
-                    this.modifiers.push(new (modMap.get(modRegex) ?? Modifier)(m))
-                    foundMatch = true
-                }
-            }
-            if (!foundMatch)
-                break
         }
-        this.#hasCmd = true
-        return new Token(T.command, cmd, this.#curArgNo)
+        return new Token(T.str, cmd, this.#curArgNo++)
     }
 
     get lastToken() {
@@ -879,7 +848,6 @@ export {
     TypingModifier,
     DeleteModifier,
     SkipModifier,
-    RedirModifier,
     SilentModifier,
     getInnerPairsAndDeafultBasedOnRegex,
     format,

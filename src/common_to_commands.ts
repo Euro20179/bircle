@@ -8,7 +8,7 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, RedirModifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
+import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
@@ -223,7 +223,7 @@ export class AliasV2 {
         }
 
         let modifierText = ""
-        for (let mod of modifiers?.filter(v => !(v instanceof RedirModifier)) ?? []) {
+        for (let mod of modifiers ?? []) {
             modifierText += mod.stringify() as string
         }
 
@@ -478,12 +478,10 @@ export class Interpreter {
         this.args = this.args.slice(0, -1)
     }
 
-    //str token
-    async [0](token: Token): Promise<Token[] | false> {
-        return [token]
+    async [T.str](token: Token): Promise<Token[] | false> {
+        return [new Token(T.str, token.originalText(), token.argNo)]
     }
-    //dofirst token
-    async [1](token: Token): Promise<Token[] | false> {
+    async [T.dofirst](token: Token): Promise<Token[] | false> {
         const runCmd = async (data: string) => (await cmd({
             msg: this.#msg,
             command_excluding_prefix: data,
@@ -502,8 +500,7 @@ export class Interpreter {
         this.#doFirstNoFromArgNo[token.argNo] = Object.keys(this.#doFirstCountValueTable).length - 1
         return []
     }
-    //calc
-    async [2](token: Token): Promise<Token[] | false> {
+    async [T.calc](token: Token): Promise<Token[] | false> {
         let parser = new Parser(this.#msg, token.data as string, false)
         await parser.parse()
         let int = new Interpreter(this.#msg, parser.tokens, parser.modifiers, this.recursion + 1, false, this.disable)
@@ -512,8 +509,7 @@ export class Interpreter {
         let t = new Token(T.str, String(safeEval(token.data, { ...generateSafeEvalContextFromMessage(this.#msg), ...vars.vars["__global__"] }, { timeout: 1000 })), token.argNo)
         return [t]
     }
-    //esc sequence
-    async [3](token: Token): Promise<Token[] | false> {
+    async [T.esc](token: Token): Promise<Token[] | false> {
         let [char, sequence] = token.data
 
         if (parse_escape[`escape_${char}`]) {
@@ -524,8 +520,7 @@ export class Interpreter {
         }
         return [new Token(T.str, `${char}`, token.argNo)]
     }
-    //fmt
-    async[4](token: Token): Promise<Token[] | false> {
+    async[T.format](token: Token): Promise<Token[] | false> {
         let [format_name, ...args] = (token.data as string).split("|")
         if (parse_format[`parse_${format_name}`]) {
             let dat = await parse_format[`parse_${format_name}`](token, format_name, args, this)
@@ -539,8 +534,7 @@ export class Interpreter {
         }
         return [new Token(T.str, `{${format_name}}`, token.argNo)]
     }
-    //dofirstrepl
-    async[5](token: Token): Promise<Token[] | false> {
+    async[T.dofirstrepl](token: Token): Promise<Token[] | false> {
         let [doFirstArgNo, doFirstResultNo] = (token.data as string).split(":")
         if (doFirstResultNo === undefined) {
             doFirstResultNo = doFirstArgNo
@@ -560,22 +554,7 @@ export class Interpreter {
         //TODO: %{...} spreads  args into  multiple arguments
         return []
     }
-    //command
-    async[6](token: Token): Promise<Token[] | false> {
-        if (typeof token.data === 'object') {
-            token.data = token.data[0]
-        }
-        this.cmd = token.data as string
-        this.real_cmd = token.data as string
-
-        if (!commands.get(this.cmd) && getAliasesV2()[this.cmd]) {
-            this.aliasV2 = aliasesV2[this.cmd]
-        }
-
-        return [new Token(T.str, Interpreter.commandUndefined as string, token.argNo)]
-    }
-    //syntax
-    async[7](token: Token): Promise<Token[] | false> {
+    async[T.syntax](token: Token): Promise<Token[] | false> {
         let parse = new Parser(this.#msg, token.data as string, false)
         await parse.parse()
         let int = new Interpreter(this.#msg, parse.tokens, parse.modifiers, this.recursion + 1)
@@ -583,13 +562,11 @@ export class Interpreter {
         return listComprehension(args, (arg, index) => new Token(T.str, index < args.length ? `${arg} ` : arg, token.argNo))
     }
 
-    //pipe
-    async[8](token: Token): Promise<Token[] | false> {
+    async[T.pipe](token: Token): Promise<Token[] | false> {
         return false
     }
 
-    //variable
-    async [9](token: Token): Promise<Token[] | false> {
+    async [T.variable](token: Token): Promise<Token[] | false> {
         let [varName, ifNull] = token.data
         let _var = vars.getVar(this.#msg, varName)
         if (_var === false) {
@@ -630,6 +607,10 @@ export class Interpreter {
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
 
+        let cmd = args[0]
+
+        args = args.slice(1)
+
         //The return  value from this function
         let rv: CommandReturn = { status: StatusCode.RETURN };
 
@@ -642,27 +623,24 @@ export class Interpreter {
 
         let [opts, args2] = getOpts(args)
 
-        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(this.real_cmd)
-        if (!cmdObject && this.aliasV2) {
-            cmdObject = this.aliasV2
-            this.real_cmd = this.aliasV2.name
-        }
+
+        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
         if (opts['?']) {
-            args = [this.real_cmd]
-            args2 = [this.real_cmd]
-            this.real_cmd = "help"
+            args = [cmd]
+            args2 = [cmd]
+            cmd = "help"
             this.aliasV2 = false
         }
 
         if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (this.real_cmd.startsWith(prefix)) {
-                this.real_cmd = `\\${this.real_cmd}`
+            if (cmd.startsWith(prefix)) {
+                cmd = `\\${cmd}`
             }
             rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
-                { content: `${this.real_cmd} does not exist`, status: StatusCode.ERR } :
+                { content: `${cmd} does not exist`, status: StatusCode.ERR } :
                 { noSend: true, status: StatusCode.ERR }
         }
         else runnerIf: {
@@ -672,10 +650,10 @@ export class Interpreter {
                 break runnerIf
             }
 
-            if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(this.real_cmd)) {
-                let m = await promptUser(this.#msg, `You are about to run the \`${this.real_cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+            if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(cmd)) {
+                let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
                 if (!m || m.content.toLowerCase() !== 'y') {
-                    rv = { content: `Declined to run ${this.real_cmd}`, status: StatusCode.RETURN }
+                    rv = { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
                     break runnerIf
                 }
             }
@@ -683,11 +661,11 @@ export class Interpreter {
             //if any are true, the user cannot run the command
             if (
                 //is whitelisted
-                WHITELIST[this.#msg.author.id]?.includes(this.real_cmd) ||
+                WHITELIST[this.#msg.author.id]?.includes(cmd) ||
                 //is blacklisted
-                BLACKLIST[this.#msg.author.id]?.includes(this.real_cmd) ||
+                BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
                 //is disabled from the caller
-                this.disable?.commands && this.disable.commands.includes(this.real_cmd) ||
+                this.disable?.commands && this.disable.commands.includes(cmd) ||
                 this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
                 //is a stage channel
                 !isMsgChannel(this.#msg.channel)
@@ -701,8 +679,8 @@ export class Interpreter {
             if ((this.#shouldType || cmdObject?.make_bot_type))
                 await this.#msg.channel.sendTyping()
 
-            if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)) {
-                rv = Interpreter.resultCache.get(`${this.real_cmd} ${this.args}`)
+            if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
+                rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
             }
 
             else if (cmdObject?.cmd_std_version == 2) {
@@ -720,8 +698,8 @@ export class Interpreter {
                     pipeTo: this.#pipeTo,
                     interpreter: this
                 };
-                let cmd = cmdObject as CommandV2
-                rv = await cmd.run.bind([this.real_cmd, cmd])(obj)
+                let cmdO = cmdObject as CommandV2
+                rv = await cmdO.run.bind([cmd, cmdO])(obj)
             }
             else if (cmdObject instanceof AliasV2) {
                 rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers }) as CommandReturn
@@ -730,31 +708,21 @@ export class Interpreter {
                 rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
             }
             if (cmdObject?.use_result_cache === true) {
-                Interpreter.resultCache.set(`${this.real_cmd} ${this.args}`, rv)
+                Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
             }
             //it will double add this if it's an alias
             if (!this.aliasV2) {
-                globals.addToCmdUse(this.real_cmd)
+                globals.addToCmdUse(cmd)
             }
         }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
-        if (!illegalLastCmds.includes(this.real_cmd)) {
+        if (!illegalLastCmds.includes(cmd)) {
             //this is for the !! command
-            lastCommand[this.#msg.author.id] = `[${this.cmd} ${this.args.join(" ")}`
+            lastCommand[this.#msg.author.id] = `[${cmd} ${this.args.join(" ")}`
         }
         if (this.returnJson) {
             return this.handlePipes(rv)
-        }
-        let m
-        if (m = this.modifiers.find(v => v instanceof RedirModifier)?.data) {
-            let [_, _all, place, name] = m
-            let data = vars.getVar(this.#msg, `${place}:${name}`, this.#msg.author.id)
-            if (data !== false) {
-                data += getContentFromResult(rv, "\n")
-            }
-            vars.setVar(`${place}:${name}`, data, this.#msg.author.id)
-            return { noSend: true, status: StatusCode.RETURN }
         }
         //handles the rv protocol
         handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
@@ -783,7 +751,6 @@ export class Interpreter {
         let allowedMentions = commandReturn.allowedMentions
         //if noSend is given, we dont want to pipe it
         while (tks.length && !commandReturn.noSend) {
-            tks[0] = tks[0].convertToCommand()
             //we cant return json or it will double pipe
             let int = new Interpreter(this.#msg, tks, this.modifiers, this.recursion, false, this.disable, undefined, commandReturn, this.programArgs)
 
@@ -820,10 +787,6 @@ export class Interpreter {
             return this.args
         }
         if (this.hasModifier(SkipModifier)) {
-            this.advance()
-            if ((this.#curTok as Token).type === T.command) {
-                await this[T.command](this.#curTok as Token)
-            }
             await this.interprateAllAsToken(T.str)
         }
         else {
