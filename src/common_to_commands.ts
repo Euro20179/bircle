@@ -20,12 +20,12 @@ import parse_format from './parse_format';
 
 
 export enum StatusCode {
-    ACHIEVEMENT,
-    PROMPT,
-    INFO,
-    RETURN,
-    WARNING,
-    ERR,
+    ACHIEVEMENT = -3,
+    PROMPT = -2,
+    INFO = -1,
+    RETURN = 0,
+    WARNING = 1,
+    ERR = 2,
 }
 
 export function statusCodeToStr(code: StatusCode) {
@@ -45,7 +45,7 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>): Promise<Message<boolean> | false>{
+export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
     await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
     let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: 30000, max: 1 })
@@ -340,7 +340,8 @@ export async function cmd({
             parser.tokens = parser.tokens.slice(eolIdx + 1)
 
             //happens if there is some kind of empty statement
-            if(currentToks.length === 0) continue
+            if (currentToks.length === 0) continue
+
 
             int = new Interpreter(msg, currentToks, {
                 modifiers: parser.modifiers,
@@ -364,13 +365,22 @@ export async function cmd({
     }
 }
 
+
+type InterpreterOptionNames = "dryRun" | "explicit"
+type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
+
 class InterpreterContext {
     env: Record<string, string>
+    options: InterpreterOptions
     programArgs: string[]
-    constructor(programArgs?: string[], env?: Record<string, string>) {
+    constructor(programArgs?: string[], env?: Record<string, string>, options?: InterpreterOptions) {
         this.env = {
             IFS: " ",
             ...(env ?? {}),
+        }
+
+        this.options = {
+            ...(options ?? {})
         }
 
         this.programArgs = programArgs ?? []
@@ -683,6 +693,18 @@ export class Interpreter {
 
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
+        
+        if (this.context.options.explicit) {
+            await handleSending(this.#msg, crv(args.join(" ")))
+        }
+
+        if (this.context.options.dryRun) {
+            if(this.returnJson)
+                return  { noSend: true, status: StatusCode.RETURN }
+            if(this.getPipeTo().length)
+                await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
+            return
+        }
 
         let cmd = args[0].trim();
 
@@ -804,7 +826,7 @@ export class Interpreter {
             return rv
         }
         //handles the rv protocol
-        handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
+        await handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
     async interprateAsToken(token: Token, t: T) {

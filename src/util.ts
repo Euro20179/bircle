@@ -701,7 +701,7 @@ class Options extends Map {
         }
         return default_
     }
-    getBool(key: string, default_: boolean, toBoolean: (v: any) => boolean = Boolean): boolean {
+    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = Boolean): boolean | TDefault{
         let v = super.get(key)
         if (v !== undefined) {
             let bool = toBoolean(v)
