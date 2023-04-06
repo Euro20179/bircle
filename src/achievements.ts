@@ -72,7 +72,7 @@ const POSSIBLE_ACHIEVEMENTS = {
     "united states": new ItemRewardAchievement("united states", "travel to the us", ["gun", 1]),
     france: new MoneyRewardAchievement("france", "travel to france", "max(2%,100)"),
     iraq: new ItemRewardAchievement("iraq", "travel to iraq", ["oil", 30]),
-    traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
+    // traveler: new ItemRewardAchievement("traveler", "travel to all countries", ["passport", 193]),
     "even transfer": new ItemRewardAchievement("even transfer", "exchange 50% of your net worth at once", ['tax evasion', 20]),
     "patience": new MoneyRewardAchievement("patience", "get last run after it hasn't been run for 1 day", "max(50%,500)"),
     "impatient": new MoneyRewardAchievement("impatient", "get last run within 1 second of someone else getting it", "max(10%, 100)"),
