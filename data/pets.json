@@ -46,5 +46,11 @@
         "max-hunger": 1,
         "cost": ["0.1"],
         "favorite-food": "rock"
+    },
+    "woolly mammoth": {
+        "description": "Found in the wilderness of siberia",
+        "max-hunger": 100,
+        "cost": ["infinity"],
+        "favorite-food": "leaf"
     }
 }

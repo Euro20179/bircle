@@ -5,34 +5,34 @@ import economy from './economy'
 
 const { buyItem } = require("./shop.js")
 
-type PetData = {[pet: string]: {description: string, "max-hunger": number, cost: string[], "favorite-food": string}}
-type UserPetData = {[pet: string]: {health: number, name: string}}
+type PetData = { [pet: string]: { description: string, "max-hunger": number, cost: string[], "favorite-food": string } }
+type UserPetData = { [pet: string]: { health: number, name: string } }
 let PETSHOP: PetData = {}
-let PETINVENTORY: {[id: string]: UserPetData} = {}
+let PETINVENTORY: { [id: string]: UserPetData } = {}
 
-let PETACTIONS: {[key: string]: Function} = {
+let PETACTIONS: { [key: string]: Function } = {
     cat: () => {
         return .001 //increases chat bonus by .01%
     },
-    puffle: async(m: Message) => {
-        let stuff: {money: number, items: string[]} = {money: 0, items: []}
-        if(Math.random() <= .02){ // 1% chance
-            if(Math.random() >= .30){ //70% for money
-                let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) +  0.01)}%`)
+    puffle: async (m: Message) => {
+        let stuff: { money: number, items: string[] } = { money: 0, items: [] }
+        if (Math.random() <= .02) { // 1% chance
+            if (Math.random() >= .30) { //70% for money
+                let amount = economy.calculateAmountFromStringIncludingStocks(m.author.id, `${1 + (Math.random() * (0.02) + 0.01)}%`)
                 economy.addMoney(m.author.id, amount)
                 stuff.money = amount
             }
-            else{ //30% for items
-                for(let i = 0; i < 2; i++){
+            else { //30% for items
+                for (let i = 0; i < 2; i++) {
                     let items = fs.readFileSync("./data/shop.json", "utf-8")
                     let itemJ = JSON.parse(items)
                     let itemNames = Object.keys(itemJ)
-                    let randItemName = itemNames[Math.floor(Math.random()  * itemNames.length)]
-                    if(itemJ[randItemName]['puffle-banned']){
+                    let randItemName = itemNames[Math.floor(Math.random() * itemNames.length)]
+                    if (itemJ[randItemName]['puffle-banned']) {
                         i--;
                         continue
                     }
-                    buyItem(m.author.id,  randItemName, undefined, true)
+                    buyItem(m.author.id, randItemName, undefined, true)
                     stuff.items.push(randItemName)
                 }
             }
@@ -45,45 +45,56 @@ let PETACTIONS: {[key: string]: Function} = {
     bird: (amount: number) => amount * 2
 }
 
-function randInt(min: number, max: number){
-    return Math.random()  * (max - min) + min
+function randInt(min: number, max: number) {
+    return Math.random() * (max - min) + min
 }
 
-function loadPets(){
-    if(fs.existsSync("./data/pets.json")){
+function loadPets() {
+    if (fs.existsSync("./data/pets.json")) {
         PETSHOP = JSON.parse(fs.readFileSync("./data/pets.json", "utf-8"))
     }
-    if(fs.existsSync("./petinventory.json")){
+    if (fs.existsSync("./petinventory.json")) {
         PETINVENTORY = JSON.parse(fs.readFileSync("./petinventory.json", "utf-8"))
-        for(let user in PETINVENTORY){
-            for(let ph of Object.entries(PETINVENTORY[user])){
+        for (let user in PETINVENTORY) {
+            for (let ph of Object.entries(PETINVENTORY[user])) {
                 let [pet, data] = ph
-                if(typeof data === 'number'){
-                    PETINVENTORY[user][pet] = {health: data, name: pet}
+                if (typeof data === 'number') {
+                    PETINVENTORY[user][pet] = { health: data, name: pet }
                 }
             }
         }
     }
 }
 
-function savePetData(){
+function savePetData() {
     fs.writeFileSync("./petinventory.json", JSON.stringify(PETINVENTORY))
 }
 
-function getPetInventory(){
+function getPetInventory() {
     return PETINVENTORY
 }
 
-function getPetShop(){
+function getPetShop() {
     return PETSHOP
 }
 
-function buyPet(id: string, pet: string){
-    if(PETINVENTORY[id]){
-        if(PETINVENTORY[id][pet]){
+function addPet(id: string, pet: string) {
+    if (!PETINVENTORY[id]) {
+        PETINVENTORY[id] = {}
+    }
+    if (PETINVENTORY[id][pet]) {
+        return false
+    }
+    PETINVENTORY[id][pet] = { health: PETSHOP[pet]['max-hunger'], name: pet }
+    return true
+}
+
+function buyPet(id: string, pet: string) {
+    if (PETINVENTORY[id]) {
+        if (PETINVENTORY[id][pet]) {
             return false;
         }
-        PETINVENTORY[id][pet] = {health: PETSHOP[pet]["max-hunger"], name: pet}
+        PETINVENTORY[id][pet] = { health: PETSHOP[pet]["max-hunger"], name: pet }
         let total = 0
         for (let cost of PETSHOP[pet].cost) {
             total += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(id), cost)
@@ -91,8 +102,8 @@ function buyPet(id: string, pet: string){
         economy.loseMoneyToBank(id, total)
         return true
     }
-    else{
-        PETINVENTORY[id] = {[pet]: {health: PETSHOP[pet]["max-hunger"], name: pet}}
+    else {
+        PETINVENTORY[id] = { [pet]: { health: PETSHOP[pet]["max-hunger"], name: pet } }
         let total = 0
         for (let cost of PETSHOP[pet].cost) {
             total += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(id), cost)
@@ -102,40 +113,40 @@ function buyPet(id: string, pet: string){
     }
 }
 
-function getUserPets(id: string){
+function getUserPets(id: string) {
     return PETINVENTORY[id]
 }
 
-function hasPet(id: string, pet: string){
+function hasPet(id: string, pet: string) {
     return PETINVENTORY[id]?.[pet.toLowerCase()]
 }
 
-function hasPetByName(id: string, pet: string){
+function hasPetByName(id: string, pet: string) {
     return Object.entries(PETINVENTORY[id]).filter(v => v[1].name === pet)[0]
 }
 
-function hasPetByNameOrType(id: string, pet: string): [string, {health: number, name: string}]{
+function hasPetByNameOrType(id: string, pet: string): [string, { health: number, name: string }] {
     let namedPet = hasPetByName(id, pet)
-    if(!namedPet){
+    if (!namedPet) {
         return [pet, hasPet(id, pet)]
     }
     return namedPet
 }
 
-function getFavoriteFoodOfPetType(pet: string){
+function getFavoriteFoodOfPetType(pet: string) {
     return PETSHOP[pet]?.['favorite-food']
 }
 
-function feedPet(id: string, pet: string, itemName: string){
-    if(!PETINVENTORY[id]?.[pet]){
+function feedPet(id: string, pet: string, itemName: string) {
+    if (!PETINVENTORY[id]?.[pet]) {
         return false
     }
     let amount
     let max = PETSHOP[pet]["max-hunger"]
     let canGoPastMax = false
-    switch(itemName){
+    switch (itemName) {
         case "bone": {
-            amount =  Math.floor(Math.random() * 4 + 3)
+            amount = Math.floor(Math.random() * 4 + 3)
             break
         }
         case "fish": {
@@ -156,62 +167,62 @@ function feedPet(id: string, pet: string, itemName: string){
             break;
         }
         case "meat": {
-             amount = Math.floor(Math.random() * 8 + 5)
-             break;
+            amount = Math.floor(Math.random() * 8 + 5)
+            break;
         }
         default:
             return false
     }
     let favoriteFood = getFavoriteFoodOfPetType(pet)
-    if(itemName === favoriteFood){
+    if (itemName === favoriteFood) {
         amount *= 2
     }
     PETINVENTORY[id][pet].health += amount
-    if(PETINVENTORY[id][pet].health > max && !canGoPastMax){
+    if (PETINVENTORY[id][pet].health > max && !canGoPastMax) {
         PETINVENTORY[id][pet].health = max
     }
     return amount
 }
 
-function getPetTypeByName(id: string, name: string){
-    if(PETINVENTORY[id]){
-        for(let pet in PETINVENTORY[id]){
-            if(PETINVENTORY[id][pet].name === name){
+function getPetTypeByName(id: string, name: string) {
+    if (PETINVENTORY[id]) {
+        for (let pet in PETINVENTORY[id]) {
+            if (PETINVENTORY[id][pet].name === name) {
                 return pet
             }
         }
-        if(PETINVENTORY[id]?.[name.toLowerCase()]){
+        if (PETINVENTORY[id]?.[name.toLowerCase()]) {
             return name.toLowerCase()
         }
     }
     return null
 }
 
-function setActivePet(id: string, pet: string){
-    if(!pet)
+function setActivePet(id: string, pet: string) {
+    if (!pet)
         economy._set_active_pet(id, "")
-    if(PETINVENTORY[id]?.[pet]){
+    if (PETINVENTORY[id]?.[pet]) {
         economy._set_active_pet(id, pet)
         return true
     }
     let pType = getPetTypeByName(id, pet)
-    if(pType && PETINVENTORY[id]?.[pType]){
+    if (pType && PETINVENTORY[id]?.[pType]) {
         economy._set_active_pet(id, pType)
         return true
     }
     return false
 }
 
-function getActivePet(id: string){
+function getActivePet(id: string) {
     let activePet = economy._get_active_pet(id)
-    if(activePet)
+    if (activePet)
         return activePet
     return false
 }
 
-function  killPet(id: string, pet: string){
-    if(PETINVENTORY[id]?.[pet] !== undefined){
-        if(getActivePet(id) == pet){
+function killPet(id: string, pet: string) {
+    if (PETINVENTORY[id]?.[pet] !== undefined) {
+        if (getActivePet(id) == pet) {
             setActivePet(id, "")
         }
         delete PETINVENTORY[id][pet]
@@ -220,17 +231,17 @@ function  killPet(id: string, pet: string){
     return false
 }
 
-function setPetToFullHealth(id: string, pet: string){
-    if(PETINVENTORY[id]?.[pet] === undefined){
+function setPetToFullHealth(id: string, pet: string) {
+    if (PETINVENTORY[id]?.[pet] === undefined) {
         return false
     }
     return PETINVENTORY[id][pet].health = PETSHOP[pet]['max-hunger']
 }
 
-function damagePet(id: string, pet: string){
-    if(PETINVENTORY[id]?.[pet] !== undefined){
+function damagePet(id: string, pet: string) {
+    if (PETINVENTORY[id]?.[pet] !== undefined) {
         PETINVENTORY[id][pet].health -= Math.floor(Math.random() * 4 + 1)
-        if(PETINVENTORY[id][pet].health <= 0){
+        if (PETINVENTORY[id][pet].health <= 0) {
             killPet(id, pet)
             return 2
         }
@@ -239,12 +250,12 @@ function damagePet(id: string, pet: string){
     return 0
 }
 
-function damageUserPetsRandomly(id:  string){
+function damageUserPetsRandomly(id: string) {
     let deaths = []
-    for(let p in getUserPets(id)){
-        if(Math.random() > .95){
-            let rv =  damagePet(id, p)
-            if(rv  == 2){
+    for (let p in getUserPets(id)) {
+        if (Math.random() > .95) {
+            let rv = damagePet(id, p)
+            if (rv == 2) {
                 deaths.push(p)
             }
         }
@@ -252,8 +263,8 @@ function damageUserPetsRandomly(id:  string){
     return deaths
 }
 
-function namePet(id: string, pet: string, name: string){
-    if(PETINVENTORY[id]?.[pet]){
+function namePet(id: string, pet: string, name: string) {
+    if (PETINVENTORY[id]?.[pet]) {
         PETINVENTORY[id][pet].name = name
         return true
     }
@@ -262,7 +273,7 @@ function namePet(id: string, pet: string, name: string){
 
 loadPets()
 
-export default{
+export default {
     getPetInventory,
     getPetShop,
     buyPet,
@@ -280,5 +291,6 @@ export default{
     namePet,
     hasPetByNameOrType,
     getFavoriteFoodOfPetType,
-    setPetToFullHealth
+    setPetToFullHealth,
+    addPet
 }
