@@ -398,11 +398,13 @@ export async function cmd({
 type InterpreterOptionNames = "dryRun" | "explicit" | "no-int-cache"
 type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
 
+type InterpreterEnv = Record<string, string>
+
 class InterpreterContext {
-    env: Record<string, string>
+    env: InterpreterEnv
     options: InterpreterOptions
     programArgs: string[]
-    constructor(programArgs?: string[], env?: Record<string, string>, options?: InterpreterOptions) {
+    constructor(programArgs?: string[], env?: InterpreterEnv, options?: InterpreterOptions) {
         this.env = {
             IFS: " ",
             ...(env ?? {}),
@@ -419,7 +421,7 @@ class InterpreterContext {
         return this.options[opt] = value
     }
 
-    export(name: string, value: string){
+    export(name: keyof InterpreterEnv, value: InterpreterEnv[keyof InterpreterEnv]){
         return this.env[name] = value
     }
 
