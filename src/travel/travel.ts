@@ -194,7 +194,7 @@ class Russia extends Country {
             return crv("You found a woolly mammoth and decided to keep it as a pet")
         }
         if (hasItem(msg.author.id, "scarf")) {
-            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "3%")
+            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "6%")
             useItem(msg.author.id, "scarf", 1)
             return crv(`Your scarf let you travel through siberia unharmed, and you earned an award for bravest traveler\nYou get ${this.getSign(msg)}${amount} for your travels`)
         }
