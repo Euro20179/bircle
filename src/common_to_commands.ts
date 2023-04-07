@@ -790,7 +790,6 @@ export class Interpreter {
 
         let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
-
         if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
@@ -803,7 +802,7 @@ export class Interpreter {
         }
         else runnerIf: {
             //make sure it passes the command's perm check if it has one
-            if (!(cmdObject instanceof AliasV2) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
+            if (!(cmdObject instanceof AliasV2) && !common.WHITELIST[this.#msg.author.id]?.includes(cmd) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
                 rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
                 break runnerIf
             }
@@ -818,8 +817,6 @@ export class Interpreter {
 
             //if any are true, the user cannot run the command
             if (
-                //is whitelisted
-                common.WHITELIST[this.#msg.author.id]?.includes(cmd) ||
                 //is blacklisted
                 common.BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
                 //is disabled from the caller
@@ -834,10 +831,10 @@ export class Interpreter {
 
             events.botEvents.emit(events.CmdRun, this)
 
-            if ((this.#shouldType || cmdObject?.make_bot_type))
+            if (this.#shouldType || cmdObject.make_bot_type)
                 await this.#msg.channel.sendTyping()
 
-            if (!this.context.options['no-int-cache'] && cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
+            if (!this.context.options['no-int-cache'] && cmdObject.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
                 rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
             }
 
