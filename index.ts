@@ -9,7 +9,8 @@ import { Routes } from "discord-api-types/v9"
 
 import pet from './src/pets'
 
-require("./src/commands/commands")
+require("./src/commands/commands").init()
+
 import {slashCmds } from "./src/slashCommands"
 
 import command_commons, { Interpreter } from './src/common_to_commands'
