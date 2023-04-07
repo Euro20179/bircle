@@ -375,7 +375,7 @@ export async function cmd({
 }
 
 
-type InterpreterOptionNames = "dryRun" | "explicit"
+type InterpreterOptionNames = "dryRun" | "explicit" | "no-int-cache"
 type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
 
 class InterpreterContext {
@@ -691,14 +691,20 @@ export class Interpreter {
         return [modifiers, cmd] as const
     }
 
+    async runBircleFile(cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
+            let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
+            return (await cmd({
+                msg: this.#msg,
+                command_excluding_prefix: data,
+                programArgs: args
+            })).rv
+
+    }
+
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
         
         args[0] = args[0].trim()
-
-        if (this.context.options.explicit) {
-            await handleSending(this.#msg, crv(`${this.context.env.LINENO}\t${args.join(" ")}`))
-        }
 
         if (this.context.options.dryRun) {
             if(this.returnJson)
@@ -735,6 +741,9 @@ export class Interpreter {
 
         let [opts, args2] = parser(args)
 
+        if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
+            return this.runBircleFile(cmd, args)
+        }
 
         let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
@@ -791,7 +800,7 @@ export class Interpreter {
             if ((this.#shouldType || cmdObject?.make_bot_type))
                 await this.#msg.channel.sendTyping()
 
-            if (cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
+            if (!this.context.options['no-int-cache'] && cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
                 rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
             }
 
@@ -827,6 +836,13 @@ export class Interpreter {
             if (!this.aliasV2) {
                 globals.addToCmdUse(cmd)
             }
+        }
+
+        if(this.context.options.explicit){
+            if(rv.content){
+                rv.content = `${this.context.env.LINENO}\t${args.join(" ")}\n${rv.content}`
+            }
+            else rv.content = `${this.context.env.LINENO}\t${args.join(" ")}`
         }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam

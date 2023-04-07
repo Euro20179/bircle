@@ -76,3 +76,4 @@ garbage-files/*
 !help.txt
 !command-perms/holder
 !assets/
+!src/bircle-bin/*
