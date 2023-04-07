@@ -802,6 +802,31 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     return [opts, args.slice(idxOfFirstRealArg)]
 }
 
+function getOptsWithNegate(args: ArgumentList): [Opts, ArgumentList] {
+    let opts: Record<string, boolean | string> = {}
+    let arg, idxOfFirstRealArg = -1;
+    while ("-+".includes((arg = args[++idxOfFirstRealArg])?.[0])) {
+        if (!arg[1]) break
+        switch (arg[0]) {
+            case '+': {
+                opts[arg.slice(1)] = "false"
+                break;
+            }
+            case '-': {
+                let [opt, ...value] = arg.slice(1).split("=")
+                if (opt === '-') {
+                    //needs to be increased one more time
+                    idxOfFirstRealArg++
+                    break
+                }
+                opts[opt] = value[0] == undefined ? true : value.join("=");
+
+            }
+        }
+    }
+    return [opts, args.slice(idxOfFirstRealArg)]
+}
+
 export {
     parsePosition,
     parseAliasReplacement,
@@ -821,5 +846,6 @@ export {
     parsePercentFormat,
     parseBracketPair,
     getOpts,
+    getOptsWithNegate,
     getOptsUnix
 }

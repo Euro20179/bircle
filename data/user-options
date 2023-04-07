@@ -49,3 +49,5 @@ connect4-win:The text to send when you win connect4
 connect4-symbol:Your default connect4 symbol
 
 error-on-no-cmd:Set to false so that the bot doesnt say `{cmd} does not exist`
+
+opts-parser:There are 3 opts parsers, normal, with-negate, and unix, with-negate allows for +opt which sets opt to false, unix allows for more traditional unix option parsing

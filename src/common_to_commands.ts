@@ -8,7 +8,7 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier } from './parsing';
+import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
@@ -211,7 +211,8 @@ export class AliasV2 {
 
         const optsThatNeedStandardizing = [
             ["pipe-symbol", ">pipe>"],
-            ["1-arg-string", ""]
+            ["1-arg-string", ""],
+            ["opts-parser", "normal"]
         ] as const
         let oldOpts = optsThatNeedStandardizing.map(([name, def]) => [name, user_options.getOpt(msg.author.id, name, def)])
 
@@ -723,7 +724,16 @@ export class Interpreter {
         let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
         let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
 
-        let [opts, args2] = getOpts(args)
+        let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
+
+        let parser;
+        switch(optParser){
+            case 'with-negate': parser = getOptsWithNegate.bind(args); break;
+            case 'unix': parser = getOptsUnix.bind(args); break;
+            case 'normal': default: parser = getOpts.bind(args); break;
+        }
+
+        let [opts, args2] = parser(args)
 
 
         let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
