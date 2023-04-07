@@ -18,7 +18,7 @@ class Achievement{
     }
     earn(id: string, reward: string): CommandReturn{
         let embed = new EmbedBuilder()
-        embed.setTitle(`Achievement Get: ${getOpt(id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${this.name}`)
+        embed.setTitle(`Achievement Get: ${this.name}`)
         embed.setDescription(`reward: ${reward}`)
         return {embeds: [embed], status: StatusCode.ACHIEVEMENT, do_change_cmd_user_expansion: false}
     }
@@ -54,6 +54,9 @@ class MoneyRewardAchievement extends Achievement{
 
     earn(id: string){
         let amount =  economy.calculateAmountFromNetWorth(id, this.reward)
+        //hack to make reward include the currency sign
+        //must be done after the amount is calculated
+        this.reward = `${getOpt(id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${this.reward}`
         economy.addMoney(id, amount)
         return super.earn(id, String(amount))
     }
