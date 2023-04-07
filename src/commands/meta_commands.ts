@@ -65,22 +65,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
         let newIfs = opts.getString("IFS", "")
         if (newIfs) {
-            interpreter.context.env["IFS"] = newIfs
+            interpreter.context.export("IFS", newIfs)
         }
 
         let explicit = opts.getBool("x", null)
         if (explicit !== null) {
-            interpreter.context.options.explicit = Number(explicit)
+            interpreter.context.setOpt("explicit", Number(explicit))
         }
 
         let intCache = opts.getBool("c", null)
         if (intCache !== null) {
-            interpreter.context.options['no-int-cache'] = Number(intCache)
+            interpreter.context.setOpt("no-int-cache", Number(intCache))
         }
 
         let dryRun = opts.getBool("d", null)
         if (dryRun !== null)
-            interpreter.context.options.dryRun = Number(dryRun)
+            interpreter.context.setOpt("dryRun", Number(dryRun))
 
         let newProgArgs = args.slice(0)
         if (newProgArgs.length) {
@@ -113,7 +113,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return crv("Name must be alphanumeric + _- only", { status: StatusCode.ERR })
         }
 
-        interpreter.context.env[name] = String(value)
+        interpreter.context.export(name, value)
+
         return crv(`${name} = ${value}`)
     }, "Sets a variable for the current runtime")]
 
