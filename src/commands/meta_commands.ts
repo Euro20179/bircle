@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv,  getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -63,25 +63,30 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
         let newIfs = opts.getString("IFS", "")
-        if(newIfs){
+        if (newIfs) {
             interpreter.context.env["IFS"] = newIfs
         }
 
         let explicit = opts.getBool("x", null)
-        if(explicit !== null){
+        if (explicit !== null) {
             interpreter.context.options.explicit = Number(explicit)
         }
 
+        let intCache = opts.getBool("c", null)
+        if (intCache !== null) {
+            interpreter.context.options['no-int-cache'] = Number(intCache)
+        }
+
         let dryRun = opts.getBool("d", null)
-        if(dryRun !== null)
+        if (dryRun !== null)
             interpreter.context.options.dryRun = Number(dryRun)
 
         let newProgArgs = args.slice(0)
-        if(newProgArgs.length){
+        if (newProgArgs.length) {
             interpreter.context.programArgs = newProgArgs
             return crv(interpreter.context.programArgs.join(" "))
         }
-        return {noSend: true, status: StatusCode.RETURN}
+        return { noSend: true, status: StatusCode.RETURN }
     }, "Sets program arguments", {
         helpOptions: {
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}"),
@@ -90,21 +95,21 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
     })]
 
-    yield ["env", ccmdV2(async ({interpreter}) => {
+    yield ["env", ccmdV2(async ({ interpreter }) => {
         return crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
     }, "Gets the interpreter env")]
 
-    yield ["export", ccmdV2(async ({interpreter, args}) => {
+    yield ["export", ccmdV2(async ({ interpreter, args }) => {
         let [name, ...val] = args
         let value = val.join(" ")
-        if(value[0] === "="){
+        if (value[0] === "=") {
             value = value.slice(1)
         }
 
         value = value.trim()
 
-        if(!name.match(/^[A-Za-z0-9_-]+$/)){
-            return crv("Name must be alphanumeric + _- only", {status: StatusCode.ERR})
+        if (!name.match(/^[A-Za-z0-9_-]+$/)) {
+            return crv("Name must be alphanumeric + _- only", { status: StatusCode.ERR })
         }
 
         interpreter.context.env[name] = String(value)
@@ -166,7 +171,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "interprate", ccmdV2(async ({ msg, rawArgs: args }) => {
             let parser = new Parser(msg, args.join(" ").trim())
             await parser.parse()
-            let int = new Interpreter(msg, parser.tokens, {modifiers: parser.modifiers})
+            let int = new Interpreter(msg, parser.tokens, { modifiers: parser.modifiers })
             await int.interprate()
             return { content: JSON.stringify(int), status: StatusCode.RETURN }
         }, "Interprate args"),
@@ -180,7 +185,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let userMatches = getUserMatchCommands()
             let cmds = getCommands()
             for (let cmd of args) {
-                if (aliasV2s[cmd]) {
+                if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
+                    res.push('.bircle')
+                }
+                else if (aliasV2s[cmd]) {
                     res.push("av2")
                 }
                 else if (matches[cmd]) {
@@ -372,6 +380,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                 if (!cmd) {
                     return { content: "No cmd  chosen", status: StatusCode.ERR }
+                }
+
+                if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
+                    return crv(`\`\`\`bircle\n${fs.readFileSync(`./src/bircle-bin/${cmd}.bircle`, "utf-8")}\`\`\``, {
+                        mimetype: 'application/bircle', onOver2kLimit: (_, rv) => {
+                            rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
+                            return rv
+
+                        }
+                    })
                 }
 
                 let attrs = args.slice(1)
@@ -2513,8 +2531,8 @@ ${styles}
             if (!name) {
                 return { content: "No name given", status: StatusCode.RETURN }
             }
-            
-            if (getCommands().get(name) || aliasV2s[name]) {
+
+            if (getCommands().get(name) || aliasV2s[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
                 return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
@@ -2555,7 +2573,7 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
-                    if (getCommands().get(name) || getAliasesV2()[name]) {
+                    if (getCommands().get(name) || getAliasesV2()[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
                         return { content: `${name} already exists`, status: StatusCode.ERR }
                     }
                     break
@@ -2792,9 +2810,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 let version = args[0]
                 if (!args[0]) {
                     let version = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
-                    if(VERSION.part) version += `.${VERSION.part}`
-                    if(VERSION.alpha) version += `A.${version}`
-                    if(VERSION.beta) version += `B.${version}`
+                    if (VERSION.part) version += `.${VERSION.part}`
+                    if (VERSION.alpha) version += `A.${version}`
+                    if (VERSION.beta) version += `B.${version}`
                 }
                 if (!fs.existsSync(`changelog/${version}.md`)) {
                     return { content: `${version} does not exist`, status: StatusCode.ERR }
