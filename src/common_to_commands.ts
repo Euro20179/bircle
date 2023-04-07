@@ -355,13 +355,13 @@ export async function cmd({
     let parser = new Parser(msg, command_excluding_prefix)
     await parser.parse()
 
-    let logicalLine = 1
+    let logicalLine = 0
 
     context ??= new InterpreterContext(programArgs, env)
-
+ 
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     while (parser.tokens.length > 0) {
-        context.env.LINENO = String(logicalLine)
+        context.env.LINENO = String(++logicalLine)
 
         let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
         let currentToks = parser.tokens.slice(0, eolIdx)
@@ -385,8 +385,6 @@ export async function cmd({
         }
 
         context = int.context
-
-        logicalLine++;
     }
     return {
         rv: rv,
@@ -783,14 +781,15 @@ export class Interpreter {
             return this.runBircleFile(cmd, args)
         }
 
-        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
-
         if (opts['?']) {
             args = [cmd]
             args2 = [cmd]
             cmd = "help"
             this.aliasV2 = false
         }
+
+        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
+
 
         if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist

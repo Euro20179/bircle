@@ -85,7 +85,7 @@ class Token {
                 return text + "}"
             }
             case T.str: case T.pipe: {
-                return this.data
+                return typeof this.data === 'object' ? JSON.stringify(this.data) : this.data
             }
             case T.syntax: {
                 return JSON.stringify(this.data)
