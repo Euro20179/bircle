@@ -696,9 +696,9 @@ export class Interpreter {
             return (await cmd({
                 msg: this.#msg,
                 command_excluding_prefix: data,
-                programArgs: args
+                programArgs: args,
+                returnJson: this.returnJson
             })).rv
-
     }
 
     async run(): Promise<CommandReturn | undefined> {
