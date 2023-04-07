@@ -693,7 +693,8 @@ class Options extends Map {
         }
         return default_
     }
-    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = Boolean): boolean | TDefault{
+                                                                                                                            //this weird inverted logic is because if v === false, it should return false, 
+    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = v => String(v) === "true" ? true : !(String(v) === "false")): boolean | TDefault{
         let v = super.get(key)
         if (v !== undefined) {
             let bool = toBoolean(v)
