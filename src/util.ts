@@ -51,9 +51,7 @@ function isSafeFilePath(fp: string) {
     )
 }
 
-function createEmbedFieldData(name: string, value: string, inline?: boolean): APIEmbedField {
-    return { name: name, value: value, inline: inline ?? false }
-}
+const createEmbedFieldData = (name: string, value: string, inline: boolean = false): APIEmbedField => { return {name, value, inline} }
 
 /**
     * @description Creates an array of embedfielddata
@@ -61,9 +59,6 @@ function createEmbedFieldData(name: string, value: string, inline?: boolean): AP
 function efd(...data: [string, string, boolean?][]) {
     return listComprehension<[string, string, boolean?], APIEmbedField>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
 }
-
-
-
 
 class Pipe {
     data: any[]
@@ -266,9 +261,9 @@ async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
     return await fetchUserFromClient(client, find)
 }
 
-function generateFileName(cmd: string, userId: string, ext: string = "txt") {
-    return `garbage-files/${cmd}-${userId}.${ext}`
-}
+const generateFileName = (cmd: string, userId: string, ext: string = "txt") => `garbage-files/${cmd}-${userId}.${ext}`
+
+const cmdFileName = (data: TemplateStringsArray, ...template: string[]) => generateFileName(data[0]?.trim() ?? "CMD", template[0] ?? String(Math.random()), data[1]?.trim())
 
 function escapeRegex(str: string) {
     let finalString = ""
@@ -1022,6 +1017,7 @@ export {
     databaseFileToArray,
     isMsgChannel,
     isCommandCategory,
-    emitsEvent
+    emitsEvent,
+    cmdFileName
 }
 

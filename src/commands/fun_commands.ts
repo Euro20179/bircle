@@ -13,7 +13,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
-import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild } from "../util"
+import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild,  cmdFileName } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -944,7 +944,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     let respText = await resp.text()
                     let rvText = ""
                     let $ = cheerio.load(respText)
-                    const fn = generateFileName("wikipedia", msg.author.id) + ".html"
+                    const fn = cmdFileName`wikipedia${msg.author.id}html`
                     const title = $("h1#firstHeading").text().trim()
                     fs.writeFileSync(fn, respText)
                     if (opts['all']) {

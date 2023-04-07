@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate, cmdFileName } from '../util'
 
 import { format, getOpts } from '../parsing'
 
@@ -1570,7 +1570,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     else if (int.customId.startsWith("yt.json")) {
                         let yt_id = int.customId.split(":")[1]
                         let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
-                        let fn = `${generateFileName("yt", msg.author.id)}.json`
+                        const fn = cmdFileName `yt ${msg.author.id} json`
                         fs.writeFileSync(fn, JSON.stringify(json_data))
                         int.reply({
                             files: [

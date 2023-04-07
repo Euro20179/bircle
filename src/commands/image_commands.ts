@@ -7,7 +7,7 @@ import fetch = require("node-fetch")
 import { Stream } from 'stream'
 
 import { CommandCategory,  createCommandV2, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import { createGradient, cycle, generateFileName, getImgFromMsgAndOpts,  intoColorList, isMsgChannel, Pipe, randomColor, rgbToHex } from '../util'
+import { cmdFileName, createGradient, cycle,  getImgFromMsgAndOpts,  intoColorList, isMsgChannel, Pipe, randomColor, rgbToHex } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import { prefix } from '../common'
 import { Message } from 'discord.js'
@@ -50,7 +50,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                 //console.log(diffData)
                 ctx.putImageData(new canvas.ImageData(diffData, data1.width, data1.height), 0, 0)
-                let fn = `${generateFileName("img-diff", msg.author.id)}.png`
+                const fn = cmdFileName `img-diff ${msg.author.id} png`
                 fs.writeFileSync(fn, canv.toBuffer())
                 return {
                     files: [
@@ -86,7 +86,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             let png_fetch = await fetch.default(data.url)
             let png = await png_fetch.buffer()
-            let fn = `${generateFileName("picsum.photos", msg.author.id)}.png`
+            const fn = cmdFileName `picsum.photos ${msg.author.id} png`
             fs.writeFileSync(fn, png)
             return {
                 files: [
@@ -141,7 +141,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return v
                 })
                 ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
-                let fn = `${generateFileName("img-channel", msg.author.id)}.png`
+                const fn = cmdFileName `img-channel ${msg.author.id} png`
                 fs.writeFileSync(fn, canv.toBuffer())
                 return {
                     files: [
@@ -200,7 +200,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return 0
                 })
                 ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
-                let fn = `${generateFileName("img-channel", msg.author.id)}.png`
+                let fn = cmdFileName `img-channel ${msg.author.id} png`
                 fs.writeFileSync(fn, canv.toBuffer())
                 return {
                     files: [
@@ -311,7 +311,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     m = await msg.channel.awaitMessages({ filter: m => m.author.id == msg.author.id, max: 1, time: 120000 })
                 }
                 catch (err) {
-                    let fn = `${generateFileName("draw", msg.author.id)}.png`
+                    let fn = `draw ${msg.author.id} png`
                     fs.writeFileSync(fn, canv.toBuffer())
                     return {
                         files: [
@@ -726,7 +726,7 @@ The commands below, only work after **path** has been run:
                     }//}}}
                     default: continue
                 }
-                let fn = `${generateFileName("draw", msg.author.id)}.png`
+                let fn = cmdFileName `draw ${msg.author.id} png`
                 fs.writeFileSync(fn, canv.toBuffer())
                 await handleSending(msg, {
                     files: [
@@ -739,7 +739,7 @@ The commands below, only work after **path** has been run:
 
 
             }
-            let fn = `${generateFileName("draw", msg.author.id)}.png`
+            let fn = cmdFileName `draw ${msg.author.id} png`
             fs.writeFileSync(fn, canv.toBuffer())
             return {
                 files: [
@@ -880,7 +880,7 @@ The commands below, only work after **path** has been run:
                     positions.push([x, y])
                 }
                 let img_data = await fetch.default(String(img_link))
-                let fn = `${generateFileName("polygon", msg.author.id)}.png`
+                let fn = cmdFileName `polygon ${msg.author.id} png`
                 fs.writeFileSync(fn, await img_data.buffer())
                 let img = await canvas.loadImage(fn)
                 fs.rmSync(fn)
@@ -972,7 +972,7 @@ The commands below, only work after **path** has been run:
                         data.push(chunk)
                     })
                     resp.on("end", async () => {
-                        let fn = `${generateFileName("rect", msg.author.id)}.png`
+                        let fn = cmdFileName `rect ${msg.author.id} png`
                         fs.writeFileSync(fn, data.read())
                         let oldImg = sharp(fn).png()
                         let oldMeta = await oldImg.metadata()
@@ -1209,7 +1209,7 @@ The commands below, only work after **path** has been run:
             ctx.globalAlpha = parseFloat(String(opts['alpha'])) || 0.5
             ctx.drawImage(image1, 0, 0, canv.width, canv.height)
 
-            let fn = `${generateFileName("overlay", msg.author.id)}.png`
+            let fn = cmdFileName `overlay ${msg.author.id} png`
             fs.writeFileSync(fn, canv.toBuffer("image/png"))
 
             return {
@@ -1354,7 +1354,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
 
             ctx.fillText(text, Number(x), Number(y), width)
 
-            let fn = `${generateFileName("text", msg.author.id)}.png`
+            let fn = cmdFileName `text ${msg.author.id} png`
             fs.writeFileSync(fn, canv.toBuffer("image/png"))
 
             return {
@@ -1434,7 +1434,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 let color = args[1] || "#00000000"
                 let img_data = await fetch.default(img)
                 let buf = await img_data.buffer()
-                let fn = `${generateFileName("rotate", msg.author.id)}.png`
+                let fn = cmdFileName `rotate ${msg.author.id} png`
                 try {
                     await sharp(buf)
                         .rotate(amount, { background: color })
@@ -1475,7 +1475,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 const height = Math.min(parseInt(opts['h'] as string) || 250, 2000)
 
                 let content = color
-                let fn = `${generateFileName("color", msg.author.id)}.png`
+                let fn = cmdFileName `color ${msg.author.id} png`
                 let buffer
                 if (colors.length > 1) {
                     let gradient = []
