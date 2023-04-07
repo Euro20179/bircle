@@ -1,5 +1,5 @@
 import { client, prefix } from "../common"
-import { cmd, CommandCategory, createHelpArgument, createMatchCommand, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
+import { cmd, CommandCategory, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
 import { Parser } from "../parsing"
 import { fetchUserFromClient, getContentFromResult, isMsgChannel } from "../util"
 
@@ -11,6 +11,8 @@ export default function*(CAT: CommandCategory) {
     yield [createMatchCommand(async ({ msg, match }) => {
         let find = match[1]
         let replace = match[2]
+        if(!lastCommand[msg.author.id])
+            return crv("You have not ran a command")
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
         return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true })).rv as CommandReturn
 
