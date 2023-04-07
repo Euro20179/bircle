@@ -185,7 +185,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let userMatches = getUserMatchCommands()
             let cmds = getCommands()
             for (let cmd of args) {
-                if (aliasV2s[cmd]) {
+                if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
+                    res.push('.bircle')
+                }
+                else if (aliasV2s[cmd]) {
                     res.push("av2")
                 }
                 else if (matches[cmd]) {
@@ -2529,7 +2532,7 @@ ${styles}
                 return { content: "No name given", status: StatusCode.RETURN }
             }
 
-            if (getCommands().get(name) || aliasV2s[name]) {
+            if (getCommands().get(name) || aliasV2s[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
                 return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
@@ -2570,7 +2573,7 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
-                    if (getCommands().get(name) || getAliasesV2()[name]) {
+                    if (getCommands().get(name) || getAliasesV2()[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
                         return { content: `${name} already exists`, status: StatusCode.ERR }
                     }
                     break
