@@ -771,7 +771,7 @@ function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
         else if (arg.startsWith("--")) {
             let name = arg.slice(2)
             let value = args[++idxOfFirstRealArg];
-            opts[name] = value
+            opts[name] = value ?? true
         }
         else if (arg.startsWith("-")) {
             for (let char of arg.slice(1)) {
