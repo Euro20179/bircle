@@ -524,10 +524,7 @@ export class Interpreter {
     advance(amount = 1) {
         this.#i += amount;
         this.#curTok = this.tokens[this.#i]
-        if (this.#curTok === undefined) {
-            return false
-        }
-        return true
+        return this.#curTok !== undefined
     }
     back() {
         this.#i--;
@@ -872,6 +869,7 @@ export class Interpreter {
             }
         }
 
+        //the point of explicit is to say which command is currently being run, and which "line number" it's on
         if (this.context.options.explicit) {
             if (rv.content) {
                 rv.content = `${this.context.env.LINENO}\t${args.join(" ")}\n${rv.content}`
