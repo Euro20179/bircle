@@ -48,11 +48,27 @@ function getTimersOfUser(user: string){
     return TIMERS[user]
 }
 
-function do_lap(for_user: string, name: string){
+type LapUnit = "ms" | "s" | "m" | "d" | "h"
+
+function do_lap(for_user: string, name: string, unit: LapUnit = "ms"){
     if(TIMERS[for_user]?.[name] === undefined){
         return false
     }
-    return Date.now() - TIMERS[for_user][name]
+    let ms =  Date.now() - TIMERS[for_user][name]
+    switch(unit){
+        case "s": 
+            return ms / 1000
+        case "m":
+            return ms / 1000 / 60
+        case "ms":
+            return ms
+        case "d":
+            return ms / 1000 / 60 / 60 / 24
+        case "h":
+            return ms / 1000 / 60 / 60
+        default:
+            return ms
+    }
 }
 
 /**

@@ -3228,7 +3228,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     })]
 
     yield [
-        "timer", createCommandV2(async ({ msg, args }) => {
+        "timer", createCommandV2(async ({ msg, args, opts }) => {
             let action = args[0]?.toLowerCase()
             let actions = ["create", "delete", "get", "list", "lap", "has-x-units-passed"]
 
@@ -3305,7 +3305,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     if (!timers) {
                         return { content: "You do not have any timers", status: StatusCode.ERR }
                     }
-                    return { content: Object.entries(timers).map((v) => `${v[0]}: ${Date.now() - v[1]}`).join("\n"), status: StatusCode.RETURN }
+                    let unit = args[1] || "ms"
+                    let round = opts.getBool("round", opts.getBool("r", false)) ? Math.round : (x: any) => x
+                    return { content: Object.entries(timers).map((v) => `${v[0]}: ${round(timer.do_lap(msg.author.id, v[0], unit as "ms") as number)}${unit}`).join("\n"), status: StatusCode.RETURN }
                 }
                 case "lap": {
                     let name = args[1]?.trim()
