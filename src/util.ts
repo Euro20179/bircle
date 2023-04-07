@@ -45,13 +45,10 @@ function mimeTypeToFileExtension(mime: MimeType) {
 }
 
 function isSafeFilePath(fp: string) {
-    if (fp.match(/\/?\.\.\//)) {
-        return false
-    }
-    else if (fp.match(/[^A-Z_a-z0-9\.,-]/)) {
-        return false
-    }
-    return true
+    return !(
+        fp.match(/\/?\.\.\//) ||
+        fp.match(/[^A-Z_a-z0-9\.,-]/)
+    )
 }
 
 function createEmbedFieldData(name: string, value: string, inline?: boolean): APIEmbedField {
