@@ -2809,7 +2809,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 }
                 let version = args[0]
                 if (!args[0]) {
-                    let version = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
+                    version = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
                     if (VERSION.part) version += `.${VERSION.part}`
                     if (VERSION.alpha) version += `A.${version}`
                     if (VERSION.beta) version += `B.${version}`
