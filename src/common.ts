@@ -113,7 +113,7 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 const GLOBAL_CURRENCY_SIGN = "$"
 
 
-export {
+export default {
     prefix,
     ADMINS,
     FILE_SHORTCUTS,
@@ -130,6 +130,6 @@ export {
     getUserMatchCommands,
     saveMatchCommands,
     addUserMatchCommand,
-    removeUserMatchCommand
+    removeUserMatchCommand,
 }
 

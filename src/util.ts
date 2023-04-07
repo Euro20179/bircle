@@ -8,7 +8,7 @@ import fs from 'fs'
 
 import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
 import { existsSync } from "fs"
-import { client } from "./common"
+import common from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
 
 import events from './events'
@@ -258,7 +258,7 @@ async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
     if (guild) {
         return (await fetchUser(guild, find))?.user
     }
-    return await fetchUserFromClient(client, find)
+    return await fetchUserFromClient(common.client, find)
 }
 
 const generateFileName = (cmd: string, userId: string, ext: string = "txt") => `garbage-files/${cmd}-${userId}.${ext}`

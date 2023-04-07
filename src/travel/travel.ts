@@ -10,7 +10,7 @@ import user_options from '../user-options'
 
 import achievements from '../achievements'
 
-import { GLOBAL_CURRENCY_SIGN } from "../common"
+import common from '../common'
 import vars from '../vars'
 import { giveItem, hasItem, useItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
@@ -50,7 +50,7 @@ class Country {
     }
 
     getSign(msg: Message) {
-        return user_options.getOpt(msg.author.id, "currency-sign", this.currencySign ?? GLOBAL_CURRENCY_SIGN)
+        return user_options.getOpt(msg.author.id, "currency-sign", this.currencySign ?? common.GLOBAL_CURRENCY_SIGN)
     }
 
     get activityNameList() {

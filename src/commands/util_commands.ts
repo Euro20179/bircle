@@ -20,7 +20,7 @@ import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generat
 import { format, getOpts } from '../parsing'
 
 import vars from '../vars'
-import { addToPermList, ADMINS, BLACKLIST, client, prefix, removeFromPermList } from '../common'
+import common from '../common'
 import { spawn, spawnSync } from 'child_process'
 import { isNaN } from 'lodash'
 import units from '../units'
@@ -45,7 +45,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 user = (await fetchUser(msg.guild, toFetch))?.user
             }
             else {
-                user = await fetchUserFromClient(client, toFetch)
+                user = await fetchUserFromClient(common.client, toFetch)
             }
             if (!user) {
                 user = msg.author
@@ -344,7 +344,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     status: StatusCode.RETURN
                 }
             }, category: CommandCategory.UTIL,
-            permCheck: (m) => ADMINS.includes(m.author.id),
+            permCheck: (m) => common.ADMINS.includes(m.author.id),
             help: {
                 info: "Clears logs"
             }
@@ -2078,7 +2078,7 @@ middle
             {
                 "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:
 <pre>
-${prefix}embed title this is the title
+${common.prefix}embed title this is the title
 url https://aurl.com
 description the description
 field name | value | (optional true or false)
@@ -2130,7 +2130,7 @@ The order these are given does not matter, excpet for field, which will be added
             cmd.stdin.write(m.content + "\n")
         })
         return { noSend: true, status: StatusCode.ERR }
-    }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => ADMINS.includes(m.author.id))]
+    }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => common.ADMINS.includes(m.author.id))]
 
     yield ["qalc", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
@@ -3367,14 +3367,14 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 cmds = cmds.filter(v => !commands.get(v))
                 if (addOrRemove == "a") {
-                    addToPermList(BLACKLIST, "blacklists", msg.author, cmds)
+                    common.addToPermList(common.BLACKLIST, "blacklists", msg.author, cmds)
 
                     return {
                         content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
                     }
                 } else {
-                    removeFromPermList(BLACKLIST, "blacklists", msg.author, cmds)
+                    common.removeFromPermList(common.BLACKLIST, "blacklists", msg.author, cmds)
                     return {
                         content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
@@ -3587,7 +3587,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 return { content: "No search given", status: StatusCode.RETURN }
             }
 
-            let user = await fetchUserFromClient(client, search)
+            let user = await fetchUserFromClient(common.client, search)
 
             if (!user) {
                 return { content: `${search} not found`, status: StatusCode.ERR }
@@ -3637,7 +3637,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 }
                 let member = msg.guild
                     ? await fetchUser(msg.guild, args[0])
-                    : await fetchUserFromClient(client, args[0])
+                    : await fetchUserFromClient(common.client, args[0])
                 return Pipe.start(member)
                     .default({ content: "member not found", status: StatusCode.ERR })
                     .next((member: GuildMember) => {

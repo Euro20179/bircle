@@ -8,7 +8,8 @@ import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
 import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
-import { addToPermList, addUserMatchCommand, ADMINS, client, FILE_SHORTCUTS, getUserMatchCommands, prefix, removeFromPermList, removeUserMatchCommand, saveMatchCommands, VERSION, WHITELIST } from "../common"
+
+import common from '../common'
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"
 
 
@@ -28,7 +29,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             user = (await fetchUser(msg.guild, as))?.user
         }
         else
-            user = await fetchUserFromClient(client, as)
+            user = await fetchUserFromClient(common.client, as)
         if (!user) {
             return { content: `Cannot find user ${as}`, status: StatusCode.ERR }
         }
@@ -182,7 +183,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let res = []
             let aliasV2s = getAliasesV2()
             let matches = getMatchCommands()
-            let userMatches = getUserMatchCommands()
+            let userMatches = common.getUserMatchCommands()
             let cmds = getCommands()
             for (let cmd of args) {
                 if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
@@ -275,7 +276,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             user_options.saveUserOptions()
             return { content: `<@${member.id}> unset ${optname}`, status: StatusCode.RETURN }
 
-        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => ADMINS.includes(m.author.id)),
+        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => common.ADMINS.includes(m.author.id)),
     ]
 
     yield [
@@ -624,7 +625,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN }
             }
             return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
-        }, CAT, undefined, null, null, null, (m) => ADMINS.includes(m.author.id)),
+        }, CAT, undefined, null, null, null, (m) => common.ADMINS.includes(m.author.id)),
     ]
 
     yield [
@@ -649,7 +650,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let fn = args.join(" ")
             if (!Object.keys(API.APICmds).includes(fn)) {
-                return { content: `${fn} is not a valid  api function\nrun \`${prefix}api -l\` to see api commands`, status: StatusCode.ERR }
+                return { content: `${fn} is not a valid  api function\nrun \`${common.prefix}api -l\` to see api commands`, status: StatusCode.ERR }
             }
             let apiFn = API.APICmds[fn]
             let argsForFn: { [key: string]: any } = {}
@@ -895,7 +896,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
 
             else if (opts.getBool("u", false)) {
-                return (await fetchUserFromClient(client, args[0])) ? await handleTruthiness() : await handleFalsiness()
+                return (await fetchUserFromClient(common.client, args[0])) ? await handleTruthiness() : await handleFalsiness()
             }
 
             else if (opts.getBool("U", false)) {
@@ -1151,7 +1152,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 cmdToCheck = cmdToCheck.split(";end")[0]
                 let success;
-                if (condition.trim().startsWith(`(${prefix}`)) {
+                if (condition.trim().startsWith(`(${common.prefix}`)) {
                     let command_to_run = ""
                     let check = ""
                     let expected = ""
@@ -1196,7 +1197,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                         expected += ch;
                     }
-                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
+                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(common.prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
                     expected = expected.trim()
                     switch (check.trim().toLowerCase()) {
                         case "==": {
@@ -1269,7 +1270,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                     return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
-                let elseCmd = args.join(" ").split(`${prefix}else;`).slice(1).join(`${prefix}else;`)?.trim()
+                let elseCmd = args.join(" ").split(`${common.prefix}else;`).slice(1).join(`${common.prefix}else;`)?.trim()
                 if (elseCmd) {
                     return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
@@ -1361,7 +1362,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "uptime",
         {
             run: async (_msg: Message, args: ArgumentList) => {
-                let uptime = client.uptime
+                let uptime = common.client.uptime
                 if (!uptime) {
                     return {
                         content: "No uptime found",
@@ -1439,7 +1440,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 fs.rmSync(`./command-results/${file}`)
                 return { content: `${file} removed`, status: StatusCode.RETURN }
             }, category: CAT,
-            permCheck: m => ADMINS.includes(m.author.id),
+            permCheck: m => common.ADMINS.includes(m.author.id),
             help: {
                 info: "Remove a database file"
             }
@@ -1687,9 +1688,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: `Failed to turn ${searchRegex} into a regex`, status: StatusCode.RETURN }
             }
 
-            addUserMatchCommand(msg.author.id, name, r, run)
+            common.addUserMatchCommand(msg.author.id, name, r, run)
 
-            saveMatchCommands()
+            common.saveMatchCommands()
 
             return { content: `Created match command that searches for ${searchRegex}`, status: StatusCode.RETURN }
         }, "Create a user match command", {
@@ -1705,9 +1706,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "list-match-cmds", ccmdV2(async function({ msg, args }) {
             let user: User | undefined = msg.author
             if (args[0]) {
-                user = await fetchUserFromClient(client, args[0])
+                user = await fetchUserFromClient(common.client, args[0])
             }
-            let userCmds = getUserMatchCommands().get(user?.id || msg.author.id)
+            let userCmds = common.getUserMatchCommands().get(user?.id || msg.author.id)
             if (!userCmds?.size) {
                 return { content: "You have no match cmds", status: StatusCode.RETURN }
             }
@@ -1722,7 +1723,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "remove-match-cmd", ccmdV2(async function({ msg, args }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let name = args[0]
-            let userCmds = getUserMatchCommands().get(msg.author.id)
+            let userCmds = common.getUserMatchCommands().get(msg.author.id)
             if (!userCmds) {
                 return { content: "No command", status: StatusCode.RETURN }
             }
@@ -1735,15 +1736,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
 
                 let name = Array.from(userCmds.entries()).filter((_, i) => i + 1 === Number(m?.content))[0][0]
-                removeUserMatchCommand(msg.author.id, name)
-                saveMatchCommands()
+                common.removeUserMatchCommand(msg.author.id, name)
+                common.saveMatchCommands()
                 return { content: `Successfully removed: ${name}`, status: StatusCode.RETURN }
             }
             else {
                 name = `user-match:${name}`
                 if (userCmds.get(name)) {
-                    removeUserMatchCommand(msg.author.id, name)
-                    saveMatchCommands()
+                    common.removeUserMatchCommand(msg.author.id, name)
+                    common.saveMatchCommands()
                     return { content: `Successfully removed: ${name}`, status: StatusCode.RETURN }
                 }
             }
@@ -1861,8 +1862,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (!globals.SPAMS[id])
                         break
                     line = line.trim()
-                    if (line.startsWith(prefix)) {
-                        line = line.slice(prefix.length)
+                    if (line.startsWith(common.prefix)) {
+                        line = line.slice(common.prefix.length)
                     }
                     await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
                 }
@@ -1953,7 +1954,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
                 if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                const file = FILE_SHORTCUTS[args[0] as keyof typeof FILE_SHORTCUTS] || args[0]
+                const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
 
                 if (!file) {
                     return {
@@ -1983,7 +1984,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 //gets a list of indecies of the items that the user can remove
                 let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
-                    return v.trim() === msg.author.id || ADMINS.includes(msg.author.id) ? i : undefined
+                    return v.trim() === msg.author.id || common.ADMINS.includes(msg.author.id) ? i : undefined
                 }).filter(v => v !== undefined)
 
                 let options = data.map((value, i) => [i, value] as const).filter(v => allowedIndicies.includes(v[0]))
@@ -2052,7 +2053,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                         status: StatusCode.RETURN
                     }
                 }
-                const file = FILE_SHORTCUTS[args[0] as keyof typeof FILE_SHORTCUTS] || args[0]
+                const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
                 if (!file) {
                     return {
                         content: "Nothing given to add to",
@@ -2146,7 +2147,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         "add",
         {
             run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                const file = FILE_SHORTCUTS[args[0] as keyof typeof FILE_SHORTCUTS] || args[0]
+                const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
                 if (!file) {
                     return {
                         content: "Nothing given to add to",
@@ -2440,14 +2441,14 @@ ${styles}
                 let fetchedUser = (await fetchUserFromClientOrGuild(user, msg.guild))
                 if (!fetchedUser) return crv(`${user} not found`, { status: StatusCode.ERR })
                 if (addOrRemove == "a") {
-                    addToPermList(WHITELIST, "whitelists", fetchedUser, cmds)
+                    common.addToPermList(common.WHITELIST, "whitelists", fetchedUser, cmds)
 
                     return {
                         content: `${user} has been whitelisted to use ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
                     }
                 } else {
-                    removeFromPermList(WHITELIST, "whitelists", fetchedUser, cmds)
+                    common.removeFromPermList(common.WHITELIST, "whitelists", fetchedUser, cmds)
                     return {
                         content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
@@ -2455,7 +2456,7 @@ ${styles}
                 }
             },
             permCheck: msg => {
-                return ADMINS.includes(msg.author.id)
+                return common.ADMINS.includes(msg.author.id)
             },
             help: {
                 info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
@@ -2470,7 +2471,7 @@ ${styles}
             globals.CMDUSE = globals.loadCmdUse()
             return { content: "cmd use reset", status: StatusCode.RETURN }
         }, "Resets cmduse", {
-            permCheck: m => ADMINS.includes(m.author.id)
+            permCheck: m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -2709,7 +2710,7 @@ ${styles}
                     return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
                 }
                 msg.content = lastCommand[msg.author.id]
-                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", prefix).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
+                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", common.prefix).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
             },
             help: {
                 info: "Run the last command that was run",
@@ -2773,7 +2774,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
             }
             let fmt = args[0] || "%v"
-            let { major, minor, bug, part, alpha, beta } = VERSION
+            let { major, minor, bug, part, alpha, beta } = common.VERSION
             let mainDisplay = (() => {
                 let d = `${major}.${minor}.${bug}`
                 if (part)
@@ -2809,10 +2810,10 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 }
                 let version = args[0]
                 if (!args[0]) {
-                    version = `${VERSION.major}.${VERSION.minor}.${VERSION.bug}`
-                    if (VERSION.part) version += `.${VERSION.part}`
-                    if (VERSION.alpha) version += `A.${version}`
-                    if (VERSION.beta) version += `B.${version}`
+                    version = `${common.VERSION.major}.${common.VERSION.minor}.${common.VERSION.bug}`
+                    if (common.VERSION.part) version += `.${common.VERSION.part}`
+                    if (common.VERSION.alpha) version += `A.${version}`
+                    if (common.VERSION.beta) version += `B.${version}`
                 }
                 if (!fs.existsSync(`changelog/${version}.md`)) {
                     return { content: `${version} does not exist`, status: StatusCode.ERR }

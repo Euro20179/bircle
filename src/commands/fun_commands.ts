@@ -12,7 +12,7 @@ import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
-import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common";
+import common from '../common';
 import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild,  cmdFileName } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
@@ -70,7 +70,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 user = (await fetchUser(msg.guild as Guild, args[0]))?.user
             }
             else {
-                user = await fetchUserFromClient(client, args[0])
+                user = await fetchUserFromClient(common.client, args[0])
 
             }
             if (!user) {
@@ -136,7 +136,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let toUser: User | GuildMember | undefined = undefined;
         if (!msg.guild) {
-            toUser = await fetchUserFromClient(client, argList[0])
+            toUser = await fetchUserFromClient(common.client, argList[0])
         }
         else {
             toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
@@ -160,9 +160,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return { content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username}`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
-            if (signature.startsWith(prefix)) {
+        if (signature.slice(0, common.prefix.length) === common.prefix) {
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(common.prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
+            if (signature.startsWith(common.prefix)) {
                 signature = "\\" + signature
             }
         }
@@ -208,14 +208,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             "spanking": async () => {
                 let lostAmount = Math.floor(Math.random() * 10)
                 let name = choice(["Johnny", "Jicky", "Aldo", "Yicky", "Jinky", "Mumbo"])
-                await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
+                await handleSending(msg, crv(`${name} didnt like that - ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)} ${lostAmount} 😳`), sendCallback)
                 return { noSend: true, status: StatusCode.RETURN }
             },
             "social security": async () => {
                 let amount = economy.economyLooseGrandTotal().total * 0.04
                 economy.addMoney(msg.author.id, amount)
                 return {
-                    content: `You got ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount} in social security benifits`,
+                    content: `You got ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount} in social security benifits`,
                     status: StatusCode.RETURN
                 }
             },
@@ -314,7 +314,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let recipes: [[string, ...string[]], (count?: number) => Promise<CommandReturn>][] = [
             [['oil'], async (count?: number) => {
 
-                let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+                let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
                 let gallonToBarrel = 1 / 42
                 let res = await fetch.default("https://oilprice.com/oil-price-charts")
                 let html = await res.text()
@@ -382,7 +382,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             [["a fine quarter"], async () => {
                 let amount = economy.economyLooseGrandTotal().total
                 economy.addMoney(msg.author.id, amount * 0.0026)
-                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount * 0.0026} :+1:`, status: StatusCode.RETURN }
+                return { content: `You were about to earn 25 cents, but since it is a fine quarter you get ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount * 0.0026} :+1:`, status: StatusCode.RETURN }
             }],
             [["pirate's gold tooth", "a fine quarter"], async () => {
                 giveItem(msg.author.id, "pawn shop", 1)
@@ -605,8 +605,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 count_text = "{count}"
             }
             count_text = count_text.replaceAll("{count}", `.${numeric}.`)
-            if (count_text.startsWith(prefix)) {
-                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(prefix.length), recursion: rec, returnJson: true, disable })).rv
+            if (count_text.startsWith(common.prefix)) {
+                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(common.prefix.length), recursion: rec, returnJson: true, disable })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
                 }
@@ -1094,7 +1094,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             if (opts['mail']) {
                 let search = String(opts['mail'])
-                let user = await fetchUserFromClient(client, search)
+                let user = await fetchUserFromClient(common.client, search)
                 if (!user) {
                     return { content: `${search} not found`, status: StatusCode.ERR }
                 }
@@ -1316,7 +1316,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!link)
                 return { content: "no link given", status: StatusCode.ERR }
             try {
-                await client.user?.setAvatar(link)
+                await common.client.user?.setAvatar(link)
             }
             catch (err) {
                 console.log(err)
@@ -1397,7 +1397,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (!msg.guild)
                 return crv("You must use this in a guild", { status: StatusCode.ERR })
 
-            let clientMember = msg.guild.members.cache.find(member => member.id === client.user?.id)
+            let clientMember = msg.guild.members.cache.find(member => member.id === common.client.user?.id)
             if (!clientMember)
                 return crv("Could not find bot member", { status: StatusCode.ERR })
             await clientMember.setNickname(newName)
@@ -2096,7 +2096,7 @@ Valid formats:
         "travel", ccmdV2(async function({ msg, args, opts }) {
             args.beginIter()
 
-            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
 
             let countries = travel_countries.getCountries()
 
@@ -2125,7 +2125,7 @@ Valid formats:
                 return countries[text as keyof typeof countries] ? text : BADVALUE
             }) as keyof typeof countries | typeof BADVALUE
             if (userGoingTo === BADVALUE) {
-                return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
+                return crv(`You must select a valid location: use \`${common.prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
 
             timer.createOrRestartTimer(msg.author.id, "%travel")
