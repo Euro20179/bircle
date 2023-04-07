@@ -314,6 +314,24 @@ export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
+type CmdArguments = {
+    msg: Message,
+    command_excluding_prefix: string,
+    recursion?: number,
+    returnJson?: boolean,
+    disable?: {
+        categories?: CommandCategory[],
+        commands?: string[]
+    },
+    sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>,
+    pipeData?: CommandReturn,
+    returnInterpreter?: boolean,
+    enableUserMatch?: boolean,
+    programArgs?: string[],
+    env?: Record<string, string>,
+    context?: InterpreterContext
+}
+
 export async function cmd({
     msg,
     command_excluding_prefix,
@@ -326,47 +344,49 @@ export async function cmd({
     programArgs,
     env,
     context
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[], env?: Record<string, string>, context?: InterpreterContext }) {
-    let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
-    let int;
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
+}: CmdArguments) {
 
-        let parser = new Parser(msg, command_excluding_prefix)
-        await parser.parse()
+    let int, rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
 
-        let logicalLine = 1
+    if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion)) {
+        return { rv, interpreter: int }
+    }
 
-        context ??= new InterpreterContext(programArgs, env)
+    let parser = new Parser(msg, command_excluding_prefix)
+    await parser.parse()
 
-        //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
-        while (parser.tokens.length > 0) {
-            context.env.LINENO = String(logicalLine)
+    let logicalLine = 1
 
-            let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
-            let currentToks = parser.tokens.slice(0, eolIdx)
-            parser.tokens = parser.tokens.slice(eolIdx + 1)
+    context ??= new InterpreterContext(programArgs, env)
 
-            //happens if there is some kind of empty statement
-            if (currentToks.length === 0) continue
+    //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
+    while (parser.tokens.length > 0) {
+        context.env.LINENO = String(logicalLine)
+
+        let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
+        let currentToks = parser.tokens.slice(0, eolIdx)
+        parser.tokens = parser.tokens.slice(eolIdx + 1)
+
+        //happens if there is some kind of empty statement
+        if (currentToks.length === 0) continue
 
 
-            int = new Interpreter(msg, currentToks, {
-                modifiers: parser.modifiers,
-                recursion, returnJson, disable, sendCallback, pipeData, context
-            })
-            //this was previously ored to false
-            rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
-            //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
-            //  double piping is when the result pipes into itself
-            //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
-            if (returnJson) {
-                rv = await int.handlePipes(rv)
-            }
-
-            context = int.context
-
-            logicalLine++;
+        int = new Interpreter(msg, currentToks, {
+            modifiers: parser.modifiers,
+            recursion, returnJson, disable, sendCallback, pipeData, context
+        })
+        //this was previously ored to false
+        rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
+        //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
+        //  double piping is when the result pipes into itself
+        //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
+        if (returnJson) {
+            rv = await int.handlePipes(rv)
         }
+
+        context = int.context
+
+        logicalLine++;
     }
     return {
         rv: rv,
@@ -393,6 +413,22 @@ class InterpreterContext {
         }
 
         this.programArgs = programArgs ?? []
+    }
+
+    setOpt(opt: InterpreterOptionNames, value: number){
+        return this.options[opt] = value
+    }
+
+    export(name: string, value: string){
+        return this.env[name] = value
+    }
+
+    unexport(name: string){
+        if(this.env[name]){
+            delete this.env[name]
+            return true
+        }
+        return false
     }
 }
 
@@ -692,24 +728,24 @@ export class Interpreter {
     }
 
     async runBircleFile(cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
-            let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
-            return (await cmd({
-                msg: this.#msg,
-                command_excluding_prefix: data,
-                programArgs: args,
-                returnJson: this.returnJson
-            })).rv
+        let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
+        return (await cmd({
+            msg: this.#msg,
+            command_excluding_prefix: data,
+            programArgs: args,
+            returnJson: this.returnJson
+        })).rv
     }
 
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
-        
+
         args[0] = args[0].trim()
 
         if (this.context.options.dryRun) {
-            if(this.returnJson)
-                return  { noSend: true, status: StatusCode.RETURN }
-            if(this.getPipeTo().length)
+            if (this.returnJson)
+                return { noSend: true, status: StatusCode.RETURN }
+            if (this.getPipeTo().length)
                 await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
             return
         }
@@ -733,7 +769,7 @@ export class Interpreter {
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
         let parser;
-        switch(optParser){
+        switch (optParser) {
             case 'with-negate': parser = getOptsWithNegate.bind(args); break;
             case 'unix': parser = getOptsUnix.bind(args); break;
             case 'normal': default: parser = getOpts.bind(args); break;
@@ -741,7 +777,7 @@ export class Interpreter {
 
         let [opts, args2] = parser(args)
 
-        if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
+        if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
             return this.runBircleFile(cmd, args)
         }
 
@@ -838,8 +874,8 @@ export class Interpreter {
             }
         }
 
-        if(this.context.options.explicit){
-            if(rv.content){
+        if (this.context.options.explicit) {
+            if (rv.content) {
                 rv.content = `${this.context.env.LINENO}\t${args.join(" ")}\n${rv.content}`
             }
             else rv.content = `${this.context.env.LINENO}\t${args.join(" ")}`
