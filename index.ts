@@ -1,7 +1,7 @@
 ///<reference path="src/types.d.ts" />
 import fs from 'fs'
 
-import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType,  Events, ChatInputCommandInteraction } from "discord.js"
+import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType, Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -11,12 +11,12 @@ import pet from './src/pets'
 
 require("./src/commands/commands").init()
 
-import {slashCmds } from "./src/slashCommands"
+import { slashCmds } from "./src/slashCommands"
 
 import command_commons, { Interpreter } from './src/common_to_commands'
 
 import globals = require("./src/globals")
-import { efd, isMsgChannel } from "./src/util"
+import { isMsgChannel } from "./src/util"
 import { Parser, format } from './src/parsing'
 import { getOpt } from "./src/user-options"
 import common from './src/common'
@@ -59,6 +59,27 @@ Object.defineProperty(User.prototype, "netWorth", {
         return economy.playerLooseNetWorth(this.id)
     }
 });
+
+async function execCommand(msg: Message, cmd: string, programArgs?: string[]){
+    if(!isMsgChannel(msg.channel)) return false
+    if (cmd === `END` && common.ADMINS.includes(msg.author.id)) {
+        server.close()
+    }
+    try {
+        await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
+    }
+    catch (err) {
+        console.error(err)
+        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+    }
+    globals.writeCmdUse()
+
+}
+
+Message.prototype.execCommand = async function(local_prefix: string) {
+    let c = this.content.slice(local_prefix.length)
+    return await execCommand(this, c)
+};
 
 (async () => {
     try {
@@ -135,7 +156,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     //you get reset if you have less than -40% of the economy
-    if((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4){
+    if ((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4) {
         economy.createPlayer(m.author.id)
         economy.setMoney(m.author.id, 0)
     }
@@ -189,7 +210,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             percent += pets.PETACTIONS['cat']()
         }
 
-        if(!economy.getEconomy()[m.author.id] && !m.author.bot){
+        if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
             economy.createPlayer(m.author.id, 100)
         }
 
@@ -206,40 +227,23 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     let att = m.attachments.at(0)
-    let programArgs: string[] = []
-    if(att?.name?.endsWith(".bircle")){
+    if (att?.name?.endsWith(".bircle")) {
         let res = await fetch(att.url)
         m.attachments.delete(m.attachments.keyAt(0) as string)
 
         let p = new Parser(m, m.content)
         await p.parse()
-        let int = new Interpreter(m, p.tokens,  {
+        let int = new Interpreter(m, p.tokens, {
             modifiers: p.modifiers,
             recursion: 0
         })
         await int.interprate()
 
-        programArgs = int.args
-        m.content = `${local_prefix}${await res.text()}`
-        content = m.content
+        await execCommand(m, await res.text(), int.args)
     }
 
     if (content.slice(0, local_prefix.length) == local_prefix) {
-        if (m.content === `${local_prefix}END` && common.ADMINS.includes(m.author.id)) {
-            server.close()
-        }
-        for (let cmd of content.split(`\n${local_prefix};\n`)) {
-            m.content = `${cmd}`
-            let c = m.content.slice(local_prefix.length)
-            try {
-                await command_commons.cmd({ msg: m, command_excluding_prefix: c, programArgs})
-            }
-            catch (err) {
-                console.error(err)
-                await m.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
-            }
-        }
-        globals.writeCmdUse()
+        await m.execCommand(local_prefix)
     }
     else {
         await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
@@ -305,8 +309,8 @@ common.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
             interaction.reply({ content: "You are blacklisted from this" }).catch(console.error)
             return
         }
-        for(let cmd of slashCmds){
-            if(cmd.name === interaction.commandName){
+        for (let cmd of slashCmds) {
+            if (cmd.name === interaction.commandName) {
                 globals.addToCmdUse(`/${interaction.commandName}`)
                 cmd.run(interaction as ChatInputCommandInteraction)
             }
