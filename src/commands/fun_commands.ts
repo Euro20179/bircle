@@ -2112,10 +2112,8 @@ Valid formats:
 
             let canTravel = timer.has_x_m_passed(msg.author.id, "%travel", 5, true)
             if(!canTravel){
-                return crv(`You must wait ${5 - Number(timer.do_lap(msg.author.id, "%travel")) / 1000 / 60}`)
+                return crv(`You must wait ${5 - Number(timer.do_lap(msg.author.id, "%travel", "m"))} minutes`)
             }
-
-            timer.createOrRestartTimer(msg.author.id, "%travel")
 
             if(economy.playerLooseNetWorth(msg.author.id) < 0){
                 return crv("You do not have good credit, and no country wants to accept poor people", {status: StatusCode.ERR})
@@ -2129,6 +2127,9 @@ Valid formats:
             if (userGoingTo === BADVALUE) {
                 return crv(`You must select a valid location: use \`${prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
+
+            timer.createOrRestartTimer(msg.author.id, "%travel")
+
 
             let cost = economy.calculateAmountFromStringIncludingStocks(msg.author.id, countries[userGoingTo].cost)
 
