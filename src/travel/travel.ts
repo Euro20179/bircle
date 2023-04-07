@@ -194,7 +194,7 @@ class Russia extends Country {
             return crv("You found a woolly mammoth and decided to keep it as a pet")
         }
         if (hasItem(msg.author.id, "scarf")) {
-            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "3%")
+            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "6%")
             useItem(msg.author.id, "scarf", 1)
             return crv(`Your scarf let you travel through siberia unharmed, and you earned an award for bravest traveler\nYou get ${this.getSign(msg)}${amount} for your travels`)
         }
@@ -441,6 +441,16 @@ class UnitedStates extends Country {
                 return crv("Unknown action\ndying...", { status: StatusCode.ERR })
             }
         }
+    }
+
+    async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
+        if(hasItem(msg.author.id, "hammer and sickle")){
+            useItem(msg.author.id, "hammer and sickle")
+            let amount = economy.calculateAmountFromNetWorth(msg.author.id, "5%")
+            economy.addMoney(msg.author.id, amount)
+            return crv(`With your hammer ans sickle you lead a communist revolution in the united states overthrowing the government and becoming the new dictator\nWith this vast power you earn ${amount}`)
+        }
+        return await super.go(arguments[0])
     }
 }
 
