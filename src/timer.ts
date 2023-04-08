@@ -71,8 +71,6 @@ function do_lap(for_user: string, name: string, unit: LapUnit = "ms"){
     }
 }
 
-type seconds_t = Tagger<number>
-type minutes_t = Tagger<number>
 
 /**
     * @param {boolean} for_user The user id

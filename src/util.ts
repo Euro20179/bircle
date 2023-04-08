@@ -183,8 +183,6 @@ function randomColor() {
     return listComprehension(range(0, 3), () => Math.floor(Math.random() * 256))
 }
 
-
-
 function intoColorList(color: string) {
     return String(color).replaceAll("|", ">").split(">").map(v => v.trim())
         .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2)).join("")}`)
@@ -194,7 +192,7 @@ function choice<T>(list: Array<T>): T {
     return list[Math.floor(Math.random() * list.length)]
 }
 
-function mulStr(str: string, amount: number) {
+function mulStr(str: string, amount: int_t) {
     return listComprehension(range(0, amount), () => str).join("")
 }
 
@@ -261,10 +259,7 @@ async function fetchUser(guild: Guild, find: string) {
 }
 
 async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
-    if (guild) {
-        return (await fetchUser(guild, find))?.user
-    }
-    return await fetchUserFromClient(common.client, find)
+    return guild ? (await fetchUser(guild, find))?.user : await fetchUserFromClient(common.client, find)
 }
 
 const generateFileName = (cmd: string, userId: string, ext: string = "txt") => `garbage-files/${cmd}-${userId}.${ext}`
@@ -362,7 +357,7 @@ async function applyJimpFilter(img: any, filter: any, arg: any) {
     }
 }
 
-function rgbToHex(r: number, g: number, b: number) {
+function rgbToHex(r: int_t, g: int_t, b: int_t) {
     let [rhex, ghex, bhex] = [r.toString(16), g.toString(16), b.toString(16)]
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
@@ -487,7 +482,7 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
 const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
-type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
+type AmountOfArgs = int_t | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
 class ArgList extends Array {
     #i: number
     #curArg: string | null
@@ -714,7 +709,7 @@ class Options extends Map {
         return assert(super.get(key)) ?? default_
     }
 
-    getString(key: string, default_: string, toString: (v: string | boolean) => string = String): string {
+    getString<TDefault>(key: string, default_: TDefault, toString: (v: string | boolean) => string = String): string | TDefault {
         let n = super.get(key)
         if (n === undefined || n === true) return default_
         return toString(n) || default_

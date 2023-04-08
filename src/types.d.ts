@@ -36,9 +36,17 @@ declare global {
     type Enumify<T> = T[keyof T]
 }
 
-//string-ish
+//general types
 declare global {
-    type char_t = string
+    type char_t = Tagger<string>
+    type int_t = Tagger<number>
+    type float_t = Tagger<number>
+
+    type IntStr = `${number}`
+
+    type FloatStr = `${number}.${number}`
+
+    type NumberStr = FloatStr | IntStr
 }
 
 //time Units
