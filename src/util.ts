@@ -35,6 +35,10 @@ function databaseFileToArray(name: string) {
 
 const sleep = async (time: milliseconds_t) => await new Promise(res => setTimeout(res, time))
 
+const Enum = function<const T>(data: T){
+    return data
+}
+
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
     return {
@@ -1001,6 +1005,7 @@ export {
     isCommandCategory,
     emitsEvent,
     cmdFileName,
-    sleep
+    sleep,
+    Enum
 }
 

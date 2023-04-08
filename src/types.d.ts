@@ -33,6 +33,7 @@ declare global {
     */
     type Tagger<T> = T | (Object & T)
 
+    type Enumify<T> = T[keyof T]
 }
 
 //time Units
