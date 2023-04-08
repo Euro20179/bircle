@@ -33,7 +33,7 @@ function databaseFileToArray(name: string) {
     return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
 
-const sleep = async (time: Milliseconds) => await new Promise(res => setTimeout(res, time))
+const sleep = async (time: milliseconds_t) => await new Promise(res => setTimeout(res, time))
 
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")

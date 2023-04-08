@@ -71,7 +71,6 @@ function do_lap(for_user: string, name: string, unit: LapUnit = "ms"){
     }
 }
 
-type milliseconds_t = Tagger<number>
 type seconds_t = Tagger<number>
 type minutes_t = Tagger<number>
 
@@ -86,7 +85,7 @@ function has_x_ms_passed(for_user: string , name: string, x_ms: milliseconds_t, 
         return canBeUndef
     }
     return (Date.now() - TIMERS[for_user][name]) > x_ms
-}
+};
 
 function has_x_s_passed(for_user: string, name: string, x_s: seconds_t, canBeUndef = false){
     return has_x_ms_passed(for_user, name, x_s * 1000, canBeUndef)

@@ -19,14 +19,16 @@ import parse_escape from './parse_escape';
 import parse_format from './parse_format';
 
 
-export enum StatusCode {
-    ACHIEVEMENT = -3,
-    PROMPT = -2,
-    INFO = -1,
-    RETURN = 0,
-    WARNING = 1,
-    ERR = 2,
-}
+export const StatusCode = {
+    ACHIEVEMENT: -3,
+    PROMPT: -2,
+    INFO: -1,
+    RETURN :0,
+    WARNING: 1,
+    ERR: 2
+} as const
+
+export type StatusCode = typeof StatusCode[keyof typeof StatusCode]
 
 export function statusCodeToStr(code: StatusCode) {
     return String(code)
