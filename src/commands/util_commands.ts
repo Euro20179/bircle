@@ -171,33 +171,29 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         //return {content: links.text(), status: StatusCode.RETURN}
         return { content: urls.join("\n"), status: StatusCode.RETURN }
     }, "Search google and get a list of urls", {
-        argShape: async function*(args){
+        argShape: async function*(args) {
             yield [args.expectString(() => true), "query"]
         }
     })]
 
     yield [
-        "has-role", createCommandV2(async ({ msg, argList }) => {
-            argList.beginIter()
-            let user = argList.advance()
-            if (!user) {
-                return { content: "No user given", status: StatusCode.ERR }
-            }
-            let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
-            if (!role) {
-                return { content: "Could not find role", status: StatusCode.ERR }
-            }
-            if (!msg.guild) {
-                return crv(`You must run this from a server`)
-            }
-            let member: GuildMember | undefined = await fetchUser(msg.guild, user)
+        "has-role", ccmdV2(async ({ msg, argShapeResults }) => {
+            let user = argShapeResults['user'] as string
+            let role = argShapeResults['role'] as Role
+            let member: GuildMember | undefined = await fetchUser(msg.guild as Guild, user)
             if (!member) {
                 return { content: "No member found", status: StatusCode.ERR }
             }
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
-        }, CommandCategory.UTIL, "Check if a user has a role", {
-            user: createHelpArgument("The user to checK", true),
-            role: createHelpArgument("The role to check", true)
+        }, "Check if a user has a role", {
+            helpOptions: {
+                user: createHelpArgument("The user to checK", true),
+                role: createHelpArgument("The role to check", true)
+            },
+            argShape: async function*(args, msg){
+                yield [args.advance(), "user"]
+                yield msg.guild ? [await args.expectRole(msg.guild as Guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
+            }
         })
     ]
 
@@ -1110,8 +1106,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
                 let reqAmount = args.join(" ") || "all!"
                 let { money, stocks, loan, total: _ } = economy.economyLooseGrandTotal()
-                let moneyAmount =amountParser.calculateAmountRelativeTo(money, reqAmount)
-                let stockAmount =amountParser.calculateAmountRelativeTo(stocks, reqAmount)
+                let moneyAmount = amountParser.calculateAmountRelativeTo(money, reqAmount)
+                let stockAmount = amountParser.calculateAmountRelativeTo(stocks, reqAmount)
                 let loanAmount = amountParser.calculateAmountRelativeTo(loan, reqAmount)
                 let grandTotal = amountParser.calculateAmountRelativeTo(money + stocks - loan, reqAmount)
                 return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }), status: StatusCode.RETURN }
@@ -1574,7 +1570,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     else if (int.customId.startsWith("yt.json")) {
                         let yt_id = int.customId.split(":")[1]
                         let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
-                        const fn = cmdFileName `yt ${msg.author.id} json`
+                        const fn = cmdFileName`yt ${msg.author.id} json`
                         fs.writeFileSync(fn, JSON.stringify(json_data))
                         int.reply({
                             files: [
@@ -3468,7 +3464,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             return { embeds: [embed] || "none", status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
         }, "Gets information about a role", {
-            argShape: async function*(args, msg){
+            argShape: async function*(args, msg) {
                 yield msg.guild ? [await args.expectRole(msg.guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
             }
         })]
@@ -3622,7 +3618,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             },
             argShape: async function*(args) {
                 yield [args.expectString(1), "user"],
-                yield [args.expectString(i => i ? true : BADVALUE), "fmt", true]
+                    yield [args.expectString(i => i ? true : BADVALUE), "fmt", true]
             }
         })
     ]
