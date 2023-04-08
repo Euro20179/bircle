@@ -1609,10 +1609,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "stop",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                if (!Object.keys(globals.SPAMS).length) {
+        "stop", ccmdV2(async function({msg, args}){
+                if (!Object.hasEnumerableKeys(globals.SPAMS)) {
                     return { content: "no spams to stop", status: StatusCode.ERR }
                 }
 
@@ -1650,18 +1648,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     content: finalText,
                     status: StatusCode.RETURN
                 }
-            },
-            category: CAT,
-            help: {
-                info: "Stop spams",
-                arguments: {
-                    "...spams": {
-                        description: "The spams to stop<br>If not given, will stop all spams",
-                        required: false
-                    }
-                }
+
+        }, "Stop spams", {
+            helpArguments: {
+                "...spams": createHelpArgument("The spams to stop<br>IF not given, will stop all spams", false)
             }
-        },
+        })
     ]
 
     yield [
