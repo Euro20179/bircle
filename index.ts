@@ -60,8 +60,8 @@ Object.defineProperty(User.prototype, "netWorth", {
     }
 });
 
-async function execCommand(msg: Message, cmd: string, programArgs?: string[]){
-    if(!isMsgChannel(msg.channel)) return false
+async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
+    if (!isMsgChannel(msg.channel)) return false
     if (cmd === `END` && common.ADMINS.includes(msg.author.id)) {
         server.close()
     }
@@ -82,18 +82,14 @@ Message.prototype.execCommand = async function(local_prefix: string) {
 }
 
 void (async () => {
-    try {
-        console.log('Started refreshing application (/) commands.');
+    console.log('Started refreshing application (/) commands.');
 
-        await rest.put(
-            Routes.applicationGuildCommands(globals.CLIENT_ID, globals.GUILD_ID),
-            { body: slashCmds },
-        );
-
-        console.log('Successfully reloaded application (/) commands.');
-    } catch (error) {
-        console.error(error);
-    }
+    rest.put(
+        Routes.applicationGuildCommands(globals.CLIENT_ID, globals.GUILD_ID),
+        { body: slashCmds },
+    ).then(
+        _res => console.log("Successfully reloaded application (/) commands.")
+    ).catch(console.log)
 })();
 
 
