@@ -1007,7 +1007,7 @@ export class Interpreter {
 
             for (let [match, or] of innerPairs) {
                 let innerText = `{${match}${or}}`
-                or = or.slice(2)
+                or = or.stripStart("|")
                 let n = Number(match.slice("match".length))
                 tempExec = tempExec.replace(innerText, m[n] ?? or)
             }

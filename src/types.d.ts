@@ -19,6 +19,11 @@ declare module "discord.js" {
 
 declare global {
 
+    interface String{
+        stripStart(chars: string): string,
+        stripEnd(chars: string): string
+    }
+
     type Milliseconds = number
 
     type ArgumentList = Array<string>
