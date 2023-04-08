@@ -32,7 +32,7 @@ function setUserStockSymbol(id: string, symbol: string, data: { name: string, in
     return true
 }
 
-function increaseSandCounter(id: string, amount = 1) {
+function increaseSandCounter(id: string, amount: int_t = 1) {
     let userEconData = ECONOMY[id]
     if (userEconData?.sandCounter !== undefined) {
         userEconData.sandCounter += amount

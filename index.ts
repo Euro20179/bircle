@@ -26,15 +26,12 @@ import economy from './src/economy'
 import { Interaction, Message, } from 'discord.js'
 // const economy = require("./src/economy")
 
-import { generateFileName } from './src/util'
-
 import { saveItems, hasItem } from './src/shop'
 
 import user_options from './src/user-options'
 
 import vars from './src/vars'
 import { server } from './website/server'
-import amountParser from './src/amount-parser'
 import pets from './src/pets'
 
 const rest = new REST({ version: "10" }).setToken(globals.token);
