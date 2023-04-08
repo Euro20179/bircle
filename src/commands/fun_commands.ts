@@ -677,14 +677,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "feed-pet", createCommandV2(async ({ argList, msg }) => {
-            argList.beginIter()
-            let petName = argList.expectString()
-            if (petName === BADVALUE) {
-                return { content: "No pet name given", status: StatusCode.ERR }
-            }
-            let item: string | typeof BADVALUE = argList.expectString(() => true)
-            if (item === BADVALUE) return { content: "No item", status: StatusCode.ERR }
+        "feed-pet", ccmdV2(async ({ argShapeResults, msg }) => {
+            let petName = argShapeResults['pet-name'] as string
+            let item = argShapeResults['item'] as string
 
             let p = pet.hasPetByNameOrType(msg.author.id, petName)
             if (!p[1]) {
@@ -700,7 +695,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
 
-        }, CAT, "feed-pet <pet> <item>")
+        }, "feed-pet <pet> <item>", {
+            argShape: async function*(args){
+                yield [args.expectString(), "pet-name"]
+                yield [args.expectString(() => true), 'item']
+            }
+        })
     ]
 
     yield [
