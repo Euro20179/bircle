@@ -331,24 +331,23 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "clear-logs",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                for (let file of fs.readdirSync("./command-results/")) {
-                    if (file.match(/log-\d+\.txt/)) {
-                        fs.rmSync(`./command-results/${file}`)
+        "clear-logs", ccmdV2(async function({msg, sendCallback}){
+                fs.readdir("./command-results/", (err, files) => {
+                    if(err){
+                        handleSending(msg, crv("Could not read command-results directory"), sendCallback)
+                        return
                     }
-                }
-                return {
-                    content: "Cleared Logs",
-                    status: StatusCode.RETURN
-                }
-            }, category: CommandCategory.UTIL,
-            permCheck: (m) => common.ADMINS.includes(m.author.id),
-            help: {
-                info: "Clears logs"
-            }
-        },
+                    for(let file of files){
+                        if (file.match(/log-\d+\.txt/)) {
+                            fs.rmSync(`./command-results/${file}`)
+                        }
+                    }
+                    handleSending(msg, crv("Cleared logs"), sendCallback)
+                })
+                return crv("clearing logs", {status: StatusCode.INFO})
+        }, "Clears logs", {
+            permCheck: m => common.ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [
