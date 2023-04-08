@@ -358,7 +358,7 @@ export async function cmd({
     let logicalLine = 0
 
     context ??= new InterpreterContext(programArgs, env)
- 
+
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     while (parser.tokens.length > 0) {
         context.env.LINENO = String(++logicalLine)
@@ -415,16 +415,16 @@ class InterpreterContext {
         this.programArgs = programArgs ?? []
     }
 
-    setOpt(opt: InterpreterOptionNames, value: number){
+    setOpt(opt: InterpreterOptionNames, value: number) {
         return this.options[opt] = value
     }
 
-    export(name: keyof InterpreterEnv, value: InterpreterEnv[keyof InterpreterEnv]){
+    export(name: keyof InterpreterEnv, value: InterpreterEnv[keyof InterpreterEnv]) {
         return this.env[name] = value
     }
 
-    unexport(name: string){
-        if(this.env[name]){
+    unexport(name: string) {
+        if (this.env[name]) {
             delete this.env[name]
             return true
         }
@@ -764,14 +764,11 @@ export class Interpreter {
 
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
-        let parser;
-        switch (optParser) {
-            case 'with-negate': parser = getOptsWithNegate.bind(args); break;
-            case 'unix': parser = getOptsUnix.bind(args); break;
-            case 'normal': default: parser = getOpts.bind(args); break;
-        }
-
-        let [opts, args2] = parser(args)
+        let [opts, args2] = ({
+            "with-negate": getOptsWithNegate,
+            unix: getOptsUnix,
+            normal: getOpts
+        }[optParser] ?? getOpts)(args);
 
         if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
             return this.runBircleFile(cmd, args)
@@ -853,11 +850,11 @@ export class Interpreter {
                     argShapeResults
                 };
                 let cmdO = cmdObject as CommandV2
-                if(cmdO.argShape){
+                if (cmdO.argShape) {
                     argList.beginIter()
-                    for await(const [result, type, optional] of cmdO.argShape(argList, this.#msg)){
-                        if(result === BADVALUE && !optional){
-                            rv = {content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR}
+                    for await (const [result, type, optional] of cmdO.argShape(argList, this.#msg)) {
+                        if (result === BADVALUE && !optional) {
+                            rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
                             break runnerIf;
                         }
                         argShapeResults[type] = result
