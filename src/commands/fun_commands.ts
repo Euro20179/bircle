@@ -1642,19 +1642,6 @@ Valid formats:
     ]
 
     yield [
-        "aship",
-        {
-            run: async (msg, args, sendCallback) => {
-                return await (getCommands().get('add') as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
-            },
-            help: {
-                info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
-            },
-            category: CommandCategory.FUN
-        },
-    ]
-
-    yield [
         "spasm",
         {
             run: async (msg, args, sendCallback) => {
