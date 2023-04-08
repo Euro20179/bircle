@@ -35,7 +35,7 @@ function databaseFileToArray(name: string) {
 
 const sleep = async (time: milliseconds_t) => await new Promise(res => setTimeout(res, time))
 
-const Enum = function<const T>(data: T){
+const Enum = function <const T>(data: T) {
     return data
 }
 
@@ -501,7 +501,7 @@ class ArgList extends Array {
         this.#curArg = null
         this.IFS = IFS
     }
-    resplit(newSplit: string){
+    resplit(newSplit: string) {
         return new ArgList(this.join(this.IFS).split(newSplit))
     }
     beginIter() {
@@ -605,7 +605,34 @@ class ArgList extends Array {
             else resArr[curItem] += arg + this.IFS
             return resArr.length < amountOfListItems
             //slicing here removes the extra IFS at the end of each item
-        }, () => resArr.map(v => v.slice(0, -1))) as string[] | typeof BADVALUE
+        }, () => {
+            if (resArr.length < amountOfListItems) return BADVALUE
+            return resArr.map(v => v.slice(0, -1))
+        }) as string[] | typeof BADVALUE
+    }
+    expectUnknownSizedList(splitter: string) {
+        let resArr: string[] = []
+        let curItem = 0
+        return this.expect(arg => {
+            if (resArr[curItem] === undefined) {
+                resArr[curItem] = ""
+            }
+            if (arg === splitter) {
+                curItem++;
+            }
+            else if (arg.includes(splitter)) {
+                let [last, ...rest] = arg.split(splitter)
+                resArr[curItem] += last + this.IFS
+                if (rest.length) {
+                    rest[rest.length - 1] += this.IFS
+                    resArr = resArr.concat(rest)
+                }
+                curItem = resArr.length - 1
+            }
+            else resArr[curItem] += arg + this.IFS
+            return true
+        }, () => resArr.map(v => v.slice(0, -1))
+        )
     }
     expectSizedString(size: number, amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {

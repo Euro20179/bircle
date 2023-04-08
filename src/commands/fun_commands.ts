@@ -1526,7 +1526,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             args.beginIter()
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
-            let items = args.expectList("|", Infinity)
+            let items = args.expectUnknownSizedList("|")
             if (items === BADVALUE) {
                 return crv("expected list")
             }
@@ -1622,28 +1622,23 @@ Valid formats:
     ]
 
     yield [
-        "ship",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (args.length < 2) {
-                    return { content: "2 users must be given", delete: opts['d'] as boolean, status: StatusCode.ERR }
-                }
-                let [user1Full, user2Full] = args.join(" ").split("|")
-                if (!user1Full || !user2Full) {
-                    return { content: "2 users not given", status: StatusCode.ERR }
-                }
+        "ship", ccmdV2(async function({argShapeResults, args, rawOpts: opts}){
+            console.log(argShapeResults)
+                let [user1Full, user2Full] = argShapeResults['users'] as [string, string]
                 let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
                 let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
                 let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
                 return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
+
+        },  "Create your favorite fantacies!!!!", {
+            helpArguments: {
+                user1: createHelpArgument("The first user", true),
+                user2: createHelpArgument("The second user", true)
             },
-            help: {
-                info: "Create your favorite fantacies!!!!"
-            },
-            category: CommandCategory.FUN
-        },
+            argShape: async function*(args) {
+                yield [args.expectList("|", 2), "users"]
+            }
+        })
     ]
 
     yield [
