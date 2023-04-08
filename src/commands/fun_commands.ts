@@ -775,12 +775,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
                         const embed = new EmbedBuilder()
                         embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
-                        let redness = Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255))
-                        let greenness = Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255))
-                        if (redness > 255)
-                            redness = 255
-                        if (greenness > 255)
-                            greenness = 255
+                        let redness = Math.min(Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
+                        let greenness = Math.min(Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
                         let hex = rgbToHex(redness, greenness, 0)
                         embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
                         embed.setColor(hex as ColorResolvable)
