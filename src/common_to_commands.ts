@@ -977,8 +977,8 @@ export class Interpreter {
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]
-            let match;
-            if (match = content.match(obj.match)) {
+            let match = content.match(obj.match)
+            if (match?.[0]) {
                 return handleSending(msg, await obj.run({ msg, match }))
             }
         }
