@@ -1735,15 +1735,15 @@ Valid formats:
             let content = argShapeResults['question'] as string
             let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
             return crv(format(
-                    choice(options).slice(20),
-                    {content: content, u: `${msg.author}`}
-                ), {status: StatusCode.RETURN})
+                choice(options).slice(20),
+                { content: content, u: `${msg.author}` }
+            ), { status: StatusCode.RETURN })
         }, "The source of all answers", {
             helpArguments: {
                 question: createHelpArgument("What's on your mind?", false)
             },
             docs: "When adding an answer, <code>{u}</code> represents the user and <code>{content}</code> represents their question",
-            argShape: async function*(args){
+            argShape: async function*(args) {
                 yield [args.expectString(() => true), "question", true, ""]
             }
         })
@@ -1843,31 +1843,20 @@ Valid formats:
     ]
 
     yield [
-        "list-cmds",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                let values = ''
-                let typeConv = { 1: "chat", 2: "user", 3: "message" }
-                for (let cmd in getCommands()) {
-                    values += `${cmd}\n`
+        "list-cmds", ccmdV2(async function() {
+            let values = ''
+            let typeConv = { 1: "chat", 2: "user", 3: "message" }
+            for (let cmd of getCommands().keys()) {
+                values += `${cmd}\n`
+            }
+            for (let cmd of slashCmds) {
+                if (cmd.type) {
+                    values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
                 }
-                for (let cmd of slashCmds) {
-                    if (cmd.type) {
-                        values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
-                    }
-                    else values += `/${cmd["name"]}\n`
-                }
-                return {
-                    content: values,
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CommandCategory.FUN,
-            help: {
-                info: "List all builtin commands"
-            },
-            use_result_cache: true
-        }
+                else values += `/${cmd["name"]}\n`
+            }
+            return crv(values)
+        }, "List all builtin commands")
     ]
 
     yield [
