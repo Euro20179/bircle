@@ -190,7 +190,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 user: createHelpArgument("The user to checK", true),
                 role: createHelpArgument("The role to check", true)
             },
-            argShape: async function*(args, msg){
+            argShape: async function*(args, msg) {
                 yield [args.advance(), "user"]
                 yield msg.guild ? [await args.expectRole(msg.guild as Guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
             }
@@ -331,20 +331,20 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "clear-logs", ccmdV2(async function({msg, sendCallback}){
-                fs.readdir("./command-results/", (err, files) => {
-                    if(err){
-                        handleSending(msg, crv("Could not read command-results directory"), sendCallback)
-                        return
+        "clear-logs", ccmdV2(async function({ msg, sendCallback }) {
+            fs.readdir("./command-results/", (err, files) => {
+                if (err) {
+                    handleSending(msg, crv("Could not read command-results directory"), sendCallback)
+                    return
+                }
+                for (let file of files) {
+                    if (file.match(/log-\d+\.txt/)) {
+                        fs.rmSync(`./command-results/${file}`)
                     }
-                    for(let file of files){
-                        if (file.match(/log-\d+\.txt/)) {
-                            fs.rmSync(`./command-results/${file}`)
-                        }
-                    }
-                    handleSending(msg, crv("Cleared logs"), sendCallback)
-                })
-                return crv("clearing logs", {status: StatusCode.INFO})
+                }
+                handleSending(msg, crv("Cleared logs"), sendCallback)
+            })
+            return crv("clearing logs", { status: StatusCode.INFO })
         }, "Clears logs", {
             permCheck: m => common.ADMINS.includes(m.author.id)
         })
@@ -861,28 +861,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "ustock",
-        {
-            run: async (msg, args) => {
-                let user = args[1] || msg.author.id
-                let member = await fetchUserFromClientOrGuild(user, msg.guild)
-                if (!member)
-                    member = msg.author || undefined
-                let stockName = args[0]
-                return { content: JSON.stringify(economy.userHasStockSymbol(member.id || "", stockName)), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Check if a user has a stock",
-                arguments: {
-                    stockName: {
-                        description: "The stock to check if the user has"
-                    },
-                    user: {
-                        description: "The user to check"
-                    }
-                }
+        "ustock", ccmdV2(async function({ msg, argShapeResults }) {
+            let user = argShapeResults['user'] as string || msg.author.id
+            let member = await fetchUserFromClientOrGuild(user, msg.guild)
+            if (!member) member = msg.author || undefined
+            let stockName = argShapeResults['stock'] as string
+            return { content: JSON.stringify(economy.userHasStockSymbol(member.id || "", stockName)), status: StatusCode.RETURN }
+        }, "Check if a user has a stock", {
+            helpArguments: {
+                stockName: createHelpArgument("The stock to check if the user has"),
+                user: createHelpArgument("The user to check")
+            },
+            argShape: async function*(args){
+                yield [args.expectString(), "stock"]
+                yield [args.expectString(), "user", true]
             }
-        },
+        })
     ]
 
     yield [
