@@ -148,23 +148,10 @@ export class AliasV2 {
                 continue
             }
             let leftIndex = Number(left.replace("args", ""))
-            let rightIndex = right ? Number(right) : NaN
-            if (!isNaN(rightIndex)) {
+            let rightIndex = right ? Number(right) : undefined
+            if(right !== undefined){
                 let slice = args.slice(leftIndex, rightIndex)
-                let text = ""
-                if (!slice.length)
-                    text = innerOr
-                else
-                    text = slice.join(" ")
-                tempExec = tempExec.replace(toReplace, text)
-            }
-            else if (right === "") {
-                let slice = args.slice(leftIndex)
-                let text = ""
-                if (!slice.length)
-                    text = innerOr
-                else
-                    text = slice.join(" ")
+                let text = slice.length ? slice.join(" ") : innerOr
                 tempExec = tempExec.replace(toReplace, text)
             }
             else {
