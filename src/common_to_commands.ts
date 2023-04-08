@@ -743,8 +743,7 @@ export class Interpreter {
             if (this.returnJson)
                 return { noSend: true, status: StatusCode.RETURN }
             if (this.getPipeTo().length)
-                await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
-            return
+                return void await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
         }
 
         let cmd = args[0];

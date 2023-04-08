@@ -79,9 +79,9 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]){
 Message.prototype.execCommand = async function(local_prefix: string) {
     let c = this.content.slice(local_prefix.length)
     return await execCommand(this, c)
-};
+}
 
-(async () => {
+void (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
 

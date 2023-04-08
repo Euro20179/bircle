@@ -40,35 +40,32 @@ export default {
     //this is different from \y because it splits the args whereas \y keeps everything as 1 arg
 
     escape_Y: async (token, _, seq, int) => {
-        if (seq && int) {
-            let p = new Parser(int.getMessage(), seq, false)
-            await p.parse()
-            let i = new Interpreter(int.getMessage(), p.tokens, {
-                modifiers: p.modifiers,
-                recursion: int.recursion + 1
-            })
-            let args = (await i.interprate()).join(" ").split(" ")
-            let toks = []
-            for(let i = 0; i < args.length; i++){
-                toks.push(new Token(T.str, args[i], int.args.length + i))
-            }
-            return toks
+        let p = new Parser(int.getMessage(), seq, false)
+        await p.parse()
+        let i = new Interpreter(int.getMessage(), p.tokens, {
+            modifiers: p.modifiers,
+            recursion: int.recursion + 1
+        })
+        let args = (await i.interprate()).join(" ").split(" ")
+        let toks = []
+        for (let i = 0; i < args.length; i++) {
+            toks.push(new Token(T.str, args[i], int.args.length + i))
         }
-        return [];
+        return toks
     },
 
-    escape_a: async(token, _, seq, int) => {
-        if(seq === "*"){
+    escape_a: async (token, _, seq, int) => {
+        if (seq === "*") {
             return [new Token(T.str, int.context.programArgs.join(int.context.env.IFS?.[0] || " "), token.argNo)]
         }
-        else if(seq === "@"){
+        else if (seq === "@") {
             return listComprehension(int.context.programArgs, arg => new Token(T.str, arg, ++token.argNo))
         }
-        else if(seq === "#"){
+        else if (seq === "#") {
             return [new Token(T.str, String(int.context.programArgs.length), token.argNo)]
         }
         let n = Number(seq)
-        if(!isNaN(n)){
+        if (!isNaN(n)) {
             return [new Token(T.str, int.context.programArgs[n] ?? "", token.argNo)]
         }
         return []
