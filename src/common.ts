@@ -112,7 +112,6 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
 const GLOBAL_CURRENCY_SIGN = "$"
 
-
 export default {
     prefix,
     ADMINS,

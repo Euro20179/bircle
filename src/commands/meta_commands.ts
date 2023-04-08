@@ -1509,14 +1509,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans }) {
+        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts }) {
+
+            let returnJson = opts.getBool("no-chat", false)
 
             let start = performance.now()
-            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
+            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback, returnJson })
             return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
                 "...command": createHelpArgument("The command to run", true)
+            }, helpOptions: {
+                "no-chat": createHelpOption("Exclude the time it takes to send result to chat")
             }
         })
     ]
