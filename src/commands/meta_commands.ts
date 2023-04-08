@@ -85,9 +85,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let newProgArgs = args.slice(0)
         if (newProgArgs.length) {
             interpreter.context.programArgs = newProgArgs
-            return crv(interpreter.context.programArgs.join(" "))
         }
-        return { noSend: true, status: StatusCode.RETURN }
+        return crv(interpreter.context.programArgs.join(interpreter.context.env.IFS ?? " "))
     }, "Sets program arguments", {
         helpOptions: {
             IFS: createHelpOption("set field seperator for variable expansion and \\a{*}"),
