@@ -707,17 +707,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         })
     ]
 
-    yield [
-        "lottery",
-        {
-            run: async (msg, _args, sendCallback) => {
-                return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Get the current lottery pool"
-            }
-        },
-    ]
+    yield ['lottery', ccmdV2(async() => crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`), "Gets the current lottery pool")]
 
     yield [
         "6",
