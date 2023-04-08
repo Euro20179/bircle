@@ -1688,8 +1688,8 @@ Valid formats:
                 query: createHelpArgument("The word to search for")
             },
             use_result_cache: true,
-            argShape: async function*(args){
-                yield[args.expectWithIfs("+", args.expectString, () => true), "query"]
+            argShape: async function*(args) {
+                yield [args.expectWithIfs("+", args.expectString, () => true), "query"]
             }
         })
     ]
@@ -1731,30 +1731,22 @@ Valid formats:
     ]
 
     yield [
-        "8",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let content = args.join(" ")
-                let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
-                return {
-                    content: choice(options)
-                        .slice(20)
-                        .replaceAll("{content}", content)
-                        .replaceAll("{u}", `${msg.author}`),
-                    status: StatusCode.RETURN
-                }
+        "8", ccmdV2(async function({ msg, argShapeResults }) {
+            let content = argShapeResults['question'] as string
+            let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
+            return crv(format(
+                    choice(options).slice(20),
+                    {content: content, u: `${msg.author}`}
+                ), {status: StatusCode.RETURN})
+        }, "The source of all answers", {
+            helpArguments: {
+                question: createHelpArgument("What's on your mind?", false)
             },
-            help: {
-                info: "<code>[8 question</code><br>for the <code>[add</code> command, <code>{u}</code> represents user using this command, and <code>{content}</code> is their question",
-                arguments: {
-                    question: {
-                        description: "What is on your mind?"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-
-        },
+            docs: "When adding an answer, <code>{u}</code> represents the user and <code>{content}</code> represents their question",
+            argShape: async function*(args){
+                yield [args.expectString(() => true), "question", true, ""]
+            }
+        })
     ]
 
     yield [

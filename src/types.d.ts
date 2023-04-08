@@ -139,7 +139,7 @@ declare global {
         use_result_cache?: boolean
         cmd_std_version?: 2,
         prompt_before_run?: boolean,
-        argShape?: (args: ArgList, msg: Message) => AsyncGenerator<[any | typeof BADVALUE, string, true?]>,
+        argShape?: (args: ArgList, msg: Message) => AsyncGenerator<[any | typeof BADVALUE, string, true?, any?]>,
     }
 
     interface SlashCommand {

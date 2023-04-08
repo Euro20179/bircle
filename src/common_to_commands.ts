@@ -23,7 +23,7 @@ export const StatusCode = {
     ACHIEVEMENT: -3,
     PROMPT: -2,
     INFO: -1,
-    RETURN :0,
+    RETURN: 0,
     WARNING: 1,
     ERR: 2
 } as const
@@ -149,7 +149,7 @@ export class AliasV2 {
             }
             let leftIndex = Number(left.replace("args", ""))
             let rightIndex = right ? Number(right) : undefined
-            if(right !== undefined){
+            if (right !== undefined) {
                 let slice = args.slice(leftIndex, rightIndex)
                 let text = slice.length ? slice.join(" ") : innerOr
                 tempExec = tempExec.replace(toReplace, text)
@@ -841,12 +841,13 @@ export class Interpreter {
                 let cmdO = cmdObject as CommandV2
                 if (cmdO.argShape) {
                     argList.beginIter()
-                    for await (const [result, type, optional] of cmdO.argShape(argList, this.#msg)) {
+                    for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
                         if (result === BADVALUE && !optional) {
                             rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
                             break runnerIf;
                         }
-                        argShapeResults[type] = result
+                        else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
+                        else argShapeResults[type] = result
                     }
                 }
                 rv = await cmdO.run.bind([cmd, cmdO])(obj)
