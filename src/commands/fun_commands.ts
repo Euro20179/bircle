@@ -13,13 +13,13 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild,  cmdFileName } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand,  snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -336,7 +336,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }],
             [["white powder", "green leaf", "organic mushroom"], async () => {
                 let ach = achievements.achievementGet(msg.author.id, "breaking good")
-                if(ach){
+                if (ach) {
                     await handleSending(msg, ach)
                 }
                 giveItem(msg.author.id, 'organic mixture', 1)
@@ -413,7 +413,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             [["amelia earhart", "the titanic"], async () => {
                 giveItem(msg.author.id, "conspiracy", 1)
                 let ach = achievements.achievementGet(msg, "conspiracy theorist")
-                if(ach){
+                if (ach) {
                     await handleSending(msg, ach)
                 }
                 return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
@@ -619,16 +619,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "stock",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let fmt = String(opts['fmt'] || "{embed}")
-                let stock = args.join(" ")
-                if (!stock) {
-                    return { content: "Looks like u pulled a cam", status: StatusCode.ERR }
-                }
+        "stock", ccmdV2(
+            async ({ msg, sendCallback, opts, argShapeResults }) => {
+                let fmt = opts.getString('fmt', '{embed}')
+                let stock = argShapeResults['stock'] as string
                 let data = await economy.getStockInformation(stock)
                 if (!data) {
                     return { content: "No  info found", status: StatusCode.ERR }
@@ -664,16 +658,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 }
             },
-            category: CommandCategory.FUN,
-            help: {
-                info: "Get information about a stock symbol",
-                options: {
-                    "fmt": {
-                        description: "Specify the format<br><ul><li><b>%p</b>: price</li><li><b>%n</b>: stock name</li><li><b>%c</b>: $change</li><li><b>%C</b>: %change</li><li><b>%v</b>: volume<li><b>{embed}</b>: give an embed instead</li></ul>"
-                    }
-                }
+            "Get information about a stock symbol", {
+            helpOptions: {
+                "fmt": createHelpOption("Specify the format<br><ul><li><b>%p</b>: price</li><li><b>%n</b>: stock name</li><li><b>%c</b>: $change</li><li><b>%C</b>: %change</li><li><b>%v</b>: volume<li><b>{embed}</b>: give an embed instead</li></ul>")
+            },
+            helpArguments: {
+                stock: createHelpArgument("The stock to get info on")
+            },
+            argShape: async function*(args) {
+                yield [args.expectString(() => true), "stock"]
             }
-        },
+        })
     ]
 
     yield [
@@ -696,7 +691,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
 
         }, "feed-pet", {
-            argShape: async function*(args){
+            argShape: async function*(args) {
                 yield [args.expectString(), "name"]
                 yield [args.expectString(() => true), 'food']
             },
@@ -707,13 +702,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         })
     ]
 
-    yield ['lottery', ccmdV2(async() => crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`), "Gets the current lottery pool")]
+    yield ['lottery', ccmdV2(async () => crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`), "Gets the current lottery pool")]
 
     yield [
         "6",
         {
             run: async (msg, args, sendCallback) => {
-                if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
+                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
                 let opts;
                 [opts, args] = getOpts(args)
                 let getRankMode = opts['rank'] || false
@@ -1489,7 +1484,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 edits = edits.slice(1)
                 let lastEdit = message.content
                 for (let edit of edits) {
-                    if(edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))){
+                    if (edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))) {
                         await new Promise(res => setTimeout(res, parseFloat(edit.slice(1, -1))))
                         continue
                     }
@@ -1554,7 +1549,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return crv("expected list")
             }
             let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep).trim()
-            return ans ? crv(ans) : crv("```invalid message```", {status: StatusCode.ERR})
+            return ans ? crv(ans) : crv("```invalid message```", { status: StatusCode.ERR })
 
         }, "Choose a random item from a list of items separated by a |", {
             helpArguments: {
@@ -2106,12 +2101,12 @@ Valid formats:
             }
 
             let canTravel = timer.has_x_m_passed(msg.author.id, "%travel", 5, true)
-            if(!canTravel){
+            if (!canTravel) {
                 return crv(`You must wait ${5 - Number(timer.do_lap(msg.author.id, "%travel", "m"))} minutes`)
             }
 
-            if(economy.playerLooseNetWorth(msg.author.id) < 0){
-                return crv("You do not have good credit, and no country wants to accept poor people", {status: StatusCode.ERR})
+            if (economy.playerLooseNetWorth(msg.author.id) < 0) {
+                return crv("You do not have good credit, and no country wants to accept poor people", { status: StatusCode.ERR })
             }
 
 
