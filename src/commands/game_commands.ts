@@ -21,6 +21,7 @@ import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
 import achievements from '../achievements'
+import amountParser from '../amount-parser'
 
 const { useItem, hasItem } = require("../shop")
 
@@ -1150,7 +1151,7 @@ until you put a 0 in the box`)
                 e.setFooter({ text: `Cost: ${amount}` })
                 if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
                     let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
-                    let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "0.2%")
+                    let winningAmount = answer.pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")
                     economy.addMoney(msg.author.id, winningAmount)
                     economy.newLottery()
                     if (userFormat !== "__default__") {

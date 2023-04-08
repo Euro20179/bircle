@@ -513,10 +513,6 @@ export default {
     getLottery,
     playerEconomyLooseTotal,
     getStockInformation,
-    /**
-        * @deprecated use amount_parser.calculateAmountRelativeTo instead
-    */
-    calculateAmountOfMoneyFromString: amount_parser.calculateAmountRelativeTo,
     work,
     economyLooseGrandTotal,
     playerLooseNetWorth,

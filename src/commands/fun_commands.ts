@@ -31,6 +31,7 @@ import travel_countries from '../travel/travel';
 import achievements from '../achievements';
 import htmlRenderer from '../html-renderer';
 import { slashCmds } from '../slashCommands';
+import amountParser from '../amount-parser';
 
 const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 const configuration = new Configuration({
@@ -706,7 +707,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "lottery",
         {
             run: async (msg, _args, sendCallback) => {
-                return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
+                return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
             }, category: CommandCategory.FUN,
             help: {
                 info: "Get the current lottery pool"

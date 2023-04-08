@@ -288,7 +288,7 @@ class Mexico extends Country {
             economy.addMoney(msg.author.id, amount)
             return crv(`The drug cartel steals ${this.getSign(msg)}${String(-amount).split(".")[0]} and 0.${String(-amount).split(".")[1]} cents from your pocket`)
         }
-        let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().moneyAndStocks, "10%")
+        let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, "10%")
         economy.addMoney(msg.author.id, amount)
 
         return crv(`You join a drug cartel and form new friendships you should'nt have believed to be possible\nAfter many years of service you accumulate ${this.getSign(msg)}${amount}`)
@@ -296,7 +296,7 @@ class Mexico extends Country {
 
     async mayanTemple({ msg }: CommandV2RunArg) {
         if (Math.random() < .03) {
-            let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().moneyAndStocks, "1%")
+            let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, "1%")
             economy.addMoney(msg.author.id, amount)
             return crv(`You found a secret gold stash worth: ${this.getSign(msg)}${amount}`)
         }
