@@ -152,9 +152,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         pet: createHelpArgument("The pet to get info on", true)
     })]
 
-    yield ["google", createCommandV2(async ({ args }) => {
+    yield ["google", ccmdV2(async ({ argShapeResults }) => {
         let baseUrl = "https://www.google.com/search?q=";
-        let s: string = args.join("+");
+        let s = argShapeResults['query'] as string
         const url = baseUrl + s;
         let data = await fetch.default(url)
         const html = await data.text()
@@ -170,7 +170,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         //return {content: links.text(), status: StatusCode.RETURN}
         return { content: urls.join("\n"), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL, "Search google and get a list of urls")]
+    }, "Search google and get a list of urls", {
+        argShape: async function*(args){
+            yield [args.expectString(() => true), "query"]
+        }
+    })]
 
     yield [
         "has-role", createCommandV2(async ({ msg, argList }) => {

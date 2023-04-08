@@ -709,8 +709,8 @@ export class Interpreter {
         let foundMatch = true
         while (foundMatch) {
             for (let mod of modMap.keys()) {
-                let m;
-                if (m = cmd.match(mod)) {
+                let m = cmd.match(mod);
+                if (m) {
                     let modifier = modMap.get(mod)
                     if (modifier) {
                         modifiers.push(new modifier(m))
