@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
 import { crv, generateDefaultRecurseBans, handleSending, promptUser, StatusCode } from "../common_to_commands"
-import { choice, isBetween, listComprehension } from "../util"
+import { choice, isBetween, listComprehension, sleep } from "../util"
 
 import pets from "../pets"
 import economy from "../economy"
@@ -74,7 +74,8 @@ class Country {
 
         await handleSending(msg, crv(this.greeting ?? `Welcome to ${name}`))
 
-        await new Promise(res => setTimeout(res, 900))
+        await sleep(900)
+
         await handleSending(msg, crv(`Please choose an activity :grin:\n${activitiesText}`, { status: StatusCode.PROMPT }))
         let msgs: Collection<string, Message<boolean>> = new Collection()
         if (msg.channel.type !== ChannelType.GuildStageVoice) {

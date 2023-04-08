@@ -19,6 +19,8 @@ declare module "discord.js" {
 
 declare global {
 
+    type Milliseconds = number
+
     type ArgumentList = Array<string>
 
     type Opts = { [k: string]: string | boolean }

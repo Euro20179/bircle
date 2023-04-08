@@ -3,7 +3,7 @@ import { Message, GuildMember, EmbedBuilder, CollectorFilter, ColorResolvable, C
 import vars from './vars'
 
 import { cmd, handleSending, StatusCode } from "./common_to_commands"
-import { efd, isMsgChannel } from './util'
+import { efd, isMsgChannel, sleep } from './util'
 
 type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder | CommandReturn
 type errType = { content?: string, err?: boolean, ret?: boolean, stack?: stackTypes[], chgI?: number, end?: boolean }
@@ -547,7 +547,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof amount !== 'number') {
                 return { err: true, content: "Time to sleep is NaN" }
             }
-            await new Promise(res => setTimeout(res, amount as number))
+            await sleep(amount as number)
             break
         }
 
