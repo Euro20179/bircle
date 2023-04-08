@@ -501,6 +501,9 @@ class ArgList extends Array {
         this.#curArg = null
         this.IFS = IFS
     }
+    resplit(newSplit: string){
+        return new ArgList(this.join(this.IFS).split(newSplit))
+    }
     beginIter() {
         this.#i = -1
         this.#curArg = this[this.#i]

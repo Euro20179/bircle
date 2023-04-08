@@ -983,55 +983,41 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "piglatin",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let sep = opts['sep']
-                if (sep == undefined) {
-                    sep = " "
-                } else sep = String(sep)
-                let words = []
-                //args are not strictly space separated
-                for (let word of args.join(" ").split(" ")) {
-                    if (word.match(/^[aeiou]/)) {
-                        words.push(`${word}ay`)
-                    }
-                    else {
-                        let firstVowel = -1
-                        for (let i = 0; i < word.length; i++) {
-                            if (word[i].match(/[aeiou]/)) {
-                                firstVowel = i
-                                break
-                            }
-                        }
-                        if (firstVowel == -1) {
-                            words.push(`${word}ay`)
-                        }
-                        else {
-                            words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
-                        }
+        "piglatin", ccmdV2(async function({ args, opts }) {
+            let sep = opts.getString("sep", " ")
+            let words = []
+            //args are not strictly space separated
+            for (let word of args.resplit(" ")) {
+                if (word.match(/^[aeiou]/)) {
+                    words.push(`${word}ay`)
+                    continue
+                }
+                let firstVowel = -1
+                for (let i = 0; i < word.length; i++) {
+                    if (word[i].match(/[aeiou]/)) {
+                        firstVowel = i
+                        break
                     }
                 }
-                return { content: words.join(sep), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "igpay atinlay",
-                arguments: {
-                    text: {
-                        description: "Text to igpay atinlay-ify"
-                    }
-                },
-                options: {
-                    sep: {
-                        description: "The seperator between words"
-                    }
+                if (firstVowel == -1) {
+                    words.push(`${word}ay`)
                 }
+                else {
+                    words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
+                }
+
+            }
+            return { content: words.join(sep), status: StatusCode.RETURN }
+
+        }, "igpay atinlay", {
+            helpArguments: {
+                text: createHelpArgument("Text to igpay atinlay-ify")
             },
-            category: CommandCategory.FUN,
+            helpOptions: {
+                sep: createHelpOption("The seperator between words")
+            },
             use_result_cache: true
-        },
+        })
     ]
 
     yield [
