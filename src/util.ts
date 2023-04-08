@@ -1006,6 +1006,6 @@ export {
     emitsEvent,
     cmdFileName,
     sleep,
-    Enum
+    Enum,
 }
 

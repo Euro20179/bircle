@@ -577,7 +577,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "count", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
+        "count", ccmdV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode }
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
@@ -615,7 +615,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return rv
             }
             return { content: count_text, delete: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-        }, CommandCategory.FUN),
+        }, "Count in the counting channel"),
     ]
 
     yield [
