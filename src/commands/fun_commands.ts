@@ -1388,12 +1388,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "nick", ccmdV2(async function({ msg, args, opts }) {
-            args.beginIter()
-            let newName = args.expectSizedString(30, () => true)
-
-            if (newName === BADVALUE)
-                return { content: "Name not given, or is too long", status: StatusCode.ERR }
+        "nick", ccmdV2(async function({ msg, argShapeResults, opts }) {
+            let newName = argShapeResults['name'] as string
 
             if (!msg.guild)
                 return crv("You must use this in a guild", { status: StatusCode.ERR })
@@ -1406,7 +1402,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 delete: opts.getBool("d", opts.getBool("delete", false)),
             })
 
-        }, "Change the nickname of the bot")
+        }, "Change the nickname of the bot", {
+            argShape: async function*(args) {
+                yield [args.expectSizedString(30, () => true), "name"]
+            }
+        })
     ]
 
     yield [
