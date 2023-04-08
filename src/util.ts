@@ -942,10 +942,7 @@ function isBetween(low: number, checking: number, high: number) {
 }
 
 function isNumeric(string: string) {
-    if (string.match(/^[0-9]+$/)) {
-        return true
-    }
-    return false
+    return string.match(/^[0-9]+$/) ? true : false
 }
 
 function emitsEvent<T extends (...args: any[]) => any>(fn: T) {
