@@ -667,8 +667,7 @@ class Options extends Map {
     */
     //overriding the default map.get
     getDefault<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
-        let rv = super.get(key)
-        return assert(rv) ?? default_
+        return assert(super.get(key)) ?? default_
     }
 
     getString(key: string, default_: string, toString: (v: string | boolean) => string = String): string {
@@ -686,8 +685,7 @@ class Options extends Map {
     //this weird inverted logic is because if v === false, it should return false, 
     getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = v => String(v) === "true" ? true : !(String(v) === "false")): boolean | TDefault {
         let v = super.get(key)
-        if(v === undefined) return default_
-        return toBoolean(v)
+        return v === undefined ? default_ : toBoolean(v)
     }
 }
 
