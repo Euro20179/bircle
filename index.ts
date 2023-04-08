@@ -61,18 +61,12 @@ Object.defineProperty(User.prototype, "netWorth", {
 });
 
 String.prototype.stripStart = function(chars){
-    let newStr = this
-    while(chars.includes(newStr[0])){
-        newStr = newStr.slice(1)
-    }
+    for(var newStr = this; chars.includes(newStr[0]); newStr = newStr.slice(1));
     return newStr.valueOf()
 }
 
 String.prototype.stripEnd = function(chars){
-    let newStr = this
-    while(chars.includes(newStr[newStr.length - 1])){
-        newStr = newStr.slice(0, -1)
-    }
+    for(var newStr = this; chars.includes(newStr[newStr.length - 1]); newStr = newStr.slice(0, -1));
     return newStr.valueOf()
 }
 
