@@ -36,6 +36,11 @@ declare global {
     type Enumify<T> = T[keyof T]
 }
 
+//string-ish
+declare global {
+    type char_t = string
+}
+
 //time Units
 declare global {
     type milliseconds_t = Tagger<number>

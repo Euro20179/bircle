@@ -1622,15 +1622,15 @@ Valid formats:
     ]
 
     yield [
-        "ship", ccmdV2(async function({argShapeResults, args, rawOpts: opts}){
+        "ship", ccmdV2(async function({ argShapeResults, args, rawOpts: opts }) {
             console.log(argShapeResults)
-                let [user1Full, user2Full] = argShapeResults['users'] as [string, string]
-                let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
-                let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
-                let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-                return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
+            let [user1Full, user2Full] = argShapeResults['users'] as [string, string]
+            let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
+            let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
+            let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
+            return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
 
-        },  "Create your favorite fantacies!!!!", {
+        }, "Create your favorite fantacies!!!!", {
             helpArguments: {
                 user1: createHelpArgument("The first user", true),
                 user2: createHelpArgument("The second user", true)
@@ -1673,24 +1673,25 @@ Valid formats:
     ]
 
     yield [
-        "udict",
-        {
-            run: async (_msg, args, sendCallback) => {
-                try {
-                    let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
-                    let text = await data.text()
-                    let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                    return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
-                }
-                catch (err) {
-                    return { content: "An error occured", status: StatusCode.ERR }
-                }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Look up a word in urban dictionary"
+        "udict", ccmdV2(async function({ argShapeResults }) {
+            try {
+                let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${argShapeResults['query'] as string}`)
+                let text = await data.text()
+                let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
+                return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
+            }
+            catch (err) {
+                return { content: "An error occured", status: StatusCode.ERR }
+            }
+        }, "Look up a word in the urban dictionary", {
+            helpArguments: {
+                query: createHelpArgument("The word to search for")
             },
-            use_result_cache: true
-        },
+            use_result_cache: true,
+            argShape: async function*(args){
+                yield[args.expectWithIfs("+", args.expectString, () => true), "query"]
+            }
+        })
     ]
 
     yield [

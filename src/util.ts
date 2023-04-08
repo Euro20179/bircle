@@ -550,24 +550,34 @@ class ArgList extends Array {
         }
         return argsToUse
     }
-    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
-        if (this.#curArg === null) {
+    #checkCurArg(){
+        if(this.#curArg == null)
             throw new Error("beginIter must be run before this function")
-        }
+    }
+    /**
+        * @description runs an expect function and temporarily changes the ifs to newIfs
+    */
+    expectWithIfs<T extends (...args: any[])=> any>(newIfs: char_t, expecter: T, ...args: Parameters<T>){
+        let oldIfs = this.IFS
+        this.IFS = newIfs
+        let data = expecter.bind(this)(...args)
+        this.IFS = oldIfs
+        return data as ReturnType<T>
+    }
+    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
+        this.#checkCurArg()
         let argsToUse = this.#createArgList(amountOfArgs)
-        let res;
-        if ((res = filter.bind(this)(argsToUse)) !== false && res !== BADVALUE) {
+        let res = filter.bind(this)(argsToUse);
+        if (res !== false && res !== BADVALUE) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return BADVALUE
     }
     async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
-        if (this.#curArg === null) {
-            throw new Error("beginIter must be run before this function")
-        }
+        this.#checkCurArg()
         let argsToUse = this.#createArgList(amountOfArgs)
-        let res;
-        if ((res = (await filter(argsToUse))) !== BADVALUE && res !== false) {
+        let res = await filter(argsToUse);
+        if (res !== BADVALUE && res !== false) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return BADVALUE
