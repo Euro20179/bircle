@@ -91,7 +91,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (!content) {
             return { content: "No content", status: StatusCode.ERR }
         }
-        if (opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)) {
+        if (opts.getBool("r", false) || opts.getDefault("reverse", false) || opts.getDefault("tac", false)) {
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
@@ -119,7 +119,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (!content) {
             return { content: "No content", status: StatusCode.ERR }
         }
-        if (opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)) {
+        if (opts.getBool("r", false) || opts.getDefault("reverse", false) || opts.getDefault("tac", false)) {
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
@@ -200,7 +200,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "units", createCommandV2(async ({ args, opts }) => {
             let roundTo = opts.getNumber("round-to", 10)
-            if (opts.get("l", false)) {
+            if (opts.getDefault("l", false)) {
                 let compareToUnit = opts.getString("l", "yd")
                 let unitList: [typeof units.LengthUnit, number][] = []
                 Object.entries(units).forEach(kv => {

@@ -33,7 +33,7 @@ function databaseFileToArray(name: string) {
     return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
 
-const sleep = async(time: Milliseconds) => await new Promise(res => setTimeout(res, time))
+const sleep = async (time: Milliseconds) => await new Promise(res => setTimeout(res, time))
 
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
@@ -53,7 +53,7 @@ function isSafeFilePath(fp: string) {
     )
 }
 
-const createEmbedFieldData = (name: string, value: string, inline: boolean = false): APIEmbedField => { return {name, value, inline} }
+const createEmbedFieldData = (name: string, value: string, inline: boolean = false): APIEmbedField => { return { name, value, inline } }
 
 /**
     * @description Creates an array of embedfielddata
@@ -603,7 +603,7 @@ class ArgList extends Array {
     expectSizedString(size: number, amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {
             let v = i.join(" ")
-            return v.length >= size? BADVALUE : v
+            return v.length >= size ? BADVALUE : v
         })
 
     }
@@ -666,43 +666,28 @@ class Options extends Map {
         * @description Looks for <value> if it is not found, return <default_>
     */
     //overriding the default map.get
-    //@ts-ignore
-    get<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
+    getDefault<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
         let rv = super.get(key)
         return assert(rv) ?? default_
     }
 
     getString(key: string, default_: string, toString: (v: string | boolean) => string = String): string {
         let n = super.get(key)
-        if (n !== undefined && n !== true) {
-            n = toString(n)
-            if (n) {
-                return n
-            }
-            return default_
-        }
-        return default_
+        if (n === undefined || n === true) return default_
+        return toString(n) || default_
     }
 
     getNumber<TDefault>(key: string, default_: TDefault, toNumber: (v: string) => number = Number): number | TDefault {
         let n = super.get(key)
-        if (n !== undefined) {
-            let number = toNumber(n)
-            if (!isNaN(number)) {
-                return number
-            }
-            return default_
-        }
-        return default_
+        if (n === undefined) return default_
+        let number = toNumber(n)
+        return isNaN(number) ? default_ : number
     }
-                                                                                                                            //this weird inverted logic is because if v === false, it should return false, 
-    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = v => String(v) === "true" ? true : !(String(v) === "false")): boolean | TDefault{
+    //this weird inverted logic is because if v === false, it should return false, 
+    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = v => String(v) === "true" ? true : !(String(v) === "false")): boolean | TDefault {
         let v = super.get(key)
-        if (v !== undefined) {
-            let bool = toBoolean(v)
-            return bool
-        }
-        return default_
+        if(v === undefined) return default_
+        return toBoolean(v)
     }
 }
 
@@ -882,7 +867,7 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
     <details class="command-option-details-label">
-    <summary class="command-option-summary"${default_ ? ` title="default: ${default_}"` : ""}>-${option}</summary>${desc}</details>` 
+    <summary class="command-option-summary"${default_ ? ` title="default: ${default_}"` : ""}>-${option}</summary>${desc}</details>`
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
@@ -951,7 +936,7 @@ function strToCommandCat(category: keyof typeof CommandCategory) {
     return CommandCategory[category.toUpperCase() as keyof typeof CommandCategory]
 }
 
-function isCommandCategory(category: string): category is keyof typeof CommandCategory{
+function isCommandCategory(category: string): category is keyof typeof CommandCategory {
     return CommandCategory[category as keyof typeof CommandCategory] !== undefined ? true : false
 }
 
@@ -959,15 +944,15 @@ function isBetween(low: number, checking: number, high: number) {
     return checking > low && checking < high
 }
 
-function isNumeric(string: string){
-    if(string.match(/^[0-9]+$/)){
+function isNumeric(string: string) {
+    if (string.match(/^[0-9]+$/)) {
         return true
     }
     return false
 }
 
-function emitsEvent<T extends (...args: any[]) => any>(fn: T){
-    return function(...data: Parameters<T>): ReturnType<T>{
+function emitsEvent<T extends (...args: any[]) => any>(fn: T) {
+    return function(...data: Parameters<T>): ReturnType<T> {
         events.botEvents.emit(events.FuncUsed, fn)
         return fn(...data)
     }

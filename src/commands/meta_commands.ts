@@ -658,7 +658,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!apiFn.requirements.includes(i))
                     continue;
                 else {
-                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined)))
+                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.getDefault(i, undefined)))
                 }
             }
             let missing = []
@@ -2254,7 +2254,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         if (opts.getBool("l", opts.getBool("last", false))) {
             return crv(chain[chain.length - 1])
         }
-        let nth = opts.get("i", false, v => !isNaN(Number(v)) ? Number(v) : undefined)
+        let nth = opts.getDefault("i", false, v => !isNaN(Number(v)) ? Number(v) : undefined)
         if (nth !== false) {
             return crv(chain[nth - 1])
         }
