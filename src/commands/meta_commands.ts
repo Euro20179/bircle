@@ -7,7 +7,7 @@ import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, crea
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
-import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
+import { Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
 
 import common from '../common'
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"

@@ -8,7 +8,7 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
+import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'

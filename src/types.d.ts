@@ -19,12 +19,17 @@ declare module "discord.js" {
 
 declare global {
 
+    /**
+        * @description typescript automatically resolves type aliases, to prevent this, this Tagger helper type makes a type uninion between T and the intersection of Object and T in order to throw typescript off while staying (99%) type safe. The one exception is that Object() can be put in place of T
+    */
+    type Tagger<T> = T | Object & T
+
+
     interface String{
         stripStart(chars: string): string,
-        stripEnd(chars: string): string
+        stripEnd(chars: string): string,
+        splice(start: size_t, end?: size_t): string
     }
-
-    type Milliseconds = number
 
     type ArgumentList = Array<string>
 
