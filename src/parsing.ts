@@ -424,104 +424,6 @@ class Parser {
     }
 }
 
-function parseAliasReplacement(msg: Message, cmdContent: string, args: string[]) {
-    let finalText = ""
-    let isEscaped = false
-    for (let i = 0; i < cmdContent.length; i++) {
-        let ch = cmdContent[i]
-        switch (ch) {
-            case "\\": {
-                isEscaped = true
-                break
-            }
-            case "{": {
-                let startingI = i
-                if (isEscaped) {
-                    isEscaped = false
-                    finalText += "{"
-                    continue
-                }
-                let val = ""
-                for (i++; i < cmdContent.length; i++) {
-                    let ch = cmdContent[i]
-                    if (!"abcdefghijklmnopqrstuvwxyz".includes(ch)) {
-                        i--
-                        break
-                    }
-                    val += ch
-                }
-                let suffix = ""
-                let dotsInARow = 0
-                for (i++; i < cmdContent.length; i++) {
-                    let ch = cmdContent[i]
-                    if (ch === "}") {
-                        break
-                    }
-                    if (ch == '.') {
-                        dotsInARow++
-                        continue
-                    }
-                    suffix += ch
-                }
-                if (val == "arg" || val == "args") {
-                    if (suffix == "#") {
-                        finalText += String(args.length)
-                    }
-                    else if (dotsInARow == 3) {
-                        let startingPoint = 0
-                        if (suffix) {
-                            startingPoint = Number(suffix) - 1 || 0
-                        }
-                        finalText += String(args.slice(startingPoint).join(" "))
-                    }
-                    else if (dotsInARow == 2) {
-                        let [n1, n2] = suffix.split("..")
-                        finalText += String(args.slice(Number(n1) - 1, Number(n2) - 1).join(" "))
-                    }
-                    else if (Number(suffix)) {
-                        finalText += args[Number(suffix) - 1]
-                    }
-                    else {
-                        finalText += `{${cmdContent.slice(startingI, i)}}`
-                    }
-                }
-                else if (val == "opt") {
-                    let opt = suffix.replace(":", "")
-                    let opts;
-                    [opts, args] = getOpts(args)
-                    if (opts[opt] !== undefined)
-                        finalText += opts[opt]
-                }
-                else if (val == "sender") {
-                    finalText += String(msg.author)
-                }
-                else if (val == "senderid") {
-                    finalText += msg.author.id
-                }
-                else if (val == "sendername") {
-                    finalText += String(msg.author.username)
-                }
-                else if (val == "channel") {
-                    finalText += String(msg.channel)
-                }
-                else {
-                    finalText += `{${cmdContent.slice(startingI + 1, i)}}`
-                }
-                break
-            }
-            default: {
-                if (isEscaped) {
-                    finalText += `\\${ch}`
-                }
-                else {
-                    finalText += ch
-                }
-                isEscaped = false
-            }
-        }
-    }
-    return finalText
-}
 
 function operateOnPositionValues(v1: string, op: string, v2: string, areaSize: number, objectSize?: number, numberConv: Function = Number) {
     let conversions
@@ -829,7 +731,6 @@ function getOptsWithNegate(args: ArgumentList): [Opts, ArgumentList] {
 
 export {
     parsePosition,
-    parseAliasReplacement,
     Parser,
     Token,
     T,

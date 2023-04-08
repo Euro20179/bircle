@@ -91,7 +91,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (!content) {
             return { content: "No content", status: StatusCode.ERR }
         }
-        if (opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)) {
+        if (opts.getBool("r", false) || opts.getDefault("reverse", false) || opts.getDefault("tac", false)) {
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
@@ -119,7 +119,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (!content) {
             return { content: "No content", status: StatusCode.ERR }
         }
-        if (opts.getBool("r", false) || opts.get("reverse", false) || opts.get("tac", false)) {
+        if (opts.getBool("r", false) || opts.getDefault("reverse", false) || opts.getDefault("tac", false)) {
             content = content.split("\n").reverse().join("\n")
         }
         return { content: content, status: StatusCode.RETURN }
@@ -152,9 +152,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         pet: createHelpArgument("The pet to get info on", true)
     })]
 
-    yield ["google", createCommandV2(async ({ args }) => {
+    yield ["google", ccmdV2(async ({ argShapeResults }) => {
         let baseUrl = "https://www.google.com/search?q=";
-        let s: string = args.join("+");
+        let s = argShapeResults['query'] as string
         const url = baseUrl + s;
         let data = await fetch.default(url)
         const html = await data.text()
@@ -170,37 +170,37 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         //return {content: links.text(), status: StatusCode.RETURN}
         return { content: urls.join("\n"), status: StatusCode.RETURN }
-    }, CommandCategory.UTIL, "Search google and get a list of urls")]
+    }, "Search google and get a list of urls", {
+        argShape: async function*(args) {
+            yield [args.expectString(() => true), "query"]
+        }
+    })]
 
     yield [
-        "has-role", createCommandV2(async ({ msg, argList }) => {
-            argList.beginIter()
-            let user = argList.advance()
-            if (!user) {
-                return { content: "No user given", status: StatusCode.ERR }
-            }
-            let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
-            if (!role) {
-                return { content: "Could not find role", status: StatusCode.ERR }
-            }
-            if (!msg.guild) {
-                return crv(`You must run this from a server`)
-            }
-            let member: GuildMember | undefined = await fetchUser(msg.guild, user)
+        "has-role", ccmdV2(async ({ msg, argShapeResults }) => {
+            let user = argShapeResults['user'] as string
+            let role = argShapeResults['role'] as Role
+            let member: GuildMember | undefined = await fetchUser(msg.guild as Guild, user)
             if (!member) {
                 return { content: "No member found", status: StatusCode.ERR }
             }
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
-        }, CommandCategory.UTIL, "Check if a user has a role", {
-            user: createHelpArgument("The user to checK", true),
-            role: createHelpArgument("The role to check", true)
+        }, "Check if a user has a role", {
+            helpOptions: {
+                user: createHelpArgument("The user to checK", true),
+                role: createHelpArgument("The role to check", true)
+            },
+            argShape: async function*(args, msg) {
+                yield [args.advance(), "user"]
+                yield msg.guild ? [await args.expectRole(msg.guild as Guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
+            }
         })
     ]
 
     yield [
         "units", createCommandV2(async ({ args, opts }) => {
             let roundTo = opts.getNumber("round-to", 10)
-            if (opts.get("l", false)) {
+            if (opts.getDefault("l", false)) {
                 let compareToUnit = opts.getString("l", "yd")
                 let unitList: [typeof units.LengthUnit, number][] = []
                 Object.entries(units).forEach(kv => {
@@ -331,24 +331,23 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "clear-logs",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                for (let file of fs.readdirSync("./command-results/")) {
+        "clear-logs", ccmdV2(async function({ msg, sendCallback }) {
+            fs.readdir("./command-results/", (err, files) => {
+                if (err) {
+                    handleSending(msg, crv("Could not read command-results directory"), sendCallback)
+                    return
+                }
+                for (let file of files) {
                     if (file.match(/log-\d+\.txt/)) {
                         fs.rmSync(`./command-results/${file}`)
                     }
                 }
-                return {
-                    content: "Cleared Logs",
-                    status: StatusCode.RETURN
-                }
-            }, category: CommandCategory.UTIL,
-            permCheck: (m) => common.ADMINS.includes(m.author.id),
-            help: {
-                info: "Clears logs"
-            }
-        },
+                handleSending(msg, crv("Cleared logs"), sendCallback)
+            })
+            return crv("clearing logs", { status: StatusCode.INFO })
+        }, "Clears logs", {
+            permCheck: m => common.ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [
@@ -862,28 +861,22 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "ustock",
-        {
-            run: async (msg, args) => {
-                let user = args[1] || msg.author.id
-                let member = await fetchUserFromClientOrGuild(user, msg.guild)
-                if (!member)
-                    member = msg.author || undefined
-                let stockName = args[0]
-                return { content: JSON.stringify(economy.userHasStockSymbol(member.id || "", stockName)), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Check if a user has a stock",
-                arguments: {
-                    stockName: {
-                        description: "The stock to check if the user has"
-                    },
-                    user: {
-                        description: "The user to check"
-                    }
-                }
+        "ustock", ccmdV2(async function({ msg, argShapeResults }) {
+            let user = argShapeResults['user'] as string || msg.author.id
+            let member = await fetchUserFromClientOrGuild(user, msg.guild)
+            if (!member) member = msg.author || undefined
+            let stockName = argShapeResults['stock'] as string
+            return { content: JSON.stringify(economy.userHasStockSymbol(member.id || "", stockName)), status: StatusCode.RETURN }
+        }, "Check if a user has a stock", {
+            helpArguments: {
+                stockName: createHelpArgument("The stock to check if the user has"),
+                user: createHelpArgument("The user to check")
+            },
+            argShape: async function*(args){
+                yield [args.expectString(), "stock"]
+                yield [args.expectString(), "user", true]
             }
-        },
+        })
     ]
 
     yield [
@@ -1106,8 +1099,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
                 let reqAmount = args.join(" ") || "all!"
                 let { money, stocks, loan, total: _ } = economy.economyLooseGrandTotal()
-                let moneyAmount =amountParser.calculateAmountRelativeTo(money, reqAmount)
-                let stockAmount =amountParser.calculateAmountRelativeTo(stocks, reqAmount)
+                let moneyAmount = amountParser.calculateAmountRelativeTo(money, reqAmount)
+                let stockAmount = amountParser.calculateAmountRelativeTo(stocks, reqAmount)
                 let loanAmount = amountParser.calculateAmountRelativeTo(loan, reqAmount)
                 let grandTotal = amountParser.calculateAmountRelativeTo(money + stocks - loan, reqAmount)
                 return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }), status: StatusCode.RETURN }
@@ -1570,7 +1563,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     else if (int.customId.startsWith("yt.json")) {
                         let yt_id = int.customId.split(":")[1]
                         let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
-                        const fn = cmdFileName `yt ${msg.author.id} json`
+                        const fn = cmdFileName`yt ${msg.author.id} json`
                         fs.writeFileSync(fn, JSON.stringify(json_data))
                         int.reply({
                             files: [
@@ -3453,13 +3446,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "role-info", createCommandV2(async ({ msg, argList }) => {
+        "role-info", ccmdV2(async ({ argShapeResults }) => {
 
-            argList.beginIter()
-            let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
-            if (!role) {
-                return { content: "Could not find role", status: StatusCode.ERR }
-            }
+            let role = argShapeResults['role'] as Role
             let embed = new EmbedBuilder()
             embed.setTitle(role.name)
             embed.setColor(role.color)
@@ -3467,7 +3456,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
             return { embeds: [embed] || "none", status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
-        }, CAT, "Gets information about a role")]
+        }, "Gets information about a role", {
+            argShape: async function*(args, msg) {
+                yield msg.guild ? [await args.expectRole(msg.guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
+            }
+        })]
 
     yield [
         "channel-info",
@@ -3579,22 +3572,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },)]
 
     yield [
-        "user-info!", ccmdV2(async function({ msg, args }) {
-            args.beginIter()
-
-            let search = args.expectString(1)
-            if (search === BADVALUE) {
-                return { content: "No search given", status: StatusCode.RETURN }
-            }
-
+        "user-info!", ccmdV2(async function({ msg, args, argShapeResults }) {
+            let search = argShapeResults['user'] as string
             let user = await fetchUserFromClient(common.client, search)
 
             if (!user) {
                 return { content: `${search} not found`, status: StatusCode.ERR }
             }
 
-            let fmt = args.expectString(i => i ? true : BADVALUE)
-            if (fmt && fmt !== BADVALUE) {
+            let fmt = argShapeResults['fmt']
+            if (typeof fmt === 'string') {
                 return {
                     content: format(fmt, {
                         i: user.id || "#!N/A",
@@ -3622,6 +3609,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 user: createHelpArgument("The user to search for"),
                 '...fmt': createHelpArgument("The format to use<br><lh>formats</lh><ul><li>i: user id</li><li>u: username</li><li>c: created at timestamp</li><li>a: avatar url</li></ul>", false, undefined, "an embed")
             },
+            argShape: async function*(args) {
+                yield [args.expectString(1), "user"],
+                    yield [args.expectString(i => i ? true : BADVALUE), "fmt", true]
+            }
         })
     ]
 

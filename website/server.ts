@@ -6,9 +6,6 @@ import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
-import { saveItems } from '../src/shop'
-import vars from '../src/vars'
-import pets from '../src/pets'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension, isCommandCategory } from '../src/util'
 
 const { prefix, client } = require("../src/common")

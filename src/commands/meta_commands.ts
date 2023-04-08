@@ -7,7 +7,7 @@ import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, crea
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
-import { parseAliasReplacement, Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
+import { Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
 
 import common from '../common'
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"
@@ -406,7 +406,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let curAttr = command
                 for (let attr of attrs) {
                     for (let subAttr of attr.split(".")) {
-                        curAttr = curAttr[subAttr as keyof Command | keyof CommandV2]
+                        curAttr = curAttr[subAttr as Exclude<keyof Command | keyof CommandV2, "argShape">]
                         if (curAttr === undefined) break;
                     }
 
@@ -658,7 +658,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!apiFn.requirements.includes(i))
                     continue;
                 else {
-                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.get(i, undefined)))
+                    argsForFn[i] = await API.handleApiArgumentType(msg, i, String(opts.getDefault(i, undefined)))
                 }
             }
             let missing = []
@@ -1509,14 +1509,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans }) {
+        "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts }) {
+
+            let returnJson = opts.getBool("no-chat", false)
 
             let start = performance.now()
-            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
+            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback, returnJson })
             return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
                 "...command": createHelpArgument("The command to run", true)
+            }, helpOptions: {
+                "no-chat": createHelpOption("Exclude the time it takes to send result to chat")
             }
         })
     ]
@@ -1605,10 +1609,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "stop",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                if (!Object.keys(globals.SPAMS).length) {
+        "stop", ccmdV2(async function({msg, args}){
+                if (!Object.hasEnumerableKeys(globals.SPAMS)) {
                     return { content: "no spams to stop", status: StatusCode.ERR }
                 }
 
@@ -1646,18 +1648,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     content: finalText,
                     status: StatusCode.RETURN
                 }
-            },
-            category: CAT,
-            help: {
-                info: "Stop spams",
-                arguments: {
-                    "...spams": {
-                        description: "The spams to stop<br>If not given, will stop all spams",
-                        required: false
-                    }
-                }
+
+        }, "Stop spams", {
+            helpArguments: {
+                "...spams": createHelpArgument("The spams to stop<br>IF not given, will stop all spams", false)
             }
-        },
+        })
     ]
 
     yield [
@@ -2041,33 +2037,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "command-file",
-        {
-            run: async (_msg: Message, args: ArgumentList, sendCallback, opts) => {
+        "command-file", ccmdV2(async function({args, rawOpts: opts}){
                 if (opts["l"]) {
-                    return {
-                        content: `\`\`\`
-${fs.readdirSync("./command-results").join("\n")}
-\`\`\`
-`,
-                        status: StatusCode.RETURN
-                    }
+                    return crv( `\`\`\`\n${fs.readdirSync("./command-results").join("\n")}\n\`\`\``)
                 }
                 const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
-                if (!file) {
-                    return {
-                        content: "Nothing given to add to",
-                        status: StatusCode.ERR
-                    }
-                }
                 if (!isSafeFilePath(file)) {
                     return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
                 }
                 if (!fs.existsSync(`./command-results/${file}`)) {
-                    return {
-                        content: "file does not exist",
-                        status: StatusCode.ERR
-                    }
+                    return crv(`${file} does not exist`, {status: StatusCode.ERR})
                 }
                 return {
                     files: [
@@ -2080,17 +2059,15 @@ ${fs.readdirSync("./command-results").join("\n")}
                     ],
                     status: StatusCode.ERR
                 }
+
+        },  "Reads a command file", {
+            helpArguments: {
+                file: createHelpArgument("The file to see")
             },
-            help: {
-                info: "Reads a command file",
-                arguments: {
-                    file: {
-                        description: "the file to see"
-                    }
-                }
+            helpOptions: {
+                l: createHelpOption("List all possible files")
             },
-            category: CAT
-        },
+        })
     ]
 
     yield [
@@ -2250,7 +2227,7 @@ ${fs.readdirSync("./command-results").join("\n")}
         if (opts.getBool("l", opts.getBool("last", false))) {
             return crv(chain[chain.length - 1])
         }
-        let nth = opts.get("i", false, v => !isNaN(Number(v)) ? Number(v) : undefined)
+        let nth = opts.getDefault("i", false, v => !isNaN(Number(v)) ? Number(v) : undefined)
         if (nth !== false) {
             return crv(chain[nth - 1])
         }
@@ -2304,7 +2281,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 if (opts['json']) {
                     return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
                 }
-                if (Object.keys(commandsToUse).length < 1) {
+                if (!Object.hasEnumerableKeys(commandsToUse)) {
                     return {
                         content: "No help can be given :(",
                         status: StatusCode.ERR

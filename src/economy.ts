@@ -32,7 +32,7 @@ function setUserStockSymbol(id: string, symbol: string, data: { name: string, in
     return true
 }
 
-function increaseSandCounter(id: string, amount = 1) {
+function increaseSandCounter(id: string, amount: int_t = 1) {
     let userEconData = ECONOMY[id]
     if (userEconData?.sandCounter !== undefined) {
         userEconData.sandCounter += amount
@@ -454,7 +454,7 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
         if (!value || !field) continue
         jsonStockInfo[field[1]] = value[1]
     }
-    if (Object.keys(jsonStockInfo).length < 1) {
+    if (!Object.hasEnumerableKeys(jsonStockInfo)) {
         if (cb)
             cb(false)
         return false

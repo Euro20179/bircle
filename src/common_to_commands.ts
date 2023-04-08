@@ -8,8 +8,8 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
-import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween } from './util';
+import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -19,14 +19,16 @@ import parse_escape from './parse_escape';
 import parse_format from './parse_format';
 
 
-export enum StatusCode {
-    ACHIEVEMENT = -3,
-    PROMPT = -2,
-    INFO = -1,
-    RETURN = 0,
-    WARNING = 1,
-    ERR = 2,
-}
+export const StatusCode = {
+    ACHIEVEMENT: -3,
+    PROMPT: -2,
+    INFO: -1,
+    RETURN: 0,
+    WARNING: 1,
+    ERR: 2
+} as const
+
+export type StatusCode = typeof StatusCode[keyof typeof StatusCode]
 
 export function statusCodeToStr(code: StatusCode) {
     return String(code)
@@ -146,23 +148,10 @@ export class AliasV2 {
                 continue
             }
             let leftIndex = Number(left.replace("args", ""))
-            let rightIndex = right ? Number(right) : NaN
-            if (!isNaN(rightIndex)) {
+            let rightIndex = right ? Number(right) : undefined
+            if (right !== undefined) {
                 let slice = args.slice(leftIndex, rightIndex)
-                let text = ""
-                if (!slice.length)
-                    text = innerOr
-                else
-                    text = slice.join(" ")
-                tempExec = tempExec.replace(toReplace, text)
-            }
-            else if (right === "") {
-                let slice = args.slice(leftIndex)
-                let text = ""
-                if (!slice.length)
-                    text = innerOr
-                else
-                    text = slice.join(" ")
+                let text = slice.length ? slice.join(" ") : innerOr
                 tempExec = tempExec.replace(toReplace, text)
             }
             else {
@@ -358,7 +347,7 @@ export async function cmd({
     let logicalLine = 0
 
     context ??= new InterpreterContext(programArgs, env)
- 
+
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     while (parser.tokens.length > 0) {
         context.env.LINENO = String(++logicalLine)
@@ -415,16 +404,16 @@ class InterpreterContext {
         this.programArgs = programArgs ?? []
     }
 
-    setOpt(opt: InterpreterOptionNames, value: number){
+    setOpt(opt: InterpreterOptionNames, value: number) {
         return this.options[opt] = value
     }
 
-    export(name: keyof InterpreterEnv, value: InterpreterEnv[keyof InterpreterEnv]){
+    export(name: keyof InterpreterEnv, value: InterpreterEnv[keyof InterpreterEnv]) {
         return this.env[name] = value
     }
 
-    unexport(name: string){
-        if(this.env[name]){
+    unexport(name: string) {
+        if (this.env[name]) {
             delete this.env[name]
             return true
         }
@@ -709,8 +698,8 @@ export class Interpreter {
         let foundMatch = true
         while (foundMatch) {
             for (let mod of modMap.keys()) {
-                let m;
-                if (m = cmd.match(mod)) {
+                let m = cmd.match(mod);
+                if (m) {
                     let modifier = modMap.get(mod)
                     if (modifier) {
                         modifiers.push(new modifier(m))
@@ -743,8 +732,7 @@ export class Interpreter {
             if (this.returnJson)
                 return { noSend: true, status: StatusCode.RETURN }
             if (this.getPipeTo().length)
-                await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
-            return
+                return void await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
         }
 
         let cmd = args[0];
@@ -765,14 +753,11 @@ export class Interpreter {
 
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
-        let parser;
-        switch (optParser) {
-            case 'with-negate': parser = getOptsWithNegate.bind(args); break;
-            case 'unix': parser = getOptsUnix.bind(args); break;
-            case 'normal': default: parser = getOpts.bind(args); break;
-        }
-
-        let [opts, args2] = parser(args)
+        let [opts, args2] = ({
+            "with-negate": getOptsWithNegate,
+            unix: getOptsUnix,
+            normal: getOpts
+        }[optParser] ?? getOpts)(args);
 
         if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
             return this.runBircleFile(cmd, args)
@@ -837,6 +822,7 @@ export class Interpreter {
 
             else if (cmdObject?.cmd_std_version == 2) {
                 let argList = new ArgList(args2)
+                let argShapeResults: Record<string, any> = {}
                 let obj: CommandV2RunArg = {
                     msg: this.#msg,
                     rawArgs: args,
@@ -849,9 +835,21 @@ export class Interpreter {
                     argList: argList,
                     stdin: this.#pipeData,
                     pipeTo: this.#pipeTo,
-                    interpreter: this
+                    interpreter: this,
+                    argShapeResults
                 };
                 let cmdO = cmdObject as CommandV2
+                if (cmdO.argShape) {
+                    argList.beginIter()
+                    for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
+                        if (result === BADVALUE && !optional) {
+                            rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
+                            break runnerIf;
+                        }
+                        else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
+                        else argShapeResults[type] = result
+                    }
+                }
                 rv = await cmdO.run.bind([cmd, cmdO])(obj)
             }
             else if (cmdObject instanceof AliasV2) {
@@ -979,8 +977,8 @@ export class Interpreter {
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {
             let obj = matchCommands[cmd]
-            let match;
-            if (match = content.match(obj.match)) {
+            let match = content.match(obj.match)
+            if (match?.[0]) {
                 return handleSending(msg, await obj.run({ msg, match }))
             }
         }
@@ -999,7 +997,7 @@ export class Interpreter {
 
             for (let [match, or] of innerPairs) {
                 let innerText = `{${match}${or}}`
-                or = or.slice(2)
+                or = or.stripStart("|")
                 let n = Number(match.slice("match".length))
                 tempExec = tempExec.replace(innerText, m[n] ?? or)
             }
@@ -1202,7 +1200,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     shouldType?: boolean,
     use_result_cache?: boolean,
     accepts_stdin?: CommandHelp['accepts_stdin'],
-    prompt_before_run?: boolean
+    prompt_before_run?: boolean,
+    argShape?: CommandV2['argShape']
 }): CommandV2 {
     return {
         run: cb,
@@ -1219,7 +1218,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         make_bot_type: options?.shouldType,
         cmd_std_version: 2,
         use_result_cache: options?.use_result_cache,
-        prompt_before_run: options?.prompt_before_run
+        prompt_before_run: options?.prompt_before_run,
+        argShape: options?.argShape
     }
 
 }

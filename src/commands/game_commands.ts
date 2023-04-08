@@ -588,8 +588,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     if (this.yahtzee.length === 0) {
                         return false
                     }
-                    for (let item of Object.keys(this)) {
-                        let value = this[item as keyof this]
+                    for (let item in this) {
+                        let value = this[item]
                         if (value === undefined || (value && typeof value === 'object' && "length" in value && value.length === 0)) {
                             return false
                         }
@@ -825,7 +825,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let amount = Object.values(bets).reduce((p, c) => p + c, 0)
                 embed.setDescription(`<@${winner[0]}> WINS ${amount}`)
                 economy.addMoney(winner[0], amount)
-                for (let user of Object.keys(users)) {
+                for (let user in users) {
                     if (user === winner[0]) continue;
                     economy.loseMoneyToBank(user, bets[user])
                 }
@@ -1545,7 +1545,7 @@ until you put a 0 in the box`)
                     globals.HEIST_PLAYERS = []
                     globals.HEIST_TIMEOUT = null
                     globals.HEIST_STARTED = false
-                    if (Object.keys(data).length > 0) {
+                    if (Object.hasEnumerableKeys(data)) {
                         let useEmbed = false
                         let e = new EmbedBuilder()
                         let text = ''

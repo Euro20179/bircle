@@ -33,7 +33,18 @@ function databaseFileToArray(name: string) {
     return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
 
-const sleep = async(time: Milliseconds) => await new Promise(res => setTimeout(res, time))
+const sleep = async (time: milliseconds_t) => await new Promise(res => setTimeout(res, time))
+
+const Enum = function <const T>(data: T) {
+    return data
+}
+
+/**
+    * @description runs cb but in an async function to defer lower the importance
+*/
+async function defer(cb: Function){
+    cb()
+}
 
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
@@ -53,7 +64,7 @@ function isSafeFilePath(fp: string) {
     )
 }
 
-const createEmbedFieldData = (name: string, value: string, inline: boolean = false): APIEmbedField => { return {name, value, inline} }
+const createEmbedFieldData = (name: string, value: string, inline: boolean = false): APIEmbedField => { return { name, value, inline } }
 
 /**
     * @description Creates an array of embedfielddata
@@ -179,8 +190,6 @@ function randomColor() {
     return listComprehension(range(0, 3), () => Math.floor(Math.random() * 256))
 }
 
-
-
 function intoColorList(color: string) {
     return String(color).replaceAll("|", ">").split(">").map(v => v.trim())
         .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2)).join("")}`)
@@ -190,7 +199,7 @@ function choice<T>(list: Array<T>): T {
     return list[Math.floor(Math.random() * list.length)]
 }
 
-function mulStr(str: string, amount: number) {
+function mulStr(str: string, amount: int_t) {
     return listComprehension(range(0, amount), () => str).join("")
 }
 
@@ -257,10 +266,7 @@ async function fetchUser(guild: Guild, find: string) {
 }
 
 async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
-    if (guild) {
-        return (await fetchUser(guild, find))?.user
-    }
-    return await fetchUserFromClient(common.client, find)
+    return guild ? (await fetchUser(guild, find))?.user : await fetchUserFromClient(common.client, find)
 }
 
 const generateFileName = (cmd: string, userId: string, ext: string = "txt") => `garbage-files/${cmd}-${userId}.${ext}`
@@ -358,7 +364,7 @@ async function applyJimpFilter(img: any, filter: any, arg: any) {
     }
 }
 
-function rgbToHex(r: number, g: number, b: number) {
+function rgbToHex(r: int_t, g: int_t, b: int_t) {
     let [rhex, ghex, bhex] = [r.toString(16), g.toString(16), b.toString(16)]
     return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
 }
@@ -483,7 +489,7 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
 const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
-type AmountOfArgs = number | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
+type AmountOfArgs = int_t | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
 class ArgList extends Array {
     #i: number
     #curArg: string | null
@@ -496,6 +502,9 @@ class ArgList extends Array {
         this.#i = NaN
         this.#curArg = null
         this.IFS = IFS
+    }
+    resplit(newSplit: string) {
+        return new ArgList(this.join(this.IFS).split(newSplit))
     }
     beginIter() {
         this.#i = -1
@@ -543,24 +552,34 @@ class ArgList extends Array {
         }
         return argsToUse
     }
-    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
-        if (this.#curArg === null) {
+    #checkCurArg(){
+        if(this.#curArg == null)
             throw new Error("beginIter must be run before this function")
-        }
+    }
+    /**
+        * @description runs an expect function and temporarily changes the ifs to newIfs
+    */
+    expectWithIfs<T extends (...args: any[])=> any>(newIfs: char_t, expecter: T, ...args: Parameters<T>){
+        let oldIfs = this.IFS
+        this.IFS = newIfs
+        let data = expecter.bind(this)(...args)
+        this.IFS = oldIfs
+        return data as ReturnType<T>
+    }
+    expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
+        this.#checkCurArg()
         let argsToUse = this.#createArgList(amountOfArgs)
-        let res;
-        if ((res = filter.bind(this)(argsToUse)) !== false && res !== BADVALUE) {
-            return res === GOODVALUE ? this.#curArg : res
+        let res = filter.bind(this)(argsToUse);
+        if (res !== false && res !== BADVALUE) {
+            return res === GOODVALUE ? this.#curArg as string : res
         }
         return BADVALUE
     }
     async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
-        if (this.#curArg === null) {
-            throw new Error("beginIter must be run before this function")
-        }
+        this.#checkCurArg()
         let argsToUse = this.#createArgList(amountOfArgs)
-        let res;
-        if ((res = (await filter(argsToUse))) !== BADVALUE && res !== false) {
+        let res = await filter(argsToUse);
+        if (res !== BADVALUE && res !== false) {
             return res === GOODVALUE ? this.#curArg : res
         }
         return BADVALUE
@@ -598,12 +617,39 @@ class ArgList extends Array {
             else resArr[curItem] += arg + this.IFS
             return resArr.length < amountOfListItems
             //slicing here removes the extra IFS at the end of each item
-        }, () => resArr.map(v => v.slice(0, -1))) as string[] | typeof BADVALUE
+        }, () => {
+            if (resArr.length < amountOfListItems) return BADVALUE
+            return resArr.map(v => v.slice(0, -1))
+        }) as string[] | typeof BADVALUE
+    }
+    expectUnknownSizedList(splitter: string) {
+        let resArr: string[] = []
+        let curItem = 0
+        return this.expect(arg => {
+            if (resArr[curItem] === undefined) {
+                resArr[curItem] = ""
+            }
+            if (arg === splitter) {
+                curItem++;
+            }
+            else if (arg.includes(splitter)) {
+                let [last, ...rest] = arg.split(splitter)
+                resArr[curItem] += last + this.IFS
+                if (rest.length) {
+                    rest[rest.length - 1] += this.IFS
+                    resArr = resArr.concat(rest)
+                }
+                curItem = resArr.length - 1
+            }
+            else resArr[curItem] += arg + this.IFS
+            return true
+        }, () => resArr.map(v => v.slice(0, -1))
+        )
     }
     expectSizedString(size: number, amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {
             let v = i.join(" ")
-            return v.length >= size? BADVALUE : v
+            return v.length >= size ? BADVALUE : v
         })
 
     }
@@ -666,43 +712,26 @@ class Options extends Map {
         * @description Looks for <value> if it is not found, return <default_>
     */
     //overriding the default map.get
-    //@ts-ignore
-    get<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
-        let rv = super.get(key)
-        return assert(rv) ?? default_
+    getDefault<T>(key: string, default_: T, assert: (v: any) => any = (_v) => _v) {
+        return assert(super.get(key)) ?? default_
     }
 
-    getString(key: string, default_: string, toString: (v: string | boolean) => string = String): string {
+    getString<TDefault>(key: string, default_: TDefault, toString: (v: string | boolean) => string = String): string | TDefault {
         let n = super.get(key)
-        if (n !== undefined && n !== true) {
-            n = toString(n)
-            if (n) {
-                return n
-            }
-            return default_
-        }
-        return default_
+        if (n === undefined || n === true) return default_
+        return toString(n) || default_
     }
 
     getNumber<TDefault>(key: string, default_: TDefault, toNumber: (v: string) => number = Number): number | TDefault {
         let n = super.get(key)
-        if (n !== undefined) {
-            let number = toNumber(n)
-            if (!isNaN(number)) {
-                return number
-            }
-            return default_
-        }
-        return default_
+        if (n === undefined) return default_
+        let number = toNumber(n)
+        return isNaN(number) ? default_ : number
     }
-                                                                                                                            //this weird inverted logic is because if v === false, it should return false, 
-    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = v => String(v) === "true" ? true : !(String(v) === "false")): boolean | TDefault{
+    //this weird inverted logic is because if v === false, it should return false, 
+    getBool<TDefault>(key: string, default_: TDefault, toBoolean: (v: any) => boolean = v => String(v) === "true" ? true : !(String(v) === "false")): boolean | TDefault {
         let v = super.get(key)
-        if (v !== undefined) {
-            let bool = toBoolean(v)
-            return bool
-        }
-        return default_
+        return v === undefined ? default_ : toBoolean(v)
     }
 }
 
@@ -743,19 +772,18 @@ function generateCommandSummary(name: string, command: Command | CommandV2 | Ali
         summary += ` [-options...]`
     }
 
-    for (let arg in command.help?.arguments) {
-        let argData = command.help?.arguments[arg]
-        if (argData?.required !== false) {
-            summary += ` <${arg}>`
-        }
-        else {
+    if (command.help?.arguments)
+        for (const [arg, argData] of Object.entries(command.help.arguments)) {
+            if (argData?.required !== false) {
+                summary += ` <${arg}>`
+                continue;
+            }
             summary += ` [${arg}`;
             if (argData.default) {
                 summary += ` (${argData.default})`
             }
             summary += ']'
         }
-    }
     return summary
 }
 
@@ -882,7 +910,7 @@ function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2)
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">
     <details class="command-option-details-label">
-    <summary class="command-option-summary"${default_ ? ` title="default: ${default_}"` : ""}>-${option}</summary>${desc}</details>` 
+    <summary class="command-option-summary"${default_ ? ` title="default: ${default_}"` : ""}>-${option}</summary>${desc}</details>`
                 if (alternates) {
                     html += '<span class="option-alternates-title">Aliases:</span>'
                     html += `<ul class="option-alternates">`
@@ -951,7 +979,7 @@ function strToCommandCat(category: keyof typeof CommandCategory) {
     return CommandCategory[category.toUpperCase() as keyof typeof CommandCategory]
 }
 
-function isCommandCategory(category: string): category is keyof typeof CommandCategory{
+function isCommandCategory(category: string): category is keyof typeof CommandCategory {
     return CommandCategory[category as keyof typeof CommandCategory] !== undefined ? true : false
 }
 
@@ -959,15 +987,12 @@ function isBetween(low: number, checking: number, high: number) {
     return checking > low && checking < high
 }
 
-function isNumeric(string: string){
-    if(string.match(/^[0-9]+$/)){
-        return true
-    }
-    return false
+function isNumeric(string: string) {
+    return string.match(/^[0-9]+$/) ? true : false
 }
 
-function emitsEvent<T extends (...args: any[]) => any>(fn: T){
-    return function(...data: Parameters<T>): ReturnType<T>{
+function emitsEvent<T extends (...args: any[]) => any>(fn: T) {
+    return function(...data: Parameters<T>): ReturnType<T> {
         events.botEvents.emit(events.FuncUsed, fn)
         return fn(...data)
     }
@@ -1022,6 +1047,8 @@ export {
     isCommandCategory,
     emitsEvent,
     cmdFileName,
-    sleep
+    sleep,
+    Enum,
+    defer
 }
 

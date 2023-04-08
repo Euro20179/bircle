@@ -13,13 +13,13 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser,  getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild,  cmdFileName } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand,  snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -336,7 +336,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }],
             [["white powder", "green leaf", "organic mushroom"], async () => {
                 let ach = achievements.achievementGet(msg.author.id, "breaking good")
-                if(ach){
+                if (ach) {
                     await handleSending(msg, ach)
                 }
                 giveItem(msg.author.id, 'organic mixture', 1)
@@ -413,7 +413,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             [["amelia earhart", "the titanic"], async () => {
                 giveItem(msg.author.id, "conspiracy", 1)
                 let ach = achievements.achievementGet(msg, "conspiracy theorist")
-                if(ach){
+                if (ach) {
                     await handleSending(msg, ach)
                 }
                 return { content: "What if amelia earhart sunk the titanic <:thonk:502288715431804930>", status: StatusCode.RETURN }
@@ -577,7 +577,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "count", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
+        "count", ccmdV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode }
             if (msg.channel.id !== '468874244021813258') {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
@@ -615,20 +615,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return rv
             }
             return { content: count_text, delete: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-        }, CommandCategory.FUN),
+        }, "Count in the counting channel"),
     ]
 
     yield [
-        "stock",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let fmt = String(opts['fmt'] || "{embed}")
-                let stock = args.join(" ")
-                if (!stock) {
-                    return { content: "Looks like u pulled a cam", status: StatusCode.ERR }
-                }
+        "stock", ccmdV2(
+            async ({ msg, sendCallback, opts, argShapeResults }) => {
+                let fmt = opts.getString('fmt', '{embed}')
+                let stock = argShapeResults['stock'] as string
                 let data = await economy.getStockInformation(stock)
                 if (!data) {
                     return { content: "No  info found", status: StatusCode.ERR }
@@ -664,27 +658,23 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 }
             },
-            category: CommandCategory.FUN,
-            help: {
-                info: "Get information about a stock symbol",
-                options: {
-                    "fmt": {
-                        description: "Specify the format<br><ul><li><b>%p</b>: price</li><li><b>%n</b>: stock name</li><li><b>%c</b>: $change</li><li><b>%C</b>: %change</li><li><b>%v</b>: volume<li><b>{embed}</b>: give an embed instead</li></ul>"
-                    }
-                }
+            "Get information about a stock symbol", {
+            helpOptions: {
+                "fmt": createHelpOption("Specify the format<br><ul><li><b>%p</b>: price</li><li><b>%n</b>: stock name</li><li><b>%c</b>: $change</li><li><b>%C</b>: %change</li><li><b>%v</b>: volume<li><b>{embed}</b>: give an embed instead</li></ul>")
+            },
+            helpArguments: {
+                stock: createHelpArgument("The stock to get info on")
+            },
+            argShape: async function*(args) {
+                yield [args.expectString(() => true), "stock"]
             }
-        },
+        })
     ]
 
     yield [
-        "feed-pet", createCommandV2(async ({ argList, msg }) => {
-            argList.beginIter()
-            let petName = argList.expectString()
-            if (petName === BADVALUE) {
-                return { content: "No pet name given", status: StatusCode.ERR }
-            }
-            let item: string | typeof BADVALUE = argList.expectString(() => true)
-            if (item === BADVALUE) return { content: "No item", status: StatusCode.ERR }
+        "feed-pet", ccmdV2(async ({ argShapeResults, msg }) => {
+            let petName = argShapeResults['name'] as string
+            let item = argShapeResults['food'] as string
 
             let p = pet.hasPetByNameOrType(msg.author.id, petName)
             if (!p[1]) {
@@ -700,26 +690,25 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
 
-        }, CAT, "feed-pet <pet> <item>")
+        }, "feed-pet", {
+            argShape: async function*(args) {
+                yield [args.expectString(), "name"]
+                yield [args.expectString(() => true), 'food']
+            },
+            helpArguments: {
+                name: createHelpArgument("Name of pet to feed"),
+                '...food': createHelpArgument("Food to give the pet")
+            }
+        })
     ]
 
-    yield [
-        "lottery",
-        {
-            run: async (msg, _args, sendCallback) => {
-                return { content: `The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Get the current lottery pool"
-            }
-        },
-    ]
+    yield ['lottery', ccmdV2(async () => crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`), "Gets the current lottery pool")]
 
     yield [
         "6",
         {
             run: async (msg, args, sendCallback) => {
-                if(!msg.guild) return crv("Must be run in a guild", {status: StatusCode.ERR})
+                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
                 let opts;
                 [opts, args] = getOpts(args)
                 let getRankMode = opts['rank'] || false
@@ -786,12 +775,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
                         const embed = new EmbedBuilder()
                         embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
-                        let redness = Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255))
-                        let greenness = Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255))
-                        if (redness > 255)
-                            redness = 255
-                        if (greenness > 255)
-                            greenness = 255
+                        let redness = Math.min(Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
+                        let greenness = Math.min(Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
                         let hex = rgbToHex(redness, greenness, 0)
                         embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
                         embed.setColor(hex as ColorResolvable)
@@ -998,55 +983,41 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "piglatin",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let sep = opts['sep']
-                if (sep == undefined) {
-                    sep = " "
-                } else sep = String(sep)
-                let words = []
-                //args are not strictly space separated
-                for (let word of args.join(" ").split(" ")) {
-                    if (word.match(/^[aeiou]/)) {
-                        words.push(`${word}ay`)
-                    }
-                    else {
-                        let firstVowel = -1
-                        for (let i = 0; i < word.length; i++) {
-                            if (word[i].match(/[aeiou]/)) {
-                                firstVowel = i
-                                break
-                            }
-                        }
-                        if (firstVowel == -1) {
-                            words.push(`${word}ay`)
-                        }
-                        else {
-                            words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
-                        }
+        "piglatin", ccmdV2(async function({ args, opts }) {
+            let sep = opts.getString("sep", " ")
+            let words = []
+            //args are not strictly space separated
+            for (let word of args.resplit(" ")) {
+                if (word.match(/^[aeiou]/)) {
+                    words.push(`${word}ay`)
+                    continue
+                }
+                let firstVowel = -1
+                for (let i = 0; i < word.length; i++) {
+                    if (word[i].match(/[aeiou]/)) {
+                        firstVowel = i
+                        break
                     }
                 }
-                return { content: words.join(sep), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "igpay atinlay",
-                arguments: {
-                    text: {
-                        description: "Text to igpay atinlay-ify"
-                    }
-                },
-                options: {
-                    sep: {
-                        description: "The seperator between words"
-                    }
+                if (firstVowel == -1) {
+                    words.push(`${word}ay`)
                 }
+                else {
+                    words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
+                }
+
+            }
+            return { content: words.join(sep), status: StatusCode.RETURN }
+
+        }, "igpay atinlay", {
+            helpArguments: {
+                text: createHelpArgument("Text to igpay atinlay-ify")
             },
-            category: CommandCategory.FUN,
+            helpOptions: {
+                sep: createHelpOption("The seperator between words")
+            },
             use_result_cache: true
-        },
+        })
     ]
 
     yield [
@@ -1388,12 +1359,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "nick", ccmdV2(async function({ msg, args, opts }) {
-            args.beginIter()
-            let newName = args.expectSizedString(30, () => true)
-
-            if (newName === BADVALUE)
-                return { content: "Name not given, or is too long", status: StatusCode.ERR }
+        "nick", ccmdV2(async function({ msg, argShapeResults, opts }) {
+            let newName = argShapeResults['name'] as string
 
             if (!msg.guild)
                 return crv("You must use this in a guild", { status: StatusCode.ERR })
@@ -1406,7 +1373,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 delete: opts.getBool("d", opts.getBool("delete", false)),
             })
 
-        }, "Change the nickname of the bot")
+        }, "Change the nickname of the bot", {
+            argShape: async function*(args) {
+                yield [args.expectSizedString(30, () => true), "name"]
+            }
+        })
     ]
 
     yield [
@@ -1495,7 +1466,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 edits = edits.slice(1)
                 let lastEdit = message.content
                 for (let edit of edits) {
-                    if(edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))){
+                    if (edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))) {
                         await new Promise(res => setTimeout(res, parseFloat(edit.slice(1, -1))))
                         continue
                     }
@@ -1555,12 +1526,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             args.beginIter()
             let sep = String(opts.getString("sep", opts.getString("s", "\n")))
             let times = opts.getNumber("t", 1)
-            let items = args.expectList("|", Infinity)
+            let items = args.expectUnknownSizedList("|")
             if (items === BADVALUE) {
                 return crv("expected list")
             }
             let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep).trim()
-            return ans ? crv(ans) : crv("```invalid message```", {status: StatusCode.ERR})
+            return ans ? crv(ans) : crv("```invalid message```", { status: StatusCode.ERR })
 
         }, "Choose a random item from a list of items separated by a |", {
             helpArguments: {
@@ -1651,41 +1622,23 @@ Valid formats:
     ]
 
     yield [
-        "ship",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (args.length < 2) {
-                    return { content: "2 users must be given", delete: opts['d'] as boolean, status: StatusCode.ERR }
-                }
-                let [user1Full, user2Full] = args.join(" ").split("|")
-                if (!user1Full || !user2Full) {
-                    return { content: "2 users not given", status: StatusCode.ERR }
-                }
-                let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
-                let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
-                let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
-                return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Create your favorite fantacies!!!!"
-            },
-            category: CommandCategory.FUN
-        },
-    ]
+        "ship", ccmdV2(async function({ argShapeResults, args, rawOpts: opts }) {
+            console.log(argShapeResults)
+            let [user1Full, user2Full] = argShapeResults['users'] as [string, string]
+            let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
+            let user2 = user2Full.slice(Math.floor(user2Full.length / 2))
+            let options = fs.readFileSync(`command-results/ship`, "utf-8").split(";END").map(v => v.split(" ").slice(1).join(" ")).filter(v => v.trim())
+            return { content: format(choice(options), { "u1": user1Full, "u2": user2Full, "ship": `${user1}${user2}`, "strength": `${Math.floor(Math.random() * 99 + 1)}%` }), delete: opts['d'] as boolean, status: StatusCode.RETURN }
 
-    yield [
-        "aship",
-        {
-            run: async (msg, args, sendCallback) => {
-                return await (getCommands().get('add') as Command).run(msg, ["ship", args.join(" ")], sendCallback, {}, ["ship", args.join(" ")], 1)
+        }, "Create your favorite fantacies!!!!", {
+            helpArguments: {
+                user1: createHelpArgument("The first user", true),
+                user2: createHelpArgument("The second user", true)
             },
-            help: {
-                info: "{u1} is the first user, {u2} is the second user, {ship} is the ship name for the users"
-            },
-            category: CommandCategory.FUN
-        },
+            argShape: async function*(args) {
+                yield [args.expectList("|", 2), "users"]
+            }
+        })
     ]
 
     yield [
@@ -1720,24 +1673,25 @@ Valid formats:
     ]
 
     yield [
-        "udict",
-        {
-            run: async (_msg, args, sendCallback) => {
-                try {
-                    let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${args.join("+")}`)
-                    let text = await data.text()
-                    let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                    return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
-                }
-                catch (err) {
-                    return { content: "An error occured", status: StatusCode.ERR }
-                }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Look up a word in urban dictionary"
+        "udict", ccmdV2(async function({ argShapeResults }) {
+            try {
+                let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${argShapeResults['query'] as string}`)
+                let text = await data.text()
+                let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
+                return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
+            }
+            catch (err) {
+                return { content: "An error occured", status: StatusCode.ERR }
+            }
+        }, "Look up a word in the urban dictionary", {
+            helpArguments: {
+                query: createHelpArgument("The word to search for")
             },
-            use_result_cache: true
-        },
+            use_result_cache: true,
+            argShape: async function*(args) {
+                yield [args.expectWithIfs("+", args.expectString, () => true), "query"]
+            }
+        })
     ]
 
     yield [
@@ -1777,30 +1731,22 @@ Valid formats:
     ]
 
     yield [
-        "8",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let content = args.join(" ")
-                let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
-                return {
-                    content: choice(options)
-                        .slice(20)
-                        .replaceAll("{content}", content)
-                        .replaceAll("{u}", `${msg.author}`),
-                    status: StatusCode.RETURN
-                }
+        "8", ccmdV2(async function({ msg, argShapeResults }) {
+            let content = argShapeResults['question'] as string
+            let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
+            return crv(format(
+                choice(options).slice(20),
+                { content: content, u: `${msg.author}` }
+            ), { status: StatusCode.RETURN })
+        }, "The source of all answers", {
+            helpArguments: {
+                question: createHelpArgument("What's on your mind?", false)
             },
-            help: {
-                info: "<code>[8 question</code><br>for the <code>[add</code> command, <code>{u}</code> represents user using this command, and <code>{content}</code> is their question",
-                arguments: {
-                    question: {
-                        description: "What is on your mind?"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-
-        },
+            docs: "When adding an answer, <code>{u}</code> represents the user and <code>{content}</code> represents their question",
+            argShape: async function*(args) {
+                yield [args.expectString(() => true), "question", true, ""]
+            }
+        })
     ]
 
     yield [
@@ -1897,31 +1843,20 @@ Valid formats:
     ]
 
     yield [
-        "list-cmds",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                let values = ''
-                let typeConv = { 1: "chat", 2: "user", 3: "message" }
-                for (let cmd in getCommands()) {
-                    values += `${cmd}\n`
+        "list-cmds", ccmdV2(async function() {
+            let values = ''
+            let typeConv = { 1: "chat", 2: "user", 3: "message" }
+            for (let cmd of getCommands().keys()) {
+                values += `${cmd}\n`
+            }
+            for (let cmd of slashCmds) {
+                if (cmd.type) {
+                    values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
                 }
-                for (let cmd of slashCmds) {
-                    if (cmd.type) {
-                        values += `${cmd["name"]}:${typeConv[cmd["type"]] || "chat"}\n`
-                    }
-                    else values += `/${cmd["name"]}\n`
-                }
-                return {
-                    content: values,
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CommandCategory.FUN,
-            help: {
-                info: "List all builtin commands"
-            },
-            use_result_cache: true
-        }
+                else values += `/${cmd["name"]}\n`
+            }
+            return crv(values)
+        }, "List all builtin commands")
     ]
 
     yield [
@@ -2112,12 +2047,12 @@ Valid formats:
             }
 
             let canTravel = timer.has_x_m_passed(msg.author.id, "%travel", 5, true)
-            if(!canTravel){
+            if (!canTravel) {
                 return crv(`You must wait ${5 - Number(timer.do_lap(msg.author.id, "%travel", "m"))} minutes`)
             }
 
-            if(economy.playerLooseNetWorth(msg.author.id) < 0){
-                return crv("You do not have good credit, and no country wants to accept poor people", {status: StatusCode.ERR})
+            if (economy.playerLooseNetWorth(msg.author.id) < 0) {
+                return crv("You do not have good credit, and no country wants to accept poor people", { status: StatusCode.ERR })
             }
 
 

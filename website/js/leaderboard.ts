@@ -1,3 +1,5 @@
+import { Enum } from "../../src/util"
+
 let infoPerUser: {
     [key: string]: {
         tr: HTMLTableRowElement,
@@ -59,11 +61,14 @@ fetch("/api/economy").then(res => {
     })
 })
 
-enum TableSort {
-    None,
-    NetWorth,
-    Percent
-}
+
+const TableSort = Enum({
+    None: 0,
+    NetWorth: 1,
+    Percent: 2
+})
+
+type TableSort = Enumify<typeof TableSort>
 
 let tableIsSortedBy: TableSort = TableSort.None
 
