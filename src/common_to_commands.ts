@@ -855,7 +855,7 @@ export class Interpreter {
                 let cmdO = cmdObject as CommandV2
                 if(cmdO.argShape){
                     argList.beginIter()
-                    for await(const [result, type, optional] of cmdO.argShape(argList)){
+                    for await(const [result, type, optional] of cmdO.argShape(argList, this.#msg)){
                         if(result === BADVALUE && !optional){
                             rv = {content: `Expected ${type}`, status: StatusCode.ERR}
                             break runnerIf;

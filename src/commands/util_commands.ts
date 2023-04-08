@@ -3453,13 +3453,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "role-info", createCommandV2(async ({ msg, argList }) => {
+        "role-info", ccmdV2(async ({ argShapeResults }) => {
 
-            argList.beginIter()
-            let role = await argList.expectRole(msg.guild as Guild, () => true) as Role | null
-            if (!role) {
-                return { content: "Could not find role", status: StatusCode.ERR }
-            }
+            let role = argShapeResults['role'] as Role
             let embed = new EmbedBuilder()
             embed.setTitle(role.name)
             embed.setColor(role.color)
@@ -3467,7 +3463,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             embed.addFields(efd(["name", role.name, true], ["emoji", role.unicodeEmoji || "None", true], ["created", role.createdAt.toTimeString(), true], ["Days Old", String((Date.now() - (new Date(role.createdTimestamp)).getTime()) / (1000 * 60 * 60 * 24)), true]))
             return { embeds: [embed] || "none", status: StatusCode.RETURN, allowedMentions: { parse: [] } }
 
-        }, CAT, "Gets information about a role")]
+        }, "Gets information about a role", {
+            argShape: async function*(args, msg){
+                yield msg.guild ? [await args.expectRole(msg.guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
+            }
+        })]
 
     yield [
         "channel-info",
