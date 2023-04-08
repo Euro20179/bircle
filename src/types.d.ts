@@ -1,6 +1,6 @@
 import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, MessagePayload, TextChannel, DMChannel, User, Interaction, ChatInputCommandInteraction, CommandInteraction } from "discord.js"
 
-import { ArgList, Options } from './util'
+import { ArgList, BADVALUE, Options } from './util'
 import { EconomyData } from "./economy"
 import { Interpreter } from "./common_to_commands"
 
@@ -128,10 +128,11 @@ declare global {
         argList: ArgList,
         stdin?: CommandReturn,
         pipeTo?: Token[],
-        interpreter: Interpreter
+        interpreter: Interpreter,
+        argShapeResults: Record<string, unknown>
     }
 
-    type CommandV2Run = (this: [string, CommandV2], {msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, interpreter}: CommandV2RunArg) => Promise<CommandReturn>;
+    type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn>;
 
     interface CommandV2 {
         run: CommandV2Run
@@ -141,7 +142,8 @@ declare global {
         make_bot_type?: boolean,
         use_result_cache?: boolean
         cmd_std_version?: 2,
-        prompt_before_run?: boolean
+        prompt_before_run?: boolean,
+        argShape?: (args: ArgList) => AsyncGenerator<[string | typeof BADVALUE, string, true?]>,
     }
 
     interface SlashCommand {

@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -836,6 +836,7 @@ export class Interpreter {
 
             else if (cmdObject?.cmd_std_version == 2) {
                 let argList = new ArgList(args2)
+                let argShapeResults: Record<string, any> = {}
                 let obj: CommandV2RunArg = {
                     msg: this.#msg,
                     rawArgs: args,
@@ -848,9 +849,20 @@ export class Interpreter {
                     argList: argList,
                     stdin: this.#pipeData,
                     pipeTo: this.#pipeTo,
-                    interpreter: this
+                    interpreter: this,
+                    argShapeResults
                 };
                 let cmdO = cmdObject as CommandV2
+                if(cmdO.argShape){
+                    argList.beginIter()
+                    for await(const [result, type, optional] of cmdO.argShape(argList)){
+                        if(result === BADVALUE && !optional){
+                            rv = {content: `Expected ${type}`, status: StatusCode.ERR}
+                            break runnerIf;
+                        }
+                        argShapeResults[type] = result
+                    }
+                }
                 rv = await cmdO.run.bind([cmd, cmdO])(obj)
             }
             else if (cmdObject instanceof AliasV2) {
@@ -1201,7 +1213,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     shouldType?: boolean,
     use_result_cache?: boolean,
     accepts_stdin?: CommandHelp['accepts_stdin'],
-    prompt_before_run?: boolean
+    prompt_before_run?: boolean,
+    argShape?: CommandV2['argShape']
 }): CommandV2 {
     return {
         run: cb,
@@ -1218,7 +1231,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         make_bot_type: options?.shouldType,
         cmd_std_version: 2,
         use_result_cache: options?.use_result_cache,
-        prompt_before_run: options?.prompt_before_run
+        prompt_before_run: options?.prompt_before_run,
+        argShape: options?.argShape
     }
 
 }

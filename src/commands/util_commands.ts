@@ -3579,22 +3579,16 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },)]
 
     yield [
-        "user-info!", ccmdV2(async function({ msg, args }) {
-            args.beginIter()
-
-            let search = args.expectString(1)
-            if (search === BADVALUE) {
-                return { content: "No search given", status: StatusCode.RETURN }
-            }
-
+        "user-info!", ccmdV2(async function({ msg, args, argShapeResults }) {
+            let search = argShapeResults['user'] as string
             let user = await fetchUserFromClient(common.client, search)
 
             if (!user) {
                 return { content: `${search} not found`, status: StatusCode.ERR }
             }
 
-            let fmt = args.expectString(i => i ? true : BADVALUE)
-            if (fmt && fmt !== BADVALUE) {
+            let fmt = argShapeResults['fmt']
+            if (typeof fmt === 'string') {
                 return {
                     content: format(fmt, {
                         i: user.id || "#!N/A",
@@ -3622,6 +3616,10 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 user: createHelpArgument("The user to search for"),
                 '...fmt': createHelpArgument("The format to use<br><lh>formats</lh><ul><li>i: user id</li><li>u: username</li><li>c: created at timestamp</li><li>a: avatar url</li></ul>", false, undefined, "an embed")
             },
+            argShape: async function*(args) {
+                yield [args.expectString(1), "user"],
+                yield [args.expectString(i => i ? true : BADVALUE), "fmt", true]
+            }
         })
     ]
 

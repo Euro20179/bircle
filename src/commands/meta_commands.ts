@@ -406,7 +406,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let curAttr = command
                 for (let attr of attrs) {
                     for (let subAttr of attr.split(".")) {
-                        curAttr = curAttr[subAttr as keyof Command | keyof CommandV2]
+                        curAttr = curAttr[subAttr as Exclude<keyof Command | keyof CommandV2, "argShape">]
                         if (curAttr === undefined) break;
                     }
 
