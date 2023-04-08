@@ -726,19 +726,18 @@ function generateCommandSummary(name: string, command: Command | CommandV2 | Ali
         summary += ` [-options...]`
     }
 
-    for (let arg in command.help?.arguments) {
-        let argData = command.help?.arguments[arg]
-        if (argData?.required !== false) {
-            summary += ` <${arg}>`
-        }
-        else {
+    if (command.help?.arguments)
+        for (const [arg, argData] of Object.entries(command.help.arguments)) {
+            if (argData?.required !== false) {
+                summary += ` <${arg}>`
+                continue;
+            }
             summary += ` [${arg}`;
             if (argData.default) {
                 summary += ` (${argData.default})`
             }
             summary += ']'
         }
-    }
     return summary
 }
 
