@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, InteractionResponseType} from "discord.js"
+import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, InteractionReplyOptions, InteractionResponseType} from "discord.js"
 import { StatusCode } from "./common_to_commands"
 import { efd, fetchUser, isMsgChannel, sleep } from "./util"
 
@@ -121,10 +121,9 @@ createSlashCommand("rps", "Rock paper scissors", async (int) => {
 
 createSlashCommand("md", "Say markdown", async (int) => {
     int.reply({
-        //@ts-ignore
         type: InteractionResponseType.ChannelMessageWithSource,
         content: int.options.get("text")?.value as string ?? "Hi"
-    })
+    } as InteractionReplyOptions)
 }, [
     createChatCommandOption(STRING, 'text', 'The text to say', { required: true })
 ])
