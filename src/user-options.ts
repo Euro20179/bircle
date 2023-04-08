@@ -1,5 +1,5 @@
 import fs = require("fs")
-import { GLOBAL_CURRENCY_SIGN } from "./common"
+import common from "./common"
 
 export const allowedOptions = ["prefix", "default-bj-bet", "bj-screen", "money-format", "pingresponse", "heist-join", "lottery-win", "count-text", "change-cmd-return", "change-cmd-info", "change-cmd-prompt", "change-cmd-warning", "change-cmd-error", "dm-when-online", "currency-sign", "puffle-find", "enable-mail", "mail-signature", "no-pingresponse", "pipe-symbol", "1-arg-string", "warn-cmds", "connect4-win", "connect4-symbol", "warn-categories", "error-on-no-cmd", "opts-parser"] as const
 
@@ -56,7 +56,7 @@ export function isValidOption(opt: string): UserOption | false {
 }
 
 export function formatMoney(user: string, amount: string | number) {
-    return `${getOpt(user, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount}`
+    return `${getOpt(user, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount}`
 }
 
 export default{

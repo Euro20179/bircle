@@ -1,6 +1,6 @@
 import fs from 'fs'
 import vars from '../vars'
-import { addToPermList, ADMINS, BLACKLIST, client, removeFromPermList } from '../common'
+import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require("../user-options")
@@ -20,7 +20,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             Interpreter.resultCache = new Map()
             return crv("Cache cleared")
         }, "Clears the interpreter cache", {
-            permCheck: m => ADMINS.includes(m.author.id)
+            permCheck: m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -31,7 +31,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: JSON.stringify(eval(args.join(" "))), status: StatusCode.RETURN }
             },
             category: CommandCategory.ADMIN,
-            permCheck: v => ADMINS.includes(v.author.id) || v.author.id === "288904417036468225",
+            permCheck: v => common.ADMINS.includes(v.author.id) || v.author.id === "288904417036468225",
             "help": {
                 info: "run javascript"
             }
@@ -45,7 +45,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (msg.guild)
                 user = (await fetchUser(msg.guild, creator))?.user
             else
-                user = await fetchUserFromClient(client, creator)
+                user = await fetchUserFromClient(common.client, creator)
             if (!user) {
                 return crv(`${creator} not found`)
             }
@@ -55,7 +55,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             return crv(`Could not remove ${location}`)
         }, "Remove a travel location", {
-            permCheck: m => ADMINS.includes(m.author.id)
+            permCheck: m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -89,7 +89,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             },
             {},
             undefined,
-            m => ADMINS.includes(m.author.id)
+            m => common.ADMINS.includes(m.author.id)
         )
     ]
 
@@ -116,7 +116,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
 
             }, category: CommandCategory.ADMIN,
-            permCheck: (m) => ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy"),
+            permCheck: (m) => common.ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy"),
             help: {
                 info: "Resets the economy"
             }
@@ -148,7 +148,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
             },
             category: CommandCategory.ADMIN,
-            permCheck: m => ADMINS.includes(m.author.id),
+            permCheck: m => common.ADMINS.includes(m.author.id),
             help: {
                 info: "Resets a player's money"
             }
@@ -167,7 +167,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
             },
             category: CommandCategory.ADMIN,
-            permCheck: m => ADMINS.includes(m.author.id),
+            permCheck: m => common.ADMINS.includes(m.author.id),
             help: {
                 info: "Reset's a players inventory"
             }
@@ -190,7 +190,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             return crv(`${player.username} already has ${ach}`)
         }, "Give a player an achievement", {
-            permCheck: m => ADMINS.includes(m.author.id)
+            permCheck: m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -212,7 +212,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 allowedMentions: {parse: []}
             })
         }, "Deletes an item from players inventory", {
-            permCheck:  m => ADMINS.includes(m.author.id)
+            permCheck:  m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -226,7 +226,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             giveItem(player.user.id, args.slice(1).join(" "), opts.getNumber("count", 1))
             return crv(`Gave ${player.displayName} 1 ${args.slice(1).join(" ")}`)
         }, "Adds an item to a players inventory", {
-            permCheck: m => ADMINS.includes(m.author.id)
+            permCheck: m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -237,7 +237,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 resetItems()
                 return { content: "Items reset", status: StatusCode.RETURN }
             },
-            permCheck: (m) => ADMINS.includes(m.author.id),
+            permCheck: (m) => common.ADMINS.includes(m.author.id),
             category: CommandCategory.ADMIN,
             help: {
                 info: "Resets all inventories"
@@ -261,7 +261,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 return { content: "nothing happened", status: StatusCode.ERR }
             }, category: CommandCategory.ADMIN,
-            permCheck: (m) => ADMINS.includes(m.author.id),
+            permCheck: (m) => common.ADMINS.includes(m.author.id),
             help: {
                 info: "Sets a player's money to an amount"
             }
@@ -298,14 +298,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return crv("Member not found", {status: StatusCode.ERR})
                 }
                 if (addOrRemove == "a") {
-                    addToPermList(BLACKLIST, "blacklists", member, cmds)
+                    common.addToPermList(common.BLACKLIST, "blacklists", member, cmds)
 
                     return {
                         content: `${user} has been blacklisted from ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
                     }
                 } else {
-                    removeFromPermList(BLACKLIST, "blacklists", member, cmds)
+                    common.removeFromPermList(common.BLACKLIST, "blacklists", member, cmds)
                     return {
                         content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`,
                         status: StatusCode.RETURN
@@ -313,7 +313,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
             },
             permCheck: msg => {
-                return ADMINS.includes(msg.author.id)
+                return common.ADMINS.includes(msg.author.id)
             },
             help: {
                 info: "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd"
@@ -339,7 +339,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 vars.saveVars()
                 timer.saveTimers()
                 pet.savePetData()
-                client.destroy()
+                common.client.destroy()
                 user_options.saveUserOptions()
                 return {
                     content: "STOPPING",
@@ -347,7 +347,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
             },
             permCheck: (msg) => {
-                return ADMINS.includes(msg.author.id)
+                return common.ADMINS.includes(msg.author.id)
             },
             category: CommandCategory.ADMIN,
             help: {

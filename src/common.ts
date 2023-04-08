@@ -8,7 +8,7 @@ const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 7, minor: 3, bug: 8, part: "", beta: false, alpha: false }
+const VERSION = { major: 7, minor: 3, bug: 9, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
@@ -113,7 +113,7 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 const GLOBAL_CURRENCY_SIGN = "$"
 
 
-export {
+export default {
     prefix,
     ADMINS,
     FILE_SHORTCUTS,
@@ -130,6 +130,6 @@ export {
     getUserMatchCommands,
     saveMatchCommands,
     addUserMatchCommand,
-    removeUserMatchCommand
+    removeUserMatchCommand,
 }
 

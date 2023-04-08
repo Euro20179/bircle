@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { ActionRowBuilder, APIApplicationCommandOption, ApplicationCommandType, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, InteractionResponseType} from "discord.js"
 import { StatusCode } from "./common_to_commands"
-import { efd, fetchUser, isMsgChannel } from "./util"
+import { efd, fetchUser, isMsgChannel, sleep } from "./util"
 
 import globals = require("./globals")
 import economy from "./economy"
@@ -73,7 +73,7 @@ createSlashCommand("ping", "Pings a user for some time", async (int) => {
     for (let i = 0; i < times; i++) {
         if (!globals.SPAM_ALLOWED) break
         await int.reply(`<@${user}> has been pinged`)
-        await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+        await sleep(Math.random() * 700 + 200)
     }
 }, [
     createChatCommandOption(USER, "user", "who to ping twice", { required: true }),

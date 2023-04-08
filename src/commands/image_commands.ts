@@ -9,7 +9,7 @@ import { Stream } from 'stream'
 import { CommandCategory,  createCommandV2, createHelpArgument, createHelpOption, handleSending, registerCommand, StatusCode } from '../common_to_commands'
 import { cmdFileName, createGradient, cycle,  getImgFromMsgAndOpts,  intoColorList, isMsgChannel, Pipe, randomColor, rgbToHex } from '../util'
 import { parsePosition, getOpts } from '../parsing'
-import { prefix } from '../common'
+import common from '../common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
 
@@ -416,7 +416,7 @@ COMMANDS:
 **font** [font]:
 **font** [size] [font]:
     sets the font size to [size], and the font to [font]
-    for a list of fonts, run ${prefix}api getFonts
+    for a list of fonts, run ${common.prefix}api getFonts
 
 **text-align** <alignment>:
     alignment can be:

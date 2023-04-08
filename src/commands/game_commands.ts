@@ -15,12 +15,13 @@ import { choice, cycle, efd, fetchUser, listComprehension, mulStr, strlen, BADVA
 
 import { format, getOpts } from '../parsing'
 
-import { client, GLOBAL_CURRENCY_SIGN, prefix } from "../common"
+import common from '../common'
 import vars from '../vars'
 import timer from '../timer'
 
 import connect4, { Board } from '../connect4'
 import achievements from '../achievements'
+import amountParser from '../amount-parser'
 
 const { useItem, hasItem } = require("../shop")
 
@@ -133,7 +134,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                 await handleSending(msg, { content: connect4.createBoardText(board, p1Color, p2Color), status: StatusCode.INFO })
 
-                let sign = user_options.getOpt(player.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+                let sign = user_options.getOpt(player.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
 
                 return { content: format(user_options.getOpt(player.id, "connect4-win", `Player: ${player} HAS WON!!\n${player} has\nwins: {wins}\nlosses: {losses}\n+{amount_won}`), { wins: String(wins), losses: String(losses), amount_won: sign + String(winnings) }), status: StatusCode.RETURN, recurse: true }
             }
@@ -957,12 +958,12 @@ until you put a 0 in the box`)
 
             args.beginIter()
 
-            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
 
             let reqMoney = args.expectString(1)
             if (reqMoney === BADVALUE) {
                 globals.endCommand(msg.author.id, "roulette")
-                return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
+                return crv(`Usage: \`${common.prefix}roulette <bet> <guess>\``)
             }
 
             let min = economy.calculateAmountFromNetWorth(msg.author.id, "0.02%")
@@ -1014,7 +1015,7 @@ until you put a 0 in the box`)
 
             if (guess === BADVALUE) {
                 globals.endCommand(msg.author.id, "roulette")
-                return crv(`Usage: \`${prefix}roulette <bet> <guess>\``)
+                return crv(`Usage: \`${common.prefix}roulette <bet> <guess>\``)
             }
 
             let bets: { [key: string]: [number, string] } = { [msg.author.id]: [money, guess] }
@@ -1080,7 +1081,7 @@ until you put a 0 in the box`)
                     text = `<@${playerId}> guessed the correct third of ${guess}`
                 }
                 economy.addMoney(playerId, winnings)
-                let sign = user_options.getOpt(playerId, "currency-sign", GLOBAL_CURRENCY_SIGN)
+                let sign = user_options.getOpt(playerId, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
                 if (winnings > 0)
                     text += `\nearnings: **${sign}${winnings - amount}** (earnings - bet) (${winnings} - ${amount})`
                 totaltext += text + "\n--------------\n"
@@ -1150,7 +1151,7 @@ until you put a 0 in the box`)
                 e.setFooter({ text: `Cost: ${amount}` })
                 if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
                     let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
-                    let winningAmount = answer.pool * 2 + economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().total, "0.2%")
+                    let winningAmount = answer.pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")
                     economy.addMoney(msg.author.id, winningAmount)
                     economy.newLottery()
                     if (userFormat !== "__default__") {
@@ -1671,7 +1672,7 @@ until you put a 0 in the box`)
                     fmt += `\n{earnings}`
                     fs.writeFileSync("./command-results/last-run", String(Date.now()))
                 }
-                return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
+                return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
             },
             help: {
                 arguments: {
@@ -1944,7 +1945,7 @@ until you put a 0 in the box`)
 
             let status = "You won"
 
-            let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+            let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
 
             if (playerTotal > 21) {
                 status = `You lost: $${bet} (over 21)`
@@ -2164,7 +2165,7 @@ until you put a 0 in the box`)
                                 await handleSending(msg, { content: "game over", status: StatusCode.RETURN },)
                             }
                             collection?.stop()
-                            if (m.author.id == client.user?.id) return
+                            if (m.author.id == common.client.user?.id) return
                             await handleSending(msg, { content: `${m.author} quit`, status: StatusCode.RETURN },)
                             going = turns.next().value
                             return

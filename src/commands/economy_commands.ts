@@ -8,7 +8,7 @@ import timer from '../timer'
 import vars from '../vars'
 
 
-import { client, GLOBAL_CURRENCY_SIGN, prefix } from '../common'
+import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
 import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric, fetchUserFromClientOrGuild } from '../util'
 import { format } from '../parsing'
@@ -159,7 +159,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             economy.loseMoneyToBank(msg.author.id, nAmount)
 
-            let sign = user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)
+            let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
 
             return { content: `You transfered ${sign}${nAmount} to #${amountAfterExchangeRate}`, status: StatusCode.RETURN }
         }, "Transfer money to tools bot", {
@@ -178,7 +178,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let type = args[0]
 
             if (!allowedTypes.includes(type)) {
-                return { content: `Usage: \`${prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
+                return { content: `Usage: \`${common.prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
             }
 
             let item = args.slice(1).join(" ")
@@ -209,7 +209,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     else {
                         economy.buyStock(msg.author.id, item.toUpperCase(), amount, data.price)
                     }
-                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }
+                    return { content: `${msg.author} has bought ${amount} shares of ${item.toUpperCase()} for ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${data.price * amount}`, status: StatusCode.RETURN }
                 }
                 case "pet": {
                     if (!item) {
@@ -223,13 +223,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let petData = shopData[item]
                     let totalCost = 0
                     for (let cost of petData.cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(msg.author.id), cost)
+                        totalCost += amountParser.calculateAmountRelativeTo(economy.playerLooseNetWorth(msg.author.id), cost)
                     }
                     if (!economy.canBetAmount(msg.author.id, totalCost)) {
                         return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
                     }
                     if (pet.buyPet(msg.author.id, item)) {
-                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${prefix}sapet ${item}`, status: StatusCode.RETURN }
+                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${common.prefix}sapet ${item}`, status: StatusCode.RETURN }
                     }
                     return { content: "You already have this pet", status: StatusCode.ERR }
                 }
@@ -250,7 +250,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         let totalCost = 0
                         let { total } = economy.economyLooseGrandTotal(false)
                         for (let cost of ITEMS()[item].cost) {
-                            totalCost += economy.calculateAmountOfMoneyFromString(total, `${cost}`)
+                            totalCost += amountParser.calculateAmountRelativeTo(total, `${cost}`)
                         }
                         if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
                             if (buyItem(msg.author.id, item)) {
@@ -277,7 +277,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     if (totalSpent < 0) {
                         return crv("Cannot spend negative money in shop", { status: StatusCode.ERR })
                     }
-                    return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
+                    return { content: `You bought: ${amount} ${item}(s) for ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalSpent}`, status: StatusCode.RETURN }
                 }
             }
             return { noSend: true, status: StatusCode.RETURN }
@@ -303,7 +303,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "stocks", {
             run: async (msg, args, sendCallback) => {
                 let user = args[0]
-                let discordUser = user ? await fetchUserFromClient(client, user) : msg.author
+                let discordUser = user ? await fetchUserFromClient(common.client, user) : msg.author
                 if (!discordUser) {
                     return { content: `${user} not found`, status: StatusCode.ERR }
                 }
@@ -385,7 +385,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "inventory", {
             run: async (msg, args, sendCallback) => {
-                let user = await fetchUserFromClient(client, args[0] ?? msg.author.id)
+                let user = await fetchUserFromClient(common.client, args[0] ?? msg.author.id)
                 if (!user)
                     return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
 
@@ -482,11 +482,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let data = shopData[pet]
                     let totalCost = 0
                     for (let cost of data.cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(economy.playerLooseNetWorth(msg.author.id), cost)
+                        totalCost += amountParser.calculateAmountRelativeTo(economy.playerLooseNetWorth(msg.author.id), cost)
                     }
                     embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
                 }
-                embed.setFooter({ text: `To buy a pet, do ${prefix}buy pet <pet name>` })
+                embed.setFooter({ text: `To buy a pet, do ${common.prefix}buy pet <pet name>` })
                 return { embeds: [embed], status: StatusCode.RETURN }
             }, category: CommandCategory.ECONOMY,
             help: {
@@ -513,7 +513,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     e.addFields(efd([pets[pet].name, `${pets[pet].health} hunger`, true]))
                 }
                 if (!activePet) {
-                    e.setFooter({ text: `To set an active pet run: ${prefix}sapet <pet name>` })
+                    e.setFooter({ text: `To set an active pet run: ${common.prefix}sapet <pet name>` })
                 }
                 return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
             }, category: CommandCategory.ECONOMY,
@@ -552,12 +552,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let totalCost = 0
                     let { total } = economy.economyLooseGrandTotal(false)
                     for (let cost of itemJ[item].cost) {
-                        totalCost += economy.calculateAmountOfMoneyFromString(total, cost)
+                        totalCost += amountParser.calculateAmountRelativeTo(total, cost)
                     }
                     if (round) {
                         totalCost = Math.floor(totalCost * 100) / 100
                     }
-                    let text = `**${totalCost == Infinity ? "puffle only" : `${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${totalCost}`}**\n${itemJ[item].description}`
+                    let text = `**${totalCost == Infinity ? "puffle only" : `${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalCost}`}**\n${itemJ[item].description}`
                     if (itemJ[item]['puffle-banned']) {
                         text += '\n**buy only**'
                     }
@@ -713,7 +713,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let stock = args[0]
                 if (!stock)
                     return { content: "no stock given", status: StatusCode.ERR }
-                if (stock == prefix) {
+                if (stock == common.prefix) {
                     return { "content": "Looks like ur pulling a tool", status: StatusCode.ERR }
                 }
                 stock = stock.toUpperCase()
@@ -766,7 +766,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let profit = (nPrice - stockInfo.buyPrice) * sellAmount
                     economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
                     economy.addMoney(msg.author.id, profit)
-                    return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
+                    return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
                 }
             }, category: CommandCategory.ECONOMY,
             help: {
@@ -806,7 +806,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 user = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
             if (!user)
                 user = msg.author
-            let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', GLOBAL_CURRENCY_SIGN)}{amount}`)
+            let money_format = user_options.getOpt(user.id, "money-format", `{user}\n${user_options.getOpt(msg.author.id, 'currency-sign', common.GLOBAL_CURRENCY_SIGN)}{amount}`)
             let text = ""
             if (economy.getEconomy()[user.id]) {
                 if (opts['m']) {
@@ -923,7 +923,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         user = (await fetchUser(msg.guild as Guild, userSearch))?.user as User
                     }
                     else {
-                        user = await fetchUserFromClient(client, userSearch) as User
+                        user = await fetchUserFromClient(common.client, userSearch) as User
                     }
                     if (!user)
                         return { content: `${userSearch} not found`, status: StatusCode.ERR }
@@ -1036,7 +1036,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         user = (await fetchUser(msg.guild as Guild, search))?.user as User
                     }
                     else {
-                        user = (await fetchUserFromClient(client, search)) as User
+                        user = (await fetchUserFromClient(common.client, search)) as User
                     }
                     if (!user) {
                         return { content: `${user} not found`, status: StatusCode.ERR }
@@ -1047,7 +1047,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let i = args.join(" ")
 
                 if (!user) {
-                    return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+                    return { content: `Improper  command usage, \`${common.prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
 
                 let [count, ...item] = i.split(" ")
@@ -1058,7 +1058,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     count = "1"
                 }
                 else if (!itemstr) {
-                    return { content: `Improper  command usage, \`${prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+                    return { content: `Improper  command usage, \`${common.prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
 
 
@@ -1067,7 +1067,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: `You do not have ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }
 
-                let countnum = Math.floor(economy.calculateAmountOfMoneyFromString(itemData, count))
+                let countnum = Math.floor(amountParser.calculateAmountRelativeTo(itemData, count))
                 if (countnum <= 0 || countnum > itemData) {
                     return { content: `You only have ${itemData} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
                 }
@@ -1241,10 +1241,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         percent = Math.round(percent * 100) / 100
                     }
                     if (opts['text']) {
-                        text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)\n`
+                        text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)\n`
                     }
                     else {
-                        embed.addFields(efd([`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true]))
+                        embed.addFields(efd([`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true]))
                     }
                     place++
                 }

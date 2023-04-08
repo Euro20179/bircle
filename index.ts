@@ -1,7 +1,7 @@
 ///<reference path="src/types.d.ts" />
 import fs from 'fs'
 
-import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType,  Events, ChatInputCommandInteraction } from "discord.js"
+import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType, Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -9,16 +9,17 @@ import { Routes } from "discord-api-types/v9"
 
 import pet from './src/pets'
 
-require("./src/commands/commands")
-import {slashCmds } from "./src/slashCommands"
+require("./src/commands/commands").init()
+
+import { slashCmds } from "./src/slashCommands"
 
 import command_commons, { Interpreter } from './src/common_to_commands'
 
 import globals = require("./src/globals")
-import { efd, isMsgChannel } from "./src/util"
+import { isMsgChannel } from "./src/util"
 import { Parser, format } from './src/parsing'
 import { getOpt } from "./src/user-options"
-import { ADMINS, GLOBAL_CURRENCY_SIGN } from './src/common'
+import common from './src/common'
 import timer from './src/timer'
 
 import economy from './src/economy'
@@ -30,8 +31,6 @@ import { generateFileName } from './src/util'
 import { saveItems, hasItem } from './src/shop'
 
 import user_options from './src/user-options'
-
-let { client, purgeSnipe, prefix, BLACKLIST } = require("./src/common")
 
 import vars from './src/vars'
 import { server } from './website/server'
@@ -61,6 +60,27 @@ Object.defineProperty(User.prototype, "netWorth", {
     }
 });
 
+async function execCommand(msg: Message, cmd: string, programArgs?: string[]){
+    if(!isMsgChannel(msg.channel)) return false
+    if (cmd === `END` && common.ADMINS.includes(msg.author.id)) {
+        server.close()
+    }
+    try {
+        await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
+    }
+    catch (err) {
+        console.error(err)
+        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+    }
+    globals.writeCmdUse()
+
+}
+
+Message.prototype.execCommand = async function(local_prefix: string) {
+    let c = this.content.slice(local_prefix.length)
+    return await execCommand(this, c)
+};
+
 (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
@@ -77,23 +97,23 @@ Object.defineProperty(User.prototype, "netWorth", {
 })();
 
 
-client.on(Events.GuildMemberAdd, async (m: Message) => {
+common.client.on(Events.GuildMemberAdd, async (member) => {
     try {
-        let role = await m.guild?.roles.fetch("427570287232417793")
+        let role = await member.guild?.roles.fetch("427570287232417793")
         if (role)
-            m.member?.roles.add(role)
+            member.roles.add(role)
     }
     catch (err) {
         console.log(err)
     }
 })
 
-client.on(Events.ClientReady, async () => {
+common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
     Object.keys(user_options.USER_OPTIONS).forEach((v) => {
         if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
-            client.users.fetch(v).then((u: any) => {
-                u.createDM().then((channel: any) => {
+            common.client.users.fetch(v).then((u) => {
+                u.createDM().then((channel) => {
                     channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
                 })
             }).catch(console.log)
@@ -102,19 +122,13 @@ client.on(Events.ClientReady, async () => {
     console.log("ONLINE")
 })
 
-client.on(Events.MessageDelete, async (m: Message) => {
-    if (m.author?.id != client.user?.id) {
+common.client.on(Events.MessageDelete, async (m) => {
+    if (m.author?.id != common.client.user?.id) {
         for (let i = 3; i >= 0; i--) {
             command_commons.snipes[i + 1] = command_commons.snipes[i]
         }
         command_commons.snipes[0] = m
     }
-})
-
-client.on(Events.MessageBulkDelete, async (m: any) => {
-    purgeSnipe = m.toJSON()
-    if (purgeSnipe.length > 5)
-        purgeSnipe.length = 5
 })
 
 setInterval(() => {
@@ -125,7 +139,7 @@ setInterval(() => {
     timer.saveTimers()
 }, 30000)
 
-client.on(Events.MessageCreate, async (m: Message) => {
+common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
     if (m.member?.roles.cache.find((v: any) => v.id == '1031064812995760233')) {
         return
@@ -142,20 +156,20 @@ client.on(Events.MessageCreate, async (m: Message) => {
     }
 
     //you get reset if you have less than -40% of the economy
-    if((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4){
+    if ((economy.playerLooseNetWorth(m.author.id) / economy.economyLooseGrandTotal().total) < -0.4) {
         economy.createPlayer(m.author.id)
         economy.setMoney(m.author.id, 0)
     }
 
-    let local_prefix = user_options.getOpt(m.author.id, "prefix", prefix)
+    let local_prefix = user_options.getOpt(m.author.id, "prefix", common.prefix)
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
             let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id as string, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                if (command_commons.isCmd(pingresponse, prefix)) {
-                    await command_commons.cmd({ msg: m, command_excluding_prefix: pingresponse.slice(prefix.length), disable: command_commons.generateDefaultRecurseBans() })
+                if (command_commons.isCmd(pingresponse, common.prefix)) {
+                    await command_commons.cmd({ msg: m, command_excluding_prefix: pingresponse.slice(common.prefix.length), disable: command_commons.generateDefaultRecurseBans() })
                 }
                 else {
                     m.channel.send(pingresponse)
@@ -164,7 +178,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
         }
     }
 
-    if (m.content === `<@${client.user.id}>`) {
+    if (m.content === `<@${common.client.user?.id}>`) {
         await command_commons.handleSending(m, { content: `The prefix is: ${local_prefix}`, status: 0 })
     }
 
@@ -196,7 +210,7 @@ client.on(Events.MessageCreate, async (m: Message) => {
             percent += pets.PETACTIONS['cat']()
         }
 
-        if(!economy.getEconomy()[m.author.id] && !m.author.bot){
+        if (!economy.getEconomy()[m.author.id] && !m.author.bot) {
             economy.createPlayer(m.author.id, 100)
         }
 
@@ -206,54 +220,37 @@ client.on(Events.MessageCreate, async (m: Message) => {
             let stuff = await pet.PETACTIONS['puffle'](m)
             if (stuff) {
                 let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
-                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
+                await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap).name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
         }
 
     }
 
     let att = m.attachments.at(0)
-    let programArgs: string[] = []
-    if(att?.name?.endsWith(".bircle")){
+    if (att?.name?.endsWith(".bircle")) {
         let res = await fetch(att.url)
         m.attachments.delete(m.attachments.keyAt(0) as string)
 
         let p = new Parser(m, m.content)
         await p.parse()
-        let int = new Interpreter(m, p.tokens,  {
+        let int = new Interpreter(m, p.tokens, {
             modifiers: p.modifiers,
             recursion: 0
         })
         await int.interprate()
 
-        programArgs = int.args
-        m.content = `${local_prefix}${await res.text()}`
-        content = m.content
+        await execCommand(m, await res.text(), int.args)
     }
 
     if (content.slice(0, local_prefix.length) == local_prefix) {
-        if (m.content === `${local_prefix}END` && ADMINS.includes(m.author.id)) {
-            server.close()
-        }
-        for (let cmd of content.split(`\n${local_prefix};\n`)) {
-            m.content = `${cmd}`
-            let c = m.content.slice(local_prefix.length)
-            try {
-                await command_commons.cmd({ msg: m, command_excluding_prefix: c, programArgs})
-            }
-            catch (err) {
-                console.error(err)
-                await m.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
-            }
-        }
-        globals.writeCmdUse()
+        await m.execCommand(local_prefix)
     }
     else {
         await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
     }
 })
 
-client.on(Events.InteractionCreate, async (interaction: Interaction) => {
+common.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     if (interaction?.user?.username === undefined) {
         return
     }
@@ -308,12 +305,12 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
         }
     }
     else if (interaction.isCommand() && !interaction.replied) {
-        if (BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)) {
+        if (common.BLACKLIST[interaction.member?.user.id as string]?.includes(interaction.commandName)) {
             interaction.reply({ content: "You are blacklisted from this" }).catch(console.error)
             return
         }
-        for(let cmd of slashCmds){
-            if(cmd.name === interaction.commandName){
+        for (let cmd of slashCmds) {
+            if (cmd.name === interaction.commandName) {
                 globals.addToCmdUse(`/${interaction.commandName}`)
                 cmd.run(interaction as ChatInputCommandInteraction)
             }
@@ -321,5 +318,5 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     }
 })
 
-client.login(globals.token)
+common.client.login(globals.token)
 

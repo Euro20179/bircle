@@ -7,7 +7,7 @@ import events from './events';
 
 import globals = require("./globals")
 import user_options = require("./user-options")
-import { BLACKLIST, getUserMatchCommands, prefix, WHITELIST } from './common';
+import common from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween } from './util';
 
@@ -183,7 +183,7 @@ export class AliasV2 {
 
     async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers, context, returnJson }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], context: InterpreterContext, returnJson?: boolean }) {
 
-        if (BLACKLIST[msg.author.id]?.includes(this.name)) {
+        if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
         }
 
@@ -314,6 +314,24 @@ export function isCmd(text: string, prefix: string) {
     return text.slice(0, prefix.length) === prefix
 }
 
+type CmdArguments = {
+    msg: Message,
+    command_excluding_prefix: string,
+    recursion?: number,
+    returnJson?: boolean,
+    disable?: {
+        categories?: CommandCategory[],
+        commands?: string[]
+    },
+    sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>,
+    pipeData?: CommandReturn,
+    returnInterpreter?: boolean,
+    enableUserMatch?: boolean,
+    programArgs?: string[],
+    env?: Record<string, string>,
+    context?: InterpreterContext
+}
+
 export async function cmd({
     msg,
     command_excluding_prefix,
@@ -326,47 +344,47 @@ export async function cmd({
     programArgs,
     env,
     context
-}: { msg: Message, command_excluding_prefix: string, recursion?: number, returnJson?: boolean, disable?: { categories?: CommandCategory[], commands?: string[] }, sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>, pipeData?: CommandReturn, returnInterpreter?: boolean, enableUserMatch?: boolean, programArgs?: string[], env?: Record<string, string>, context?: InterpreterContext }) {
-    let rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
-    let int;
-    if (!(await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion))) {
+}: CmdArguments) {
 
-        let parser = new Parser(msg, command_excluding_prefix)
-        await parser.parse()
+    let int, rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
 
-        let logicalLine = 1
+    if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion)) {
+        return { rv, interpreter: int }
+    }
 
-        context ??= new InterpreterContext(programArgs, env)
+    let parser = new Parser(msg, command_excluding_prefix)
+    await parser.parse()
 
-        //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
-        while (parser.tokens.length > 0) {
-            context.env.LINENO = String(logicalLine)
+    let logicalLine = 0
 
-            let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
-            let currentToks = parser.tokens.slice(0, eolIdx)
-            parser.tokens = parser.tokens.slice(eolIdx + 1)
+    context ??= new InterpreterContext(programArgs, env)
+ 
+    //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
+    while (parser.tokens.length > 0) {
+        context.env.LINENO = String(++logicalLine)
 
-            //happens if there is some kind of empty statement
-            if (currentToks.length === 0) continue
+        let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
+        let currentToks = parser.tokens.slice(0, eolIdx)
+        parser.tokens = parser.tokens.slice(eolIdx + 1)
+
+        //happens if there is some kind of empty statement
+        if (currentToks.length === 0) continue
 
 
-            int = new Interpreter(msg, currentToks, {
-                modifiers: parser.modifiers,
-                recursion, returnJson, disable, sendCallback, pipeData, context
-            })
-            //this was previously ored to false
-            rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
-            //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
-            //  double piping is when the result pipes into itself
-            //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
-            if (returnJson) {
-                rv = await int.handlePipes(rv)
-            }
-
-            context = int.context
-
-            logicalLine++;
+        int = new Interpreter(msg, currentToks, {
+            modifiers: parser.modifiers,
+            recursion, returnJson, disable, sendCallback, pipeData, context
+        })
+        //this was previously ored to false
+        rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
+        //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
+        //  double piping is when the result pipes into itself
+        //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
+        if (returnJson) {
+            rv = await int.handlePipes(rv)
         }
+
+        context = int.context
     }
     return {
         rv: rv,
@@ -378,11 +396,13 @@ export async function cmd({
 type InterpreterOptionNames = "dryRun" | "explicit" | "no-int-cache"
 type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
 
+type InterpreterEnv = Record<string, string>
+
 class InterpreterContext {
-    env: Record<string, string>
+    env: InterpreterEnv
     options: InterpreterOptions
     programArgs: string[]
-    constructor(programArgs?: string[], env?: Record<string, string>, options?: InterpreterOptions) {
+    constructor(programArgs?: string[], env?: InterpreterEnv, options?: InterpreterOptions) {
         this.env = {
             IFS: " ",
             ...(env ?? {}),
@@ -393,6 +413,22 @@ class InterpreterContext {
         }
 
         this.programArgs = programArgs ?? []
+    }
+
+    setOpt(opt: InterpreterOptionNames, value: number){
+        return this.options[opt] = value
+    }
+
+    export(name: keyof InterpreterEnv, value: InterpreterEnv[keyof InterpreterEnv]){
+        return this.env[name] = value
+    }
+
+    unexport(name: string){
+        if(this.env[name]){
+            delete this.env[name]
+            return true
+        }
+        return false
     }
 }
 
@@ -488,10 +524,7 @@ export class Interpreter {
     advance(amount = 1) {
         this.#i += amount;
         this.#curTok = this.tokens[this.#i]
-        if (this.#curTok === undefined) {
-            return false
-        }
-        return true
+        return this.#curTok !== undefined
     }
     back() {
         this.#i--;
@@ -535,8 +568,8 @@ export class Interpreter {
         let rv = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
 
-        if (rv && rv.recurse && rv.content && isCmd(rv.content, prefix) && this.recursion < 20) {
-            rv = await runCmd(rv.content.slice(prefix.length))
+        if (rv && rv.recurse && rv.content && isCmd(rv.content, common.prefix) && this.recursion < 20) {
+            rv = await runCmd(rv.content.slice(common.prefix.length))
             data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         }
 
@@ -692,24 +725,24 @@ export class Interpreter {
     }
 
     async runBircleFile(cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
-            let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
-            return (await cmd({
-                msg: this.#msg,
-                command_excluding_prefix: data,
-                programArgs: args
-            })).rv
-
+        let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
+        return (await cmd({
+            msg: this.#msg,
+            command_excluding_prefix: data,
+            programArgs: args,
+            returnJson: this.returnJson
+        })).rv
     }
 
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
-        
+
         args[0] = args[0].trim()
 
         if (this.context.options.dryRun) {
-            if(this.returnJson)
-                return  { noSend: true, status: StatusCode.RETURN }
-            if(this.getPipeTo().length)
+            if (this.returnJson)
+                return { noSend: true, status: StatusCode.RETURN }
+            if (this.getPipeTo().length)
                 await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
             return
         }
@@ -733,7 +766,7 @@ export class Interpreter {
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
         let parser;
-        switch(optParser){
+        switch (optParser) {
             case 'with-negate': parser = getOptsWithNegate.bind(args); break;
             case 'unix': parser = getOptsUnix.bind(args); break;
             case 'normal': default: parser = getOpts.bind(args); break;
@@ -741,11 +774,9 @@ export class Interpreter {
 
         let [opts, args2] = parser(args)
 
-        if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
+        if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
             return this.runBircleFile(cmd, args)
         }
-
-        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
         if (opts['?']) {
             args = [cmd]
@@ -754,10 +785,12 @@ export class Interpreter {
             this.aliasV2 = false
         }
 
+        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
+
         if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (cmd.startsWith(prefix)) {
+            if (cmd.startsWith(common.prefix)) {
                 cmd = `\\${cmd}`
             }
             rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
@@ -766,7 +799,7 @@ export class Interpreter {
         }
         else runnerIf: {
             //make sure it passes the command's perm check if it has one
-            if (!(cmdObject instanceof AliasV2) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
+            if (!(cmdObject instanceof AliasV2) && !common.WHITELIST[this.#msg.author.id]?.includes(cmd) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
                 rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
                 break runnerIf
             }
@@ -781,10 +814,8 @@ export class Interpreter {
 
             //if any are true, the user cannot run the command
             if (
-                //is whitelisted
-                WHITELIST[this.#msg.author.id]?.includes(cmd) ||
                 //is blacklisted
-                BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
+                common.BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
                 //is disabled from the caller
                 this.disable?.commands && this.disable.commands.includes(cmd) ||
                 this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
@@ -797,10 +828,10 @@ export class Interpreter {
 
             events.botEvents.emit(events.CmdRun, this)
 
-            if ((this.#shouldType || cmdObject?.make_bot_type))
+            if (this.#shouldType || cmdObject.make_bot_type)
                 await this.#msg.channel.sendTyping()
 
-            if (!this.context.options['no-int-cache'] && cmdObject?.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
+            if (!this.context.options['no-int-cache'] && cmdObject.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
                 rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
             }
 
@@ -838,8 +869,9 @@ export class Interpreter {
             }
         }
 
-        if(this.context.options.explicit){
-            if(rv.content){
+        //the point of explicit is to say which command is currently being run, and which "line number" it's on
+        if (this.context.options.explicit) {
+            if (rv.content) {
                 rv.content = `${this.context.env.LINENO}\t${args.join(" ")}\n${rv.content}`
             }
             else rv.content = `${this.context.env.LINENO}\t${args.join(" ")}`
@@ -955,7 +987,7 @@ export class Interpreter {
         if (!enableUserMatch) {
             return false
         }
-        let userMatchCmds = getUserMatchCommands()?.get(msg.author.id) ?? []
+        let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
         for (let [_name, [regex, run]] of userMatchCmds) {
             let m = content.match(regex);
             if (!m) continue;
@@ -1053,10 +1085,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         delete rv['content']
     }
     //only do this if content
-    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, prefix.length) === prefix) {
+    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, common.prefix.length) === common.prefix) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(common.prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
 
         rv = ret.rv
 

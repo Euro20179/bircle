@@ -232,23 +232,21 @@ function playerLooseNetWorth(id: string) {
 }
 
 function economyLooseGrandTotal(countNegative = true) {
-    let moneyTotal = 0
-    let stockTotal = 0
-    let loanTotal = 0
-    let econ = getEconomy()
-    for (let player in econ) {
+    let moneyTotal = 0,
+        stockTotal = 0,
+        loanTotal = 0
+    for (const [player, data] of Object.entries(ECONOMY)) {
         let nw = playerLooseNetWorth(player)
         if(nw < 0 && !countNegative) continue;
-        let pst = 0
-        moneyTotal += econ[player].money
-        let playerData = econ[player]
-        for (let stock in playerData.stocks) {
-            pst += playerData.stocks[stock].shares * playerData.stocks[stock].buyPrice
+
+        moneyTotal += data.money
+
+        if(data.stocks) {
+            for (const stockData of Object.values(data.stocks))
+                stockTotal += stockData.shares * stockData.buyPrice
         }
-        stockTotal += pst
-        if (playerData.loanUsed) {
-            loanTotal += playerData.loanUsed
-        }
+
+        loanTotal += data.loanUsed ?? 0
     }
     return { money: moneyTotal, stocks: stockTotal, loan: loanTotal, total: moneyTotal + stockTotal - loanTotal, moneyAndStocks: moneyTotal + stockTotal }
 }
@@ -513,10 +511,6 @@ export default {
     getLottery,
     playerEconomyLooseTotal,
     getStockInformation,
-    /**
-        * @deprecated use amount_parser.calculateAmountRelativeTo instead
-    */
-    calculateAmountOfMoneyFromString: amount_parser.calculateAmountRelativeTo,
     work,
     economyLooseGrandTotal,
     playerLooseNetWorth,

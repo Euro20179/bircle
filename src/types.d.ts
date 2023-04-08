@@ -11,9 +11,15 @@ declare module "discord.js" {
         economyData: EconomyData,
         netWorth: number
     }
+
+    export interface Message{
+        execCommand: (prefix: string) => Promise<false | void>
+    }
 }
 
 declare global {
+
+    type Milliseconds = number
 
     type ArgumentList = Array<string>
 

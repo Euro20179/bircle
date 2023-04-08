@@ -1,4 +1,4 @@
-import { client, prefix } from "../common"
+import common from "../common"
 import { cmd, CommandCategory, createHelpArgument, createMatchCommand, crv, handleSending, Interpreter, lastCommand, StatusCode } from "../common_to_commands"
 import { Parser } from "../parsing"
 import { fetchUserFromClient, getContentFromResult, isMsgChannel } from "../util"
@@ -33,7 +33,7 @@ export default function*(CAT: CommandCategory) {
         let searchUser: string = match[1]
         let textToSend = match[2]
 
-        let user = await fetchUserFromClient(client, searchUser)
+        let user = await fetchUserFromClient(common.client, searchUser)
 
         if (!user) {
             return { content: `${searchUser} not found`, status: StatusCode.ERR }
@@ -42,9 +42,9 @@ export default function*(CAT: CommandCategory) {
             return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: 19, returnJson: true })).rv as CommandReturn)
-            if (signature.startsWith(prefix)) {
+        if (signature.slice(0, common.prefix.length) === common.prefix) {
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(common.prefix.length), recursion: 19, returnJson: true })).rv as CommandReturn)
+            if (signature.startsWith(common.prefix)) {
                 signature = "\\" + signature
             }
         }
@@ -103,10 +103,10 @@ export default function*(CAT: CommandCategory) {
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
-        if (user_options.getOpt(msg.author.id, "prefix", prefix) === prefix) {
+        if (user_options.getOpt(msg.author.id, "prefix", common.prefix) === common.prefix) {
             return { noSend: true, status: StatusCode.RETURN }
         }
-        user_options.setOpt(msg.author.id, "prefix", prefix)
+        user_options.setOpt(msg.author.id, "prefix", common.prefix)
         return (await cmd({ msg, command_excluding_prefix: match[1], returnJson: true })).rv
 
     }, /^s!(.*)/, "match:s!", {
@@ -122,7 +122,7 @@ export default function*(CAT: CommandCategory) {
         let searchUser: string = match[1]
         let textToSend = match[2]
 
-        let user = await fetchUserFromClient(client, searchUser)
+        let user = await fetchUserFromClient(common.client, searchUser)
 
         if (!user) {
             return { content: `${searchUser} not found`, status: StatusCode.ERR }
@@ -131,9 +131,9 @@ export default function*(CAT: CommandCategory) {
             return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, prefix.length) === prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(prefix.length), recursion: 19, returnJson: true })).rv)
-            if (signature.startsWith(prefix)) {
+        if (signature.slice(0, common.prefix.length) === common.prefix) {
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(common.prefix.length), recursion: 19, returnJson: true })).rv)
+            if (signature.startsWith(common.prefix)) {
                 signature = "\\" + signature
             }
         }

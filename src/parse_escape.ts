@@ -47,10 +47,12 @@ export default {
                 modifiers: p.modifiers,
                 recursion: int.recursion + 1
             })
-            let args = await i.interprate()
-            for (let arg of args.join(" ").split(" ")) {
-                return [new Token(T.str, arg, int.args.length + 1)]
+            let args = (await i.interprate()).join(" ").split(" ")
+            let toks = []
+            for(let i = 0; i < args.length; i++){
+                toks.push(new Token(T.str, args[i], int.args.length + i))
             }
+            return toks
         }
         return [];
     },

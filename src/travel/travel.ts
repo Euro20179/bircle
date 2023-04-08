@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
 import { crv, generateDefaultRecurseBans, handleSending, promptUser, StatusCode } from "../common_to_commands"
-import { choice, isBetween, listComprehension } from "../util"
+import { choice, isBetween, listComprehension, sleep } from "../util"
 
 import pets from "../pets"
 import economy from "../economy"
@@ -10,7 +10,7 @@ import user_options from '../user-options'
 
 import achievements from '../achievements'
 
-import { GLOBAL_CURRENCY_SIGN } from "../common"
+import common from '../common'
 import vars from '../vars'
 import { giveItem, hasItem, useItem } from "../shop"
 import { IUserCountry, UserCountryActivity } from './user-country'
@@ -50,7 +50,7 @@ class Country {
     }
 
     getSign(msg: Message) {
-        return user_options.getOpt(msg.author.id, "currency-sign", this.currencySign ?? GLOBAL_CURRENCY_SIGN)
+        return user_options.getOpt(msg.author.id, "currency-sign", this.currencySign ?? common.GLOBAL_CURRENCY_SIGN)
     }
 
     get activityNameList() {
@@ -74,7 +74,8 @@ class Country {
 
         await handleSending(msg, crv(this.greeting ?? `Welcome to ${name}`))
 
-        await new Promise(res => setTimeout(res, 900))
+        await sleep(900)
+
         await handleSending(msg, crv(`Please choose an activity :grin:\n${activitiesText}`, { status: StatusCode.PROMPT }))
         let msgs: Collection<string, Message<boolean>> = new Collection()
         if (msg.channel.type !== ChannelType.GuildStageVoice) {
@@ -288,7 +289,7 @@ class Mexico extends Country {
             economy.addMoney(msg.author.id, amount)
             return crv(`The drug cartel steals ${this.getSign(msg)}${String(-amount).split(".")[0]} and 0.${String(-amount).split(".")[1]} cents from your pocket`)
         }
-        let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().moneyAndStocks, "10%")
+        let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, "10%")
         economy.addMoney(msg.author.id, amount)
 
         return crv(`You join a drug cartel and form new friendships you should'nt have believed to be possible\nAfter many years of service you accumulate ${this.getSign(msg)}${amount}`)
@@ -296,7 +297,7 @@ class Mexico extends Country {
 
     async mayanTemple({ msg }: CommandV2RunArg) {
         if (Math.random() < .03) {
-            let amount = economy.calculateAmountOfMoneyFromString(economy.economyLooseGrandTotal().moneyAndStocks, "1%")
+            let amount = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().moneyAndStocks, "1%")
             economy.addMoney(msg.author.id, amount)
             return crv(`You found a secret gold stash worth: ${this.getSign(msg)}${amount}`)
         }

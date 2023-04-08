@@ -8,7 +8,7 @@ import fs from 'fs'
 
 import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
 import { existsSync } from "fs"
-import { client } from "./common"
+import common from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
 
 import events from './events'
@@ -32,6 +32,8 @@ function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclu
 function databaseFileToArray(name: string) {
     return fs.readFileSync(`./command-results/${name}`, 'utf-8').split(";END").map(v => v.split(":")).map(v => [v[0], v.slice(1).join(":")])
 }
+
+const sleep = async(time: Milliseconds) => await new Promise(res => setTimeout(res, time))
 
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
@@ -258,7 +260,7 @@ async function fetchUserFromClientOrGuild(find: string, guild?: Guild | null) {
     if (guild) {
         return (await fetchUser(guild, find))?.user
     }
-    return await fetchUserFromClient(client, find)
+    return await fetchUserFromClient(common.client, find)
 }
 
 const generateFileName = (cmd: string, userId: string, ext: string = "txt") => `garbage-files/${cmd}-${userId}.${ext}`
@@ -1019,6 +1021,7 @@ export {
     isMsgChannel,
     isCommandCategory,
     emitsEvent,
-    cmdFileName
+    cmdFileName,
+    sleep
 }
 
