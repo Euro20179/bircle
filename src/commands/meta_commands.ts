@@ -2037,33 +2037,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "command-file",
-        {
-            run: async (_msg: Message, args: ArgumentList, sendCallback, opts) => {
+        "command-file", ccmdV2(async function({args, rawOpts: opts}){
                 if (opts["l"]) {
-                    return {
-                        content: `\`\`\`
-${fs.readdirSync("./command-results").join("\n")}
-\`\`\`
-`,
-                        status: StatusCode.RETURN
-                    }
+                    return crv( `\`\`\`\n${fs.readdirSync("./command-results").join("\n")}\n\`\`\``)
                 }
                 const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
-                if (!file) {
-                    return {
-                        content: "Nothing given to add to",
-                        status: StatusCode.ERR
-                    }
-                }
                 if (!isSafeFilePath(file)) {
                     return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
                 }
                 if (!fs.existsSync(`./command-results/${file}`)) {
-                    return {
-                        content: "file does not exist",
-                        status: StatusCode.ERR
-                    }
+                    return crv(`${file} does not exist`, {status: StatusCode.ERR})
                 }
                 return {
                     files: [
@@ -2076,17 +2059,15 @@ ${fs.readdirSync("./command-results").join("\n")}
                     ],
                     status: StatusCode.ERR
                 }
+
+        },  "Reads a command file", {
+            helpArguments: {
+                file: createHelpArgument("The file to see")
             },
-            help: {
-                info: "Reads a command file",
-                arguments: {
-                    file: {
-                        description: "the file to see"
-                    }
-                }
+            helpOptions: {
+                l: createHelpOption("List all possible files")
             },
-            category: CAT
-        },
+        })
     ]
 
     yield [
