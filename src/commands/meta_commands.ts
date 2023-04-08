@@ -2102,11 +2102,16 @@ ${fs.readdirSync("./command-results").join("\n")}
             let data = {
                 util: require("../util"),
                 common_to_commands: require("../common_to_commands").default,
-                globals: require("../globals"),
+                globals: () => {
+                    let data = require("../globals")
+                    delete data['token']
+                    return data
+                },
                 common: require("../common"),
                 economy: require("../economy").default,
                 timer: require("../timer").default,
-                pets: require("../pets").default
+                pets: require("../pets").default,
+                amount_parser: require("../amount-parser").default
             }
             if (args[0].includes(".")) {
                 args = new ArgList(args.join(" ").split("."))
