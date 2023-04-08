@@ -454,7 +454,7 @@ async function getStockInformation(quote: string, cb?: (data: { change: number, 
         if (!value || !field) continue
         jsonStockInfo[field[1]] = value[1]
     }
-    if (Object.keys(jsonStockInfo).length < 1) {
+    if (!Object.hasEnumerableKeys(jsonStockInfo)) {
         if (cb)
             cb(false)
         return false

@@ -2308,7 +2308,7 @@ ${fs.readdirSync("./command-results").join("\n")}
                 if (opts['json']) {
                     return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
                 }
-                if (Object.keys(commandsToUse).length < 1) {
+                if (!Object.hasEnumerableKeys(commandsToUse)) {
                     return {
                         content: "No help can be given :(",
                         status: StatusCode.ERR

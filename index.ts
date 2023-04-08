@@ -16,7 +16,7 @@ import { slashCmds } from "./src/slashCommands"
 import command_commons, { Interpreter } from './src/common_to_commands'
 
 import globals = require("./src/globals")
-import { isMsgChannel } from "./src/util"
+import { defer, isMsgChannel } from "./src/util"
 import { Parser, format } from './src/parsing'
 import { getOpt } from "./src/user-options"
 import common from './src/common'
@@ -57,14 +57,21 @@ Object.defineProperty(User.prototype, "netWorth", {
     }
 });
 
-String.prototype.stripStart = function(chars){
-    for(var newStr = this; chars.includes(newStr[0]); newStr = newStr.slice(1));
+String.prototype.stripStart = function(chars) {
+    for (var newStr = this; chars.includes(newStr[0]); newStr = newStr.slice(1));
     return newStr.valueOf()
 }
 
-String.prototype.stripEnd = function(chars){
-    for(var newStr = this; chars.includes(newStr[newStr.length - 1]); newStr = newStr.slice(0, -1));
+String.prototype.stripEnd = function(chars) {
+    for (var newStr = this; chars.includes(newStr[newStr.length - 1]); newStr = newStr.slice(0, -1));
     return newStr.valueOf()
+}
+
+Object.prototype.hasEnumerableKeys = function(o){
+    for(let _ in o){
+        return true
+    }
+    return false
 }
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
@@ -88,7 +95,7 @@ Message.prototype.execCommand = async function(local_prefix: string) {
     return await execCommand(this, c)
 }
 
-void (async () => {
+defer(() => {
     console.log('Started refreshing application (/) commands.');
 
     rest.put(
@@ -97,8 +104,7 @@ void (async () => {
     ).then(
         _res => console.log("Successfully reloaded application (/) commands.")
     ).catch(console.log)
-})();
-
+})
 
 common.client.on(Events.GuildMemberAdd, async (member) => {
     try {
@@ -113,13 +119,15 @@ common.client.on(Events.GuildMemberAdd, async (member) => {
 
 common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
-    Object.keys(user_options.USER_OPTIONS).forEach((v) => {
-        if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
-            common.client.users.fetch(v).then((u) => {
-                u.createDM().then((channel) => {
-                    channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
-                })
-            }).catch(console.log)
+    defer(() => {
+        for (let v in user_options.USER_OPTIONS) {
+            if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
+                common.client.users.fetch(v).then((u) => {
+                    u.createDM().then((channel) => {
+                        channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
+                    })
+                }).catch(console.log)
+            }
         }
     })
     console.log("ONLINE")

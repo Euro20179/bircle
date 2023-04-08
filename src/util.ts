@@ -39,6 +39,13 @@ const Enum = function <const T>(data: T) {
     return data
 }
 
+/**
+    * @description runs cb but in an async function to defer lower the importance
+*/
+async function defer(cb: Function){
+    cb()
+}
+
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
     return {
@@ -564,7 +571,7 @@ class ArgList extends Array {
         let argsToUse = this.#createArgList(amountOfArgs)
         let res = filter.bind(this)(argsToUse);
         if (res !== false && res !== BADVALUE) {
-            return res === GOODVALUE ? this.#curArg : res
+            return res === GOODVALUE ? this.#curArg as string : res
         }
         return BADVALUE
     }
@@ -1042,5 +1049,6 @@ export {
     cmdFileName,
     sleep,
     Enum,
+    defer
 }
 

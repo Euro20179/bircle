@@ -24,6 +24,10 @@ declare global {
         stripEnd(chars: string): string,
         splice(start: size_t, end?: size_t): string
     }
+
+    interface Object{
+        hasEnumerableKeys<T>(o: T): boolean
+    }
 }
 
 //Utility
