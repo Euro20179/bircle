@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, Modifier, parseAliasReplacement, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -857,7 +857,7 @@ export class Interpreter {
                     argList.beginIter()
                     for await(const [result, type, optional] of cmdO.argShape(argList, this.#msg)){
                         if(result === BADVALUE && !optional){
-                            rv = {content: `Expected ${type}`, status: StatusCode.ERR}
+                            rv = {content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR}
                             break runnerIf;
                         }
                         argShapeResults[type] = result

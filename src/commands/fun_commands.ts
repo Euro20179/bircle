@@ -678,8 +678,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "feed-pet", ccmdV2(async ({ argShapeResults, msg }) => {
-            let petName = argShapeResults['pet-name'] as string
-            let item = argShapeResults['item'] as string
+            let petName = argShapeResults['name'] as string
+            let item = argShapeResults['food'] as string
 
             let p = pet.hasPetByNameOrType(msg.author.id, petName)
             if (!p[1]) {
@@ -695,10 +695,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
 
-        }, "feed-pet <pet> <item>", {
+        }, "feed-pet", {
             argShape: async function*(args){
-                yield [args.expectString(), "pet-name"]
-                yield [args.expectString(() => true), 'item']
+                yield [args.expectString(), "name"]
+                yield [args.expectString(() => true), 'food']
+            },
+            helpArguments: {
+                name: createHelpArgument("Name of pet to feed"),
+                '...food': createHelpArgument("Food to give the pet")
             }
         })
     ]
