@@ -54,7 +54,7 @@ enum TT {
     ge,
 }
 
-const KEYWORDS = ['var', 'end', 'if', 'then', 'else', 'elif'] as const
+const KEYWORDS = ['var', 'rav', 'if', 'then', 'else', 'elif', 'fi'] as const
 
 
 type TokenDataType = {
@@ -668,9 +668,9 @@ ${'\t'.repeat(indent)})`
 
 class VariableBinOpAssignNode extends Node {
     name: Token<TT.ident>
-    op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq>
+    op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>
     value: Node
-    constructor(name: Token<TT.ident>, op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq>, value: Node) {
+    constructor(name: Token<TT.ident>, op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>, value: Node) {
         super()
         this.name = name
         this.op = op
@@ -692,6 +692,10 @@ class VariableBinOpAssignNode extends Node {
             case '-=': return var_.number().isub(this.value.visit(relativeTo, table).number())
             case '/=': return var_.number().idiv(this.value.visit(relativeTo, table).number())
             case '^/=': return var_.number().iroot(this.value.visit(relativeTo, table).number())
+            case '=': {
+                table.set(this.name.data, this.value.visit(relativeTo, table))
+                return table.get(this.name.data)
+            }
         }
     }
 
@@ -1252,7 +1256,13 @@ class Parser {
 
             let code: Token<any>[] = []
 
-            while (this.advance() && (this.#curTok?.type as TT !== TT.keyword && this.#curTok?.data !== 'end')) {
+            while (this.advance()) {
+                if(this.#curTok?.type as TT === TT.keyword && this.#curTok?.data === 'rav'){
+                    break
+                }
+                if(!this.#curTok){
+                    throw new SyntaxError(`'rav' expected to end function`)
+                }
                 code.push(this.#curTok)
             }
 
@@ -1314,8 +1324,9 @@ class Parser {
             this.advance()
             elseNode = this.program()
         }
-        if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'end') {
-            throw new SyntaxError("Expected 'end' to end if block")
+        console.log(this.#curTok)
+        if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'fi') {
+            throw new SyntaxError("Expected 'fi' to end if block")
         }
         this.advance()
         return new IfNode(comp, code, elifPrograms, elseNode)
@@ -1332,7 +1343,7 @@ class Parser {
         else if (this.#curTok?.type === TT.ident) {
             let name = this.#curTok as Token<TT.ident>
             this.advance()
-            if ([TT.muleq, TT.pluseq, TT.minuseq, TT.rooteq, TT.poweq, TT.diveq].includes(this.#curTok?.type as TT)) {
+            if ([TT.muleq, TT.pluseq, TT.minuseq, TT.rooteq, TT.poweq, TT.diveq, TT.eq].includes(this.#curTok?.type as TT)) {
                 let op = this.#curTok as Token<TT.muleq>
                 this.advance()
                 return new VariableBinOpAssignNode(name, op, this.comp())
