@@ -1017,11 +1017,11 @@ class Parser {
         if (this.#curTok === undefined) {
             throw new SyntaxError(`Expected expression after '${name?.data}('`)
         }
-        let nodes = [this.expr()]
+        let nodes = [this.statement()]
         while (this.#curTok?.type === TT.comma) {
             //skip ,
             this.advance()
-            nodes.push(this.expr())
+            nodes.push(this.statement())
         }
         if (this.#curTok === undefined) {
             throw new SyntaxError(`Expected ')' after '${name?.data}(...`)

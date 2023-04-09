@@ -2,7 +2,7 @@ literal: "all" | "all!" | "infinity" //these are all identifiers
 
 special-literal: IDENT //provided at runtime can be mapped to any function that returns a number
 
-function: IDENT "(" expr(","expr)* ")"
+function: IDENT "(" statement(","statement)* ")"
 
 var-access: IDENT
 
