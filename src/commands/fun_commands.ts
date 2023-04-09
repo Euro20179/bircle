@@ -172,11 +172,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
     })]
 
-    yield [
-        "the secret command", createCommandV2(async () => {
-            return { content: "Congrats, you found the secret command", status: StatusCode.RETURN }
-        }, CommandCategory.FUN)
-    ]
+    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command"), "How do you run it, nobody knows")]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
         let isRetired = economy.isRetired(msg.author.id)
@@ -239,7 +235,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return activities[activity]()
     }, "If you are retired, do an activity")]
 
-    yield ["fishing", createCommandV2(async ({ msg, args }) => {
+    yield ["fishing", ccmdV2(async ({ msg, args }) => {
         let rod = hasItem(msg.author.id, "fishing rod")
 
         let canfish = false
@@ -307,7 +303,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         giveItem(msg.author.id, item, 1)
         useItem(msg.author.id, "fishing rod", Math.floor(Math.random() * 2))
         return { content: `You fished up ${item}!!`, status: StatusCode.RETURN }
-    }, CommandCategory.FUN)]
+    }, "Go fishing and find some fish<br><i>Sharks might find better loot</i>")
+    ]
 
 
     yield ["use-item", createCommandV2(async ({ args, msg, opts }) => {
