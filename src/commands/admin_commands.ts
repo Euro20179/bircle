@@ -11,6 +11,7 @@ import user_country from '../travel/user-country'
 import { Message, User } from 'discord.js'
 import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
 import achievements from '../achievements'
+import { server } from '../../website/server'
 const { hasItem, useItem, resetPlayerItems, resetItems, INVENTORY } = require('../shop')
 
 export default function*(): Generator<[string, Command | CommandV2]> {
@@ -341,6 +342,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 pet.savePetData()
                 common.client.destroy()
                 user_options.saveUserOptions()
+                server.close()
                 return {
                     content: "STOPPING",
                     status: StatusCode.RETURN
