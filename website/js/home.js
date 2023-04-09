@@ -105,5 +105,5 @@ runButton.addEventListener("click", async (e) => {
 
     let res = await fetch(`/run?channel-id=${cid}`, { method: "POST", body: cmd })
     let data = await res.json()
-    handleSending(data)
+    handleSending(data.rv)
 })
