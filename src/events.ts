@@ -17,13 +17,13 @@ const HandleSend = Symbol("handle-send")
 
 const botEvents = new EventEmitter()
 
-botEvents.on(CmdRun, async (int: Interpreter) => {
+botEvents.on(CmdRun, function cmdRunEventHandler(int: Interpreter) {
     let varname = `!stats:cmd-usage.${int.args[0]}`
     let msg = int.getMessage()
     vars.setVarEasy(varname, String(Number(vars.getVar(msg, varname)) + 1), msg.author.id)
 })
 
-botEvents.on(HandleSend, async(msg: Message, rv: CommandReturn) => {
+botEvents.on(HandleSend, function HandleSend(msg: Message, rv: CommandReturn) {
     //doing this if user expansion is false can cause problems
     if(rv.do_change_cmd_user_expansion !== false){
         vars.setVarEasy(`%:?`, rv.status, msg.author.id)
