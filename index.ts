@@ -67,7 +67,7 @@ String.prototype.stripEnd = function(chars) {
     return newStr.valueOf()
 }
 
-Object.prototype.hasEnumerableKeys = function(o){
+Object.hasEnumerableKeys = function(o){
     for(let _ in o){
         return true
     }
