@@ -30,11 +30,17 @@ enum TT {
     "rparen",
     "percent",
     "plus",
+    "pluseq",
     "minus",
+    "minuseq",
     "mul",
+    "muleq",
     "div",
+    "diveq",
     'pow',
+    poweq,
     root,
+    rooteq,
     semi,
     ident,
     keyword,
@@ -61,11 +67,17 @@ type TokenDataType = {
     [TT.percent]: "%",
     [TT.number_suffix]: 'K' | 'M' | 'B' | 'T'
     [TT.plus]: "+",
+    [TT.pluseq]: "+=",
     [TT.minus]: "-",
+    [TT.minuseq]: "-=",
     [TT.mul]: "*",
+    [TT.muleq]: "*=",
     [TT.div]: "/",
+    [TT.diveq]: "/="
     [TT.pow]: "^",
+    [TT.poweq]: "^=",
     [TT.root]: "^/",
+    [TT.rooteq]: "^/=",
     [TT.special_literal]: string,
     [TT.semi]: ';',
     [TT.ident]: string,
@@ -265,7 +277,19 @@ class Lexer {
                     break;
                 }
                 case '=': {
-                    this.tokens.push(new Token(TT.eq, '='))
+                    let tok;
+                    switch (this.tokens[this.tokens.length - 1].type) {
+                        case TT.mul: tok = new Token(TT.muleq, "*="); break;
+                        case TT.div: tok = new Token(TT.diveq, "/="); break;
+                        case TT.minus: tok = new Token(TT.minuseq, "-="); break;
+                        case TT.plus: tok = new Token(TT.pluseq, "+="); break;
+                        case TT.pow: tok = new Token(TT.poweq, "^="); break;
+                        case TT.root: tok = new Token(TT.rooteq, "^/="); break;
+                    }
+                    if (tok) {
+                        this.tokens[this.tokens.length - 1] = tok
+                    }
+                    else this.tokens.push(new Token(TT.eq, "="))
                     break;
                 }
                 case '>': {
@@ -299,7 +323,7 @@ class Lexer {
 }
 
 class SymbolTable extends Map {
-    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string>) {
+    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string | Type<any>>) {
         super()
         for (let key in base) {
             this.set(key, base[key])
@@ -332,8 +356,10 @@ type ValidJSTypes = string | number | UserFunction
 
 abstract class Type<JSType extends ValidJSTypes>{
     protected data: JSType
+    type: string
     constructor(internalData: JSType) {
         this.data = internalData
+        this.type = "Type"
     }
     abstract access(): JSType
     abstract add(other: Type<any>): Type<JSType>
@@ -347,11 +373,12 @@ abstract class Type<JSType extends ValidJSTypes>{
 
     abstract truthy(): boolean
 
-    abstract string(): Type<string>
-    abstract number(): Type<number>
+    abstract string(): StringType
+    abstract number(): NumberType
 }
 
 class NumberType extends Type<number>{
+    type = "number"
     access(): number {
         return this.data
     }
@@ -369,51 +396,70 @@ class NumberType extends Type<number>{
         return this
     }
 
-    mul(other: Type<number>): Type<number> {
+    mul(other: Type<number>): NumberType {
         return new NumberType(this.data * other.number().access())
     }
 
-    imul(other: Type<number>): Type<number> {
+    imul(other: Type<number>): NumberType {
         this.data *= other.number().access()
         return this
     }
 
-    sub(other: Type<any>): Type<number> {
+    sub(other: Type<any>): NumberType {
         return new NumberType(this.data - other.number().access())
     }
 
-    isub(other: Type<any>): Type<number> {
+    isub(other: Type<any>): NumberType {
         this.data -= other.number().access()
         return this
     }
 
-    div(other: Type<any>): Type<number> {
+    div(other: Type<any>): NumberType {
         return new NumberType(this.data / other.number().access())
     }
 
-    idiv(other: Type<any>): Type<number> {
+    idiv(other: Type<any>): NumberType {
         this.data /= other.number().access()
         return this
     }
 
-    string(): Type<string> {
+    pow(other: Type<any>): NumberType {
+        return new NumberType(this.data ** other.number().access())
+    }
+
+    ipow(other: Type<any>): NumberType {
+        this.data **= other.number().access()
+        return this
+    }
+
+    root(other: Type<any>): NumberType {
+        return this.pow(new NumberType(1 / other.number().access()))
+    }
+
+    iroot(other: Type<any>): NumberType {
+        this.data = Math.pow(this.data, 1 / other.number().access())
+        return this
+    }
+
+    string(): StringType {
         return new StringType(this.data.toString())
     }
 
-    number(): Type<number> {
+    number(): NumberType {
         return this
     }
 
 }
 
 class StringType extends Type<string>{
+    type = "string"
     access(): string {
         return this.data
     }
     truthy(): boolean {
         return this.data !== ""
     }
-    add(other: Type<string>): Type<string> {
+    add(other: Type<string>): StringType {
         return new StringType(this.data + other.string().access())
     }
     iadd(other: Type<string>): Type<string> {
@@ -444,17 +490,18 @@ class StringType extends Type<string>{
         throw new TypeError("Cannot divide strings")
     }
 
-    string(): Type<string> {
+    string(): StringType {
         return this
     }
 
-    number(): Type<number> {
+    number(): NumberType {
         return new NumberType(NaN)
     }
 
 }
 
 class FunctionType extends Type<UserFunction> {
+    type = "function"
     access(): UserFunction {
         return this.data
     }
@@ -491,11 +538,11 @@ class FunctionType extends Type<UserFunction> {
         return this.add(other)
     }
 
-    string(): Type<string> {
+    string(): StringType {
         return new StringType(`${this.data.name}(${this.data.argIdents.join(", ")}) = ${this.data.toString()}`)
     }
 
-    number(): Type<number> {
+    number(): NumberType {
         throw new TypeError(`Function: ${this.data.name} cannot be converted to a number`)
     }
 
@@ -533,11 +580,11 @@ class UserFunction {
     }
 }
 
-function createTypeFromJSType<T extends ValidJSTypes>(jsType: T){
-    if(typeof jsType === 'string'){
+function createTypeFromJSType<T extends ValidJSTypes>(jsType: T) {
+    if (typeof jsType === 'string') {
         return new StringType(jsType)
     }
-    else if(typeof jsType === 'number'){
+    else if (typeof jsType === 'number') {
         return new NumberType(jsType)
     }
     return new FunctionType(jsType)
@@ -552,7 +599,7 @@ class ProgramNode extends Program {
 
     visit(relativeTo: number, table: SymbolTable): ValidJSTypes {
         let res;
-        for(let expr of this.expressions){
+        for (let expr of this.expressions) {
             res = expr.visit(relativeTo, table)
         }
         return res?.access() ?? 0;
@@ -619,6 +666,42 @@ ${'\t'.repeat(indent)})`
     }
 }
 
+class VariableBinOpAssignNode extends Node {
+    name: Token<TT.ident>
+    op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq>
+    value: Node
+    constructor(name: Token<TT.ident>, op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq>, value: Node) {
+        super()
+        this.name = name
+        this.op = op
+        this.value = value
+    }
+
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
+        let var_ = table.get(this.name.data)
+        if (var_ === undefined) {
+            throw new OperatorError(`${this.name.data} is undefined`)
+        }
+        if (!(var_ instanceof Type)) {
+            return new NumberType(0)
+        }
+        switch (this.op.data) {
+            case '*=': return var_.number().imul(this.value.visit(relativeTo, table).number())
+            case '^=': return var_.number().ipow(this.value.visit(relativeTo, table).number())
+            case '+=': return var_.number().iadd(this.value.visit(relativeTo, table).number())
+            case '-=': return var_.number().isub(this.value.visit(relativeTo, table).number())
+            case '/=': return var_.number().idiv(this.value.visit(relativeTo, table).number())
+            case '^/=': return var_.number().iroot(this.value.visit(relativeTo, table).number())
+        }
+    }
+
+    repr(indent: number): string {
+        return `VarBinOpAssign(
+${'\t'.repeat(indent + 1)}${this.name.data} ${this.op.data} ${this.value.repr(indent + 1)}
+${'\t'.repeat(indent)})`
+    }
+}
+
 class VariableAssignNode extends Node {
     name: Token<TT.ident>
     value: Node
@@ -661,9 +744,9 @@ class IfNode extends Node {
             let data = this.code.visit(relativeTo, table)
             return createTypeFromJSType(data)
         }
-        if(this.elifPrograms){
-            for(let [check, program] of this.elifPrograms){
-                if(check.visit(relativeTo, table).truthy()){
+        if (this.elifPrograms) {
+            for (let [check, program] of this.elifPrograms) {
+                if (check.visit(relativeTo, table).truthy()) {
                     let data = program.visit(relativeTo, table)
                     return createTypeFromJSType(data)
                 }
@@ -682,7 +765,7 @@ ${'\t'.repeat(indent + 1)}check(${this.condition.repr(indent + 1)})
 ${'\t'.repeat(indent + 1)}(
 ${'\t'.repeat(indent + 2)}${this.code.repr(indent + 2)}
 ${'\t'.repeat(indent + 1)})\n`
-        for(let [_, program] of this.elifPrograms){
+        for (let [_, program] of this.elifPrograms) {
             text += `${'\t'.repeat(indent + 1)}Elif(
 ${'\t'.repeat(indent + 2)}${program.repr(indent + 2)}
 ${'\t'.repeat(indent + 1)})\n`
@@ -857,17 +940,17 @@ class BinOpNode extends Node {
         this.operator = operator
         this.right = right
     }
-    visit(relativeTo: number, table: SymbolTable): NumberType {
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
         let left = this.left.visit(relativeTo, table)
         let right = this.right.visit(relativeTo, table)
         let data;
         switch (this.operator.data) {
-            case '+': return left.iadd(right)
-            case '-': return left.isub(right)
-            case '*': return left.imul(right)
-            case '/': return left.idiv(right)
-            case '^': data = Math.pow(left.access(), right.access()); break;
-            case '^/': data = Math.pow(right.access(), (1 / left.access())); break;
+            case '+': return left.add(right)
+            case '-': return left.sub(right)
+            case '*': return left.mul(right)
+            case '/': return left.div(right)
+            case '^': return left.number().pow(right)
+            case '^/': return left.number().root(right)
             case '<=': data = Number(left.access() <= right.access()); break;
             case '>=': data = Number(left.access() >= right.access()); break;
             case '>': data = Number(left.access() > right.access()); break;
@@ -909,6 +992,8 @@ class FunctionNode extends Node {
             "length": 1,
             "abs": 1,
             'string': 1,
+            'typeof': 1,
+            'eval': 1,
             number: 1
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
@@ -923,6 +1008,7 @@ class FunctionNode extends Node {
             case 'needed': return new NumberType(values[0].access() - relativeTo)
             case 'ineeded': return new NumberType(relativeTo - (values[0].access()))
             case 'neg': return values[0].mul(new NumberType(-1))
+            case 'ineg': return values[0].imul(new NumberType(-1))
             case 'floor': return new NumberType(Math.floor(values[0].access()))
             case 'ceil': return new NumberType(Math.ceil(values[0].access()))
             case 'round': return new NumberType(Math.round(values[0].access()))
@@ -932,6 +1018,7 @@ class FunctionNode extends Node {
             case 'abs': return new NumberType(Math.abs(values[0].access()))
             case 'string': return values[0].string()
             case 'number': return values[0].number()
+            case 'typeof': return new StringType(values[0].type)
             case 'sum': return function() {
                 switch (typeof values[0].access()) {
                     case 'string': return new StringType(values.reduce((p, c) => p + c.access(), ""))
@@ -1213,7 +1300,7 @@ class Parser {
         let code = this.program()
         let elseNode
         let elifPrograms: [Node, ProgramNode][] = []
-        while(this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'elif'){
+        while (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'elif') {
             this.advance()
             let check = this.comp()
             if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'then') {
@@ -1242,6 +1329,16 @@ class Parser {
                 return this.if_statement()
             }
         }
+        else if (this.#curTok?.type === TT.ident) {
+            let name = this.#curTok as Token<TT.ident>
+            this.advance()
+            if ([TT.muleq, TT.pluseq, TT.minuseq, TT.rooteq, TT.poweq, TT.diveq].includes(this.#curTok?.type as TT)) {
+                let op = this.#curTok as Token<TT.muleq>
+                this.advance()
+                return new VariableBinOpAssignNode(name, op, this.comp())
+            }
+            this.back()
+        }
         return this.comp()
     }
 
@@ -1250,7 +1347,7 @@ class Parser {
         while (this.#curTok?.type === TT.semi) {
             this.advance()
             //trailing semi
-            if(!this.#curTok) break;
+            if (!this.#curTok) break;
             nodeArr.push(this.statement())
         }
         return new ProgramNode(nodeArr)
@@ -1268,7 +1365,7 @@ class Interpreter {
     constructor(program: ProgramNode, relativeTo: number, baseEnv: Record<string, (total: number, k: string) => number> | SymbolTable) {
         this.program = program
         this.relativeTo = relativeTo
-        if(!(baseEnv instanceof SymbolTable))
+        if (!(baseEnv instanceof SymbolTable))
             this.symbolTable = new SymbolTable(baseEnv)
         else this.symbolTable = baseEnv
     }
