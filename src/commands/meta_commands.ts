@@ -471,10 +471,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
-    yield ["code-info", createCommandV2(async () => {
-        let info = execSync("wc -l *.ts src/**/*.ts src/*.ts website/*.ts website/*.html website/css/* website/js/*.ts").toString("utf-8")
+    yield ["code-info", ccmdV2(async ({opts}) => {
+        let info;
+        if(opts.getBool("a", false))
+            info = execSync("wc -l $(git ls-files | grep -v 'assets/' | grep -v 'changelog/' | grep -v 'wiki/')").toString("utf-8")
+        else
+            info = execSync('wc -l $(git ls-files | grep "ts$")').toString("utf-8")
         return { content: info, status: StatusCode.RETURN }
-    }, CAT)]
+    }, "Gets lines of code for each file", {
+        helpOptions: {
+            a: createHelpOption("Get the lines of code for each file even non-.ts files")
+        }
+    })]
 
     yield ["pet-inventory", createCommandV2(async () => {
         return {

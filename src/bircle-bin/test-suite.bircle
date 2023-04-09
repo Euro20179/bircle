@@ -13,4 +13,5 @@ echo -D ${wait-time} testing pipes (`echo -D hi \>pipe> rev`) = $(echo -D hi >pi
 for i 1..3 \{ 
     echo -D testing for loop, \${%:i}
 } ;;
-echo -D ${wait-time} testing long pipe (`echo -D \$(echo -D hello \>pipe> rev) \>pipe> echo -D {%} is neato`) = $(echo -D $(echo -D hello >pipe> rev) >pipe> echo -D {%} is neato)
+echo -D ${wait-time} testing long pipe (`echo -D \$(echo -D hello \>pipe> rev) \>pipe> echo -D {%} is neato`) = $(echo -D $(echo -D hello >pipe> rev) >pipe> echo -D {%} is neato) ;;
+echo -D testing `argc hi\\sbye \\s{hi bye} \\y{$[3 + 3] is neat}` = $(argc hi\sbye \s{hi bye} \y{$[3+3] is neat})

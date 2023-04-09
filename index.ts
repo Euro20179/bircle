@@ -1,7 +1,7 @@
 ///<reference path="src/types.d.ts" />
 import fs from 'fs'
 
-import { EmbedBuilder, ButtonBuilder, ActionRowBuilder, GuildMember, InteractionReplyOptions, User, ChannelType, InteractionResponseType, ButtonStyle, ComponentType, Events, ChatInputCommandInteraction } from "discord.js"
+import { User, ChannelType, Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 
@@ -31,7 +31,6 @@ import { saveItems, hasItem } from './src/shop'
 import user_options from './src/user-options'
 
 import vars from './src/vars'
-import { server } from './website/server'
 import pets from './src/pets'
 
 const rest = new REST({ version: "10" }).setToken(globals.token);
@@ -76,9 +75,6 @@ Object.hasEnumerableKeys = function(o){
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     if (!isMsgChannel(msg.channel)) return false
-    if (cmd === `END` && common.ADMINS.includes(msg.author.id)) {
-        server.close()
-    }
     try {
         await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
     }
@@ -87,7 +83,6 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
     }
     globals.writeCmdUse()
-
 }
 
 Message.prototype.execCommand = async function(local_prefix: string) {

@@ -3778,12 +3778,8 @@ valid formats:<br>
     ]
 
     yield [
-        "emote-use",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let serverOnly = opts['S'] ? false : true
+        "emote-use", ccmdV2(async function({msg,  opts}){
+                let serverOnly = opts.getBool('S', false)
                 let data = globals.generateEmoteUseFile()
                     .split("\n")
                     .map(v => v.split(":"))
@@ -3811,16 +3807,12 @@ valid formats:<br>
                     .map(v => `${v[0]}: ${v[1]}`)
                     .join("\n")
                 return { content: finalData, status: StatusCode.RETURN }
-            },
-            help: {
-                options: {
-                    "S": {
-                        description: "Show emote use of all emojis, even ones not from this server"
-                    }
-                }
-            },
-            category: CommandCategory.UTIL
-        },
+
+        }, "Gets the amount of times server emotes have been used", {
+            helpOptions: {
+                S: createHelpOption("Show emote use of all emojis, even ones not from this server")
+            }
+        })
     ]
 
     yield [

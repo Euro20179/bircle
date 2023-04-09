@@ -131,16 +131,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return { content: res, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
-    yield ["mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
+    yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: "You must run `[option enable-mail true` to run this command", status: StatusCode.ERR }
         }
-        let toUser: User | GuildMember | undefined = undefined;
+        let toUser: User | undefined = undefined;
         if (!msg.guild) {
             toUser = await fetchUserFromClient(common.client, argList[0])
         }
         else {
-            toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
+            toUser = (await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember))?.user
         }
         if (!toUser) {
             return { content: `Could not find user`, status: StatusCode.ERR }
@@ -149,13 +149,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return { content: `${toUser instanceof GuildMember ? toUser.displayName : toUser.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         try {
-            if (toUser instanceof GuildMember) {
-                await toUser.user.createDM()
-            }
-            else {
-
-                await toUser.createDM()
-            }
+            await toUser.createDM()
         }
         catch (err) {
             return { content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username}`, status: StatusCode.ERR }
@@ -171,13 +165,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let user = toUser instanceof GuildMember ? toUser.user : toUser
         handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, user.send.bind(user.dmChannel), recursionCount)
         return { content: "Message sent", status: StatusCode.RETURN, delete: true }
-    }, CommandCategory.FUN)]
+    }, "Mail a user who has the enable-mail option set to true", {
+        helpArguments: {
+            user: createHelpArgument("The user to mail", true),
+            '...message': createHelpArgument("The message to send<br>your mail-signature will be automatically added to the end", true)
+        }
+    })]
 
-    yield [
-        "the secret command", createCommandV2(async () => {
-            return { content: "Congrats, you found the secret command", status: StatusCode.RETURN }
-        }, CommandCategory.FUN)
-    ]
+    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command"), "How do you run it, nobody knows")]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
         let isRetired = economy.isRetired(msg.author.id)
@@ -240,7 +235,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return activities[activity]()
     }, "If you are retired, do an activity")]
 
-    yield ["fishing", createCommandV2(async ({ msg, args }) => {
+    yield ["fishing", ccmdV2(async ({ msg, args }) => {
         let rod = hasItem(msg.author.id, "fishing rod")
 
         let canfish = false
@@ -308,7 +303,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         giveItem(msg.author.id, item, 1)
         useItem(msg.author.id, "fishing rod", Math.floor(Math.random() * 2))
         return { content: `You fished up ${item}!!`, status: StatusCode.RETURN }
-    }, CommandCategory.FUN)]
+    }, "Go fishing and find some fish<br><i>Sharks might find better loot</i>")
+    ]
 
 
     yield ["use-item", createCommandV2(async ({ args, msg, opts }) => {
@@ -1140,69 +1136,51 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "button",
-        {
-            run: async (msg, _, sendCallback, opts, args) => {
-                let content = opts['content']
-                let delAfter = NaN
-                if (opts['timealive'])
-                    delAfter = parseInt(String(opts['timealive']))
-                if (typeof content === 'boolean') {
-                    content = `button: ${msg.author.id}`
+        "button", ccmdV2(async function({ msg, rawOpts: opts, args, sendCallback }) {
+            let content = opts['content']
+            let delAfter = NaN
+            if (opts['timealive'])
+                delAfter = parseInt(String(opts['timealive']))
+            if (typeof content === 'boolean') {
+                content = `button: ${msg.author.id}`
+            }
+            let text = args.join(" ") || "hi"
+            let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
+            let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary })
+            let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [button] })
+            let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
+            let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
+            collector.on("collect", async (interaction) => {
+                if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
+                    return
                 }
-                let text = args.join(" ") || "hi"
-                let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
-                let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary })
-                let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [button] })
-                let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
-                let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
-                collector.on("collect", async (interaction) => {
-                    if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
-                        return
-                    }
-                    if (opts['say']) {
-                        await interaction.reply({ content: String(opts['say']).trim() || "_ _" })
-                    }
-                    else {
-                        await interaction.reply({ content: text.trim() || "_ _" })
-                    }
-                })
-                setTimeout(() => {
-                    button.setDisabled(true)
-                    m.edit({ components: [row], content: content ? String(content) : undefined })
-                    collector.stop()
-                }, Number(opts['stop-button-after']) * 1000 || 5000)
-                if (!isNaN(delAfter)) {
-                    setTimeout(async () => await m.delete(), delAfter * 1000)
+                if (opts['say']) {
+                    await interaction.reply({ content: String(opts['say']).trim() || "_ _" })
                 }
-                return { noSend: true, status: StatusCode.RETURN }
-            },
-            help: {
-                arguments: {
-                    "text": {
-                        description: "Text on the button"
-                    }
-                },
-                options: {
-                    "timealive": {
-                        description: "How long before the button gets deleted"
-                    },
-                    "say": {
-                        description: "The text on the button"
-                    },
-                    "anyone": {
-                        description: "Allow anyone to click the button"
-                    },
-                    "emoji": {
-                        description: "The emoji on the button",
-                    },
-                    "stop-button-after": {
-                        description: "Disable the button after x seconds"
-                    }
+                else {
+                    await interaction.reply({ content: text.trim() || "_ _" })
                 }
-            },
-            category: CommandCategory.FUN
-        },
+            })
+            setTimeout(() => {
+                button.setDisabled(true)
+                m.edit({ components: [row], content: content ? String(content) : undefined })
+                collector.stop()
+            }, Number(opts['stop-button-after']) * 1000 || 5000)
+            if (!isNaN(delAfter)) {
+                setTimeout(async () => await m.delete(), delAfter * 1000)
+            }
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Create a button that says something when clicked", {
+            helpArguments: {
+                text: createHelpArgument("Text on the button")
+            }, helpOptions: {
+                timealive: createHelpOption("How long before the button gets deleted"),
+                say: createHelpOption("The text on the button"),
+                anyone: createHelpOption("Allow anyone to click the button"),
+                emoji: createHelpOption("The emoji on the button"),
+                "stop-button-after": createHelpOption("Disable the button after x seconds")
+            }
+        })
     ]
 
     yield [

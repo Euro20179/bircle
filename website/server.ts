@@ -1,14 +1,14 @@
 import fs from 'fs'
 
-import { Collection, Message, MessageFlagsBitField, MessageType, ReactionManager, TextChannel } from 'discord.js'
+import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageType, ReactionManager, TextChannel } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
-import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension, isCommandCategory } from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension, isCommandCategory, isMsgChannel } from '../src/util'
 
-const { prefix, client } = require("../src/common")
+import common from '../src/common'
 
 let VALID_API_KEYS: string[] = []
 if (fs.existsSync("./data/valid-api-keys.key")) {
@@ -50,21 +50,26 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 res.end(JSON.stringify({ error: "No post body given" }))
                 break
             }
-            if (command.startsWith(prefix)) {
-                command = command.slice(prefix.length)
+            if (command.startsWith(common.prefix)) {
+                command = command.slice(common.prefix.length)
             }
             let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: TextChannel) => {
+            common.client.channels.fetch(String(inChannel)).then((channel) => {
+                if(!channel || channel.type !== ChannelType.GuildText) {
+                    res.writeHead(500)
+                    res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
+                    return
+                }
                 let msg: Message = {
                     activity: null,
-                    applicationId: client.id,
+                    applicationId: String(common.client.user?.id),
                     id: "_1033110249244213260",
                     attachments: new Collection(),
-                    author: client.user,
+                    author: common.client.user as ClientUser,
                     channel: channel,
                     channelId: channel.id,
                     cleanContent: command as string,
-                    client: client,
+                    client: common.client,
                     components: [],
                     content: command as string,
                     createdAt: new Date(Date.now()),
@@ -95,7 +100,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                         _channels: null,
                         _content: command as string,
                         _members: null,
-                        client: client,
+                        client: common.client,
                         guild: channel.guild,
                         toJSON: () => {
                             return {}
@@ -340,7 +345,12 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
 
 
             let inChannel = urlParams?.get("channel-id")
-            client.channels.fetch(inChannel).then((channel: TextChannel) => {
+            common.client.channels.fetch(String(inChannel)).then((channel) => {
+                if(!channel || channel.type !== ChannelType.GuildText) {
+                    res.writeHead(445)
+                    res.end(JSON.stringify({error: "Bad channel id"}))
+                    return
+                }
                 channel.send({ content: text as string }).then((msg: any) => {
                     res.writeHead(200)
                     res.end(JSON.stringify(msg.toJSON()))
