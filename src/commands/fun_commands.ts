@@ -1136,69 +1136,51 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "button",
-        {
-            run: async (msg, _, sendCallback, opts, args) => {
-                let content = opts['content']
-                let delAfter = NaN
-                if (opts['timealive'])
-                    delAfter = parseInt(String(opts['timealive']))
-                if (typeof content === 'boolean') {
-                    content = `button: ${msg.author.id}`
+        "button", ccmdV2(async function({ msg, rawOpts: opts, args, sendCallback }) {
+            let content = opts['content']
+            let delAfter = NaN
+            if (opts['timealive'])
+                delAfter = parseInt(String(opts['timealive']))
+            if (typeof content === 'boolean') {
+                content = `button: ${msg.author.id}`
+            }
+            let text = args.join(" ") || "hi"
+            let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
+            let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary })
+            let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [button] })
+            let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
+            let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
+            collector.on("collect", async (interaction) => {
+                if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
+                    return
                 }
-                let text = args.join(" ") || "hi"
-                let emoji = opts['emoji'] ? String(opts['emoji']) : undefined
-                let button = new ButtonBuilder({ emoji: emoji, customId: `button: ${msg.author.id}`, label: text, style: ButtonStyle.Primary })
-                let row = new ActionRowBuilder<ButtonBuilder>({ type: ComponentType.Button, components: [button] })
-                let m = await handleSending(msg, { components: [row], content: content, status: StatusCode.PROMPT }, sendCallback)
-                let collector = m.createMessageComponentCollector({ filter: interaction => interaction.customId === `button: ${msg.author.id}` && interaction.user.id === msg.author.id || opts['anyone'] === true, time: 30000 })
-                collector.on("collect", async (interaction) => {
-                    if (interaction.user.id !== msg.author.id && opts['anyone'] !== true) {
-                        return
-                    }
-                    if (opts['say']) {
-                        await interaction.reply({ content: String(opts['say']).trim() || "_ _" })
-                    }
-                    else {
-                        await interaction.reply({ content: text.trim() || "_ _" })
-                    }
-                })
-                setTimeout(() => {
-                    button.setDisabled(true)
-                    m.edit({ components: [row], content: content ? String(content) : undefined })
-                    collector.stop()
-                }, Number(opts['stop-button-after']) * 1000 || 5000)
-                if (!isNaN(delAfter)) {
-                    setTimeout(async () => await m.delete(), delAfter * 1000)
+                if (opts['say']) {
+                    await interaction.reply({ content: String(opts['say']).trim() || "_ _" })
                 }
-                return { noSend: true, status: StatusCode.RETURN }
-            },
-            help: {
-                arguments: {
-                    "text": {
-                        description: "Text on the button"
-                    }
-                },
-                options: {
-                    "timealive": {
-                        description: "How long before the button gets deleted"
-                    },
-                    "say": {
-                        description: "The text on the button"
-                    },
-                    "anyone": {
-                        description: "Allow anyone to click the button"
-                    },
-                    "emoji": {
-                        description: "The emoji on the button",
-                    },
-                    "stop-button-after": {
-                        description: "Disable the button after x seconds"
-                    }
+                else {
+                    await interaction.reply({ content: text.trim() || "_ _" })
                 }
-            },
-            category: CommandCategory.FUN
-        },
+            })
+            setTimeout(() => {
+                button.setDisabled(true)
+                m.edit({ components: [row], content: content ? String(content) : undefined })
+                collector.stop()
+            }, Number(opts['stop-button-after']) * 1000 || 5000)
+            if (!isNaN(delAfter)) {
+                setTimeout(async () => await m.delete(), delAfter * 1000)
+            }
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Create a button that says something when clicked", {
+            helpArguments: {
+                text: createHelpArgument("Text on the button")
+            }, helpOptions: {
+                timealive: createHelpOption("How long before the button gets deleted"),
+                say: createHelpOption("The text on the button"),
+                anyone: createHelpOption("Allow anyone to click the button"),
+                emoji: createHelpOption("The emoji on the button"),
+                "stop-button-after": createHelpOption("Disable the button after x seconds")
+            }
+        })
     ]
 
     yield [
