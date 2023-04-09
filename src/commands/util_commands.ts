@@ -872,7 +872,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 stockName: createHelpArgument("The stock to check if the user has"),
                 user: createHelpArgument("The user to check")
             },
-            argShape: async function*(args){
+            argShape: async function*(args) {
                 yield [args.expectString(), "stock"]
                 yield [args.expectString(), "user", true]
             }
@@ -1694,9 +1694,9 @@ middle
     ]
 
     yield [
-        "string", createCommandV2(async ({ args }) => {
+        "string", ccmdV2(async ({ args, stdin }) => {
             let operation = args[0]
-            let string = args.slice(1).join(" ")
+            let string = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
             let operations: { [key: string]: (string: string) => string } = {
                 upper: string => string.toUpperCase(),
                 lower: string => string.toLowerCase(),
@@ -1714,19 +1714,22 @@ middle
             }
             return { content: operations[operation.toLowerCase()](string), status: StatusCode.RETURN }
         },
-            CommandCategory.UTIL,
             "Do something to some text",
             {
-                operation: createHelpArgument(`The operation to do<ul>
-    <li>upper: convert to upper case</li>
-    <li>lower: convert to lowercase</li>
-    <li>title: convert to title</li>
-    <li>lc:    get a line count</li>
-    <li>wc:    get a word count</li>
-    <li>bc:    get a byte count</li>
+                helpArguments: {
+                    operation: createHelpArgument(`The operation to do<ul>
+    <li>upper:  convert to upper case</li>
+    <li>lower:  convert to lowercase</li>
+    <li>title:  convert to title</li>
+    <li>lc:     get a line count</li>
+    <li>wc:     get a word count</li>
+    <li>bc:     get a byte count</li>
+    <li>utf-8c: gets a utf-8 byte count</li>
 </ul>`),
-                text: createHelpArgument("The text to operate on")
-            }
+                    text: createHelpArgument("The text to operate on")
+                },
+                accepts_stdin: "The text to manipulate (operation still required)"
+            },
         ),
     ]
 
@@ -3778,35 +3781,35 @@ valid formats:<br>
     ]
 
     yield [
-        "emote-use", ccmdV2(async function({msg,  opts}){
-                let serverOnly = opts.getBool('S', false)
-                let data = globals.generateEmoteUseFile()
-                    .split("\n")
-                    .map(v => v.split(":"))
-                    .filter(v => v[0])
-                let newData: [string | GuildEmoji, string][] = []
-                let cachedEmojis = await msg.guild?.emojis.fetch()
-                for (let i = 0; i < data.length; i++) {
-                    let emoji: string | GuildEmoji | undefined | null = data[i][0];
-                    try {
-                        emoji = cachedEmojis?.find((v) => v.id == data[i][0])
-                    }
-                    catch (err) {
-                        if (serverOnly) continue
-                        emoji = data[i][0]
-                    }
-                    if (!emoji) {
-                        if (serverOnly) continue
-                        emoji = data[i][0]
-                    }
-                    newData.push([emoji, data[i][1]])
+        "emote-use", ccmdV2(async function({ msg, opts }) {
+            let serverOnly = opts.getBool('S', false)
+            let data = globals.generateEmoteUseFile()
+                .split("\n")
+                .map(v => v.split(":"))
+                .filter(v => v[0])
+            let newData: [string | GuildEmoji, string][] = []
+            let cachedEmojis = await msg.guild?.emojis.fetch()
+            for (let i = 0; i < data.length; i++) {
+                let emoji: string | GuildEmoji | undefined | null = data[i][0];
+                try {
+                    emoji = cachedEmojis?.find((v) => v.id == data[i][0])
                 }
-                let finalData = newData
-                    .sort((a, b) => Number(a[1]) - Number(b[1]))
-                    .reverse()
-                    .map(v => `${v[0]}: ${v[1]}`)
-                    .join("\n")
-                return { content: finalData, status: StatusCode.RETURN }
+                catch (err) {
+                    if (serverOnly) continue
+                    emoji = data[i][0]
+                }
+                if (!emoji) {
+                    if (serverOnly) continue
+                    emoji = data[i][0]
+                }
+                newData.push([emoji, data[i][1]])
+            }
+            let finalData = newData
+                .sort((a, b) => Number(a[1]) - Number(b[1]))
+                .reverse()
+                .map(v => `${v[0]}: ${v[1]}`)
+                .join("\n")
+            return { content: finalData, status: StatusCode.RETURN }
 
         }, "Gets the amount of times server emotes have been used", {
             helpOptions: {

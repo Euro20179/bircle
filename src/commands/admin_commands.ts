@@ -338,13 +338,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             vars.saveVars()
             timer.saveTimers()
             pet.savePetData()
-            common.client.destroy()
             user_options.saveUserOptions()
             server.close()
-            return {
-                noSend: true,
-                status: StatusCode.RETURN
-            }
+            common.client.destroy()
+            process.exit()
         }, "End the bot", {
             permCheck: m => common.ADMINS.includes(m.author.id)
         })
