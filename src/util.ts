@@ -35,7 +35,7 @@ function databaseFileToArray(name: string) {
 
 const sleep = async (time: milliseconds_t) => await new Promise(res => setTimeout(res, time))
 
-const Enum = function <const T>(data: T) {
+function Enum<const T>(data: T) {
     return data
 }
 
@@ -45,6 +45,7 @@ const Enum = function <const T>(data: T) {
 async function defer(cb: Function){
     cb()
 }
+
 
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
@@ -567,7 +568,7 @@ class ArgList extends Array {
         return data as ReturnType<T>
     }
     expect<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
-        this.#checkCurArg()
+        // this.#checkCurArg()
         let argsToUse = this.#createArgList(amountOfArgs)
         let res = filter.bind(this)(argsToUse);
         if (res !== false && res !== BADVALUE) {
@@ -576,7 +577,7 @@ class ArgList extends Array {
         return BADVALUE
     }
     async expectAsync<T>(amountOfArgs: AmountOfArgs, filter: (i: string[]) => typeof GOODVALUE | typeof BADVALUE | T) {
-        this.#checkCurArg()
+        // this.#checkCurArg()
         let argsToUse = this.#createArgList(amountOfArgs)
         let res = await filter(argsToUse);
         if (res !== BADVALUE && res !== false) {
@@ -1049,6 +1050,6 @@ export {
     cmdFileName,
     sleep,
     Enum,
-    defer
+    defer,
 }
 

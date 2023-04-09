@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary} from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -27,6 +27,52 @@ export const StatusCode = {
     WARNING: 1,
     ERR: 2
 } as const
+
+class OrderedDict<TKey, TValue>{
+    keys: TKey[]
+    values: TValue[]
+    constructor(){
+        this.keys = []
+        this.values = []
+    }
+
+    get(key: TKey){
+        return this.values[this.keys.indexOf(key)]
+    }
+
+    set(key: TKey, value: TValue){
+        if(this.keys.includes(key)){
+            return false
+        }
+        this.keys.push(key)
+        this.values.push(value)
+        return true
+    }
+
+    delete(key: TKey){
+        let val = this.get(key)
+        this.keys = this.keys.filter(v => v !== key)
+        this.values = this.values.filter(v => v !== val)
+    }
+
+    keyAt(index: number){
+        return this.keys[index]
+    }
+
+    valueAt(index: number){
+        return this.values[index]
+    }
+
+    keyExists(key: TKey){
+        return this.keys.includes(key)
+    }
+
+    get length(){
+        return this.keys.length
+    }
+}
+
+export const PIDS: OrderedDict<number, string> = new OrderedDict()
 
 export type StatusCode = typeof StatusCode[keyof typeof StatusCode]
 
@@ -348,8 +394,14 @@ export async function cmd({
 
     context ??= new InterpreterContext(programArgs, env)
 
+    let PID = (PIDS.keyAt(PIDS.length - 1) ?? 0) + 1
+
+    context.export("PID", String(PID))
+
+    PIDS.set(PID, command_excluding_prefix)
+
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
-    while (parser.tokens.length > 0) {
+    while (parser.tokens.length > 0 && PIDS.keyExists(PID)) {
         context.env.LINENO = String(++logicalLine)
 
         let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
@@ -364,6 +416,7 @@ export async function cmd({
             modifiers: parser.modifiers,
             recursion, returnJson, disable, sendCallback, pipeData, context
         })
+        
         //this was previously ored to false
         rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
         //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
@@ -375,6 +428,9 @@ export async function cmd({
 
         context = int.context
     }
+
+    PIDS.delete(PID)
+
     return {
         rv: rv,
         interpreter: int
@@ -1289,5 +1345,6 @@ export default {
     getAliasesV2,
     cmd,
     handleSending,
-    Interpreter
+    Interpreter,
+    PIDS
 }
