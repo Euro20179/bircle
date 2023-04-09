@@ -529,7 +529,7 @@ class UserFunction {
         return this.code.visit(relativeTo, new SymbolTable(argRecord))
     }
     toString() {
-        return this.codeToks.reduce((p, c) => p + " " + c.data, "")
+        return `${this.name}(${this.argIdents.join(", ")}) = ${this.codeToks.reduce((p, c) => p + " " + c.data, "")}`
     }
 }
 
@@ -709,8 +709,9 @@ class FuncCreateNode extends Node {
     }
 
     visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
-        table.set(this.name.data, new FunctionType(new UserFunction(this.name.data, this.code, this.parameterNames.map(v => v.data))))
-        return new NumberType(0)
+        let fn = new FunctionType(new UserFunction(this.name.data, this.code, this.parameterNames.map(v => v.data)))
+        table.set(this.name.data, fn)
+        return fn
     }
 
     repr(indent: number): string {
@@ -893,7 +894,7 @@ class FunctionNode extends Node {
         this.name = name
         this.nodes = nodes
     }
-    visit(relativeTo: number, table: SymbolTable): NumberType | StringType {
+    visit(relativeTo: number, table: SymbolTable): NumberType | StringType | FunctionType {
         let values = this.nodes.map(v => v.visit(relativeTo, table)) ?? [new NumberType(0)]
         let argCount = {
             'rand': 2,
@@ -914,6 +915,7 @@ class FunctionNode extends Node {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
+            case 'eval': return createTypeFromJSType(runRelativeCalculator(relativeTo, values[0].string().access()))
             case 'min': return new NumberType(min(values.map(v => v.access())) as number)
             case 'max': return new NumberType(max(values.map(v => v.access())) as number)
             case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
