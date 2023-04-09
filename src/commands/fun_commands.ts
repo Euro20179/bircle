@@ -131,16 +131,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return { content: res, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
-    yield ["mail", createCommandV2(async ({ msg, argList, recursionCount, commandBans }) => {
+    yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {
             return { content: "You must run `[option enable-mail true` to run this command", status: StatusCode.ERR }
         }
-        let toUser: User | GuildMember | undefined = undefined;
+        let toUser: User | undefined = undefined;
         if (!msg.guild) {
             toUser = await fetchUserFromClient(common.client, argList[0])
         }
         else {
-            toUser = await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember)
+            toUser = (await argList.assertIndexIsUser(msg.guild, 0, msg.member as GuildMember))?.user
         }
         if (!toUser) {
             return { content: `Could not find user`, status: StatusCode.ERR }
@@ -149,13 +149,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return { content: `${toUser instanceof GuildMember ? toUser.displayName : toUser.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         try {
-            if (toUser instanceof GuildMember) {
-                await toUser.user.createDM()
-            }
-            else {
-
-                await toUser.createDM()
-            }
+            await toUser.createDM()
         }
         catch (err) {
             return { content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username}`, status: StatusCode.ERR }
@@ -171,7 +165,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let user = toUser instanceof GuildMember ? toUser.user : toUser
         handleSending(msg, { content: argList.slice(1).join(" ") + `\n${signature}` || `${msg.member?.displayName || msg.author.username} says hi`, status: StatusCode.RETURN }, user.send.bind(user.dmChannel), recursionCount)
         return { content: "Message sent", status: StatusCode.RETURN, delete: true }
-    }, CommandCategory.FUN)]
+    }, "Mail a user who has the enable-mail option set to true", {
+        helpArguments: {
+            user: createHelpArgument("The user to mail", true),
+            '...message': createHelpArgument("The message to send<br>your mail-signature will be automatically added to the end", true)
+        }
+    })]
 
     yield [
         "the secret command", createCommandV2(async () => {
