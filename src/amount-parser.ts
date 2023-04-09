@@ -355,7 +355,7 @@ abstract class Node {
 }
 
 abstract class Program {
-    abstract visit(relativeTo: number, table: SymbolTable): ValidJSTypes
+    abstract visit(relativeTo: number, table: SymbolTable): Type<any>
     abstract repr(indent: number): string
 }
 
@@ -481,19 +481,19 @@ class StringType extends Type<string>{
         return this
     }
 
-    sub(other: Type<any>): Type<string> {
+    sub(_other: Type<any>): Type<string> {
         throw new TypeError("Cannot subtract strings")
     }
 
-    isub(other: Type<any>): Type<string> {
+    isub(_other: Type<any>): Type<string> {
         throw new TypeError("Cannot subtract strings")
     }
 
-    div(other: Type<any>): Type<string> {
+    div(_other: Type<any>): Type<string> {
         throw new TypeError("Cannot divide strings")
     }
 
-    idiv(other: Type<any>): Type<string> {
+    idiv(_other: Type<any>): Type<string> {
         throw new TypeError("Cannot divide strings")
     }
 
@@ -517,7 +517,7 @@ class FunctionType extends Type<UserFunction> {
         return true
     }
 
-    mul(other: Type<any>): Type<UserFunction> {
+    mul(_other: Type<any>): Type<UserFunction> {
         throw new OperatorError("Cannot use * with function")
     }
     imul(other: Type<any>): Type<UserFunction> {
@@ -604,12 +604,12 @@ class ProgramNode extends Program {
         this.expressions = ns
     }
 
-    visit(relativeTo: number, table: SymbolTable): ValidJSTypes {
+    visit(relativeTo: number, table: SymbolTable): Type<any> {
         let res;
         for (let expr of this.expressions) {
             res = expr.visit(relativeTo, table)
         }
-        return res?.access() ?? 0;
+        return res ?? new NumberType(0);
     }
 
     repr(indent: number = 0): string {
@@ -752,20 +752,17 @@ class IfNode extends Node {
 
     visit(relativeTo: number, table: SymbolTable): Type<any> {
         if (this.condition.visit(relativeTo, table).truthy()) {
-            let data = this.code.visit(relativeTo, table)
-            return createTypeFromJSType(data)
+            return this.code.visit(relativeTo, table)
         }
         if (this.elifPrograms) {
             for (let [check, program] of this.elifPrograms) {
                 if (check.visit(relativeTo, table).truthy()) {
-                    let data = program.visit(relativeTo, table)
-                    return createTypeFromJSType(data)
+                    return program.visit(relativeTo, table)
                 }
             }
         }
         if (this.elseProgram) {
-            let data = this.elseProgram.visit(relativeTo, table)
-            return createTypeFromJSType(data)
+            return this.elseProgram.visit(relativeTo, table)
         }
         return new NumberType(0)
     }
@@ -1388,7 +1385,7 @@ class Interpreter {
         else this.symbolTable = baseEnv
     }
     visit(): ValidJSTypes {
-        return this.program.visit(this.relativeTo, this.symbolTable)
+        return this.program.visit(this.relativeTo, this.symbolTable).access()
     }
 }
 
