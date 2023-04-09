@@ -54,7 +54,14 @@ enum TT {
     ge,
 }
 
-const KEYWORDS = ['var', 'rav', 'if', 'then', 'else', 'elif', 'fi'] as const
+const ENDFUNC = 'rav',
+    CREATE_VAR = 'var',
+    IF = 'if',
+    THEN = 'then',
+    ELSE = 'else',
+    ENDIF = 'fi',
+    ELIF = 'elif'
+const KEYWORDS = [ENDFUNC, CREATE_VAR, IF, THEN, ELSE, ENDIF, ELIF] as const
 
 
 type TokenDataType = {
@@ -1257,11 +1264,11 @@ class Parser {
             let code: Token<any>[] = []
 
             while (this.advance()) {
-                if(this.#curTok?.type as TT === TT.keyword && this.#curTok?.data === 'rav'){
+                if (this.#curTok?.type as TT === TT.keyword && this.#curTok?.data === ENDFUNC) {
                     break
                 }
-                if(!this.#curTok){
-                    throw new SyntaxError(`'rav' expected to end function`)
+                if (!this.#curTok) {
+                    throw new SyntaxError(`'${ENDFUNC}' expected to end function`)
                 }
                 code.push(this.#curTok)
             }
@@ -1303,30 +1310,30 @@ class Parser {
     if_statement() {
         this.advance()
         let comp = this.comp()
-        if (this.#curTok?.type !== TT.keyword || this.#curTok?.data !== 'then') {
-            throw new SyntaxError("Expected 'then' to start if block")
+        if (this.#curTok?.type !== TT.keyword || this.#curTok?.data !== THEN) {
+            throw new SyntaxError(`Expected '${THEN}' to start if block`)
         }
         this.advance()
         let code = this.program()
         let elseNode
         let elifPrograms: [Node, ProgramNode][] = []
-        while (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'elif') {
+        while (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === ELIF) {
             this.advance()
             let check = this.comp()
-            if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'then') {
-                throw new SyntaxError("Expected 'then' to start the elif block")
+            if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== THEN) {
+                throw new SyntaxError(`Expected '${THEN}' to start the elif block`)
             }
             this.advance()
             let program = this.program()
             elifPrograms.push([check, program])
         }
-        if (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === 'else') {
+        if (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === ELSE) {
             this.advance()
             elseNode = this.program()
         }
         console.log(this.#curTok)
-        if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== 'fi') {
-            throw new SyntaxError("Expected 'fi' to end if block")
+        if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== ENDIF) {
+            throw new SyntaxError(`Expected '${ENDIF}' to end if block`)
         }
         this.advance()
         return new IfNode(comp, code, elifPrograms, elseNode)
@@ -1334,9 +1341,9 @@ class Parser {
 
     statement() {
         if (this.#curTok?.type === TT.keyword) {
-            if (this.#curTok.data === 'var')
+            if (this.#curTok.data === CREATE_VAR)
                 return this.var_assign()
-            else if (this.#curTok.data === 'if') {
+            else if (this.#curTok.data === IF) {
                 return this.if_statement()
             }
         }
