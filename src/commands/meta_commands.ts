@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, PIDS, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -98,6 +98,30 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield ["env", ccmdV2(async ({ interpreter }) => {
         return crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
     }, "Gets the interpreter env")]
+
+    yield ['ps', ccmdV2(async function(){
+        let text = ''
+        for(let i = 0; i < PIDS.length; i++){
+            text += `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}\n`
+        }
+        return crv(text)
+    }, "Gets all running processes")]
+
+    yield ['kill', ccmdV2(async function({argShapeResults}){
+        let pid = argShapeResults['pid'] as number
+        if(!PIDS.keyExists(pid)){
+            return crv(`No process with pid: ${pid}`)
+        }
+        PIDS.delete(pid)
+        return crv(`${pid} killed`)
+    }, "Kill a process", {
+        helpArguments: {
+            pid: createHelpArgument("The pid to kill")
+        },
+        argShape: async function*(args){
+            yield [args.expectInt(1), "pid"]
+        }
+    })]
 
     yield ["export", ccmdV2(async ({ interpreter, args }) => {
         let [name, ...val] = args
