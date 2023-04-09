@@ -83,7 +83,6 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
     }
     globals.writeCmdUse()
-
 }
 
 Message.prototype.execCommand = async function(local_prefix: string) {

@@ -141,7 +141,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "RESET_PLAYER",
         {
             run: async (msg, args, sendCallback) => {
-                if(!msg.guild) return crv("Not in aguild", {status: StatusCode.ERR})
+                if (!msg.guild) return crv("Not in aguild", { status: StatusCode.ERR })
                 let player = await fetchUser(msg.guild, args[0])
                 if (!player)
                     return { content: "No player found", status: StatusCode.ERR }
@@ -160,7 +160,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "RESET_PLAYER_ITEMS",
         {
             run: async (msg, args, sendCallback) => {
-                if(!msg.guild) return crv("Not in aguild", {status: StatusCode.ERR})
+                if (!msg.guild) return crv("Not in aguild", { status: StatusCode.ERR })
                 let player = await fetchUser(msg.guild, args[0])
                 if (!player)
                     return { content: "No player found", status: StatusCode.ERR }
@@ -196,24 +196,24 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "DELETE_ITEM", ccmdV2(async function({msg, args}){
+        "DELETE_ITEM", ccmdV2(async function({ msg, args }) {
             let [user, ...item] = args
             let itemName = item.join(" ")
             let player = await fetchUserFromClientOrGuild(user, msg.guild)
             if (!player) {
                 return crv(`${user} not found`)
             }
-            if(INVENTORY()[player.id]?.[itemName] !== undefined){
+            if (INVENTORY()[player.id]?.[itemName] !== undefined) {
                 delete INVENTORY()[player.id][itemName]
                 return crv(`${itemName} deleted form ${player}'s inventory`, {
-                    allowedMentions: {parse: []}
+                    allowedMentions: { parse: [] }
                 })
             }
             return crv(`${player} does not have ${itemName}`, {
-                allowedMentions: {parse: []}
+                allowedMentions: { parse: [] }
             })
         }, "Deletes an item from players inventory", {
-            permCheck:  m => common.ADMINS.includes(m.author.id)
+            permCheck: m => common.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -250,7 +250,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "SETMONEY",
         {
             run: async (msg, args, sendCallback) => {
-            if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
+                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
                 let user = await fetchUser(msg.guild, args[0])
                 if (!user) {
                     return { content: "user not found", status: StatusCode.ERR }
@@ -295,8 +295,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     }
                 }
                 let member = await fetchUserFromClientOrGuild(user, msg.guild)
-                if(!member){
-                    return crv("Member not found", {status: StatusCode.ERR})
+                if (!member) {
+                    return crv("Member not found", { status: StatusCode.ERR })
                 }
                 if (addOrRemove == "a") {
                     common.addToPermList(common.BLACKLIST, "blacklists", member, cmds)
@@ -325,37 +325,28 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "END",
-        {
-            run: async (msg: Message, _args: ArgumentList, sendCallback) => {
-                if (fs.existsSync(String(currently_playing?.filename))) {
-                    try {
-                        fs.rmSync(String(currently_playing?.filename))
-                    }
-                    catch (err) { }
+        "END", ccmdV2(async function({ msg, sendCallback }) {
+            if (fs.existsSync(String(currently_playing?.filename))) {
+                try {
+                    fs.rmSync(String(currently_playing?.filename))
                 }
-                await handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
-                economy.saveEconomy()
-                saveItems()
-                vars.saveVars()
-                timer.saveTimers()
-                pet.savePetData()
-                common.client.destroy()
-                user_options.saveUserOptions()
-                server.close()
-                return {
-                    content: "STOPPING",
-                    status: StatusCode.RETURN
-                }
-            },
-            permCheck: (msg) => {
-                return common.ADMINS.includes(msg.author.id)
-            },
-            category: CommandCategory.ADMIN,
-            help: {
-                info: "End the bot"
+                catch (err) { }
             }
-
-        },
+            await handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
+            economy.saveEconomy()
+            saveItems()
+            vars.saveVars()
+            timer.saveTimers()
+            pet.savePetData()
+            common.client.destroy()
+            user_options.saveUserOptions()
+            server.close()
+            return {
+                noSend: true,
+                status: StatusCode.RETURN
+            }
+        }, "End the bot", {
+            permCheck: m => common.ADMINS.includes(m.author.id)
+        })
     ]
 }
