@@ -1,5 +1,5 @@
 import { max, min } from "lodash"
-import { emitsEvent, enumerate, isBetween, isNumeric, listComprehension, choice } from "./util"
+import { emitsEvent, enumerate, isBetween, isNumeric, listComprehension, choice, Enum } from "./util"
 import units, { LengthUnit } from "./units"
 
 function randInt(min: number, max: number) {
@@ -324,13 +324,13 @@ abstract class Node {
 }
 
 abstract class Program {
-    abstract visit(relativeTo: number, table: SymbolTable): number[]
+    abstract visit(relativeTo: number, table: SymbolTable): ValidJSTypes
     abstract repr(indent: number): string
 }
 
 type ValidJSTypes = string | number | UserFunction
 
-abstract class Type<JSType>{
+abstract class Type<JSType extends ValidJSTypes>{
     protected data: JSType
     constructor(internalData: JSType) {
         this.data = internalData
@@ -361,38 +361,38 @@ class NumberType extends Type<number>{
     }
 
     add(other: Type<any>): NumberType {
-        return new NumberType(this.data + other.access())
+        return new NumberType(this.data + other.number().access())
     }
 
     iadd(other: Type<any>): NumberType {
-        this.data += other.access()
+        this.data += other.number().access()
         return this
     }
 
     mul(other: Type<number>): Type<number> {
-        return new NumberType(this.data * other.access())
+        return new NumberType(this.data * other.number().access())
     }
 
     imul(other: Type<number>): Type<number> {
-        this.data *= other.access()
+        this.data *= other.number().access()
         return this
     }
 
     sub(other: Type<any>): Type<number> {
-        return new NumberType(this.data - other.access())
+        return new NumberType(this.data - other.number().access())
     }
 
     isub(other: Type<any>): Type<number> {
-        this.data -= other.access()
+        this.data -= other.number().access()
         return this
     }
 
     div(other: Type<any>): Type<number> {
-        return new NumberType(this.data / other.access())
+        return new NumberType(this.data / other.number().access())
     }
 
     idiv(other: Type<any>): Type<number> {
-        this.data /= other.access()
+        this.data /= other.number().access()
         return this
     }
 
@@ -414,17 +414,17 @@ class StringType extends Type<string>{
         return this.data !== ""
     }
     add(other: Type<string>): Type<string> {
-        return new StringType(this.data + String(other.access()))
+        return new StringType(this.data + other.string().access())
     }
     iadd(other: Type<string>): Type<string> {
-        this.data += other.access()
+        this.data += other.string().access()
         return this
     }
     mul(other: Type<number>): Type<string> {
-        return new StringType(this.data.repeat(other.access()))
+        return new StringType(this.data.repeat(other.number().access()))
     }
     imul(other: Type<any>): Type<string> {
-        this.data = this.data.repeat(other.access())
+        this.data = this.data.repeat(other.number().access())
         return this
     }
 
@@ -496,7 +496,7 @@ class FunctionType extends Type<UserFunction> {
     }
 
     number(): Type<number> {
-        return new NumberType(0)
+        throw new TypeError(`Function: ${this.data.name} cannot be converted to a number`)
     }
 
     run(relativeTo: number, args: Type<any>[]) {
@@ -526,12 +526,21 @@ class UserFunction {
             let data = calculateAmountRelativeToInternals(relativeTo, this.codeToks, argRecord).expression
             this.code = data
         }
-        let data = this.code.visit(relativeTo, new SymbolTable(argRecord))
-        return data[data.length - 1]
+        return this.code.visit(relativeTo, new SymbolTable(argRecord))
     }
     toString() {
         return this.codeToks.reduce((p, c) => p + " " + c.data, "")
     }
+}
+
+function createTypeFromJSType<T extends ValidJSTypes>(jsType: T){
+    if(typeof jsType === 'string'){
+        return new StringType(jsType)
+    }
+    else if(typeof jsType === 'number'){
+        return new NumberType(jsType)
+    }
+    return new FunctionType(jsType)
 }
 
 class ProgramNode extends Program {
@@ -541,8 +550,12 @@ class ProgramNode extends Program {
         this.expressions = ns
     }
 
-    visit(relativeTo: number, table: SymbolTable): number[] {
-        return this.expressions.map(v => v.visit(relativeTo, table)).flat().map(v => Number(v.access()))
+    visit(relativeTo: number, table: SymbolTable): ValidJSTypes {
+        let res;
+        for(let expr of this.expressions){
+            res = expr.visit(relativeTo, table)
+        }
+        return res?.access() ?? 0;
     }
 
     repr(indent: number = 0): string {
@@ -645,17 +658,20 @@ class IfNode extends Node {
 
     visit(relativeTo: number, table: SymbolTable): Type<any> {
         if (this.condition.visit(relativeTo, table).truthy()) {
-            return new NumberType(this.code.visit(relativeTo, table).slice(-1)[0])
+            let data = this.code.visit(relativeTo, table)
+            return createTypeFromJSType(data)
         }
         if(this.elifPrograms){
             for(let [check, program] of this.elifPrograms){
                 if(check.visit(relativeTo, table).truthy()){
-                    return new NumberType(program.visit(relativeTo, table).splice(-1)[0])
+                    let data = program.visit(relativeTo, table)
+                    return createTypeFromJSType(data)
                 }
             }
         }
         if (this.elseProgram) {
-            return new NumberType(this.elseProgram.visit(relativeTo, table).slice(-1)[0])
+            let data = this.elseProgram.visit(relativeTo, table)
+            return createTypeFromJSType(data)
         }
         return new NumberType(0)
     }
@@ -721,7 +737,7 @@ class VarAccessNode extends Node {
         }
         else if (val instanceof ProgramNode) {
             let data = val.visit(relativeTo, Object.assign({}, table))
-            return new NumberType(data[data.length])
+            return new NumberType(Number(data))
         }
         return val ?? new NumberType(0)
     }
@@ -843,9 +859,6 @@ class BinOpNode extends Node {
     visit(relativeTo: number, table: SymbolTable): NumberType {
         let left = this.left.visit(relativeTo, table)
         let right = this.right.visit(relativeTo, table)
-        if (!(left instanceof NumberType) || !(right instanceof NumberType)) {
-            throw new OperatorError(`${this.operator.data} expected 2 numbers, but found ${left.constructor.name.split("Type")[0]} and ${right.constructor.name.split("Type")[0]}`)
-        }
         let data;
         switch (this.operator.data) {
             case '+': return left.iadd(right)
@@ -894,6 +907,8 @@ class FunctionNode extends Node {
             'aspercent': 1,
             "length": 1,
             "abs": 1,
+            'string': 1,
+            number: 1
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
@@ -913,6 +928,8 @@ class FunctionNode extends Node {
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'abs': return new NumberType(Math.abs(values[0].access()))
+            case 'string': return values[0].string()
+            case 'number': return values[0].number()
             case 'sum': return function() {
                 switch (typeof values[0].access()) {
                     case 'string': return new StringType(values.reduce((p, c) => p + c.access(), ""))
@@ -921,10 +938,7 @@ class FunctionNode extends Node {
                 }
             }()
             case 'product': {
-                if (typeof values[0].access() === 'number') {
-                    return new NumberType(values.reduce((p, c) => p * c.access(), 0))
-                }
-                return new NumberType(0)
+                return new NumberType(values.reduce((p, c) => p * c.number().access(), 1))
             }
             case 'minmax': {
                 let min = values[0].access() ?? 0
@@ -945,7 +959,7 @@ class FunctionNode extends Node {
                     break;
                 }
 
-                return new NumberType(code.run(relativeTo, values))
+                return new NumberType(Number(code.run(relativeTo, values)))
             }
         }
         return new NumberType(0)
@@ -1233,6 +1247,8 @@ class Parser {
         let nodeArr = [this.statement()]
         while (this.#curTok?.type === TT.semi) {
             this.advance()
+            //trailing semi
+            if(!this.#curTok) break;
             nodeArr.push(this.statement())
         }
         return new ProgramNode(nodeArr)
@@ -1247,17 +1263,19 @@ class Interpreter {
     program: ProgramNode
     relativeTo: number
     symbolTable: SymbolTable
-    constructor(program: ProgramNode, relativeTo: number, baseEnv: Record<string, (total: number, k: string) => number>) {
+    constructor(program: ProgramNode, relativeTo: number, baseEnv: Record<string, (total: number, k: string) => number> | SymbolTable) {
         this.program = program
         this.relativeTo = relativeTo
-        this.symbolTable = new SymbolTable(baseEnv)
+        if(!(baseEnv instanceof SymbolTable))
+            this.symbolTable = new SymbolTable(baseEnv)
+        else this.symbolTable = baseEnv
     }
-    visit(): number[] {
+    visit(): ValidJSTypes {
         return this.program.visit(this.relativeTo, this.symbolTable)
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string | Token<any>[], extras?: Record<string, (total: number, k: string) => number>) {
+function calculateAmountRelativeToInternals(money: number, amount: string | Token<any>[], extras?: Record<string, (total: number, k: string) => number> | SymbolTable) {
     let tokens, lexer;
     if (typeof amount !== 'object') {
         let lexer = new Lexer(amount, Object.keys(extras ?? {}))
@@ -1268,7 +1286,7 @@ function calculateAmountRelativeToInternals(money: number, amount: string | Toke
     else tokens = amount
     let parser = new Parser(tokens)
     let expression = parser.parse()
-    let env = {
+    let env = extras instanceof SymbolTable ? extras : {
         'all': (total: number) => total * .99,
         'all!': (total: number) => total,
         'infinity': () => Infinity,
@@ -1278,11 +1296,11 @@ function calculateAmountRelativeToInternals(money: number, amount: string | Toke
     return { lexer, parser, interpreter: int, expression }
 }
 
-function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number {
-    return calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit().slice(-1)[0]
+function calculateAmountRelativeTo(money: number, amount: string, extras?: Record<string, (total: number, k: string) => number>, typeConv = Number): number {
+    return typeConv(calculateAmountRelativeToInternals(money, amount, extras).interpreter.visit())
 }
 
-function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): number[] {
+function runRelativeCalculator(relativeTo: number, amount: string, extras?: Record<string, (total: number, k: string) => number>): ValidJSTypes {
     return calculateAmountRelativeToInternals(relativeTo, amount, extras).interpreter.visit()
 }
 

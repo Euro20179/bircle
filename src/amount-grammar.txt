@@ -36,4 +36,4 @@ if-statement: KEYWORD:"if" comp KEYWORD:"then" program (KEYWORD:"elif" comp KEYW
 
 statement: comp | var-assign | if-statement
 
-program: statement (SEMI statement)*
+program: statement (SEMI statement)* SEMI?

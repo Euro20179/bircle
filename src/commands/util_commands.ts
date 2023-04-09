@@ -14,7 +14,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate, cmdFileName, sleep } from '../util'
 
 import { format, getOpts } from '../parsing'
@@ -1228,6 +1228,34 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
+    yield ["relscript", ccmdV2(async function({msg, args, opts, stdin}){
+        let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+        if(!text) return crv("Expected code", {status: StatusCode.ERR})
+        if(opts.getBool("tree", false)){
+            return crv(amountParser.calculateAmountRelativeToInternals(0, text).expression.repr())
+        }
+        else if(opts.getBool("s", false)){
+            let symbolTable;
+            do{
+                let internals = amountParser.calculateAmountRelativeToInternals(0, text, symbolTable)
+                await handleSending(msg, crv(internals.interpreter.visit().toString()))
+                symbolTable = internals.interpreter.symbolTable
+                let m = await promptUser(msg, undefined, undefined, {timeout: 60000})
+                if(!m) break;
+                if(m.content === '.exit') break;
+                text = m.content
+            } while(true);
+        }
+        return crv(amountParser.runRelativeCalculator(0, text).toString())
+    }, "Runs relscript", {
+        helpOptions: {
+            s: createHelpOption("run a REPL<br>type <code>.exit</code> to exit the REPL")
+        }, helpArguments: {
+            code: createHelpArgument("The code to run")
+        },
+        accepts_stdin: "The code to run"
+    })]
+
     yield [
         "calcam",
         {
@@ -1245,10 +1273,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
                 }
                 let amount = [NaN];
-                if (opts['a']) {
-                    amount = amountParser.runRelativeCalculator(money, amountStr)
-                }
-                else amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
+                amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
                 if (dollarSign === true) {
                     return { content: `${amount.join("\n")}`, status: StatusCode.RETURN }
                 }
