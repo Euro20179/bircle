@@ -639,7 +639,7 @@ class PipeNode extends Node {
     visit(relativeTo: number, table: SymbolTable): Type<any> {
         let final: Type<any> = this.start.visit(relativeTo, table);
         for (let node of this.chain) {
-            table.set('pipe!', final)
+            table.set('!', final)
             final = node.visit(relativeTo, table)
         }
         return final
