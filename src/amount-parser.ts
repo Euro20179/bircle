@@ -1527,6 +1527,8 @@ function calculateAmountRelativeToInternals(money: number, amount: string | Toke
         'min!': new NumberType(Number.MIN_SAFE_INTEGER),
         'Inf!': new NumberType(Infinity),
         'NaN!': new NumberType(NaN),
+        'true': new NumberType(1),
+        'false': new NumberType(0),
         ...(extras ?? {})
     }
     const int = new Interpreter(expression, money, env)
