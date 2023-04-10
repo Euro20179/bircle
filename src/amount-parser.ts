@@ -330,15 +330,20 @@ class Lexer {
 }
 
 class SymbolTable extends Map {
-    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string | Type<any>>) {
+    parent?: SymbolTable
+    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string | Type<any>>, parent?: SymbolTable) {
         super()
         for (let key in base) {
             this.set(key, base[key])
         }
+        this.parent = parent
     }
 
-    get(key: any) {
-        let val = super.get(key)
+    get(key: any): any {
+        let val = super.get(key);
+        if(!val && this.parent){
+            val = this.parent.get(key)
+        }
         if (typeof val === 'string') {
             return new StringType(val)
         }
@@ -553,8 +558,8 @@ class FunctionType extends Type<UserFunction> {
         throw new TypeError(`Function: ${this.data.name} cannot be converted to a number`)
     }
 
-    run(relativeTo: number, args: Type<any>[]) {
-        return this.data.run(relativeTo, args)
+    run(relativeTo: number, args: Type<any>[], table: SymbolTable) {
+        return this.data.run(relativeTo, args, table)
     }
 }
 
@@ -568,7 +573,7 @@ class UserFunction {
         this.argIdents = argIdents
         this.name = name
     }
-    run(relativeTo: number, args: Type<any>[]) {
+    run(relativeTo: number, args: Type<any>[], table: SymbolTable) {
         let argRecord: { [key: string]: any } = {}
         if (args.length < this.argIdents.length) {
             throw new TypeError(`${this.name} expected ${this.argIdents.length} arguments but got ${args.length}`)
@@ -580,7 +585,7 @@ class UserFunction {
             let data = calculateAmountRelativeToInternals(relativeTo, this.codeToks, argRecord).expression
             this.code = data
         }
-        return this.code.visit(relativeTo, new SymbolTable(argRecord))
+        return this.code.visit(relativeTo, new SymbolTable(argRecord, table))
     }
     toString() {
         return `${this.name}(${this.argIdents.join(", ")}) = ${this.codeToks.reduce((p, c) => p + " " + c.data, "")}`
@@ -1002,6 +1007,7 @@ class FunctionNode extends Node {
             'string': 1,
             'typeof': 1,
             'eval': 1,
+            'factorial': 1,
             number: 1
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
@@ -1027,6 +1033,13 @@ class FunctionNode extends Node {
             case 'string': return values[0].string()
             case 'number': return values[0].number()
             case 'typeof': return new StringType(values[0].type)
+            case 'factorial': {
+                let ans = 1
+                for(let i = values[0].number().access(); i > 1; i--){
+                    ans *= i
+                };
+                return new NumberType(ans)
+            }
             case 'sum': return function() {
                 switch (typeof values[0].access()) {
                     case 'string': return new StringType(values.reduce((p, c) => p + c.access(), ""))
@@ -1056,7 +1069,7 @@ class FunctionNode extends Node {
                     break;
                 }
 
-                return new NumberType(Number(code.run(relativeTo, values)))
+                return code.run(relativeTo, values, table)
             }
         }
         return new NumberType(0)
@@ -1328,7 +1341,6 @@ class Parser {
             this.advance()
             elseNode = this.program()
         }
-        console.log(this.#curTok)
         if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== ENDIF) {
             throw new SyntaxError(`Expected '${ENDIF}' to end if block`)
         }
