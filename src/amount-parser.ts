@@ -1008,7 +1008,7 @@ class FunctionNode extends Node {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
-            case 'eval': return createTypeFromJSType(runRelativeCalculator(relativeTo, values[0].string().access()))
+            case 'eval': return createTypeFromJSType(runRelativeCalculator(relativeTo, values[0].access()))
             case 'min': return new NumberType(min(values.map(v => v.access())) as number)
             case 'max': return new NumberType(max(values.map(v => v.access())) as number)
             case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
