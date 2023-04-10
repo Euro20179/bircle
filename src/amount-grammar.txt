@@ -11,7 +11,7 @@ atom: number | function | literal | special-literal | string | var-access
 right-unary-op: % | # | "k" | "m" | "b" | "t"
 left-unary-op: # | -
 
-factor: atom | LPAREN statement RPAREN
+factor: atom | LPAREN program RPAREN
 
 mutate-expr: factor
            : (left-unary-op)* mutate-expr (right-unary-op)*
@@ -36,6 +36,8 @@ comp: pipe ((GE | GT | LE | LT | EQ) pipe)?
 
 if-statement: KEYWORD:"if" comp KEYWORD:"then" program (KEYWORD:"elif" comp KEYWORD:"then" program)* (KEYWORD:"else" program)? KEYWORD:"end"
 
-statement: comp | var-assign | if-statement | var-inplace-assign
+set-rel: KEYWORD:"setrel" comp
+
+statement: comp | var-assign | if-statement | var-inplace-assign | set-rel
 
 program: statement (SEMI statement)* SEMI?

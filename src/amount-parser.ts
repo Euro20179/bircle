@@ -60,8 +60,9 @@ const ENDFUNC = 'rav',
     THEN = 'then',
     ELSE = 'else',
     ENDIF = 'fi',
-    ELIF = 'elif'
-const KEYWORDS = [ENDFUNC, CREATE_VAR, IF, THEN, ELSE, ENDIF, ELIF] as const
+    ELIF = 'elif',
+    SETREL = 'setrel'
+const KEYWORDS = [ENDFUNC, CREATE_VAR, IF, THEN, ELSE, ENDIF, ELIF, SETREL] as const
 
 
 type TokenDataType = {
@@ -329,9 +330,11 @@ class Lexer {
     }
 }
 
+type EnvironBase = Record<string, ((total: number, k: string) => number) | number | string | Type<TT>>
+
 class SymbolTable extends Map {
     parent?: SymbolTable
-    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string | Type<TT>>, parent?: SymbolTable) {
+    constructor(base?: EnvironBase , parent?: SymbolTable) {
         super()
         for (let key in base) {
             this.set(key, base[key])
@@ -355,10 +358,18 @@ class SymbolTable extends Map {
         }
         return val
     }
+
+    repr(){
+        let text = `SymbolTable{`
+        for(let [k, v] of this.entries()){
+            text += `\n\t${k} = ${v}`
+        }
+        return text + "\n}"
+    }
 }
 
 abstract class Node {
-    abstract visit(relativeTo: number, table: SymbolTable): Type<any>
+    abstract visit(program: ProgramNode, table: SymbolTable): Type<any>
     abstract repr(indent: number): string
 }
 
@@ -390,6 +401,10 @@ abstract class Type<JSType extends ValidJSTypes>{
 
     abstract string(): StringType
     abstract number(): NumberType
+
+    toString(){
+        return `[${this.type}] ${this.string().access()}`
+    }
 }
 
 class NumberType extends Type<number>{
@@ -588,10 +603,10 @@ class UserFunction {
             let data = calculateAmountRelativeToInternals(relativeTo, this.codeToks, argRecord).expression
             this.code = data
         }
-        return this.code.visit(relativeTo, new SymbolTable(argRecord, table))
+        return this.code.visit(this.code, new SymbolTable(argRecord, table))
     }
     toString() {
-        return `${this.name}(${this.argIdents.join(", ")}) = ${this.codeToks.reduce((p, c) => p + " " + c.data, "")}`
+        return `${this.codeToks.reduce((p, c) => p + " " + c.data, "")}`
     }
 }
 
@@ -605,19 +620,29 @@ function createTypeFromJSType<T extends ValidJSTypes>(jsType: T) {
     return new FunctionType(jsType)
 }
 
-class ProgramNode extends Program {
+class ProgramNode extends Node {
     expressions: Exclude<Node, ProgramNode>[]
-    constructor(ns: Node[]) {
+    #relativeTo: number
+    constructor(ns: Node[], rel: number) {
         super()
         this.expressions = ns
+        this.#relativeTo = rel
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
+    visit(program: ProgramNode, table: SymbolTable): Type<any> {
         let res;
         for (let expr of this.expressions) {
-            res = expr.visit(relativeTo, table)
+            res = expr.visit(this, table)
         }
         return res ?? new NumberType(0);
+    }
+
+    set rel(val: number){
+        this.#relativeTo = val
+    }
+
+    get rel(){
+        return this.#relativeTo
     }
 
     repr(indent: number = 0): string {
@@ -628,6 +653,27 @@ class ProgramNode extends Program {
         }
         text += `${'\t'.repeat(indent)})`
         return text
+    }
+}
+
+class SetRelNode extends Node{
+    val: Node
+
+    constructor(val: Node){
+        super()
+        this.val = val
+    }
+
+    visit(program: ProgramNode, table: SymbolTable): Type<any> {
+        let val = this.val.visit(program, table)
+        program.rel = val.number().access()
+        return val
+    }
+
+    repr(indent: number): string {
+        return `SetRel(
+${'\t'.repeat(indent + 1)}${this.val.repr(indent + 1)}
+${'\t'.repeat(indent)})`
     }
 }
 
@@ -644,11 +690,11 @@ class PipeNode extends Node {
         this.chain.push(node)
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
-        let final: Type<any> = this.start.visit(relativeTo, table);
+    visit(program: ProgramNode, table: SymbolTable): Type<any> {
+        let final: Type<any> = this.start.visit(program, table);
         for (let node of this.chain) {
             table.set('!', final)
-            final = node.visit(relativeTo, table)
+            final = node.visit(program, table)
         }
         return final
     }
@@ -670,8 +716,8 @@ class ExpressionNode extends Node {
         this.node = n
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
-        return this.node.visit(relativeTo, table)
+    visit(program: ProgramNode, table: SymbolTable): Type<any> {
+        return this.node.visit(program, table)
     }
 
     repr(indent: number = 0): string {
@@ -692,7 +738,7 @@ class VariableBinOpAssignNode extends Node {
         this.value = value
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
+    visit(program: ProgramNode, table: SymbolTable): Type<any> {
         let var_ = table.get(this.name.data)
         if (var_ === undefined) {
             throw new OperatorError(`${this.name.data} is undefined`)
@@ -701,19 +747,19 @@ class VariableBinOpAssignNode extends Node {
             return new NumberType(0)
         }
         switch (this.op.data) {
-            case '*=': return var_.number().imul(this.value.visit(relativeTo, table).number())
-            case '^=': return var_.number().ipow(this.value.visit(relativeTo, table).number())
-            case '+=': return var_.number().iadd(this.value.visit(relativeTo, table).number())
-            case '-=': return var_.number().isub(this.value.visit(relativeTo, table).number())
-            case '/=': return var_.number().idiv(this.value.visit(relativeTo, table).number())
-            case '^/=': return var_.number().iroot(this.value.visit(relativeTo, table).number())
+            case '*=': return var_.number().imul(this.value.visit(program, table).number())
+            case '^=': return var_.number().ipow(this.value.visit(program, table).number())
+            case '+=': return var_.number().iadd(this.value.visit(program, table).number())
+            case '-=': return var_.number().isub(this.value.visit(program, table).number())
+            case '/=': return var_.number().idiv(this.value.visit(program, table).number())
+            case '^/=': return var_.number().iroot(this.value.visit(program, table).number())
             case '=': {
-                table.set(this.name.data, this.value.visit(relativeTo, table))
+                table.set(this.name.data, this.value.visit(program, table))
                 let val = table.get(this.name.data)
                 if(val instanceof Type){
                     return val
                 }
-                return new NumberType(val(relativeTo, this.name.data))
+                return new NumberType(val(program.rel, this.name.data))
             }
         }
     }
@@ -734,8 +780,8 @@ class VariableAssignNode extends Node {
         this.value = value
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
-        let val = this.value.visit(relativeTo, table)
+    visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
+        let val = this.value.visit(program, table)
         table.set(this.name.data, val)
         return val
     }
@@ -762,19 +808,19 @@ class IfNode extends Node {
         this.elifPrograms = elifPrograms ?? []
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
-        if (this.condition.visit(relativeTo, table).truthy()) {
-            return this.code.visit(relativeTo, table)
+    visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
+        if (this.condition.visit(program, table).truthy()) {
+            return this.code.visit(program, table)
         }
         if (this.elifPrograms) {
             for (let [check, program] of this.elifPrograms) {
-                if (check.visit(relativeTo, table).truthy()) {
-                    return program.visit(relativeTo, table)
+                if (check.visit(program, table).truthy()) {
+                    return program.visit(program, table)
                 }
             }
         }
         if (this.elseProgram) {
-            return this.elseProgram.visit(relativeTo, table)
+            return this.elseProgram.visit(program, table)
         }
         return new NumberType(0)
     }
@@ -811,7 +857,7 @@ class FuncCreateNode extends Node {
         this.parameterNames = parameterNames
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
+    visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
         let fn = new FunctionType(new UserFunction(this.name.data, this.code, this.parameterNames.map(v => v.data)))
         table.set(this.name.data, fn)
         return fn
@@ -834,13 +880,13 @@ class VarAccessNode extends Node {
         this.name = name
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
+    visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
         let val = table.get(this.name.data)
         if (typeof val === 'function') {
-            return new NumberType(val(relativeTo, this.name.data))
+            return new NumberType(val(program.rel, this.name.data))
         }
         else if (val instanceof ProgramNode) {
-            let data = val.visit(relativeTo, Object.assign({}, table))
+            let data = val.visit(program, Object.assign({}, table))
             return new NumberType(Number(data))
         }
         return val ?? new NumberType(0)
@@ -860,7 +906,7 @@ class StringNode extends Node {
         this.data = n
     }
 
-    visit(relativeTo: number, table: SymbolTable): StringType {
+    visit(program: ProgramNode, table: SymbolTable): StringType {
         return new StringType(this.data.data)
     }
 
@@ -893,16 +939,16 @@ class RightUnOpNode extends Node {
         this.left = left
         this.operator = operator
     }
-    visit(relativeTo: number, table: SymbolTable): NumberType {
-        let number = this.left.visit(relativeTo, table)
+    visit(program: ProgramNode, table: SymbolTable): NumberType {
+        let number = this.left.visit(program, table)
         if (!(number instanceof NumberType)) {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
         let n = number.access()
         let data: number;
         switch (this.operator.data) {
-            case '#': data = relativeTo % n; break;
-            case '%': data = (n / 100) * relativeTo; break;
+            case '#': data = program.rel % n; break;
+            case '%': data = (n / 100) * program.rel; break;
             case 'K': data = n * 1000; break;
             case 'M': data = n * 1_000_000; break;
             case 'B': data = n * 1_000_000_000; break;
@@ -928,14 +974,14 @@ class LeftUnOpNode extends Node {
         this.left = left
         this.operator = operator
     }
-    visit(relativeTo: number, table: SymbolTable): NumberType {
-        let number = this.left.visit(relativeTo, table).access()
+    visit(program: ProgramNode, table: SymbolTable): NumberType {
+        let number = this.left.visit(program, table).access()
         if (typeof number === 'string') {
             throw new OperatorError(`'${this.operator.data}' expected number, found string`)
         }
         switch (this.operator.type) {
             case TT.hash:
-                return new NumberType(number - (relativeTo % number))
+                return new NumberType(number - (program.rel % number))
             case TT.minus:
                 return new NumberType(number * -1)
         }
@@ -960,9 +1006,9 @@ class BinOpNode extends Node {
         this.operator = operator
         this.right = right
     }
-    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
-        let left = this.left.visit(relativeTo, table)
-        let right = this.right.visit(relativeTo, table)
+    visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
+        let left = this.left.visit(program, table)
+        let right = this.right.visit(program, table)
         let data;
         switch (this.operator.data) {
             case '+': return left.add(right)
@@ -997,8 +1043,8 @@ class FunctionNode extends Node {
         this.name = name
         this.nodes = nodes
     }
-    visit(relativeTo: number, table: SymbolTable): NumberType | StringType | FunctionType {
-        let values = this.nodes.map(v => v.visit(relativeTo, table)) ?? [new NumberType(0)]
+    visit(program: ProgramNode, table: SymbolTable): NumberType | StringType | FunctionType {
+        let values = this.nodes.map(v => v.visit(program, table)) ?? [new NumberType(0)]
         let argCount = {
             'rand': 2,
             'needed': 1,
@@ -1015,31 +1061,33 @@ class FunctionNode extends Node {
             'typeof': 1,
             'eval': 1,
             'factorial': 1,
+            'setrel': 1,
             number: 1
         }
         if (this.name.data in argCount && values.length < argCount[this.name.data as keyof typeof argCount]) {
             throw new FunctionError(`${this.name.data} expects ${argCount[this.name.data as keyof typeof argCount]} items, but got ${values.length}`)
         }
         switch (this.name.data) {
-            case 'eval': return createTypeFromJSType(runRelativeCalculator(relativeTo, values[0].access()))
+            case 'eval': return createTypeFromJSType(runRelativeCalculator(program.rel, values[0].access()))
             case 'min': return new NumberType(min(values.map(v => v.access())) as number)
             case 'max': return new NumberType(max(values.map(v => v.access())) as number)
             case 'rand': return new NumberType(randInt(values[0].access(), values[1].access()))
             case 'choose': return choice(values)
-            case 'needed': return new NumberType(values[0].access() - relativeTo)
-            case 'ineeded': return new NumberType(relativeTo - (values[0].access()))
+            case 'needed': return new NumberType(values[0].access() - program.rel)
+            case 'ineeded': return new NumberType(program.rel - (values[0].access()))
             case 'neg': return values[0].mul(new NumberType(-1))
             case 'ineg': return values[0].imul(new NumberType(-1))
             case 'floor': return new NumberType(Math.floor(values[0].access()))
             case 'ceil': return new NumberType(Math.ceil(values[0].access()))
             case 'round': return new NumberType(Math.round(values[0].access()))
-            case 'aspercent': return new NumberType((values[0].access() / relativeTo) * 100)
+            case 'aspercent': return new NumberType((values[0].access() / program.rel) * 100)
             case 'length': return new NumberType(String(values[0]).length)
             case 'concat': return new StringType(values.map(v => v.string()).join(""))
             case 'abs': return new NumberType(Math.abs(values[0].access()))
             case 'string': return values[0].string()
             case 'number': return values[0].number()
             case 'typeof': return new StringType(values[0].type)
+            case 'symbols': return new StringType(table.repr())
             case 'factorial': {
                 let ans = 1
                 for(let i = values[0].number().access(); i > 1; i--){
@@ -1076,7 +1124,7 @@ class FunctionNode extends Node {
                     break;
                 }
 
-                return code.run(relativeTo, values, table)
+                return code.run(program.rel, values, table)
             }
         }
         return new NumberType(0)
@@ -1120,7 +1168,7 @@ class Parser {
         return this.#curTok === undefined
     }
 
-    func() {
+    func(relativeTo: number) {
         let name = this.#curTok
         //skip name
         this.advance()
@@ -1134,11 +1182,11 @@ class Parser {
         if (this.#curTok === undefined) {
             throw new SyntaxError(`Expected expression after '${name?.data}('`)
         }
-        let nodes = [this.statement()]
+        let nodes = [this.statement(relativeTo)]
         while (this.#curTok?.type === TT.comma) {
             //skip ,
             this.advance()
-            nodes.push(this.statement())
+            nodes.push(this.statement(relativeTo))
         }
         if (this.#curTok === undefined) {
             throw new SyntaxError(`Expected ')' after '${name?.data}(...`)
@@ -1148,7 +1196,7 @@ class Parser {
         return new FunctionNode(name as Token<TT.ident>, nodes)
     }
 
-    atom(): Node {
+    atom(relativeTo: number): Node {
         let tok = this.#curTok
         if (tok?.type === TT.number) {
             this.advance()
@@ -1166,7 +1214,7 @@ class Parser {
 
         if (this.#curTok?.type === TT.lparen) {
             this.back()
-            return this.func()
+            return this.func(relativeTo)
         }
 
 
@@ -1175,32 +1223,32 @@ class Parser {
         return new NumberNode(new Token(TT.number, 0))
     }
 
-    factor(): Node {
+    factor(relativeTo: number): Node {
         let tok = this.#curTok as Token<TT>
         if (tok?.type === TT.lparen) {
             this.advance()
-            let node = this.statement()
+            let node = this.program(relativeTo)
             this.advance()
             return node
         }
-        return this.atom()
+        return this.atom(relativeTo)
     }
 
-    left_unary_op(): Node {
+    left_unary_op(relativeTo: number): Node {
         let node;
         let isOp = false
         while ([TT.hash, TT.minus].includes(this.#curTok?.type as TT)) {
             isOp = true
             let tok = this.#curTok as Token<TT.hash | TT.minus>
             this.advance()
-            node = new LeftUnOpNode(this.mutate_expr(), tok)
+            node = new LeftUnOpNode(this.mutate_expr(relativeTo), tok)
         }
-        if (!isOp) node = this.factor()
+        if (!isOp) node = this.factor(relativeTo)
         return node as Node
     }
 
-    mutate_expr(): Node {
-        let node = this.left_unary_op();
+    mutate_expr(relativeTo: number): Node {
+        let node = this.left_unary_op(relativeTo);
         while ([TT.percent, TT.hash, TT.number_suffix].includes(this.#curTok?.type as TT)) {
             let next = this.#curTok as Token<any>
             this.advance()
@@ -1209,53 +1257,53 @@ class Parser {
         return node
     }
 
-    higher_order_term() {
-        let node = this.mutate_expr()
+    higher_order_term(relativeTo: number) {
+        let node = this.mutate_expr(relativeTo)
         while (TT.pow === this.#curTok?.type) {
             let token = this.#curTok as Token<TT.pow>
             this.advance()
-            node = new BinOpNode(node, token, this.mutate_expr())
+            node = new BinOpNode(node, token, this.mutate_expr(relativeTo))
         }
         return node
     }
 
-    term(): Node {
-        let node = this.higher_order_term()
+    term(relativeTo: number): Node {
+        let node = this.higher_order_term(relativeTo)
         while ([TT.mul, TT.div].includes(this.#curTok?.type as TT)) {
             let token = this.#curTok as Token<any>
             this.advance()
-            node = new BinOpNode(node, token, this.higher_order_term())
+            node = new BinOpNode(node, token, this.higher_order_term(relativeTo))
         }
         return node
     }
 
-    arithmetic(): Node {
-        let node = this.term()
+    arithmetic(relativeTo: number): Node {
+        let node = this.term(relativeTo)
         while ([TT.plus, TT.minus].includes(this.#curTok?.type as TT)) {
             let token = this.#curTok as Token<any>
             this.advance()
-            node = new BinOpNode(node, token, this.term())
+            node = new BinOpNode(node, token, this.term(relativeTo))
         }
         return node
     }
 
-    root(): Node {
-        let node = this.arithmetic()
+    root(relativeTo: number): Node {
+        let node = this.arithmetic(relativeTo)
         while (this.#curTok?.type === TT.root) {
             let token = this.#curTok as Token<TT.root>
             this.advance()
-            node = new BinOpNode(node, token, this.arithmetic())
+            node = new BinOpNode(node, token, this.arithmetic(relativeTo))
         }
         return node
     }
 
-    var_assign(): Node {
+    var_assign(relativeTo: number): Node {
         this.advance()
         let name = this.#curTok as Token<TT.ident>
         this.advance()
         if (this.#curTok?.type === TT.eq) {
             this.advance()
-            return new VariableAssignNode(name, this.comp())
+            return new VariableAssignNode(name, this.comp(relativeTo))
         }
         else if (this.#curTok?.type === TT.lparen) {
             let idents: Token<TT.ident>[] = []
@@ -1298,55 +1346,55 @@ class Parser {
         throw new SyntaxError(`Expected '=' after ${name.data}`)
     }
 
-    expr(): Node {
-        return new ExpressionNode(this.root())
+    expr(relativeTo: number): Node {
+        return new ExpressionNode(this.root(relativeTo))
     }
 
-    pipe(): Node {
-        let node = this.expr()
+    pipe(relativeTo: number): Node {
+        let node = this.expr(relativeTo)
         while (this.#curTok?.type === TT.pipe) {
             if (!(node instanceof PipeNode)) {
                 node = new PipeNode(node)
             }
             this.advance();
-            (node as PipeNode).addToChain(this.expr())
+            (node as PipeNode).addToChain(this.expr(relativeTo))
         }
         return node
     }
 
-    comp(): Node {
-        let left = this.pipe()
+    comp(relativeTo: number): Node {
+        let left = this.pipe(relativeTo)
         if ([TT.lt, TT.le, TT.eq, TT.gt, TT.ge].includes(this.#curTok?.type as TT)) {
             let op = this.#curTok as Token<any>
             this.advance()
-            left = new BinOpNode(left, op, this.pipe())
+            left = new BinOpNode(left, op, this.pipe(relativeTo))
         }
         return left
     }
 
-    if_statement() {
+    if_statement(relativeTo: number) {
         this.advance()
-        let comp = this.comp()
+        let comp = this.comp(relativeTo)
         if (this.#curTok?.type !== TT.keyword || this.#curTok?.data !== THEN) {
             throw new SyntaxError(`Expected '${THEN}' to start if block`)
         }
         this.advance()
-        let code = this.program()
+        let code = this.program(relativeTo)
         let elseNode
         let elifPrograms: [Node, ProgramNode][] = []
         while (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === ELIF) {
             this.advance()
-            let check = this.comp()
+            let check = this.comp(relativeTo)
             if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== THEN) {
                 throw new SyntaxError(`Expected '${THEN}' to start the elif block`)
             }
             this.advance()
-            let program = this.program()
+            let program = this.program(relativeTo)
             elifPrograms.push([check, program])
         }
         if (this.#curTok?.type === TT.keyword && (this.#curTok?.data as string) === ELSE) {
             this.advance()
-            elseNode = this.program()
+            elseNode = this.program(relativeTo)
         }
         if (this.#curTok?.type !== TT.keyword || (this.#curTok?.data as string) !== ENDIF) {
             throw new SyntaxError(`Expected '${ENDIF}' to end if block`)
@@ -1355,12 +1403,20 @@ class Parser {
         return new IfNode(comp, code, elifPrograms, elseNode)
     }
 
-    statement() {
+    set_rel(relativeTo: number){
+        this.advance()
+        return new SetRelNode(this.comp(relativeTo))
+    }
+
+    statement(relativeTo: number) {
         if (this.#curTok?.type === TT.keyword) {
             if (this.#curTok.data === CREATE_VAR)
-                return this.var_assign()
+                return this.var_assign(relativeTo)
             else if (this.#curTok.data === IF) {
-                return this.if_statement()
+                return this.if_statement(relativeTo)
+            }
+            else if(this.#curTok.data === SETREL){
+                return this.set_rel(relativeTo)
             }
         }
         else if (this.#curTok?.type === TT.ident) {
@@ -1369,26 +1425,26 @@ class Parser {
             if ([TT.muleq, TT.pluseq, TT.minuseq, TT.rooteq, TT.poweq, TT.diveq, TT.eq].includes(this.#curTok?.type as TT)) {
                 let op = this.#curTok as Token<TT.muleq>
                 this.advance()
-                return new VariableBinOpAssignNode(name, op, this.comp())
+                return new VariableBinOpAssignNode(name, op, this.comp(relativeTo))
             }
             this.back()
         }
-        return this.comp()
+        return this.comp(relativeTo)
     }
 
-    program(): ProgramNode {
-        let nodeArr = [this.statement()]
+    program(relativeTo: number): ProgramNode {
+        let nodeArr = [this.statement(relativeTo)]
         while (this.#curTok?.type === TT.semi) {
             this.advance()
             //trailing semi
             if (!this.#curTok) break;
-            nodeArr.push(this.statement())
+            nodeArr.push(this.statement(relativeTo))
         }
-        return new ProgramNode(nodeArr)
+        return new ProgramNode(nodeArr, relativeTo)
     }
 
-    parse(): ProgramNode {
-        return this.program()
+    parse(relativeTo: number): ProgramNode {
+        return this.program(relativeTo)
     }
 }
 
@@ -1396,7 +1452,7 @@ class Interpreter {
     program: ProgramNode
     relativeTo: number
     symbolTable: SymbolTable
-    constructor(program: ProgramNode, relativeTo: number, baseEnv: Record<string, (total: number, k: string) => number> | SymbolTable) {
+    constructor(program: ProgramNode, relativeTo: number, baseEnv: EnvironBase | SymbolTable) {
         this.program = program
         this.relativeTo = relativeTo
         if (!(baseEnv instanceof SymbolTable))
@@ -1404,11 +1460,11 @@ class Interpreter {
         else this.symbolTable = baseEnv
     }
     visit(): ValidJSTypes {
-        return this.program.visit(this.relativeTo, this.symbolTable).access()
+        return this.program.visit(this.program, this.symbolTable).access()
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string | Token<TT>[], extras?: Record<string, (total: number, k: string) => number> | SymbolTable) {
+function calculateAmountRelativeToInternals(money: number, amount: string | Token<TT>[], extras?: EnvironBase | SymbolTable) {
     let tokens, lexer;
     if (typeof amount !== 'object') {
         let lexer = new Lexer(amount, Object.keys(extras ?? {}))
@@ -1418,11 +1474,15 @@ function calculateAmountRelativeToInternals(money: number, amount: string | Toke
     }
     else tokens = amount
     let parser = new Parser(tokens)
-    let expression = parser.parse()
+    let expression = parser.parse(money)
     let env = extras instanceof SymbolTable ? extras : {
         'all': (total: number) => total * .99,
         'all!': (total: number) => total,
-        'infinity': () => Infinity,
+        'rel!': new NumberType(money),
+        'max!': new NumberType(Number.MAX_SAFE_INTEGER),
+        'min!': new NumberType(Number.MIN_SAFE_INTEGER),
+        'Inf!': new NumberType(Infinity),
+        'NaN!': new NumberType(NaN),
         ...(extras ?? {})
     }
     const int = new Interpreter(expression, money, env)
