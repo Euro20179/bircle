@@ -1222,8 +1222,6 @@ class Parser {
             name.push(this.#curTok as Token<TT.ident>)
         }
 
-        console.log(name)
-
         //skip (
         this.advance()
         if (this.#curTok?.type === TT.rparen) {
