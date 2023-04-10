@@ -34,10 +34,12 @@ pipe: expr ("|" expr)*
 
 comp: pipe ((GE | GT | LE | LT | EQ) pipe)?
 
-if-statement: KEYWORD:"if" comp KEYWORD:"then" program (KEYWORD:"elif" comp KEYWORD:"then" program)* (KEYWORD:"else" program)? KEYWORD:"end"
+if-statement: KEYWORD:"if" comp KEYWORD:"then" program (KEYWORD:"elif" comp KEYWORD:"then" program)* (KEYWORD:"else" program)? KEYWORD:"fi"
+
+while-loop: KEYWORD:"while" comp KEYWORD:"then" program KEYWORD:"done"
 
 set-rel: KEYWORD:"setrel" comp
 
-statement: comp | var-assign | if-statement | var-inplace-assign | set-rel
+statement: comp | var-assign | if-statement | var-inplace-assign | set-rel | while-loop
 
 program: statement (SEMI statement)* SEMI?

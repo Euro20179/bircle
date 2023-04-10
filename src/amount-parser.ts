@@ -61,8 +61,10 @@ const ENDFUNC = 'rav',
     ELSE = 'else',
     ENDIF = 'fi',
     ELIF = 'elif',
-    SETREL = 'setrel'
-const KEYWORDS = [ENDFUNC, CREATE_VAR, IF, THEN, ELSE, ENDIF, ELIF, SETREL] as const
+    SETREL = 'setrel',
+    WHILE = 'while',
+    DONE = 'done'
+const KEYWORDS = [ENDFUNC, CREATE_VAR, IF, THEN, ELSE, ENDIF, ELIF, SETREL, WHILE, DONE] as const
 
 
 type TokenDataType = {
@@ -334,7 +336,7 @@ type EnvironBase = Record<string, ((total: number, k: string) => number) | numbe
 
 class SymbolTable extends Map {
     parent?: SymbolTable
-    constructor(base?: EnvironBase , parent?: SymbolTable) {
+    constructor(base?: EnvironBase, parent?: SymbolTable) {
         super()
         for (let key in base) {
             this.set(key, base[key])
@@ -344,10 +346,10 @@ class SymbolTable extends Map {
 
     get(key: string): NumberType | StringType | ((total: number, k: string) => number) | Type<ValidJSTypes> {
         let val = super.get(key);
-        if(!val && this.parent){
+        if (!val && this.parent) {
             val = this.parent.get(key)
         }
-        if(!val){
+        if (!val) {
             return new NumberType(0)
         }
         else if (typeof val === 'string') {
@@ -359,9 +361,9 @@ class SymbolTable extends Map {
         return val
     }
 
-    repr(){
+    repr() {
         let text = `SymbolTable{`
-        for(let [k, v] of this.entries()){
+        for (let [k, v] of this.entries()) {
             text += `\n\t${k} = ${v}`
         }
         return text + "\n}"
@@ -402,7 +404,7 @@ abstract class Type<JSType extends ValidJSTypes>{
     abstract string(): StringType
     abstract number(): NumberType
 
-    toString(){
+    toString() {
         return `[${this.type}] ${this.string().access()}`
     }
 }
@@ -637,11 +639,11 @@ class ProgramNode extends Node {
         return res ?? new NumberType(0);
     }
 
-    set rel(val: number){
+    set rel(val: number) {
         this.#relativeTo = val
     }
 
-    get rel(){
+    get rel() {
         return this.#relativeTo
     }
 
@@ -656,10 +658,10 @@ class ProgramNode extends Node {
     }
 }
 
-class SetRelNode extends Node{
+class SetRelNode extends Node {
     val: Node
 
-    constructor(val: Node){
+    constructor(val: Node) {
         super()
         this.val = val
     }
@@ -756,7 +758,7 @@ class VariableBinOpAssignNode extends Node {
             case '=': {
                 table.set(this.name.data, this.value.visit(program, table))
                 let val = table.get(this.name.data)
-                if(val instanceof Type){
+                if (val instanceof Type) {
                     return val
                 }
                 return new NumberType(val(program.rel, this.name.data))
@@ -792,6 +794,30 @@ ${'\t'.repeat(indent + 1)}${this.name.data}
 ${'\t'.repeat(indent + 1)}=
 ${'\t'.repeat(indent + 1)}${this.value.repr(indent + 1)}
 ${'\t'.repeat(indent)})`
+    }
+}
+
+class WhileNode extends Node {
+    condition: Node
+    code: ProgramNode
+    constructor(condition: Node, code: ProgramNode) {
+        super()
+        this.condition = condition
+        this.code = code
+    }
+
+    visit(program: ProgramNode, table: SymbolTable): Type<any> {
+        let res;
+        let iters = 0;
+        while (this.condition.visit(program, table).number().access() !== 0 && iters < 1000) {
+            res = this.code.visit(program, table)
+            iters++
+        }
+        return res ?? new NumberType(0)
+    }
+
+    repr(indent: number): string {
+        return 'loop'
     }
 }
 
@@ -1090,7 +1116,7 @@ class FunctionNode extends Node {
             case 'symbols': return new StringType(table.repr())
             case 'factorial': {
                 let ans = 1
-                for(let i = values[0].number().access(); i > 1; i--){
+                for (let i = values[0].number().access(); i > 1; i--) {
                     ans *= i
                 };
                 return new NumberType(ans)
@@ -1372,6 +1398,21 @@ class Parser {
         return left
     }
 
+    while_loop(relativeTo: number) {
+        this.advance()
+        let comp = this.comp(relativeTo)
+        if (this.#curTok?.type !== TT.keyword || this.#curTok?.data !== THEN) {
+            throw new SyntaxError(`Expected '${THEN}' to start while loop block`)
+
+        }
+        this.advance()
+        let code = this.program(relativeTo)
+        if (this.#curTok?.type !== TT.keyword || this.#curTok?.data as string !== DONE) {
+            throw new SyntaxError(`Expected '${DONE}' to end while loop block`)
+        }
+        return new WhileNode(comp, code)
+    }
+
     if_statement(relativeTo: number) {
         this.advance()
         let comp = this.comp(relativeTo)
@@ -1403,7 +1444,7 @@ class Parser {
         return new IfNode(comp, code, elifPrograms, elseNode)
     }
 
-    set_rel(relativeTo: number){
+    set_rel(relativeTo: number) {
         this.advance()
         return new SetRelNode(this.comp(relativeTo))
     }
@@ -1415,7 +1456,10 @@ class Parser {
             else if (this.#curTok.data === IF) {
                 return this.if_statement(relativeTo)
             }
-            else if(this.#curTok.data === SETREL){
+            else if(this.#curTok.data === WHILE){
+                return this.while_loop(relativeTo)
+            }
+            else if (this.#curTok.data === SETREL) {
                 return this.set_rel(relativeTo)
             }
         }
