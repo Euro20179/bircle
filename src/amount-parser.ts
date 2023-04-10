@@ -331,7 +331,7 @@ class Lexer {
 
 class SymbolTable extends Map {
     parent?: SymbolTable
-    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string | Type<any>>, parent?: SymbolTable) {
+    constructor(base?: Record<string, ((total: number, k: string) => number) | number | string | Type<TT>>, parent?: SymbolTable) {
         super()
         for (let key in base) {
             this.set(key, base[key])
@@ -339,12 +339,15 @@ class SymbolTable extends Map {
         this.parent = parent
     }
 
-    get(key: any): any {
+    get(key: string): NumberType | StringType | ((total: number, k: string) => number) | Type<ValidJSTypes> {
         let val = super.get(key);
         if(!val && this.parent){
             val = this.parent.get(key)
         }
-        if (typeof val === 'string') {
+        if(!val){
+            return new NumberType(0)
+        }
+        else if (typeof val === 'string') {
             return new StringType(val)
         }
         else if (typeof val === 'number') {
@@ -706,7 +709,11 @@ class VariableBinOpAssignNode extends Node {
             case '^/=': return var_.number().iroot(this.value.visit(relativeTo, table).number())
             case '=': {
                 table.set(this.name.data, this.value.visit(relativeTo, table))
-                return table.get(this.name.data)
+                let val = table.get(this.name.data)
+                if(val instanceof Type){
+                    return val
+                }
+                return new NumberType(val(relativeTo, this.name.data))
             }
         }
     }
@@ -755,7 +762,7 @@ class IfNode extends Node {
         this.elifPrograms = elifPrograms ?? []
     }
 
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
+    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
         if (this.condition.visit(relativeTo, table).truthy()) {
             return this.code.visit(relativeTo, table)
         }
@@ -797,7 +804,7 @@ class FuncCreateNode extends Node {
     name: Token<TT.ident>
     code: Token<TT>[]
     parameterNames: Token<TT.ident>[]
-    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: Token<any>[]) {
+    constructor(name: Token<TT.ident>, parameterNames: Token<TT.ident>[], code: Token<TT>[]) {
         super()
         this.name = name
         this.code = code
@@ -953,7 +960,7 @@ class BinOpNode extends Node {
         this.operator = operator
         this.right = right
     }
-    visit(relativeTo: number, table: SymbolTable): Type<any> {
+    visit(relativeTo: number, table: SymbolTable): Type<ValidJSTypes> {
         let left = this.left.visit(relativeTo, table)
         let right = this.right.visit(relativeTo, table)
         let data;
@@ -1205,7 +1212,7 @@ class Parser {
     higher_order_term() {
         let node = this.mutate_expr()
         while (TT.pow === this.#curTok?.type) {
-            let token = this.#curTok as Token<any>
+            let token = this.#curTok as Token<TT.pow>
             this.advance()
             node = new BinOpNode(node, token, this.mutate_expr())
         }
@@ -1401,7 +1408,7 @@ class Interpreter {
     }
 }
 
-function calculateAmountRelativeToInternals(money: number, amount: string | Token<any>[], extras?: Record<string, (total: number, k: string) => number> | SymbolTable) {
+function calculateAmountRelativeToInternals(money: number, amount: string | Token<TT>[], extras?: Record<string, (total: number, k: string) => number> | SymbolTable) {
     let tokens, lexer;
     if (typeof amount !== 'object') {
         let lexer = new Lexer(amount, Object.keys(extras ?? {}))
