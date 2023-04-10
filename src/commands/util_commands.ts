@@ -1228,7 +1228,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
-    yield ["relscript", ccmdV2(async function({msg, args, opts, stdin}){
+    yield ["relscript", ccmdV2(async function({msg, args, opts, stdin, sendCallback}){
         let text = stdin ? getContentFromResult(stdin) : args.join(" ")
         if(!text) return crv("Expected code", {status: StatusCode.ERR})
         if(opts.getBool("tree", false)){
