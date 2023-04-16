@@ -490,6 +490,13 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
 const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
+/**
+    * @description for expect methods in ArgList when it should keep going until the arglist is exausted
+*/
+function truthy(){
+    return true
+}
+
 type AmountOfArgs = int_t | ((arg: string, index: number, argsUsed: number) => typeof GOODVALUE | typeof BADVALUE | true | false)
 class ArgList extends Array {
     #i: number
@@ -1051,5 +1058,6 @@ export {
     sleep,
     Enum,
     defer,
+    truthy
 }
 

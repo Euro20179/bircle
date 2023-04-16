@@ -11,7 +11,7 @@ import pet from "../pets"
 
 import uno = require("../uno")
 
-import { choice, cycle, efd, fetchUser, listComprehension, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild } from "../util"
+import { choice, cycle, efd, fetchUser, listComprehension, mulStr, strlen, BADVALUE, isBetween, isMsgChannel, fetchUserFromClientOrGuild, truthy } from "../util"
 
 import { format, getOpts } from '../parsing'
 
@@ -1004,7 +1004,7 @@ until you put a 0 in the box`)
                 return false
             }
 
-            let guess = args.expect(() => true, i => {
+            let guess = args.expect(truthy, i => {
                 if (!i.length) return BADVALUE
                 let v = isValidGuess(i.join(" "))
 

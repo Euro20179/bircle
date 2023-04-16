@@ -13,7 +13,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -662,7 +662,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 stock: createHelpArgument("The stock to get info on")
             },
             argShape: async function*(args) {
-                yield [args.expectString(() => true), "stock"]
+                yield [args.expectString(truthy), "stock"]
             }
         })
     ]
@@ -689,7 +689,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }, "feed-pet", {
             argShape: async function*(args) {
                 yield [args.expectString(), "name"]
-                yield [args.expectString(() => true), 'food']
+                yield [args.expectString(truthy), 'food']
             },
             helpArguments: {
                 name: createHelpArgument("Name of pet to feed"),
@@ -1353,7 +1353,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         }, "Change the nickname of the bot", {
             argShape: async function*(args) {
-                yield [args.expectSizedString(30, () => true), "name"]
+                yield [args.expectSizedString(30, truthy), "name"]
             }
         })
     ]
@@ -1667,7 +1667,7 @@ Valid formats:
             },
             use_result_cache: true,
             argShape: async function*(args) {
-                yield [args.expectWithIfs("+", args.expectString, () => true), "query"]
+                yield [args.expectWithIfs("+", args.expectString, truthy), "query"]
             }
         })
     ]
@@ -1722,7 +1722,7 @@ Valid formats:
             },
             docs: "When adding an answer, <code>{u}</code> represents the user and <code>{content}</code> represents their question",
             argShape: async function*(args) {
-                yield [args.expectString(() => true), "question", true, ""]
+                yield [args.expectString(truthy), "question", true, ""]
             }
         })
     ]
@@ -1974,7 +1974,7 @@ Valid formats:
 
         let activities: { [name: string]: UserCountryActivity } = {}
 
-        let finalText = args.expectString(() => true)
+        let finalText = args.expectString(truthy)
         if (finalText === BADVALUE) {
             return crv(`Expected a list of activities`, { status: StatusCode.ERR })
         }
@@ -2034,7 +2034,7 @@ Valid formats:
             }
 
 
-            let userGoingTo = args.expect(() => true, i => {
+            let userGoingTo = args.expect(truthy, i => {
                 let text = i.join(" ").toLowerCase()
                 return countries[text as keyof typeof countries] ? text : BADVALUE
             }) as keyof typeof countries | typeof BADVALUE
