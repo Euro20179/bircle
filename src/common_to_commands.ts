@@ -523,7 +523,7 @@ export class Interpreter {
         programArgs?: string[],
         context?: InterpreterContext
     }) {
-        this.tokens = cloneDeep(tokens)
+        this.tokens = tokens
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
         this.recursion = options.recursion ?? 0
@@ -1123,7 +1123,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             msg.channel.send.bind(msg.channel)
     }
 
-    if (rv.delete && msg.deletable) {
+    if (rv.delete) {
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
 
