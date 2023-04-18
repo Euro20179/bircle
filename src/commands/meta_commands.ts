@@ -3,11 +3,11 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, matchCommands, PIDS, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
-import { Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
+import { Parser, parseBracketPair, formatPercentStr, format } from "../parsing"
 
 import common from '../common'
 import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from "../util"
@@ -62,7 +62,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     }, CAT, "get specific data from stdin/pipe")]
 
-    yield ["set", ccmdV2(async ({ opts, args, interpreter, msg }) => {
+    yield ["set", ccmdV2(async ({ opts, args, interpreter }) => {
         let newIfs = opts.getString("IFS", "")
         if (newIfs) {
             interpreter.context.export("IFS", newIfs)
@@ -2241,7 +2241,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             argList = argList.slice(2)
         }
 
-        let result = v2.expand(msg, argList, simulatedOpts, (alias: any, preArgs: any) => {
+        let result = v2.expand(argList, simulatedOpts, (alias: any, preArgs: any) => {
             chain.push(showArgs ? preArgs : alias)
             return true
         }, !opts.getBool("F", false))

@@ -140,7 +140,7 @@ export class AliasV2 {
         this.standardizeOpts = bool ?? false
     }
 
-    basicPrepare(msg: Message, args: string[], opts: Opts) {
+    basicPrepare(args: string[], opts: Opts) {
         let tempExec = this.exec
 
         if (this.appendOpts && Object.keys(opts).length) {
@@ -155,11 +155,11 @@ export class AliasV2 {
 
     }
 
-    prepare(msg: Message, args: string[], opts: Opts, fillPlaceholders = false) {
+    prepare(args: string[], opts: Opts, fillPlaceholders = false) {
         let tempExec = this.exec
 
         if (!fillPlaceholders) {
-            return this.basicPrepare(msg, args, opts)
+            return this.basicPrepare(args, opts)
         }
 
         //FIXME: opts is not part of args.., add a seperate one for `opts..` (we dont need others becasue of the variables)
@@ -232,7 +232,7 @@ export class AliasV2 {
             vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
-        await this.expand(msg, args, opts, ((a, preArgs) => {
+        await this.expand(args, opts, ((a, preArgs) => {
             globals.addToCmdUse(a)
             lastCmd = a
             tempExec = `${preArgs}`
@@ -293,10 +293,10 @@ export class AliasV2 {
     }
 
 
-    async expand(msg: Message, args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any, fillPlaceholders = true): Promise<AliasV2 | false> {
+    async expand(args: string[], opts: Opts, onExpand?: (alias: string, preArgs: string) => any, fillPlaceholders = true): Promise<AliasV2 | false> {
         let expansions = 0
         let command = this.exec.split(" ")[0]
-        let preArgs = this.prepare(msg, args, opts, fillPlaceholders)
+        let preArgs = this.prepare(args, opts, fillPlaceholders)
         if (onExpand && !onExpand?.(command, preArgs)) {
             return false
         }
@@ -306,7 +306,7 @@ export class AliasV2 {
             if (expansions > 1000) {
                 return false
             }
-            preArgs = curAlias.prepare(msg, preArgs.split(" ").slice(1), opts, fillPlaceholders)
+            preArgs = curAlias.prepare(preArgs.split(" ").slice(1), opts, fillPlaceholders)
             command = aliasesV2[command].exec.split(" ")[0]
             if (onExpand && !onExpand?.(command, preArgs)) {
                 return false
