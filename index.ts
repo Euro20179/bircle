@@ -1,6 +1,4 @@
 ///<reference path="src/types.d.ts" />
-import fs from 'fs'
-
 import { User, ChannelType, Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'
@@ -23,7 +21,7 @@ import common from './src/common'
 import timer from './src/timer'
 
 import economy from './src/economy'
-import { Interaction, Message, } from 'discord.js'
+import { Message, } from 'discord.js'
 // const economy = require("./src/economy")
 
 import { saveItems, hasItem } from './src/shop'
@@ -43,7 +41,7 @@ Object.defineProperty(User.prototype, "balance", {
 Object.defineProperty(User.prototype, "loan", {
     "get": function() {
         return economy.calculateLoanAmountFromString(this.id, "100%")
-    }
+    },
 });
 Object.defineProperty(User.prototype, "economyData", {
     "get": function() {
@@ -80,7 +78,7 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     }
     catch (err) {
         console.error(err)
-        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as string)}\`\`\`` })
     }
     globals.writeCmdUse()
 }
@@ -256,7 +254,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
     }
 })
 
-common.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
+common.client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction?.user?.username === undefined) {
         return
     }

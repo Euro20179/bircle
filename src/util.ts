@@ -18,7 +18,7 @@ import { formatMoney, getOpt } from "./user-options"
 
 export type MimeType = `${string}/${string}`
 
-export type UnixTime = number
+export type UnixTime = Tagger<number>
 
 function getToolIp() {
     return fs.existsSync("./data/ip.key") ? fs.readFileSync("./data/ip.key", "utf-8") : undefined

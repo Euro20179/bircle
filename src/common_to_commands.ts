@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary} from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp} from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -1043,7 +1043,7 @@ export class Interpreter {
             return false
         }
         let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
-        for (let [_name, [regex, run]] of userMatchCmds) {
+        for (let [name, [regex, run]] of userMatchCmds) {
             let m = content.match(regex);
             if (!m) continue;
 
@@ -1064,10 +1064,15 @@ export class Interpreter {
             }
             catch (err) {
                 console.error(err)
-                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as string)}\`\`\`` })
             }
         }
     }
+}
+
+function censor_error(err: string){
+    let ip = getToolIp()
+    return err.replaceAll(ip as string, "")
 }
 
 function defileCommandReturn(rv: CommandReturn) {
@@ -1347,5 +1352,6 @@ export default {
     cmd,
     handleSending,
     Interpreter,
-    PIDS
+    PIDS,
+    censor_error
 }
