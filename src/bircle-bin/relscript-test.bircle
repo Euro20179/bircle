@@ -1,0 +1,6 @@
+echo -D relscript 3 + 3 -> $( relscript 3 + 3 ) = 6 ;;
+echo -D relscript var x = 10; x * 2 -> $( relscript var x = 10; x * 2 ) = 20 ;;
+echo -D relscript min(3, 4) -> $( relscript min(3, 4) ) = 3 ;;
+echo -D relscript var mul(x, y) -> $( relscript var mul(x, y) = x * y rav; mul(3, 4) ) = 12 ;;
+echo -D relscript setrel 50; all! -> $( relscript setrel 50; all! ) = 50 ;;
+echo -D relscript setrel 50; 50%! -> $( relscript setrel 50; 50% ) = 25 

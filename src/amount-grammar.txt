@@ -2,16 +2,16 @@ literal: "all" | "all!" | "infinity" //these are all identifiers
 
 special-literal: IDENT //provided at runtime can be mapped to any function that returns a number
 
-function: IDENT "(" expr(","expr)* ")"
+function: IDENT "(" statement(","statement)* ")"
 
-var-access: IDENT
+var-access: (IDENT)+
 
 atom: number | function | literal | special-literal | string | var-access
 
 right-unary-op: % | # | "k" | "m" | "b" | "t"
 left-unary-op: # | -
 
-factor: atom | LPAREN statement RPAREN
+factor: atom | LPAREN multi-statement RPAREN
 
 mutate-expr: factor
            : (left-unary-op)* mutate-expr (right-unary-op)*
@@ -24,7 +24,9 @@ arithmetic: term ((PLUS| MINUS) term)*
 
 root: arithmetic ((ROOT) arithmetic)*
 
-var-assign: KEYWORD:"var" (IDENT "=" comp | IDENT LPAREN ((IDNET ("," IDENT)*)*) RPAREN "=" code KEYWORD:"end")
+var-assign: KEYWORD:"var" ((IDENT)+ "=" comp | IDENT LPAREN ((IDNET ("," IDENT)*)*) RPAREN "=" code KEYWORD:"end")
+
+var-inplace-assign (IDENT)+ ASSIGNOP comp
 
 expr: root
 
@@ -32,8 +34,14 @@ pipe: expr ("|" expr)*
 
 comp: pipe ((GE | GT | LE | LT | EQ) pipe)?
 
-if-statement: KEYWORD:"if" comp KEYWORD:"then" program (KEYWORD:"elif" comp KEYWORD:"then" program)* (KEYWORD:"else" program)? KEYWORD:"end"
+if-statement: KEYWORD:"if" comp KEYWORD:"then" multi-statement (KEYWORD:"elif" comp KEYWORD:"then" multi-statement)* (KEYWORD:"else" multi-statement)? KEYWORD:"fi"
 
-statement: comp | var-assign | if-statement
+while-loop: KEYWORD:"while" comp KEYWORD:"then" multi-statement KEYWORD:"done"
 
-program: statement (SEMI statement)*
+set-rel: KEYWORD:"setrel" comp
+
+statement: comp | var-assign | if-statement | var-inplace-assign | set-rel | while-loop
+
+multi-statement: statement (SEMI statement)* SEMI?
+
+program: multi-statement

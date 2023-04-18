@@ -10,7 +10,7 @@ import API = require("../api")
 import { Parser, parseBracketPair, formatPercentStr, format, getOpts } from "../parsing"
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from "../util"
 
 
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
@@ -824,7 +824,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (switchOn === BADVALUE) {
                 return { content: "No text to switch on", status: StatusCode.ERR }
             }
-            let text = args.expectString(() => true)
+            let text = args.expectString(truthy)
             if (text === BADVALUE) {
                 return { content: "No cases", status: StatusCode.ERR }
             }

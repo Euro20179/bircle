@@ -14,8 +14,8 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate, cmdFileName, sleep } from '../util'
+import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate, cmdFileName, sleep, truthy } from '../util'
 
 import { format, getOpts } from '../parsing'
 
@@ -172,7 +172,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return { content: urls.join("\n"), status: StatusCode.RETURN }
     }, "Search google and get a list of urls", {
         argShape: async function*(args) {
-            yield [args.expectString(() => true), "query"]
+            yield [args.expectString(truthy), "query"]
         }
     })]
 
@@ -192,7 +192,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             },
             argShape: async function*(args, msg) {
                 yield [args.advance(), "user"]
-                yield msg.guild ? [await args.expectRole(msg.guild as Guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
+                yield msg.guild ? [await args.expectRole(msg.guild as Guild, truthy), "role"] : [BADVALUE, 'to be in a guild']
             }
         })
     ]
@@ -1228,6 +1228,34 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
+    yield ["relscript", ccmdV2(async function({msg, args, opts, stdin, sendCallback}){
+        let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+        if(!text) return crv("Expected code", {status: StatusCode.ERR})
+        if(opts.getBool("tree", false)){
+            return crv(amountParser.calculateAmountRelativeToInternals(0, text).expression.repr())
+        }
+        else if(opts.getBool("s", false)){
+            let symbolTable;
+            do{
+                let internals = amountParser.calculateAmountRelativeToInternals(0, text, symbolTable)
+                await handleSending(msg, crv(internals.interpreter.visit().toString()))
+                symbolTable = internals.interpreter.symbolTable
+                let m = await promptUser(msg, undefined, undefined, {timeout: 60000})
+                if(!m) break;
+                if(m.content === '.exit') break;
+                text = m.content
+            } while(true);
+        }
+        return crv(amountParser.runRelativeCalculator(0, text).toString())
+    }, "Runs relscript", {
+        helpOptions: {
+            s: createHelpOption("run a REPL<br>type <code>.exit</code> to exit the REPL")
+        }, helpArguments: {
+            code: createHelpArgument("The code to run")
+        },
+        accepts_stdin: "The code to run"
+    })]
+
     yield [
         "calcam",
         {
@@ -1245,10 +1273,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
                 }
                 let amount = [NaN];
-                if (opts['a']) {
-                    amount = amountParser.runRelativeCalculator(money, amountStr)
-                }
-                else amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
+                amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
                 if (dollarSign === true) {
                     return { content: `${amount.join("\n")}`, status: StatusCode.RETURN }
                 }
@@ -2536,7 +2561,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     yield [
         "whohas", createCommandV2(async ({ msg, argList }) => {
             argList.beginIter()
-            let realRole = await argList.expectRole(msg.guild as Guild, () => true) as Role | typeof BADVALUE
+            let realRole = await argList.expectRole(msg.guild as Guild, truthy) as Role | typeof BADVALUE
             if (realRole === BADVALUE) {
                 return {
                     content: "Could not find role",
@@ -3200,7 +3225,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         if (to === BADVALUE && !charsToDel) {
             return { content: "Must have end chars", status: StatusCode.ERR }
         }
-        let text: string = stdin ? getContentFromResult(stdin, "\n") : argList.expectString(() => true) as string
+        let text: string = stdin ? getContentFromResult(stdin, "\n") : argList.expectString(truthy) as string
         if (!text) {
             return { content: "Must have text to translate on", status: StatusCode.ERR }
         }
@@ -3461,7 +3486,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
         }, "Gets information about a role", {
             argShape: async function*(args, msg) {
-                yield msg.guild ? [await args.expectRole(msg.guild, () => true), "role"] : [BADVALUE, 'to be in a guild']
+                yield msg.guild ? [await args.expectRole(msg.guild, truthy), "role"] : [BADVALUE, 'to be in a guild']
             }
         })]
 
@@ -3894,7 +3919,7 @@ valid formats:<br>
                     status: StatusCode.ERR
                 }
             }
-            let data = stdin ? stdin.content : argList.expectString(() => true)
+            let data = stdin ? stdin.content : argList.expectString(truthy)
 
             if (!data) {
                 let attachment = msg.attachments?.at(0)

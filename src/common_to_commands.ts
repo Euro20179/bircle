@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary} from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, listComprehension, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp} from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -93,10 +93,11 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>): Promise<Message<boolean> | false> {
+export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: {timeout: milliseconds_t}): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
-    await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
-    let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: 30000, max: 1 })
+    if(prompt)
+        await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
+    let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: options?.timeout || 30000, max: 1 })
     let m = msgs.at(0)
     if (!m) {
         return false
@@ -522,7 +523,7 @@ export class Interpreter {
         programArgs?: string[],
         context?: InterpreterContext
     }) {
-        this.tokens = cloneDeep(tokens)
+        this.tokens = tokens
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
         this.recursion = options.recursion ?? 0
@@ -1042,7 +1043,7 @@ export class Interpreter {
             return false
         }
         let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
-        for (let [_name, [regex, run]] of userMatchCmds) {
+        for (let [name, [regex, run]] of userMatchCmds) {
             let m = content.match(regex);
             if (!m) continue;
 
@@ -1063,10 +1064,15 @@ export class Interpreter {
             }
             catch (err) {
                 console.error(err)
-                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${err}\`\`\`` })
+                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as string)}\`\`\`` })
             }
         }
     }
+}
+
+function censor_error(err: string){
+    let ip = getToolIp()
+    return err.replaceAll(ip as string, "")
 }
 
 function defileCommandReturn(rv: CommandReturn) {
@@ -1122,7 +1128,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
             msg.channel.send.bind(msg.channel)
     }
 
-    if (rv.delete && msg.deletable) {
+    if (rv.delete) {
         msg.delete().catch(_err => console.log("Message not deleted"))
     }
 
@@ -1346,5 +1352,6 @@ export default {
     cmd,
     handleSending,
     Interpreter,
-    PIDS
+    PIDS,
+    censor_error
 }
