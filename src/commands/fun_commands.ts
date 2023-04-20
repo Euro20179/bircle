@@ -980,25 +980,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let sep = opts.getString("sep", " ")
             let words = []
             //args are not strictly space separated
-            for (let word of args.resplit(" ")) {
+            for (let word of args.resplit(" ") as string[]) {
                 if (word.match(/^[aeiou]/)) {
                     words.push(`${word}ay`)
                     continue
                 }
-                let firstVowel = -1
-                for (let i = 0; i < word.length; i++) {
-                    if (word[i].match(/[aeiou]/)) {
-                        firstVowel = i
-                        break
-                    }
-                }
-                if (firstVowel == -1) {
-                    words.push(`${word}ay`)
-                }
-                else {
-                    words.push(`${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
-                }
-
+                let firstVowel = Array.from(word).findIndex(v => v.match(/[aeiou]/) ? true : false)
+                words.push(firstVowel === -1 ? `${word}ay` : `${word.slice(firstVowel)}${word.slice(0, firstVowel)}ay`)
             }
             return { content: words.join(sep), status: StatusCode.RETURN }
 
