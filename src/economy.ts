@@ -1,6 +1,4 @@
-const fs = require("fs")
-import { Message } from "discord.js"
-import { max, min } from "lodash"
+import fs from 'fs'
 import fetch = require("node-fetch")
 
 import pet from "./pets"
@@ -22,7 +20,7 @@ function isRetired(id: string) {
 }
 
 
-function setUserStockSymbol(id: string, symbol: string, data: { name: string, info: Stock }) {
+function setUserStockSymbol(id: string, data: { name: string, info: Stock }) {
     let userEconData = ECONOMY[id]
     if (!userEconData)
         return false

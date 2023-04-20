@@ -994,8 +994,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 otherStockInfo.info.shares += amount
             }
             //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-            economy.setUserStockSymbol(msg.author.id, sn, userStockData)
-            economy.setUserStockSymbol(member.id, sn, otherStockInfo)
+            economy.setUserStockSymbol(msg.author.id, userStockData)
+            economy.setUserStockSymbol(member.id, otherStockInfo)
             if (userStockData.info.shares == 0) {
                 economy.removeStock(msg.author.id, sn)
             }
