@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
 import { crv, generateDefaultRecurseBans, handleSending, promptUser, StatusCode } from "../common_to_commands"
-import { choice, isBetween, sleep } from "../util"
+import { choice, isBetween, range, sleep } from "../util"
 
 import pets from "../pets"
 import economy from "../economy"
@@ -81,7 +81,7 @@ class Country {
         if (msg.channel.type !== ChannelType.GuildStageVoice) {
             msgs = await msg.channel.awaitMessages({
                 filter: m => {
-                    return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && isBetween(0, Number(m.content), this.activityNameList.length + 1))
+                    return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && Number(m.content) in range(0, this.activityNameList.length + 1))
                 }, max: 1, time: 60000
             })
         }
