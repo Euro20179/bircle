@@ -2819,34 +2819,13 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
         "changelog",
         {
             run: async (_msg, args, sendCallback, opts) => {
-                if (opts['l']) {
-                    return { content: fs.readdirSync('changelog').map(v => v.replace(/\.md/, "")).join("\n"), status: StatusCode.RETURN }
-                }
-                let version = args[0]
-                if (!args[0]) {
-                    version = `${common.VERSION.major}.${common.VERSION.minor}.${common.VERSION.bug}`
-                    if (common.VERSION.part) version += `.${common.VERSION.part}`
-                    if (common.VERSION.alpha) version += `A.${version}`
-                    if (common.VERSION.beta) version += `B.${version}`
-                }
-                if (!fs.existsSync(`changelog/${version}.md`)) {
-                    return { content: `${version} does not exist`, status: StatusCode.ERR }
-                }
-                if (opts['f']) {
-                    return { files: [{ attachment: `changelog/${version}.md`, name: `${version}.md`, description: `Update: ${version}` }], deleteFiles: false, status: StatusCode.RETURN }
-                }
-                return { content: fs.readFileSync(`changelog/${version}.md`, "utf-8"), status: StatusCode.RETURN }
+                const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
+                const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
+                const changelog = execSync(`git log ${lastVersion}..${mostRecentVersion} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
+                return crv(`\`\`\`\n${changelog}\n\`\`\``)
             },
             help: {
                 info: "Get changelog for a version",
-                options: {
-                    l: {
-                        description: "List all versions"
-                    },
-                    f: {
-                        description: "Get changelog file instead of text"
-                    }
-                }
             },
             category: CAT,
             use_result_cache: true
