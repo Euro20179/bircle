@@ -7,6 +7,7 @@ import pet from "./pets"
 import timer from "./timer"
 
 import amount_parser from './amount-parser'
+import { valuesOf } from "./util"
 
 
 type Stock = { buyPrice: number, shares: number }
@@ -242,7 +243,7 @@ function economyLooseGrandTotal(countNegative = true) {
         moneyTotal += data.money
 
         if(data.stocks) {
-            for (const stockData of Object.values(data.stocks))
+            for (const stockData of valuesOf(data.stocks))
                 stockTotal += stockData.shares * stockData.buyPrice
         }
 

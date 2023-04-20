@@ -55,6 +55,22 @@ function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof 
     }
 }
 
+function* valuesOf<T extends Object>(o: T): Generator<T[Extract<keyof T, string>]>{
+    for(let key in o){
+        if(o.hasOwnProperty(key)){
+            yield o[key]
+        }
+    }
+}
+
+function* keysOf<T extends Object>(o: T): Generator<string>{
+    for(let key in o){
+        if(o.hasOwnProperty(key)){
+            yield key
+        }
+    }
+}
+
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
     return {
@@ -1065,6 +1081,8 @@ export {
     Enum,
     defer,
     truthy,
-    entriesOf
+    entriesOf,
+    valuesOf,
+    keysOf
 }
 
