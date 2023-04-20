@@ -1,17 +1,16 @@
-const fs = require("fs")
-import { Message } from "discord.js"
-import { max, min } from "lodash"
+import fs from 'fs'
 import fetch = require("node-fetch")
 
 import pet from "./pets"
 import timer from "./timer"
 
 import amount_parser from './amount-parser'
+import { valuesOf } from "./util"
 
 
 type Stock = { buyPrice: number, shares: number }
 
-export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
+export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -21,7 +20,7 @@ function isRetired(id: string) {
 }
 
 
-function setUserStockSymbol(id: string, symbol: string, data: { name: string, info: Stock }) {
+function setUserStockSymbol(id: string, data: { name: string, info: Stock }) {
     let userEconData = ECONOMY[id]
     if (!userEconData)
         return false
@@ -84,14 +83,14 @@ function userHasStockSymbol(id: string, symbol: string) {
 
 function loadEconomy() {
     if (fs.existsSync("./economy.json")) {
-        let data = fs.readFileSync("./economy.json")
+        let data = fs.readFileSync("./economy.json", 'utf-8')
         ECONOMY = JSON.parse(data)
         if (ECONOMY['bank']) {
             delete ECONOMY['bank']
         }
     }
     if (fs.existsSync("./lottery.json")) {
-        let data = fs.readFileSync("./lottery.json")
+        let data = fs.readFileSync("./lottery.json", 'utf-8')
         lottery = JSON.parse(data)
     }
 }
@@ -212,12 +211,12 @@ function canWork(id: string) {
     if (!ECONOMY[id]) {
         return false
     }
-    let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
+    const enoughTimeHasPassed = timer.has_x_m_passed(id, "%workd", 60, true)
     let total = playerEconomyLooseTotal(id)
     //not broke but it has been 1 hour
-    if (total >= 0 && secondsDiff > 3600)
+    if (total >= 0 && enoughTimeHasPassed)
         return 0;
-    if (total < 0 && secondsDiff > 3600) {
+    if (total < 0 && enoughTimeHasPassed) {
         //broke and has been 1 hour
         return true
     }
@@ -242,7 +241,7 @@ function economyLooseGrandTotal(countNegative = true) {
         moneyTotal += data.money
 
         if(data.stocks) {
-            for (const stockData of Object.values(data.stocks))
+            for (const stockData of valuesOf(data.stocks))
                 stockTotal += stockData.shares * stockData.buyPrice
         }
 
@@ -254,7 +253,7 @@ function economyLooseGrandTotal(countNegative = true) {
 function work(id: string) {
     if (!ECONOMY[id])
         return false
-    ECONOMY[id].lastWork = Date.now()
+    timer.createOrRestartTimer(id, "%work")
     let minimumWage = .01 * (economyLooseGrandTotal().total)
     if (addMoney(id, minimumWage)) {
         return minimumWage
@@ -277,10 +276,7 @@ function canTax(id: string, bonusTime?: number) {
 }
 
 function canBetAmount(id: string, amount: number) {
-    if (isNaN(amount)) {
-        return false
-    }
-    if(amount < 0){
+    if (isNaN(amount) || amount < 0) {
         return false
     }
     if (ECONOMY[id] && amount <= ECONOMY[id].money) {
@@ -290,13 +286,10 @@ function canBetAmount(id: string, amount: number) {
 }
 
 function setMoney(id: string, amount: number) {
-    if (ECONOMY[id]) {
-        ECONOMY[id].money = amount
-    }
-    else {
+    if(!ECONOMY[id]) {
         createPlayer(id)
-        ECONOMY[id].money = amount
     }
+    ECONOMY[id].money = amount
 }
 
 function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {

@@ -1,6 +1,3 @@
-import { range } from "lodash";
-import { listComprehension } from "./util";
-
 const colors = ["red", "green", "blue", "yellow"]
 
 class Card {
@@ -355,7 +352,7 @@ function getWinners(players: { [k: string]: Hand }) {
 
 function createCards(numberMax: number, { enableGive, enableShuffle, enable1 }: {enableGive: boolean, enableShuffle: boolean, enable1: boolean}) {
     numberMax ||= 9
-    let numbers = listComprehension(range(0, numberMax), i => String(i))
+    let numbers = Array.from({length: numberMax}, (_, idx) => String(idx))
     let cards = []
     let specialCards = [WildCard, SkipCard, Plus2Card, Plus4Card]
     for (let color of colors) {

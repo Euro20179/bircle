@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, GOODVALUE, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, getToolIp, generateDocSummary, listComprehension, isMsgChannel, fetchUserFromClientOrGuild, enumerate, cmdFileName, sleep, truthy } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy } from '../util'
 
 import { format, getOpts } from '../parsing'
 
@@ -28,7 +28,7 @@ import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ['school-stats', ccmdV2(async function({ msg, args, opts }) {
+    yield ['school-stats', ccmdV2(async function({ msg, opts }) {
         let ip;
         if (fs.existsSync("./data/ip.key")) {
 
@@ -3094,7 +3094,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let numberField = Number(fields)
             let [start, end] = fields.split("-")
             let [startN, endN] = [Number(start), Number(end)]
-            let columns = listComprehension(text.split("\n"), (i) => i.split(delimiter))
+            let columns = Array.from(text.split("\n"), (i) => i.split(delimiter))
             if (!isNaN(numberField)) {
                 return crv(columns.map(v => v[numberField - 1]).join("\n"))
             }
@@ -3899,9 +3899,9 @@ valid formats:<br>
     ]
 
     yield [
-        "nl", ccmdV2(async ({ msg, args, stdin }) => {
+        "nl", ccmdV2(async ({ args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split('\n')
-            return crv(listComprehension(enumerate(text), ([i, line]) => `${i + 1}: ${line}`).join("\n"))
+            return crv(Array.from(text, ([line, i]) => `${i + 1}: ${line}`).join("\n"))
 
         }, "Number the lines of text", {
             helpArguments: { "...text": createHelpArgument("The text to number each line of", false) },
@@ -3910,16 +3910,16 @@ valid formats:<br>
     ]
 
     yield [
-        "grep", ccmdV2(async ({ msg, argList, stdin, opts, args }) => {
-            argList.beginIter()
-            let regex = argList.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
+        "grep", ccmdV2(async ({ msg, args, stdin, opts  }) => {
+            args.beginIter()
+            let regex = args.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
             if (regex === BADVALUE) {
                 return {
                     content: "no search given",
                     status: StatusCode.ERR
                 }
             }
-            let data = stdin ? stdin.content : argList.expectString(truthy)
+            let data = stdin ? stdin.content : args.expectString(truthy)
 
             if (!data) {
                 let attachment = msg.attachments?.at(0)

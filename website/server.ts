@@ -1,12 +1,12 @@
 import fs from 'fs'
 
-import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageType, ReactionManager, TextChannel } from 'discord.js'
+import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageType, ReactionManager } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
-import { generateHTMLFromCommandHelp, strToCommandCat, searchList, listComprehension, isCommandCategory, isMsgChannel } from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory} from '../src/util'
 
 import common from '../src/common'
 
@@ -307,7 +307,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             if (search && search !== '*') {
                 let infos = commands.map(v => `${v[0]}\n${v[1].help?.info || ""}`)
                 let results = searchList(search, infos, true)
-                commands = listComprehension(Object.entries(results).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
+                commands = Array.from(Object.entries(results).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
                     name = name.split("\n")[0]
                     return [[name, `<span class='cmd-search-strength'>(${strength})</span>`], common_to_commands.getCommands().get(name) as Command | CommandV2]
                 }))

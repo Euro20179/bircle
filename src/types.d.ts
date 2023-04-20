@@ -22,7 +22,7 @@ declare global {
     interface String {
         stripStart(chars: string): string,
         stripEnd(chars: string): string,
-        splice(start: size_t, end?: size_t): string
+        splice(start: size_t, end?: size_t): string,
     }
 
     interface Object{

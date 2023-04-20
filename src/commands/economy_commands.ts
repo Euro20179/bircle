@@ -2,22 +2,21 @@ import fs from 'fs'
 import fetch = require("node-fetch")
 import economy, { EconomyData } from '../economy'
 import pet from "../pets"
-import user_options = require("../user-options")
+import user_options from '../user-options'
 import timer from '../timer'
 
 import vars from '../vars'
 
-
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric, fetchUserFromClientOrGuild } from '../util'
+import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, isNumeric, fetchUserFromClientOrGuild, entriesOf } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
-const { buyItem, hasItem, useItem } = require('../shop')
+import { buyItem, hasItem, useItem } from '../shop'
 
 const { ITEMS, INVENTORY } = require("../shop")
 
@@ -300,45 +299,40 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
 
     yield [
-        "stocks", {
-            run: async (msg, args, sendCallback) => {
-                let user = args[0]
-                let discordUser = user ? await fetchUserFromClient(common.client, user) : msg.author
-                if (!discordUser) {
-                    return { content: `${user} not found`, status: StatusCode.ERR }
-                }
-                if (!economy.getEconomy()[discordUser.id] || !economy.getEconomy()[discordUser.id].stocks) {
-                    return { content: "You own no stocks", status: StatusCode.ERR }
-                }
-                let text = `<@${discordUser.id}>\n` +
-                    listComprehension(Object.entries(economy.getEconomy()[discordUser.id].stocks ?? {}), ([stock, stockInfo]) => {
-                        return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
-                    }).join(`\n-------------------------\n`)
-                return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Get the stocks of a user",
-                arguments: {
-                    user: {
-                        description: "The user to check the stocks of",
-                        required: false
-                    }
-                }
+        "stocks", ccmdV2(async function({ args, msg }) {
+            let user = args[0]
+            let discordUser = user ? await fetchUserFromClient(common.client, user) : msg.author
+            if (!discordUser) {
+                return { content: `${user} not found`, status: StatusCode.ERR }
             }
-        },
+            if (!economy.getEconomy()[discordUser.id] || !economy.getEconomy()[discordUser.id].stocks) {
+                return { content: "You own no stocks", status: StatusCode.ERR }
+            }
+            let text = `<@${discordUser.id}>\n` +
+                Array.from(Object.entries(economy.getEconomy()[discordUser.id].stocks ?? {}), ([stock, stockInfo]) => {
+                    return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
+                }).join(`\n-------------------------\n`)
+            return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+
+        }, "Get the stocks of a user", {
+            helpArguments: {
+                user: createHelpArgument("The user to check the stocks of", false)
+            }
+        })
     ]
 
     yield [
         "loan", {
             run: async (msg, _args, sendCallback) => {
-                if (economy.getEconomy()[msg.author.id].loanUsed) {
+                const userEconData = msg.author.economyData
+                if (userEconData?.loanUsed) {
                     return { content: "U have not payed off your loan", status: StatusCode.ERR }
                 }
-                if (economy.getEconomy()[msg.author.id].money >= 0) {
+                if (userEconData?.money >= 0) {
                     return { content: "Ur not in debt", status: StatusCode.ERR }
                 }
-                let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
-                let max = top[1]?.money || 100
+                const top = Object.values(economy.getEconomy()).sort((a, b) => b.money - a.money)[0]
+                let max = top?.money || 100
                 let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
                 if (needed > max) {
                     needed = max
@@ -362,7 +356,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             run: async (msg, args, sendCallback) => {
                 let amount = args[0] || "all!"
                 let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
-                if (!economy.getEconomy()[msg.author.id].loanUsed) {
+                if (!msg.author.loan) {
                     return { content: "You have no loans to pay off", status: StatusCode.ERR }
                 }
                 if (!economy.canBetAmount(msg.author.id, nAmount)) {
@@ -411,7 +405,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     }
 
                     e.setDescription(`page: ${(chunk + 20) / 20} / ${totalPages}`)
-                    e.setFooter({text: `type n/p to go to the next/previous page\nor type a page number to go to that page`})
+                    e.setFooter({ text: `type n/p to go to the next/previous page\nor type a page number to go to that page` })
                     embedPages.push(e)
                 }
 
@@ -474,25 +468,19 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "pet-shop", {
-            run: async (msg, _args, sendCallback) => {
-                let embed = new EmbedBuilder()
-                let shopData = pet.getPetShop()
-                for (let pet in shopData) {
-                    let data = shopData[pet]
-                    let totalCost = 0
-                    for (let cost of data.cost) {
-                        totalCost += amountParser.calculateAmountRelativeTo(economy.playerLooseNetWorth(msg.author.id), cost)
-                    }
-                    embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
+        "pet-shop", ccmdV2(async function({ msg }) {
+            let embed = new EmbedBuilder()
+            const shopData = pet.getPetShop()
+            for (let [pet, data] of entriesOf(shopData)) {
+                let totalCost = 0
+                for (let cost of data.cost) {
+                    totalCost += amountParser.calculateAmountRelativeTo(msg.author.netWorth, cost)
                 }
-                embed.setFooter({ text: `To buy a pet, do ${common.prefix}buy pet <pet name>` })
-                return { embeds: [embed], status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "See the pet shop"
+                embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
             }
-        },
+            embed.setFooter({ text: `To buy a pet, do ${common.prefix}buy pet <pet name>` })
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "See the pet shop")
     ]
 
     yield [
@@ -752,7 +740,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 else {
                     let stockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
-                    if(!stockInfo) return crv("Could not get stock info", {status: StatusCode.ERR})
+                    if (!stockInfo) return crv("Could not get stock info", { status: StatusCode.ERR })
                     let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
                     if (!sellAmount || sellAmount <= 0) {
                         return { content: "You must sell a number of shares of your stock", status: StatusCode.ERR }
@@ -801,7 +789,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "money", createCommandV2(async ({ rawOpts: opts, msg, args }) => {
-            let user: User| undefined = msg.author
+            let user: User | undefined = msg.author
             if (args.join(" "))
                 user = await fetchUserFromClientOrGuild(args.join(" "), msg.guild)
             if (!user)
@@ -979,7 +967,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             let player = args.slice(2).join(" ")
 
-            if(!msg.guild) return crv("Must be in a guild", {status: StatusCode.ERR})
+            if (!msg.guild) return crv("Must be in a guild", { status: StatusCode.ERR })
 
             let member = await fetchUser(msg.guild, player)
             if (!member) {
@@ -1006,8 +994,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 otherStockInfo.info.shares += amount
             }
             //economy.giveStock(member.id, stockName, otherStockInfo.buyPrice, otherStockInfo.shares)
-            economy.setUserStockSymbol(msg.author.id, sn, userStockData)
-            economy.setUserStockSymbol(member.id, sn, otherStockInfo)
+            economy.setUserStockSymbol(msg.author.id, userStockData)
+            economy.setUserStockSymbol(member.id, otherStockInfo)
             if (userStockData.info.shares == 0) {
                 economy.removeStock(msg.author.id, sn)
             }
@@ -1113,7 +1101,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: "Balance erased", status: StatusCode.RETURN }
             }
 
-            if(!msg.guild) return {content: "Must be in a guild", status: StatusCode.ERR}
+            if (!msg.guild) return { content: "Must be in a guild", status: StatusCode.ERR }
 
             let user = await fetchUser(msg.guild, args.join(" "))
             if (!user)
