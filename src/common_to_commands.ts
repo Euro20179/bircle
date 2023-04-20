@@ -1064,15 +1064,15 @@ export class Interpreter {
             }
             catch (err) {
                 console.error(err)
-                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as string)}\`\`\`` })
+                if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as Error)}\`\`\`` })
             }
         }
     }
 }
 
-function censor_error(err: string){
+function censor_error(err: Error){
     let ip = getToolIp()
-    return err.replaceAll(ip as string, "")
+    return err.toString().replaceAll(ip as string, "")
 }
 
 function defileCommandReturn(rv: CommandReturn) {

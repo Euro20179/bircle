@@ -26,7 +26,7 @@ declare global {
     }
 
     interface Object{
-        hasEnumerableKeys<T>(o: T): boolean
+        hasEnumerableKeys<T extends {hasOwnProperty(key: string): boolean}>(o: T): boolean
     }
 }
 
