@@ -12,7 +12,7 @@ import { valuesOf } from "./util"
 
 type Stock = { buyPrice: number, shares: number }
 
-export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, lastWork?: number, sandCounter?: number }
+export type EconomyData = { retired?: boolean, money: number, stocks?: { [key: string]: Stock }, loanUsed?: number, lastLottery?: number, activePet?: string, sandCounter?: number }
 let ECONOMY: { [key: string]: EconomyData } = {}
 
 let lottery: { pool: number, numbers: [number, number, number] } = { pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)] }
@@ -213,12 +213,12 @@ function canWork(id: string) {
     if (!ECONOMY[id]) {
         return false
     }
-    let secondsDiff = (Date.now() - (ECONOMY[id].lastWork || 0)) / 1000
+    const enoughTimeHasPassed = timer.has_x_m_passed(id, "%workd", 60, true)
     let total = playerEconomyLooseTotal(id)
     //not broke but it has been 1 hour
-    if (total >= 0 && secondsDiff > 3600)
+    if (total >= 0 && enoughTimeHasPassed)
         return 0;
-    if (total < 0 && secondsDiff > 3600) {
+    if (total < 0 && enoughTimeHasPassed) {
         //broke and has been 1 hour
         return true
     }
