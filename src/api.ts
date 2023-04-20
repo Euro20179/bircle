@@ -82,10 +82,8 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         }
     },
     "getFonts": {
-        exec: async() => {
-            return getFonts()
-        },
-        requirements: []
+        requirements: [],
+        exec: async() => getFonts().join(", "),
     },
     percentPerMinute: {
         exec: async({id}: {id: string}) => {
