@@ -83,14 +83,14 @@ function userHasStockSymbol(id: string, symbol: string) {
 
 function loadEconomy() {
     if (fs.existsSync("./economy.json")) {
-        let data = fs.readFileSync("./economy.json")
+        let data = fs.readFileSync("./economy.json", 'utf-8')
         ECONOMY = JSON.parse(data)
         if (ECONOMY['bank']) {
             delete ECONOMY['bank']
         }
     }
     if (fs.existsSync("./lottery.json")) {
-        let data = fs.readFileSync("./lottery.json")
+        let data = fs.readFileSync("./lottery.json", 'utf-8')
         lottery = JSON.parse(data)
     }
 }
@@ -253,7 +253,7 @@ function economyLooseGrandTotal(countNegative = true) {
 function work(id: string) {
     if (!ECONOMY[id])
         return false
-    ECONOMY[id].lastWork = Date.now()
+    timer.createOrRestartTimer(id, "%work")
     let minimumWage = .01 * (economyLooseGrandTotal().total)
     if (addMoney(id, minimumWage)) {
         return minimumWage
