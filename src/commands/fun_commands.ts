@@ -3,7 +3,7 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, SelectMenuOptionBuilder, User, SelectMenuBuilder, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed } from "discord.js";
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed } from "discord.js";
 
 import fetch = require("node-fetch")
 
@@ -13,13 +13,13 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, generateFileName, fetchChannel, efd, BADVALUE, MimeType, listComprehension, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, registerCommand, snipes, StatusCode } from "../common_to_commands";
+import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -1508,7 +1508,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (items === BADVALUE) {
                 return crv("expected list")
             }
-            let ans = listComprehension(range(0, times), () => choice(items as string[])).join(sep).trim()
+            let ans = Array.from(range(0, times), () => choice(items as string[])).join(sep).trim()
             return ans ? crv(ans) : crv("```invalid message```", { status: StatusCode.ERR })
 
         }, "Choose a random item from a list of items separated by a |", {
@@ -1555,7 +1555,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     tempF = tempC * 9 / 5 + 32
                 }
                 let color = {
-                    [isBetween(110, tempF, Infinity) ? 1 : 0]: "#aa0000",
+                    [110 < tempF ? 1 : 0]: "#aa0000",
                     [isBetween(100, tempF, 110) ? 1 : 0]: "#ff0000",
                     [isBetween(90, tempF, 100) ? 1 : 0]: "#ff412e",
                     [isBetween(75, tempF, 90) ? 1 : 0]: "Orange",
@@ -1563,7 +1563,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     [isBetween(45, tempF, 60) ? 1 : 0]: "Green",
                     [isBetween(32, tempF, 45) ? 1 : 0]: "Blue",
                     [isBetween(0, tempF, 32) ? 1 : 0]: "#5be6ff",
-                    [isBetween(-Infinity, tempF, 0) ? 1 : 0]: "Purple",
+                    [tempF <= 0 ? 1 : 0]: "Purple",
                 }[1] ?? "DarkButNotBlack"
                 let embed = new EmbedBuilder()
                 embed.setTitle(town)

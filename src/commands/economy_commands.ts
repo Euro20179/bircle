@@ -10,7 +10,7 @@ import vars from '../vars'
 
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, listComprehension, getToolIp, choice, BADVALUE, isMsgChannel, isNumeric, fetchUserFromClientOrGuild } from '../util'
+import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, isNumeric, fetchUserFromClientOrGuild } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -311,7 +311,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     return { content: "You own no stocks", status: StatusCode.ERR }
                 }
                 let text = `<@${discordUser.id}>\n` +
-                    listComprehension(Object.entries(economy.getEconomy()[discordUser.id].stocks ?? {}), ([stock, stockInfo]) => {
+                    Array.from(Object.entries(economy.getEconomy()[discordUser.id].stocks ?? {}), ([stock, stockInfo]) => {
                         return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
                     }).join(`\n-------------------------\n`)
                 return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }

@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Collection, ComponentType, Message } from "discord.js"
 import { crv, generateDefaultRecurseBans, handleSending, promptUser, StatusCode } from "../common_to_commands"
-import { choice, isBetween, listComprehension, sleep } from "../util"
+import { choice, isBetween, sleep } from "../util"
 
 import pets from "../pets"
 import economy from "../economy"
@@ -62,7 +62,7 @@ class Country {
     }
 
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
-        let activitiesText = listComprehension(this.activities.entries(), ([name, activity], idx) => {
+        let activitiesText = Array.from(this.activities.entries(), ([name, activity], idx) => {
             return `${idx + 1}: ${name} (cost: ${economy.calculateAmountFromNetWorth(msg.author.id, activity.cost)})`
         }).join("\n")
 

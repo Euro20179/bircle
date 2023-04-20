@@ -71,7 +71,7 @@ const createEmbedFieldData = (name: string, value: string, inline: boolean = fal
     * @description Creates an array of embedfielddata
 */
 function efd(...data: [string, string, boolean?][]) {
-    return listComprehension<[string, string, boolean?], APIEmbedField>(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
+    return Array.from(data, i => createEmbedFieldData(i[0], i[1], i[2] ?? false))
 }
 
 class Pipe {
@@ -154,18 +154,21 @@ function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
     }
 }
 
-function* range(start: number, stop: number, step: number = 1) {
-    for (let i = start; i < stop; i += step) {
-        yield i
-    }
-}
-
-function listComprehension<T, TReturn>(l: Iterable<T>, fn: (i: T, index: number) => TReturn): TReturn[] {
-    let newList = []
-    for (let [i, item] of enumerate(l)) {
-        newList.push(fn(item, i))
-    }
-    return newList
+function range(start: number, end: number, step: number = 1){
+    return new Proxy({
+        *[Symbol.iterator](){
+            for(let i = 0; i < start; i+=step){
+                yield i
+            }
+        }
+    }, {
+        has(_target, p){
+            let n = Number(p)
+            //we need to shift it because then we can just do n % end == 0 to check if the step is correct
+            let [shiftedP, shiftedEnd] = [n - start, end - start]
+            return n >= start && n < end && shiftedP % shiftedEnd == 0
+        }
+    })
 }
 
 /**
@@ -188,7 +191,7 @@ function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
  * @returns {Array} An array of three numbers representing the RGB values of the color
  */
 function randomColor() {
-    return listComprehension(range(0, 3), () => Math.floor(Math.random() * 256))
+    return Array.from(range(0, 3), () => Math.floor(Math.random() * 256))
 }
 
 function intoColorList(color: string) {
@@ -201,7 +204,7 @@ function choice<T>(list: Array<T>): T {
 }
 
 function mulStr(str: string, amount: int_t) {
-    return listComprehension(range(0, amount), () => str).join("")
+    return Array.from(range(0, amount), () => str).join("")
 }
 
 async function fetchChannel(guild: Guild, find: string) {
@@ -1036,7 +1039,6 @@ export {
     Options,
     ArgList,
     searchList,
-    listComprehension,
     range,
     enumerate,
     BADVALUE,

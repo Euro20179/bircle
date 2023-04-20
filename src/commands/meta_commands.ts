@@ -10,7 +10,7 @@ import API = require("../api")
 import { Parser, parseBracketPair, formatPercentStr, format } from "../parsing"
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, listComprehension, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from "../util"
 
 
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
@@ -2742,17 +2742,17 @@ ${styles}
 
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
-        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = listComprehension<string, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
+        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = Array.from<string, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
         if (opts.getBool("raw", false)) {
             return {
-                content: listComprehension<typeof cmdObjs[number], string>(cmdObjs, ([name, cmd]) => `\\["${name}", ${JSON.stringify(cmd)}]`).join("\n"),
+                content: Array.from(cmdObjs, ([name, cmd]) => `\\["${name}", ${JSON.stringify(cmd)}]`).join("\n"),
                 status: StatusCode.RETURN
             }
         }
         let fmt: string = opts.getString("f", opts.getString("fmt", "%i"))
         let av2fmt: string = opts.getString("fa", opts.getString("fmt-alias", "%i"))
         return {
-            content: listComprehension<typeof cmdObjs[number], string>(cmdObjs, ([name, cmd]) =>
+            content: Array.from(cmdObjs, ([name, cmd]) =>
                 cmd instanceof AliasV2 ?
                     formatPercentStr(av2fmt, { i: `${name}\nversion: alias\nhelp info: ${cmd.help?.info ? cmd.help.info : "unknown"}`, n: name, h: cmd.help?.info ? cmd.help.info : "unknown" })
                     :

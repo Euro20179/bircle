@@ -1,23 +1,23 @@
-import { enumerate, listComprehension, range } from "./util";
+import { enumerate, range } from "./util";
 
 type BoardCharacter = "O" | "R" | "B" | string
 
 export type Board = BoardCharacter[][]
 
 function strNumberToEmoji(number: string) {
-    return listComprehension(number, n => `${n}\u{fe0f}\u{20e3}`).join("")
+    Array.from(number, n => `${n}\u{fe0f}\u{20e3}`).join("")
 }
 
 function createBoard(rows = 6, cols = 7) {
     let board: Board = []
     for (let i = 0; i < rows; i++) {
-        board.push(listComprehension(range(0, cols), () => "O"))
+        board.push(Array.from({length: cols}, () => "O"))
     }
     return board
 }
 
 function boardIsFull(board: Board){
-    let columns = listComprehension(range(0, board[0].length), (colNo) => listComprehension(board, row => row[colNo]).filter(v => v === "O"))
+    let columns = Array.from({length: board[0].length}, (_, colNo) => Array.from(board, row => row[colNo]).filter(v => v === "O"))
     for(let column of columns){
         if(column.length){
             return false
@@ -142,7 +142,7 @@ function checkWin(board: Board, needed = 4) {
             hasWon = true
         }
     }
-    let columns = listComprehension(range(0, board[0].length), (colNo) => listComprehension(board, row => row[colNo]))
+    let columns = Array.from(range(0, board[0].length), (colNo) => Array.from(board, row => row[colNo]))
     for (let column of columns) {
         if (checkWinInColumnOrRow(column, needed)) {
             hasWon = true
