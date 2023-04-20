@@ -447,7 +447,7 @@ function cmdCatToStr(cat: number) {
 }
 
 function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean) {
-    let img;
+    let img
     if (opts instanceof Options) {
         img = opts.getString("img", "")
         if (img && pop)
@@ -562,10 +562,6 @@ class ArgList extends Array {
             this.back()
         }
         return argsToUse
-    }
-    #checkCurArg(){
-        if(this.#curArg == null)
-            throw new Error("beginIter must be run before this function")
     }
     /**
         * @description runs an expect function and temporarily changes the ifs to newIfs

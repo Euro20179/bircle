@@ -35,6 +35,7 @@ const rest = new REST({ version: "10" }).setToken(globals.token);
 
 Object.defineProperty(User.prototype, "loan", {
     "get": function() {
+        return economy.getEconomy()[this.id]?.loanUsed
     },
 });
 Object.defineProperty(User.prototype, "economyData", {
