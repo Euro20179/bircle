@@ -2818,7 +2818,11 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     yield [
         "changelog",
         {
-            run: async (_msg, args, sendCallback, opts) => {
+            run: async (_msg, _args, _sendCallback, opts) => {
+                if(opts['l']){
+                    const tags = execSync("git tag --sort=committerdate | grep ^v")
+                    return crv(tags.toString("utf-8"))
+                }
                 const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
                 const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
                 const changelog = execSync(`git log ${lastVersion}..${mostRecentVersion} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
@@ -2826,6 +2830,11 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             },
             help: {
                 info: "Get changelog for a version",
+                options: {
+                    l: {
+                        description: "Show all versions"
+                    }
+                }
             },
             category: CAT,
             use_result_cache: true
