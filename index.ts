@@ -33,14 +33,8 @@ import pets from './src/pets'
 
 const rest = new REST({ version: "10" }).setToken(globals.token);
 
-Object.defineProperty(User.prototype, "balance", {
-    "get": function() {
-        return economy.calculateAmountFromString(this.id, "100%")
-    }
-});
 Object.defineProperty(User.prototype, "loan", {
     "get": function() {
-        return economy.calculateLoanAmountFromString(this.id, "100%")
     },
 });
 Object.defineProperty(User.prototype, "economyData", {
@@ -65,8 +59,9 @@ String.prototype.stripEnd = function(chars) {
 }
 
 Object.hasEnumerableKeys = function(o){
-    for(let _ in o){
-        return true
+    for(let key in o){
+        if(o.hasOwnProperty(key))
+            return true
     }
     return false
 }
@@ -78,7 +73,7 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     }
     catch (err) {
         console.error(err)
-        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as string)}\`\`\`` })
+        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\`` })
     }
     globals.writeCmdUse()
 }
