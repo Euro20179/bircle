@@ -324,14 +324,15 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "loan", {
             run: async (msg, _args, sendCallback) => {
-                if (economy.getEconomy()[msg.author.id].loanUsed) {
+                const userEconData = msg.author.economyData
+                if (userEconData?.loanUsed) {
                     return { content: "U have not payed off your loan", status: StatusCode.ERR }
                 }
-                if (economy.getEconomy()[msg.author.id].money >= 0) {
+                if (userEconData?.money >= 0) {
                     return { content: "Ur not in debt", status: StatusCode.ERR }
                 }
-                let top = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()[0]
-                let max = top[1]?.money || 100
+                const top = Object.values(economy.getEconomy()).sort((a, b) => b.money - a.money)[0]
+                let max = top?.money || 100
                 let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
                 if (needed > max) {
                     needed = max
