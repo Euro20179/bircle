@@ -47,6 +47,14 @@ async function defer(cb: Function){
 }
 
 
+function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof T, string>]]>{
+    for(let prop in o){
+        if(o.hasOwnProperty(prop)){
+            yield [prop, o[prop]]
+        }
+    }
+}
+
 function mimeTypeToFileExtension(mime: MimeType) {
     let [_, specific] = mime.split("/")
     return {
@@ -1056,6 +1064,7 @@ export {
     sleep,
     Enum,
     defer,
-    truthy
+    truthy,
+    entriesOf
 }
 
