@@ -5,9 +5,7 @@ import timer from './timer'
 import shop = require("./shop")
 import { cmd } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
-import { isMsgChannel } from "./util"
-
-const { fetchUser, getFonts } = require("./util.js")
+import { isMsgChannel, fetchUser, getFonts } from "./util"
 
 export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>, optional?: string[], extra?: "msg"[]}} = {
     userHasStockSymbol:  {
