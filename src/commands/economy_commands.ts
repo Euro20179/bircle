@@ -2,11 +2,10 @@ import fs from 'fs'
 import fetch = require("node-fetch")
 import economy, { EconomyData } from '../economy'
 import pet from "../pets"
-import user_options = require("../user-options")
+import user_options from '../user-options'
 import timer from '../timer'
 
 import vars from '../vars'
-
 
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
@@ -17,7 +16,7 @@ import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
-const { buyItem, hasItem, useItem } = require('../shop')
+import {buyItem, hasItem, useItem} from '../shop'
 
 const { ITEMS, INVENTORY } = require("../shop")
 
@@ -300,8 +299,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
 
     yield [
-        "stocks", {
-            run: async (msg, args, sendCallback) => {
+        "stocks", ccmdV2(async function({args, msg}){
                 let user = args[0]
                 let discordUser = user ? await fetchUserFromClient(common.client, user) : msg.author
                 if (!discordUser) {
@@ -315,17 +313,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         return `**${stock}**\nbuy price: ${stockInfo.buyPrice}\nshares: (${stockInfo.shares})`
                     }).join(`\n-------------------------\n`)
                 return { content: text || "No stocks", allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Get the stocks of a user",
-                arguments: {
-                    user: {
-                        description: "The user to check the stocks of",
-                        required: false
-                    }
-                }
+
+        }, "Get the stocks of a user", {
+            helpArguments: {
+                user: createHelpArgument("The user to check the stocks of", false)
             }
-        },
+        })
     ]
 
     yield [
