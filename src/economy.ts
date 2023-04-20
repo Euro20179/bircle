@@ -286,13 +286,10 @@ function canBetAmount(id: string, amount: number) {
 }
 
 function setMoney(id: string, amount: number) {
-    if (ECONOMY[id]) {
-        ECONOMY[id].money = amount
-    }
-    else {
+    if(!ECONOMY[id]) {
         createPlayer(id)
-        ECONOMY[id].money = amount
     }
+    ECONOMY[id].money = amount
 }
 
 function calculateAmountFromNetWorth(id: string, amount: string, extras?: { [key: string]: (total: number, k: string) => number }): number {
