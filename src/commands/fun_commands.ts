@@ -41,7 +41,7 @@ const configuration = new Configuration({
 let openai = new OpenAIApi(configuration)
 
 
-export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield ["give-scallywag-token", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0])
@@ -63,20 +63,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield ["scallywag-token-count", createCommandV2(async ({ msg, args, opts }) => {
         let user: User | undefined = msg.author
 
-        if (args[0]) {
-            if (opts.getBool("f", false)) {
-                if (!msg.guild) {
-                    return { content: "You are not using this command from a guild", status: StatusCode.ERR }
-                }
-                user = (await fetchUser(msg.guild as Guild, args[0]))?.user
-            }
-            else {
-                user = await fetchUserFromClient(common.client, args[0])
+        if (!args[0]) return crv(`${globals.SCALLYWAG_TOKENS[user.id]}`, { status: StatusCode.RETURN })
 
-            }
-            if (!user) {
-                return { content: `${args[0]} not found`, status: StatusCode.ERR }
-            }
+        if (opts.getBool("f", false) && msg.guild) {
+            user = (await fetchUser(msg.guild as Guild, args[0]))?.user
+        }
+        else {
+            user = await fetchUserFromClient(common.client, args[0])
+        }
+        if (!user) {
+            return { content: `${args[0]} not found`, status: StatusCode.ERR }
         }
 
         return { content: `${globals.SCALLYWAG_TOKENS[user.id]}`, status: StatusCode.RETURN }
@@ -84,51 +80,52 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     }, CommandCategory.FUN, "get the scallywag token count of a user", {
         user: createHelpArgument("The user to get the count of", false)
     }, {
-        f: createHelpOption("Fetch user based on your current guild instead of the bot's known users")
+        f: createHelpOption("Fetch user based on your current guild instead of the bot's known users (only works in servers)")
     })]
 
-    yield ["chat", createCommandV2(async ({ msg, argList, opts }) => {
-        const modelToUse = opts.getString("m", "text-davinci-003")
-        const temperature = opts.getNumber("t", 0.2)
-        const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
-        let text: string | undefined = argList.join(" ")
-        if (!text) {
-            text = "\n"
-        }
-        let res = "No result"
-        if (requestType === "completion") {
-            let resp = await openai.createCompletion({
-                model: modelToUse,
-                prompt: text,
-                max_tokens: opts.getNumber("tokens", 0) || opts.getNumber("tok", 100),
-                user: msg.author.id,
-                temperature: temperature,
-            })
-            res = resp.data.choices.slice(-1)[0].text || "no result"
-        }
-        else if (requestType === "edit") {
-            let [instruction, ...input] = text.split("|").map(v => v.trim())
-            let resp = await openai.createEdit({
-                input: input.join("|"),
-                instruction: instruction,
-                temperature: temperature,
-                model: "text-davinci-edit-001"
-            })
-            res = resp.data.choices[0].text || "No result"
-
-        }
-        else if (requestType === "image") {
-            let resp = await openai.createImage({
-                prompt: text || "Hello",
-                size: opts.getString("size", "256x256") as CreateImageRequestSizeEnum,
-                user: msg.author.id
-            })
-            res = resp.data.data[0].url || "No result"
-        }
-        else {
-            return { content: "Invalid request type", status: StatusCode.ERR }
-        }
-        return { content: res, status: StatusCode.RETURN }
+    yield ["chat", createCommandV2(async () => {
+        return crv("disabled", {status: StatusCode.ERR})
+        // const modelToUse = opts.getString("m", "text-davinci-003")
+        // const temperature = opts.getNumber("t", 0.2)
+        // const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
+        // let text: string | undefined = argList.join(" ")
+        // if (!text) {
+        //     text = "\n"
+        // }
+        // let res = "No result"
+        // if (requestType === "completion") {
+        //     let resp = await openai.createCompletion({
+        //         model: modelToUse,
+        //         prompt: text,
+        //         max_tokens: opts.getNumber("tokens", 0) || opts.getNumber("tok", 100),
+        //         user: msg.author.id,
+        //         temperature: temperature,
+        //     })
+        //     res = resp.data.choices.slice(-1)[0].text || "no result"
+        // }
+        // else if (requestType === "edit") {
+        //     let [instruction, ...input] = text.split("|").map(v => v.trim())
+        //     let resp = await openai.createEdit({
+        //         input: input.join("|"),
+        //         instruction: instruction,
+        //         temperature: temperature,
+        //         model: "text-davinci-edit-001"
+        //     })
+        //     res = resp.data.choices[0].text || "No result"
+        //
+        // }
+        // else if (requestType === "image") {
+        //     let resp = await openai.createImage({
+        //         prompt: text || "Hello",
+        //         size: opts.getString("size", "256x256") as CreateImageRequestSizeEnum,
+        //         user: msg.author.id
+        //     })
+        //     res = resp.data.data[0].url || "No result"
+        // }
+        // else {
+        //     return { content: "Invalid request type", status: StatusCode.ERR }
+        // }
+        // return { content: res, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
