@@ -5,7 +5,7 @@ import timer from './timer'
 import shop = require("./shop")
 import { cmd } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
-import { isMsgChannel, fetchUser, getFonts } from "./util"
+import { isMsgChannel, fetchUser, getFonts, fetchUserFromClientOrGuild } from "./util"
 
 export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>, optional?: string[], extra?: "msg"[]}} = {
     userHasStockSymbol:  {
@@ -146,7 +146,7 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
             let member = msg.guild?.members.cache.find((val, key) => val.id == argument || val.user.username.toLowerCase().indexOf(argument) > -1 || (val.nickname?.toLowerCase().indexOf(argument) || -1) > -1)
             if(member)
                 return member.id
-            return (await fetchUser(msg.guild, argument))?.user?.id || msg.author.id
+            return (await fetchUserFromClientOrGuild(argument, msg.guild))?.id || msg.author.id
         }
         case "who":{
             if(Number(argument) === 0){
