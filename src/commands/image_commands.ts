@@ -762,17 +762,17 @@ The commands below, only work after **path** has been run:
                 gradient = gradOpt.split(">")
             }
             const width = Number(args[0]) || opts.getNumber("w", opts.getNumber("width", opts.getNumber("size", 0))),
-                  height = Number(args[1]) || opts.getNumber("h", opts.getNumber("height", opts.getNumber("size", width || 100)))
+                height = Number(args[1]) || opts.getNumber("h", opts.getNumber("height", opts.getNumber("size", width || 100)))
 
             if (width < 0) {
-                return crv("Width must be > 0", {status: StatusCode.ERR})
+                return crv("Width must be > 0", { status: StatusCode.ERR })
             }
             if (height < 0) {
-                return crv("Height must be > 0", {status: StatusCode.ERR})
+                return crv("Height must be > 0", { status: StatusCode.ERR })
             }
             let img = gradient ?
-                 sharp(await createGradient(gradient, width, height)) :
-                 sharp({
+                sharp(await createGradient(gradient, width, height)) :
+                sharp({
                     create: {
                         width, height,
                         channels: 4,
@@ -797,13 +797,13 @@ The commands below, only work after **path** has been run:
             },
             helpOptions: {
                 "fmt": createHelpOption("The image format to use, can be png, or jpg, eg: -fmt=png"),
-                "gradient": createHelpOption( "Put a gradient instead of solid color, syntax: <code>-gradient=color1>color2>color3...</code>"),
-                "grad-angle": createHelpOption( "The angle to put the gradient at in degrees"),
-                "size": createHelpOption( "Width, and height of the image, syntax: <code>-size=number</code>"),
-                "height": createHelpOption( "Height of the image"),
-                "h": createHelpOption( "Height of the image, overrides -height"),
-                "width": createHelpOption( "Width of the image"),
-                "w": createHelpOption( "Width of the image, overrides -width"),
+                "gradient": createHelpOption("Put a gradient instead of solid color, syntax: <code>-gradient=color1>color2>color3...</code>"),
+                "grad-angle": createHelpOption("The angle to put the gradient at in degrees"),
+                "size": createHelpOption("Width, and height of the image, syntax: <code>-size=number</code>"),
+                "height": createHelpOption("Height of the image"),
+                "h": createHelpOption("Height of the image, overrides -height"),
+                "width": createHelpOption("Width of the image"),
+                "w": createHelpOption("Width of the image, overrides -width"),
             }
         })
     ]
@@ -1371,44 +1371,50 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "rotate",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let img = getImgFromMsgAndOpts(opts, msg)
-                if (!img) {
-                    return { content: "No image found", status: StatusCode.ERR }
-                }
-                let amount = Number(args[0]) || 90
-                let color = args[1] || "#00000000"
-                let img_data = await fetch.default(img)
-                let buf = await img_data.buffer()
-                let fn = cmdFileName`rotate ${msg.author.id} png`
-                try {
-                    await sharp(buf)
-                        .rotate(amount, { background: color })
-                        .toFile(fn)
-                    return {
-                        files: [
-                            {
-                                attachment: fn,
-                                name: fn,
-                                delete: true
-                            }
-                        ],
-                        status: StatusCode.RETURN
-                    }
-                }
-                catch {
-                    return { content: "Something went wrong rotating image", status: StatusCode.ERR }
-                }
-            },
-            category: CommandCategory.IMAGES,
-            help: {
-                info: "Rotates an image by an angle (degrees)"
+        "rotate", ccmdV2(async function({ msg, argShapeResults, opts, stdin }) {
+            let img = getImgFromMsgAndOpts(opts, msg, stdin)
+            if (!img) {
+                return { content: "No image found", status: StatusCode.ERR }
             }
-        },
+            let amount = argShapeResults.angle as number
+            let color = argShapeResults.color as string
+            let buf;
+            if (!img.startsWith("http") && fs.existsSync(img)) {
+                buf = fs.readFileSync(img)
+            }
+            else {
+                buf = await (await fetch.default(img)).buffer()
+            }
+            let fn = cmdFileName`rotate ${msg.author.id} png`
+            try {
+                await sharp(buf)
+                    .rotate(amount, { background: color })
+                    .toFile(fn)
+                return {
+                    files: [
+                        {
+                            attachment: fn,
+                            name: fn,
+                            delete: true
+                        }
+                    ],
+                    status: StatusCode.RETURN
+                }
+            }
+            catch {
+                return { content: "Something went wrong rotating image", status: StatusCode.ERR }
+            }
+        }, "Rotates an image by an angle (deg)", {
+            argShape: async function*(args) {
+                yield [args.expectFloat(1), "angle"],
+                    yield [args.expectString(1), "color", true, "#00000000"]
+            },
+            helpArguments: {
+                angle: createHelpArgument("Angle to rotate image (deg)", true),
+                color: createHelpArgument("Background color to fill space", false, undefined, "#00000000")
+            },
+            accepts_stdin: "An image can be passed by pipe"
+        })
     ]
 
     yield [

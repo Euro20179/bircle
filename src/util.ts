@@ -692,6 +692,9 @@ class ArgList extends Array {
     expectInt(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.join(this.IFS).match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
     }
+    expectFloat(amountOfArgs: AmountOfArgs = 1){
+        return this.expect(amountOfArgs, i => i.join(this.IFS).match(/^\d+(?:\.\d+)?/) ? parseFloat(i[0]) : BADVALUE)
+    }
     expectBool(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => {
             let s = i.join(this.IFS).toLowerCase()
