@@ -16,9 +16,7 @@ import { giveItem, saveItems } from '../shop'
 import { DEVBOT } from '../globals'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
-import { buyItem, hasItem, useItem } from '../shop'
-
-const { ITEMS, INVENTORY } = require("../shop")
+import { buyItem, hasItem, useItem, getInventory, getItems } from '../shop'
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -241,14 +239,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     if (msg.author.bot) {
                         return { content: "Bots cannot buy items", status: StatusCode.ERR }
                     }
-                    if (!ITEMS()[item]) {
+                    if (!getItems()[item]) {
                         return { content: `${item} does not exist`, status: StatusCode.ERR }
                     }
                     let totalSpent = 0
                     for (let i = 0; i < amount; i++) {
                         let totalCost = 0
                         let { total } = economy.economyLooseGrandTotal(false)
-                        for (let cost of ITEMS()[item].cost) {
+                        for (let cost of getItems()[item].cost) {
                             totalCost += amountParser.calculateAmountRelativeTo(total, `${cost}`)
                         }
                         if (economy.canBetAmount(msg.author.id, totalCost) || totalCost == 0) {
@@ -385,7 +383,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
                 const ITEMS_PER_PAGE = 20
 
-                const PLAYER_INV = Object.entries(INVENTORY()[user.id])
+                const PLAYER_INV = Object.entries(getInventory()[user.id])
 
                 const embedPages: EmbedBuilder[] = []
 
@@ -1111,7 +1109,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }
             let ct = economy.canTax(user.id)
             if (hasItem(user.id, "tax evasion")) {
-                ct = economy.canTax(user.id, INVENTORY()[user.id]['tax evasion'] * 60)
+                ct = economy.canTax(user.id, getInventory()[user.id]['tax evasion'] * 60)
             }
             let embed = new EmbedBuilder()
             if (ct) {

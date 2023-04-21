@@ -1,6 +1,6 @@
 import fs = require("fs")
 
-type ItemData = {[key: string]: {count: number, uses: number, description: string, max?: number}}
+type ItemData = {[key: string]: {count: number, uses: number, description: string, max?: number, cost: string[]}}
 let INVENTORY: {[key: string]: {[key: string]: number}} = {}
 let ITEMS: ItemData = {}
 
@@ -24,12 +24,12 @@ export function saveItems(){
     fs.writeFileSync("./inventory.json", JSON.stringify(INVENTORY))
 }
 
-function resetItems(){
+export function resetItems(){
     INVENTORY = {}
     lottery = {pool: 0, numbers: [Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1), Math.floor(Math.random() * 5 + 1)]}
     saveItems()
 }
-function resetPlayerItems(id: string){
+export function resetPlayerItems(id: string){
     if(INVENTORY[id]){
         delete INVENTORY[id]
     }
@@ -88,9 +88,17 @@ export function useItem(user: string, item: string, times?: number){
     }
 }
 
+export function getInventory(){
+    return INVENTORY
+}
+
+export function getItems(){
+    return ITEMS
+}
+
 module.exports = {
-    INVENTORY: () => INVENTORY,
-    ITEMS: () => ITEMS,
+    getInventory,
+    getItems,
     buyItem,
     saveItems,
     loadItems,

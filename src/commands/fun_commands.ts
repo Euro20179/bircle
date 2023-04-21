@@ -24,8 +24,7 @@ import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
 
-import { hasItem, useItem } from '../shop'
-const { INVENTORY } = require("../shop")
+import { hasItem, useItem, getInventory } from '../shop'
 
 import travel_countries from '../travel/travel';
 import achievements from '../achievements';
@@ -416,7 +415,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return { content: `You found ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
             [["item yoinker"], async () => {
-                let inv = INVENTORY()
+                let inv = getInventory()
                 let text = ""
                 for (let user in inv) {
                     if (user === msg.author.id) {

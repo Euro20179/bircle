@@ -12,7 +12,7 @@ import { Message, User } from 'discord.js'
 import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
 import achievements from '../achievements'
 import { server } from '../../website/server'
-const { hasItem, useItem, resetPlayerItems, resetItems, INVENTORY } = require('../shop')
+import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -128,7 +128,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
 
             }, category: CommandCategory.ADMIN,
-            permCheck: (m) => common.ADMINS.includes(m.author.id) || hasItem(m.author.id, "reset economy"),
+            permCheck: (m) => common.ADMINS.includes(m.author.id) || Number(hasItem(m.author.id, "reset economy")) > 0,
             help: {
                 info: "Resets the economy"
             }
@@ -214,8 +214,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (!player) {
                 return crv(`${user} not found`)
             }
-            if (INVENTORY()[player.id]?.[itemName] !== undefined) {
-                delete INVENTORY()[player.id][itemName]
+            if (getInventory()[player.id]?.[itemName] !== undefined) {
+                delete getInventory()[player.id][itemName]
                 return crv(`${itemName} deleted form ${player}'s inventory`, {
                     allowedMentions: { parse: [] }
                 })
