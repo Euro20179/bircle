@@ -96,10 +96,6 @@ class Token {
 }
 
 class Modifier {
-    data: RegExpMatchArray
-    constructor(data: RegExpMatchArray) {
-        this.data = data
-    }
     modify(int: Interpreter): any { }
     stringify(): string { return "W:" }
 }

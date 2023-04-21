@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp} from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -31,17 +31,17 @@ export const StatusCode = {
 class OrderedDict<TKey, TValue>{
     keys: TKey[]
     values: TValue[]
-    constructor(){
+    constructor() {
         this.keys = []
         this.values = []
     }
 
-    get(key: TKey){
+    get(key: TKey) {
         return this.values[this.keys.indexOf(key)]
     }
 
-    set(key: TKey, value: TValue){
-        if(this.keys.includes(key)){
+    set(key: TKey, value: TValue) {
+        if (this.keys.includes(key)) {
             return false
         }
         this.keys.push(key)
@@ -49,25 +49,25 @@ class OrderedDict<TKey, TValue>{
         return true
     }
 
-    delete(key: TKey){
+    delete(key: TKey) {
         let val = this.get(key)
         this.keys = this.keys.filter(v => v !== key)
         this.values = this.values.filter(v => v !== val)
     }
 
-    keyAt(index: number){
+    keyAt(index: number) {
         return this.keys[index]
     }
 
-    valueAt(index: number){
+    valueAt(index: number) {
         return this.values[index]
     }
 
-    keyExists(key: TKey){
+    keyExists(key: TKey) {
         return this.keys.includes(key)
     }
 
-    get length(){
+    get length() {
         return this.keys.length
     }
 }
@@ -93,9 +93,9 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: {timeout: milliseconds_t}): Promise<Message<boolean> | false> {
+export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout: milliseconds_t }): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
-    if(prompt)
+    if (prompt)
         await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
     let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: options?.timeout || 30000, max: 1 })
     let m = msgs.at(0)
@@ -417,7 +417,7 @@ export async function cmd({
             modifiers: parser.modifiers,
             recursion, returnJson, disable, sendCallback, pipeData, context
         })
-        
+
         //this was previously ored to false
         rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
         //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
@@ -509,6 +509,13 @@ export class Interpreter {
     static commandUndefined = new Object()
 
     static resultCache = new Map()
+
+    private modMap = {
+        "d:": DeleteModifier,
+        "t:": TypingModifier,
+        "s:": SilentModifier,
+        "n:": SkipModifier
+    }
 
     constructor(msg: Message, tokens: Token[], options: {
         modifiers?: Modifier[],
@@ -745,26 +752,21 @@ export class Interpreter {
     }
 
     getModifiersFromCmd(cmd: string) {
-        let modMap = new Map<RegExp, typeof Modifier>()
-        modMap.set(/^d:/, DeleteModifier)
-        modMap.set(/^t:/, TypingModifier)
-        modMap.set(/^s:/, SilentModifier)
-        modMap.set(/^n:/, SkipModifier)
 
         let modifiers = []
         let foundMatch = true
         while (foundMatch) {
-            for (let mod of modMap.keys()) {
-                let m = cmd.match(mod);
-                if (m) {
-                    let modifier = modMap.get(mod)
-                    if (modifier) {
-                        modifiers.push(new modifier(m))
-                    }
-                    cmd = cmd.slice(m[0].length)
-                    break
+            for (let mod of keysOf(this.modMap)) {
+                if (!cmd.startsWith(mod)){
+                    foundMatch = false
+                    continue;
                 }
-                foundMatch = false
+                modifiers.push(
+                    new this.modMap[mod as keyof typeof this.modMap]()
+                )
+                cmd = cmd.slice(mod.length)
+                foundMatch = true
+                break;
             }
         }
         return [modifiers, cmd] as const
@@ -1070,7 +1072,7 @@ export class Interpreter {
     }
 }
 
-function censor_error(err: Error){
+function censor_error(err: Error) {
     let ip = getToolIp()
     return err.toString().replaceAll(ip as string, "")
 }
