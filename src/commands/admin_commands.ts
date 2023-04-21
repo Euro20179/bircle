@@ -1,7 +1,7 @@
 import fs from 'fs'
 import vars from '../vars'
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, crv, currently_playing, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, currently_playing, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -61,15 +61,26 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "TRASH_EMPTY", ccmdV2(async ({ msg, sendCallback }) => {
-            fs.readdir("./garbage-files", async (err, files) => {
-                for (let file of files) {
-                    fs.rmSync(`./garbage-files/${file}`)
+        "TRASH_EMPTY", ccmdV2(async ({ msg, sendCallback, opts }) => {
+            fs.readdir("./garbage-files", async (_err, files) => {
+                let deleteAll = opts.getBool('a', false)
+                if(deleteAll && !(common.WHITELIST[msg.author.id] || common.ADMINS.includes(msg.author.id))){
+                    return crv(`You are not allowed to delete all trash files`, {status:StatusCode.ERR})
                 }
-                await handleSending(msg, crv(`Deleted all files`), sendCallback)
+                for (let file of files) {
+                    if(deleteAll || file.includes(msg.author.id))
+                        fs.rmSync(`./garbage-files/${file}`)
+                }
+                if(deleteAll)
+                    await handleSending(msg, crv(`Deleted all files`), sendCallback)
+                else await handleSending(msg, crv(`Deleted all of your files`), sendCallback)
             })
             return crv("Emptying files", { status: StatusCode.INFO })
-        }, "Empties the garbage-files folder")
+        }, "Empties the garbage-files folder", {
+            helpOptions: {
+                a: createHelpOption("Delete all garbage files")
+            }
+        })
     ]
 
     yield [

@@ -752,7 +752,6 @@ export class Interpreter {
     }
 
     getModifiersFromCmd(cmd: string) {
-
         let modifiers = []
         let foundMatch = true
         while (foundMatch) {
