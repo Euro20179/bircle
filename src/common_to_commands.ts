@@ -1253,6 +1253,10 @@ export function crv(content: string, options?: { [K in keyof CommandReturn]?: Co
     }
 }
 
+export function crvFile(fp: string, name: string, description?: string){
+    return {attachment: fp, name, description}
+}
+
 export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     category?: CommandCategory,
     helpArguments?: CommandHelpArguments,
