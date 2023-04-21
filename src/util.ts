@@ -192,7 +192,7 @@ function range(start: number, end: number, step: number = 1) {
             let n = Number(p)
             //we need to shift it because then we can just do n % end == 0 to check if the step is correct
             let [shiftedP, shiftedEnd] = [n - start, end - start]
-            return n >= start && n < end && shiftedP % shiftedEnd == 0
+            return isBetween(start - 1, n, end) && shiftedP % shiftedEnd == 0
         }
     })
 }
