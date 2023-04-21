@@ -211,7 +211,7 @@ function canWork(id: string) {
     if (!ECONOMY[id]) {
         return false
     }
-    const enoughTimeHasPassed = timer.has_x_m_passed(id, "%workd", 60, true)
+    const enoughTimeHasPassed = timer.has_x_m_passed(id, "%work", 60, true)
     let total = playerEconomyLooseTotal(id)
     //not broke but it has been 1 hour
     if (total >= 0 && enoughTimeHasPassed)
