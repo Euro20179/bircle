@@ -33,12 +33,12 @@ import htmlRenderer from '../html-renderer';
 import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 
-const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
-const configuration = new Configuration({
-    organization: orgid,
-    apiKey: key
-})
-let openai = new OpenAIApi(configuration)
+// const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
+// const configuration = new Configuration({
+//     organization: orgid,
+//     apiKey: key
+// })
+// let openai = new OpenAIApi(configuration)
 
 
 export default function*(): Generator<[string, Command | CommandV2]> {
@@ -84,7 +84,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield ["chat", createCommandV2(async () => {
-        return crv("disabled", {status: StatusCode.ERR})
+        return crv("disabled", { status: StatusCode.ERR })
         // const modelToUse = opts.getString("m", "text-davinci-003")
         // const temperature = opts.getNumber("t", 0.2)
         // const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
@@ -1696,7 +1696,14 @@ Valid formats:
     yield [
         "8", ccmdV2(async function({ msg, argShapeResults }) {
             let content = argShapeResults['question'] as string
-            let options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
+            let options;
+            if (fs.existsSync('./command-results/8ball')) {
+                options = fs.readFileSync(`./command-results/8ball`, "utf-8").split(";END").slice(0, -1)
+            }
+            else {
+                options = ["No", "Yes", "Try asking again"]
+            }
+
             return crv(format(
                 choice(options).slice(20),
                 { content: content, u: `${msg.author}` }
@@ -1726,7 +1733,7 @@ Valid formats:
                 }
                 let fromUser = await fetchUserFromClientOrGuild(from, msg.guild)
                 let toUser = await fetchUserFromClientOrGuild(to, msg.guild)
-                if (fromUser && toUser) {
+                if (fromUser && toUser && fs.existsSync("./command-results/distance-easter-egg")) {
                     let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                     return {
                         content: choice(options)
@@ -1771,7 +1778,7 @@ Valid formats:
                     if (speed)
                         embed.addFields(efd(["Straight line distance time", `${straightLineDist / speed} hours`]))
                 }
-                if (!drivingDist && !straightLineDist) {
+                if (!drivingDist && !straightLineDist && fs.existsSync("./command-results/distance-easter-egg")) {
                     let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                     return {
                         content: choice(options)
