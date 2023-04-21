@@ -185,11 +185,8 @@ function range(start: number, end: number, step: number = 1) {
         }
     }(), {
         get(target, p) {
-            if (p in target) {
-                return typeof target[p as keyof typeof target] === 'function' ?
-                    target[p as keyof typeof target].bind(target) :
-                    target[p as keyof typeof target]
-            }
+            let val = target[p as keyof typeof target]
+            return typeof val === 'function' ? val.bind(target) : val
         },
         has(_target, p) {
             let n = Number(p)
