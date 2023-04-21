@@ -42,30 +42,30 @@ function Enum<const T>(data: T) {
 /**
     * @description runs cb but in an async function to defer lower the importance
 */
-async function defer(cb: Function){
+async function defer(cb: Function) {
     cb()
 }
 
 
-function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof T, string>]]>{
-    for(let prop in o){
-        if(o.hasOwnProperty(prop)){
+function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof T, string>]]> {
+    for (let prop in o) {
+        if (o.hasOwnProperty(prop)) {
             yield [prop, o[prop]]
         }
     }
 }
 
-function* valuesOf<T extends Object>(o: T): Generator<T[Extract<keyof T, string>]>{
-    for(let key in o){
-        if(o.hasOwnProperty(key)){
+function* valuesOf<T extends Object>(o: T): Generator<T[Extract<keyof T, string>]> {
+    for (let key in o) {
+        if (o.hasOwnProperty(key)) {
             yield o[key]
         }
     }
 }
 
-function* keysOf<T extends Object>(o: T): Generator<string>{
-    for(let key in o){
-        if(o.hasOwnProperty(key)){
+function* keysOf<T extends Object>(o: T): Generator<string> {
+    for (let key in o) {
+        if (o.hasOwnProperty(key)) {
             yield key
         }
     }
@@ -178,15 +178,20 @@ function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
     }
 }
 
-function range(start: number, end: number, step: number = 1){
-    return new Proxy({
-        *[Symbol.iterator](){
-            for(let i = 0; i < start; i+=step){
-                yield i
-            }
+function range(start: number, end: number, step: number = 1) {
+    return new Proxy(function*() {
+        for (let i = 0; i < end; i += step) {
+            yield i
         }
-    }, {
-        has(_target, p){
+    }(), {
+        get(target, p) {
+            if (p in target) {
+                return typeof target[p as keyof typeof target] === 'function' ?
+                    target[p as keyof typeof target].bind(target) :
+                    target[p as keyof typeof target]
+            }
+        },
+        has(_target, p) {
             let n = Number(p)
             //we need to shift it because then we can just do n % end == 0 to check if the step is correct
             let [shiftedP, shiftedEnd] = [n - start, end - start]
@@ -215,7 +220,7 @@ function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
  * @returns {Array} An array of three numbers representing the RGB values of the color
  */
 function randomColor() {
-    return Array.from(range(0, 3), () => Math.floor(Math.random() * 256))
+    return Array.from({ length: 3 }, () => Math.floor(Math.random() * 256))
 }
 
 function intoColorList(color: string) {
@@ -520,7 +525,7 @@ const BADVALUE = Symbol("BADVALUE")
 /**
     * @description for expect methods in ArgList when it should keep going until the arglist is exausted
 */
-function truthy(){
+function truthy() {
     return true
 }
 
@@ -590,7 +595,7 @@ class ArgList extends Array {
     /**
         * @description runs an expect function and temporarily changes the ifs to newIfs
     */
-    expectWithIfs<T extends (...args: any[])=> any>(newIfs: char_t, expecter: T, ...args: Parameters<T>){
+    expectWithIfs<T extends (...args: any[]) => any>(newIfs: char_t, expecter: T, ...args: Parameters<T>) {
         let oldIfs = this.IFS
         this.IFS = newIfs
         let data = expecter.bind(this)(...args)

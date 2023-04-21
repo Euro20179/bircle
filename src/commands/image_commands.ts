@@ -1346,6 +1346,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             else {
                 let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + ((textInfo as any).emHeightDescent / lineCount))
                 let interval = 1 / (colors.length - 1)
+                console.log(colors)
                 for (let i = 0; i < colors.length; i++) {
                     grad.addColorStop(interval * i, colors[i])
                 }
