@@ -233,6 +233,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield ["fishing", ccmdV2(async ({ msg, args }) => {
         let rod = hasItem(msg.author.id, "fishing rod")
+        if (!rod) {
+            return { content: "You do not have a fishing rod", status: StatusCode.ERR }
+        }
 
         let canfish = false
         if (!timer.getTimer(msg.author.id, "%fishing")) {
@@ -255,9 +258,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             return { content: "All that mumbo stink you had drove all the fish away", status: StatusCode.RETURN }
         }
 
-        if (!rod) {
-            return { content: "You do not have a fishing rod", status: StatusCode.ERR }
-        }
         let isUsingShark = pet.getActivePet(msg.author.id) === "shark"
         let possibleItems: [string, number][] = [
             ["fish", 0.5,],
