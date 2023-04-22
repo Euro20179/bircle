@@ -46,6 +46,23 @@ async function defer(cb: Function) {
     cb()
 }
 
+function xInNum(x: number, num: number){
+    //10 comes from the fact that we are working in base 10
+    //first we figure out how big the biggest place value in x is, for example 15's biggest place value is 1 because 10**1 == 10
+    for(var xPow = 0; 10 ** xPow < x; xPow++);
+    //next we go through each power of 10 until it's bigger than num's biggest place value
+    for(let i = 0; 10 ** i < num; i++){
+        //chops off unwanted part of the number, example: if num is 105, and i is 1, 105 will be converted to 10 because we no longer want the 100s place
+        let workingNum = Math.floor(num / (10 ** i));
+        //checks if the remainder of (current number - x) / 10 ** xPow is 0
+        //this confirms if x is in num because for example, if x is 13 and num is 113,
+            //our workingNum will be 113, (113 - 13 % 10 ** 1) === (110 % 10) === 0
+        if((workingNum - x) % (10 ** xPow) === 0){
+            return true
+        }
+    }
+    return false
+}
 
 function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof T, string>]]> {
     for (let prop in o) {
@@ -210,19 +227,17 @@ function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
     }
 }
 
-
-
-/**
- * Generates a random color
- * @returns {Array} An array of three numbers representing the RGB values of the color
- */
-function randomColor() {
-    return Array.from({ length: 3 }, () => Math.floor(Math.random() * 256))
+function randomHexColorCode(){
+    let code = '#'
+    for(let i = 0; i < 6; i++){
+        code += "0123456789ABCDEF"[Math.floor(Math.random() * 16)]
+    }
+    return code
 }
 
 function intoColorList(color: string) {
     return String(color).replaceAll("|", ">").split(">").map(v => v.trim())
-        .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2)).join("")}`)
+        .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomHexColorCode}`)
 }
 
 function choice<T>(list: Array<T>): T {
@@ -395,8 +410,7 @@ async function applyJimpFilter(img: any, filter: any, arg: any) {
 }
 
 function rgbToHex(r: int_t, g: int_t, b: int_t) {
-    let [rhex, ghex, bhex] = [r.toString(16), g.toString(16), b.toString(16)]
-    return `#${rhex.length == 1 ? "0" + rhex : rhex}${ghex.length == 1 ? "0" + ghex : ghex}${bhex.length == 1 ? "0" + bhex : bhex}`
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
 }
 
 function generateSafeEvalContextFromMessage(msg: Message) {
@@ -426,7 +440,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         rgbToHex,
         escapeRegex,
         escapeShell,
-        randomColor,
+        randomHexColorCode,
         mulStr,
         choice,
         Pipe,
@@ -434,6 +448,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         searchList,
         renderHTML: htmlRenderer.renderHTML,
         generateCommandSummary,
+        xInNum,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -1041,7 +1056,6 @@ export {
     generateFileName,
     createGradient,
     applyJimpFilter,
-    randomColor,
     rgbToHex,
     safeEval,
     mulStr,
@@ -1088,6 +1102,8 @@ export {
     truthy,
     entriesOf,
     valuesOf,
-    keysOf
+    keysOf,
+    xInNum,
+    randomHexColorCode
 }
 

@@ -7,7 +7,7 @@ import fetch = require("node-fetch")
 import { Stream } from 'stream'
 
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, registerCommand, StatusCode } from '../common_to_commands'
-import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomColor, rgbToHex } from '../util'
+import { cmdFileName, createGradient, cycle, getImgFromMsgAndOpts, intoColorList, isMsgChannel, Pipe, randomHexColorCode } from '../util'
 import { parsePosition, getOpts } from '../parsing'
 import common from '../common'
 import { Message } from 'discord.js'
@@ -255,7 +255,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                             let [stop, ...c] = color.split(" ")
                             color = c.join(" ")
                             if (color === "rand") {
-                                color = `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2))}`
+                                color = randomHexColorCode()
                             }
                             try {
                                 grad.addColorStop(parseFloat(stop), color)
@@ -283,7 +283,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                             let [stop, ...c] = color.split(" ")
                             color = c.join(" ")
                             if (color === "rand") {
-                                color = `#${randomColor().map(v => `0${v.toString(16)}`.slice(-2))}`
+                                color = randomHexColorCode()
                             }
                             try {
                                 grad.addColorStop(parseFloat(stop), color)
@@ -1443,9 +1443,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                             gradient.push(colors[i])
                         }
                         else {
-                            [R, G, B] = randomColor()
-                            gradient.push(`rgb(${R}, ${G}, ${B})`)
-                            colorStrings.push(rgbToHex(R, G, B))
+                            colorStrings.push(randomHexColorCode())
                         }
                     }
                     try {
@@ -1458,9 +1456,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 }
                 else {
                     if (color == "RANDOM") {
-                        let [R, G, B] = randomColor()
-                        color = `rgb(${R}, ${G}, ${B})`
-                        content = rgbToHex(R, G, B)
+                        content = randomHexColorCode()
                     }
                     try {
                         buffer = await sharp({
