@@ -389,11 +389,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 giveItem(msg.author.id, "balanced breakfast", 1)
                 return { content: "You add a dash of stinky ol' boot to the mumbo meal and get a balanced breakfast", status: StatusCode.RETURN }
             }],
-            [["amelia earhart"], async () => {
+            [["Amelia Earhart"], async () => {
                 giveItem(msg.author.id, "airplane", 1)
                 return { content: "As a thanks for finding her, she gives you her airplane", status: StatusCode.RETURN }
             }],
-            [["the titanic"], async () => {
+            [["The Titanic"], async () => {
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
                 let itemJ = JSON.parse(items)
                 let itemNames = Object.keys(itemJ)
@@ -402,7 +402,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let amount = randomInt(0, economy.economyLooseGrandTotal().total * 0.05)
                 return { content: `You found a ${randItemName} and ${user_options.getOpt(msg.author.id, "currency-sign", "$")}${amount}`, status: StatusCode.RETURN }
             }],
-            [["amelia earhart", "the titanic"], async () => {
+            [["Amelia Earhart", "The Titanic"], async () => {
                 giveItem(msg.author.id, "conspiracy", 1)
                 let ach = achievements.achievementGet(msg, "conspiracy theorist")
                 if (ach) {
@@ -439,7 +439,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             return { content: text, status: StatusCode.RETURN }
         }
 
-        let items = args.join(" ").toLowerCase().replaceAll("+", "|").split("|").map(v => v.trim())
+        let items = args.join(" ").replaceAll("+", "|").split("|").map(v => v.trim())
         for (let item of items) {
             if (!hasItem(msg.author.id, item)) {
                 return { content: `You do not have a ${item}`, status: StatusCode.ERR }
