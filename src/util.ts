@@ -237,7 +237,7 @@ function randomHexColorCode(){
 
 function intoColorList(color: string) {
     return String(color).replaceAll("|", ">").split(">").map(v => v.trim())
-        .map(v => v && !(["rand", "random"].includes(v)) ? v : `#${randomHexColorCode}`)
+        .map(v => v && !(["rand", "random"].includes(v)) ? v : randomHexColorCode())
 }
 
 function choice<T>(list: Array<T>): T {
