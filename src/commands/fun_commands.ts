@@ -168,7 +168,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }
     })]
 
-    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command"), "How do you run it, nobody knows")]
+    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command", {delete: true}), "How do you run it, nobody knows", )]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
         let isRetired = economy.isRetired(msg.author.id)
