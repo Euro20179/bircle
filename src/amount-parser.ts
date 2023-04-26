@@ -1557,6 +1557,7 @@ function calculateAmountRelativeToInternals(money: number, amount: string | Toke
         'max!': new NumberType(Number.MAX_SAFE_INTEGER),
         'min!': new NumberType(Number.MIN_SAFE_INTEGER),
         'Inf!': new NumberType(Infinity),
+        "infinity": new NumberType(Infinity),
         'NaN!': new NumberType(NaN),
         'true': new NumberType(1),
         'false': new NumberType(0),
