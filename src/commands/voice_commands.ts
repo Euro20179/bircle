@@ -5,10 +5,16 @@ import fetch = require("node-fetch")
 
 
 
-import { CommandCategory, createCommandV2, currently_playing, setCurrentlyPlaying, StatusCode } from '../common_to_commands'
+import { CommandCategory, createCommandV2, StatusCode } from '../common_to_commands'
 import {  generateFileName } from '../util'
 import { EmbedBuilder } from 'discord.js'
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
+
+let currently_playing: { link: string, filename: string } | undefined;
+
+function setCurrentlyPlaying(to: { link: string, filename: string } | undefined) {
+    currently_playing = to
+}
 
 let connection: VoiceConnection | undefined;
 let vc_queue: { link: string, filename: string }[] = []

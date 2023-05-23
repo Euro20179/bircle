@@ -325,12 +325,6 @@ export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
 export let purgeSnipe: (Message | PartialMessage)[] = [];
 
-export let currently_playing: { link: string, filename: string } | undefined;
-
-export function setCurrentlyPlaying(to: { link: string, filename: string } | undefined) {
-    currently_playing = to
-}
-
 export const illegalLastCmds = ["!!", "spam"]
 
 export function createAliasesV2(): { [key: string]: AliasV2 } {
@@ -1337,8 +1331,6 @@ export default {
     lastCommand,
     snipes,
     purgeSnipe,
-    currently_playing,
-    setCurrentlyPlaying,
     illegalLastCmds,
     createAliasesV2,
     aliasesV2,
