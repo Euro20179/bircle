@@ -137,10 +137,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             return crv(items.join("\n"))
         }
         let rulesets: string[] = []
+        const DO_ALL = opts.getBool("all", false)
         for (let i = 0; i < (Number(argShapeResults['#-of-rulesets']) || 1); i++) {
             console.log(i)
             let text = ""
-            if (opts.getBool("type", true)) {
+            if (opts.getBool("type", true) || DO_ALL) {
                 let type = choice(["stock", "timed", "stamina"])
                 text += `# Type\n${type}\n`
                 if (type === 'stamina') {
@@ -155,7 +156,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     let hp = randomInt(min_lives, max_lives + 1)
                     text += `## Hp\n${hp}\n`
                 }
-                if (type === 'timed' || opts.getBool("enable-time", true)) {
+                if (type === 'timed' || opts.getBool("enable-time", true) || DO_ALL) {
                     let min_time = opts.getNumber("min-seconds", 1)
                     let max_time = opts.getNumber("max-seconds", 10)
                     let time_limit = randomInt(min_time, max_time + 1)
@@ -166,7 +167,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     text += `## Time Limit\n${time_limit}:${seconds} minutes\n`
                 }
             }
-            if (opts.getBool("items", true)) {
+            if (opts.getBool("items", true) || DO_ALL) {
                 const max_items = opts.getNumber("max-items", 100)
                 const min_items = opts.getNumber("min-items", 1)
                 const item_count = randomInt(min_items, max_items + 1)
@@ -176,7 +177,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 text += `# Items\n${random_items.join("\n")}\n`
             }
-            if (opts.getBool("mercy", false)) {
+            if (opts.getBool("mercy", false) || DO_ALL) {
                 if (Math.random() > .5) {
                     text += `# Mercy\ntrue\n`
                 }
@@ -184,16 +185,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     text += `# Mercy\nfalse\n`
                 }
             }
-            if (opts.getBool("fs", true))
+            if (opts.getBool("fs", true) || DO_ALL)
                 text += `# FS\n${Math.random() > .5 ? "true" : "false"}\n`
-            if (opts.getBool("stage-selection", opts.getBool("ss", false)))
+            if (opts.getBool("stage-selection", opts.getBool("ss", false)) || DO_ALL)
                 text += `# Stage Selection\n${choice(["anyone", "take turns", "loser's pick", "order", "random", "battlefield & omega", "battlefield only", "omega only"])}\n`
-            if (opts.getBool("sudden-death-options", false)) {
+            if (opts.getBool("sudden-death-options", false) || DO_ALL) {
                 text += `# Sudden Death\n`
                 text += `## Screen Srhink\n${Math.random() > .5 ? "true" : "false"}\n`
                 text += `## Drop Bob-ombs\n${Math.random() > .5 ? "true" : "false"}\n`
             }
-            if (opts.getBool("stage-options", opts.getBool("so", false))) {
+            if (opts.getBool("stage-options", opts.getBool("so", false)) || DO_ALL) {
                 text += `# Stage Options\n`
                 let autoPick = choice([() => "autopick", () => {
                     let minutes = randomInt(1, 6)
@@ -204,15 +205,15 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 text += `## Stage Morph\n${autoPick}\n`
                 text += `## Stage Hazards\n${Math.random() > .5 ? "true" : "false"}\n`
             }
-            if (opts.getBool("launch-rate", opts.getBool("lr", false))) {
+            if (opts.getBool("launch-rate", opts.getBool("lr", false)) || DO_ALL) {
                 let launch_min = opts.getNumber("launch-rate-min", opts.getNumber("lr-min", 0.5))
                 let launch_max = opts.getNumber("launch-rate-max", opts.getNumber("lr-max", 2.1))
-                text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)}`
+                text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)}\n`
             }
-            if (opts.getBool("ud-boost", false)) {
+            if (opts.getBool("ud-boost", false) || DO_ALL) {
                 text += `# Underdog Boost\n${Math.random() > .5 ? "true" : "false"}\n`
             }
-            if (opts.getBool("display", false)) {
+            if (opts.getBool("display", false) || DO_ALL) {
                 text += `# Display\n`
                 text += `# Score Display\n${Math.random() > .5 ? "true" : "false"}\n`
                 text += `# Show Damage\n${Math.random() > .5 ? "true" : "false"}\n`
@@ -226,6 +227,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         },
         helpOptions: {
             "list-items": createHelpOption("List all the items"),
+            "all": createHelpOption("Do all generations"),
             "items": createHelpOption("Generate items, true by default"),
             "type": createHelpOption("Generate the gamemode, true by default"),
             "enable-time": createHelpOption("If timed is not selected, generate a time limit anyway, true by default"),
