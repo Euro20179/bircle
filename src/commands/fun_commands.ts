@@ -43,7 +43,7 @@ import { shuffle } from 'lodash';
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
-    yield ['smash-ruleset', ccmdV2(async function({ msg, args, opts }) {
+    yield ['smash-ruleset', ccmdV2(async function({ argShapeResults, opts }) {
         const items = shuffle([
             "Smash Ball",
             "Assist Trophy",
@@ -133,88 +133,99 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             "Party Ball",
             "Grass",
         ])
-        let text = ""
-        if(opts.getBool("type", true)){
-            let type = choice(["stock", "timed", "stamina"])
-            text += `# Type\n${type}\n`
-            if(type === 'stamina'){
-                let min_stamina = opts.getNumber("min-stamina", 100)
-                let max_stamina = opts.getNumber("max-stamina", 300)
-                let hp = randomInt(min_stamina, max_stamina + 1)
-                text += `## Hp\n${hp}\n`
-            }
-            else if(type === 'stock'){
-                let min_lives = opts.getNumber("min-lives", 1)
-                let max_lives = opts.getNumber("max-lives", 5)
-                let hp = randomInt(min_lives, max_lives + 1)
-                text += `## Hp\n${hp}\n`
-            }
-            if(type === 'timed' || opts.getBool("enable-time", true)){
-                let min_time = opts.getNumber("min-seconds", 1)
-                let max_time = opts.getNumber("max-seconds", 10)
-                let time_limit = randomInt(min_time, max_time + 1)
-                let seconds = 0;
-                if(time_limit === 1 || time_limit === 2){
-                    seconds = choice([0, 30])
+        if (opts.getBool("list-items", false)) {
+            return crv(items.join("\n"))
+        }
+        let rulesets: string[] = []
+        for (let i = 0; i < (Number(argShapeResults['#-of-rulesets']) || 1); i++) {
+            console.log(i)
+            let text = ""
+            if (opts.getBool("type", true)) {
+                let type = choice(["stock", "timed", "stamina"])
+                text += `# Type\n${type}\n`
+                if (type === 'stamina') {
+                    let min_stamina = opts.getNumber("min-stamina", 100)
+                    let max_stamina = opts.getNumber("max-stamina", 300)
+                    let hp = randomInt(min_stamina, max_stamina + 1)
+                    text += `## Hp\n${hp}\n`
                 }
-                text += `## Time Limit\n${time_limit}:${seconds} minutes\n`
+                else if (type === 'stock') {
+                    let min_lives = opts.getNumber("min-lives", 1)
+                    let max_lives = opts.getNumber("max-lives", 5)
+                    let hp = randomInt(min_lives, max_lives + 1)
+                    text += `## Hp\n${hp}\n`
+                }
+                if (type === 'timed' || opts.getBool("enable-time", true)) {
+                    let min_time = opts.getNumber("min-seconds", 1)
+                    let max_time = opts.getNumber("max-seconds", 10)
+                    let time_limit = randomInt(min_time, max_time + 1)
+                    let seconds = 0;
+                    if (time_limit === 1 || time_limit === 2) {
+                        seconds = choice([0, 30])
+                    }
+                    text += `## Time Limit\n${time_limit}:${seconds} minutes\n`
+                }
             }
-        }
-        if(opts.getBool("items", true)){
-            const max_items = opts.getNumber("max-items", 100)
-            const min_items = opts.getNumber("min-items", 1)
-            const item_count = randomInt(min_items, max_items + 1)
-            let random_items: string[] = []
-            for (let i = 0; i < item_count && items.length; i++) {
-                random_items.push(items.pop() as string)
+            if (opts.getBool("items", true)) {
+                const max_items = opts.getNumber("max-items", 100)
+                const min_items = opts.getNumber("min-items", 1)
+                const item_count = randomInt(min_items, max_items + 1)
+                let random_items: string[] = []
+                for (let i = 0; i < item_count && items.length; i++) {
+                    random_items.push(items.pop() as string)
+                }
+                text += `# Items\n${random_items.join("\n")}\n`
             }
-            text += `# Items\n${random_items.join("\n")}\n`
-        }
-        if(opts.getBool("mercy", false)){
-            if(Math.random() > .5){
-                text += `# Mercy\ntrue\n`
+            if (opts.getBool("mercy", false)) {
+                if (Math.random() > .5) {
+                    text += `# Mercy\ntrue\n`
+                }
+                else {
+                    text += `# Mercy\nfalse\n`
+                }
             }
-            else {
-                text += `# Mercy\nfalse\n`
+            if (opts.getBool("fs", true))
+                text += `# FS\n${Math.random() > .5 ? "true" : "false"}\n`
+            if (opts.getBool("stage-selection", opts.getBool("ss", false)))
+                text += `# Stage Selection\n${choice(["anyone", "take turns", "loser's pick", "order", "random", "battlefield & omega", "battlefield only", "omega only"])}\n`
+            if (opts.getBool("sudden-death-options", false)) {
+                text += `# Sudden Death\n`
+                text += `## Screen Srhink\n${Math.random() > .5 ? "true" : "false"}\n`
+                text += `## Drop Bob-ombs\n${Math.random() > .5 ? "true" : "false"}\n`
             }
+            if (opts.getBool("stage-options", opts.getBool("so", false))) {
+                text += `# Stage Options\n`
+                let autoPick = choice([() => "autopick", () => {
+                    let minutes = randomInt(1, 6)
+                    let seconds = choice([0, 30])
+                    if (minutes === 5) seconds = 0
+                    return `${minutes}:${seconds}`
+                }, () => "off"])()
+                text += `## Stage Morph\n${autoPick}\n`
+                text += `## Stage Hazards\n${Math.random() > .5 ? "true" : "false"}\n`
+            }
+            if (opts.getBool("launch-rate", opts.getBool("lr", false))) {
+                let launch_min = opts.getNumber("launch-rate-min", opts.getNumber("lr-min", 0.5))
+                let launch_max = opts.getNumber("launch-rate-max", opts.getNumber("lr-max", 2.1))
+                text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)}`
+            }
+            if (opts.getBool("ud-boost", false)) {
+                text += `# Underdog Boost\n${Math.random() > .5 ? "true" : "false"}\n`
+            }
+            if (opts.getBool("display", false)) {
+                text += `# Display\n`
+                text += `# Score Display\n${Math.random() > .5 ? "true" : "false"}\n`
+                text += `# Show Damage\n${Math.random() > .5 ? "true" : "false"}\n`
+            }
+            rulesets.push(text)
         }
-        if(opts.getBool("fs", true))
-            text += `# FS\n${Math.random() > .5 ? "true" : "false"}\n`
-        if(opts.getBool("stage-selection", opts.getBool("ss", false)))
-            text += `# Stage Selection\n${choice(["anyone", "take turns", "loser's pick", "order", "random", "battlefield & omega", "battlefield only", "omega only"])}\n`
-        if(opts.getBool("sudden-death-options", false)){
-            text += `# Sudden Death\n`
-            text += `## Screen Srhink\n${Math.random() > .5 ? "true" : "false"}\n`
-            text += `## Drop Bob-ombs\n${Math.random() > .5 ? "true" : "false"}\n`
-        }
-        if(opts.getBool("stage-options", opts.getBool("so", false))){
-            text += `# Stage Options\n`
-            let autoPick = choice([() => "autopick", () => {
-                let minutes = randomInt(1, 6)
-                let seconds = choice([0, 30])
-                if(minutes === 5) seconds = 0
-                return `${minutes}:${seconds}`
-            }, () => "off"])()
-            text += `## Stage Morph\n${autoPick}\n`
-            text += `## Stage Hazards\n${Math.random() > .5 ? "true" : "false"}\n`
-        }
-        if(opts.getBool("launch-rate", opts.getBool("lr", false))){
-            let launch_min = opts.getNumber("launch-rate-min", opts.getNumber("lr-min", 0.5))
-            let launch_max = opts.getNumber("launch-rate-max", opts.getNumber("lr-max", 2.1))
-            text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)}`
-        }
-        if(opts.getBool("ud-boost", false)){
-            text += `# Underdog Boost\n${Math.random() > .5 ? "true" : "false"}\n`
-        }
-        if(opts.getBool("display", false)){
-            text += `# Display\n`
-            text += `# Score Display\n${Math.random() > .5 ? "true" : "false"}\n`
-            text += `# Show Damage\n${Math.random() > .5 ? "true" : "false"}\n`
-        }
-
-        return crv(text)
+        return crv(rulesets.join("\n-------------------------------------\n"))
     }, "Creates a random smash ruleset", {
+        helpArguments: {
+            "#-of-rulesets": createHelpArgument("Number of rulesets to generate", false)
+        },
         helpOptions: {
+            "list-items": createHelpOption("List all the items"),
             "items": createHelpOption("Generate items, true by default"),
             "type": createHelpOption("Generate the gamemode, true by default"),
             "enable-time": createHelpOption("If timed is not selected, generate a time limit anyway, true by default"),
@@ -232,6 +243,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             "launch-rate": createHelpOption("Generate the launch rate, false by default", ["lr"]),
             "ud-boost": createHelpOption("Generate true/false for the underdog boost rule, false by default"),
             "display": createHelpOption("Generate the display options, false by default")
+        },
+        argShape: async function*(args) {
+            yield [args.expectInt(1), "#-of-rulesets", true, 1]
         }
     })]
 
