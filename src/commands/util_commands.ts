@@ -22,11 +22,43 @@ import { format, getOpts } from '../parsing'
 import vars from '../vars'
 import common from '../common'
 import { spawn, spawnSync } from 'child_process'
-import { isNaN } from 'lodash'
+import { isNaN, shuffle } from 'lodash'
 import units from '../units'
 import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+
+    yield ['shuf', ccmdV2(async function({args, stdin}){
+        let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
+        return crv(shuffle(text).join("\n"))
+    }, "shuffles text by line", {
+        accepts_stdin: "The text to shuffle",
+        helpArguments: {
+            "text": createHelpArgument("The text to shuffle", false)
+        }
+    })]
+
+    yield ["sort", ccmdV2(async function({args, stdin, opts}){
+        let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
+        let sortFn = undefined
+        if(opts.getBool("n", false)){
+            sortFn = (a: string, b: string) => parseFloat(a) - parseFloat(b)
+        }
+        let sorted = text.sort(sortFn)
+        if(opts.getBool("r", false)){
+            sorted = sorted.reverse()
+        }
+        return crv(sorted.join("\n"))
+    }, "Sorts text by line alphabetically", {
+        accepts_stdin: "The text to sort",
+        helpArguments: {
+            text: createHelpArgument("The text to sort", false)
+        },
+        helpOptions: {
+            n: createHelpOption("Sort numerically"),
+            r: createHelpOption("Reverse sort")
+        }
+    })]
 
     yield ['school-stats', ccmdV2(async function({ msg, opts }) {
         let ip;
