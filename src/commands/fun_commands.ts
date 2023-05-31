@@ -31,6 +31,7 @@ import achievements from '../achievements';
 import htmlRenderer from '../html-renderer';
 import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
+import { shuffle } from 'lodash';
 
 // const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 // const configuration = new Configuration({
@@ -41,6 +42,198 @@ import amountParser from '../amount-parser';
 
 
 export default function*(): Generator<[string, Command | CommandV2]> {
+
+    yield ['smash-ruleset', ccmdV2(async function({ msg, args, opts }) {
+        const items = shuffle([
+            "Smash Ball",
+            "Assist Trophy",
+            "Poké Ball",
+            "Master Ball",
+            "Dragoon Parts",
+            "Daybreak Parts",
+            "Bomber",
+            "Blast Box",
+            "Fake Smash Ball",
+            "Sandbag",
+            "Food",
+            "Maxim Tomato",
+            "Heart Container",
+            "Fairy Bottle",
+            "Healing Sprout",
+            "Healing Field",
+            "Super Mushroom",
+            "Poison Mushroom",
+            "Super Star",
+            "Warp Star",
+            "Metal Box",
+            "Bunny Hood",
+            "Superspicy Curry",
+            "Timer",
+            "Lightning",
+            "Bullet Bill",
+            "Beam Sword",
+            "Star Rod",
+            "Home-Run Bat",
+            "Hammer",
+            "Golden Hammer",
+            "Lip's Stick",
+            "Fire Bar",
+            "Ore Club",
+            "Killing Edge",
+            "Death's Scythe",
+            "Ray Gun",
+            "Fire Flower",
+            "Super Scope",
+            "Gust Bellows",
+            "Steel Diver",
+            "Drill",
+            "Banana Gun",
+            "Rage Blaster",
+            "Ramblin' Evil Mushroom",
+            "Staff",
+            "Bob-omb",
+            "Motion-Sensor Bomb",
+            "Green Shell",
+            "Bumper",
+            "Freezie",
+            "Mr. Saturn",
+            "Gooey Bomb",
+            "Smart Bomb",
+            "Deku Nut",
+            "Smoke Ball",
+            "Pitfall",
+            "Hothead",
+            "Banana Peel",
+            "Unira",
+            "Soccer Ball",
+            "Bombchu",
+            "X Bomb",
+            "Hocotate Bomb",
+            "POW Block",
+            "Spiny Shell",
+            "Boomerang",
+            "Beetle",
+            "Cucco",
+            "Beehive",
+            "Killer Eye",
+            "Boss Galaga",
+            "Beastball",
+            "Black Hole",
+            "Franklin Badge",
+            "Screw Attack",
+            "Back Shield",
+            "Super Leaf",
+            "Rocket Belt",
+            "Super Launch Star",
+            "Special Flag",
+            "Crate",
+            "Rolling Crate",
+            "Barrel",
+            "Capsule",
+            "Party Ball",
+            "Grass",
+        ])
+        let text = ""
+        if(opts.getBool("type", true)){
+            let type = choice(["stock", "timed", "stamina"])
+            text += `# Type\n${type}\n`
+            if(type === 'stamina'){
+                let min_stamina = opts.getNumber("min-stamina", 100)
+                let max_stamina = opts.getNumber("max-stamina", 300)
+                let hp = randomInt(min_stamina, max_stamina + 1)
+                text += `## Hp\n${hp}\n`
+            }
+            else if(type === 'stock'){
+                let min_lives = opts.getNumber("min-lives", 1)
+                let max_lives = opts.getNumber("max-lives", 5)
+                let hp = randomInt(min_lives, max_lives + 1)
+                text += `## Hp\n${hp}\n`
+            }
+            if(type === 'timed' || opts.getBool("enable-time", true)){
+                let min_time = opts.getNumber("min-seconds", 1)
+                let max_time = opts.getNumber("max-seconds", 10)
+                let time_limit = randomInt(min_time, max_time + 1)
+                let seconds = 0;
+                if(time_limit === 1 || time_limit === 2){
+                    seconds = choice([0, 30])
+                }
+                text += `## Time Limit\n${time_limit}:${seconds} minutes\n`
+            }
+        }
+        if(opts.getBool("items", true)){
+            const max_items = opts.getNumber("max-items", 100)
+            const min_items = opts.getNumber("min-items", 1)
+            const item_count = randomInt(min_items, max_items + 1)
+            let random_items: string[] = []
+            for (let i = 0; i < item_count && items.length; i++) {
+                random_items.push(items.pop() as string)
+            }
+            text += `# Items\n${random_items.join("\n")}\n`
+        }
+        if(opts.getBool("mercy", false)){
+            if(Math.random() > .5){
+                text += `# Mercy\ntrue\n`
+            }
+            else {
+                text += `# Mercy\nfalse\n`
+            }
+        }
+        if(opts.getBool("fs", true))
+            text += `# FS\n${Math.random() > .5 ? "true" : "false"}\n`
+        if(opts.getBool("stage-selection", opts.getBool("ss", false)))
+            text += `# Stage Selection\n${choice(["anyone", "take turns", "loser's pick", "order", "random", "battlefield & omega", "battlefield only", "omega only"])}\n`
+        if(opts.getBool("sudden-death-options", false)){
+            text += `# Sudden Death\n`
+            text += `## Screen Srhink\n${Math.random() > .5 ? "true" : "false"}\n`
+            text += `## Drop Bob-ombs\n${Math.random() > .5 ? "true" : "false"}\n`
+        }
+        if(opts.getBool("stage-options", opts.getBool("so", false))){
+            text += `# Stage Options\n`
+            let autoPick = choice([() => "autopick", () => {
+                let minutes = randomInt(1, 6)
+                let seconds = choice([0, 30])
+                if(minutes === 5) seconds = 0
+                return `${minutes}:${seconds}`
+            }, () => "off"])()
+            text += `## Stage Morph\n${autoPick}\n`
+            text += `## Stage Hazards\n${Math.random() > .5 ? "true" : "false"}\n`
+        }
+        if(opts.getBool("launch-rate", opts.getBool("lr", false))){
+            let launch_min = opts.getNumber("launch-rate-min", opts.getNumber("lr-min", 0.5))
+            let launch_max = opts.getNumber("launch-rate-max", opts.getNumber("lr-max", 2.1))
+            text += `# Launch Rate\n${(Math.random() * (launch_max - launch_min) + launch_min).toFixed(1)}`
+        }
+        if(opts.getBool("ud-boost", false)){
+            text += `# Underdog Boost\n${Math.random() > .5 ? "true" : "false"}\n`
+        }
+        if(opts.getBool("display", false)){
+            text += `# Display\n`
+            text += `# Score Display\n${Math.random() > .5 ? "true" : "false"}\n`
+            text += `# Show Damage\n${Math.random() > .5 ? "true" : "false"}\n`
+        }
+
+        return crv(text)
+    }, "Creates a random smash ruleset", {
+        helpOptions: {
+            "items": createHelpOption("Generate items, true by default"),
+            "type": createHelpOption("Generate the gamemode, true by default"),
+            "enable-time": createHelpOption("If timed is not selected, generate a time limit anyway, true by default"),
+            "min-stamina": createHelpOption("Minimum stamina for random stamina generation, 100 by default (1 is lowest)"),
+            "max-stamina": createHelpOption("Maximum stamina for random stamina generation, 300 by default (999 is highest)"),
+            "min-lives": createHelpOption("Minimum lives for random stock generation, 1 by default (1 is lowest)"),
+            "max-lives": createHelpOption("Maximum lives for random stock generation, 5 by default (99 is highest)"),
+            "min-items": createHelpOption("Minimum amount of items to generate, 1 by default"),
+            "max-items": createHelpOption("Maximum amount of items to generate, 100 by default"),
+            "mercy": createHelpOption("Generate true/false for the mercy rule, false by default"),
+            "fs": createHelpOption("Generate true/false for the final smash rule, true by default"),
+            "stage-selection": createHelpOption("Generate the type of stage selection, false by default", ["ss"]),
+            "sudden-death-options": createHelpOption("Generate options for sudden death, false by default"),
+            "stage-options": createHelpOption("Generate options for stage gameplay, false by default", ["so"]),
+            "launch-rate": createHelpOption("Generate the launch rate, false by default", ["lr"]),
+            "ud-boost": createHelpOption("Generate true/false for the underdog boost rule, false by default"),
+            "display": createHelpOption("Generate the display options, false by default")
+        }
+    })]
 
     yield ["give-scallywag-token", createCommandV2(async ({ msg, args }) => {
         let user = await fetchUser(msg.guild as Guild, args[0])
@@ -168,7 +361,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         }
     })]
 
-    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command", {delete: true}), "How do you run it, nobody knows", )]
+    yield ["the secret command", ccmdV2(async () => crv("Congrats, you found the secret command", { delete: true }), "How do you run it, nobody knows",)]
 
     yield ["retirement-activity", ccmdV2(async function({ msg, sendCallback }) {
         let isRetired = economy.isRetired(msg.author.id)

@@ -26,7 +26,6 @@ import amountParser from '../amount-parser'
 const { useItem, hasItem } = require("../shop")
 
 export default function*(): Generator<[string, Command | CommandV2]> {
-
     yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 

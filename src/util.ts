@@ -841,7 +841,7 @@ function generateCommandSummary(name: string, command: Command | CommandV2 | Ali
 function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
     let helpData = command.help
 
-    let nameInfo = generateCommandSummary(name, command)
+    let nameInfo = htmlRenderer.renderHTML("<h1>Usage</h1>") + "\n" + generateCommandSummary(name, command)
 
     if (!helpData)
         return nameInfo + "\n"
@@ -855,7 +855,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
         textInfo = "\n\n" + htmlRenderer.renderHTML(helpData.info) + "\n\n"
     }
     if (helpData.docs) {
-        textInfo += htmlRenderer.renderHTML(`<h1>docs</h1>` + helpData.docs) + '\n\n'
+        textInfo += htmlRenderer.renderHTML(`<h1>Docs</h1>` + helpData.docs) + '\n\n'
     }
     if (helpData.accepts_stdin) {
         argInfo += "__stdin__:\n"
@@ -868,7 +868,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
         argInfo += '\n'
     }
     if (helpData.arguments) {
-        argInfo += "__Arguments__:\n"
+        argInfo += htmlRenderer.renderHTML("<h1>Arguments</h1>") + "\n"
         for (let arg in helpData.arguments) {
             argInfo += `\t* **${arg}**`
             if (helpData.arguments[arg].required !== false) {
@@ -882,27 +882,23 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
             }
             let html = cheerio.load(helpData.arguments[arg].description)
             argInfo += `:\n\t\t- ${htmlRenderer.renderELEMENT(html("*")[0], 2).trim()}`
-            //we want exactly 2 new lines
-            while (!argInfo.endsWith("\n\n")) {
+            //we want exactly 1 new lines
+            if (!argInfo.endsWith("\n")) {
                 argInfo += "\n"
             }
         }
     }
     if (helpData.options) {
-        optInfo += "__Options__:\n"
+        optInfo += htmlRenderer.renderHTML("<h1>Options</h1>") + "\n"
         for (let op in helpData.options) {
             optInfo += `\t* **-${op}**`
             if (helpData.options[op].default) {
                 optInfo += ` (default: ${helpData.options[op].default})`
             }
             optInfo += ': '
-            optInfo += htmlRenderer.renderHTML(helpData.options[op].description, 2).trim()
+            optInfo += htmlRenderer.renderHTML(helpData.options[op].description, 2).trim() + "\n"
             if (helpData.options[op].alternates) {
                 optInfo += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
-            }
-            //we want exactly 2 new lines
-            while (!optInfo.endsWith("\n\n")) {
-                optInfo += "\n"
             }
         }
     }

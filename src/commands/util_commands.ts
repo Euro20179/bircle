@@ -152,30 +152,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         pet: createHelpArgument("The pet to get info on", true)
     })]
 
-    yield ["google", ccmdV2(async ({ argShapeResults }) => {
-        let baseUrl = "https://www.google.com/search?q=";
-        let s = argShapeResults['query'] as string
-        const url = baseUrl + s;
-        let data = await fetch.default(url)
-        const html = await data.text()
-        const $ = cheerio.load(html)
-        const links = $(".egMi0 > a").toArray()
-        const urls: string[] = []
-        for (let i = 0; i < links.length; i++) {
-            let elem = links[i]
-            if (elem.type === 'tag' && elem.tagName === 'a') {
-                const href = elem.attribs.href
-                urls.push(href.slice(7).split("&sa=")[0])
-            }
-        }
-        //return {content: links.text(), status: StatusCode.RETURN}
-        return { content: urls.join("\n"), status: StatusCode.RETURN }
-    }, "Search google and get a list of urls", {
-        argShape: async function*(args) {
-            yield [args.expectString(truthy), "query"]
-        }
-    })]
-
     yield [
         "has-role", ccmdV2(async ({ msg, argShapeResults }) => {
             let user = argShapeResults['user'] as string

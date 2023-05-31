@@ -50,7 +50,7 @@ function renderUlElement(elem: cheerio.Element, indentation = 0, marker = "*\t")
 }
 
 function renderLHElement(elem: cheerio.Element, indentation = 0) {
-    return `__${renderElementChildren(elem, indentation)}__`
+    return `### *${renderElementChildren(elem, indentation)}*`
 }
 
 function renderBElement(elem: cheerio.Element, indentation = 0) {
@@ -99,7 +99,7 @@ function renderPElement(elem: cheerio.TagElement, indentation = 0) {
 }
 
 function renderHxElement(elem: cheerio.TagElement, indentation = 0){
-    return `\n${'\t'.repeat(indentation)}${'#'.repeat(Number(elem.name[1]))} __${renderElementChildren(elem, indentation)}__\n`
+    return `\n${'\t'.repeat(indentation)}${'#'.repeat(Number(elem.name[1]))} ${renderElementChildren(elem, indentation)}\n`
 }
 //
 // function renderAElement(elem: cheerio.TagElement, indentation = 0){
@@ -145,6 +145,9 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
         }
         else if (elem.name === "p") {
             text += renderPElement(elem, indentation)
+        }
+        else if(elem.name.startsWith("h") && "1234".includes(elem.name[1]) && elem.name.length === 2){
+            text += renderHxElement(elem, indentation)
         }
         else {
             for (let child of elem.children ?? []) {
