@@ -1129,7 +1129,7 @@ until you put a 0 in the box`)
                 if (!economy.canBetAmount(msg.author.id, amount)) {
                     return { content: "You do not have enough money for this", status: StatusCode.ERR }
                 }
-                if (amount / economy.getEconomy()[msg.author.id].money < 0.005) {
+                if (amount / msg.author.balance < 0.005) {
                     return { content: "You must bet at least 0.5%", status: StatusCode.ERR }
                 }
                 let ticket = economy.buyLotteryTicket(msg.author.id, amount)
