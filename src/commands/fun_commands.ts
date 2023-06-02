@@ -7,7 +7,7 @@ import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuild
 
 import fetch = require("node-fetch")
 
-import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
+// import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
 
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
@@ -440,7 +440,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         return activities[activity]()
     }, "If you are retired, do an activity")]
 
-    yield ["fishing", ccmdV2(async ({ msg, args }) => {
+    yield ["fishing", ccmdV2(async ({ msg }) => {
         let rod = hasItem(msg.author.id, "fishing rod")
         if (!rod) {
             return { content: "You do not have a fishing rod", status: StatusCode.ERR }
@@ -908,7 +908,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "6",
         {
-            run: async (msg, args, sendCallback) => {
+            run: async (msg, args) => {
                 if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
                 let opts;
                 [opts, args] = getOpts(args)
@@ -972,7 +972,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         }
                         const rank1 = JSONData.players.indexOf(user1Data)
                         const rank2 = JSONData.players.indexOf(user2Data)
-                        let [xp_needed1, min_messages_for_next_level1, max_messages_for_next_level1, avg_messages_for_next_level1] = getAmountUntil(user1Data)
+                        let [xp_needed1, min_messages_for_next_level1, _, avg_messages_for_next_level1] = getAmountUntil(user1Data)
                         let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
                         const embed = new EmbedBuilder()
                         embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
@@ -1111,7 +1111,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     path = String(opts['full'])
                 }
                 let sentences = parseInt(String(opts['s'])) || 1
-                let options = { hostname: baseurl, path: path }
                 let resp
                 if (path == "/wiki/Special:Random") {
                     resp = await fetch.default(`https://${baseurl}${path}`)
@@ -1494,7 +1493,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "rt",
         {
-            run: async (msg, _, sendCallback, opts, args) => {
+            run: async (msg, _, sendCallback, opts) => {
                 if (opts['t']) {
                     handleSending(msg, { content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1 }, sendCallback).then(_m => {
                         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
@@ -1718,7 +1717,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "weather",
         {
-            run: async (msg: Message, _: ArgumentList, sendCallback, opts, args) => {
+            run: async (__: Message, _: ArgumentList, ___, opts, args) => {
                 let url = "https://www.wttr.in"
                 let town = args.join(" ") || "tokyo"
 
@@ -1793,7 +1792,7 @@ Valid formats:
     ]
 
     yield [
-        "ship", ccmdV2(async function({ argShapeResults, args, rawOpts: opts }) {
+        "ship", ccmdV2(async function({ argShapeResults, rawOpts: opts }) {
             console.log(argShapeResults)
             let [user1Full, user2Full] = argShapeResults['users'] as [string, string]
             let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
@@ -1868,7 +1867,7 @@ Valid formats:
     yield [
         "reddit",
         {
-            run: async (_msg, args, sendCallback) => {
+            run: async (_msg, args) => {
                 let subreddit = args[0]
                 let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
                 let text = await data.text()
@@ -1930,7 +1929,7 @@ Valid formats:
     yield [
         "distance",
         {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
+            run: async (msg: Message, args: ArgumentList) => {
                 let opts;
                 [opts, args] = getOpts(args)
                 let speed = parseInt(opts['speed'] as string) || 1
@@ -2040,7 +2039,7 @@ Valid formats:
     yield [
         "psnipe",
         {
-            run: async (_msg, _args, sendCallback) => {
+            run: async (_msg, _args) => {
                 if (!purgeSnipe) {
                     return { content: "Nothing has been purged yet", status: StatusCode.ERR }
                 }
@@ -2071,7 +2070,7 @@ Valid formats:
     yield [
         "snipe",
         {
-            run: async (_msg: Message, args: ArgumentList, sendCallback) => {
+            run: async (_msg: Message, args: ArgumentList) => {
                 let snipeC = ((parseInt(args[0]) - 1) || 0)
                 if (snipeC >= 5) {
                     return { content: "it only goes back 5", status: StatusCode.ERR }
@@ -2131,7 +2130,7 @@ Valid formats:
 
     }, "Remove a country you created")]
 
-    yield ['achievements', ccmdV2(async function({ msg, args, opts }) {
+    yield ['achievements', ccmdV2(async function({ msg, opts }) {
         let totalAchievements = Object.keys(achievements.POSSIBLE_ACHIEVEMENTS).length
 
         if (opts.getBool("l", false))
@@ -2213,8 +2212,6 @@ Valid formats:
             let sign = user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)
 
             let countries = travel_countries.getCountries()
-
-            let defaultCountries = travel_countries.getCountries("default")
 
             let hasPassport = hasItem(msg.author.id, "passport")
 
