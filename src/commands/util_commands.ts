@@ -3176,7 +3176,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             run: async (msg, args, sendCallback) => {
                 let att = msg.attachments.at(0)
                 if (att) {
-                    let data = await fetch.default(att.attachment.toString())
+                    let data = await fetch.default(att.url)
                     let text = await data.buffer()
                     return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
                 }
