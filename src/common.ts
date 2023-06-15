@@ -10,7 +10,7 @@ const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 7, minor: 8, bug: 0, part: "", beta: false, alpha: false}
+const VERSION = { major: 7, minor: 8, bug: 1, part: "", beta: false, alpha: false}
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
@@ -21,8 +21,6 @@ let BLACKLIST: { [key: string]: string[] } = {}
 
 let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
 
-const LEMMY_INSTANCE = "https://lemmy.world"
-const LEMMY_CLIENT = new LemmyHttp(LEMMY_INSTANCE)
 
 function loadMatchCommands() {
     if (fs.existsSync("./data/match-commands")) {
@@ -135,7 +133,5 @@ export default {
     saveMatchCommands,
     addUserMatchCommand,
     removeUserMatchCommand,
-    LEMMY_INSTANCE,
-    LEMMY_CLIENT
 }
 

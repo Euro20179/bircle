@@ -1871,17 +1871,23 @@ Valid formats:
     yield [
         "lemmy",
         ccmdV2(async function({ msg, args, sendCallback, opts }) {
+
             let action = args.shift()
+            let inst;
 
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []
                 for (let [i, post] of enumerate(posts)) {
                     let uploaded = new Date(post.counts.published)
+                    let [_http, __, inst, _c, community] = post.community.actor_id.split("/")
+                    let authImg = post.community.icon
                     let e = new EmbedBuilder()
                         .setTitle(post.post.name)
                         .setDescription(post.post.body?.slice(0, 4000) || "_ _")
-                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\n` })
+                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\nid: ${post.post.id}` })
                         .setURL(post.post.ap_id)
+
+                    e.setAuthor({iconURL: authImg, name: `${community}@${inst}`})
 
                     embeds.push(e)
                 }
@@ -1891,7 +1897,13 @@ Valid formats:
             const actionResponseTypes = {
                 "posts": "postList",
                 "search": "postList"
-            }
+            };
+
+
+            [action, inst] = action.split("@")
+
+            inst ||= "lemmy.world"
+            const LEMMY_CLIENT = new LemmyHttp(`https://${inst}`);
 
             if (actionResponseTypes[action as keyof typeof actionResponseTypes] === "postList") {
                 let res: lemmy.GetPostsResponse;
@@ -1900,7 +1912,7 @@ Valid formats:
                         let type: ListingType = opts.getString("type", "All") as ListingType
                         let sub = opts.getString("sub", undefined)
                         let sort = opts.getString("sort", "Active") as lemmy.SortType
-                        res = await common.LEMMY_CLIENT.getPosts({
+                        res = await LEMMY_CLIENT.getPosts({
                             community_name: args.join("") || sub,
                             page: opts.getNumber("page", 1),
                             type_: type,
@@ -1921,7 +1933,7 @@ Valid formats:
                             return crv("Limit cannot be > 100", { status: StatusCode.ERR })
                         }
 
-                        res = await common.LEMMY_CLIENT.search({
+                        res = await LEMMY_CLIENT.search({
                             q: args.join(" "),
                             sort,
                             page,
@@ -1994,7 +2006,7 @@ Valid formats:
                 page: createHelpOption("The page to look at", undefined, "1"),
                 sub: createHelpOption("The community to search in<br>eg: <i>-sub=news@beehaw.org</i>"),
                 json: createHelpOption("Return the raw json result"),
-                text: createHelpOption("Return the results as text, instead of embeds")
+                text: createHelpOption("Return the results as text, instead of embeds"),
             }
         })
     ]
