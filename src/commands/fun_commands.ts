@@ -1883,6 +1883,10 @@ Valid formats:
                         .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\n` })
                         .setURL(post.post.ap_id)
 
+                    if(post.post.thumbnail_url){
+                        console.log(post.post.thumbnail_url)
+                        e.setImage(post.post.thumbnail_url)
+                    }
                     embeds.push(e)
                 }
                 return embeds
@@ -2004,7 +2008,8 @@ Valid formats:
         {
             run: async (_msg, args) => {
                 let subreddit = args[0]
-                let data = await fetch.default(`https://libreddit.kavin.rocks/r/${subreddit}`)
+                const instance = 'https://safereddit.com'
+                let data = await fetch.default(`${instance}/r/${subreddit}`)
                 let text = await data.text()
                 if (!text) {
                     return { content: "nothing found", status: StatusCode.ERR }
@@ -2019,13 +2024,16 @@ Valid formats:
                     }
                     else { continue }
                     if ((item as cheerio.TagElement).attribs?.href) {
-                        dataToAdd['link'] = `https://libreddit.spike.codes${(item as cheerio.TagElement).attribs?.href}`
+                        dataToAdd['link'] = `${instance}${(item as cheerio.TagElement).attribs?.href}`
                     }
                     foundData.push(dataToAdd)
                 }
                 let post = choice(foundData)
                 let embed = new EmbedBuilder()
                 embed.setTitle(post.text || "None")
+                if(post.link){
+                    embed.setURL(post.link)
+                }
                 embed.setFooter({ text: post.link || "None" })
                 return { embeds: [embed], status: StatusCode.RETURN }
             }, category: CommandCategory.FUN,
