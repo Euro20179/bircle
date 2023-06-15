@@ -1877,14 +1877,20 @@ Valid formats:
                 let embeds: EmbedBuilder[] = []
                 for (let [i, post] of enumerate(posts)) {
                     let uploaded = new Date(post.counts.published)
+                    let [_https, __, instance, _c, sl] = post.community.actor_id.split("/")
                     let e = new EmbedBuilder()
                         .setTitle(post.post.name)
                         .setDescription(post.post.body?.slice(0, 4000) || "_ _")
-                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\n` })
+                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}
+Uploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}
+ID: ${post.post.id}` })
                         .setURL(post.post.ap_id)
 
+                    if(post.community.icon){
+                        e.setAuthor({iconURL: post.community.icon, name: `${sl}@${instance}`})
+                    }
+
                     if(post.post.thumbnail_url){
-                        console.log(post.post.thumbnail_url)
                         e.setImage(post.post.thumbnail_url)
                     }
                     embeds.push(e)
@@ -1985,6 +1991,9 @@ Valid formats:
                 })
 
                 await pagedEmbed.begin(sendCallback)
+            }
+            else {
+                return crv("Not a valid action", {status: StatusCode.ERR})
             }
 
 
