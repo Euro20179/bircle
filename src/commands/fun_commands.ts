@@ -1875,6 +1875,10 @@ Valid formats:
             let action = args.shift()
             let inst;
 
+            function createPostEmbed(post: lemmy.PostView) {
+
+            }
+
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []
                 for (let [i, post] of enumerate(posts)) {
@@ -1887,7 +1891,7 @@ Valid formats:
                         .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\nid: ${post.post.id}` })
                         .setURL(post.post.ap_id)
 
-                    e.setAuthor({iconURL: authImg, name: `${community}@${inst}`})
+                    e.setAuthor({ iconURL: authImg, name: `${community}@${inst}` })
 
                     embeds.push(e)
                 }
@@ -1896,7 +1900,8 @@ Valid formats:
 
             const actionResponseTypes = {
                 "posts": "postList",
-                "search": "postList"
+                "search": "postList",
+                "post-id": "postList"
             };
 
 
@@ -1918,6 +1923,21 @@ Valid formats:
                             type_: type,
                             sort
                         })
+                        break
+                    }
+                    case "post-id": {
+                        let id = Number(args.shift())
+                        console.log(id)
+                        if (!id) {
+                            return crv("No post id given", { status: StatusCode.ERR })
+                        }
+                        res = {
+                            posts: [
+                                (await LEMMY_CLIENT.getPost({
+                                    id: Number(id)
+                                })).post_view
+                            ]
+                        }
                         break
                     }
                     case "search": {
@@ -1999,7 +2019,7 @@ Valid formats:
             return { noSend: true, status: StatusCode.RETURN }
         }, "Interact with lemmy", {
             helpArguments: {
-                action: createHelpArgument("<li>search &lt;search query&gt;</li><li>posts [community]</li>", true)
+                action: createHelpArgument("<li>search &lt;search query&gt;</li><li>posts [community]</li><li>post-id &lt;id&gt;</li>", true)
             },
             helpOptions: {
                 sort: createHelpOption("the sorting method<br><li indent=1>Active</li><li indent=1>Hot</li><li indent=1>MostComments</li><li indent=1>New</li><li indent=1>NewComments</li><li indent=1>Old</li><li indent=1>TopAll</li><li indent=1>TopDay</li><li indent=1>TopMonth</li><li indent=1>TopWeek</li><li indent=1>TopYear</li>"),
