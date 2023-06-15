@@ -1,4 +1,4 @@
-import { Message, MessageCreateOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { APIButtonComponent, ActionRowBuilder, ButtonBuilder, ButtonComponentData, ButtonInteraction, ButtonStyle, EmbedBuilder, Message, MessageCreateOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
 import vars from './vars';
@@ -18,6 +18,157 @@ import { cloneDeep } from 'lodash';
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
 
+class PagedEmbed {
+    msg: Message
+    embeds: EmbedBuilder[]
+    id: string
+    button_data: {
+        [key: string]: {
+            button_data: Partial<ButtonComponentData>,
+            page?: number,
+            cb?: (this: PagedEmbed, int: ButtonInteraction) => any
+        }
+    }
+    #currentPage: number = 0
+    constructor(msg: Message, embeds: EmbedBuilder[], id: string) {
+        this.msg = msg
+        this.embeds = embeds
+        this.id = id
+        this.button_data = {}
+
+        this.addButton(`${this.id}.back`, {
+            customId: `${this.id}.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary
+        })
+        this.addButton(`${this.id}.next`, {
+            customId: `${this.id}.next`, label: "NEXT", style: ButtonStyle.Primary
+        })
+
+    }
+
+    private get currentEmbed() {
+        return this.embeds[this.#currentPage]
+    }
+
+    get page(){
+        return this.#currentPage
+    }
+
+    get pages() {
+        return this.embeds.length
+    }
+
+    next() {
+        this.#currentPage++;
+    }
+
+    back() {
+        this.#currentPage--;
+    }
+
+    goto_start() {
+        this.#currentPage = 0
+    }
+
+    addButton(action: string, data: Partial<ButtonComponentData> | Partial<APIButtonComponent>, cb?: PagedEmbed['button_data'][string]['cb'], page?: number) {
+        this.button_data[`${this.id}.${action}`] = {
+            button_data: data,
+            cb,
+            page
+        }
+    }
+
+    createActionRow() {
+        let row = new ActionRowBuilder<ButtonBuilder>()
+
+        for (let id in this.button_data) {
+            if(this.button_data[id].page !== undefined && this.button_data[id].page !== this.#currentPage) continue
+            let b = new ButtonBuilder(this.button_data[id].button_data)
+            row.addComponents(b)
+        }
+        return row
+    }
+
+    async begin(_sendcallback?: CommandReturn['sendCallback']) {
+        let m = await handleSending(this.msg, { components: [this.createActionRow()], embeds: [this.currentEmbed], status: StatusCode.INFO })
+        let collector = m.createMessageComponentCollector({ filter: int => int.user.id === this.msg.author.id })
+
+        let to = setTimeout(collector.stop.bind(collector), 60000)
+
+        collector.on("collect", async (int) => {
+            clearTimeout(to)
+            to = setTimeout(collector.stop.bind(collector), 60000)
+
+            if (int.customId.startsWith(`${this.id}.next`)) {
+                this.next()
+                if (this.#currentPage >= this.pages) {
+                    this.goto_start()
+                }
+            }
+
+            else if (int.customId.startsWith(`${this.id}.back`)) {
+                this.back()
+                if (this.#currentPage < 0) {
+                    this.goto_start()
+                }
+            }
+            else{
+                let cb = this.button_data[int.customId.split(":")[0]]
+                if(cb){
+                    cb.cb?.bind(this)(int as ButtonInteraction)
+                }
+            }
+
+            await m.edit({ components: [this.createActionRow()], embeds: [this.currentEmbed] })
+            try {
+                await int.deferUpdate()
+            }
+            catch(err){
+                //interaction agknowledged
+                console.log(err)
+            }
+        })
+    }
+}
+
+async function pagedEmbed(msg: Message, embeds: EmbedBuilder[], id: string) {
+    let current_page = 0
+
+    const pages = embeds.length
+
+    let next_page = new ButtonBuilder({ customId: `${id}.next:${msg.author.id}`, label: "NEXT", style: ButtonStyle.Primary })
+    let last_page = new ButtonBuilder({ customId: `${id}.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary })
+
+    let action_row = new ActionRowBuilder<ButtonBuilder>()
+    action_row.addComponents(last_page, next_page)
+
+    let m = await handleSending(msg, { components: [action_row], embeds: [embeds[current_page]], status: StatusCode.PROMPT })
+    let collector = m.createMessageComponentCollector({ filter: int => int.user.id === msg.author.id })
+
+    let to = setTimeout(collector.stop.bind(collector), 60000)
+    collector.on("collect", async (int) => {
+        clearTimeout(to)
+        to = setTimeout(collector.stop.bind(collector), 60000)
+
+        if (int.customId.startsWith(`${id}.next`)) {
+            current_page++;
+            if (current_page >= pages) {
+                current_page = 0
+            }
+        }
+
+        else if (int.customId.startsWith(`${id}.back`)) {
+            current_page--;
+            if (current_page < 0) {
+                current_page = 0
+            }
+        }
+
+        action_row.setComponents(last_page, next_page)
+
+        await m.edit({ components: [action_row], embeds: [embeds[current_page]] })
+        await int.deferUpdate()
+    })
+}
 
 export const StatusCode = {
     ACHIEVEMENT: -3,
@@ -750,7 +901,7 @@ export class Interpreter {
         let foundMatch = true
         while (foundMatch) {
             for (let mod of keysOf(this.modMap)) {
-                if (!cmd.startsWith(mod)){
+                if (!cmd.startsWith(mod)) {
                     foundMatch = false
                     continue;
                 }
@@ -1247,8 +1398,8 @@ export function crv(content: string, options?: { [K in keyof CommandReturn]?: Co
     }
 }
 
-export function crvFile(fp: string, name: string, description?: string){
-    return {attachment: fp, name, description}
+export function crvFile(fp: string, name: string, description?: string) {
+    return { attachment: fp, name, description }
 }
 
 export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
@@ -1350,5 +1501,6 @@ export default {
     handleSending,
     Interpreter,
     PIDS,
-    censor_error
+    censor_error,
+    PagedEmbed
 }

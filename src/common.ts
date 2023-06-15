@@ -2,6 +2,8 @@ import fs from 'fs'
 
 import { User } from "discord.js";
 
+import { LemmyHttp } from 'lemmy-js-client'
+
 import { Client, GatewayIntentBits } from "discord.js"
 const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
@@ -18,6 +20,9 @@ let WHITELIST: { [key: string]: string[] } = {}
 let BLACKLIST: { [key: string]: string[] } = {}
 
 let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
+
+const LEMMY_INSTANCE = "https://lemmy.world"
+const LEMMY_CLIENT = new LemmyHttp(LEMMY_INSTANCE)
 
 function loadMatchCommands() {
     if (fs.existsSync("./data/match-commands")) {
@@ -130,5 +135,7 @@ export default {
     saveMatchCommands,
     addUserMatchCommand,
     removeUserMatchCommand,
+    LEMMY_INSTANCE,
+    LEMMY_CLIENT
 }
 

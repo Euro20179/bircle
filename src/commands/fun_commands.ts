@@ -3,6 +3,10 @@ import cheerio from 'cheerio'
 import https from 'https'
 import { Stream } from 'stream'
 
+import { LemmyHttp, ListingType } from 'lemmy-js-client'
+
+import lemmy from 'lemmy-js-client'
+
 import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed } from "discord.js";
 
 import fetch = require("node-fetch")
@@ -13,13 +17,13 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, snipes, StatusCode } from "../common_to_commands";
+import common_to_commands, { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -1865,11 +1869,142 @@ Valid formats:
     ]
 
     yield [
+        "lemmy",
+        ccmdV2(async function({ msg, args, sendCallback, opts }) {
+            let action = args.shift()
+
+            function createEmbedFromPosts(posts: lemmy.PostView[]) {
+                let embeds: EmbedBuilder[] = []
+                for (let [i, post] of enumerate(posts)) {
+                    let uploaded = new Date(post.counts.published)
+                    let e = new EmbedBuilder()
+                        .setTitle(post.post.name)
+                        .setDescription(post.post.body?.slice(0, 4000) || "_ _")
+                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\n` })
+                        .setURL(post.post.ap_id)
+
+                    embeds.push(e)
+                }
+                return embeds
+            }
+
+            const actionResponseTypes = {
+                "posts": "postList",
+                "search": "postList"
+            }
+
+            if (actionResponseTypes[action as keyof typeof actionResponseTypes] === "postList") {
+                let res: lemmy.GetPostsResponse;
+                switch (action) {
+                    case "posts": {
+                        let type: ListingType = opts.getString("type", "All") as ListingType
+                        let sub = opts.getString("sub", undefined)
+                        let sort = opts.getString("sort", "Active") as lemmy.SortType
+                        res = await common.LEMMY_CLIENT.getPosts({
+                            community_name: args.join("") || sub,
+                            page: opts.getNumber("page", 1),
+                            type_: type,
+                            sort
+                        })
+                        break
+                    }
+                    case "search": {
+                        if (!args.length) {
+                            return { content: "No search", status: StatusCode.ERR }
+                        }
+                        let sort = opts.getString("sort", "Active") as lemmy.SortType
+                        let page = opts.getNumber("page", 1)
+                        let sub = opts.getString("sub", undefined)
+
+                        let limit = opts.getNumber("limit", 10)
+                        if (limit > 100) {
+                            return crv("Limit cannot be > 100", { status: StatusCode.ERR })
+                        }
+
+                        res = await common.LEMMY_CLIENT.search({
+                            q: args.join(" "),
+                            sort,
+                            page,
+                            community_name: sub,
+                            limit
+                        })
+                        break
+                    }
+                    default: {
+                        return crv(`${args[0]} is not a valid action`, { status: StatusCode.ERR })
+                    }
+                }
+                if (opts.getBool("text", false)) {
+                    let text = ""
+                    for (let post of res.posts) {
+                        let uploaded = new Date(post.counts.published)
+                        text += `# ${post.post.name}\n`
+                        text += `Uploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\n`
+                        text += `Link: ${post.post.ap_id}\n`
+                        text += post.post.body || "_ _"
+                        text += '\n'
+                        text += `### Score: ${post.counts.score}\n`
+                        text += "========================================\n"
+                    }
+                    return crv(text)
+                }
+
+                else if (opts.getBool("json", false)) {
+                    return crv(JSON.stringify(res))
+                }
+
+                let embeds = createEmbedFromPosts(res.posts);
+
+                let pagedEmbed = new common_to_commands.PagedEmbed(msg, embeds, "lemmy")
+
+                pagedEmbed.addButton("json", {
+                    customId: "lemmy.json",
+                    label: "Post Json",
+                    style: ButtonStyle.Secondary
+                }, function(int) {
+                    let post = res.posts[this.page]
+                    const fn = cmdFileName`yt ${msg.author.id} json`
+                    fs.writeFileSync(fn, JSON.stringify(post))
+                    int.reply({
+                        files: [
+                            {
+                                attachment: fn,
+                                name: fn,
+                            }
+                        ]
+                    }).catch((data) => {
+                        console.error(data)
+                        fs.rmSync(fn)
+                    }).then(_ => {
+                        fs.rmSync(fn)
+                    })
+                })
+
+                await pagedEmbed.begin(sendCallback)
+            }
+
+
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Interact with lemmy", {
+            helpArguments: {
+                action: createHelpArgument("<li>search &lt;search query&gt;</li><li>posts [community]</li>", true)
+            },
+            helpOptions: {
+                sort: createHelpOption("the sorting method<br><li indent=1>Active</li><li indent=1>Hot</li><li indent=1>MostComments</li><li indent=1>New</li><li indent=1>NewComments</li><li indent=1>Old</li><li indent=1>TopAll</li><li indent=1>TopDay</li><li indent=1>TopMonth</li><li indent=1>TopWeek</li><li indent=1>TopYear</li>"),
+                page: createHelpOption("The page to look at", undefined, "1"),
+                sub: createHelpOption("The community to search in<br>eg: <i>-sub=news@beehaw.org</i>"),
+                json: createHelpOption("Return the raw json result"),
+                text: createHelpOption("Return the results as text, instead of embeds")
+            }
+        })
+    ]
+
+    yield [
         "reddit",
         {
             run: async (_msg, args) => {
                 let subreddit = args[0]
-                let data = await fetch.default(`https://libreddit.spike.codes/r/${subreddit}`)
+                let data = await fetch.default(`https://libreddit.kavin.rocks/r/${subreddit}`)
                 let text = await data.text()
                 if (!text) {
                     return { content: "nothing found", status: StatusCode.ERR }

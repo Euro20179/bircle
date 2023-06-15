@@ -111,10 +111,13 @@ function renderELEMENT(elem: cheerio.Element, indentation = 0) {
     if (elem.type === "tag") {
         indentation = !isNaN(Number(elem.attribs['indent'])) ? indentation + Number(elem.attribs['indent']) : indentation
         if (elem.name === "br") {
-            text += `\n${"\t".repeat(indentation)}`
+            text += `\n${"\t".repeat(indentation)}\n`
         }
         else if (elem.name === "ul") {
             text += `\n${renderUlElement(elem, indentation)}${"\t".repeat(indentation)}`
+        }
+        else if(elem.name === "li") {
+            text += renderLiElement(elem, indentation)
         }
         else if (elem.name === "a") {
             text += renderAElement(elem, indentation)

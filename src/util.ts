@@ -6,7 +6,7 @@ import htmlRenderer from "./html-renderer"
 import vm from 'vm'
 import fs from 'fs'
 
-import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
+import { APIEmbedField,  BaseChannel,  Channel, ChannelType, Client,  Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
 import { existsSync } from "fs"
 import common from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
@@ -46,18 +46,18 @@ async function defer(cb: Function) {
     cb()
 }
 
-function xInNum(x: number, num: number){
+function xInNum(x: number, num: number) {
     //10 comes from the fact that we are working in base 10
     //first we figure out how big the biggest place value in x is, for example 15's biggest place value is 1 because 10**1 == 10
-    for(var xPow = 0; 10 ** xPow < x; xPow++);
+    for (var xPow = 0; 10 ** xPow < x; xPow++);
     //next we go through each power of 10 until it's bigger than num's biggest place value
-    for(let i = 0; 10 ** i < num; i++){
+    for (let i = 0; 10 ** i < num; i++) {
         //chops off unwanted part of the number, example: if num is 105, and i is 1, 105 will be converted to 10 because we no longer want the 100s place
         let workingNum = Math.floor(num / (10 ** i));
         //checks if the remainder of (current number - x) / 10 ** xPow is 0
         //this confirms if x is in num because for example, if x is 13 and num is 113,
-            //our workingNum will be 113, (113 - 13 % 10 ** 1) === (110 % 10) === 0
-        if((workingNum - x) % (10 ** xPow) === 0){
+        //our workingNum will be 113, (113 - 13 % 10 ** 1) === (110 % 10) === 0
+        if ((workingNum - x) % (10 ** xPow) === 0) {
             return true
         }
     }
@@ -227,9 +227,9 @@ function* cycle<T>(iter: Array<T>, onNext?: (n: number) => void): Generator<T> {
     }
 }
 
-function randomHexColorCode(){
+function randomHexColorCode() {
     let code = '#'
-    for(let i = 0; i < 6; i++){
+    for (let i = 0; i < 6; i++) {
         code += "0123456789ABCDEF"[Math.floor(Math.random() * 16)]
     }
     return code
@@ -707,7 +707,7 @@ class ArgList extends Array {
     expectInt(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.join(this.IFS).match(/^\d+$/) ? parseInt(i[0]) : BADVALUE)
     }
-    expectFloat(amountOfArgs: AmountOfArgs = 1){
+    expectFloat(amountOfArgs: AmountOfArgs = 1) {
         return this.expect(amountOfArgs, i => i.join(this.IFS).match(/^\d+(?:\.\d+)?/) ? parseFloat(i[0]) : BADVALUE)
     }
     expectBool(amountOfArgs: AmountOfArgs = 1) {
@@ -881,7 +881,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
             }
             let html = cheerio.load(helpData.arguments[arg].description)
-            argInfo += `:\n\t\t- ${htmlRenderer.renderELEMENT(html("*")[0], 2).trim()}`
+            argInfo += `:\n\t\t- ${htmlRenderer.renderELEMENT(html("*")[0], 1).trim()}`
             //we want exactly 1 new lines
             if (!argInfo.endsWith("\n")) {
                 argInfo += "\n"
@@ -896,7 +896,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 optInfo += ` (default: ${helpData.options[op].default})`
             }
             optInfo += ': '
-            optInfo += htmlRenderer.renderHTML(helpData.options[op].description, 2).trim() + "\n"
+            optInfo += htmlRenderer.renderHTML(helpData.options[op].description, 1).trim() + "\n"
             if (helpData.options[op].alternates) {
                 optInfo += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
             }
@@ -1044,6 +1044,7 @@ function emitsEvent<T extends (...args: any[]) => any>(fn: T) {
         return fn(...data)
     }
 }
+
 
 export {
     strToCommandCat,

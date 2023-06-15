@@ -14,7 +14,7 @@ import timer from '../timer'
 import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
-import { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
+import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy } from '../util'
 
 import { format, getOpts } from '../parsing'
@@ -28,7 +28,7 @@ import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ['shuf', ccmdV2(async function({args, stdin}){
+    yield ['shuf', ccmdV2(async function({ args, stdin }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
         return crv(shuffle(text).join("\n"))
     }, "shuffles text by line", {
@@ -38,14 +38,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
     })]
 
-    yield ["sort", ccmdV2(async function({args, stdin, opts}){
+    yield ["sort", ccmdV2(async function({ args, stdin, opts }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
         let sortFn = undefined
-        if(opts.getBool("n", false)){
+        if (opts.getBool("n", false)) {
             sortFn = (a: string, b: string) => parseFloat(a) - parseFloat(b)
         }
         let sorted = text.sort(sortFn)
-        if(opts.getBool("r", false)){
+        if (opts.getBool("r", false)) {
             sorted = sorted.reverse()
         }
         return crv(sorted.join("\n"))
@@ -1236,23 +1236,23 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
-    yield ["relscript", ccmdV2(async function({msg, args, opts, stdin, sendCallback}){
+    yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
         let text = stdin ? getContentFromResult(stdin) : args.join(" ")
-        if(!text) return crv("Expected code", {status: StatusCode.ERR})
-        if(opts.getBool("tree", false)){
+        if (!text) return crv("Expected code", { status: StatusCode.ERR })
+        if (opts.getBool("tree", false)) {
             return crv(amountParser.calculateAmountRelativeToInternals(0, text).expression.repr())
         }
-        else if(opts.getBool("s", false)){
+        else if (opts.getBool("s", false)) {
             let symbolTable;
-            do{
+            do {
                 let internals = amountParser.calculateAmountRelativeToInternals(0, text, symbolTable)
                 await handleSending(msg, crv(internals.interpreter.visit().toString()))
                 symbolTable = internals.interpreter.symbolTable
-                let m = await promptUser(msg, undefined, undefined, {timeout: 60000})
-                if(!m) break;
-                if(m.content === '.exit') break;
+                let m = await promptUser(msg, undefined, undefined, { timeout: 60000 })
+                if (!m) break;
+                if (m.content === '.exit') break;
                 text = m.content
-            } while(true);
+            } while (true);
         }
         return crv(amountParser.runRelativeCalculator(0, text).toString())
     }, "Runs relscript", {
@@ -1541,14 +1541,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return { content: string, status: StatusCode.RETURN }
                 }
 
+                let pagedEmbed = new common_to_commands.PagedEmbed(msg, [], "yt")
+
                 let pages = jsonData.length
                 let i = 0
 
                 for (let res of jsonData) {
                     i++;
-
                     let e = new EmbedBuilder()
                     e.setTitle(String(res['title']))
+                    e.setURL(`https://www.youtube.com/watch?v=${res.videoId}` )
 
                     if (res.description) {
                         e.setDescription(res.description)
@@ -1558,43 +1560,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                     e.setImage(res.videoThumbnails?.filter((v: any) => v.quality == thumbnail_quality)[0].url)
 
-                    let button = new ButtonBuilder({ label: "OPEN", style: ButtonStyle.Link, url: `https://www.youtube.com/watch?v=${res.videoId}` })
+                    pagedEmbed.embeds.push(e)
 
-                    let json_button = new ButtonBuilder({ label: "JSON", style: ButtonStyle.Secondary, customId: `yt.json:${res.videoId}` })
-
-                    embeds.push({ embed: e, button: button, jsonButton: json_button })
-                }
-
-                let next_page = new ButtonBuilder({ customId: `yt.next:${msg.author.id}`, label: "NEXT", style: ButtonStyle.Primary })
-                let last_page = new ButtonBuilder({ customId: `yt.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary })
-
-                let action_row = new ActionRowBuilder<ButtonBuilder>()
-                action_row.addComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
-
-                let m = await handleSending(msg, { components: [action_row], embeds: [embeds[current_page].embed], status: StatusCode.PROMPT }, sc)
-                let collector = m.createMessageComponentCollector({ filter: int => int.user.id === msg.author.id })
-
-                let to = setTimeout(collector.stop.bind(collector), 60000)
-                collector.on("collect", async (int) => {
-                    clearTimeout(to)
-                    to = setTimeout(collector.stop.bind(collector), 60000)
-
-                    if (int.customId.startsWith('yt.next')) {
-                        current_page++;
-                        if (current_page >= pages) {
-                            current_page = 0
-                        }
-                    }
-
-                    else if (int.customId.startsWith('yt.back')) {
-                        current_page--;
-                        if (current_page < 0) {
-                            current_page = 0
-                        }
-                    }
-
-                    else if (int.customId.startsWith("yt.json")) {
-                        let yt_id = int.customId.split(":")[1]
+                    pagedEmbed.addButton(`json.${res.videoId}`, { label: "JSON", style: ButtonStyle.Secondary, customId: `yt.json.${res.videoId}:${msg.author.id}` }, (int) => {
+                        console.log(int, "clicked")
+                        //2 magic number because yt.json.<id>
+                        let yt_id = int.customId.split(":")[0].split(".")[2]
                         let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
                         const fn = cmdFileName`yt ${msg.author.id} json`
                         fs.writeFileSync(fn, JSON.stringify(json_data))
@@ -1605,16 +1576,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                                     name: fn,
                                 }
                             ]
-                        }).catch(console.error)
-                        fs.rmSync(fn)
+                        }).catch(console.error).then(_ => {
+                            fs.rmSync(fn)
+                        })
                         return
-                    }
 
-                    action_row.setComponents(last_page, next_page, embeds[current_page].button, embeds[current_page].jsonButton)
+                    }, i - 1)
+                }
 
-                    await m.edit({ components: [action_row], embeds: [embeds[current_page].embed] })
-                    await int.deferUpdate()
-                })
+                await pagedEmbed.begin()
                 if (opts['json']) {
                     return { content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN }
                 }
@@ -3918,7 +3888,7 @@ valid formats:<br>
     ]
 
     yield [
-        "grep", ccmdV2(async ({ msg, args, stdin, opts  }) => {
+        "grep", ccmdV2(async ({ msg, args, stdin, opts }) => {
             args.beginIter()
             let regex = args.expectString((_, __, argsUsed) => stdin ? true : argsUsed < 1)
             if (regex === BADVALUE) {
