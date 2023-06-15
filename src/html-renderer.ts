@@ -85,7 +85,7 @@ function renderCodeElement(elem: cheerio.Element, indentation = 0) {
 
     let lang = Object.entries(elem.attribs).filter(v => v[0] === "lang")?.[0]?.[1]
     if (lang) {
-        text += `\`\`${lang}\`\`\n`
+        text += `\`\`${lang}\n`
     }
     text += renderElementChildren(elem, indentation)
     if (lang) {

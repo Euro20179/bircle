@@ -2075,18 +2075,19 @@ middle
             }, CommandCategory.UTIL,
             "Create an embed",
             {
-                "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:
-<pre>
-${common.prefix}embed title this is the title
-url https://aurl.com
-description the description
-field name | value | (optional true or false)
-image https://....
-thumbnail https://...
-color #00ffe2
-footer this is the footer | (optional link to image)
-author this is the author | (optional link to image)
-</pre>
+                "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:<br>
+<p>
+${common.prefix}embed title this is the title<br>
+url https://aurl.com<br>
+description the description<br>
+field name | value | (optional true or false)<br>
+image https://....<br>
+thumbnail https://...<br>
+color #00ffe2<br>
+footer this is the footer | (optional link to image)<br>
+author this is the author | (optional link to image)<br>
+</p>
+<hr>
 The order these are given does not matter, excpet for field, which will be added in the order you gave`)
             },
             {
