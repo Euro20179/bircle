@@ -1550,7 +1550,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     i++;
                     let e = new EmbedBuilder()
                     e.setTitle(String(res['title']))
-                    e.setURL(`https://www.youtube.com/watch?v=${res.videoId}` )
+                    e.setURL(`https://www.youtube.com/watch?v=${res.videoId}`)
 
                     if (res.description) {
                         e.setDescription(res.description)
@@ -3168,6 +3168,56 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             return { content: Buffer.from(text, "base64").toString("utf8"), status: StatusCode.RETURN }
 
         }, CommandCategory.UTIL, "Decodes base64")
+    ]
+
+    yield [
+        "archive-channel",
+        ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) {
+                return crv("Must be in a guild", { status: StatusCode.ERR })
+            }
+            let channel = await fetchChannel(msg.guild, args[0] || msg.channel.id) || msg.channel
+            if (!("messages" in channel)) {
+                return crv(`${channel} is not a message channel`, { status: StatusCode.ERR })
+            }
+            let curMsg = (await channel.messages.fetch({limit: 1})).at(0)?.id as string
+            if(!curMsg){
+                return crv("Could not get latest message", {status: StatusCode.ERR})
+            }
+            let fn = generateFileName("archive-channel", msg.author.id, "txt")
+            //clear the file in case it exists
+            fs.writeFileSync(fn, "")
+            let mesageCount = 0
+            while (true) {
+                console.log(`msg: ${curMsg}`)
+                let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
+                mesageCount += messages.size
+                console.log(mesageCount)
+                if (!messages.size)
+                    break
+                let text = ""
+                let msgList = messages.toJSON()
+                for (let message of msgList) {
+                    text += `(${new Date(message.createdTimestamp)}) @${message.author.username}: ${message.content}\n`
+                }
+                fs.appendFileSync(fn, text)
+
+                await sleep(Math.random() * 3000)
+
+                curMsg = msgList[msgList.length - 1].id
+            }
+
+            return {
+                files: [
+                    {
+                        name: fn,
+                        attachment: fn
+                    }
+                ], status: StatusCode.RETURN
+            }
+        }, "Gets messages", {
+            permCheck: m => common.ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [

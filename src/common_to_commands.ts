@@ -1437,7 +1437,7 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
 }
 
 export function generateDefaultRecurseBans() {
-    return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas"] }
+    return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas", "archive-channel"] }
 }
 
 export let commands: Map<string, (Command | CommandV2)> = new Map()
