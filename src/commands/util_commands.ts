@@ -3232,8 +3232,8 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         }, "Reads a file", {
             helpArguments: {
 
-                    file: createHelpArgument("must be an attachment", true),
-                    "decoding": createHelpArgument("The decoding method to use", false, undefined, "utf-8")
+                file: createHelpArgument("must be an attachment", true),
+                "decoding": createHelpArgument("The decoding method to use", false, undefined, "utf-8")
             }
         })
     ]
@@ -3367,20 +3367,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let h = m / 60
                     let d = h / 24
                     let w = d / 7
-                    if (unit.startsWith("s")) {
-                        return { content: `${s}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("m")) {
-                        return { content: `${m}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("h")) {
-                        return { content: `${h}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("d")) {
-                        return { content: `${d}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("w")) {
-                        return { content: `${w}`, status: StatusCode.RETURN }
+                    switch (1) {
+                        case unit.startsWith("s"):
+                            return { content: `${s}`, status: StatusCode.RETURN }
+                        case unit.startsWith("m"):
+                            return { content: `${m}`, status: StatusCode.RETURN }
+                        case unit.startsWith("h"):
+                            return { content: `${h}`, status: StatusCode.RETURN }
+                        case unit.startsWith("d"):
+                            return { content: `${d}`, status: StatusCode.RETURN }
+                        case unit.startsWith("w"):
+                            return { content: `${w}`, status: StatusCode.RETURN }
                     }
                     return { content: `${Date.now() - t}`, status: StatusCode.RETURN }
                 }
