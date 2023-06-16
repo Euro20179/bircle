@@ -3180,19 +3180,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (!("messages" in channel)) {
                 return crv(`${channel} is not a message channel`, { status: StatusCode.ERR })
             }
-            let curMsg = (await channel.messages.fetch({limit: 1})).at(0)?.id as string
-            if(!curMsg){
-                return crv("Could not get latest message", {status: StatusCode.ERR})
+            let curMsg = (await channel.messages.fetch({ limit: 1 })).at(0)?.id as string
+            if (!curMsg) {
+                return crv("Could not get latest message", { status: StatusCode.ERR })
             }
             let fn = generateFileName("archive-channel", msg.author.id, "txt")
             //clear the file in case it exists
             fs.writeFileSync(fn, "")
             let mesageCount = 0
             while (true) {
-                console.log(`msg: ${curMsg}`)
                 let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
                 mesageCount += messages.size
-                console.log(mesageCount)
                 if (!messages.size)
                     break
                 let text = ""
@@ -3222,25 +3220,22 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         "rfile",
-        {
-            run: async (msg, args, sendCallback) => {
-                let att = msg.attachments.at(0)
-                if (att) {
-                    let data = await fetch.default(att.url)
-                    let text = await data.buffer()
-                    return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
-                }
-                return { noSend: true, status: StatusCode.ERR }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "reads a file",
-                arguments: {
+        ccmdV2(async function({ msg, args }) {
+            let att = msg.attachments.at(0)
+            if (att) {
+                let data = await fetch.default(att.url)
+                let text = await data.buffer()
+                return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
+            }
+            return { noSend: true, status: StatusCode.ERR }
+
+        }, "Reads a file", {
+            helpArguments: {
+
                     file: createHelpArgument("must be an attachment", true),
                     "decoding": createHelpArgument("The decoding method to use", false, undefined, "utf-8")
-                }
             }
-        },
+        })
     ]
 
     yield ["tr", createCommandV2(async ({ argList, stdin, opts }) => {
