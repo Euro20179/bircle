@@ -1556,70 +1556,59 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "sport",
-        {
-            run: async (msg, args, sendCallback) => {
-                https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
-                    let data = new Stream.Transform()
-                    resp.on("data", chunk => {
-                        data.push(chunk)
-                    })
-                    resp.on("end", async () => {
-                        let html = data.read().toString()
-                        let embed = new EmbedBuilder()
-                        //winner should be in *****
-                        let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
-                        try {
-                            inning = inning.match(/span class=".*?">(.*?)<\//)[1]
-                                .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
-                                    var num = parseInt(numStr, 10);
-                                    return String.fromCharCode(num);
-                                });
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: "No results", status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                        awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                        let homeScore, awayScore
-                        try {
-                            [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: "Failed to get data", status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
-                        awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
-                        embed.setTitle(`${args.join(" ")}`)
-                        if (awayScore >= homeScore) {
-                            awayTeam = `***${awayTeam}***`
-                            awayScore = `***${awayScore}***`
-                            embed.setColor("#ff0000")
-                        }
-                        else {
-                            homeTeam = `***${homeTeam}***`
-                            homeScore = `***${homeScore}***`
-                            embed.setColor("#00ff00")
-                        }
-                        embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
-                        await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN }, sendCallback)
-                    })
-                }).end()
-                return {
-                    content: "getting data",
-                    status: StatusCode.INFO
-                }
-            }, help: {
-                info: "Print information about a sport game",
-                arguments: {
-                    team: {
-                        description: "The team to get info on"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-        },
+        ccmdV2(async function({ msg, args }) {
+            let resp = await fetch.default(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
+            let html = await resp.text()
+            let embed = new EmbedBuilder()
+            //winner should be in *****
+            let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g) ?? []
+            try {
+                //@ts-ignore
+                inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+                    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
+                        var num = parseInt(numStr, 10);
+                        return String.fromCharCode(num);
+                    });
+            }
+            catch (err) {
+                return crv("No results", { status: StatusCode.ERR })
+            }
+            //@ts-ignore
+            homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+            //@ts-ignore
+            awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+            let homeScore, awayScore
+            try {
+                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+            }
+            catch (err) {
+                return crv("Failed to get data", { status: StatusCode.ERR })
+            }
+            homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
+            awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+            embed.setTitle(`${args.join(" ")}`)
+            if (awayScore >= homeScore) {
+                awayTeam = `***${awayTeam}***`
+                awayScore = `***${awayScore}***`
+                embed.setColor("#ff0000")
+            }
+            else {
+                homeTeam = `***${homeTeam}***`
+                homeScore = `***${homeScore}***`
+                embed.setColor("#00ff00")
+            }
+            embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
+            return {
+                embeds: [embed],
+                status: StatusCode.RETURN
+            }
+
+        }, "Print information about a sport game", {
+            helpArguments: {
+                team: createHelpArgument("The team to get info on")
+            }
+        })
+        ,
     ]
 
     yield [
