@@ -102,7 +102,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             rawTextToReturn = str
         }
 
-        if(returnText){
+        if (returnText) {
             return crv(rawTextToReturn)
         }
 
@@ -122,7 +122,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             .setImage(workingJson.image)
             .setDescription(workingJson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
             .setURL(workingJson.url)
-            .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, {name: "Genre", value: workingJson.genre.join(", "), inline: true})
+            .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
 
         return {
             embeds: [e],
@@ -1945,38 +1945,25 @@ middle
 
     yield [
         "htmlq",
-        {
-            run: async (_msg, _, sendCallback, opts, args) => {
-                let [query, ...html] = args.join(" ").split("|")
-                let realHTML = html.join("|")
-                let $ = cheerio.load(realHTML)(query)
-                if (opts['h']) {
-                    let innerHTML = String($.html())
-                    return { content: innerHTML, status: StatusCode.RETURN }
-                }
-                return { content: $.text(), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Query html",
-                arguments: {
-                    query: {
-                        description: "The css query to query the html with",
-                        required: true
-                    },
-                    "|": {
-                        description: "A bar to seperate the query from the html",
-                        required: true,
-                    },
-                    "html": {
-                        description: "Anything after the bar is the html to query",
-                        required: true
-                    }
-                },
-                options: {
-                    h: createHelpOption("Get the inner html instead of inner text")
-                }
+        ccmdV2(async function({ opts, args }) {
+            let [query, ...html] = args.resplit("|")
+            let realHTML = html.join("|")
+            let $ = cheerio.load(realHTML)(query)
+            if (opts.getBool("h", false)) {
+                let innerHTML = String($.html())
+                return { content: innerHTML, status: StatusCode.RETURN }
             }
-        },
+            return { content: $.text(), status: StatusCode.RETURN }
+        }, "Query HTML", {
+            helpArguments: {
+                query: createHelpArgument("The css query to query the html with", true),
+                "|": createHelpArgument( "A bar to seperate the query from the html", true),
+                "html": createHelpArgument( "Anything after the bar is the html to query", true)
+            },
+            helpOptions: {
+                h: createHelpOption("Get the inner html instead of inner text")
+            }
+        })
     ]
 
     yield [
