@@ -1850,40 +1850,6 @@ middle
     ]
 
     yield [
-        "map",
-        {
-            run: async (msg, args, sendCallback, _, __, rec, bans) => {
-                let string = args[0]
-                let functions = args.slice(1).join(" ").split(">map>").map(v => v.trim())
-                if (!functions) {
-                    return { content: "nothing to  do", status: StatusCode.ERR }
-                }
-                for (let fn of functions) {
-                    let replacedFn = fn.replaceAll("{string}", string)
-                    if (replacedFn === fn) {
-                        replacedFn = `${fn} ${string}`
-                    }
-
-                    string = getContentFromResult((await cmd({ msg, command_excluding_prefix: replacedFn, recursion: rec + 1, returnJson: true, disable: bans })).rv).trim()
-                }
-                return { content: string, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Maps a string through various commands",
-                arguments: {
-                    string: {
-                        description: "The first argument is the string to map"
-                    },
-                    "...maps": {
-                        description: "After the first arg, is a command, {string} will be replaced with the current string<br>all maps after the first must start with <code>&gt;map&gt;</code>"
-                    }
-                }
-            }
-        },
-    ]
-
-    yield [
         "format-seconds", createCommandV2(async ({ args }) => {
             let amountOfTime = parseFloat(args[0])
             if (isNaN(amountOfTime)) {
