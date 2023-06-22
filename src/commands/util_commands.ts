@@ -15,9 +15,9 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate } from '../util'
 
-import { format, getOpts } from '../parsing'
+import { format, getOpts, parseBracketPair } from '../parsing'
 
 import vars from '../vars'
 import common from '../common'
@@ -27,6 +27,119 @@ import units from '../units'
 import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+
+    yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin }) {
+        const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
+        let results = await fetch.default(search, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+            }
+        })
+
+        let html = await results.text()
+
+        let as = html.matchAll(/\/title\/([^"]+)[^>]+>([^<]+)/g)
+        let links: { [key: string]: string } = {}
+        for (let match of as) {
+            links[`https://www.imdb.com/title/${match[1]}`] = match[2].replaceAll(/&#x([^;]+);/g, (_, num) => String.fromCodePoint(parseInt(num, 16)))
+        }
+        let linkList = Object.keys(links)
+        let text = ""
+        for (let [i, link] of enumerate(linkList)) {
+            text += `${i}: ${links[link]}\n`
+        }
+        let ans: { content: string } | false =
+            !opts.getBool("a", false)
+                ? await promptUser(msg, `Pick one\n${text}`, undefined, {
+                    filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
+                })
+                : { content: "1" }
+
+        if (!ans) {
+            return crv("Did not respond", { status: StatusCode.ERR })
+        }
+
+        let link = linkList[Number(ans.content) - 1]
+
+        let showReq = await fetch.default(link, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+            }
+        })
+
+        let showHTML = await showReq.text()
+
+        let returnText = false
+        let rawTextToReturn = ""
+        let workingJson: any;
+
+        if (opts.getBool("above-the-fold-data", false)) {
+            returnText = true
+            let j = showHTML.match(/<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script><script>if\(typeof uet/)
+            if (!j?.[1]) {
+                return crv("Could not get above the fold data", { status: StatusCode.ERR })
+            }
+            workingJson = JSON.parse(j![1])
+            rawTextToReturn = j[1]
+        }
+        else {
+            let j = showHTML.match(/<script type="application\/ld\+json">(.*)<\/script>/)
+
+            if (!j) {
+                return crv("Could not find data", { status: StatusCode.ERR })
+            }
+            workingJson = JSON.parse(j[1].split("</script>")[0])
+        }
+        if (opts.getString("fmt", false)) {
+            returnText = true
+            let str = opts.getString("fmt", "").replaceAll(/\{([\.\w_\d]+)\}/g, (_, find) => {
+                let obj = workingJson
+                for (let dot of find.split(".")) {
+                    obj = obj?.[dot]
+                }
+                return obj.toString()
+            })
+            rawTextToReturn = str
+        }
+
+        if (returnText) {
+            return crv(rawTextToReturn)
+        }
+
+        if (opts.getBool("json", false)) {
+            return crv(JSON.stringify(workingJson))
+        }
+
+        let runtime = workingJson.duration
+
+        let [h, m] = runtime?.split("H") || []
+        h ||= "0"
+        m ||= "0"
+        h = h.replace("PT", "")
+
+        let e = new EmbedBuilder()
+            .setTitle(workingJson.name)
+            .setImage(workingJson.image)
+            .setDescription(workingJson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
+            .setURL(workingJson.url)
+            .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
+
+        return {
+            embeds: [e],
+            status: StatusCode.RETURN
+        }
+    }, "Scrapes imdb", {
+        accepts_stdin: "Will be used as the search",
+        helpArguments: {
+            search: createHelpArgument("The movie to search for")
+        },
+        helpOptions: {
+            json: createHelpOption("Return the json result raw"),
+            fmt: createHelpOption("a format specifier where you can access json properties in {}"),
+            a: createHelpOption("Automatically select the first search result"),
+            "above-the-fold-data": createHelpOption("Get data from above the fold :smirk:")
+        }
+    })]
 
     yield ['shuf', ccmdV2(async function({ args, stdin }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
@@ -1550,7 +1663,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     i++;
                     let e = new EmbedBuilder()
                     e.setTitle(String(res['title']))
-                    e.setURL(`https://www.youtube.com/watch?v=${res.videoId}` )
+                    e.setURL(`https://www.youtube.com/watch?v=${res.videoId}`)
 
                     if (res.description) {
                         e.setDescription(res.description)
@@ -1737,40 +1850,6 @@ middle
     ]
 
     yield [
-        "map",
-        {
-            run: async (msg, args, sendCallback, _, __, rec, bans) => {
-                let string = args[0]
-                let functions = args.slice(1).join(" ").split(">map>").map(v => v.trim())
-                if (!functions) {
-                    return { content: "nothing to  do", status: StatusCode.ERR }
-                }
-                for (let fn of functions) {
-                    let replacedFn = fn.replaceAll("{string}", string)
-                    if (replacedFn === fn) {
-                        replacedFn = `${fn} ${string}`
-                    }
-
-                    string = getContentFromResult((await cmd({ msg, command_excluding_prefix: replacedFn, recursion: rec + 1, returnJson: true, disable: bans })).rv).trim()
-                }
-                return { content: string, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Maps a string through various commands",
-                arguments: {
-                    string: {
-                        description: "The first argument is the string to map"
-                    },
-                    "...maps": {
-                        description: "After the first arg, is a command, {string} will be replaced with the current string<br>all maps after the first must start with <code>&gt;map&gt;</code>"
-                    }
-                }
-            }
-        },
-    ]
-
-    yield [
         "format-seconds", createCommandV2(async ({ args }) => {
             let amountOfTime = parseFloat(args[0])
             if (isNaN(amountOfTime)) {
@@ -1866,38 +1945,25 @@ middle
 
     yield [
         "htmlq",
-        {
-            run: async (_msg, _, sendCallback, opts, args) => {
-                let [query, ...html] = args.join(" ").split("|")
-                let realHTML = html.join("|")
-                let $ = cheerio.load(realHTML)(query)
-                if (opts['h']) {
-                    let innerHTML = String($.html())
-                    return { content: innerHTML, status: StatusCode.RETURN }
-                }
-                return { content: $.text(), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Query html",
-                arguments: {
-                    query: {
-                        description: "The css query to query the html with",
-                        required: true
-                    },
-                    "|": {
-                        description: "A bar to seperate the query from the html",
-                        required: true,
-                    },
-                    "html": {
-                        description: "Anything after the bar is the html to query",
-                        required: true
-                    }
-                },
-                options: {
-                    h: createHelpOption("Get the inner html instead of inner text")
-                }
+        ccmdV2(async function({ opts, args }) {
+            let [query, ...html] = args.resplit("|")
+            let realHTML = html.join("|")
+            let $ = cheerio.load(realHTML)(query)
+            if (opts.getBool("h", false)) {
+                let innerHTML = String($.html())
+                return { content: innerHTML, status: StatusCode.RETURN }
             }
-        },
+            return { content: $.text(), status: StatusCode.RETURN }
+        }, "Query HTML", {
+            helpArguments: {
+                query: createHelpArgument("The css query to query the html with", true),
+                "|": createHelpArgument( "A bar to seperate the query from the html", true),
+                "html": createHelpArgument( "Anything after the bar is the html to query", true)
+            },
+            helpOptions: {
+                h: createHelpOption("Get the inner html instead of inner text")
+            }
+        })
     ]
 
     yield [
@@ -2075,18 +2141,19 @@ middle
             }, CommandCategory.UTIL,
             "Create an embed",
             {
-                "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:
-<pre>
-${common.prefix}embed title this is the title
-url https://aurl.com
-description the description
-field name | value | (optional true or false)
-image https://....
-thumbnail https://...
-color #00ffe2
-footer this is the footer | (optional link to image)
-author this is the author | (optional link to image)
-</pre>
+                "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:<br>
+<p>
+${common.prefix}embed title this is the title<br>
+url https://aurl.com<br>
+description the description<br>
+field name | value | (optional true or false)<br>
+image https://....<br>
+thumbnail https://...<br>
+color #00ffe2<br>
+footer this is the footer | (optional link to image)<br>
+author this is the author | (optional link to image)<br>
+</p>
+<hr>
 The order these are given does not matter, excpet for field, which will be added in the order you gave`)
             },
             {
@@ -3170,26 +3237,71 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "rfile",
-        {
-            run: async (msg, args, sendCallback) => {
-                let att = msg.attachments.at(0)
-                if (att) {
-                    let data = await fetch.default(att.attachment.toString())
-                    let text = await data.buffer()
-                    return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
-                }
-                return { noSend: true, status: StatusCode.ERR }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "reads a file",
-                arguments: {
-                    file: createHelpArgument("must be an attachment", true),
-                    "decoding": createHelpArgument("The decoding method to use", false, undefined, "utf-8")
-                }
+        "archive-channel",
+        ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) {
+                return crv("Must be in a guild", { status: StatusCode.ERR })
             }
-        },
+            let channel = await fetchChannel(msg.guild, args[0] || msg.channel.id) || msg.channel
+            if (!("messages" in channel)) {
+                return crv(`${channel} is not a message channel`, { status: StatusCode.ERR })
+            }
+            let curMsg = (await channel.messages.fetch({ limit: 1 })).at(0)?.id as string
+            if (!curMsg) {
+                return crv("Could not get latest message", { status: StatusCode.ERR })
+            }
+            let fn = generateFileName("archive-channel", msg.author.id, "txt")
+            //clear the file in case it exists
+            fs.writeFileSync(fn, "")
+            let mesageCount = 0
+            while (true) {
+                let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
+                mesageCount += messages.size
+                if (!messages.size)
+                    break
+                let text = ""
+                let msgList = messages.toJSON()
+                for (let message of msgList) {
+                    text += `(${new Date(message.createdTimestamp)}) @${message.author.username}: ${message.content}\n`
+                }
+                fs.appendFileSync(fn, text)
+
+                await sleep(Math.random() * 3000)
+
+                curMsg = msgList[msgList.length - 1].id
+            }
+
+            return {
+                files: [
+                    {
+                        name: fn,
+                        attachment: fn
+                    }
+                ], status: StatusCode.RETURN
+            }
+        }, "Gets messages", {
+            permCheck: m => common.ADMINS.includes(m.author.id)
+        })
+    ]
+
+    yield [
+        "rfile",
+        ccmdV2(async function({ msg, args }) {
+            let att = msg.attachments.at(0)
+            if (att) {
+                let data = await fetch.default(att.url)
+                let text = await data.buffer()
+                return { content: text.toString(args[0] as BufferEncoding || "utf-8"), status: StatusCode.RETURN }
+            }
+            return { noSend: true, status: StatusCode.ERR }
+
+        }, "Reads a file", {
+            helpArguments: {
+
+                file: createHelpArgument("must be an attachment", true),
+                "decoding": createHelpArgument("The decoding method to use", false, undefined, "utf-8")
+            }
+        })
     ]
 
     yield ["tr", createCommandV2(async ({ argList, stdin, opts }) => {
@@ -3321,20 +3433,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                     let h = m / 60
                     let d = h / 24
                     let w = d / 7
-                    if (unit.startsWith("s")) {
-                        return { content: `${s}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("m")) {
-                        return { content: `${m}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("h")) {
-                        return { content: `${h}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("d")) {
-                        return { content: `${d}`, status: StatusCode.RETURN }
-                    }
-                    else if (unit.startsWith("w")) {
-                        return { content: `${w}`, status: StatusCode.RETURN }
+                    switch (1) {
+                        case unit.startsWith("s"):
+                            return { content: `${s}`, status: StatusCode.RETURN }
+                        case unit.startsWith("m"):
+                            return { content: `${m}`, status: StatusCode.RETURN }
+                        case unit.startsWith("h"):
+                            return { content: `${h}`, status: StatusCode.RETURN }
+                        case unit.startsWith("d"):
+                            return { content: `${d}`, status: StatusCode.RETURN }
+                        case unit.startsWith("w"):
+                            return { content: `${w}`, status: StatusCode.RETURN }
                     }
                     return { content: `${Date.now() - t}`, status: StatusCode.RETURN }
                 }

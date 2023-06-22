@@ -24,7 +24,6 @@ function sendFile(res: http.ServerResponse, fp: string, contentType?: string) {
     })
 }
 
-
 export const server = http.createServer()
 server.listen(8222)
 

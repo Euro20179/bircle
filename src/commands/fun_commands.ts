@@ -1556,70 +1556,59 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "sport",
-        {
-            run: async (msg, args, sendCallback) => {
-                https.get(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`, resp => {
-                    let data = new Stream.Transform()
-                    resp.on("data", chunk => {
-                        data.push(chunk)
-                    })
-                    resp.on("end", async () => {
-                        let html = data.read().toString()
-                        let embed = new EmbedBuilder()
-                        //winner should be in *****
-                        let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g)
-                        try {
-                            inning = inning.match(/span class=".*?">(.*?)<\//)[1]
-                                .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
-                                    var num = parseInt(numStr, 10);
-                                    return String.fromCharCode(num);
-                                });
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: "No results", status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                        awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-                        let homeScore, awayScore
-                        try {
-                            [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
-                        }
-                        catch (err) {
-                            await handleSending(msg, { content: "Failed to get data", status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
-                        awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
-                        embed.setTitle(`${args.join(" ")}`)
-                        if (awayScore >= homeScore) {
-                            awayTeam = `***${awayTeam}***`
-                            awayScore = `***${awayScore}***`
-                            embed.setColor("#ff0000")
-                        }
-                        else {
-                            homeTeam = `***${homeTeam}***`
-                            homeScore = `***${homeScore}***`
-                            embed.setColor("#00ff00")
-                        }
-                        embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
-                        await handleSending(msg, { embeds: [embed], status: StatusCode.RETURN }, sendCallback)
-                    })
-                }).end()
-                return {
-                    content: "getting data",
-                    status: StatusCode.INFO
-                }
-            }, help: {
-                info: "Print information about a sport game",
-                arguments: {
-                    team: {
-                        description: "The team to get info on"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-        },
+        ccmdV2(async function({ msg, args }) {
+            let resp = await fetch.default(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
+            let html = await resp.text()
+            let embed = new EmbedBuilder()
+            //winner should be in *****
+            let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g) ?? []
+            try {
+                //@ts-ignore
+                inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+                    .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
+                        var num = parseInt(numStr, 10);
+                        return String.fromCharCode(num);
+                    });
+            }
+            catch (err) {
+                return crv("No results", { status: StatusCode.ERR })
+            }
+            //@ts-ignore
+            homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+            //@ts-ignore
+            awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+            let homeScore, awayScore
+            try {
+                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+            }
+            catch (err) {
+                return crv("Failed to get data", { status: StatusCode.ERR })
+            }
+            homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
+            awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+            embed.setTitle(`${args.join(" ")}`)
+            if (awayScore >= homeScore) {
+                awayTeam = `***${awayTeam}***`
+                awayScore = `***${awayScore}***`
+                embed.setColor("#ff0000")
+            }
+            else {
+                homeTeam = `***${homeTeam}***`
+                homeScore = `***${homeScore}***`
+                embed.setColor("#00ff00")
+            }
+            embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
+            return {
+                embeds: [embed],
+                status: StatusCode.RETURN
+            }
+
+        }, "Print information about a sport game", {
+            helpArguments: {
+                team: createHelpArgument("The team to get info on")
+            }
+        })
+        ,
     ]
 
     yield [
@@ -1871,28 +1860,27 @@ Valid formats:
     yield [
         "lemmy",
         ccmdV2(async function({ msg, args, sendCallback, opts }) {
+
             let action = args.shift()
+            let inst;
+
+            function createPostEmbed(post: lemmy.PostView) {
+
+            }
 
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []
                 for (let [i, post] of enumerate(posts)) {
                     let uploaded = new Date(post.counts.published)
-                    let [_https, __, instance, _c, sl] = post.community.actor_id.split("/")
+                    let [_http, __, inst, _c, community] = post.community.actor_id.split("/")
+                    let authImg = post.community.icon
                     let e = new EmbedBuilder()
                         .setTitle(post.post.name)
                         .setDescription(post.post.body?.slice(0, 4000) || "_ _")
-                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}
-Uploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}
-ID: ${post.post.id}` })
+                        .setFooter({ text: `score: ${post.counts.score}, page: ${i + 1} / ${posts.length}\nUploaded: ${uploaded.toDateString()} at ${uploaded.toTimeString().split(" ")[0]}\nid: ${post.post.id}` })
                         .setURL(post.post.ap_id)
 
-                    if(post.community.icon){
-                        e.setAuthor({iconURL: post.community.icon, name: `${sl}@${instance}`})
-                    }
-
-                    if(post.post.thumbnail_url){
-                        e.setImage(post.post.thumbnail_url)
-                    }
+                    e.setAuthor({ iconURL: authImg, name: `${community}@${inst}` })
                     embeds.push(e)
                 }
                 return embeds
@@ -1900,8 +1888,15 @@ ID: ${post.post.id}` })
 
             const actionResponseTypes = {
                 "posts": "postList",
-                "search": "postList"
-            }
+                "search": "postList",
+                "post-id": "postList"
+            };
+
+
+            [action, inst] = action.split("@")
+
+            inst ||= "lemmy.world"
+            const LEMMY_CLIENT = new LemmyHttp(`https://${inst}`);
 
             if (actionResponseTypes[action as keyof typeof actionResponseTypes] === "postList") {
                 let res: lemmy.GetPostsResponse;
@@ -1910,12 +1905,27 @@ ID: ${post.post.id}` })
                         let type: ListingType = opts.getString("type", "All") as ListingType
                         let sub = opts.getString("sub", undefined)
                         let sort = opts.getString("sort", "Active") as lemmy.SortType
-                        res = await common.LEMMY_CLIENT.getPosts({
+                        res = await LEMMY_CLIENT.getPosts({
                             community_name: args.join("") || sub,
                             page: opts.getNumber("page", 1),
                             type_: type,
                             sort
                         })
+                        break
+                    }
+                    case "post-id": {
+                        let id = Number(args.shift())
+                        console.log(id)
+                        if (!id) {
+                            return crv("No post id given", { status: StatusCode.ERR })
+                        }
+                        res = {
+                            posts: [
+                                (await LEMMY_CLIENT.getPost({
+                                    id: Number(id)
+                                })).post_view
+                            ]
+                        }
                         break
                     }
                     case "search": {
@@ -1931,7 +1941,7 @@ ID: ${post.post.id}` })
                             return crv("Limit cannot be > 100", { status: StatusCode.ERR })
                         }
 
-                        res = await common.LEMMY_CLIENT.search({
+                        res = await LEMMY_CLIENT.search({
                             q: args.join(" "),
                             sort,
                             page,
@@ -2000,14 +2010,14 @@ ID: ${post.post.id}` })
             return { noSend: true, status: StatusCode.RETURN }
         }, "Interact with lemmy", {
             helpArguments: {
-                action: createHelpArgument("<li>search &lt;search query&gt;</li><li>posts [community]</li>", true)
+                action: createHelpArgument("<li>search &lt;search query&gt;</li><li>posts [community]</li><li>post-id &lt;id&gt;</li>", true)
             },
             helpOptions: {
                 sort: createHelpOption("the sorting method<br><li indent=1>Active</li><li indent=1>Hot</li><li indent=1>MostComments</li><li indent=1>New</li><li indent=1>NewComments</li><li indent=1>Old</li><li indent=1>TopAll</li><li indent=1>TopDay</li><li indent=1>TopMonth</li><li indent=1>TopWeek</li><li indent=1>TopYear</li>"),
                 page: createHelpOption("The page to look at", undefined, "1"),
                 sub: createHelpOption("The community to search in<br>eg: <i>-sub=news@beehaw.org</i>"),
                 json: createHelpOption("Return the raw json result"),
-                text: createHelpOption("Return the results as text, instead of embeds")
+                text: createHelpOption("Return the results as text, instead of embeds"),
             }
         })
     ]

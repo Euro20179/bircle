@@ -881,7 +881,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
                 argInfo += ` (default: ${helpData.arguments[arg].default})`
             }
             let html = cheerio.load(helpData.arguments[arg].description)
-            argInfo += `:\n\t\t- ${htmlRenderer.renderELEMENT(html("*")[0], 1).trim()}`
+            argInfo += `:\n\t${htmlRenderer.renderELEMENT(html("*")[0], 1).trim()}`
             //we want exactly 1 new lines
             if (!argInfo.endsWith("\n")) {
                 argInfo += "\n"
