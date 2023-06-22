@@ -46,7 +46,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let linkList = Object.keys(links)
         let text = ""
         for (let [i, link] of enumerate(linkList)) {
-            text += `${i}: ${links[link]}\n`
+            text += `${i + 1}: ${links[link]}\n`
         }
         let ans: { content: string } | false =
             !opts.getBool("a", false)
