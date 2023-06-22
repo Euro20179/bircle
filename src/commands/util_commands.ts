@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -28,8 +28,8 @@ import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ['imdb', ccmdV2(async function({ msg, args, opts }) {
-        const search = `https://www.imdb.com/find/?q=${args.join(" ")}`
+    yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin }) {
+        const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
         let results = await fetch.default(search, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
@@ -45,9 +45,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let linkList = Object.keys(links)
         let text = ""
-        let i = 0
-        for (let link in links) {
-            i++
+        for (let [i, link] of enumerate(linkList)) {
             text += `${i}: ${links[link]}\n`
         }
         let ans: { content: string } | false =
@@ -66,10 +64,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let showReq = await fetch.default(link, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-
             }
         })
-
 
         let showHTML = await showReq.text()
 
@@ -133,6 +129,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             status: StatusCode.RETURN
         }
     }, "Scrapes imdb", {
+        accepts_stdin: "Will be used as the search",
         helpArguments: {
             search: createHelpArgument("The movie to search for")
         },
