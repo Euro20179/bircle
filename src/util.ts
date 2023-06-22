@@ -858,7 +858,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
         textInfo += htmlRenderer.renderHTML(`<h1>Docs</h1>` + helpData.docs) + '\n\n'
     }
     if (helpData.accepts_stdin) {
-        argInfo += "__stdin__:\n"
+        argInfo += "# Stdin\n"
         if (typeof helpData.accepts_stdin === 'string') {
             argInfo += htmlRenderer.renderHTML(helpData.accepts_stdin, 2)
         }
