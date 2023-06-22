@@ -17,7 +17,7 @@ import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, A
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
 import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy } from '../util'
 
-import { format, getOpts } from '../parsing'
+import { format, getOpts, parseBracketPair } from '../parsing'
 
 import vars from '../vars'
 import common from '../common'
@@ -82,13 +82,21 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         let runtime = mainjson.duration
 
-
-        console.log(runtime)
         let [h, m] = runtime?.split("H") || []
         h ||= "0"
         m ||= "0"
         h = h.replace("PT", "")
 
+        if(opts.getString("fmt", false)){
+            let str = opts.getString("fmt", "").replaceAll(/\{([\.\w_\d]+)\}/g, (_, find) => {
+                let obj = mainjson
+                for(let dot of find.split(".")){
+                    obj = obj?.[dot]
+                }
+                return obj.toString()
+            })
+            return crv(str)
+        }
 
         let e = new EmbedBuilder()
                 .setTitle(mainjson.name)
@@ -102,7 +110,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             embeds: [e],
             status: StatusCode.RETURN
         }
-    }, "Scrapes imdb")]
+    }, "Scrapes imdb", {
+        helpArguments: {
+            search: createHelpArgument("The movie to search for")
+        },
+        helpOptions: {
+            json: createHelpOption("Return the json result raw"),
+            fmt: createHelpOption("a format specifier where you can access json properties in {}")
+        }
+    })]
 
     yield ['shuf', ccmdV2(async function({ args, stdin }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
