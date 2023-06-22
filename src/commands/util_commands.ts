@@ -1945,9 +1945,17 @@ middle
 
     yield [
         "htmlq",
-        ccmdV2(async function({ opts, args }) {
-            let [query, ...html] = args.resplit("|")
-            let realHTML = html.join("|")
+        ccmdV2(async function({ opts, args, stdin }) {
+            let query, realHTML
+            if(stdin){
+                realHTML = getContentFromResult(stdin)
+                query = args.join(" ")
+            }
+            else{
+                let h;
+                [query, ...h] = args.resplit("|")
+                realHTML = h.join("|")
+            }
             let $ = cheerio.load(realHTML)(query)
             if (opts.getBool("h", false)) {
                 let innerHTML = String($.html())
@@ -1955,6 +1963,7 @@ middle
             }
             return { content: $.text(), status: StatusCode.RETURN }
         }, "Query HTML", {
+            accepts_stdin: "The html to parse instead of the html after |<br>if given all arguments will count for the <b>query</b>",
             helpArguments: {
                 query: createHelpArgument("The css query to query the html with", true),
                 "|": createHelpArgument( "A bar to seperate the query from the html", true),
