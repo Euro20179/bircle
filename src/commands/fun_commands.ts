@@ -1,7 +1,5 @@
 import fs from 'fs'
 import cheerio from 'cheerio'
-import https from 'https'
-import { Stream } from 'stream'
 
 import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
