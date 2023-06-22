@@ -141,7 +141,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let rulesets: string[] = []
         const DO_ALL = opts.getBool("all", false)
         for (let i = 0; i < (Number(argShapeResults['#-of-rulesets']) || 1); i++) {
-            console.log(i)
             let text = ""
             if (opts.getBool("type", true) || DO_ALL) {
                 let type = choice(["stock", "timed", "stamina"])
