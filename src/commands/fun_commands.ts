@@ -1799,7 +1799,7 @@ Valid formats:
                 user2: createHelpArgument("The second user", true)
             },
             argShape: async function*(args) {
-                yield [args.expectList("|", 2), "users"]
+                yield [args.expectList("|", 2, true), "users"]
             }
         })
     ]
