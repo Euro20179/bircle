@@ -28,7 +28,7 @@ import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
-    yield ['imdb', ccmdV2(async function({msg, args, opts}){
+    yield ['imdb', ccmdV2(async function({ msg, args, opts }) {
         const search = `https://www.imdb.com/find/?q=${args.join(" ")}`
         let results = await fetch.default(search, {
             headers: {
@@ -39,23 +39,26 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let html = await results.text()
 
         let as = html.matchAll(/\/title\/([^"]+)[^>]+>([^<]+)/g)
-        let links: {[key: string]: string} = {}
-        for(let match of as){
+        let links: { [key: string]: string } = {}
+        for (let match of as) {
             links[`https://www.imdb.com/title/${match[1]}`] = match[2].replaceAll(/&#x([^;]+);/g, (_, num) => String.fromCodePoint(parseInt(num, 16)))
         }
         let linkList = Object.keys(links)
         let text = ""
         let i = 0
-        for(let link in links){
+        for (let link in links) {
             i++
             text += `${i}: ${links[link]}\n`
         }
-        let ans = await promptUser(msg, `Pick one\n${text}`, undefined, {
-            filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
-        })
+        let ans: { content: string } | false =
+            !opts.getBool("a", false)
+                ? await promptUser(msg, `Pick one\n${text}`, undefined, {
+                    filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
+                })
+                : { content: "1" }
 
-        if(!ans){
-            return crv("Did not respond", {status: StatusCode.ERR})
+        if (!ans) {
+            return crv("Did not respond", { status: StatusCode.ERR })
         }
 
         let link = linkList[Number(ans.content) - 1]
@@ -67,44 +70,63 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
         })
 
+
         let showHTML = await showReq.text()
 
-        let j = showHTML.match(/<script type="application\/ld\+json">(.*)<\/script>/)
-        if(!j){
-            return crv("Could not find data", {status: StatusCode.ERR})
+        let returnText = false
+        let rawTextToReturn = ""
+        let workingJson: any;
+
+        if (opts.getBool("above-the-fold-data", false)) {
+            returnText = true
+            let j = showHTML.match(/<script id="__NEXT_DATA__" type="application\/json">(.*)<\/script><script>if\(typeof uet/)
+            if (!j?.[1]) {
+                return crv("Could not get above the fold data", { status: StatusCode.ERR })
+            }
+            workingJson = JSON.parse(j![1])
+            rawTextToReturn = j[1]
+        }
+        else {
+            let j = showHTML.match(/<script type="application\/ld\+json">(.*)<\/script>/)
+
+            if (!j) {
+                return crv("Could not find data", { status: StatusCode.ERR })
+            }
+            workingJson = JSON.parse(j[1].split("</script>")[0])
+        }
+        if (opts.getString("fmt", false)) {
+            returnText = true
+            let str = opts.getString("fmt", "").replaceAll(/\{([\.\w_\d]+)\}/g, (_, find) => {
+                let obj = workingJson
+                for (let dot of find.split(".")) {
+                    obj = obj?.[dot]
+                }
+                return obj.toString()
+            })
+            rawTextToReturn = str
         }
 
-        let mainjson = JSON.parse(j[1].split("</script>")[0])
-
-        if(opts.getBool("json", false)){
-            return crv(JSON.stringify(mainjson))
+        if(returnText){
+            return crv(rawTextToReturn)
         }
 
-        let runtime = mainjson.duration
+        if (opts.getBool("json", false)) {
+            return crv(JSON.stringify(workingJson))
+        }
+
+        let runtime = workingJson.duration
 
         let [h, m] = runtime?.split("H") || []
         h ||= "0"
         m ||= "0"
         h = h.replace("PT", "")
 
-        if(opts.getString("fmt", false)){
-            let str = opts.getString("fmt", "").replaceAll(/\{([\.\w_\d]+)\}/g, (_, find) => {
-                let obj = mainjson
-                for(let dot of find.split(".")){
-                    obj = obj?.[dot]
-                }
-                return obj.toString()
-            })
-            return crv(str)
-        }
-
         let e = new EmbedBuilder()
-                .setTitle(mainjson.name)
-                .setImage(mainjson.image)
-                .setDescription(mainjson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
-                .setURL(mainjson.url)
-                .setFields({name: "Review Score", value: `${mainjson.aggregateRating.ratingValue} (${mainjson.aggregateRating.ratingCount})`, inline: true}, {name: "Rated", value: mainjson.contentRating, inline: true}, {name: "Runtime", value: `${h}:${m.replace("M", "")}:00`})
-                .setFooter({text: `Genre: ${mainjson.genre.join(", ")}`})
+            .setTitle(workingJson.name)
+            .setImage(workingJson.image)
+            .setDescription(workingJson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
+            .setURL(workingJson.url)
+            .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, {name: "Genre", value: workingJson.genre.join(", "), inline: true})
 
         return {
             embeds: [e],
@@ -116,7 +138,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
         helpOptions: {
             json: createHelpOption("Return the json result raw"),
-            fmt: createHelpOption("a format specifier where you can access json properties in {}")
+            fmt: createHelpOption("a format specifier where you can access json properties in {}"),
+            a: createHelpOption("Automatically select the first search result"),
+            "above-the-fold-data": createHelpOption("Get data from above the fold :smirk:")
         }
     })]
 
