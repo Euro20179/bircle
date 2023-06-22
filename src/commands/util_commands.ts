@@ -28,6 +28,82 @@ import amountParser from '../amount-parser'
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
+    yield ['imdb', ccmdV2(async function({msg, args, opts}){
+        const search = `https://www.imdb.com/find/?q=${args.join(" ")}`
+        let results = await fetch.default(search, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+            }
+        })
+
+        let html = await results.text()
+
+        let as = html.matchAll(/\/title\/([^"]+)[^>]+>([^<]+)/g)
+        let links: {[key: string]: string} = {}
+        for(let match of as){
+            links[`https://www.imdb.com/title/${match[1]}`] = match[2].replaceAll(/&#x([^;]+);/g, (_, num) => String.fromCodePoint(parseInt(num, 16)))
+        }
+        let linkList = Object.keys(links)
+        let text = ""
+        let i = 0
+        for(let link in links){
+            i++
+            text += `${i}: ${links[link]}\n`
+        }
+        let ans = await promptUser(msg, `Pick one\n${text}`, undefined, {
+            filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
+        })
+
+        if(!ans){
+            return crv("Did not respond", {status: StatusCode.ERR})
+        }
+
+        let link = linkList[Number(ans.content) - 1]
+
+        let showReq = await fetch.default(link, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+
+            }
+        })
+
+        let showHTML = await showReq.text()
+
+        let j = showHTML.match(/<script type="application\/ld\+json">(.*)<\/script>/)
+        if(!j){
+            return crv("Could not find data", {status: StatusCode.ERR})
+        }
+
+        let mainjson = JSON.parse(j[1].split("</script>")[0])
+
+        if(opts.getBool("json", false)){
+            return crv(JSON.stringify(mainjson))
+        }
+
+        let runtime = mainjson.duration
+
+
+        console.log(runtime)
+        let [h, m] = runtime?.split("H") || []
+        h ||= "0"
+        m ||= "0"
+        h = h.replace("PT", "")
+
+
+        let e = new EmbedBuilder()
+                .setTitle(mainjson.name)
+                .setImage(mainjson.image)
+                .setDescription(mainjson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
+                .setURL(mainjson.url)
+                .setFields({name: "Review Score", value: `${mainjson.aggregateRating.ratingValue} (${mainjson.aggregateRating.ratingCount})`, inline: true}, {name: "Rated", value: mainjson.contentRating, inline: true}, {name: "Runtime", value: `${h}:${m.replace("M", "")}:00`})
+                .setFooter({text: `Genre: ${mainjson.genre.join(", ")}`})
+
+        return {
+            embeds: [e],
+            status: StatusCode.RETURN
+        }
+    }, "Scrapes imdb")]
+
     yield ['shuf', ccmdV2(async function({ args, stdin }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
         return crv(shuffle(text).join("\n"))

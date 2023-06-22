@@ -1,4 +1,4 @@
-import { APIButtonComponent, ActionRowBuilder, ButtonBuilder, ButtonComponentData, ButtonInteraction, ButtonStyle, EmbedBuilder, Message, MessageCreateOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { APIButtonComponent, ActionRowBuilder, AwaitMessagesOptions, ButtonBuilder, ButtonComponentData, ButtonInteraction, ButtonStyle, EmbedBuilder, Message, MessageCreateOptions, MessagePayload, PartialMessage } from 'discord.js';
 import fs from 'fs'
 
 import vars from './vars';
@@ -244,11 +244,11 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout: milliseconds_t }): Promise<Message<boolean> | false> {
+export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter: AwaitMessagesOptions['filter']  }): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
     if (prompt)
         await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
-    let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id, time: options?.timeout || 30000, max: 1 })
+    let msgs = await msg.channel.awaitMessages({ filter: options?.filter || (m => m.author.id === msg.author.id), time: options?.timeout || 30000, max: 1 })
     let m = msgs.at(0)
     if (!m) {
         return false
