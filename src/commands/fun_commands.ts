@@ -1864,10 +1864,6 @@ Valid formats:
             let action = args.shift()
             let inst;
 
-            function createPostEmbed(post: lemmy.PostView) {
-
-            }
-
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []
                 for (let [i, post] of enumerate(posts)) {
