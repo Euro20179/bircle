@@ -637,7 +637,7 @@ class ArgList extends Array {
             list.includes(i.join(" "))
         })
     }
-    expectList(splitter: string, amountOfListItems: number = 1) {
+    expectList(splitter: string, amountOfListItems: number = 1, sized = false) {
         let resArr: string[] = []
         let curItem = 0
         return this.expect((arg) => {
@@ -666,7 +666,7 @@ class ArgList extends Array {
             return resArr.length < amountOfListItems
             //slicing here removes the extra IFS at the end of each item
         }, () => {
-            if (resArr.length < amountOfListItems) return BADVALUE
+            if (resArr.length < amountOfListItems && sized) return BADVALUE
             return resArr.map(v => v.slice(0, -1))
         }) as string[] | typeof BADVALUE
     }
@@ -858,7 +858,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
         textInfo += htmlRenderer.renderHTML(`<h1>Docs</h1>` + helpData.docs) + '\n\n'
     }
     if (helpData.accepts_stdin) {
-        argInfo += "__stdin__:\n"
+        argInfo += "# Stdin\n"
         if (typeof helpData.accepts_stdin === 'string') {
             argInfo += htmlRenderer.renderHTML(helpData.accepts_stdin, 2)
         }

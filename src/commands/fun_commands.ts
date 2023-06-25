@@ -1,7 +1,5 @@
 import fs from 'fs'
 import cheerio from 'cheerio'
-import https from 'https'
-import { Stream } from 'stream'
 
 import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
@@ -143,7 +141,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let rulesets: string[] = []
         const DO_ALL = opts.getBool("all", false)
         for (let i = 0; i < (Number(argShapeResults['#-of-rulesets']) || 1); i++) {
-            console.log(i)
             let text = ""
             if (opts.getBool("type", true) || DO_ALL) {
                 let type = choice(["stock", "timed", "stamina"])
@@ -1799,7 +1796,7 @@ Valid formats:
                 user2: createHelpArgument("The second user", true)
             },
             argShape: async function*(args) {
-                yield [args.expectList("|", 2), "users"]
+                yield [args.expectList("|", 2, true), "users"]
             }
         })
     ]
@@ -1863,10 +1860,6 @@ Valid formats:
 
             let action = args.shift()
             let inst;
-
-            function createPostEmbed(post: lemmy.PostView) {
-
-            }
 
             function createEmbedFromPosts(posts: lemmy.PostView[]) {
                 let embeds: EmbedBuilder[] = []

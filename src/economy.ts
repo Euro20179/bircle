@@ -467,6 +467,7 @@ let lastEconomyTotal = economyLooseGrandTotal().total
 let inflation = 0
 setInterval(() => {
     inflation = (economyLooseGrandTotal().total - lastEconomyTotal) / lastEconomyTotal
+    lastEconomyTotal = economyLooseGrandTotal().total
 }, 60000)
 
 export default {
