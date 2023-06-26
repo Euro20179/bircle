@@ -26,7 +26,52 @@ import { isNaN, shuffle } from 'lodash'
 import units from '../units'
 import amountParser from '../amount-parser'
 
+import translate from '@iamtraction/google-translate'
+
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+
+    yield [
+        'translate', ccmdV2(async function({msg, args, opts, stdin }) {
+            let [from, arrow, to] = args.slice(0, 3)
+            let text = stdin ? getContentFromResult(stdin) : ""
+            if (from?.length !== 2 || to?.length !== 2 || arrow !== "->") {
+                from = opts.getString("from", "auto")
+                to = opts.getString("to", "en")
+                if(!text) text = args.join(" ")
+            }
+            else {
+                if(!text) text = args.slice(3).join(" ")
+            }
+            if(!text.length){
+                let up = opts.getNumber("m", 1)
+                let msgs = await msg.channel.messages.fetch({limit: up + 1})
+                let req_msg = msgs.at(up)
+                if(!req_msg){
+                    return crv("Could not get message", {status: StatusCode.ERR})
+                }
+                text = req_msg.content
+            }
+            let res = await translate(text, {
+                to,
+                from
+            })
+            return crv(res.text)
+        }, "translate from language a to b", {
+            docs: "List of languages<br>af: afrikaans<br>sq: albanian<br>ar: Arabic<br>hy: Armenian<br>az: Azerbaijani<br>eu: Basque<br>be: Belarusian<br>bn: Bengali<br>bs: Bosnian<br>bg: Bulgarian<br>ca: Catalan<br>ceb: Cebuano<br>ny: Chichewa<br>zh-cn: Chinese Simplified<br>zh-tw: Chinese Traditional<br>co: Corsican<br>hr: Croatian<br>cs: Czech<br>da: Danish<br>nl: Dutch<br>en: English<br>eo: Esperanto<br>et: Estonian<br>tl: Filipino<br>fi: Finnish<br>fr: French<br>fy: Frisian<br>gl: Galician<br>ka: Georgian<br>de: German<br>el: Greek<br>gu: Gujarati<br>ht: Haitian Creole<br>ha: Hausa<br>haw: Hawaiian<br>iw: Hebrew<br>hi: Hindi<br>hmn: Hmong<br>hu: Hungarian<br>is: Icelandic<br>ig: Igbo<br>id: Indonesian<br>ga: Irish<br>it: Italian<br>ja: Japanese<br>jw: Javanese<br>kn: Kannada<br>kk: Kazakh<br>km: Khmer<br>ko: Korean<br>ku: Kurdish (Kurmanji)<br>ky: Kyrgyz<br>lo: Lao<br>la: Latin<br>lv: Latvian<br>lt: Lithuanian<br>lb: Luxembourgish<br>mk: Macedonian<br>mg: Malagasy<br>ms: Malay<br>ml: Malayalam<br>mt: Maltese<br>mi: Maori<br>mr: Marathi<br>mn: Mongolian<br>my: Myanmar (Burmese)<br>ne: Nepali<br>no: Norwegian<br>ps: Pashto<br>fa: Persian<br>pl: Polish<br>pt: Portuguese<br>ma: Punjabi<br>ro: Romanian<br>ru: Russian<br>sm: Samoan<br>gd: Scots Gaelic<br>sr: Serbian<br>st: Sesotho<br>sn: Shona<br>sd: Sindhi<br>si: Sinhala<br>sk: Slovak<br>sl: Slovenian<br>so: Somali<br>es: Spanish<br>su: Sudanese<br>sw: Swahili<br>sv: Swedish<br>tg: Tajik<br>ta: Tamil<br>te: Telugu<br>th: Thai<br>tr: Turkish<br>uk: Ukrainian<br>ur: Urdu<br>uz: Uzbek<br>vi: Vietnamese<br>cy: Welsh<br>xh: Xhosa<br>yi: Yiddish<br>yo: Yoruba<br>zu: Zulu",
+            accepts_stdin: "The text to translate",
+            helpArguments: {
+                from: createHelpArgument("The language to translate from", false),
+                arrow: createHelpArgument("an arrow that looks like ->", false, "from"),
+                to: createHelpArgument("The language to translate to", false, "arrow"),
+                text: createHelpArgument("The text to translate")
+            },
+            helpOptions: {
+                to: createHelpOption("The language to translate to"),
+                from: createHelpOption("The language to translate from"),
+                m: createHelpOption("Translate the message <b>m</b> messages up")
+            }
+        })
+    ]
 
     yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin }) {
         const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
@@ -1947,11 +1992,11 @@ middle
         "htmlq",
         ccmdV2(async function({ opts, args, stdin }) {
             let query, realHTML
-            if(stdin){
+            if (stdin) {
                 realHTML = getContentFromResult(stdin)
                 query = args.join(" ")
             }
-            else{
+            else {
                 let h;
                 [query, ...h] = args.resplit("|")
                 realHTML = h.join("|")
@@ -1966,8 +2011,8 @@ middle
             accepts_stdin: "The html to parse instead of the html after |<br>if given all arguments will count for the <b>query</b>",
             helpArguments: {
                 query: createHelpArgument("The css query to query the html with", true),
-                "|": createHelpArgument( "A bar to seperate the query from the html", true),
-                "html": createHelpArgument( "Anything after the bar is the html to query", true)
+                "|": createHelpArgument("A bar to seperate the query from the html", true),
+                "html": createHelpArgument("Anything after the bar is the html to query", true)
             },
             helpOptions: {
                 h: createHelpOption("Get the inner html instead of inner text")

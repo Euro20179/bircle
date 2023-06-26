@@ -632,7 +632,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         continue;
                     }
                     let randItem = Object.keys(inv[user]).sort(() => Math.random() - 0.5)[0]
-                    if (!randItem) continue
+                    if (!randItem || achievements.ACHIVEMENT_ITEMS.includes(randItem)) continue
                     useItem(user, randItem, 1)
                     giveItem(msg.author.id, randItem, 1)
                     text += `Stole ${randItem} from <@${user}>\n`
@@ -1562,8 +1562,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let embed = new EmbedBuilder()
             //winner should be in *****
             let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g) ?? []
-            if(!inning){
-                return crv("Could not determine inning", {status: StatusCode.ERR})
+            if (!inning) {
+                return crv("Could not determine inning", { status: StatusCode.ERR })
             }
             try {
                 inning = inning.match(/span class=".*?">(.*?)<\//)![1]
@@ -2023,42 +2023,33 @@ Valid formats:
 
     yield [
         "reddit",
-        {
-            run: async (_msg, args) => {
-                let subreddit = args[0]
-                const instance = 'https://safereddit.com'
-                let data = await fetch.default(`${instance}/r/${subreddit}`)
-                let text = await data.text()
-                if (!text) {
-                    return { content: "nothing found", status: StatusCode.ERR }
-                }
-                const $ = cheerio.load(text)
-                type data = { text?: string, link?: string }
-                let foundData: data[] = []
-                for (let item of $("h2.post_title a[href]")) {
-                    let dataToAdd: data = {}
-                    if ((item as cheerio.TagElement).children[0].data) {
-                        dataToAdd['text'] = (item as cheerio.TagElement).children[0].data
-                    }
-                    else { continue }
-                    if ((item as cheerio.TagElement).attribs?.href) {
-                        dataToAdd['link'] = `${instance}${(item as cheerio.TagElement).attribs?.href}`
-                    }
-                    foundData.push(dataToAdd)
-                }
-                let post = choice(foundData)
-                let embed = new EmbedBuilder()
-                embed.setTitle(post.text || "None")
-                if(post.link){
-                    embed.setURL(post.link)
-                }
-                embed.setFooter({ text: post.link || "None" })
-                return { embeds: [embed], status: StatusCode.RETURN }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Gets a random post  from a subreddit"
+        ccmdV2(async function({ args }) {
+            let subreddit = args[0]
+            let data = await fetch.default(`https://libreddit.kavin.rocks/r/${subreddit}`)
+            let text = await data.text()
+            if (!text) {
+                return { content: "nothing found", status: StatusCode.ERR }
             }
-        },
+            const $ = cheerio.load(text)
+            type data = { text?: string, link?: string }
+            let foundData: data[] = []
+            for (let item of $("h2.post_title a[href]")) {
+                let dataToAdd: data = {}
+                if ((item as cheerio.TagElement).children[0].data) {
+                    dataToAdd['text'] = (item as cheerio.TagElement).children[0].data
+                }
+                else { continue }
+                if ((item as cheerio.TagElement).attribs?.href) {
+                    dataToAdd['link'] = `https://libreddit.spike.codes${(item as cheerio.TagElement).attribs?.href}`
+                }
+                foundData.push(dataToAdd)
+            }
+            let post = choice(foundData)
+            let embed = new EmbedBuilder()
+            embed.setTitle(post.text || "None")
+            embed.setFooter({ text: post.link || "None" })
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "Gets a random post  from a subreddit")
     ]
 
     yield [
@@ -2089,83 +2080,80 @@ Valid formats:
 
     yield [
         "distance",
-        {
-            run: async (msg: Message, args: ArgumentList) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let speed = parseInt(opts['speed'] as string) || 1
-                let joinedArgs = args.join(" ")
-                let [from, to] = joinedArgs.split("|")
-                if (!to) {
-                    return { content: "No second place given, fmt: `place 1 | place 2`", status: StatusCode.ERR }
-                }
-                let fromUser = await fetchUserFromClientOrGuild(from, msg.guild)
-                let toUser = await fetchUserFromClientOrGuild(to, msg.guild)
-                if (fromUser && toUser && fs.existsSync("./command-results/distance-easter-egg")) {
-                    let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
-                    return {
-                        content: choice(options)
-                            .slice(20)
-                            .replaceAll("{from}", fromUser.id)
-                            .replaceAll("{to}", toUser.id)
-                            .replaceAll("{f}", `${fromUser}`)
-                            .replaceAll("{t}", `${toUser}`)
-                            .trim(),
-                        status: StatusCode.RETURN
-                    }
-                }
-                from = encodeURI(from.trim())
-                to = encodeURI(to.trim())
-                const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
-                const resp = await fetch.default(url, {
-                    headers: {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
-                    }
-                })
-                const $ = cheerio.load(await resp.text())
-                let text = $("p.home2").text()
-                let drivingDistText = text.match(/The total driving distance from [^\.]* is ([\d,]*) miles/)
-                let drivingDist = 0;
-                if (drivingDistText) {
-                    drivingDist = parseInt(drivingDistText[1]?.replaceAll(",", ""))
-                }
-                let straightLineText = text.match(/The total straight line flight distance from [^\.]* is ([\d,]*) miles/)
-                let straightLineDist = 0
-                if (straightLineText) {
-                    straightLineDist = parseInt(straightLineText[1]?.replaceAll(",", ""))
-                }
-                const embed = new EmbedBuilder()
-                embed.setTitle("Distances")
-                if (drivingDist) {
-                    embed.addFields(efd(["Driving distance", `${drivingDist} miles`]))
-                    if (speed)
-                        embed.addFields(efd(["Driving distance time", `${drivingDist / speed} hours`]))
-                }
-                if (straightLineDist) {
-                    embed.addFields(efd(["Straight line distance", `${straightLineDist} miles`]))
-                    if (speed)
-                        embed.addFields(efd(["Straight line distance time", `${straightLineDist / speed} hours`]))
-                }
-                if (!drivingDist && !straightLineDist && fs.existsSync("./command-results/distance-easter-egg")) {
-                    let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
-                    return {
-                        content: choice(options)
-                            .slice(20)
-                            .replaceAll("{from}", from)
-                            .replaceAll("{to}", to)
-                            .replaceAll("{f}", decodeURI(from))
-                            .replaceAll("{t}", decodeURI(to))
-                            .trim(),
-                        status: StatusCode.RETURN
-                    }
-                }
+        ccmdV2(async function({ msg, args, rawOpts: opts }) {
+            let speed = parseInt(opts['speed'] as string) || 1
+            let joinedArgs = args.join(" ")
+            let [from, to] = joinedArgs.split("|")
+            if (!to) {
+                return { content: "No second place given, fmt: `place 1 | place 2`", status: StatusCode.ERR }
+            }
+            let fromUser = await fetchUserFromClientOrGuild(from, msg.guild)
+            let toUser = await fetchUserFromClientOrGuild(to, msg.guild)
+            if (fromUser && toUser && fs.existsSync("./command-results/distance-easter-egg")) {
+                let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
                 return {
-                    embeds: [embed],
+                    content: choice(options)
+                        .slice(20)
+                        .replaceAll("{from}", fromUser.id)
+                        .replaceAll("{to}", toUser.id)
+                        .replaceAll("{f}", `${fromUser}`)
+                        .replaceAll("{t}", `${toUser}`)
+                        .trim(),
                     status: StatusCode.RETURN
                 }
-            },
-            help: {
-                arguments: {
+            }
+            from = encodeURI(from.trim())
+            to = encodeURI(to.trim())
+            const url = `https://www.travelmath.com/distance/from/${from}/to/${to}`
+            const resp = await fetch.default(url, {
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
+                }
+            })
+            const $ = cheerio.load(await resp.text())
+            let text = $("p.home2").text()
+            let drivingDistText = text.match(/The total driving distance from [^\.]* is ([\d,]*) miles/)
+            let drivingDist = 0;
+            if (drivingDistText) {
+                drivingDist = parseInt(drivingDistText[1]?.replaceAll(",", ""))
+            }
+            let straightLineText = text.match(/The total straight line flight distance from [^\.]* is ([\d,]*) miles/)
+            let straightLineDist = 0
+            if (straightLineText) {
+                straightLineDist = parseInt(straightLineText[1]?.replaceAll(",", ""))
+            }
+            const embed = new EmbedBuilder()
+            embed.setTitle("Distances")
+            if (drivingDist) {
+                embed.addFields(efd(["Driving distance", `${drivingDist} miles`]))
+                if (speed)
+                    embed.addFields(efd(["Driving distance time", `${drivingDist / speed} hours`]))
+            }
+            if (straightLineDist) {
+                embed.addFields(efd(["Straight line distance", `${straightLineDist} miles`]))
+                if (speed)
+                    embed.addFields(efd(["Straight line distance time", `${straightLineDist / speed} hours`]))
+            }
+            if (!drivingDist && !straightLineDist && fs.existsSync("./command-results/distance-easter-egg")) {
+                let options = fs.readFileSync("./command-results/distance-easter-egg", "utf-8").split(';END').slice(0, -1)
+                return {
+                    content: choice(options)
+                        .slice(20)
+                        .replaceAll("{from}", from)
+                        .replaceAll("{to}", to)
+                        .replaceAll("{f}", decodeURI(from))
+                        .replaceAll("{t}", decodeURI(to))
+                        .trim(),
+                    status: StatusCode.RETURN
+                }
+            }
+            return {
+                embeds: [embed],
+                status: StatusCode.RETURN
+            }
+
+        }, "Gets the distance", {
+                helpArguments: {
                     "city 1": {
                         "description": "The starting city, seperate the cities with |",
                         "required": true
@@ -2175,9 +2163,8 @@ Valid formats:
                         required: true
                     }
                 }
-            },
-            category: CommandCategory.FUN
-        },
+
+        })
     ]
 
     yield [

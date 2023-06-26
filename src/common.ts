@@ -10,7 +10,7 @@ const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 7, minor: 9, bug: 3, part: "_B", beta: false, alpha: false}
+const VERSION = { major: 7, minor: 10, bug: 0, part: "", beta: false, alpha: false}
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
