@@ -886,7 +886,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let p = pet.hasPetByNameOrType(msg.author.id, petName)
             if (!p[1]) {
-                return { content: `You do not  have a ${petName}`, status: StatusCode.ERR }
+                return { content: `You do not have a ${petName}`, status: StatusCode.ERR }
             }
             if (!hasItem(msg.author.id, item)) {
                 return { content: `You do not have the item: ${item}`, status: StatusCode.ERR }
