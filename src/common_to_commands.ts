@@ -244,7 +244,7 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter: AwaitMessagesOptions['filter']  }): Promise<Message<boolean> | false> {
+export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter?: AwaitMessagesOptions['filter']  }): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
     if (prompt)
         await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
@@ -1053,7 +1053,7 @@ export class Interpreter {
                         else argShapeResults[type] = result
                     }
                 }
-                rv = await cmdO.run.bind([cmd, cmdO])(obj)
+                rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? {content: `${cmd} happened`, status: StatusCode.RETURN}
             }
             else if (cmdObject instanceof AliasV2) {
                 rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, returnJson: this.returnJson }) as CommandReturn

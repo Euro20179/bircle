@@ -8,7 +8,7 @@ import fetch = require("node-fetch")
 import { CommandCategory, createCommandV2, StatusCode } from '../common_to_commands'
 import {  generateFileName } from '../util'
 import { EmbedBuilder } from 'discord.js'
-import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, DiscordGatewayAdapterCreator, getVoiceConnection, joinVoiceChannel, NoSubscriberBehavior, VoiceConnection } from '@discordjs/voice'
 
 let currently_playing: { link: string, filename: string } | undefined;
 
@@ -101,9 +101,7 @@ export default function*() {
             connection = joinVoiceChannel({
                 channelId: voice_state.channelId,
                 guildId: msg.guildId as string,
-                //dont unleash the beast that is this massive error message that doesn't even do anything
-                //@ts-ignore
-                adapterCreator: voice_state.guild.voiceAdapterCreator
+                adapterCreator: voice_state.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator
             })
 
             vc_queue.push({ link: link, filename: `${generateFileName("play", msg.author.id).replace(/\.txt$/, ".mp3").replaceAll(":", "_")}` })
@@ -117,17 +115,14 @@ export default function*() {
 
     yield ["skip", createCommandV2(async() => {
         player.stop()
-        return {content: "skipping", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Skip the current song")]
 
     yield ["pause", createCommandV2(async() => {
         player.pause()
-        return {content: "Pausing", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Pause the current song")]
 
     yield ["unpause", createCommandV2(async() => {
         player.unpause()
-        return {content: "UnPausing", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Unpause the current song")]
 
     yield [

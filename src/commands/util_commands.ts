@@ -2205,7 +2205,7 @@ The order these are given does not matter, excpet for field, which will be added
             cmd.stdin.write(m.content + "\n")
         })
         return { noSend: true, status: StatusCode.ERR }
-    }, CommandCategory.UTIL, undefined, undefined, undefined, undefined, m => common.ADMINS.includes(m.author.id))]
+    }, CommandCategory.UTIL, "Open a remote shell", undefined, undefined, undefined, m => common.ADMINS.includes(m.author.id))]
 
     yield ["qalc", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }

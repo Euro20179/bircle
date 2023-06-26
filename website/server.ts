@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageType, ReactionManager } from 'discord.js'
+import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageMentions, MessageType, ReactionManager } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
@@ -86,8 +86,8 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     hasThread: false,
                     interaction: null,
                     member: null,
-                    //@ts-ignore
                     mentions: {
+                        parsedUsers: new Collection(),
                         channels: new Collection(),
                         crosspostedChannels: new Collection(),
                         everyone: false,
@@ -96,6 +96,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                         roles: new Collection(),
                         users: new Collection(),
                         has: (_data: any, _options: any) => false,
+                        _parsedUsers: new Collection(),
                         _channels: null,
                         _content: command as string,
                         _members: null,
@@ -104,7 +105,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                         toJSON: () => {
                             return {}
                         }
-                    },
+                    } as any,
                     nonce: null,
                     partial: false,
                     pinnable: false,
