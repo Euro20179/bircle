@@ -77,7 +77,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
         let answer: [string, number]
         if (args[0] === 'tte') {
-            answer = ["# -> [", economyTotal / toolTotal]
+            answer = ["\\# -> [", economyTotal / toolTotal]
         }
         else {
             answer = ["\\[ -> #", toolTotal / economyTotal]
