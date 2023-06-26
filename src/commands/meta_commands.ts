@@ -456,7 +456,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                 return {
                     content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
-                        rv.content = rv.content?.replace("```(?:type|java)script\n", "")?.replace(/```$/, "")
+                        rv.content = rv.content?.replace(/```(?:type|java)script\n/, "")?.replace(/```$/, "")
                         return rv
                     }
                 }
