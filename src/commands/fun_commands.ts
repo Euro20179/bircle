@@ -2021,8 +2021,7 @@ Valid formats:
 
     yield [
         "reddit",
-        {
-            run: async (_msg, args) => {
+        ccmdV2(async function({args}){
                 let subreddit = args[0]
                 let data = await fetch.default(`https://libreddit.kavin.rocks/r/${subreddit}`)
                 let text = await data.text()
@@ -2048,11 +2047,7 @@ Valid formats:
                 embed.setTitle(post.text || "None")
                 embed.setFooter({ text: post.link || "None" })
                 return { embeds: [embed], status: StatusCode.RETURN }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Gets a random post  from a subreddit"
-            }
-        },
+        },  "Gets a random post  from a subreddit")
     ]
 
     yield [
