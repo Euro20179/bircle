@@ -59,6 +59,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
                     return
                 }
+                //@ts-ignore
                 let msg: Message = {
                     activity: null,
                     applicationId: String(common.client.user?.id),
@@ -105,7 +106,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                         toJSON: () => {
                             return {}
                         }
-                    } as any,
+                    } as unknown as MessageMentions,
                     nonce: null,
                     partial: false,
                     pinnable: false,
