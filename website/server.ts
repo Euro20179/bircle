@@ -86,7 +86,6 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     hasThread: false,
                     interaction: null,
                     member: null,
-                    //@ts-ignore
                     mentions: {
                         parsedUsers: new Collection(),
                         channels: new Collection(),
@@ -106,7 +105,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                         toJSON: () => {
                             return {}
                         }
-                    },
+                    } as any,
                     nonce: null,
                     partial: false,
                     pinnable: false,
