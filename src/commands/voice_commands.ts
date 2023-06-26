@@ -115,17 +115,14 @@ export default function*() {
 
     yield ["skip", createCommandV2(async() => {
         player.stop()
-        return {content: "skipping", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Skip the current song")]
 
     yield ["pause", createCommandV2(async() => {
         player.pause()
-        return {content: "Pausing", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Pause the current song")]
 
     yield ["unpause", createCommandV2(async() => {
         player.unpause()
-        return {content: "UnPausing", status: StatusCode.RETURN}
     }, CommandCategory.VOICE, "Unpause the current song")]
 
     yield [

@@ -140,7 +140,7 @@ declare global {
         argShapeResults: Record<string, unknown>
     }
 
-    type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn>;
+    type CommandV2Run = (this: [string, CommandV2], data: CommandV2RunArg) => Promise<CommandReturn | void>;
 
     interface CommandV2 {
         run: CommandV2Run
