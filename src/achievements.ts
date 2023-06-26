@@ -7,6 +7,14 @@ import { UnixTime } from './util';
 import { getOpt } from './user-options';
 import common from './common';
 
+const ACHIVEMENT_ITEMS = [
+    "capitalism hat",
+    "hammer and sickle",
+    "gun",
+    "syntax",
+    "cartel's best wishes"
+]
+
 class Achievement{
     name: string
     description: string
@@ -161,5 +169,6 @@ export default{
     POSSIBLE_ACHIEVEMENTS,
     getAchievementByName,
     isAchievement,
-    saveAchievements
+    saveAchievements,
+    ACHIVEMENT_ITEMS
 }

@@ -632,7 +632,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         continue;
                     }
                     let randItem = Object.keys(inv[user]).sort(() => Math.random() - 0.5)[0]
-                    if (!randItem) continue
+                    if (!randItem || achievements.ACHIVEMENT_ITEMS.includes(randItem)) continue
                     useItem(user, randItem, 1)
                     giveItem(msg.author.id, randItem, 1)
                     text += `Stole ${randItem} from <@${user}>\n`
