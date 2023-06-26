@@ -1361,7 +1361,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let internals = amountParser.calculateAmountRelativeToInternals(0, text, symbolTable)
                 await handleSending(msg, crv(internals.interpreter.visit().toString()))
                 symbolTable = internals.interpreter.symbolTable
-                let m = await promptUser(msg, undefined, undefined, { timeout: 60000 })
+                let m = await promptUser(msg, undefined, undefined, { timeout: 60000 as milliseconds_t })
                 if (!m) break;
                 if (m.content === '.exit') break;
                 text = m.content

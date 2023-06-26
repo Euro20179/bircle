@@ -1279,7 +1279,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 //TODO: finish this
             }
             if (files.length) {
-                rv["files"] = files as CommandFile[]
+                rv["files"] = files as unknown as CommandFile[]
             }
             if (embed) {
                 rv["embeds"] = [embed]
@@ -1576,13 +1576,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
             let homeScore, awayScore
             try {
-                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g)
+                [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g) ?? []
             }
             catch (err) {
                 return crv("Failed to get data", { status: StatusCode.ERR })
             }
-            homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)[1])
-            awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)[1])
+            if(!homeScore || !awayScore){
+                return crv("Invalid data", {status: StatusCode.ERR})
+            }
+            homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)?.[1] || "0")
+            awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)?.[1] || "0")
             embed.setTitle(`${args.join(" ")}`)
             if (awayScore >= homeScore) {
                 awayTeam = `***${awayTeam}***`
@@ -2201,7 +2204,7 @@ Valid formats:
                     }
                     let mAttachments = m.attachments?.toJSON()
                     if (mAttachments) {
-                        files = files.concat(mAttachments as CommandFile[])
+                        files = files.concat(mAttachments as unknown as CommandFile[])
                     }
                     if (m.embeds) {
                         embeds = embeds.concat(m.embeds)
@@ -2237,7 +2240,7 @@ Valid formats:
                 let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
                 let files = snipe.attachments?.toJSON()
                 if (files) {
-                    rv["files"] = files as CommandFile[]
+                    rv["files"] = files as unknown as CommandFile[]
                 }
                 if (snipe.embeds) {
                     rv["embeds"] = snipe.embeds

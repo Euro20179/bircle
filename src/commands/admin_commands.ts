@@ -1,7 +1,7 @@
 import fs from 'fs'
 import vars from '../vars'
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, currently_playing, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -337,12 +337,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "END", ccmdV2(async function({ msg, sendCallback }) {
-            if (fs.existsSync(String(currently_playing?.filename))) {
-                try {
-                    fs.rmSync(String(currently_playing?.filename))
-                }
-                catch (err) { }
-            }
             await handleSending(msg, { content: "STOPPING", status: StatusCode.RETURN }, sendCallback)
             economy.saveEconomy()
             saveItems()

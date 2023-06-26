@@ -244,7 +244,7 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter: AwaitMessagesOptions['filter']  }): Promise<Message<boolean> | false> {
+export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter?: AwaitMessagesOptions['filter']  }): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
     if (prompt)
         await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
