@@ -690,7 +690,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
 
-        'scorigami', createCommandV2(async ({ args, opts }) => {
+        'scorigami', ccmdV2(async ({ args, opts }) => {
             let data
             try {
                 data = await fetch.default('https://nflscorigami.com/data')
@@ -775,7 +775,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             ])
 
             return { embeds: [info_embed, first_time_embed, last_time_embed], status: StatusCode.RETURN }
-        }, CommandCategory.FUN),
+        }, "Check whether or not a score has happened in the nfl", {
+            docs: "There is undocumented options and arguments, because i forgot how to use this command lmao",
+            helpArguments: {
+                score1: createHelpArgument("The first score"),
+                score2: createHelpArgument("The second score"),
+            }
+        }),
     ]
 
     yield [
@@ -1049,18 +1055,22 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "search-wiki", createCommandV2(async ({ rawOpts: opts, args }) => {
+        "search-wiki", ccmdV2(async ({ rawOpts: opts, args }) => {
             let search = args.join(" ").toLowerCase()
             let results: { [key: string]: number } = searchList(search, fs.readdirSync("./wiki").map(v => v.replaceAll("%2f", "/").slice(0, -4).toLowerCase()))
             if (opts['all']) {
                 return { content: Object.entries(results).sort((a, b) => b[1] - a[1]).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN }
             }
             return { content: Object.entries(results).sort((a, b) => b[1] - a[1]).filter(v => v[1] > 0).map(v => `**${v[0]}** (${v[1]})`).join("\n"), status: StatusCode.RETURN }
-        }, CommandCategory.FUN),
+        }, "Searches the bot wiki", {
+            helpArguments: {
+                search: createHelpArgument("The serach query", true)
+            }
+        }),
     ]
 
     yield [
-        "awiki", createCommandV2(async ({ args }) => {
+        "awiki", ccmdV2(async ({ args }) => {
             let [title, ...txt] = args.join(" ").split("|")
             title = title.trim().replaceAll("/", "%2f")
             let text = txt.join("|")
@@ -1070,7 +1080,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             fs.writeFileSync(`./wiki/${title.trim()}.txt`, text)
             return { content: `created a page called: ${title}`, status: StatusCode.RETURN }
 
-        }, CommandCategory.FUN),
+        }, "Add a page to the wiki", {
+            helpArguments: {
+                "name": createHelpArgument("Name of the page"),
+                "|": createHelpArgument("Bar to seperate name and page contents"),
+                contents: createHelpArgument("The contents on the wiki page")
+            }
+        }),
     ]
 
     yield [
