@@ -913,129 +913,116 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield ['lottery', ccmdV2(async () => crv(`The lottery pool is: ${economy.getLottery().pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")}`), "Gets the current lottery pool")]
 
     yield [
-        "6",
-        {
-            run: async (msg, args) => {
-                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
-                let opts;
-                [opts, args] = getOpts(args)
-                let getRankMode = opts['rank'] || false
-                let content = args.join(" ")
-                let requestedUsers = content.split("|")
-                if (!requestedUsers[0]) {
-                    requestedUsers[0] = msg.author.id
-                }
-                let embeds = []
-                const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${globals.GUILD_ID}`
-                let data
-                try {
-                    data = await fetch.default(url)
-                }
-                catch (err) {
-                    return { content: "Could not fetch data", status: StatusCode.ERR }
-                }
-                let text = await data.text()
-                if (!text) {
-                    return { content: "No data found", status: StatusCode.ERR }
-                }
-                const JSONData = JSON.parse(text)
-                function getAmountUntil(userData: any) {
-                    const desired_rank = userData.level + 1
-                    const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
-                    const xp_needed = xp_to_desired_rank - userData.xp
-                    const min_messages_for_next_level = Math.ceil(xp_needed / 26) //26 = max xp per minute
-                    const max_messages_for_next_level = Math.ceil(xp_needed / 15) //15 = min xp per minute
-                    const avg_messages_for_next_level = (min_messages_for_next_level + max_messages_for_next_level) / 2
-                    return [xp_needed, min_messages_for_next_level, max_messages_for_next_level, avg_messages_for_next_level]
-                }
-                for (let requestedUser of requestedUsers) {
-                    if (!requestedUser) continue
-                    let [ruser1, ruser2] = requestedUser.split("-")
-                    if (ruser1.trim() && ruser2?.trim()) {
-                        let member1: any, member2: any;
-                        if (getRankMode) {
-                            member1 = JSONData.players[Number(ruser1) - 1]
-                            member1 = await fetchUser(msg.guild, member1.id)
-                            member2 = JSONData.players[Number(ruser2) - 1]
-                            member2 = await fetchUser(msg.guild, member2.id)
-                        }
-                        else {
-                            member1 = await fetchUser(msg.guild, ruser1.trim())
-                            member2 = await fetchUser(msg.guild, ruser2.trim())
-                        }
-                        if (!member1) {
-                            return { content: `Could not find ${ruser1}`, status: StatusCode.ERR }
-                        }
-                        if (!member2) {
-                            return { content: `Could not find ${ruser2}`, status: StatusCode.ERR }
-                        }
-                        const user1Data = JSONData.players.filter((v: any) => v.id == member1.id)?.[0]
-                        const user2Data = JSONData.players.filter((v: any) => v.id == member2.id)?.[0]
-                        if (!user1Data) {
-                            return { content: `No data for ${member1.user.username} found`, status: StatusCode.ERR }
-                        }
-                        if (!user2Data) {
-                            return { content: `No data for ${member2.user.username} found`, status: StatusCode.ERR }
-                        }
-                        const rank1 = JSONData.players.indexOf(user1Data)
-                        const rank2 = JSONData.players.indexOf(user2Data)
-                        let [xp_needed1, min_messages_for_next_level1, _, avg_messages_for_next_level1] = getAmountUntil(user1Data)
-                        let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
-                        const embed = new EmbedBuilder()
-                        embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
-                        let redness = Math.min(Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
-                        let greenness = Math.min(Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
-                        let hex = rgbToHex(redness, greenness, 0)
-                        embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
-                        embed.setColor(hex as ColorResolvable)
-                        embed.addFields(efd(["Level", String(user1Data.level - user2Data.level), true], ["XP", String(user1Data.xp - user2Data.xp), true], ["Message Count", String(user1Data.message_count - user2Data.message_count), true], ["XP for next level", String(xp_needed1 - xp_needed2)], ["Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true], ["Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true], ["Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true]))
-                        embeds.push(embed)
-                        continue
-                    }
-                    let member: GuildMember;
+        "6", ccmdV2(async function({ msg, args, rawOpts: opts }) {
+            if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
+            let getRankMode = opts['rank'] || false
+            let content = args.join(" ")
+            let requestedUsers = content.split("|")
+            if (!requestedUsers[0]) {
+                requestedUsers[0] = msg.author.id
+            }
+            let embeds = []
+            const url = `https://mee6.xyz/api/plugins/levels/leaderboard/${globals.GUILD_ID}`
+            let data
+            try {
+                data = await fetch.default(url)
+            }
+            catch (err) {
+                return { content: "Could not fetch data", status: StatusCode.ERR }
+            }
+            let text = await data.text()
+            if (!text) {
+                return { content: "No data found", status: StatusCode.ERR }
+            }
+            const JSONData = JSON.parse(text)
+            function getAmountUntil(userData: any) {
+                const desired_rank = userData.level + 1
+                const xp_to_desired_rank = 5 / 6 * desired_rank * (2 * desired_rank * desired_rank + 27 * desired_rank + 91)
+                const xp_needed = xp_to_desired_rank - userData.xp
+                const min_messages_for_next_level = Math.ceil(xp_needed / 26) //26 = max xp per minute
+                const max_messages_for_next_level = Math.ceil(xp_needed / 15) //15 = min xp per minute
+                const avg_messages_for_next_level = (min_messages_for_next_level + max_messages_for_next_level) / 2
+                return [xp_needed, min_messages_for_next_level, max_messages_for_next_level, avg_messages_for_next_level]
+            }
+            for (let requestedUser of requestedUsers) {
+                if (!requestedUser) continue
+                let [ruser1, ruser2] = requestedUser.split("-")
+                if (ruser1.trim() && ruser2?.trim()) {
+                    let member1: any, member2: any;
                     if (getRankMode) {
-                        member = JSONData.players[Number(requestedUser.trim()) - 1]
-                        member = await fetchUser(msg.guild, member.id) as GuildMember
+                        member1 = JSONData.players[Number(ruser1) - 1]
+                        member1 = await fetchUser(msg.guild, member1.id)
+                        member2 = JSONData.players[Number(ruser2) - 1]
+                        member2 = await fetchUser(msg.guild, member2.id)
                     }
-                    else
-                        member = await fetchUser(msg.guild, requestedUser.trim()) as GuildMember
-                    if (!member) {
-                        member = msg.member as GuildMember
+                    else {
+                        member1 = await fetchUser(msg.guild, ruser1.trim())
+                        member2 = await fetchUser(msg.guild, ruser2.trim())
                     }
-                    const userData = JSONData.players.filter((v: any) => v.id == member.id)?.[0]
-                    if (!userData) {
-                        return { content: `No data for ${member.user.username} found`, status: StatusCode.ERR }
+                    if (!member1) {
+                        return { content: `Could not find ${ruser1}`, status: StatusCode.ERR }
                     }
-                    const rank = JSONData.players.indexOf(userData)
-                    let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
+                    if (!member2) {
+                        return { content: `Could not find ${ruser2}`, status: StatusCode.ERR }
+                    }
+                    const user1Data = JSONData.players.filter((v: any) => v.id == member1.id)?.[0]
+                    const user2Data = JSONData.players.filter((v: any) => v.id == member2.id)?.[0]
+                    if (!user1Data) {
+                        return { content: `No data for ${member1.user.username} found`, status: StatusCode.ERR }
+                    }
+                    if (!user2Data) {
+                        return { content: `No data for ${member2.user.username} found`, status: StatusCode.ERR }
+                    }
+                    const rank1 = JSONData.players.indexOf(user1Data)
+                    const rank2 = JSONData.players.indexOf(user2Data)
+                    let [xp_needed1, min_messages_for_next_level1, _, avg_messages_for_next_level1] = getAmountUntil(user1Data)
+                    let [xp_needed2, min_messages_for_next_level2, max_messages_for_next_level2, avg_messages_for_next_level2] = getAmountUntil(user2Data)
                     const embed = new EmbedBuilder()
-                    let aurl = member.user.avatarURL()
-                    if (aurl) {
-                        embed.setThumbnail(aurl)
-                    }
-                    embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
-                    embed.setColor(member.displayColor)
-                    embed.addFields(efd(["Level", String(userData.level), true], ["XP", String(userData.xp), true], ["Message Count", String(userData.message_count), true], ["XP for next level", String(xp_needed)], ["Minimum messages for next level", String(min_messages_for_next_level), true], ["Maximum messages for next level", String(max_messages_for_next_level), true], ["Average messages for next level", String(avg_messages_for_next_level), true]))
+                    embed.setTitle(`${member1.user?.username} - ${member2.user?.username} #${(rank1 + 1) - (rank2 + 1)}`)
+                    let redness = Math.min(Math.floor(Math.abs((user2Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
+                    let greenness = Math.min(Math.floor(Math.abs((user1Data.xp) / (user1Data.xp + user2Data.xp) * 255)), 255)
+                    let hex = rgbToHex(redness, greenness, 0)
+                    embed.setFooter({ text: `color: rgb(${redness}, ${greenness}, 0)` })
+                    embed.setColor(hex as ColorResolvable)
+                    embed.addFields(efd(["Level", String(user1Data.level - user2Data.level), true], ["XP", String(user1Data.xp - user2Data.xp), true], ["Message Count", String(user1Data.message_count - user2Data.message_count), true], ["XP for next level", String(xp_needed1 - xp_needed2)], ["Minimum messages for next level", String(min_messages_for_next_level1 - min_messages_for_next_level2), true], ["Maximum messages for next level", String(max_messages_for_next_level2 - max_messages_for_next_level2), true], ["Average messages for next level", String(avg_messages_for_next_level1 - avg_messages_for_next_level2), true]))
                     embeds.push(embed)
+                    continue
                 }
-                return { embeds: embeds, status: StatusCode.RETURN }
-
-            },
-            help: {
-                info: "Get the mee6 rank of a user",
-                arguments: {
-                    users: {
-                        description: "A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users"
-                    }
-                },
-                options: {
-                    rank: {
-                        description: "Instead of searching by user, search by rank"
-                    }
+                let member: GuildMember;
+                if (getRankMode) {
+                    member = JSONData.players[Number(requestedUser.trim()) - 1]
+                    member = await fetchUser(msg.guild, member.id) as GuildMember
                 }
+                else
+                    member = await fetchUser(msg.guild, requestedUser.trim()) as GuildMember
+                if (!member) {
+                    member = msg.member as GuildMember
+                }
+                const userData = JSONData.players.filter((v: any) => v.id == member.id)?.[0]
+                if (!userData) {
+                    return { content: `No data for ${member.user.username} found`, status: StatusCode.ERR }
+                }
+                const rank = JSONData.players.indexOf(userData)
+                let [xp_needed, max_messages_for_next_level, min_messages_for_next_level, avg_messages_for_next_level] = getAmountUntil(userData)
+                const embed = new EmbedBuilder()
+                let aurl = member.user.avatarURL()
+                if (aurl) {
+                    embed.setThumbnail(aurl)
+                }
+                embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
+                embed.setColor(member.displayColor)
+                embed.addFields(efd(["Level", String(userData.level), true], ["XP", String(userData.xp), true], ["Message Count", String(userData.message_count), true], ["XP for next level", String(xp_needed)], ["Minimum messages for next level", String(min_messages_for_next_level), true], ["Maximum messages for next level", String(max_messages_for_next_level), true], ["Average messages for next level", String(avg_messages_for_next_level), true]))
+                embeds.push(embed)
+            }
+            return { embeds: embeds, status: StatusCode.RETURN }
+        }, "Get the mee6 rank of a user", {
+            helpArguments: {
+                users: createHelpArgument("A list of users seperated by |, if you do user1 - user2, it will find the xp, level, and message count difference in the 2 users")
             },
-            category: CommandCategory.FUN
-        },
+            helpOptions: {
+                rank: createHelpOption("Instead of searching by user, search by rank")
+            }
+        })
     ]
 
     yield [
@@ -1575,9 +1562,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let embed = new EmbedBuilder()
             //winner should be in *****
             let [inning, homeTeam, awayTeam] = html.match(/<div class="BNeawe s3v9rd AP7Wnd lRVwie">(.*?)<\/div>/g) ?? []
+            if(!inning){
+                return crv("Could not determine inning", {status: StatusCode.ERR})
+            }
             try {
-                //@ts-ignore
-                inning = inning.match(/span class=".*?">(.*?)<\//)[1]
+                inning = inning.match(/span class=".*?">(.*?)<\//)![1]
                     .replace(/&#(\d+);/gi, function(_match: any, numStr: string) {
                         var num = parseInt(numStr, 10);
                         return String.fromCharCode(num);
@@ -1586,10 +1575,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             catch (err) {
                 return crv("No results", { status: StatusCode.ERR })
             }
-            //@ts-ignore
-            homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
-            //@ts-ignore
-            awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)[1].replace(/<(?:span|div) class=".*?">/, "")
+            homeTeam = homeTeam.match(/div class=".*?">(.*?)<\//)![1].replace(/<(?:span|div) class=".*?">/, "")
+            awayTeam = awayTeam.match(/div class=".*?">(.*?)<\//)![1].replace(/<(?:span|div) class=".*?">/, "")
             let homeScore, awayScore
             try {
                 [homeScore, awayScore] = html.match(/<div class="BNeawe deIvCb AP7Wnd">(\d*?)<\/div>/g) ?? []
@@ -1597,8 +1584,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             catch (err) {
                 return crv("Failed to get data", { status: StatusCode.ERR })
             }
-            if(!homeScore || !awayScore){
-                return crv("Invalid data", {status: StatusCode.ERR})
+            if (!homeScore || !awayScore) {
+                return crv("Invalid data", { status: StatusCode.ERR })
             }
             homeScore = parseInt(homeScore.match(/div class=".*?">(.*?)<\//)?.[1] || "0")
             awayScore = parseInt(awayScore.match(/div class=".*?">(.*?)<\//)?.[1] || "0")
