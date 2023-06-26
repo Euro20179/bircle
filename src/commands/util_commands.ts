@@ -31,7 +31,7 @@ import translate from '@iamtraction/google-translate'
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield [
-        'translate', ccmdV2(async function({ args, opts, stdin }) {
+        'translate', ccmdV2(async function({msg, args, opts, stdin }) {
             let [from, arrow, to] = args.slice(0, 3)
             let text = stdin ? getContentFromResult(stdin) : ""
             if (from?.length !== 2 || to?.length !== 2 || arrow !== "->") {
@@ -41,6 +41,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
             else {
                 if(!text) text = args.slice(3).join(" ")
+            }
+            if(!text.length){
+                let up = opts.getNumber("m", 1)
+                let msgs = await msg.channel.messages.fetch({limit: up + 1})
+                let req_msg = msgs.at(up)
+                if(!req_msg){
+                    return crv("Could not get message", {status: StatusCode.ERR})
+                }
+                text = req_msg.content
             }
             let res = await translate(text, {
                 to,
@@ -58,7 +67,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             },
             helpOptions: {
                 to: createHelpOption("The language to translate to"),
-                from: createHelpOption("The language to translate from")
+                from: createHelpOption("The language to translate from"),
+                m: createHelpOption("Translate the message <b>m</b> messages up")
             }
         })
     ]
