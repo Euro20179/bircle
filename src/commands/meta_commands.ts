@@ -380,7 +380,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         'get-source',
         {
-            run: async (_msg, args, sendCallback, opts) => {
+            run: async (_msg, _, sendCallback, opts, args) => {
 
                 let commands = getCommands()
                 if (opts['of-file']) {
@@ -422,9 +422,19 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     attrs.push("run")
                 }
 
-                let command = Array.from(commands.entries()).filter(v => v[0] === cmd)[0]?.[1]
+                let command = commands.get(cmd)
                 if (!command)
                     return { content: "no command found", status: StatusCode.ERR }
+
+                if(opts['ts']){
+                    let category = command.category
+                    
+                    let data = fs.readFileSync(`./src/commands/${cmdCatToStr(category)}_commands.ts`, "utf-8")
+                    const regex = new RegExp(`yield\\s+\\[\\s*"${cmd}",\\s*([\\s\\w\\W]+?)\\](?:\\s*yield\\s*\\[|\\s*\\}\\s*$)`)
+                    return crv(`\`\`\`typescript\n${data.match(regex)?.[1]}\n\`\`\``, {
+                        mimetype: 'application/typescript'
+                    })
+                }
 
                 let results = []
                 let curAttr = command
@@ -463,6 +473,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                 },
                 options: {
+                    'ts': createHelpOption("Return the uncompiled typescript code"),
                     'of-file': {
                         description: "If command is not given, use this to get the source of a file"
                     }
