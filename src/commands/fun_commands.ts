@@ -15,7 +15,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -1457,7 +1457,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "pfp", ccmdV2(async ({ msg, opts, args, stdin }) => {
             let link = args[0]
             if (!link) {
-                link = String(getImgFromMsgAndOpts(opts, msg, stdin))
+                link = String(await getImgFromMsgAndOptsAndReply(opts, msg, stdin))
             }
             if (!link)
                 return { content: "no link given", status: StatusCode.ERR }

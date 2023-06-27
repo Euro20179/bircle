@@ -531,6 +531,15 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
     return img
 }
 
+async function getImgFromMsgAndOptsAndReply(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean){
+    let img = getImgFromMsgAndOpts(opts, msg, stdin, pop)
+    if(!img && msg.reference){
+        let m = await msg.fetchReference()
+        img = getImgFromMsgAndOpts(opts, m)
+    }
+    return img
+}
+
 const GOODVALUE = Symbol("GOODVALUE")
 const BADVALUE = Symbol("BADVALUE")
 
@@ -1101,6 +1110,7 @@ export {
     valuesOf,
     keysOf,
     xInNum,
-    randomHexColorCode
+    randomHexColorCode,
+    getImgFromMsgAndOptsAndReply
 }
 
