@@ -81,6 +81,13 @@ export class PagedEmbed {
         delete this.button_data[`${this.id}.${action}`]
     }
 
+    buttonExists(action: string){
+        if(this.button_data[`${this.id}.${action}`]){
+            return true
+        }
+        return false
+    }
+
     addButton(action: string, data: Partial<ButtonComponentData> | Partial<APIButtonComponent>, cb?: PagedEmbed['button_data'][string]['cb'], page?: number) {
         this.buttonOrder.push(`${this.id}.${action}`)
         this.button_data[`${this.id}.${action}`] = {

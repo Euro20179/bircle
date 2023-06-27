@@ -1714,7 +1714,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "wttr.in",
         {
-            run: async (__: Message, _: ArgumentList, ___, opts, args) => {
+            run: async function(__: Message, _: ArgumentList, ___, opts, args) {
                 let url = "https://www.wttr.in"
                 let town = args.join(" ") || "tokyo"
 
@@ -1861,12 +1861,53 @@ Valid formats:
                 [isBetween(0, tempF, 33) ? 1 : 0]: "#5be6ff",
                 [tempF <= 0 ? 1 : 0]: "Purple",
             }[1] ?? "DarkButNotBlack"
-            let embeds: EmbedBuilder[] = []
 
-            let celciusEmbeds: EmbedBuilder[] = []
             let name = json.props.state ? `${found_city}, ${json.props.state}` : `${found_city}, ${json.props.country}`
             let authorData = { name, iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png` }
             let descriptionData = titleStr(weather[0].description)
+
+            let fEmbeds: EmbedBuilder[] = []
+            let celciusEmbeds: EmbedBuilder[] = []
+
+            let forecastEmbeds: EmbedBuilder[] = []
+            let forecastCEmbeds: EmbedBuilder[] = []
+
+            for (let day of json.data.daily) {
+                let high = day.temp.max
+                let highF = day.temp.max * (9 / 5) + 32
+                let low = day.temp.min
+                let lowF = day.temp.min * (9 / 5) + 32
+                let status = day.weather[0].description || "Unknown"
+                let icon = `https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`
+                if (!opts.getBool("no-round", false)) {
+                    high = Math.round(high)
+                    highF = Math.round(highF)
+                    low = Math.round(low)
+                    lowF = Math.round(lowF)
+                }
+                let authorData = { name, iconURL: icon }
+                forecastCEmbeds.push(new EmbedBuilder()
+                    .setTitle(day['dti18n'])
+                    .setAuthor(authorData)
+                    .setDescription(status)
+                    .setFields({
+                        name: "High (C)", value: `${high}°`, inline: true
+                    }, {
+                        name: "Low (C)", value: `${low}°`, inline: true
+                    })
+                )
+                forecastEmbeds.push(new EmbedBuilder()
+                    .setTitle(day['dti18n'])
+                    .setAuthor(authorData)
+                    .setDescription(status)
+                    .setFields({
+                        name: "High (F)", value: `${highF}°`, inline: true
+                    }, {
+                        name: "Low (F)", value: `${lowF}°`, inline: true
+                    })
+                )
+            }
+
 
             let frontPage = new EmbedBuilder()
                 .setFooter({ text: `Humidity: ${humidity}%\nWind: ${windMPH}MPH` })
@@ -1876,7 +1917,7 @@ Valid formats:
                     name: "Feels Like", value: `${feelsLikeF}°`, inline: true
                 })
             let frontPageC = new EmbedBuilder()
-                .setFooter({ text: `Humidity: ${humidity}%\nWind: ${wind_speed}KM` })
+                .setFooter({ text: `Humidity: ${humidity}%\nWind: ${wind_speed}Km` })
                 .setFields({
 
                     name: "C°", value: `${temp}°`, inline: true
@@ -1904,8 +1945,8 @@ Valid formats:
                     }, ...extra_info_data)
             )
 
-            embeds.push(frontPage)
-            embeds.push(
+            fEmbeds.push(frontPage)
+            fEmbeds.push(
                 new EmbedBuilder()
                     .setColor(color as ColorResolvable)
                     .setTitle("Details")
@@ -1916,35 +1957,78 @@ Valid formats:
                     }, ...extra_info_data)
             )
 
-            for (let embed of [embeds[0], celciusEmbeds[0]]) {
+            for (let embed of [fEmbeds[0], celciusEmbeds[0]]) {
                 embed
                     .setColor(color as ColorResolvable)
                     .setDescription(descriptionData)
                     .setAuthor(authorData)
             }
 
-            let paged = new common_to_commands.PagedEmbed(msg, embeds, "weather", false)
+            let paged = new common_to_commands.PagedEmbed(msg, fEmbeds, "weather", false)
 
             let currentUnit = "f"
+
+            let inForecast = false
 
             function detailsButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
                 this.removeButton("details")
                 this.next()
-                this.insertButton(0, "home", { label: "Home", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Primary }, homeButton)
+                this.insertButton(0, "home", { label: "🏠", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Primary }, homeButton)
             }
             function homeButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
                 this.removeButton("home")
-                this.back()
+                this.goto_start()
+                if (inForecast) {
+                    this.embeds = {
+                        f: fEmbeds,
+                        c: celciusEmbeds
+                    }[currentUnit] as EmbedBuilder[]
+                    this.removeButton("back")
+                    this.removeButton("next")
+                    paged.insertButton(0, "forecast", { label: "Forecast", customId: `weather.forecast:${msg.author.id}`, style: ButtonStyle.Primary }, forecastButton)
+                    inForecast = false
+                }
                 this.insertButton(0, "details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
             }
-            
-            paged.addButton("details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
-            paged.addButton("switch-unit", { label: "Switch Unit", customId: `weather.switch-unit:${msg.author.id}`, style: ButtonStyle.Secondary }, function(_int) {
+
+            function forecastButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
+                inForecast = true
                 this.embeds = {
-                    f: embeds,
-                    c: celciusEmbeds
-                }[currentUnit = currentUnit === "f" ? "c" : "f"] as EmbedBuilder[]
+                    f: forecastEmbeds,
+                    c: forecastCEmbeds
+                }[currentUnit] as EmbedBuilder[]
+                this.removeButton("forecast")
+                this.goto_start()
+                this.insertButton(0, `back`, {
+                    customId: `${this.id}.back`, label: "BACK", style: ButtonStyle.Danger
+                })
+                this.insertButton(1, `next`, {
+                    customId: `${this.id}.next`, label: "NEXT", style: ButtonStyle.Success
+                })
+                this.insertButton(0, "home", { label: "🏠", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Success }, homeButton)
+
+                this.removeButton("details")
+            }
+
+            paged.addButton("details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
+
+            paged.addButton("forecast", { label: "Forecast", customId: `weather.forecast:${msg.author.id}`, style: ButtonStyle.Primary }, forecastButton)
+
+            paged.addButton("switch-unit", { label: "Switch Unit", customId: `weather.switch-unit:${msg.author.id}`, style: ButtonStyle.Secondary }, function(_int) {
+                if (!inForecast) {
+                    this.embeds = {
+                        f: fEmbeds,
+                        c: celciusEmbeds
+                    }[currentUnit = currentUnit === "f" ? "c" : "f"] as EmbedBuilder[]
+                }
+                else {
+                    this.embeds = {
+                        f: forecastEmbeds,
+                        c: forecastCEmbeds
+                    }[currentUnit = currentUnit === "f" ? "c" : "f"] as EmbedBuilder[]
+                }
             })
+
             await paged.begin()
             return { noSend: true, status: StatusCode.RETURN }
         }, "Gets the weather", {
