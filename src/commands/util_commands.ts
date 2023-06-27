@@ -4051,7 +4051,7 @@ valid formats:<br>
     yield [
         "nl", ccmdV2(async ({ args, stdin }) => {
             let text = stdin ? getContentFromResult(stdin, "\n").split("\n") : args.join(" ").split('\n')
-            return crv(Array.from(text, ([line, i]) => `${i + 1}: ${line}`).join("\n"))
+            return crv(Array.from(text, (line, i) => `${i + 1}: ${line}`).join("\n"))
 
         }, "Number the lines of text", {
             helpArguments: { "...text": createHelpArgument("The text to number each line of", false) },
