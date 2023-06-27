@@ -1879,6 +1879,18 @@ Valid formats:
                 let lowF = day.temp.min * (9 / 5) + 32
                 let status = titleStr(day.weather[0].description) || "Unknown"
                 let icon = `https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`
+                let avg = (highF + lowF) / 2
+                let color = {
+                    [110 < avg ? 1 : 0]: "#aa0000",
+                    [isBetween(100, avg, 111) ? 1 : 0]: "#ff0000",
+                    [isBetween(90, avg, 101) ? 1 : 0]: "#ff412e",
+                    [isBetween(75, avg, 91) ? 1 : 0]: "Orange",
+                    [isBetween(60, avg, 76) ? 1 : 0]: "Yellow",
+                    [isBetween(45, avg, 61) ? 1 : 0]: "Green",
+                    [isBetween(32, avg, 46) ? 1 : 0]: "Blue",
+                    [isBetween(0, avg, 33) ? 1 : 0]: "#5be6ff",
+                    [avg <= 0 ? 1 : 0]: "Purple",
+                }[1] ?? "DarkButNotBlack"
                 if (!opts.getBool("no-round", false)) {
                     high = Math.round(high)
                     highF = Math.round(highF)
@@ -1886,8 +1898,9 @@ Valid formats:
                     lowF = Math.round(lowF)
                 }
                 forecastCEmbeds.push(new EmbedBuilder()
+                    .setColor(color as ColorResolvable)
                     .setTitle(day['dti18n'])
-                    .setAuthor({name})
+                    .setAuthor({ name })
                     .setDescription(titleStr(status))
                     .setThumbnail(icon)
                     .setFields({
@@ -1897,8 +1910,9 @@ Valid formats:
                     })
                 )
                 forecastEmbeds.push(new EmbedBuilder()
+                    .setColor(color as ColorResolvable)
                     .setTitle(day['dti18n'])
-                    .setAuthor({name})
+                    .setAuthor({ name })
                     .setDescription(titleStr(status))
                     .setThumbnail(icon)
                     .setFields({
