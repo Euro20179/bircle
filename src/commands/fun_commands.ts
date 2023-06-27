@@ -1844,6 +1844,7 @@ Valid formats:
                 feels_like = Math.round(feels_like)
                 windMPH = Math.round(windMPH)
                 dewF = Math.round(dewF)
+                dew_point = Math.round(dew_point)
                 windGustMPH = Math.round(windGustMPH)
                 wind_speed = Math.round(wind_speed)
                 pressure = Math.round(pressure)
@@ -1883,6 +1884,14 @@ Valid formats:
                     name: "Feels Like", value: `${feels_like}°`, inline: true
                 })
 
+            const extra_info_data = [
+                {
+                    name: "UV", value: `${uvi}`, inline: true
+                }, {
+                    name: "Clouds", value: `${clouds}%`, inline: true
+                }
+            ]
+
             celciusEmbeds.push(frontPageC)
             celciusEmbeds.push(
                 new EmbedBuilder()
@@ -1892,7 +1901,7 @@ Valid formats:
                         name: "Dew Point", value: `${dew_point}C`, inline: true
                     }, {
                         name: "Pressure", value: `${pressure}mbar`, inline: true
-                    })
+                    }, ...extra_info_data)
             )
 
             embeds.push(frontPage)
@@ -1904,7 +1913,7 @@ Valid formats:
                         name: "Dew Point", value: `${dewF}F`, inline: true
                     }, {
                         name: "Pressure", value: `${pressureHg}InHg`, inline: true
-                    })
+                    }, ...extra_info_data)
             )
 
             for (let embed of [embeds[0], celciusEmbeds[0]]) {
