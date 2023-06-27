@@ -1827,7 +1827,7 @@ Valid formats:
                 })
                 return crv(str)
             }
-            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg, weather, wind_gust } = json.data.current
+            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg, weather, wind_gust, pressure, uvi, clouds } = json.data.current
 
             let tempF = temp * (9 / 5) + 32
             let feelsLikeF = feels_like * (9 / 5) + 32
@@ -1835,6 +1835,7 @@ Valid formats:
             let windMPH = wind_speed / 1.6093440006147
             let windGustMPH = wind_gust / 1.6093440006147
             let dewF = dew_point * (9 / 5) + 32
+            let pressureHg = pressure / 33.86386725
 
             if (!opts.getBool("no-round", false)) {
                 tempF = Math.round(tempF)
@@ -1845,6 +1846,8 @@ Valid formats:
                 dewF = Math.round(dewF)
                 windGustMPH = Math.round(windGustMPH)
                 wind_speed = Math.round(wind_speed)
+                pressure = Math.round(pressure)
+                pressureHg = Math.round(pressureHg * 100) / 100
             }
             let color = {
                 [110 < tempF ? 1 : 0]: "#aa0000",
@@ -1860,7 +1863,8 @@ Valid formats:
             let embeds: EmbedBuilder[] = []
 
             let celciusEmbeds: EmbedBuilder[] = []
-            let authorData = { name: `${found_city}, ${json.props.country}`, iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png` } 
+            let name = json.props.state ? `${found_city}, ${json.props.state}` : `${found_city}, ${json.props.country}`
+            let authorData = { name, iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png` }
             let descriptionData = weather[0].description
 
             let frontPage = new EmbedBuilder()
@@ -1886,6 +1890,8 @@ Valid formats:
                     .setTitle("Details")
                     .setFields({
                         name: "Dew Point", value: `${dew_point}C`, inline: true
+                    }, {
+                        name: "Pressure", value: `${pressure}mbar`, inline: true
                     })
             )
 
@@ -1895,11 +1901,13 @@ Valid formats:
                     .setColor(color as ColorResolvable)
                     .setTitle("Details")
                     .setFields({
-                        name: "Dew Point", value: `${dewF}F | ${dew_point}C`, inline: true
+                        name: "Dew Point", value: `${dewF}F`, inline: true
+                    }, {
+                        name: "Pressure", value: `${pressureHg}InHg`, inline: true
                     })
             )
 
-            for(let embed of [embeds[0], celciusEmbeds[0]]){
+            for (let embed of [embeds[0], celciusEmbeds[0]]) {
                 embed
                     .setColor(color as ColorResolvable)
                     .setDescription(descriptionData)
@@ -1912,10 +1920,10 @@ Valid formats:
                 currentUnit = currentUnit === "f" ? "c" : "f"
                 switch (currentUnit) {
                     case "f":
-                        this.embeds = celciusEmbeds
+                        this.embeds = embeds
                         break;
                     case "c":
-                        this.embeds = embeds
+                        this.embeds = celciusEmbeds
                 }
             })
             await paged.begin()
