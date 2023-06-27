@@ -2114,27 +2114,30 @@ Valid formats:
     ]
 
     yield [
-        "udict", ccmdV2(async function({ msg, argShapeResults }) {
-            let search = argShapeResults['query'] as string | typeof BADVALUE
-            if (search === BADVALUE) {
+        "udict", ccmdV2(async function({ msg, argShapeResults, stdin }) {
+            let search = stdin ? getContentFromResult(stdin) : argShapeResults['query'] as string | typeof BADVALUE
+            if (search === BADVALUE || !search) {
                 return crv("No serach query")
             }
             const req = await fetch.default(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
             const json = await req.json()
             let embeds = []
+            let pageNo = 0
+            let pages = json.list.length
             for (let def of json.list) {
+                pageNo++
                 let date = new Date(def.written_on)
                 let embed = new EmbedBuilder()
                     .setColor(randomHexColorCode() as ColorResolvable)
                     .setTitle(def.word)
-                    .setAuthor({ name: def.author })
+                    .setAuthor({ name: def.author || "[[Unknown]]" })
                     .setDescription(def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`))
                     .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
                         name: "👎", value: String(def.thumbs_down), inline: true
                     }, {
                         name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
                     })
-                    .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay()}, ${date.getFullYear()}` })
+                    .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
                 embeds.push(embed)
             }
             let paged = new PagedEmbed(msg, embeds, "udict")
@@ -2145,8 +2148,9 @@ Valid formats:
                 query: createHelpArgument("The word to search for")
             },
             use_result_cache: true,
+            accepts_stdin: 'query',
             argShape: async function*(args) {
-                yield [args.expectWithIfs("+", args.expectString, truthy), "query"]
+                yield [args.expectWithIfs("+", args.expectString, truthy), "query", true]
             }
         })
     ]
