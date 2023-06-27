@@ -1710,8 +1710,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         })
     ]
 
+
     yield [
-        "weather",
+        "wttr.in",
         {
             run: async (__: Message, _: ArgumentList, ___, opts, args) => {
                 let url = "https://www.wttr.in"
@@ -1785,6 +1786,98 @@ Valid formats:
             },
             category: CommandCategory.FUN
         },
+    ]
+
+    yield [
+        "weather",
+        ccmdV2(async function({ args, opts }) {
+            let [city, ...fmt] = args.resplit("|")
+            const link = `https://search.brave.com/search?q=${city}+weather&source=web`
+            let res = await fetch.default(link)
+            const $ = cheerio.load(await res.text())
+            let json = JSON.parse($("#js-weather").attr("data") || "{}")
+            fs.writeFileSync("json.json", JSON.stringify(json))
+            if (!Object.keys(json).length) {
+                return crv("Could not get data", { status: StatusCode.ERR })
+            }
+            let excluded_cities = fs.readFileSync('./command-perms/city', 'utf-8').split("\n")
+            if(json.props.generic){
+                return crv("Generic city found, invalid json")
+            }
+            let found_city = json.props.name
+            let repalaceCity = false
+            if(excluded_cities.includes(found_city)){
+                repalaceCity = true
+                found_city = "A city"
+            }
+            if (opts.getBool("above-the-fold-data", false)) {
+                let jString = repalaceCity ?
+                    JSON.stringify(json).replaceAll(found_city, "a city")
+                    : JSON.stringify(json)
+                if(!fmt.length){
+                    return crv(jString)
+                }
+                let format = fmt.join("|")
+                let str = format.replaceAll(/\{([\.\w_\d]+)\}/g, (_, find) => {
+                    let obj = json
+                    for (let dot of find.split(".")) {
+                        obj = obj?.[dot]?.replaceAll(found_city, "a city")
+                    }
+                    return obj.toString()
+                })
+                return crv(str)
+            }
+            let { temp, feels_like, humidity, dew_point, wind_speed, wind_deg, weather, wind_gust } = json.data.current
+
+            let tempF = temp * (9 / 5) + 32
+            let feelsLikeF = feels_like * (9 / 5) + 32
+
+            let windMPH = wind_speed / 1.6093440006147
+            let windGustMPH = wind_gust / 1.6093440006147
+            let dewF = dew_point * (9 / 5) + 32
+
+            if (!opts.getBool("no-round", false)) {
+                tempF = Math.round(tempF)
+                feelsLikeF = Math.round(feelsLikeF)
+                temp = Math.round(temp)
+                feels_like = Math.round(feels_like)
+                windMPH = Math.round(windMPH)
+                dewF = Math.round(dewF)
+                windGustMPH = Math.round(windGustMPH)
+            }
+            let color = {
+                [110 < tempF ? 1 : 0]: "#aa0000",
+                [isBetween(100, tempF, 111) ? 1 : 0]: "#ff0000",
+                [isBetween(90, tempF, 101) ? 1 : 0]: "#ff412e",
+                [isBetween(75, tempF, 91) ? 1 : 0]: "Orange",
+                [isBetween(60, tempF, 76) ? 1 : 0]: "Yellow",
+                [isBetween(45, tempF, 61) ? 1 : 0]: "Green",
+                [isBetween(32, tempF, 46) ? 1 : 0]: "Blue",
+                [isBetween(0, tempF, 33) ? 1 : 0]: "#5be6ff",
+                [tempF <= 0 ? 1 : 0]: "Purple",
+            }[1] ?? "DarkButNotBlack"
+            let embed = new EmbedBuilder()
+                .setColor(color as ColorResolvable)
+                .setAuthor({name: `${found_city}, ${json.props.country}`,  iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`})
+                .setFooter({ text: `Humidity: ${humidity}%\nDew Point: ${dewF}F\nwind: ${windMPH}MPH` })
+                .setFields({
+                    name: "F°", value: `${tempF}°`, inline: true
+                }, {
+
+                    name: "C°", value: `${temp}°`, inline: true
+                }, {
+                    name: "Feels Like", value: `${feelsLikeF}° | ${feels_like}°`, inline: true
+                })
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "Gets the weather", {
+            helpArguments: {
+                city: createHelpArgument("The city to get the weather of")
+            },
+            helpOptions: {
+                'above-the-fold-data': createHelpOption("Get the raw json"),
+                'no-round': createHelpOption("Dont round the numbers")
+            }
+        })
     ]
 
     yield [
@@ -2002,7 +2095,7 @@ Valid formats:
                 await pagedEmbed.begin(sendCallback)
             }
             else {
-                return crv("Not a valid action", {status: StatusCode.ERR})
+                return crv("Not a valid action", { status: StatusCode.ERR })
             }
 
 
@@ -2153,16 +2246,16 @@ Valid formats:
             }
 
         }, "Gets the distance", {
-                helpArguments: {
-                    "city 1": {
-                        "description": "The starting city, seperate the cities with |",
-                        "required": true
-                    },
-                    "city 2": {
-                        "description": "The ending city, seperate the cities with |",
-                        required: true
-                    }
+            helpArguments: {
+                "city 1": {
+                    "description": "The starting city, seperate the cities with |",
+                    "required": true
+                },
+                "city 2": {
+                    "description": "The ending city, seperate the cities with |",
+                    required: true
                 }
+            }
 
         })
     ]
