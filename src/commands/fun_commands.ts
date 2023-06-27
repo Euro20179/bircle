@@ -2000,10 +2000,10 @@ Valid formats:
                 this.removeButton("forecast")
                 this.goto_start()
                 this.insertButton(0, `back`, {
-                    customId: `${this.id}.back`, label: "BACK", style: ButtonStyle.Danger
+                    customId: `${this.id}.back`, label: "Back", style: ButtonStyle.Primary
                 })
                 this.insertButton(1, `next`, {
-                    customId: `${this.id}.next`, label: "NEXT", style: ButtonStyle.Success
+                    customId: `${this.id}.next`, label: "Next", style: ButtonStyle.Success
                 })
                 this.insertButton(0, "home", { label: "🏠", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Success }, homeButton)
 
