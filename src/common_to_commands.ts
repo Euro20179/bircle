@@ -76,6 +76,14 @@ export class PagedEmbed {
         this.#currentPage = 0
     }
 
+    removeButtonIfExists(action: string){
+        if(this.buttonExists(action)){
+            this.removeButton(action)
+            return true
+        }
+        return false
+    }
+
     removeButton(action: string){
         this.buttonOrder = this.buttonOrder.filter(v => v !== `${this.id}.${action}`)
         delete this.button_data[`${this.id}.${action}`]

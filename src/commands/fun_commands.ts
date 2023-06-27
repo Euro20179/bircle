@@ -1863,7 +1863,7 @@ Valid formats:
             }[1] ?? "DarkButNotBlack"
 
             let name = json.props.state ? `${found_city}, ${json.props.state}` : `${found_city}, ${json.props.country}`
-            let authorData = { name, iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png` }
+            let icon = `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
             let descriptionData = titleStr(weather[0].description)
 
             let fEmbeds: EmbedBuilder[] = []
@@ -1877,7 +1877,7 @@ Valid formats:
                 let highF = day.temp.max * (9 / 5) + 32
                 let low = day.temp.min
                 let lowF = day.temp.min * (9 / 5) + 32
-                let status = day.weather[0].description || "Unknown"
+                let status = titleStr(day.weather[0].description) || "Unknown"
                 let icon = `https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`
                 if (!opts.getBool("no-round", false)) {
                     high = Math.round(high)
@@ -1885,11 +1885,11 @@ Valid formats:
                     low = Math.round(low)
                     lowF = Math.round(lowF)
                 }
-                let authorData = { name, iconURL: icon }
                 forecastCEmbeds.push(new EmbedBuilder()
                     .setTitle(day['dti18n'])
-                    .setAuthor(authorData)
-                    .setDescription(status)
+                    .setAuthor({name})
+                    .setDescription(titleStr(status))
+                    .setThumbnail(icon)
                     .setFields({
                         name: "High (C)", value: `${high}°`, inline: true
                     }, {
@@ -1898,8 +1898,9 @@ Valid formats:
                 )
                 forecastEmbeds.push(new EmbedBuilder()
                     .setTitle(day['dti18n'])
-                    .setAuthor(authorData)
-                    .setDescription(status)
+                    .setAuthor({name})
+                    .setDescription(titleStr(status))
+                    .setThumbnail(icon)
                     .setFields({
                         name: "High (F)", value: `${highF}°`, inline: true
                     }, {
@@ -1911,6 +1912,7 @@ Valid formats:
 
             let frontPage = new EmbedBuilder()
                 .setFooter({ text: `Humidity: ${humidity}%\nWind: ${windMPH}MPH` })
+                .setThumbnail(icon)
                 .setFields({
                     name: "F°", value: `${tempF}°`, inline: true
                 }, {
@@ -1918,6 +1920,7 @@ Valid formats:
                 })
             let frontPageC = new EmbedBuilder()
                 .setFooter({ text: `Humidity: ${humidity}%\nWind: ${wind_speed}Km` })
+                .setThumbnail(icon)
                 .setFields({
 
                     name: "C°", value: `${temp}°`, inline: true
@@ -1961,7 +1964,7 @@ Valid formats:
                 embed
                     .setColor(color as ColorResolvable)
                     .setDescription(descriptionData)
-                    .setAuthor(authorData)
+                    .setTitle(name)
             }
 
             let paged = new common_to_commands.PagedEmbed(msg, fEmbeds, "weather", false)
@@ -1973,7 +1976,7 @@ Valid formats:
             function detailsButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
                 this.removeButton("details")
                 this.next()
-                this.insertButton(0, "home", { label: "🏠", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Primary }, homeButton)
+                this.insertButton(0, "home", { label: "🏠", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Success }, homeButton)
             }
             function homeButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
                 this.removeButton("home")
@@ -2005,9 +2008,12 @@ Valid formats:
                 this.insertButton(1, `next`, {
                     customId: `${this.id}.next`, label: "Next", style: ButtonStyle.Success
                 })
+
+                this.removeButtonIfExists("details")
+                this.removeButtonIfExists("home")
+
                 this.insertButton(0, "home", { label: "🏠", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Success }, homeButton)
 
-                this.removeButton("details")
             }
 
             paged.addButton("details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
