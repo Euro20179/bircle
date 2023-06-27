@@ -1796,7 +1796,7 @@ Valid formats:
             let res = await fetch.default(link)
             const $ = cheerio.load(await res.text())
             let json = JSON.parse($("#js-weather").attr("data") || "{}")
-            fs.writeFileSync("json.json", JSON.stringify(json))
+
             if (!Object.keys(json).length) {
                 return crv("Could not get data", { status: StatusCode.ERR })
             }
