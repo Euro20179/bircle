@@ -15,7 +15,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -2114,7 +2114,30 @@ Valid formats:
     ]
 
     yield [
-        "udict", ccmdV2(async function({ argShapeResults }) {
+        "udict", ccmdV2(async function({ msg, argShapeResults }) {
+            let search = argShapeResults['query'] as string | typeof BADVALUE
+            if (search === BADVALUE) {
+                return crv("No serach query")
+            }
+            const req = await fetch.default(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
+            const json = await req.json()
+            let embeds = []
+            for (let def of json.list) {
+                let date = new Date(def.written_on)
+                let embed = new EmbedBuilder()
+                    .setColor(randomHexColorCode() as ColorResolvable)
+                    .setTitle(def.word)
+                    .setAuthor({ name: def.author })
+                    .setDescription(def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`))
+                    .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
+                        name: "👎", value: String(def.thumbs_down), inline: true
+                    })
+                    .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay()}, ${date.getFullYear()}` })
+                embeds.push(embed)
+            }
+            let paged = new PagedEmbed(msg, embeds, "udict")
+            await paged.begin()
+            return {noSend: true, status: StatusCode.RETURN}
             try {
                 let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${argShapeResults['query'] as string}`)
                 let text = await data.text()
