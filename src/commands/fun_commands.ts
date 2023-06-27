@@ -2131,6 +2131,8 @@ Valid formats:
                     .setDescription(def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`))
                     .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
                         name: "👎", value: String(def.thumbs_down), inline: true
+                    }, {
+                        name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
                     })
                     .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay()}, ${date.getFullYear()}` })
                 embeds.push(embed)
