@@ -2127,22 +2127,33 @@ Valid formats:
             for (let def of json.list) {
                 pageNo++
                 let date = new Date(def.written_on)
+                let definition = def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
                 let embed = new EmbedBuilder()
                     .setColor(randomHexColorCode() as ColorResolvable)
                     .setTitle(def.word)
+                    .setURL(def.permalink)
                     .setAuthor({ name: def.author || "[[Unknown]]" })
-                    .setDescription(def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`))
-                    .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
-                        name: "👎", value: String(def.thumbs_down), inline: true
-                    }, {
-                        name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
-                    })
-                    .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                    .setDescription(`${definition}`)
+                if (definition.length >= 380) {
+                    embed
+                        .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
+                            name: "👎", value: String(def.thumbs_down), inline: true
+                        }, {
+                            name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
+                        })
+                        .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                }
+                else {
+                    embed.setFooter({ text: `👍${def.thumbs_down}👎${def.thumbs_down} (${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}👍%)\nWritten on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                }
                 embeds.push(embed)
             }
             let paged = new PagedEmbed(msg, embeds, "udict")
+            paged.button_data[`udict.next`].button_data.label = '➡'
+            paged.button_data[`udict.back`].button_data.label = '⬅'
+            paged.button_data[`udict.back`].button_data.style = ButtonStyle.Primary
             await paged.begin()
-            return {noSend: true, status: StatusCode.RETURN}
+            return { noSend: true, status: StatusCode.RETURN }
         }, "Look up a word in the urban dictionary", {
             helpArguments: {
                 query: createHelpArgument("The word to search for")

@@ -43,7 +43,7 @@ export class PagedEmbed {
                 customId: `${this.id}.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary
             })
             this.addButton(`next`, {
-                customId: `${this.id}.next`, label: "NEXT", style: ButtonStyle.Primary
+                customId: `${this.id}.next:${msg.author.id}`, label: "NEXT", style: ButtonStyle.Primary
             })
         }
     }
