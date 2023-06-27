@@ -130,46 +130,6 @@ class PagedEmbed {
     }
 }
 
-async function pagedEmbed(msg: Message, embeds: EmbedBuilder[], id: string) {
-    let current_page = 0
-
-    const pages = embeds.length
-
-    let next_page = new ButtonBuilder({ customId: `${id}.next:${msg.author.id}`, label: "NEXT", style: ButtonStyle.Primary })
-    let last_page = new ButtonBuilder({ customId: `${id}.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary })
-
-    let action_row = new ActionRowBuilder<ButtonBuilder>()
-    action_row.addComponents(last_page, next_page)
-
-    let m = await handleSending(msg, { components: [action_row], embeds: [embeds[current_page]], status: StatusCode.PROMPT })
-    let collector = m.createMessageComponentCollector({ filter: int => int.user.id === msg.author.id })
-
-    let to = setTimeout(collector.stop.bind(collector), 60000)
-    collector.on("collect", async (int) => {
-        clearTimeout(to)
-        to = setTimeout(collector.stop.bind(collector), 60000)
-
-        if (int.customId.startsWith(`${id}.next`)) {
-            current_page++;
-            if (current_page >= pages) {
-                current_page = 0
-            }
-        }
-
-        else if (int.customId.startsWith(`${id}.back`)) {
-            current_page--;
-            if (current_page < 0) {
-                current_page = 0
-            }
-        }
-
-        action_row.setComponents(last_page, next_page)
-
-        await m.edit({ components: [action_row], embeds: [embeds[current_page]] })
-        await int.deferUpdate()
-    })
-}
-
 export const StatusCode = {
     ACHIEVEMENT: -3,
     PROMPT: -2,

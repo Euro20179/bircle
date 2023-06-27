@@ -1790,7 +1790,7 @@ Valid formats:
 
     yield [
         "weather",
-        ccmdV2(async function({ args, opts }) {
+        ccmdV2(async function({ msg, args, opts }) {
             let [city, ...fmt] = args.resplit("|")
             const link = `https://search.brave.com/search?q=${city}+weather&source=web`
             let res = await fetch.default(link)
@@ -1801,12 +1801,12 @@ Valid formats:
                 return crv("Could not get data", { status: StatusCode.ERR })
             }
             let excluded_cities = fs.readFileSync('./command-perms/city', 'utf-8').split("\n")
-            if(json.props.generic){
+            if (json.props.generic) {
                 return crv("Generic city found, invalid json")
             }
             let found_city = json.props.name
             let repalaceCity = false
-            if(excluded_cities.includes(found_city)){
+            if (excluded_cities.includes(found_city)) {
                 repalaceCity = true
                 found_city = "A city"
             }
@@ -1814,7 +1814,7 @@ Valid formats:
                 let jString = repalaceCity ?
                     JSON.stringify(json).replaceAll(found_city, "a city")
                     : JSON.stringify(json)
-                if(!fmt.length){
+                if (!fmt.length) {
                     return crv(jString)
                 }
                 let format = fmt.join("|")
@@ -1844,6 +1844,7 @@ Valid formats:
                 windMPH = Math.round(windMPH)
                 dewF = Math.round(dewF)
                 windGustMPH = Math.round(windGustMPH)
+                wind_speed = Math.round(wind_speed)
             }
             let color = {
                 [110 < tempF ? 1 : 0]: "#aa0000",
@@ -1856,19 +1857,69 @@ Valid formats:
                 [isBetween(0, tempF, 33) ? 1 : 0]: "#5be6ff",
                 [tempF <= 0 ? 1 : 0]: "Purple",
             }[1] ?? "DarkButNotBlack"
-            let embed = new EmbedBuilder()
-                .setColor(color as ColorResolvable)
-                .setAuthor({name: `${found_city}, ${json.props.country}`,  iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`})
-                .setFooter({ text: `Humidity: ${humidity}%\nDew Point: ${dewF}F\nwind: ${windMPH}MPH` })
+            let embeds: EmbedBuilder[] = []
+
+            let celciusEmbeds: EmbedBuilder[] = []
+            let authorData = { name: `${found_city}, ${json.props.country}`, iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png` } 
+            let descriptionData = weather[0].description
+
+            let frontPage = new EmbedBuilder()
+                .setFooter({ text: `Humidity: ${humidity}%\nWind: ${windMPH}MPH` })
                 .setFields({
                     name: "F°", value: `${tempF}°`, inline: true
                 }, {
+                    name: "Feels Like", value: `${feelsLikeF}°`, inline: true
+                })
+            let frontPageC = new EmbedBuilder()
+                .setFooter({ text: `Humidity: ${humidity}%\nWind: ${wind_speed}KM` })
+                .setFields({
 
                     name: "C°", value: `${temp}°`, inline: true
                 }, {
-                    name: "Feels Like", value: `${feelsLikeF}° | ${feels_like}°`, inline: true
+                    name: "Feels Like", value: `${feels_like}°`, inline: true
                 })
-            return { embeds: [embed], status: StatusCode.RETURN }
+
+            celciusEmbeds.push(frontPageC)
+            celciusEmbeds.push(
+                new EmbedBuilder()
+                    .setColor(color as ColorResolvable)
+                    .setTitle("Details")
+                    .setFields({
+                        name: "Dew Point", value: `${dew_point}C`, inline: true
+                    })
+            )
+
+            embeds.push(frontPage)
+            embeds.push(
+                new EmbedBuilder()
+                    .setColor(color as ColorResolvable)
+                    .setTitle("Details")
+                    .setFields({
+                        name: "Dew Point", value: `${dewF}F | ${dew_point}C`, inline: true
+                    })
+            )
+
+            for(let embed of [embeds[0], celciusEmbeds[0]]){
+                embed
+                    .setColor(color as ColorResolvable)
+                    .setDescription(descriptionData)
+                    .setAuthor(authorData)
+            }
+
+            let paged = new common_to_commands.PagedEmbed(msg, embeds, "weather")
+            let currentUnit = "f"
+            paged.addButton("switch-unit", { label: "Switch Unit", customId: `weather.switch-unit:${msg.author.id}`, style: ButtonStyle.Secondary }, function(int) {
+                currentUnit = currentUnit === "f" ? "c" : "f"
+                switch (currentUnit) {
+                    case "f":
+                        this.embeds = celciusEmbeds
+                        break;
+                    case "c":
+                        this.embeds = embeds
+                }
+            })
+            await paged.begin()
+            return { noSend: true, status: StatusCode.RETURN }
         }, "Gets the weather", {
             helpArguments: {
                 city: createHelpArgument("The city to get the weather of")
