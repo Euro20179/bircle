@@ -2114,45 +2114,63 @@ Valid formats:
     ]
 
     yield [
-        "udict", ccmdV2(async function({ msg, argShapeResults, stdin }) {
-            let search = stdin ? getContentFromResult(stdin) : argShapeResults['query'] as string | typeof BADVALUE
-            if (search === BADVALUE || !search) {
-                return crv("No serach query")
+        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts }) {
+            let req;
+            if (opts.getBool("r", opts.getBool("rand", false))) {
+                req = await fetch.default(`https://api.urbandictionary.com/v0/random`)
             }
-            const req = await fetch.default(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
+            else {
+                let search = stdin ? getContentFromResult(stdin) : argShapeResults['query'] as string | typeof BADVALUE
+                if (search === BADVALUE || !search) {
+                    return crv("No serach query")
+                }
+                req = await fetch.default(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
+            }
+            function createEmbedsFromUdictResults(results: any) {
+                let embeds = []
+                let pageNo = 0
+                let pages = results.list.length
+                for (let def of results.list) {
+                    pageNo++
+                    let date = new Date(def.written_on)
+                    let definition = def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
+                    let embed = new EmbedBuilder()
+                        .setColor(randomHexColorCode() as ColorResolvable)
+                        .setTitle(def.word)
+                        .setURL(def.permalink)
+                        .setAuthor({ name: def.author || "[[Unknown]]" })
+                        .setDescription(`${definition}`)
+                    if (definition.length >= 380) {
+                        embed
+                            .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
+                                name: "👎", value: String(def.thumbs_down), inline: true
+                            }, {
+                                name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
+                            })
+                            .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                    }
+                    else {
+                        embed.setFooter({ text: `👍${def.thumbs_down}👎${def.thumbs_down} (${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}👍%)\nWritten on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                    }
+                    embeds.push(embed)
+                }
+                return embeds
+            }
             const json = await req.json()
-            let embeds = []
-            let pageNo = 0
-            let pages = json.list.length
-            for (let def of json.list) {
-                pageNo++
-                let date = new Date(def.written_on)
-                let definition = def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
-                let embed = new EmbedBuilder()
-                    .setColor(randomHexColorCode() as ColorResolvable)
-                    .setTitle(def.word)
-                    .setURL(def.permalink)
-                    .setAuthor({ name: def.author || "[[Unknown]]" })
-                    .setDescription(`${definition}`)
-                if (definition.length >= 380) {
-                    embed
-                        .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
-                            name: "👎", value: String(def.thumbs_down), inline: true
-                        }, {
-                            name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
-                        })
-                        .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
-                }
-                else {
-                    embed.setFooter({ text: `👍${def.thumbs_down}👎${def.thumbs_down} (${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}👍%)\nWritten on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
-                }
-                embeds.push(embed)
-            }
-            let paged = new PagedEmbed(msg, embeds, "udict")
+            let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")
+
+            paged.addButton("random", { label: "🔀", customId: `udict.random:${msg.author.id}`, style: ButtonStyle.Success }, function(_int, m) {
+                fetch.default(`https://api.urbandictionary.com/v0/random`).then(async (req) => {
+                    const json = await req.json()
+                    this.embeds = createEmbedsFromUdictResults(json)
+                    await m.edit({ components: [this.createActionRow()], embeds: [this.embeds[this.currentPage]] }).catch(console.error)
+                })
+            })
             paged.button_data[`udict.next`].button_data.label = '➡'
             paged.button_data[`udict.back`].button_data.label = '⬅'
             paged.button_data[`udict.back`].button_data.style = ButtonStyle.Primary
             await paged.begin()
+
             return { noSend: true, status: StatusCode.RETURN }
         }, "Look up a word in the urban dictionary", {
             helpArguments: {

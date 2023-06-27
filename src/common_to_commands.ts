@@ -13,7 +13,7 @@ import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFro
 
 import { parseBracketPair, getOpts } from './parsing'
 
-import { cloneDeep } from 'lodash';
+import { cloneDeep, isNaN } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
@@ -27,7 +27,7 @@ export class PagedEmbed {
         [key: string]: {
             button_data: Partial<ButtonComponentData>,
             page?: number,
-            cb?: (this: PagedEmbed, int: ButtonInteraction) => any
+            cb?: (this: PagedEmbed, int: ButtonInteraction, m: Message) => any
         }
     }
     #currentPage: number = 0
@@ -127,6 +127,20 @@ export class PagedEmbed {
 
     async begin(_sendcallback?: CommandReturn['sendCallback']) {
         let m = await handleSending(this.msg, { components: [this.createActionRow()], embeds: [this.currentEmbed], status: StatusCode.INFO })
+
+        let msgCollector = m.channel.createMessageCollector({filter: newM => newM.author.id === this.msg.author.id})
+        let mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
+        msgCollector.on("collect", newM => {
+            mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
+            let n = Number(newM.content)
+            if(isNaN(n) || !isBetween(0, n, this.pages + 1)){
+                return
+            }
+            this.#currentPage = n - 1
+            if(newM.deletable) newM.delete().catch(console.error)
+            m.edit({ components: [this.createActionRow()], embeds: [this.currentEmbed] }).catch(console.error)
+        })
+
         let collector = m.createMessageComponentCollector({ filter: int => int.user.id === this.msg.author.id })
 
         let to = setTimeout(collector.stop.bind(collector), 60000)
@@ -151,7 +165,7 @@ export class PagedEmbed {
             else {
                 let cb = this.button_data[int.customId.split(":")[0]]
                 if (cb) {
-                    cb.cb?.bind(this)(int as ButtonInteraction)
+                    cb.cb?.bind(this)(int as ButtonInteraction, m)
                 }
             }
 
