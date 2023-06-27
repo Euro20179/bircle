@@ -2134,13 +2134,18 @@ Valid formats:
                     pageNo++
                     let date = new Date(def.written_on)
                     let definition = def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
-                        let example = def.example.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
+                    let example = def.example.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
+                    let definitionText = `### Definition\n${definition}\n### Example\n${example}`
                     let embed = new EmbedBuilder()
                         .setColor(randomHexColorCode() as ColorResolvable)
                         .setTitle(`${def.word}`)
                         .setURL(def.permalink)
                         .setAuthor({ name: `${def.author || "[[Unknown]]"} · ${date.getMonth() + 1}/${date.getDay() + 1}/${date.getFullYear()}` })
-                        .setDescription(`### Definition\n${definition}\n### Example\n${example}`)
+                    if (definitionText.length > 3900) {
+                        definitionText = definitionText.slice(0, 3997) + "..."
+                        embed.setAuthor({ name: `${def.author || "[[Unknown]]"} · ${date.getMonth() + 1}/${date.getDay() + 1}/${date.getFullYear()}\nThis definition is too long` })
+                    }
+                    embed.setDescription(definitionText)
                     if (definition.length >= 380) {
                         embed
                             .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
