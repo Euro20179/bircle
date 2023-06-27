@@ -1924,7 +1924,9 @@ Valid formats:
             }
 
             let paged = new common_to_commands.PagedEmbed(msg, embeds, "weather", false)
+
             let currentUnit = "f"
+
             function detailsButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
                 this.removeButton("details")
                 this.next()
@@ -1935,17 +1937,13 @@ Valid formats:
                 this.back()
                 this.insertButton(0, "details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
             }
+            
             paged.addButton("details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
-            paged.addButton("switch-unit", { label: "Switch Unit", customId: `weather.switch-unit:${msg.author.id}`, style: ButtonStyle.Secondary }, function(int) {
-                currentUnit = currentUnit === "f" ? "c" : "f"
-                switch (currentUnit) {
-                    case "f":
-                        this.embeds = embeds
-                        break;
-                    case "c":
-                        this.embeds = celciusEmbeds
-                        break;
-                }
+            paged.addButton("switch-unit", { label: "Switch Unit", customId: `weather.switch-unit:${msg.author.id}`, style: ButtonStyle.Secondary }, function(_int) {
+                this.embeds = {
+                    f: embeds,
+                    c: celciusEmbeds
+                }[currentUnit = currentUnit === "f" ? "c" : "f"] as EmbedBuilder[]
             })
             await paged.begin()
             return { noSend: true, status: StatusCode.RETURN }
