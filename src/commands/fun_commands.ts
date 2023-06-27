@@ -2138,15 +2138,6 @@ Valid formats:
             let paged = new PagedEmbed(msg, embeds, "udict")
             await paged.begin()
             return {noSend: true, status: StatusCode.RETURN}
-            try {
-                let data = await fetch.default(`https://www.urbandictionary.com/define.php?term=${argShapeResults['query'] as string}`)
-                let text = await data.text()
-                let match = text.match(/(?<=<meta content=")([^"]+)" name="Description"/)
-                return { content: match?.[1] || "Nothing found :(", status: StatusCode.RETURN }
-            }
-            catch (err) {
-                return { content: "An error occured", status: StatusCode.ERR }
-            }
         }, "Look up a word in the urban dictionary", {
             helpArguments: {
                 query: createHelpArgument("The word to search for")
