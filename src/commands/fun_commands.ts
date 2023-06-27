@@ -2134,12 +2134,13 @@ Valid formats:
                     pageNo++
                     let date = new Date(def.written_on)
                     let definition = def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
+                        let example = def.example.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
                     let embed = new EmbedBuilder()
                         .setColor(randomHexColorCode() as ColorResolvable)
                         .setTitle(def.word)
                         .setURL(def.permalink)
                         .setAuthor({ name: def.author || "[[Unknown]]" })
-                        .setDescription(`${definition}`)
+                        .setDescription(`### Definition\n${definition}\n### Example\n${example}`)
                     if (definition.length >= 380) {
                         embed
                             .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
