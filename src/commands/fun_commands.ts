@@ -2137,9 +2137,9 @@ Valid formats:
                         let example = def.example.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
                     let embed = new EmbedBuilder()
                         .setColor(randomHexColorCode() as ColorResolvable)
-                        .setTitle(def.word)
+                        .setTitle(`${def.word}`)
                         .setURL(def.permalink)
-                        .setAuthor({ name: def.author || "[[Unknown]]" })
+                        .setAuthor({ name: `${def.author || "[[Unknown]]"} · ${date.getMonth() + 1}/${date.getDay() + 1}/${date.getFullYear()}` })
                         .setDescription(`### Definition\n${definition}\n### Example\n${example}`)
                     if (definition.length >= 380) {
                         embed
@@ -2148,10 +2148,10 @@ Valid formats:
                             }, {
                                 name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
                             })
-                            .setFooter({ text: `Written on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                            .setFooter({ text: `\npage: ${pageNo}/${pages}` })
                     }
                     else {
-                        embed.setFooter({ text: `👍${def.thumbs_down}👎${def.thumbs_down} (${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}👍%)\nWritten on: ${date.getMonth() + 1}/${date.getDay() + 1}, ${date.getFullYear()}\npage: ${pageNo}/${pages}` })
+                        embed.setFooter({ text: `👍${def.thumbs_up}👎${def.thumbs_down} (${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}👍%)\npage: ${pageNo}/${pages}` })
                     }
                     embeds.push(embed)
                 }
