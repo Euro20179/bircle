@@ -2115,6 +2115,7 @@ Valid formats:
 
     yield [
         "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts }) {
+            console.log(opts, argShapeResults)
             let req;
             if (opts.getBool("r", opts.getBool("rand", false))) {
                 req = await fetch.default(`https://api.urbandictionary.com/v0/random`)
@@ -2182,7 +2183,6 @@ Valid formats:
             helpArguments: {
                 query: createHelpArgument("The word to search for")
             },
-            use_result_cache: true,
             accepts_stdin: 'query',
             argShape: async function*(args) {
                 yield [args.expectWithIfs("+", args.expectString, truthy), "query", true]
