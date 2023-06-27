@@ -5,7 +5,7 @@ import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
 import lemmy from 'lemmy-js-client'
 
-import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed } from "discord.js";
+import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction } from "discord.js";
 
 import fetch = require("node-fetch")
 
@@ -15,13 +15,13 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
 import timer from '../timer'
-import common_to_commands, { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, purgeSnipe, snipes, StatusCode } from "../common_to_commands";
+import common_to_commands, { ccmdV2, cmd, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, getCommands, handleSending, PagedEmbed, purgeSnipe, snipes, StatusCode } from "../common_to_commands";
 import { giveItem } from '../shop';
 import { randomInt } from 'crypto';
 
@@ -1866,7 +1866,7 @@ Valid formats:
             let celciusEmbeds: EmbedBuilder[] = []
             let name = json.props.state ? `${found_city}, ${json.props.state}` : `${found_city}, ${json.props.country}`
             let authorData = { name, iconURL: `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png` }
-            let descriptionData = weather[0].description
+            let descriptionData = titleStr(weather[0].description)
 
             let frontPage = new EmbedBuilder()
                 .setFooter({ text: `Humidity: ${humidity}%\nWind: ${windMPH}MPH` })
@@ -1923,8 +1923,19 @@ Valid formats:
                     .setAuthor(authorData)
             }
 
-            let paged = new common_to_commands.PagedEmbed(msg, embeds, "weather")
+            let paged = new common_to_commands.PagedEmbed(msg, embeds, "weather", false)
             let currentUnit = "f"
+            function detailsButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
+                this.removeButton("details")
+                this.next()
+                this.insertButton(0, "home", { label: "Home", customId: `weather.home:${msg.author.id}`, style: ButtonStyle.Primary }, homeButton)
+            }
+            function homeButton(this: PagedEmbed, _int: ButtonInteraction<CacheType>) {
+                this.removeButton("home")
+                this.back()
+                this.insertButton(0, "details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
+            }
+            paged.addButton("details", { label: "Details", customId: `weather.details:${msg.author.id}`, style: ButtonStyle.Primary }, detailsButton)
             paged.addButton("switch-unit", { label: "Switch Unit", customId: `weather.switch-unit:${msg.author.id}`, style: ButtonStyle.Secondary }, function(int) {
                 currentUnit = currentUnit === "f" ? "c" : "f"
                 switch (currentUnit) {
@@ -1933,6 +1944,7 @@ Valid formats:
                         break;
                     case "c":
                         this.embeds = celciusEmbeds
+                        break;
                 }
             })
             await paged.begin()

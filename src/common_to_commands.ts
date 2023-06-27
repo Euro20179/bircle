@@ -18,10 +18,11 @@ import { cloneDeep } from 'lodash';
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
 
-class PagedEmbed {
+export class PagedEmbed {
     msg: Message
     embeds: EmbedBuilder[]
     id: string
+    buttonOrder: string[]
     button_data: {
         [key: string]: {
             button_data: Partial<ButtonComponentData>,
@@ -30,31 +31,37 @@ class PagedEmbed {
         }
     }
     #currentPage: number = 0
-    constructor(msg: Message, embeds: EmbedBuilder[], id: string) {
+    constructor(msg: Message, embeds: EmbedBuilder[], id: string, add_std_buttons = true) {
         this.msg = msg
         this.embeds = embeds
         this.id = id
         this.button_data = {}
+        this.buttonOrder = []
 
-        this.addButton(`${this.id}.back`, {
-            customId: `${this.id}.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary
-        })
-        this.addButton(`${this.id}.next`, {
-            customId: `${this.id}.next`, label: "NEXT", style: ButtonStyle.Primary
-        })
-
+        if (add_std_buttons) {
+            this.addButton(`back`, {
+                customId: `${this.id}.back:${msg.author.id}`, label: "BACK", style: ButtonStyle.Secondary
+            })
+            this.addButton(`next`, {
+                customId: `${this.id}.next`, label: "NEXT", style: ButtonStyle.Primary
+            })
+        }
     }
 
     private get currentEmbed() {
         return this.embeds[this.#currentPage]
     }
 
-    get page(){
+    get page() {
         return this.#currentPage
     }
 
     get pages() {
         return this.embeds.length
+    }
+
+    get currentPage () {
+        return this.#currentPage
     }
 
     next() {
@@ -69,7 +76,22 @@ class PagedEmbed {
         this.#currentPage = 0
     }
 
+    removeButton(action: string){
+        this.buttonOrder = this.buttonOrder.filter(v => v !== `${this.id}.${action}`)
+        delete this.button_data[`${this.id}.${action}`]
+    }
+
     addButton(action: string, data: Partial<ButtonComponentData> | Partial<APIButtonComponent>, cb?: PagedEmbed['button_data'][string]['cb'], page?: number) {
+        this.buttonOrder.push(`${this.id}.${action}`)
+        this.button_data[`${this.id}.${action}`] = {
+            button_data: data,
+            cb,
+            page
+        }
+    }
+
+    insertButton(spot: size_t, action: string, data: Partial<ButtonComponentData> | Partial<APIButtonComponent>, cb?: PagedEmbed['button_data'][string]['cb'], page?: number){
+        this.buttonOrder.splice(spot, 0, `${this.id}.${action}`)
         this.button_data[`${this.id}.${action}`] = {
             button_data: data,
             cb,
@@ -80,8 +102,8 @@ class PagedEmbed {
     createActionRow() {
         let row = new ActionRowBuilder<ButtonBuilder>()
 
-        for (let id in this.button_data) {
-            if(this.button_data[id].page !== undefined && this.button_data[id].page !== this.#currentPage) continue
+        for (let id of this.buttonOrder) {
+            if (this.button_data[id].page !== undefined && this.button_data[id].page !== this.#currentPage) continue
             let b = new ButtonBuilder(this.button_data[id].button_data)
             row.addComponents(b)
         }
@@ -111,9 +133,9 @@ class PagedEmbed {
                     this.goto_start()
                 }
             }
-            else{
+            else {
                 let cb = this.button_data[int.customId.split(":")[0]]
-                if(cb){
+                if (cb) {
                     cb.cb?.bind(this)(int as ButtonInteraction)
                 }
             }
@@ -122,7 +144,7 @@ class PagedEmbed {
             try {
                 await int.deferUpdate()
             }
-            catch(err){
+            catch (err) {
                 //interaction agknowledged
                 console.log(err)
             }
@@ -204,7 +226,7 @@ export const CommandCategory = {
     ALIASV2: 9
 } as const
 
-export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter?: AwaitMessagesOptions['filter']  }): Promise<Message<boolean> | false> {
+export async function promptUser(msg: Message, prompt?: string, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, options?: { timeout?: milliseconds_t, filter?: AwaitMessagesOptions['filter'] }): Promise<Message<boolean> | false> {
     if (!isMsgChannel(msg.channel)) return false
     if (prompt)
         await handleSending(msg, { content: prompt, status: StatusCode.PROMPT }, sendCallback)
@@ -1013,7 +1035,7 @@ export class Interpreter {
                         else argShapeResults[type] = result
                     }
                 }
-                rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? {content: `${cmd} happened`, status: StatusCode.RETURN}
+                rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
             }
             else if (cmdObject instanceof AliasV2) {
                 rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, returnJson: this.returnJson }) as CommandReturn

@@ -46,6 +46,8 @@ declare global {
     type int_t = Tagger<number>
     type float_t = Tagger<number>
 
+    type size_t = Tagger<number>
+
     type IntStr = `${number}`
 
     type FloatStr = `${number}.${number}`

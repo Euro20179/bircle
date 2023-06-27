@@ -39,6 +39,10 @@ function Enum<const T>(data: T) {
     return data
 }
 
+function titleStr(str: string){
+    return str.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ")
+}
+
 /**
     * @description runs cb but in an async function to defer lower the importance
 */
@@ -1111,6 +1115,7 @@ export {
     keysOf,
     xInNum,
     randomHexColorCode,
-    getImgFromMsgAndOptsAndReply
+    getImgFromMsgAndOptsAndReply,
+    titleStr
 }
 
