@@ -31,15 +31,15 @@ import translate from '@iamtraction/google-translate'
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield [
-        'translate', ccmdV2(async function({msg, args, opts, stdin }) {
+        'translate', ccmdV2(async function({ msg, args, opts, stdin }) {
             let [to, ...t] = args
             let from = opts.getString("from", "auto")
-            if(t.length && (t[0].length === 4 && t[0].startsWith("f:"))){
+            if (t.length && (t[0].length === 4 && t[0].startsWith("f:"))) {
                 from = t[0].slice(2)
                 t = t.slice(1)
             }
             let text = t.join(" ")
-            if(stdin){
+            if (stdin) {
                 text = getContentFromResult(stdin)
             }
             if (to?.length !== 2) {
@@ -47,17 +47,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 text = to + text
             }
             else {
-                if(!text) text = args.slice(2).join(" ")
+                if (!text) text = args.slice(2).join(" ")
             }
-            if(msg.reference){
+            if (msg.reference) {
                 text = (await msg.fetchReference()).content
             }
-            if(!text.length){
+            if (!text.length) {
                 let up = opts.getNumber("m", 1)
-                let msgs = await msg.channel.messages.fetch({limit: up + 1})
+                let msgs = await msg.channel.messages.fetch({ limit: up + 1 })
                 let req_msg = msgs.at(up)
-                if(!req_msg){
-                    return crv("Could not get message", {status: StatusCode.ERR})
+                if (!req_msg) {
+                    return crv("Could not get message", { status: StatusCode.ERR })
                 }
                 text = req_msg.content
             }
@@ -81,6 +81,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
         })
     ]
+
+    function addImageToEmbed(img: string, embed: EmbedBuilder) {
+        embed.setThumbnail(img)
+    }
 
     yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin }) {
         const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
@@ -173,10 +177,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         let e = new EmbedBuilder()
             .setTitle(workingJson.name)
-            .setImage(workingJson.image)
             .setDescription(workingJson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
             .setURL(workingJson.url)
             .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
+
+        addImageToEmbed(workingJson.image, e)
 
         return {
             embeds: [e],

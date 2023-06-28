@@ -430,7 +430,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     let category = command.category
                     
                     let data = fs.readFileSync(`./src/commands/${cmdCatToStr(category)}_commands.ts`, "utf-8")
-                    const regex = new RegExp(`yield\\s+\\[\\s*"${cmd}",\\s*([\\s\\w\\W]+?)\\](?:\\s*yield\\s*\\[|\\s*\\}\\s*$)`)
+                    const regex = new RegExp(`yield\\s*\\[\\s*["']${cmd}["'],\\s*([\\s\\w\\W]+?)\\](?:[\\s\\n]*yield\\s*\\[|\\s*\\}\\s*$)`)
                     return crv(`\`\`\`typescript\n${data.match(regex)?.[1]}\n\`\`\``, {
                         mimetype: 'application/typescript',
                         onOver2kLimit: (_, rv) => {
