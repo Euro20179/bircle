@@ -2115,7 +2115,6 @@ Valid formats:
 
     yield [
         "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts }) {
-            console.log(opts, argShapeResults)
             let req;
             if (opts.getBool("r", opts.getBool("rand", false))) {
                 req = await fetch.default(`https://api.urbandictionary.com/v0/random`)
