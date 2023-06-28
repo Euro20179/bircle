@@ -2183,6 +2183,9 @@ Valid formats:
             helpArguments: {
                 query: createHelpArgument("The word to search for")
             },
+            helpOptions: {
+                r: createHelpOption("Pick a random word", ["rand"])
+            },
             accepts_stdin: 'query',
             argShape: async function*(args) {
                 yield [args.expectWithIfs("+", args.expectString, truthy), "query", true]

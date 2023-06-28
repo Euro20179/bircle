@@ -103,11 +103,7 @@ function addToPermList(list: { [key: string]: string[] }, listFile: string, user
     savePermList(list, listFile)
 }
 function removeFromPermList(list: { [key: string]: string[] }, listFile: string, user: User, cmds: string[]) {
-    if (list[user.id]) {
-        list[user.id] = list[user.id].filter(v => !cmds.includes(v))
-    } else {
-        list[user.id] = []
-    }
+    list[user.id] = list[user.id] ? list[user.id].filter(v => !cmds.includes(v)) : []
     savePermList(list, listFile)
 }
 
