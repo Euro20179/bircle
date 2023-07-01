@@ -22,6 +22,20 @@ import htmlRenderer from '../html-renderer'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+    yield ['runas', ccmdV2(async function({msg, args}){
+        let oldId = msg.author
+        let user = await fetchUserFromClient(common.client, args[0])
+        if(!user){
+            return crv("User not found")
+        }
+        msg.author = user
+        let c = args.slice(1).join(" ")
+        let {rv} =  (await cmd({msg, command_excluding_prefix: c}))
+        msg.author = oldId
+        return rv
+    }, "Runas", {
+        permCheck: m => common.ADMINS.includes(m.author.id)
+    })]
     yield ["get-var", ccmdV2(async function({ args, opts, msg }) {
         let as = opts.getString("as", msg.author.id)
         let user: undefined | User = msg.author

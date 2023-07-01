@@ -16,7 +16,7 @@ import command_commons, { Interpreter } from './src/common_to_commands'
 import globals = require("./src/globals")
 import { defer, isMsgChannel } from "./src/util"
 import { Parser, format } from './src/parsing'
-import { getOpt } from "./src/user-options"
+import userOptions, { getOpt } from "./src/user-options"
 import common from './src/common'
 import timer from './src/timer'
 
