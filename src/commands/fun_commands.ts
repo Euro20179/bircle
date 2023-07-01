@@ -34,6 +34,7 @@ import htmlRenderer from '../html-renderer';
 import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { shuffle } from 'lodash';
+import userOptions from '../user-options';
 
 // const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 // const configuration = new Configuration({
@@ -1792,6 +1793,9 @@ Valid formats:
         "weather",
         ccmdV2(async function({ msg, args, opts }) {
             let [city, ...fmt] = args.resplit("|")
+            if(!city){
+                city = userOptions.getOpt(msg.author.id, "location", "Tokyo")
+            }
             const link = `https://search.brave.com/search?q=${city}+weather&source=web`
             let res = await fetch.default(link)
             const $ = cheerio.load(await res.text())
