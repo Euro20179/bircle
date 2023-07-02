@@ -1633,7 +1633,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "spam", createCommandV2(async ({ msg, args, opts, sendCallback }) => {
+        "spam", createCommandV2(async function({ msg, args, opts, sendCallback}) {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -2239,14 +2239,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             category: CAT
         },
     ]
-
-    yield ["alias-type", createCommandV2(async ({ args }) => {
-        if (getAliasesV2()[args[0]]) {
-            return { content: "V2", status: StatusCode.RETURN }
-        }
-        return { content: "None", status: StatusCode.ERR }
-
-    }, CAT, "Gets the type of an alias")]
 
     yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
         let v2 = getAliasesV2()[args[0]]

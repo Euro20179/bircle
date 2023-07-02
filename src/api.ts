@@ -3,11 +3,15 @@ import economy from './economy'
 import pet from './pets'
 import timer from './timer'
 import shop = require("./shop")
-import { cmd } from "./common_to_commands"
+import { cmd, getAliasesV2 } from "./common_to_commands"
 import { RECURSION_LIMIT } from "./globals"
 import { isMsgChannel, fetchUser, getFonts, fetchUserFromClientOrGuild } from "./util"
 
 export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any) => Promise<string |  void | number | boolean>, optional?: string[], extra?: "msg"[]}} = {
+    aliasType: {
+        requirements: ["alias"],
+        exec: async({alias}: {alias: string}) => getAliasesV2()[alias] ? "V2" : "None"
+    },
     userHasStockSymbol:  {
         requirements: ["id", "symbol"],
         exec: async({ id, symbol }: {id: string, symbol: string}) => JSON.stringify(economy.userHasStockSymbol(id, symbol)),
@@ -156,10 +160,8 @@ export async function handleApiArgumentType(msg: Message, t: string, argument: s
         }
         case "timeout":
             return parseFloat(argument)
-        case "role": case "url": case "prompt": case "data": case "cmd": case "symbol": {
-            return argument
-        }
+        case "role": case "url": case "prompt": case "data": case "cmd": case "symbol":
         default:
-            throw new Error(`${t} not implemented in handleApiArgumentType`)
+            return argument
     }
 }
