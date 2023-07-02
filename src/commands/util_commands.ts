@@ -93,10 +93,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         })
     ]
 
-    function addImageToEmbed(img: string, embed: EmbedBuilder) {
-        embed.setThumbnail(img)
-    }
-
     yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin }) {
         const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
         let results = await fetch.default(search, {
@@ -192,7 +188,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             .setURL(workingJson.url)
             .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
 
-        addImageToEmbed(workingJson.image, e)
+        e.setThumbnail(workingJson.image)
 
         return {
             embeds: [e],
