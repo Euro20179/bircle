@@ -1081,24 +1081,21 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "sapet",
-        {
-            run: async (msg, args, sendCallback) => {
-                let newActivePet = args[0]
-                if (!pet.hasPetByNameOrType(msg.author.id, newActivePet)[1]) {
-                    return { content: `You do not have a ${newActivePet}`, status: StatusCode.ERR }
-                }
-                if (pet.setActivePet(msg.author.id, newActivePet)) {
-                    return { content: `Your new active pet is ${newActivePet}`, status: StatusCode.RETURN }
-                }
-                return { content: "Failed to set active pet", status: StatusCode.ERR }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Sets your active pet",
-                arguments: {
-                    pet: createHelpArgument("The pet to set to")
-                }
+        ccmdV2(async function({ msg, args }) {
+            let newActivePet = args[0]
+            if (!pet.hasPetByNameOrType(msg.author.id, newActivePet)[1]) {
+                return { content: `You do not have a ${newActivePet}`, status: StatusCode.ERR }
             }
-        },
+            if (pet.setActivePet(msg.author.id, newActivePet)) {
+                return { content: `Your new active pet is ${newActivePet}`, status: StatusCode.RETURN }
+            }
+            return { content: "Failed to set active pet", status: StatusCode.ERR }
+
+        }, "Sets your active pet", {
+            helpArguments: {
+                pet: createHelpArgument("The pet to set to")
+            }
+        })
     ]
 
     yield [
