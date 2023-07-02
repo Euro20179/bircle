@@ -6,7 +6,7 @@ import htmlRenderer from "./html-renderer"
 import vm from 'vm'
 import fs from 'fs'
 
-import { APIEmbedField,  BaseChannel,  Channel, ChannelType, Client,  Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
+import { APIEmbedField, BaseChannel, Channel, ChannelType, Client, Guild, GuildMember, Message, PartialDMChannel } from "discord.js"
 import { existsSync } from "fs"
 import common from "./common"
 import { AliasV2, CommandCategory } from "./common_to_commands"
@@ -19,6 +19,54 @@ import { formatMoney, getOpt } from "./user-options"
 export type MimeType = `${string}/${string}`
 
 export type UnixTime = Tagger<number>
+
+function romanToBase10(roman: string) {
+    const to10 = {
+        "I": 1,
+        "V": 5,
+        "X": 10,
+        "L": 50,
+        "C": 100,
+        "D": 500,
+        "M": 1000,
+        "B": 5000,
+        "K": 10000,
+        "R": 50000,
+        "G": 100000,
+        "T": 500000,
+        "F": 1000000
+    }
+    let biggestRoman = 0
+    let left, right;
+    for (let i = 0; i < roman.length; i++) {
+        let char = roman[i]
+        let value = to10[char as keyof typeof to10]
+        let timesToIncreaseI = 0
+        //keep going until all the - are eaten
+        while (roman[i + 1 + timesToIncreaseI] === "-") {
+            value *= 1000
+            timesToIncreaseI++;
+        }
+        if (value > biggestRoman) {
+            biggestRoman = value
+            left = roman.slice(0, i)
+            //we increase i here specifically because then right exludes all the dashes
+            i += timesToIncreaseI
+            right = roman.slice(i + 1)
+        }
+    }
+    let ans = biggestRoman
+    if (!left && !right) {
+        return ans
+    }
+    if (left) {
+        ans -= romanToBase10(left)
+    }
+    if (right) {
+        ans += romanToBase10(right)
+    }
+    return ans
+}
 
 function getToolIp() {
     return fs.existsSync("./data/ip.key") ? fs.readFileSync("./data/ip.key", "utf-8") : undefined
@@ -39,7 +87,7 @@ function Enum<const T>(data: T) {
     return data
 }
 
-function titleStr(str: string){
+function titleStr(str: string) {
     return str.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ")
 }
 
@@ -453,6 +501,7 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         renderHTML: htmlRenderer.renderHTML,
         generateCommandSummary,
         xInNum,
+        romanToBase10,
         user_options: {
             formatMoney: formatMoney,
             getOpt: getOpt
@@ -535,9 +584,9 @@ function getImgFromMsgAndOpts(opts: Opts | Options, msg: Message, stdin?: Comman
     return img
 }
 
-async function getImgFromMsgAndOptsAndReply(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean){
+async function getImgFromMsgAndOptsAndReply(opts: Opts | Options, msg: Message, stdin?: CommandReturn, pop?: boolean) {
     let img = getImgFromMsgAndOpts(opts, msg, stdin, pop)
-    if(!img && msg.reference){
+    if (!img && msg.reference) {
         let m = await msg.fetchReference()
         img = getImgFromMsgAndOpts(opts, m)
     }
@@ -1116,6 +1165,7 @@ export {
     xInNum,
     randomHexColorCode,
     getImgFromMsgAndOptsAndReply,
-    titleStr
+    titleStr,
+    romanToBase10
 }
 
