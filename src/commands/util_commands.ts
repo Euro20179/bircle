@@ -31,6 +31,68 @@ import translate from '@iamtraction/google-translate'
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield [
+        "roman-numerals", ccmdV2(async function({ args }) {
+            const to10 = {
+                "I": 1,
+                "V": 5,
+                "X": 10,
+                "L": 50,
+                "C": 100,
+                "D": 500,
+                "M": 1000,
+                "B": 5000,
+                "K": 10000,
+                "R": 50000,
+                "G": 100000,
+                "T": 500000,
+                "F": 1000000
+            }
+            function toBase10(roman: string) {
+                let biggestRoman = 0
+                let left, right;
+                for (let i = 0; i < roman.length; i++) {
+                    let char = roman[i]
+                    let value = to10[char as keyof typeof to10]
+                    let timesToIncreaseI = 0
+                    //keep going until all the - are eaten
+                    while (roman[i + 1 + timesToIncreaseI] === "-") {
+                        value *= 1000
+                        timesToIncreaseI++;
+                    }
+                    if (value > biggestRoman) {
+                        biggestRoman = value
+                        left = roman.slice(0, i)
+                        //we increase i here specifically because then right exludes all the dashes
+                        i += timesToIncreaseI
+                        right = roman.slice(i + 1)
+                    }
+                }
+                let ans = biggestRoman
+                if (!left && !right) {
+                    return ans
+                }
+                if (left) {
+                    ans -= toBase10(left)
+                }
+                if (right) {
+                    ans += toBase10(right)
+                }
+                return ans
+            }
+            let ans: string[] = []
+            for (const roman of args) {
+                ans.push(String(toBase10(roman.toUpperCase())))
+            }
+            return crv(ans.join("\n"))
+        }, "Convert roman numberals to aribic numerals", {
+            docs: "5000 = B or V-<br>10000 = K OR X-<br>50000 = R OR L-<br>100000 = G OR C-<br>500000 = T D-<br>1000000 = F OR M-",
+            helpArguments: {
+                '...roman numerals': createHelpArgument("The numerals to convert to aribic numerals")
+            }
+        })
+    ]
+
+    yield [
         'translate', ccmdV2(async function({ msg, args, opts, stdin }) {
             let [to, ...t] = args
             let from = opts.getString("from", "auto")
