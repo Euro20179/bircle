@@ -2183,56 +2183,29 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "add",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
-                if (!file) {
-                    return {
-                        content: "Nothing given to add to",
-                        status: StatusCode.ERR
-                    }
-                }
-                if (!isSafeFilePath(file)) {
-                    return {
-                        content: "invalid command",
-                        status: StatusCode.ERR
-                    }
-                }
-                if (!fs.existsSync(`./command-results/${file}`)) {
-                    if (file === "wordle")
-                        fs.writeFileSync(`./command-results/${file}`, "")
-                    else return { content: `${file} does not exist`, status: StatusCode.ERR }
-                }
-                args = args.slice(1)
-                const data = args?.join(" ")
-                if (!data) {
-                    return {
-                        content: "No data given",
-                        status: StatusCode.ERR
-                    }
-                }
-                fs.appendFileSync(`./command-results/${file}`, `${msg.author.id}: ${data};END\n`)
-                return {
-                    content: `appended \`${data}\` to \`${file}\``,
-                    status: StatusCode.RETURN
-                }
-            },
-            help: {
-                info: "Adds a line to a command file",
-                arguments: {
-                    "file": {
-                        description: "The command file list to add to",
-                        required: true
-                    },
-                    "data": {
-                        description: "The text to add to the file",
-                        required: true,
-                        requires: "file"
-                    }
-                }
-            },
-            category: CAT
-        },
+        ccmdV2(async function({ msg, args }) {
+            const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
+            if (!file)
+                return crv("No file given", { status: StatusCode.ERR })
+
+            if (!isSafeFilePath(file))
+                return crv("Invalid file name", { status: StatusCode.ERR })
+
+            if (!fs.existsSync(`./command-results/${file}`))
+                return { content: `${file} does not exist`, status: StatusCode.ERR }
+
+            const data = args.slice(1).join(" ")
+            if (!data)
+                return crv("No data given")
+
+            fs.appendFileSync(`./command-results/${file}`, `${msg.author.id}: ${data};END\n`)
+            return crv(`appended \`${data}\` to \`${file}\``)
+        }, "Adds a line to a command file", {
+            helpArguments: {
+                "file": createHelpArgument("The command file list to add to", true),
+                "data": createHelpArgument("The text to add to the file", true, "file")
+            }
+        })
     ]
 
     yield ["cmd-chain", createCommandV2(async ({ msg, args, opts, rawArgs, sendCallback, recursionCount, commandBans }) => {
