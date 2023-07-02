@@ -31,12 +31,8 @@ import translate from '@iamtraction/google-translate'
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
 
     yield [
-        "roman-numerals", ccmdV2(async function({ args }) {
-            let ans: string[] = []
-            for (const roman of args) {
-                ans.push(String(romanToBase10(roman.toUpperCase())))
-            }
-            return crv(ans.join("\n"))
+        "roman-numerals", ccmdV2(async function({ args, opts }) {
+            return crv(args.map(roman => romanToBase10(roman.toUpperCase())).join(opts.getString("join", "\n")))
         }, "Convert roman numberals to aribic numerals", {
             docs: "5000 = B or V-<br>10000 = K OR X-<br>50000 = R OR L-<br>100000 = G OR C-<br>500000 = T D-<br>1000000 = F OR M-",
             helpArguments: {

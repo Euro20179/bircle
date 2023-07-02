@@ -41,17 +41,17 @@ function romanToBase10(roman: string) {
     for (let i = 0; i < roman.length; i++) {
         let char = roman[i]
         let value = to10[char as keyof typeof to10]
-        let timesToIncreaseI = 0
+        let dashCount = 0
         //keep going until all the - are eaten
-        while (roman[i + 1 + timesToIncreaseI] === "-") {
+        while (roman[i + 1 + dashCount] === "-") {
             value *= 1000
-            timesToIncreaseI++;
+            dashCount++;
         }
         if (value > biggestRoman) {
             biggestRoman = value
             left = roman.slice(0, i)
             //we increase i here specifically because then right exludes all the dashes
-            i += timesToIncreaseI
+            i += dashCount
             right = roman.slice(i + 1)
         }
     }
