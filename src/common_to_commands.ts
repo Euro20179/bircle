@@ -388,12 +388,11 @@ export class AliasV2 {
         let tempExec = ""
         let lastCmd = ""
 
-        globals.addToCmdUse(this.name)
-
         for (let opt of Object.entries(opts)) {
             vars.setVarEasy(`%:-${opt[0]}`, String(opt[1]), msg.author.id)
         }
 
+        globals.addToCmdUse(this.name)
         await this.expand(args, opts, ((a, preArgs) => {
             globals.addToCmdUse(a)
             lastCmd = a
@@ -1068,6 +1067,7 @@ export class Interpreter {
             }
             else if (cmdObject instanceof AliasV2) {
                 rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, returnJson: this.returnJson }) as CommandReturn
+                this.aliasV2 = cmdObject
             }
             else {
                 rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
@@ -1075,10 +1075,10 @@ export class Interpreter {
             if (cmdObject?.use_result_cache === true) {
                 Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
             }
-            //it will double add this if it's an alias
-            if (!this.aliasV2) {
+            //if it is aliasV2 it will double count
+            if(!this.aliasV2)
                 globals.addToCmdUse(cmd)
-            }
+
         }
 
         //the point of explicit is to say which command is currently being run, and which "line number" it's on
