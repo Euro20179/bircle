@@ -22,15 +22,15 @@ import htmlRenderer from '../html-renderer'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
-    yield ['runas', ccmdV2(async function({msg, args}){
+    yield ['runas', ccmdV2(async function({ msg, args }) {
         let oldId = msg.author
         let user = await fetchUserFromClient(common.client, args[0])
-        if(!user){
+        if (!user) {
             return crv("User not found")
         }
         msg.author = user
         let c = args.slice(1).join(" ")
-        let {rv} =  (await cmd({msg, command_excluding_prefix: c}))
+        let { rv } = (await cmd({ msg, command_excluding_prefix: c }))
         msg.author = oldId
         return rv
     }, "Runas", {
@@ -113,17 +113,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return crv(Object.entries(interpreter.context.env).reduce((p, cur) => p + `\n${cur[0]} = ${JSON.stringify(cur[1])}`, ""))
     }, "Gets the interpreter env")]
 
-    yield ['ps', ccmdV2(async function(){
+    yield ['ps', ccmdV2(async function() {
         let text = ''
-        for(let i = 0; i < PIDS.length; i++){
+        for (let i = 0; i < PIDS.length; i++) {
             text += `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}\n`
         }
         return crv(text)
     }, "Gets all running processes")]
 
-    yield ['kill', ccmdV2(async function({argShapeResults}){
+    yield ['kill', ccmdV2(async function({ argShapeResults }) {
         let pid = argShapeResults['pid'] as number
-        if(!PIDS.keyExists(pid)){
+        if (!PIDS.keyExists(pid)) {
             return crv(`No process with pid: ${pid}`)
         }
         PIDS.delete(pid)
@@ -132,7 +132,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         helpArguments: {
             pid: createHelpArgument("The pid to kill")
         },
-        argShape: async function*(args){
+        argShape: async function*(args) {
             yield [args.expectInt(1), "pid"]
         }
     })]
@@ -224,7 +224,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let userMatches = common.getUserMatchCommands()
             let cmds = getCommands()
             for (let cmd of args) {
-                if(fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)){
+                if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
                     res.push('.bircle')
                 }
                 else if (aliasV2s[cmd]) {
@@ -440,15 +440,15 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!command)
                     return { content: "no command found", status: StatusCode.ERR }
 
-                if(opts['ts']){
+                if (opts['ts']) {
                     let category = command.category
-                    
+
                     let data = fs.readFileSync(`./src/commands/${cmdCatToStr(category)}_commands.ts`, "utf-8")
                     const regex = new RegExp(`yield\\s*\\[\\s*["']${cmd}["'],\\s*([\\s\\w\\W]+?)\\](?:[\\s\\n]*yield\\s*\\[|\\s*\\}\\s*$)`)
                     return crv(`\`\`\`typescript\n${data.match(regex)?.[1]}\n\`\`\``, {
                         mimetype: 'application/typescript',
                         onOver2kLimit: (_, rv) => {
-                            rv.content = rv.content?.replace(/```typescript\n/, "")?.replace(/```$/, "") 
+                            rv.content = rv.content?.replace(/```typescript\n/, "")?.replace(/```$/, "")
                             return rv
                         }
                     })
@@ -500,9 +500,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         },
     ]
 
-    yield ["code-info", ccmdV2(async ({opts}) => {
+    yield ["code-info", ccmdV2(async ({ opts }) => {
         let info;
-        if(opts.getBool("a", false))
+        if (opts.getBool("a", false))
             info = execSync("wc -l $(git ls-files | grep -v 'assets/' | grep -v 'changelog/' | grep -v 'wiki/')").toString("utf-8")
         else
             info = execSync('wc -l $(git ls-files | grep "ts$")').toString("utf-8")
@@ -1633,7 +1633,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "spam", createCommandV2(async function({ msg, args, opts, sendCallback}) {
+        "spam", createCommandV2(async function({ msg, args, opts, sendCallback }) {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -1670,45 +1670,45 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "stop", ccmdV2(async function({msg, args}){
-                if (!Object.hasEnumerableKeys(globals.SPAMS)) {
-                    return { content: "no spams to stop", status: StatusCode.ERR }
-                }
+        "stop", ccmdV2(async function({ msg, args }) {
+            if (!Object.hasEnumerableKeys(globals.SPAMS)) {
+                return { content: "no spams to stop", status: StatusCode.ERR }
+            }
 
-                globals.SPAM_ALLOWED = false;
+            globals.SPAM_ALLOWED = false;
 
-                if (!args.length) {
-                    for (let spam in globals.SPAMS) {
-                        delete globals.SPAMS[spam]
-                    }
-                    return {
-                        content: "stopping all",
-                        status: StatusCode.RETURN
-                    }
+            if (!args.length) {
+                for (let spam in globals.SPAMS) {
+                    delete globals.SPAMS[spam]
                 }
-
-                let invalidSpams = []
-                let clearedSpams = []
-                for (let arg of args) {
-                    let spamNo = Number(args)
-                    if (!isNaN(spamNo) && globals.SPAMS[arg]) {
-                        clearedSpams.push(arg)
-                        delete globals.SPAMS[arg]
-                    }
-                    else invalidSpams.push(arg)
-                }
-                let finalText = ""
-                if (invalidSpams.length) {
-                    finalText += `Failed to stop the following spams:\n${invalidSpams.join(", ")}\n`
-                }
-                if (clearedSpams.length) {
-                    finalText += `Stopped the following spams:\n${clearedSpams.join(", ")}\n`
-                }
-
                 return {
-                    content: finalText,
+                    content: "stopping all",
                     status: StatusCode.RETURN
                 }
+            }
+
+            let invalidSpams = []
+            let clearedSpams = []
+            for (let arg of args) {
+                let spamNo = Number(args)
+                if (!isNaN(spamNo) && globals.SPAMS[arg]) {
+                    clearedSpams.push(arg)
+                    delete globals.SPAMS[arg]
+                }
+                else invalidSpams.push(arg)
+            }
+            let finalText = ""
+            if (invalidSpams.length) {
+                finalText += `Failed to stop the following spams:\n${invalidSpams.join(", ")}\n`
+            }
+            if (clearedSpams.length) {
+                finalText += `Stopped the following spams:\n${clearedSpams.join(", ")}\n`
+            }
+
+            return {
+                content: finalText,
+                status: StatusCode.RETURN
+            }
 
         }, "Stop spams", {
             helpArguments: {
@@ -2098,30 +2098,30 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "command-file", ccmdV2(async function({args, rawOpts: opts}){
-                if (opts["l"]) {
-                    return crv( `\`\`\`\n${fs.readdirSync("./command-results").join("\n")}\n\`\`\``)
-                }
-                const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
-                if (!isSafeFilePath(file)) {
-                    return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
-                }
-                if (!fs.existsSync(`./command-results/${file}`)) {
-                    return crv(`${file} does not exist`, {status: StatusCode.ERR})
-                }
-                return {
-                    files: [
-                        {
-                            attachment: `./command-results/${file}`,
-                            name: `${file}.txt`,
-                            description: `data for ${file}`,
-                            delete: false
-                        }
-                    ],
-                    status: StatusCode.ERR
-                }
+        "command-file", ccmdV2(async function({ args, rawOpts: opts }) {
+            if (opts["l"]) {
+                return crv(`\`\`\`\n${fs.readdirSync("./command-results").join("\n")}\n\`\`\``)
+            }
+            const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
+            if (!isSafeFilePath(file)) {
+                return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
+            }
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                return crv(`${file} does not exist`, { status: StatusCode.ERR })
+            }
+            return {
+                files: [
+                    {
+                        attachment: `./command-results/${file}`,
+                        name: `${file}.txt`,
+                        description: `data for ${file}`,
+                        delete: false
+                    }
+                ],
+                status: StatusCode.ERR
+            }
 
-        },  "Reads a command file", {
+        }, "Reads a command file", {
             helpArguments: {
                 file: createHelpArgument("The file to see")
             },
@@ -2173,17 +2173,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         'send-log',
-        {
-            run: async (_msg, args, sendCallback) => {
-                if (!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)) {
-                    return { content: "File does not exist", status: StatusCode.ERR }
-                }
-                return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.RETURN }
-            }, category: CAT,
-            help: {
-                info: "Send names of all log files"
+        ccmdV2(async function({ args }) {
+            if (!fs.existsSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`)) {
+                return { content: "File does not exist", status: StatusCode.ERR }
             }
-        },
+            return { content: fs.readFileSync(`./command-results/${args.join(" ").replaceAll(/\.\.+/g, ".")}`, "utf-8"), status: StatusCode.RETURN }
+        }, "Send names of all log files")
     ]
 
     yield [
@@ -2840,7 +2835,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
         "changelog",
         {
             run: async (_msg, args, _sendCallback, opts) => {
-                if(opts['l']){
+                if (opts['l']) {
                     const tags = execSync("git tag --sort=committerdate | grep ^v")
                     return crv(tags.toString("utf-8"))
                 }
@@ -2848,14 +2843,14 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 const version_regex = /(HEAD|v\d+\.\d+\.\d+)/;
                 const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
                 const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
-                if(start === undefined){
+                if (start === undefined) {
                     start = lastVersion
                     stop = mostRecentVersion
                 }
-                else if(stop === undefined){
+                else if (stop === undefined) {
                     return crv("If start is given, stop must also be given")
                 }
-                if(!version_regex.test(start) || !version_regex.test(stop)){
+                if (!version_regex.test(start) || !version_regex.test(stop)) {
                     return crv(`invalid start/stop version`)
                 }
                 const changelog = execSync(`git log ${start}..${stop} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
