@@ -82,12 +82,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 globals.endCommand(msg.author.id, "mastermind")
                 return crv(`${msg.author} lost\nthe answer was ${answer}`)
             }
-            let responseText = []
+            let responseText: {letter: string, type: "correct" | "wrong" | "bad-spot"}[] = []
             for (let i = 0; i < guess.length; i++) {
                 if(answer[i] === guess[i]){
-                    responseText[i] = `**${answer[i]}** `
+                    responseText.push({letter: guess[i], type: "correct"})
                 }
-                else if(answer.includes(guess[i]) && countOf(responseText, guess[i]) !== countOf(answer, guess[i])){
+                else if(answer.includes(guess[i]) && countOf(responseText.map(v => v.letter), guess[i]) !== countOf(answer, guess[i])){
                     //keeps track if the guess has the correct letter after where we currently are, to avoid duplicates
                     let guessContainsCorrectLetter = false
                     for(let j = 0; j < guess.length; j++){
@@ -98,16 +98,22 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         }
                     }
                     if(!guessContainsCorrectLetter)
-                        responseText[i] = `${guess[i]}? `
+                        responseText.push({letter: guess[i], type: "bad-spot"})
                     else {
-                        responseText[i] = "\\_ "
+                        responseText.push({letter: "\u{0000}", type: "wrong"})
                     }
                 }
                 else {
-                    responseText[i] = "\\_ "
+                    responseText.push({letter: "\u{0000}", type: "wrong"})
                 }
             }
-            await handleSending(msg, crv(`${msg.author}\n${responseText.join("")}`, {status: StatusCode.INFO}))
+            await handleSending(msg, crv(`${msg.author}\n${responseText.map(v => {
+                switch(v.type){
+                    case "bad-spot": return `${v.letter}? `
+                    case "wrong": return `\\_ `
+                    case "correct": return `**${v.letter}** `
+                }
+            }).join("")}`, {status: StatusCode.INFO}))
         } while (guess !== answer)
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount} guesses remaining`)
