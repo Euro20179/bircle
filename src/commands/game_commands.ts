@@ -2472,8 +2472,8 @@ until you put a 0 in the box`)
                         if (correct == guessed)
                             nextInDisplay += `**${guessed}** `
                         else if (word.includes(guessed) && guessLetterCount[guessed] <= letterCount[guessed])
-                            nextInDisplay += `*${guessed}* `
-                        else nextInDisplay += `\`${guessed}\` `
+                            nextInDisplay += `${guessed}? `
+                        else nextInDisplay += `~~${guessed}~~ `
                     }
                     display[6 - guessCount] = nextInDisplay
                     guessCount--

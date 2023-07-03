@@ -15,7 +15,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -35,6 +35,7 @@ import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { shuffle } from 'lodash';
 import userOptions from '../user-options';
+import { Stack } from '../uno';
 
 // const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 // const configuration = new Configuration({
@@ -45,6 +46,78 @@ import userOptions from '../user-options';
 
 
 export default function*(): Generator<[string, Command | CommandV2]> {
+
+    yield ['mastermind', ccmdV2(async function({msg, opts }) {
+        globals.startCommand(msg.author.id, "mastermind")
+        const chars = opts.getString("options", "abcdef").toUpperCase()
+        let moveCount = opts.getNumber("moves", 12)
+        const answer = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
+        let guess;
+        do {
+            let res = await promptUser(msg, `Guess (options: ${chars})`, undefined, {
+                timeout: 120000,
+                filter: m => {
+                    if (
+                        m.author !== msg.author ||
+                        m.content.length !== answer.length
+                    ) {
+                        return false
+                    }
+                    for (const char of m.content) {
+                        if (!chars.includes(char.toUpperCase())) {
+                            return false
+                        }
+                    }
+                    return true
+                }
+            })
+
+            if (!res) {
+                globals.endCommand(msg.author.id, "mastermind")
+                return crv("No response", { status: StatusCode.ERR })
+            }
+            guess = res.content.toUpperCase()
+            moveCount--
+            if (moveCount <= 0) {
+                globals.endCommand(msg.author.id, "mastermind")
+                return crv(`${msg.author} lost\nthe answer was ${answer}`)
+            }
+            let responseText = []
+            for (let i = 0; i < guess.length; i++) {
+                if(answer[i] === guess[i]){
+                    responseText[i] = `**${answer[i]}** `
+                }
+                else if(answer.includes(guess[i]) && countOf(responseText, guess[i]) !== countOf(answer, guess[i])){
+                    //keeps track if the guess has the correct letter after where we currently are, to avoid duplicates
+                    let guessContainsCorrectLetter = false
+                    for(let j = 0; j < guess.length; j++){
+                        //the extra guess[j] === guess[i] makes sure that the letter we're checking the user has correct, is also the same letter that is currently being checked
+                        if(answer[j] === guess[j] && guess[j] === guess[i]) {
+                            guessContainsCorrectLetter = true
+                            break
+                        }
+                    }
+                    if(!guessContainsCorrectLetter)
+                        responseText[i] = `${guess[i]}? `
+                    else {
+                        responseText[i] = "\\_ "
+                    }
+                }
+                else {
+                    responseText[i] = "\\_ "
+                }
+            }
+            await handleSending(msg, crv(`${msg.author}\n${responseText.join("")}`, {status: StatusCode.INFO}))
+        } while (guess !== answer)
+        globals.endCommand(msg.author.id, "mastermind")
+        return crv(`${msg.author} won with ${moveCount} guesses remaining`)
+    }, "Mastermind", {
+        permCheck: m => !globals.userUsingCommand(m.author.id, "mastermind"),
+        helpOptions: {
+            moves: createHelpOption("The amount of moves you get", undefined, "12"),
+            options: createHelpOption("The chars that could be in the answer", undefined, "ABCDEFG")
+        }
+    })]
 
     yield ['smash-ruleset', ccmdV2(async function({ argShapeResults, opts }) {
         const items = shuffle([
@@ -1793,7 +1866,7 @@ Valid formats:
         "weather",
         ccmdV2(async function({ msg, args, opts }) {
             let [city, ...fmt] = args.resplit("|")
-            if(!city){
+            if (!city) {
                 city = userOptions.getOpt(msg.author.id, "location", "Tokyo")
             }
             const link = `https://search.brave.com/search?q=${city}+weather&source=web`

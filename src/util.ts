@@ -247,6 +247,14 @@ function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
     }
 }
 
+function countOf<T>(list: T[] | string, item: T): number {
+    let count = 0
+    for (let i of list) {
+        if (i === item) count++
+    }
+    return count
+}
+
 function range(start: number, end: number, step: number = 1) {
     return new Proxy(function*() {
         for (let i = 0; i < end; i += step) {
@@ -1166,6 +1174,7 @@ export {
     randomHexColorCode,
     getImgFromMsgAndOptsAndReply,
     titleStr,
-    romanToBase10
+    romanToBase10,
+    countOf
 }
 
