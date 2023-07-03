@@ -1342,6 +1342,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (!user) {
                     return { content: `${search} not found`, status: StatusCode.ERR }
                 }
+                else if(!userOptions.getOpt(user.id, "enable-mail", false)){
+                    return crv("User has not enabled mail")
+                }
                 else {
                     if (!user.dmChannel) {
                         try {
