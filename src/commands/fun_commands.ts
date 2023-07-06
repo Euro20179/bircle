@@ -47,7 +47,7 @@ import { Stack } from '../uno';
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
-    yield ['mastermind', ccmdV2(async function({msg, opts }) {
+    yield ['mastermind', ccmdV2(async function({ msg, opts }) {
         globals.startCommand(msg.author.id, "mastermind")
         const chars = opts.getString("options", "abcdef").toUpperCase()
         let moveCount = opts.getNumber("moves", 12)
@@ -82,38 +82,38 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 globals.endCommand(msg.author.id, "mastermind")
                 return crv(`${msg.author} lost\nthe answer was ${answer}`)
             }
-            let responseText: {letter: string, type: "correct" | "wrong" | "bad-spot"}[] = []
+            let responseText: { letter: string, type: "correct" | "wrong" | "bad-spot" }[] = []
             for (let i = 0; i < guess.length; i++) {
-                if(answer[i] === guess[i]){
-                    responseText.push({letter: guess[i], type: "correct"})
+                if (answer[i] === guess[i]) {
+                    responseText.push({ letter: guess[i], type: "correct" })
                 }
-                else if(answer.includes(guess[i]) && countOf(responseText.map(v => v.letter), guess[i]) !== countOf(answer, guess[i])){
+                else if (answer.includes(guess[i]) && countOf(responseText.map(v => v.letter), guess[i]) !== countOf(answer, guess[i])) {
                     //keeps track if the guess has the correct letter after where we currently are, to avoid duplicates
                     let guessContainsCorrectLetter = false
-                    for(let j = 0; j < guess.length; j++){
+                    for (let j = 0; j < guess.length; j++) {
                         //the extra guess[j] === guess[i] makes sure that the letter we're checking the user has correct, is also the same letter that is currently being checked
-                        if(answer[j] === guess[j] && guess[j] === guess[i]) {
+                        if (answer[j] === guess[j] && guess[j] === guess[i]) {
                             guessContainsCorrectLetter = true
                             break
                         }
                     }
-                    if(!guessContainsCorrectLetter)
-                        responseText.push({letter: guess[i], type: "bad-spot"})
+                    if (!guessContainsCorrectLetter)
+                        responseText.push({ letter: guess[i], type: "bad-spot" })
                     else {
-                        responseText.push({letter: "\u{0000}", type: "wrong"})
+                        responseText.push({ letter: "\u{0000}", type: "wrong" })
                     }
                 }
                 else {
-                    responseText.push({letter: "\u{0000}", type: "wrong"})
+                    responseText.push({ letter: "\u{0000}", type: "wrong" })
                 }
             }
             await handleSending(msg, crv(`${msg.author}\n${responseText.map(v => {
-                switch(v.type){
+                switch (v.type) {
                     case "bad-spot": return `${v.letter}? `
                     case "wrong": return `\\_ `
                     case "correct": return `**${v.letter}** `
                 }
-            }).join("")}`, {status: StatusCode.INFO}))
+            }).join("")}`, { status: StatusCode.INFO }))
         } while (guess !== answer)
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount} guesses remaining`)
@@ -1342,26 +1342,25 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (!user) {
                     return { content: `${search} not found`, status: StatusCode.ERR }
                 }
-                else if(!userOptions.getOpt(user.id, "enable-mail", false)){
+                else if (!userOptions.getOpt(user.id, "enable-mail", false)) {
                     return crv("User has not enabled mail")
                 }
-                else {
-                    if (!user.dmChannel) {
-                        try {
-                            await user.createDM()
-                        }
-                        catch (err) {
-                            return { content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR }
-                        }
+                if (!user.dmChannel) {
+                    try {
+                        await user.createDM()
                     }
-                    rv['channel'] = user.dmChannel as DMChannel
-                    if (rv['content']) {
-                        rv['content'] += user_options.getOpt(msg.author.id, "mail-signature", "")
-                    }
-                    else {
-                        rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
+                    catch (err) {
+                        return { content: `Could not create dm channel with ${user.username}`, status: StatusCode.ERR }
                     }
                 }
+                rv['channel'] = user.dmChannel as DMChannel
+                if (rv['content']) {
+                    rv['content'] += user_options.getOpt(msg.author.id, "mail-signature", "")
+                }
+                else {
+                    rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
+                }
+
                 //TODO: finish this
             }
             if (files.length) {
