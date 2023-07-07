@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10 } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -29,110 +29,110 @@ import amountParser from '../amount-parser'
 import translate from '@iamtraction/google-translate'
 
 const langs = {
-  auto: 'Automatic',
-  af: 'Afrikaans',
-  sq: 'Albanian',
-  ar: 'Arabic',
-  hy: 'Armenian',
-  az: 'Azerbaijani',
-  eu: 'Basque',
-  be: 'Belarusian',
-  bn: 'Bengali',
-  bs: 'Bosnian',
-  bg: 'Bulgarian',
-  ca: 'Catalan',
-  ceb: 'Cebuano',
-  ny: 'Chichewa',
-  'zh-cn': 'Chinese Simplified',
-  'zh-tw': 'Chinese Traditional',
-  co: 'Corsican',
-  hr: 'Croatian',
-  cs: 'Czech',
-  da: 'Danish',
-  nl: 'Dutch',
-  en: 'English',
-  eo: 'Esperanto',
-  et: 'Estonian',
-  tl: 'Filipino',
-  fi: 'Finnish',
-  fr: 'French',
-  fy: 'Frisian',
-  gl: 'Galician',
-  ka: 'Georgian',
-  de: 'German',
-  el: 'Greek',
-  gu: 'Gujarati',
-  ht: 'Haitian Creole',
-  ha: 'Hausa',
-  haw: 'Hawaiian',
-  iw: 'Hebrew',
-  hi: 'Hindi',
-  hmn: 'Hmong',
-  hu: 'Hungarian',
-  is: 'Icelandic',
-  ig: 'Igbo',
-  id: 'Indonesian',
-  ga: 'Irish',
-  it: 'Italian',
-  ja: 'Japanese',
-  jw: 'Javanese',
-  kn: 'Kannada',
-  kk: 'Kazakh',
-  km: 'Khmer',
-  ko: 'Korean',
-  ku: 'Kurdish (Kurmanji)',
-  ky: 'Kyrgyz',
-  lo: 'Lao',
-  la: 'Latin',
-  lv: 'Latvian',
-  lt: 'Lithuanian',
-  lb: 'Luxembourgish',
-  mk: 'Macedonian',
-  mg: 'Malagasy',
-  ms: 'Malay',
-  ml: 'Malayalam',
-  mt: 'Maltese',
-  mi: 'Maori',
-  mr: 'Marathi',
-  mn: 'Mongolian',
-  my: 'Myanmar (Burmese)',
-  ne: 'Nepali',
-  no: 'Norwegian',
-  ps: 'Pashto',
-  fa: 'Persian',
-  pl: 'Polish',
-  pt: 'Portuguese',
-  ma: 'Punjabi',
-  ro: 'Romanian',
-  ru: 'Russian',
-  sm: 'Samoan',
-  gd: 'Scots Gaelic',
-  sr: 'Serbian',
-  st: 'Sesotho',
-  sn: 'Shona',
-  sd: 'Sindhi',
-  si: 'Sinhala',
-  sk: 'Slovak',
-  sl: 'Slovenian',
-  so: 'Somali',
-  es: 'Spanish',
-  su: 'Sudanese',
-  sw: 'Swahili',
-  sv: 'Swedish',
-  tg: 'Tajik',
-  ta: 'Tamil',
-  te: 'Telugu',
-  th: 'Thai',
-  tr: 'Turkish',
-  uk: 'Ukrainian',
-  ur: 'Urdu',
-  uz: 'Uzbek',
-  vi: 'Vietnamese',
-  cy: 'Welsh',
-  xh: 'Xhosa',
-  yi: 'Yiddish',
-  yo: 'Yoruba',
-  zu: 'Zulu'
+    auto: 'Automatic',
+    af: 'Afrikaans',
+    sq: 'Albanian',
+    ar: 'Arabic',
+    hy: 'Armenian',
+    az: 'Azerbaijani',
+    eu: 'Basque',
+    be: 'Belarusian',
+    bn: 'Bengali',
+    bs: 'Bosnian',
+    bg: 'Bulgarian',
+    ca: 'Catalan',
+    ceb: 'Cebuano',
+    ny: 'Chichewa',
+    'zh-cn': 'Chinese Simplified',
+    'zh-tw': 'Chinese Traditional',
+    co: 'Corsican',
+    hr: 'Croatian',
+    cs: 'Czech',
+    da: 'Danish',
+    nl: 'Dutch',
+    en: 'English',
+    eo: 'Esperanto',
+    et: 'Estonian',
+    tl: 'Filipino',
+    fi: 'Finnish',
+    fr: 'French',
+    fy: 'Frisian',
+    gl: 'Galician',
+    ka: 'Georgian',
+    de: 'German',
+    el: 'Greek',
+    gu: 'Gujarati',
+    ht: 'Haitian Creole',
+    ha: 'Hausa',
+    haw: 'Hawaiian',
+    iw: 'Hebrew',
+    hi: 'Hindi',
+    hmn: 'Hmong',
+    hu: 'Hungarian',
+    is: 'Icelandic',
+    ig: 'Igbo',
+    id: 'Indonesian',
+    ga: 'Irish',
+    it: 'Italian',
+    ja: 'Japanese',
+    jw: 'Javanese',
+    kn: 'Kannada',
+    kk: 'Kazakh',
+    km: 'Khmer',
+    ko: 'Korean',
+    ku: 'Kurdish (Kurmanji)',
+    ky: 'Kyrgyz',
+    lo: 'Lao',
+    la: 'Latin',
+    lv: 'Latvian',
+    lt: 'Lithuanian',
+    lb: 'Luxembourgish',
+    mk: 'Macedonian',
+    mg: 'Malagasy',
+    ms: 'Malay',
+    ml: 'Malayalam',
+    mt: 'Maltese',
+    mi: 'Maori',
+    mr: 'Marathi',
+    mn: 'Mongolian',
+    my: 'Myanmar (Burmese)',
+    ne: 'Nepali',
+    no: 'Norwegian',
+    ps: 'Pashto',
+    fa: 'Persian',
+    pl: 'Polish',
+    pt: 'Portuguese',
+    ma: 'Punjabi',
+    ro: 'Romanian',
+    ru: 'Russian',
+    sm: 'Samoan',
+    gd: 'Scots Gaelic',
+    sr: 'Serbian',
+    st: 'Sesotho',
+    sn: 'Shona',
+    sd: 'Sindhi',
+    si: 'Sinhala',
+    sk: 'Slovak',
+    sl: 'Slovenian',
+    so: 'Somali',
+    es: 'Spanish',
+    su: 'Sudanese',
+    sw: 'Swahili',
+    sv: 'Swedish',
+    tg: 'Tajik',
+    ta: 'Tamil',
+    te: 'Telugu',
+    th: 'Thai',
+    tr: 'Turkish',
+    uk: 'Ukrainian',
+    ur: 'Urdu',
+    uz: 'Uzbek',
+    vi: 'Vietnamese',
+    cy: 'Welsh',
+    xh: 'Xhosa',
+    yi: 'Yiddish',
+    yo: 'Yoruba',
+    zu: 'Zulu'
 }
 
 
@@ -151,7 +151,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         'translate', ccmdV2(async function({ msg, args, opts, stdin }) {
-            if(opts.getBool("l", false)){
+            if (opts.getBool("l", false)) {
 
                 return crv(htmlRenderer.renderHTML("List of languages<br>af: afrikaans<br>sq: albanian<br>ar: Arabic<br>hy: Armenian<br>az: Azerbaijani<br>eu: Basque<br>be: Belarusian<br>bn: Bengali<br>bs: Bosnian<br>bg: Bulgarian<br>ca: Catalan<br>ceb: Cebuano<br>ny: Chichewa<br>zh-cn: Chinese Simplified<br>zh-tw: Chinese Traditional<br>co: Corsican<br>hr: Croatian<br>cs: Czech<br>da: Danish<br>nl: Dutch<br>en: English<br>eo: Esperanto<br>et: Estonian<br>tl: Filipino<br>fi: Finnish<br>fr: French<br>fy: Frisian<br>gl: Galician<br>ka: Georgian<br>de: German<br>el: Greek<br>gu: Gujarati<br>ht: Haitian Creole<br>ha: Hausa<br>haw: Hawaiian<br>iw: Hebrew<br>hi: Hindi<br>hmn: Hmong<br>hu: Hungarian<br>is: Icelandic<br>ig: Igbo<br>id: Indonesian<br>ga: Irish<br>it: Italian<br>ja: Japanese<br>jw: Javanese<br>kn: Kannada<br>kk: Kazakh<br>km: Khmer<br>ko: Korean<br>ku: Kurdish (Kurmanji)<br>ky: Kyrgyz<br>lo: Lao<br>la: Latin<br>lv: Latvian<br>lt: Lithuanian<br>lb: Luxembourgish<br>mk: Macedonian<br>mg: Malagasy<br>ms: Malay<br>ml: Malayalam<br>mt: Maltese<br>mi: Maori<br>mr: Marathi<br>mn: Mongolian<br>my: Myanmar (Burmese)<br>ne: Nepali<br>no: Norwegian<br>ps: Pashto<br>fa: Persian<br>pl: Polish<br>pt: Portuguese<br>ma: Punjabi<br>ro: Romanian<br>ru: Russian<br>sm: Samoan<br>gd: Scots Gaelic<br>sr: Serbian<br>st: Sesotho<br>sn: Shona<br>sd: Sindhi<br>si: Sinhala<br>sk: Slovak<br>sl: Slovenian<br>so: Somali<br>es: Spanish<br>su: Sudanese<br>sw: Swahili<br>sv: Swedish<br>tg: Tajik<br>ta: Tamil<br>te: Telugu<br>th: Thai<br>tr: Turkish<br>uk: Ukrainian<br>ur: Urdu<br>uz: Uzbek<br>vi: Vietnamese<br>cy: Welsh<br>xh: Xhosa<br>yi: Yiddish<br>yo: Yoruba<br>zu: Zulu"))
             }
@@ -319,6 +319,98 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             "above-the-fold-data": createHelpOption("Get data from above the fold :smirk:")
         }
     })]
+
+    yield [
+        'al', ccmdV2(async function({ args, opts }) {
+            const search = args.join(" ")
+            const url = 'https://graphql.anilist.co'
+            const qlQuery = `{
+                Media(search: "${search}", type: ${opts.getBool("m", false) ? "MANGA" : "ANIME"}){
+                    id, type, episodes, description,
+                    chapters,
+                    meanScore,
+                    favourites,
+                    popularity,
+                    duration,
+                    episodes,
+                    volumes,
+                    startDate {
+                        year
+                        month
+                        day
+                    },
+                    endDate {
+                        year
+                        month
+                        day
+                    },
+                    coverImage {
+                        medium
+                        color
+                    },
+                    title {
+                        romaji
+                        english
+                        native
+                    }
+                }
+            }`
+
+            const embed = new EmbedBuilder()
+
+            const res = await fetch.default(url, {
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                method: "post",
+                body: JSON.stringify({
+                    query: qlQuery,
+                    variables: null,
+                    operationName: null
+                })
+            })
+
+            const json = await res.json()
+            console.log(json)
+            if (!json.data?.Media) {
+                return crv("No results")
+            }
+
+            if (json.data.Media.type === "ANIME") {
+
+                embed.addFields({ name: "#Episodes", value: `${json.data.Media.episodes} (${json.data.Media.duration} min/ep)`, inline: true })
+            }
+
+            else if(json.data.Media.type === "MANGA"){
+                embed.addFields({name: "#Chapters", value: `${json.data.Media.chapters} chapters over ${json.data.Media.volumes} vols`, inline: true})
+            }
+            let { year: yS, month: mS, day: dS } = json.data.Media.startDate
+            let { year: yE, month: mE, day: dE } = json.data.Media.endDate
+
+
+            embed.addFields({ name: "Start/End Date", value: `${mS}/${dS}/${yS} - ${mE}/${dE}/${yE}`, inline: true })
+
+            if (yE) {
+                embed.addFields({ name: `Favorites / Popularity`, value: `${json.data.Media.favourites} / ${json.data.Media.popularity}`, inline: true })
+            }
+
+            embed.setURL(`https://anilist.co/${json.data.Media.type}/${json.data.Media.id}`)
+            embed.setTitle(`${json.data.Media.title.english} (${json.data.Media.title.romaji} / ${json.data.Media.title.native})`)
+            embed.setDescription(htmlRenderer.renderHTML(json.data.Media.description) || "No desecription")
+            embed.setFooter({ text: `Id: ${json.data.Media.id}\nType: ${titleStr(json.data.Media.type.toLowerCase())}` })
+            embed.setImage(json.data.Media.coverImage.medium)
+            embed.setColor(json.data.Media.coverImage.color)
+
+
+
+
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "Scrapes anilist.co (similar to mal)", {
+            helpOptions: {
+                m: createHelpOption("Search for the manga instead of anime")
+            }
+        })
+    ]
 
     yield ['shuf', ccmdV2(async function({ args, stdin }) {
         let text = stdin ? getContentFromResult(stdin).split("\n") : args.resplit("\n")
