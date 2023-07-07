@@ -345,7 +345,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         day
                     },
                     coverImage {
-                        medium
+                        large
                         color
                     },
                     title {
@@ -371,7 +371,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             })
 
             const json = await res.json()
-            console.log(json)
             if (!json.data?.Media) {
                 return crv("No results")
             }
@@ -396,9 +395,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             embed.setURL(`https://anilist.co/${json.data.Media.type}/${json.data.Media.id}`)
             embed.setTitle(`${json.data.Media.title.english} (${json.data.Media.title.romaji} / ${json.data.Media.title.native})`)
-            embed.setDescription(htmlRenderer.renderHTML(json.data.Media.description) || "No desecription")
-            embed.setFooter({ text: `Id: ${json.data.Media.id}\nType: ${titleStr(json.data.Media.type.toLowerCase())}` })
-            embed.setImage(json.data.Media.coverImage.medium)
+            let rawHTML = htmlRenderer.renderHTML(json.data.Media.description).replaceAll("\n\n", "\n")
+            let [html, note] = rawHTML.split("**Note:**")
+            embed.setDescription(html || "No desecription")
+            embed.setFooter({ text: `**Note:** ${note}\n\nId: ${json.data.Media.id}\nType: ${titleStr(json.data.Media.type.toLowerCase())}` })
+            embed.setImage(json.data.Media.coverImage.large)
             embed.setColor(json.data.Media.coverImage.color)
 
 
