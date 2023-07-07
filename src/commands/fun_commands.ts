@@ -15,7 +15,7 @@ import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf, isPrime } from "../util"
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -35,7 +35,6 @@ import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
 import { shuffle } from 'lodash';
 import userOptions from '../user-options';
-import { Stack } from '../uno';
 
 // const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
 // const configuration = new Configuration({
@@ -2297,6 +2296,8 @@ Valid formats:
                         .setURL(post.post.ap_id)
 
                     e.setAuthor({ iconURL: authImg, name: `${community}@${inst}` })
+                    if (post.post.thumbnail_url)
+                        e.setImage(post.post.thumbnail_url)
                     embeds.push(e)
                 }
                 return embeds
@@ -2331,7 +2332,6 @@ Valid formats:
                     }
                     case "post-id": {
                         let id = Number(args.shift())
-                        console.log(id)
                         if (!id) {
                             return crv("No post id given", { status: StatusCode.ERR })
                         }

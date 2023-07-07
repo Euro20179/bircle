@@ -1175,6 +1175,6 @@ export {
     getImgFromMsgAndOptsAndReply,
     titleStr,
     romanToBase10,
-    countOf
+    countOf,
 }
 
