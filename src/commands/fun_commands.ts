@@ -72,11 +72,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 return crv("No response", { status: StatusCode.ERR })
             }
             guess = res.content.toUpperCase()
-            moveCount--
-            if (moveCount <= 0) {
-                globals.endCommand(msg.author.id, "mastermind")
-                return crv(`${msg.author} lost\nthe answer was ${answer}`)
-            }
             let responseText: { letter: string, type: "correct" | "wrong" | "bad-spot" }[] = []
             for (let i = 0; i < guess.length; i++) {
                 if (answer[i] === guess[i]) {
@@ -109,6 +104,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     case "correct": return `**${v.letter}** `
                 }
             }).join("")}`, { status: StatusCode.INFO }))
+            moveCount--
+            if (moveCount < 0) {
+                globals.endCommand(msg.author.id, "mastermind")
+                return crv(`${msg.author} lost\nthe answer was ${answer}`)
+            }
         } while (guess !== answer)
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount} guesses remaining`)
