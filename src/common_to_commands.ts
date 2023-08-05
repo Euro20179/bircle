@@ -1281,8 +1281,9 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
 
     if (!sendCallback) {
         sendCallback = rv.sendCallback ||
-            rv.channel?.send.bind(rv.channel) ||
-            msg.channel.send.bind(msg.channel)
+            rv.reply ? msg.reply.bind(msg) :
+                rv.channel?.send.bind(rv.channel) ||
+                msg.channel.send.bind(msg.channel)
     }
 
     if (rv.delete) {

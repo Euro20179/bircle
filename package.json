@@ -26,6 +26,7 @@
     "cheerio": "^1.0.0-rc.10",
     "discord-api-types": "^0.31.2",
     "google-translate-api": "^2.3.0",
+    "gpt4all": "^2.1.1-alpha",
     "jimp": "^0.16.1",
     "lemmy-js-client": "^0.17.2-rc.24",
     "libsodium-wrappers": "^0.7.10",

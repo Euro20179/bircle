@@ -17,6 +17,15 @@ import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '..
 export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
+        "RELOAD_BLACKLISTS", ccmdV2(async function(){
+            common.reloadIDBlackLists()
+            return crv("Blacklists reloaded")
+        }, "Reloads user and role blacklists", {
+            permCheck: m => common.ADMINS.includes(m.author.id)
+        })
+    ]
+
+    yield [
         "CLEAR_INTERPRETER_CACHE", ccmdV2(async function() {
             Interpreter.resultCache = new Map()
             return crv("Cache cleared")

@@ -9,13 +9,14 @@ import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuild
 
 import fetch = require("node-fetch")
 
-// import { Configuration, CreateImageRequestSizeEnum, OpenAIApi } from "openai"
-
 import economy from '../economy'
 import user_country, { UserCountryActivity } from '../travel/user-country'
 import vars from '../vars';
 import common from '../common';
-import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf, isPrime } from "../util"
+import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from "../util"
+
+import { LLModel, PromptMessage, createCompletion, loadModel} from 'gpt4all'
+
 import { format, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -36,13 +37,8 @@ import amountParser from '../amount-parser';
 import { shuffle } from 'lodash';
 import userOptions from '../user-options';
 
-// const [key, orgid] = fs.readFileSync("data/openai.key", "utf-8").split("\n")
-// const configuration = new Configuration({
-//     organization: orgid,
-//     apiKey: key
-// })
-// let openai = new OpenAIApi(configuration)
-
+let CHAT_LL: undefined | LLModel
+loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll ).catch(console.error)
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -371,49 +367,31 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         f: createHelpOption("Fetch user based on your current guild instead of the bot's known users (only works in servers)")
     })]
 
-    yield ["chat", createCommandV2(async () => {
-        return crv("disabled", { status: StatusCode.ERR })
-        // const modelToUse = opts.getString("m", "text-davinci-003")
-        // const temperature = opts.getNumber("t", 0.2)
-        // const requestType = opts.getString("type", "") || opts.getString("ty", "completion")
-        // let text: string | undefined = argList.join(" ")
-        // if (!text) {
-        //     text = "\n"
-        // }
-        // let res = "No result"
-        // if (requestType === "completion") {
-        //     let resp = await openai.createCompletion({
-        //         model: modelToUse,
-        //         prompt: text,
-        //         max_tokens: opts.getNumber("tokens", 0) || opts.getNumber("tok", 100),
-        //         user: msg.author.id,
-        //         temperature: temperature,
-        //     })
-        //     res = resp.data.choices.slice(-1)[0].text || "no result"
-        // }
-        // else if (requestType === "edit") {
-        //     let [instruction, ...input] = text.split("|").map(v => v.trim())
-        //     let resp = await openai.createEdit({
-        //         input: input.join("|"),
-        //         instruction: instruction,
-        //         temperature: temperature,
-        //         model: "text-davinci-edit-001"
-        //     })
-        //     res = resp.data.choices[0].text || "No result"
-        //
-        // }
-        // else if (requestType === "image") {
-        //     let resp = await openai.createImage({
-        //         prompt: text || "Hello",
-        //         size: opts.getString("size", "256x256") as CreateImageRequestSizeEnum,
-        //         user: msg.author.id
-        //     })
-        //     res = resp.data.data[0].url || "No result"
-        // }
-        // else {
-        //     return { content: "Invalid request type", status: StatusCode.ERR }
-        // }
-        // return { content: res, status: StatusCode.RETURN }
+    yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
+        if(!CHAT_LL){
+            return crv("The chat language model has not  loaded yet", {status: StatusCode.ERR})
+        }
+        if(!globals.DEVBOT){
+            return crv("This command is only available on devbot", {status: StatusCode.ERR})
+        }
+        let messages: PromptMessage[] = []
+
+        let sysMsg = opts.getString("sys-msg", null)
+        if(sysMsg) messages.push({role: "system", content: sysMsg})
+
+        let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
+        
+        messages.push({role: "user", content: content})
+
+        createCompletion(CHAT_LL, messages, {
+            hasDefaultHeader: false
+        }).then(response => {
+            handleSending(msg, crv(response.choices[0].message.content, {reply: true})).catch(console.error)
+        }).catch(error => {
+            handleSending(msg, crv(error.toString())).catch(console.error)
+        })
+
+        return {noSend: true, status: StatusCode.RETURN}
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {

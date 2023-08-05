@@ -7,7 +7,7 @@ const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 7, minor: 12, bug: 3, part: "", beta: false, alpha: false}
+const VERSION = { major: 7, minor: 12, bug: 3, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
@@ -103,9 +103,24 @@ function removeFromPermList(list: { [key: string]: string[] }, listFile: string,
     savePermList(list, listFile)
 }
 
+function loadIDBlackList(type: "user" | "role") {
+    let data = fs.readFileSync(`./data/blacklist/${type}`, "utf-8")
+    return data.split("\n")
+}
+
+function reloadIDBlackLists() {
+    BLACKLISTED_USERS = loadIDBlackList("user")
+    BLACKLISTED_ROLES = loadIDBlackList("role")
+}
+
+let BLACKLISTED_USERS, BLACKLISTED_ROLES;
+
+
 const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
 const GLOBAL_CURRENCY_SIGN = "$"
+
+reloadIDBlackLists()
 
 export default {
     prefix,
@@ -113,6 +128,9 @@ export default {
     FILE_SHORTCUTS,
     WHITELIST,
     BLACKLIST,
+    BLACKLISTED_ROLES,
+    BLACKLISTED_USERS,
+    reloadIDBlackLists,
     reloadBlackList,
     reloadWhiteList,
     addToPermList,
