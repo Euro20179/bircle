@@ -1575,7 +1575,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let returnJson = opts.getBool("no-chat", false)
 
             let start = performance.now()
-            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback, returnJson })
+            await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
             return { content: `${performance.now() - start}ms`, status: StatusCode.RETURN }
         }, "Time how long a command takes", {
             helpArguments: {
