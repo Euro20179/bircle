@@ -642,7 +642,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "help", createCommandV2(async ({ rawOpts: opts, args }) => {
 
-            if(!opts['txt']){
+            if(!opts['txt'] && !args.length){
                 return crv("http://bircle.euro20179.com:8222/commands")
             }
 
