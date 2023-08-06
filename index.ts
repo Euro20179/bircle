@@ -242,7 +242,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         await execCommand(m, await res.text(), int.args)
     }
 
-    if (content.slice(0, local_prefix.length) == local_prefix) {
+    if (command_commons.isCmd(content, local_prefix)) {
         await m.execCommand(local_prefix)
     }
     else {
