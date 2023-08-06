@@ -642,6 +642,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "help", createCommandV2(async ({ rawOpts: opts, args }) => {
 
+            if(!opts['txt']){
+                return crv("http://bircle.euro20179.com:8222/commands")
+            }
+
             const matchCmds = getMatchCommands()
             let commands = { ...Object.fromEntries(getCommands().entries()), ...matchCmds }
             if (opts["g"]) {
@@ -727,6 +731,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 commands: createHelpArgument("The commands to get help on, seperated by a space<br>If command is ?, it will do all commands", false)
             },
             {
+                txt: createHelpOption("Do not send a link to the website"),
                 "g": createHelpOption("List the bot syntax"),
                 "s": createHelpOption("Only show a summary"),
                 html: createHelpOption("Show html instead of markdown format")
