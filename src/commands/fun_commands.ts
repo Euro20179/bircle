@@ -384,7 +384,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         messages.push({role: "user", content: content})
 
         createCompletion(CHAT_LL, messages, {
-            hasDefaultHeader: false
+            hasDefaultHeader: false,
         }).then(response => {
             handleSending(msg, crv(response.choices[0].message.content, {reply: true})).catch(console.error)
         }).catch(error => {
