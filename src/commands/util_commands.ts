@@ -1888,12 +1888,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "rand-arg", createCommandV2(
+        "rand-arg", ccmdV2(
             async ({ args }) => {
                 return { content: choice(args), status: StatusCode.RETURN }
-            },
-            CommandCategory.UTIL,
-            "Sends a random argument"
+            }, "Sends a random argument", {
+                helpArguments: {
+                    "...args": createHelpArgument("The args to pick from")
+                }
+            }
         )
     ]
 
