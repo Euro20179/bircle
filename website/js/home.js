@@ -72,8 +72,7 @@ class Embed {
     }
 }
 
-function handleSending(crv) {
-    let rv = crv.rv
+function handleSending(rv) {
     while (commandOutput.firstChild) {
         commandOutput.removeChild(commandOutput.firstChild)
     }
