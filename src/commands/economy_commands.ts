@@ -375,53 +375,50 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "inventory", {
-            run: async (msg, _, sendCallback, opts, args) => {
-                let user = await fetchUserFromClient(common.client, args[0] ?? msg.author.id)
-                if (!user)
-                    return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
+        "inventory", ccmdV2(async function({ msg, opts, args }) {
 
-                const ITEMS_PER_PAGE = 20
+            let user = await fetchUserFromClient(common.client, args[0] ?? msg.author.id)
+            if (!user)
+                return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
 
-                let sortFunction = opts['n'] ? ([_, count]: [string, number], [_2, count2]: [string, number]) => count2 - count : ([name, _]: [string, number], [name2, _2]: [string, number]) => name > name2 ? 1 : -1
+            const ITEMS_PER_PAGE = 20
 
-                const PLAYER_INV = Object.entries(getInventory()[user.id]).sort(sortFunction)
+            let sortFunction = opts.getBool("n", false) ? ([_, count]: [string, number], [_2, count2]: [string, number]) => count2 - count : ([name, _]: [string, number], [name2, _2]: [string, number]) => name > name2 ? 1 : -1
 
-                const embedPages: EmbedBuilder[] = []
+            const PLAYER_INV = Object.entries(getInventory()[user.id]).sort(sortFunction)
 
-                let au = user.avatarURL()
+            const embedPages: EmbedBuilder[] = []
 
-                const totalPages = Math.ceil(PLAYER_INV.length / ITEMS_PER_PAGE)
+            let au = user.avatarURL()
 
-                for (let chunk = 0; chunk < PLAYER_INV.length; chunk += ITEMS_PER_PAGE) {
-                    let e = new EmbedBuilder().setTitle("ITEMS")
-                    if (au)
-                        e.setThumbnail(au)
+            const totalPages = Math.ceil(PLAYER_INV.length / ITEMS_PER_PAGE)
 
-                    for (let [name, count] of PLAYER_INV.slice(chunk, chunk + ITEMS_PER_PAGE)) {
-                        e.addFields({ name, value: String(count), inline: true })
-                    }
+            for (let chunk = 0; chunk < PLAYER_INV.length; chunk += ITEMS_PER_PAGE) {
+                let e = new EmbedBuilder().setTitle("ITEMS")
+                if (au)
+                    e.setThumbnail(au)
 
-                    e.setDescription(`page: ${(chunk + 20) / 20} / ${totalPages}`)
-                    e.setFooter({ text: `type n/p to go to the next/previous page\nor type a page number to go to that page` })
-                    embedPages.push(e)
+                for (let [name, count] of PLAYER_INV.slice(chunk, chunk + ITEMS_PER_PAGE)) {
+                    e.addFields({ name, value: String(count), inline: true })
                 }
 
-                let paged = new PagedEmbed(msg, embedPages, "inventory")
-                await paged.begin()
-
-                return { noSend: true, status: StatusCode.INFO }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Get the inventory of a user",
-                arguments: {
-                    user: createHelpArgument("The user to get info from", false, undefined, "@me")
-                },
-                options: {
-                    n: createHelpOption("Sort by numerical")
-                }
+                e.setDescription(`page: ${(chunk + 20) / 20} / ${totalPages}`)
+                e.setFooter({ text: `type n/p to go to the next/previous page\nor type a page number to go to that page` })
+                embedPages.push(e)
             }
-        },
+
+            let paged = new PagedEmbed(msg, embedPages, "inventory")
+            await paged.begin()
+
+            return { noSend: true, status: StatusCode.INFO }
+        }, "Get the inventory of a user", {
+            helpArguments: {
+                user: createHelpArgument("The user to get info from", false, undefined, "@me")
+            },
+            helpOptions: {
+                n: createHelpOption("Sort by numerical")
+            }
+        })
     ]
 
     yield [
