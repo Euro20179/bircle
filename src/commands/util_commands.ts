@@ -404,9 +404,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             embed.setImage(json.data.Media.coverImage.large)
             embed.setColor(json.data.Media.coverImage.color)
 
-
-
-
             return { embeds: [embed], status: StatusCode.RETURN }
         }, "Scrapes anilist.co (similar to mal)", {
             helpOptions: {
@@ -450,7 +447,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield ['school-stats', ccmdV2(async function({ msg, opts }) {
         let ip;
         if (fs.existsSync("./data/ip.key")) {
-
             ip = fs.readFileSync("./data/ip.key");
         }
         if (!ip) {
@@ -460,15 +456,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         let toFetch = opts.getString("of", msg.author.id)
         let user: User | undefined = msg.author;
         if (toFetch !== msg.author.id) {
-            if (msg.guild) {
-                user = (await fetchUser(msg.guild, toFetch))?.user
-            }
-            else {
-                user = await fetchUserFromClient(common.client, toFetch)
-            }
-            if (!user) {
-                user = msg.author
-            }
+            user = (await fetchUserFromClientOrGuild(toFetch, msg.guild)) || msg.author
         }
 
         let res;
@@ -486,9 +474,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return crv("Could not get json", { status: StatusCode.ERR })
         }
         let embed = new EmbedBuilder()
-        embed.setTitle(`School stats of ${user.username}`)
-        embed.setColor(msg.member?.displayColor || "NotQuiteBlack")
-        embed.addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["job", String(data.job?.name ?? "None")], ["grade", String(data.grade)]))
+                        .setTitle(`School stats of ${user.username}`)
+                        .setColor(msg.member?.displayColor || "NotQuiteBlack")
+                        .addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["job", String(data.job?.name ?? "None")], ["grade", String(data.grade)]))
         return { embeds: [embed], status: StatusCode.RETURN }
     }, "School stats", {
         helpOptions: {
