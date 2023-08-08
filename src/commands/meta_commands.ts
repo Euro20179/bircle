@@ -2805,51 +2805,42 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
     ]
 
     yield [
-        "changelog",
-        {
-            run: async (_msg, args, _sendCallback, opts) => {
-                if (opts['l']) {
-                    const tags = execSync("git tag --sort=committerdate | grep ^v")
-                    return crv(tags.toString("utf-8"))
-                }
-                let [start, stop] = args
-                const version_regex = /(HEAD|\d+\.\d+\.\d+)/;
-                const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
-                const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
-                if (start === undefined) {
-                    start = lastVersion
-                    stop = mostRecentVersion
-                }
-                else if (stop === undefined) {
-                    return crv("If start is given, stop must also be given")
-                }
-                if (!version_regex.test(start) || !version_regex.test(stop)) {
-                    return crv(`invalid start/stop version`)
-                }
-                const changelog = execSync(`git log v${start}..v${stop} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
-                return crv(changelog || "No changes")
+        "changelog", ccmdV2(async function({ args, rawOpts: opts }) {
+            if (opts['l']) {
+                const tags = execSync("git tag --sort=committerdate | grep ^v")
+                return crv(tags.toString("utf-8"))
+            }
+            let [start, stop] = args
+            const version_regex = /(HEAD|\d+\.\d+\.\d+)/;
+            const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
+            const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
+
+            if(start) start = `v${start}`
+            if(stop) stop = `v${stop}`
+
+            if (start === undefined) {
+                start = lastVersion
+                stop = mostRecentVersion
+            }
+            else if (stop === undefined) {
+                stop = "HEAD"
+            }
+            if (!version_regex.test(start) || !version_regex.test(stop)) {
+                return crv(`invalid start/stop version`)
+            }
+            const changelog = execSync(`git log ${start}..${stop} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
+            return crv(changelog || "No changes")
+
+        }, "Get a changelog for a version", {
+            helpOptions: {
+                l: createHelpOption("List all versions")
             },
-            help: {
-                info: "Get changelog for a version",
-                options: {
-                    l: {
-                        description: "Show all versions"
-                    }
-                },
-                arguments: {
-                    start: {
-                        description: "Starting version",
-                        required: false,
-                        requires: "end"
-                    }, end: {
-                        description: "Ending version",
-                        required: false
-                    }
-                }
-            },
-            category: CAT,
-            use_result_cache: true
-        },
+            helpArguments: {
+                start: createHelpArgument("Starting version", false),
+                end: createHelpArgument("Ending version", false, "start")
+            }
+        })
+        ,
     ]
 
     yield [
