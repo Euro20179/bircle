@@ -1203,9 +1203,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         }
                         rvText = `**${title}**\n${text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")}`
                     }
-                    if (opts['nf']) {
-                        return { content: rvText, status: StatusCode.RETURN }
-                    }
                     return {
                         content: rvText, status: StatusCode.RETURN 
                     }
@@ -1223,9 +1220,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 options: {
                     s: {
                         description: "The amount of sentences to see"
-                    },
-                    nf: {
-                        description: "Do not send html file"
                     },
                     all: {
                         description: "Send full page as text"
