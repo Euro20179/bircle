@@ -38,7 +38,8 @@ import { shuffle } from 'lodash';
 import userOptions from '../user-options';
 
 let CHAT_LL: undefined | LLModel
-loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll ).catch(console.error)
+if(globals.DEVBOT)
+    loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll ).catch(console.error)
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -371,11 +372,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
-        if(!CHAT_LL){
-            return crv("The chat language model has not  loaded yet", {status: StatusCode.ERR})
-        }
         if(!globals.DEVBOT){
             return crv("This command is only available on devbot", {status: StatusCode.ERR})
+        }
+        if(!CHAT_LL){
+            return crv("The chat language model has not  loaded yet", {status: StatusCode.ERR})
         }
         let messages: PromptMessage[] = []
 

@@ -31,6 +31,9 @@ import user_options from './src/user-options'
 import vars from './src/vars'
 import pets from './src/pets'
 
+import init from './src/init'
+init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
+
 const rest = new REST({ version: "10" }).setToken(globals.token);
 
 Object.defineProperty(User.prototype, "loan", {

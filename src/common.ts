@@ -68,8 +68,6 @@ function getUserMatchCommands() {
     return USER_MATCH_COMMANDS
 }
 
-loadMatchCommands()
-
 function reloadList(list: string, listHolder: { [key: string]: string[] }) {
     let lf = fs.readFileSync(`command-perms/${list}`, "utf-8")
     for (let line of lf.split("\n")) {
@@ -82,8 +80,6 @@ function reloadList(list: string, listHolder: { [key: string]: string[] }) {
 const reloadWhiteList = reloadList.bind(this, "whitelists", WHITELIST)
 const reloadBlackList = reloadList.bind(this, "blacklists", BLACKLIST)
 
-reloadBlackList()
-reloadWhiteList()
 
 function savePermList(list: { [key: string]: string[] }, listFile: string) {
     let data = Object.entries(list).map(([user, perms]) => `${user}: ${perms.join(" ")}`).join("\n")
@@ -115,12 +111,9 @@ function reloadIDBlackLists() {
 
 let BLACKLISTED_USERS, BLACKLISTED_ROLES;
 
-
 const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
 const GLOBAL_CURRENCY_SIGN = "$"
-
-reloadIDBlackLists()
 
 export default {
     prefix,
@@ -143,5 +136,6 @@ export default {
     saveMatchCommands,
     addUserMatchCommand,
     removeUserMatchCommand,
+    loadMatchCommands,
 }
 
