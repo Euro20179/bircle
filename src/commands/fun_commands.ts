@@ -45,7 +45,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield ['mastermind', ccmdV2(async function({ msg, opts }) {
         globals.startCommand(msg.author.id, "mastermind")
         const chars = opts.getString("options", "abcdef").toUpperCase()
-        let moveCount = opts.getNumber("moves", 12)
+        let moveCount = opts.getNumber("moves", 8)
         const answer = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
         let guess;
         do {
@@ -71,7 +71,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 globals.endCommand(msg.author.id, "mastermind")
                 return crv("No response", { status: StatusCode.ERR })
             }
+
             guess = res.content.toUpperCase()
+
             let responseText: { letter: string, type: "correct" | "wrong" | "bad-spot" }[] = []
             for (let i = 0; i < guess.length; i++) {
                 if (answer[i] === guess[i]) {
@@ -97,21 +99,24 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     responseText.push({ letter: "\u{0000}", type: "wrong" })
                 }
             }
-            await handleSending(msg, crv(`${msg.author}\n${responseText.map(v => {
+            let e = new EmbedBuilder().setTitle(responseText.map(v => {
                 switch (v.type) {
                     case "bad-spot": return `${v.letter}? `
                     case "wrong": return `\\_ `
                     case "correct": return `**${v.letter}** `
                 }
-            }).join("")}`, { status: StatusCode.INFO }))
+            }).join("")).setFooter({text: `${moveCount} guesses remaining`}).setAuthor({name: msg.author.username, iconURL: msg.author.avatarURL() as string})
+            await handleSending(msg, {status: StatusCode.INFO, embeds: [e]})
+
             moveCount--
             if (moveCount < 0) {
                 globals.endCommand(msg.author.id, "mastermind")
                 return crv(`${msg.author} lost\nthe answer was ${answer}`)
             }
+
         } while (guess !== answer)
         globals.endCommand(msg.author.id, "mastermind")
-        return crv(`${msg.author} won with ${moveCount} guesses remaining`)
+        return crv(`${msg.author} won with ${moveCount + 1} guesses remaining`)
     }, "Mastermind", {
         permCheck: m => !globals.userUsingCommand(m.author.id, "mastermind"),
         helpOptions: {
