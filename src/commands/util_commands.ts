@@ -642,7 +642,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     yield [
         "help", createCommandV2(async ({ rawOpts: opts, args }) => {
 
-            if(!opts['txt'] && !args.length){
+            if (!opts['txt'] && !args.length) {
                 return crv("http://bircle.euro20179.com:8222/commands")
             }
 
@@ -1892,10 +1892,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             async ({ args }) => {
                 return { content: choice(args), status: StatusCode.RETURN }
             }, "Sends a random argument", {
-                helpArguments: {
-                    "...args": createHelpArgument("The args to pick from")
-                }
+            helpArguments: {
+                "...args": createHelpArgument("The args to pick from")
             }
+        }
         )
     ]
 
@@ -4243,23 +4243,17 @@ valid formats:<br>
     ]
 
     yield [
-        "non-assigned-roles",
-        {
-            run: async (msg, _args, sendCallback) => {
-                await msg.guild?.members.fetch()
-                let roles = await msg.guild?.roles.fetch()
-                let rolesNonAssigned: any[] = []
-                roles?.forEach(r => {
-                    if (r.members.size < 1)
-                        rolesNonAssigned.push(r.name)
-                })
-                return { content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members`, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Gets a list of non-assigned-roles"
+        "non-assigned-roles", ccmdV2(async function({ msg }) {
+            await msg.guild?.members.fetch()
+            let roles = await msg.guild?.roles.fetch()
+            if(!roles) return crv("No roles found", {status: StatusCode.ERR})
+            let rolesNonAssigned: any[] = []
+            for(let role of roles){
+                if(role[1].members.size < 1)
+                    rolesNonAssigned.push(role[1].name)
             }
-        },
+            return { content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members`, status: StatusCode.RETURN }
+        }, "Gets a list of non-assigned-roles")
     ]
 
     yield [
