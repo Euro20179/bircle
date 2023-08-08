@@ -15,7 +15,7 @@ import vars from '../vars';
 import common from '../common';
 import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searchList, fetchUserFromClient, getContentFromResult, fetchChannel, efd, BADVALUE, MimeType, range, isMsgChannel, isBetween, fetchUserFromClientOrGuild, cmdFileName, truthy, enumerate, getImgFromMsgAndOptsAndReply, titleStr, randomHexColorCode, countOf } from "../util"
 
-import { LLModel, PromptMessage, createCompletion, loadModel} from 'gpt4all'
+import { LLModel, PromptMessage, createCompletion, loadModel } from 'gpt4all'
 
 import { format, formatBracePairs, getOpts } from '../parsing'
 import user_options = require("../user-options")
@@ -38,8 +38,8 @@ import { shuffle } from 'lodash';
 import userOptions from '../user-options';
 
 let CHAT_LL: undefined | LLModel
-if(globals.DEVBOT)
-    loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll ).catch(console.error)
+if (globals.DEVBOT)
+    loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll).catch(console.error)
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -49,7 +49,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         let moveCount = opts.getNumber("moves", 9)
         const answer = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
         let guess;
-        while(guess !== answer) {
+        while (guess !== answer) {
             moveCount--
             if (moveCount < 0) {
                 globals.endCommand(msg.author.id, "mastermind")
@@ -111,8 +111,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     case "wrong": return `\\_ `
                     case "correct": return `**${v.letter}** `
                 }
-            }).join("")).setFooter({text: `${moveCount} guesses remaining`}).setAuthor({name: msg.author.username, iconURL: msg.author.avatarURL() as string})
-            await handleSending(msg, {content: msg.author.toString(), status: StatusCode.INFO, embeds: [e]})
+            }).join("")).setFooter({ text: `${moveCount} guesses remaining` }).setAuthor({ name: msg.author.username, iconURL: msg.author.avatarURL() as string })
+            await handleSending(msg, { content: msg.author.toString(), status: StatusCode.INFO, embeds: [e] })
         }
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount + 1} guesses remaining`)
@@ -372,30 +372,30 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
-        if(!globals.DEVBOT){
-            return crv("This command is only available on devbot", {status: StatusCode.ERR})
+        if (!globals.DEVBOT) {
+            return crv("This command is only available on devbot", { status: StatusCode.ERR })
         }
-        if(!CHAT_LL){
-            return crv("The chat language model has not  loaded yet", {status: StatusCode.ERR})
+        if (!CHAT_LL) {
+            return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
         }
         let messages: PromptMessage[] = []
 
         let sysMsg = opts.getString("sys-msg", null)
-        if(sysMsg) messages.push({role: "system", content: sysMsg})
+        if (sysMsg) messages.push({ role: "system", content: sysMsg })
 
         let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
-        
-        messages.push({role: "user", content: content})
+
+        messages.push({ role: "user", content: content })
 
         createCompletion(CHAT_LL, messages, {
             hasDefaultHeader: false,
         }).then(response => {
-            handleSending(msg, crv(response.choices[0].message.content, {reply: true})).catch(console.error)
+            handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
         }).catch(error => {
             handleSending(msg, crv(error.toString())).catch(console.error)
         })
 
-        return {noSend: true, status: StatusCode.RETURN}
+        return { noSend: true, status: StatusCode.RETURN }
     }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
@@ -869,8 +869,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             if (!count_text.match("{count}")) {
                 count_text = "{count}"
             }
-            count_text = format(count_text, {count: `.${numeric}.`})
-            if (common_to_commands.isCmd(count_text, common.prefix)){
+            count_text = format(count_text, { count: `.${numeric}.` })
+            if (common_to_commands.isCmd(count_text, common.prefix)) {
                 let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(common.prefix.length), recursion: rec, returnJson: true, disable })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
@@ -1157,77 +1157,64 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "wikipedia",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let baseurl = "en.wikipedia.org"
-                let path = "/wiki/Special:Random"
-                if (args[0]) {
-                    path = `/wiki/${args.join("_")}`
-                }
-                if (opts['full']) {
-                    path = String(opts['full'])
-                }
-                let sentences = parseInt(String(opts['s'])) || 1
-                let resp
-                if (path == "/wiki/Special:Random") {
-                    resp = await fetch.default(`https://${baseurl}${path}`)
-                }
-                else {
-                    try {
-                        resp = await fetch.default(`https://${baseurl}${path}`)
+        "wikipedia", ccmdV2(async function({ msg, args, opts, sendCallback }) {
+            let search = args.join("+")
+            const locale = opts.getString("lang", opts.getString("locale", opts.getString("l", "en")))
+
+            const BASE = `https://${locale}.wikipedia.org/w/api.php`
+            const LIMIT = opts.getNumber("limit", 10)
+            const searchResp = await fetch.default(`${BASE}?action=opensearch&search=${search}&limit=${LIMIT}`)
+            const searchResult = await searchResp.json()
+            let title;
+            if(opts.getBool("a", false)){
+                title = searchResult[1][0]
+            }
+            else if(opts.getBool("r", false)){
+                title = choice(searchResult[1])
+            }
+            else{
+                let n = await promptUser(msg, searchResult[1].map((v: string, i: string) => `${i + 1}: ${v}`).join("\n"), sendCallback, {
+                    timeout: 30000,
+                    filter: m => {
+                        if (m.author !== msg.author) return false
+                        let n = Number(m.content)
+                        if (isNaN(n)) return false
+                        return n - 1 < searchResult[1].length
                     }
-                    catch (err) {
-                        return { content: "not found", status: StatusCode.ERR }
-                    }
+                })
+
+                if (!n) {
+                    return crv("No response", { status: StatusCode.ERR })
                 }
-                if (resp.headers.get("location")) {
-                    await (getCommands().get('wikipedia') as Command).run(msg, [`-full=/wiki/${resp.headers.get("location")?.split("/wiki/")[1]}`], sendCallback, {}, args, 1)
-                }
-                else {
-                    let respText = await resp.text()
-                    let rvText = ""
-                    let $ = cheerio.load(respText)
-                    const fn = cmdFileName`wikipedia${msg.author.id}html`
-                    const title = $("h1#firstHeading").text().trim()
-                    fs.writeFileSync(fn, respText)
-                    if (opts['all']) {
-                        rvText = htmlRenderer.renderHTML(respText)
-                    }
-                    else {
-                        let text = $(".mw-parser-output p").text().trim().split("\n")
-                        if (!text.length) {
-                            return { content: "nothing", status: StatusCode.ERR }
-                        }
-                        rvText = `**${title}**\n${text.slice(0, sentences <= text.length ? sentences : text.length).join("\n")}`
-                    }
-                    return {
-                        content: rvText, status: StatusCode.RETURN 
-                    }
-                }
-                return { content: "how did we get here (wikipedia)", status: StatusCode.ERR }
-            },
-            help: {
-                info: "Get information about something, defaults to random",
-                arguments: {
-                    page: {
-                        description: "The page to look at",
-                        required: false
-                    }
-                },
-                options: {
-                    s: {
-                        description: "The amount of sentences to see"
-                    },
-                    all: {
-                        description: "Send full page as text"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-        },
+
+                title = searchResult[1][Number(n.content) - 1]
+            }
+
+            const pageResp = await fetch.default(`${BASE}?action=parse&page=${title}&prop=text&formatversion=2&format=json&redirects`)
+
+            const pageJson = await pageResp.json()
+
+            if (opts.getBool("full", false)) {
+                return crv(pageJson.parse.text)
+            }
+
+            let text = htmlRenderer.renderHTML(pageJson.parse.text, 0, `https://wikipedia.com`)
+                .replaceAll(/\[\[edit\]\(\/w\/.*&action=edit.*\)\]/g, "")
+
+            let [main, refs] = text.split("## References")
+
+            let e = new EmbedBuilder().setDescription(main.slice(0, 4000)).setTitle(title)
+            return { embeds: [e], status: StatusCode.RETURN }
+
+        }, "Search wikipedia", {
+            helpOptions: {
+                l: createHelpOption("The wikipedia language to use", ["lang", "locale"], "en"),
+                limit: createHelpOption("The amount of search results"),
+                full: createHelpOption("Show the full html"),
+                a: createHelpOption("Automatically select the first result"),
+                r: createHelpOption("Automatically select a random result")
+            }
+        })
     ]
 
     yield [
