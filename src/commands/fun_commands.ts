@@ -17,7 +17,7 @@ import { choice, fetchUser, getImgFromMsgAndOpts, Pipe, rgbToHex, ArgList, searc
 
 import { LLModel, PromptMessage, createCompletion, loadModel} from 'gpt4all'
 
-import { format, getOpts } from '../parsing'
+import { format, formatBracePairs, getOpts } from '../parsing'
 import user_options = require("../user-options")
 import pet from "../pets"
 import globals = require("../globals")
@@ -857,25 +857,20 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 .next((lastMessage: Message) => {
                     return lastMessage.content.split(".")[1]
                 })
-                .default({ noSend: true, delete: true, status: StatusCode.ERR })
                 .next((text: string) => {
                     return Number(text) + 1
                 }).done()
-
 
             if (numeric.status === StatusCode.ERR) {
                 return numeric
             }
 
-            let count_text = args.join(" ").trim()
-            if (!count_text) {
-                count_text = user_options.getOpt(msg.author.id, "count-text", "{count}")
-            }
+            let count_text = args.join(" ").trim() || user_options.getOpt(msg.author.id, "count-text", "{count}")
             if (!count_text.match("{count}")) {
                 count_text = "{count}"
             }
-            count_text = count_text.replaceAll("{count}", `.${numeric}.`)
-            if (count_text.startsWith(common.prefix)) {
+            count_text = format(count_text, {count: `.${numeric}.`})
+            if (common_to_commands.isCmd(count_text, common.prefix)){
                 let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(common.prefix.length), recursion: rec, returnJson: true, disable })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
