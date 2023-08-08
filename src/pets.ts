@@ -54,8 +54,8 @@ function loadPets() {
     if (fs.existsSync("./data/pets.json")) {
         PETSHOP = JSON.parse(fs.readFileSync("./data/pets.json", "utf-8"))
     }
-    if (fs.existsSync("./petinventory.json")) {
-        PETINVENTORY = JSON.parse(fs.readFileSync("./petinventory.json", "utf-8"))
+    if (fs.existsSync("./database/petinventory.json")) {
+        PETINVENTORY = JSON.parse(fs.readFileSync("./database/petinventory.json", "utf-8"))
         for (let user in PETINVENTORY) {
             for (let ph of Object.entries(PETINVENTORY[user])) {
                 let [pet, data] = ph
@@ -68,7 +68,7 @@ function loadPets() {
 }
 
 function savePetData() {
-    fs.writeFileSync("./petinventory.json", JSON.stringify(PETINVENTORY))
+    fs.writeFileSync("./database/petinventory.json", JSON.stringify(PETINVENTORY))
 }
 
 function getPetInventory() {

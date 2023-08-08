@@ -82,22 +82,22 @@ function userHasStockSymbol(id: string, symbol: string) {
 // }
 
 function loadEconomy() {
-    if (fs.existsSync("./economy.json")) {
-        let data = fs.readFileSync("./economy.json", 'utf-8')
+    if (fs.existsSync("./database/economy.json")) {
+        let data = fs.readFileSync("./database/economy.json", 'utf-8')
         ECONOMY = JSON.parse(data)
         if (ECONOMY['bank']) {
             delete ECONOMY['bank']
         }
     }
-    if (fs.existsSync("./lottery.json")) {
-        let data = fs.readFileSync("./lottery.json", 'utf-8')
+    if (fs.existsSync("./database/lottery.json")) {
+        let data = fs.readFileSync("./database/lottery.json", 'utf-8')
         lottery = JSON.parse(data)
     }
 }
 function saveEconomy() {
-    fs.writeFileSync("./economy.json", JSON.stringify(ECONOMY))
+    fs.writeFileSync("./database/economy.json", JSON.stringify(ECONOMY))
 
-    fs.writeFileSync("./lottery.json", JSON.stringify(lottery))
+    fs.writeFileSync("./database/lottery.json", JSON.stringify(lottery))
 }
 
 function buyLotteryTicket(id: string, cost: number) {

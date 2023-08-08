@@ -8,8 +8,8 @@ let lottery: {pool: number, numbers: [number, number, number]} = {pool: 0, numbe
 
 
 export function loadItems(){
-    if(fs.existsSync("./inventory.json")){
-        let data = fs.readFileSync("./inventory.json", "utf-8")
+    if(fs.existsSync("./database/inventory.json")){
+        let data = fs.readFileSync("./database/inventory.json", "utf-8")
         INVENTORY = JSON.parse(data)
     }
     if(fs.existsSync("./data/shop.json")){
@@ -18,10 +18,8 @@ export function loadItems(){
     }
 }
 
-loadItems()
-
 export function saveItems(){
-    fs.writeFileSync("./inventory.json", JSON.stringify(INVENTORY))
+    fs.writeFileSync("./database/inventory.json", JSON.stringify(INVENTORY))
 }
 
 export function resetItems(){

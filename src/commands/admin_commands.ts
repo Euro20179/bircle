@@ -123,14 +123,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     useItem(msg.author.id, "reset economy")
                 }
 
-                fs.cpSync("./economy.json", "economy-old.json")
+                fs.cpSync("./database/economy.json", "economy-old.json")
 
                 economy.resetEconomy()
 
                 return {
                     content: "Economy reset", status: StatusCode.RETURN, files: [
                         {
-                            attachment: "./economy-old.json",
+                            attachment: "./database/economy-old.json",
                             name: "economy-old.json",
                         }
                     ],

@@ -513,7 +513,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return {
             files: [
                 {
-                    attachment: "./petinventory.json",
+                    attachment: "./database/petinventory.json",
                     name: "Pet inventory.json",
                     delete: false
                 }
@@ -525,7 +525,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "economy", ccmdV2(async function() {
             return {
                 files: [
-                    crvFile("economy.json", "economy.json", "The economy")
+                    crvFile("database/economy.json", "economy.json", "The economy")
                 ],
                 status: StatusCode.RETURN
             }
@@ -537,7 +537,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         "inventory.json", ccmdV2(async function() {
             return {
                 files: [
-                    crvFile("inventory.json", "Inventory.json", "Everyone's inventory")
+                    crvFile("database/inventory.json", "Inventory.json", "Everyone's inventory")
                 ],
                 status: StatusCode.RETURN
             }

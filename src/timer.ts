@@ -94,12 +94,12 @@ function has_x_m_passed(for_user: string, name: string, x_m: minutes_t, canBeUnd
 }
 
 function saveTimers(){
-    fs.writeFileSync("./timers.json", JSON.stringify(TIMERS))
+    fs.writeFileSync("./database/timers.json", JSON.stringify(TIMERS))
 }
 
 function loadTimers(){
-    if(fs.existsSync("./timers.json")){
-        TIMERS = JSON.parse(fs.readFileSync('./timers.json', "utf-8"))
+    if(fs.existsSync("./database/timers.json")){
+        TIMERS = JSON.parse(fs.readFileSync('./database/timers.json', "utf-8"))
     }
     return TIMERS
 }

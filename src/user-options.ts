@@ -21,15 +21,15 @@ export function getUserOptions() {
 }
 
 export function loadUserOptions() {
-    if (fs.existsSync("./user-options.json")) {
-        USER_OPTIONS = JSON.parse(fs.readFileSync("./user-options.json", "utf-8"))
+    if (fs.existsSync("./database/user-options.json")) {
+        USER_OPTIONS = JSON.parse(fs.readFileSync("./database/user-options.json", "utf-8"))
     }
 }
 
 loadUserOptions()
 
 export function saveUserOptions() {
-    fs.writeFileSync("./user-options.json", JSON.stringify(USER_OPTIONS))
+    fs.writeFileSync("./database/user-options.json", JSON.stringify(USER_OPTIONS))
 }
 
 export function getOpt<T>(user: string | number, opt: UserOption, fallback: T) {
