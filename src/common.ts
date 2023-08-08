@@ -105,11 +105,11 @@ function loadIDBlackList(type: "user" | "role") {
 }
 
 function reloadIDBlackLists() {
-    BLACKLISTED_USERS = loadIDBlackList("user")
-    BLACKLISTED_ROLES = loadIDBlackList("role")
+    _BLACKLISTED_USERS = loadIDBlackList("user")
+    _BLACKLISTED_ROLES = loadIDBlackList("role")
 }
 
-let BLACKLISTED_USERS, BLACKLISTED_ROLES;
+let _BLACKLISTED_USERS: string[], _BLACKLISTED_ROLES: string[];
 
 const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 
@@ -121,8 +121,8 @@ export default {
     FILE_SHORTCUTS,
     WHITELIST,
     BLACKLIST,
-    BLACKLISTED_ROLES,
-    BLACKLISTED_USERS,
+    BLACKLISTED_ROLES: () => _BLACKLISTED_ROLES,
+    BLACKLISTED_USERS: () => _BLACKLISTED_USERS,
     reloadIDBlackLists,
     reloadBlackList,
     reloadWhiteList,

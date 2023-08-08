@@ -2813,7 +2813,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return crv(tags.toString("utf-8"))
                 }
                 let [start, stop] = args
-                const version_regex = /(HEAD|v\d+\.\d+\.\d+)/;
+                const version_regex = /(HEAD|\d+\.\d+\.\d+)/;
                 const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
                 const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
                 if (start === undefined) {
@@ -2826,8 +2826,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                 if (!version_regex.test(start) || !version_regex.test(stop)) {
                     return crv(`invalid start/stop version`)
                 }
-                const changelog = execSync(`git log ${start}..${stop} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
-                return crv(`\`\`\`\n${changelog}\n\`\`\``)
+                const changelog = execSync(`git log v${start}..v${stop} --format=format:$(gen-chlog -f) | gen-chlog`).toString("utf-8")
+                return crv(changelog || "No changes")
             },
             help: {
                 info: "Get changelog for a version",

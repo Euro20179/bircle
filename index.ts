@@ -144,7 +144,7 @@ setInterval(() => {
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
     if (!isMsgChannel(m.channel)) return
-    if (m.member?.roles.cache.find((v: any) => common.BLACKLISTED_ROLES.includes(v.id))) {
+    if (m.member?.roles.cache.find((v: any) => common.BLACKLISTED_ROLES()?.includes(v.id))) {
         return
     }
     if (m.channel.type !== ChannelType.DM && m.guild && m.guild?.id !== globals.GUILD_ID)
