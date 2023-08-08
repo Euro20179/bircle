@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -526,48 +526,26 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     }, CAT)]
 
     yield [
-        "economy",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                return {
-                    files: [
-                        {
-                            attachment: `economy.json`,
-                            name: `economy.json`,
-                            description: "This is the economy",
-                            delete: false
-                        }
-                    ],
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CAT,
-            help: {
-                info: "Get the database economy.json file"
+        "economy", ccmdV2(async function() {
+            return {
+                files: [
+                    crvFile("economy.json", "economy.json", "The economy")
+                ],
+                status: StatusCode.RETURN
             }
-        },
+
+        }, "Get the database economy.json file")
     ]
 
     yield [
-        "inventory.json",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                return {
-                    files: [
-                        {
-                            attachment: `inventory.json`,
-                            name: "Inventory.json",
-                            description: "Everyone's inventory",
-                            delete: false
-                        }
-                    ],
-                    status: StatusCode.RETURN
-                }
-            }, category: CAT,
-            help: {
-                info: "Sends the raw inventory.json database file"
+        "inventory.json", ccmdV2(async function() {
+            return {
+                files: [
+                    crvFile("inventory.json", "Inventory.json", "Everyone's inventory")
+                ],
+                status: StatusCode.RETURN
             }
-        },
+        }, "Sends the raw inventory.json database file")
     ]
 
     yield [
