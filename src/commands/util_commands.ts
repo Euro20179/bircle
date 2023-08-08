@@ -4048,7 +4048,6 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         }
                         return [member, member.user]
                     })
-                    .default({ content: "user not found", status: StatusCode.ERR })
                     .next((member: GuildMember, user: User) => {
                         if (args[1]) {
                             let status = (() => {

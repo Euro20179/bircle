@@ -1207,13 +1207,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         return { content: rvText, status: StatusCode.RETURN }
                     }
                     return {
-                        content: rvText, status: StatusCode.RETURN, files: [
-                            {
-                                attachment: fn,
-                                name: `${title}.html`,
-                                delete: true
-                            }
-                        ]
+                        content: rvText, status: StatusCode.RETURN 
                     }
                 }
                 return { content: "how did we get here (wikipedia)", status: StatusCode.ERR }
