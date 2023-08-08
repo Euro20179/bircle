@@ -114,6 +114,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }).join("")).setFooter({ text: `${moveCount} guesses remaining` }).setAuthor({ name: msg.author.username, iconURL: msg.author.avatarURL() as string })
             await handleSending(msg, { content: msg.author.toString(), status: StatusCode.INFO, embeds: [e] })
         }
+        if(opts.getNumber("moves", 9) - moveCount === 1){
+            let ach = achievements.achievementGet(msg.author.id, "mind master")
+            if(ach) await handleSending(msg, ach)
+        }
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount + 1} guesses remaining`)
     }, "Mastermind", {
@@ -450,7 +454,6 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             ["a fine grain of sand", 0.03,],
             ["fishing rod", 0.05],
             ["stinky ol' boot", 0.01,],
-            ["item yoinker", 0.005],
             ["pirate's gold tooth", 0.01]
         ]
         if (isUsingShark && Math.random() > .8) {
