@@ -8,7 +8,7 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
-import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix } from './parsing';
+import { Parser, Token, T, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
@@ -669,7 +669,8 @@ export class Interpreter {
         "d:": DeleteModifier,
         "t:": TypingModifier,
         "s:": SilentModifier,
-        "n:": SkipModifier
+        "n:": SkipModifier,
+        "a:": AliasModifier
     }
 
     constructor(msg: Message, tokens: Token[], options: {
@@ -984,6 +985,10 @@ export class Interpreter {
         }
 
         let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
+
+        for(let mod of this.modifiers){
+            cmdObject = mod.modifyCmd({cmdObject, int: this, cmdName: cmd})
+        }
 
         if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist

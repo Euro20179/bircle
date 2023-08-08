@@ -2504,7 +2504,7 @@ ${styles}
                 return { content: "No name given", status: StatusCode.RETURN }
             }
 
-            if (getCommands().get(name) || aliasV2s[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
+            if (aliasV2s[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
                 return { content: `${name} already exists`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
@@ -2545,7 +2545,7 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
-                    if (getCommands().get(name) || getAliasesV2()[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
+                    if (getAliasesV2()[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
                         return { content: `${name} already exists`, status: StatusCode.ERR }
                     }
                     break
@@ -2631,10 +2631,6 @@ ${styles}
         if (getAliasesV2()[name]) {
             return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
         }
-        else if (getCommands().get(name)) {
-            return { content: `Failed to add "${name}", it is a builtin`, status: StatusCode.ERR }
-        }
-
         aliasesV2[name] = alias
         fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
         getAliasesV2(true)

@@ -1,5 +1,5 @@
 import { Message } from "discord.js"
-import { Interpreter } from "./common_to_commands"
+import { AliasV2, Interpreter, getAliasesV2 } from "./common_to_commands"
 
 const { getOpt } = require("./user-options")
 enum T {
@@ -96,6 +96,7 @@ class Token {
 }
 
 class Modifier {
+    modifyCmd({cmdObject, int, cmdName}: {cmdObject: Command | CommandV2 | AliasV2 | undefined, int: Interpreter, cmdName: string}): any {return cmdObject}
     modify(int: Interpreter): any { }
     stringify(): string { return "W:" }
 }
@@ -132,6 +133,17 @@ class DeleteModifier extends Modifier {
     }
     stringify() {
         return "d:"
+    }
+}
+
+class AliasModifier extends Modifier{
+    modifyCmd({cmdName, int}: {cmdName: string, int: Interpreter}){
+        int.modifiers = int.modifiers.filter(v => v !== this)
+        int.aliasV2 = getAliasesV2()[cmdName]
+        return getAliasesV2()[cmdName]
+    }
+    stringify(): string {
+        return "a:"
     }
 }
 
@@ -734,6 +746,7 @@ export {
     DeleteModifier,
     SkipModifier,
     SilentModifier,
+    AliasModifier,
     getInnerPairsAndDeafultBasedOnRegex,
     format,
     formatPercentStr,
