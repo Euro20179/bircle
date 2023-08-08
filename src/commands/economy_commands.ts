@@ -8,7 +8,7 @@ import timer from '../timer'
 import vars from '../vars'
 
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, PagedEmbed, StatusCode } from '../common_to_commands'
 import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, isNumeric, fetchUserFromClientOrGuild, entriesOf } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
@@ -376,18 +376,18 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "inventory", {
-            run: async (msg, args, sendCallback) => {
+            run: async (msg, _, sendCallback, opts, args) => {
                 let user = await fetchUserFromClient(common.client, args[0] ?? msg.author.id)
                 if (!user)
                     return { content: `${args[0]}  not  found`, status: StatusCode.ERR }
 
                 const ITEMS_PER_PAGE = 20
 
-                const PLAYER_INV = Object.entries(getInventory()[user.id])
+                let sortFunction = opts['n'] ? ([_, count]: [string, number], [_2, count2]: [string, number]) => count2 - count : ([name, _]: [string, number], [name2, _2]: [string, number]) => name > name2 ? 1 : -1
+
+                const PLAYER_INV = Object.entries(getInventory()[user.id]).sort(sortFunction)
 
                 const embedPages: EmbedBuilder[] = []
-
-                let currentPage = 0
 
                 let au = user.avatarURL()
 
@@ -407,52 +407,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     embedPages.push(e)
                 }
 
-                let eMsg = await handleSending(msg, { embeds: [embedPages[currentPage]], status: StatusCode.INFO })
-
-                if (!isMsgChannel(msg.channel)) return crv("You are in a stage channel", { status: StatusCode.ERR })
-
-                const collector = msg.channel.createMessageCollector({
-                    filter: m => m.author === msg.author && (
-                        isNumeric(m.content) ||
-                        ['n', 'next', 'p', 'previous', 'prev'].includes(m.content.toLowerCase()) ||
-                        "+-".includes(m.content[0])
-                    ),
-                })
-
-                let clearTO = setTimeout(collector.stop.bind(collector), 30000)
-
-                collector.on("collect", m => {
-                    clearTimeout(clearTO)
-                    clearTO = setTimeout(collector.stop.bind(collector), 30000)
-
-                    if (m.deletable) m.delete()
-                    const action = m.content.toLowerCase()
-
-                    if (['n', 'next'].includes(action)) {
-                        currentPage++;
-                    }
-                    else if (['p', 'prev', 'previous'].includes(action)) {
-                        currentPage--;
-                    }
-                    else if ("+" === action[0]) {
-                        currentPage += Number(action.slice(1))
-                    }
-                    else if ("-" === action[0]) {
-                        currentPage -= Number(action.slice(1))
-                    }
-                    else {
-                        currentPage = Number(action) - 1
-                    }
-
-                    if (currentPage >= embedPages.length) {
-                        currentPage = 0
-                    }
-                    else if (currentPage < 0) {
-                        currentPage = embedPages.length - 1
-                    }
-
-                    eMsg.edit({ embeds: [embedPages[currentPage]] }).catch(console.error)
-                })
+                let paged = new PagedEmbed(msg, embedPages, "inventory")
+                await paged.begin()
 
                 return { noSend: true, status: StatusCode.INFO }
             }, category: CommandCategory.ECONOMY,
