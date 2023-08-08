@@ -416,6 +416,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 info: "Get the inventory of a user",
                 arguments: {
                     user: createHelpArgument("The user to get info from", false, undefined, "@me")
+                },
+                options: {
+                    n: createHelpOption("Sort by numerical")
                 }
             }
         },
