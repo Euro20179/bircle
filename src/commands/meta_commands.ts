@@ -114,11 +114,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     }, "Gets the interpreter env")]
 
     yield ['ps', ccmdV2(async function() {
-        let text = ''
-        for (let i = 0; i < PIDS.length; i++) {
-            text += `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}\n`
-        }
-        return crv(text)
+        return crv(Array.from({length: PIDS.length}, (_, i) => `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}`).join("\n"))
     }, "Gets all running processes")]
 
     yield ['kill', ccmdV2(async function({ argShapeResults }) {
