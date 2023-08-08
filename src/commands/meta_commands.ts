@@ -2478,31 +2478,21 @@ ${styles}
         })
     ]
 
-    yield [
-        "cmd-use",
-        {
-            run: async (_msg: Message, args: ArgumentList, sendCallback, opts) => {
-                let data = globals.generateCmdUseFile()
-                    .split("\n")
-                    .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
-                    .filter(v => v[0] && !isNaN(Number(v[1]))) // remove empty strings
-                    .sort((a, b) => Number(a[1]) - Number(b[1])) // sort from least to greatest
-                    .reverse() //sort from greatest to least
-                    .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
-                    .join(String(opts['s'] ?? "\n"))
-                return {
-                    content: data,
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CAT,
-            help: {
-                info: "Gets a list of the most  used commands",
-                options: {
-                    s: createHelpOption("The seperator between commands", undefined, "\\n")
-                }
-            }
-        },
+    yield ["cmd-use", ccmdV2(async function({ rawOpts: opts }) {
+        let data = globals.generateCmdUseFile()
+            .split("\n")
+            .map(v => v.split(":")) //map into 2d array, idx[0] = cmd, idx[1] = times used
+            .filter(v => v[0] && !isNaN(Number(v[1]))) // remove empty strings
+            .sort((a, b) => Number(a[1]) - Number(b[1])) // sort from least to greatest
+            .reverse() //sort from greatest to least
+            .map(v => `${v[0]}: ${v[1]}`) //turn back from 2d array into array of strings
+            .join(String(opts['s'] ?? "\n"))
+        return crv(data)
+    }, "Gets a list of the most  used commands", {
+        helpOptions: {
+            s: createHelpOption("The seperator between commands", undefined, "\\n")
+        }
+    })
     ]
 
     yield ["alias", createCommandV2(async ({ msg, args, opts }) => {
@@ -2779,9 +2769,9 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             let fmt = args[0] || "%v"
             let { major, minor, bug, part, alpha, beta } = common.VERSION
             let mainDisplay = `${major}.${minor}.${bug}`
-            if(part) mainDisplay += `.${part}`
-            if(alpha) mainDisplay += `A.${mainDisplay}`
-            if(beta) mainDisplay += `B.${mainDisplay}`
+            if (part) mainDisplay += `.${part}`
+            if (alpha) mainDisplay += `A.${mainDisplay}`
+            if (beta) mainDisplay += `B.${mainDisplay}`
             return {
                 content: format(fmt, {
                     v: mainDisplay,
@@ -2809,8 +2799,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
             const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
 
-            if(start) start = `v${start}`
-            if(stop) stop = `v${stop}`
+            if (start) start = `v${start}`
+            if (stop) stop = `v${stop}`
 
             if (start === undefined) {
                 start = lastVersion
