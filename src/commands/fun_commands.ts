@@ -111,7 +111,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     case "correct": return `**${v.letter}** `
                 }
             }).join("")).setFooter({text: `${moveCount} guesses remaining`}).setAuthor({name: msg.author.username, iconURL: msg.author.avatarURL() as string})
-            await handleSending(msg, {status: StatusCode.INFO, embeds: [e]})
+            await handleSending(msg, {content: msg.author.toString(), status: StatusCode.INFO, embeds: [e]})
         }
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount + 1} guesses remaining`)
