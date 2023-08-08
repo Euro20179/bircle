@@ -45,10 +45,15 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield ['mastermind', ccmdV2(async function({ msg, opts }) {
         globals.startCommand(msg.author.id, "mastermind")
         const chars = opts.getString("options", "abcdef").toUpperCase()
-        let moveCount = opts.getNumber("moves", 8)
+        let moveCount = opts.getNumber("moves", 9)
         const answer = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("")
         let guess;
-        do {
+        while(guess !== answer) {
+            moveCount--
+            if (moveCount < 0) {
+                globals.endCommand(msg.author.id, "mastermind")
+                return crv(`${msg.author} lost\nthe answer was ${answer}`)
+            }
             let res = await promptUser(msg, `Guess (options: ${chars})`, undefined, {
                 timeout: 120000,
                 filter: m => {
@@ -107,14 +112,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
             }).join("")).setFooter({text: `${moveCount} guesses remaining`}).setAuthor({name: msg.author.username, iconURL: msg.author.avatarURL() as string})
             await handleSending(msg, {status: StatusCode.INFO, embeds: [e]})
-
-            moveCount--
-            if (moveCount < 0) {
-                globals.endCommand(msg.author.id, "mastermind")
-                return crv(`${msg.author} lost\nthe answer was ${answer}`)
-            }
-
-        } while (guess !== answer)
+        }
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount + 1} guesses remaining`)
     }, "Mastermind", {
