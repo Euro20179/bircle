@@ -247,7 +247,7 @@ createCtxMenuCmd("info", async (int) => {
         embed.addFields(efd(
             ["Id", user.id || "#!N/A", true],
             ["Username", user.username || "#!N/A", true],
-            ["Nickname", member?.nickname || "#!N/A", true],
+            ["Nickname", member?.displayName || "#!N/A", true],
             ["0xColor", member?.displayHexColor?.toString() || "#!N/A", true],
             ["Color", member?.displayColor?.toString() || "#!N/A", true],
             ["Created at", user.createdAt.toString() || "#!N/A", true],

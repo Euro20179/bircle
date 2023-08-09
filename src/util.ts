@@ -348,7 +348,7 @@ async function fetchUser(guild: Guild, find: string) {
     find = find.toLowerCase()
     let user = guild.members.cache.find((v) => {
         return v.user.username.toLowerCase().startsWith(find) ||
-            v.nickname?.toLowerCase().startsWith(find) ||
+            v.displayName?.toLowerCase().startsWith(find) ||
             v.id === find ||
             `<@${v.id}>` === find || `<@!${v.id}>` === find
     })
@@ -364,7 +364,7 @@ async function fetchUser(guild: Guild, find: string) {
             }
         }
         if (!user) {
-            user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.nickname?.indexOf(find) || -1) > -1)?.at(0)
+            user = (await guild.members.list()).filter(u => u.id == find || u.user.username?.indexOf(find) > -1 || (u.displayName?.indexOf(find) || -1) > -1)?.at(0)
         }
     }
     return user
@@ -474,7 +474,7 @@ function rgbToHex(r: int_t, g: int_t, b: int_t) {
 }
 
 function generateSafeEvalContextFromMessage(msg: Message) {
-    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.nickname, ubot: msg.author.bot, Units: require("./units").default }
+    return { uid: msg.member?.id, uavatar: msg.member?.avatar, ubannable: msg.member?.bannable, ucolor: msg.member?.displayColor, uhex: msg.member?.displayHexColor, udispname: msg.member?.displayName, ujoinedAt: msg.member?.joinedAt, ujoinedTimeStamp: msg.member?.joinedTimestamp, unick: msg.member?.displayName, ubot: msg.author.bot, Units: require("./units").default }
 }
 
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {

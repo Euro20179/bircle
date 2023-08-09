@@ -986,7 +986,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 if (aurl) {
                     embed.setThumbnail(aurl)
                 }
-                embed.setTitle(`${member.user?.username || member?.nickname} #${rank + 1}`)
+                embed.setTitle(`${member.user?.username || member?.displayName} #${rank + 1}`)
                 embed.setColor(member.displayColor)
                 embed.addFields(efd(["Level", String(userData.level), true], ["XP", String(userData.xp), true], ["Message Count", String(userData.message_count), true], ["XP for next level", String(xp_needed)], ["Minimum messages for next level", String(min_messages_for_next_level), true], ["Maximum messages for next level", String(max_messages_for_next_level), true], ["Average messages for next level", String(avg_messages_for_next_level), true]))
                 embeds.push(embed)

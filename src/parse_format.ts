@@ -77,7 +77,7 @@ export default {
             {
                 i: user.id || "#!N/A",
                 u: user.username || "#!N/A",
-                n: member.nickname || "#!N/A",
+                n: member.displayName || "#!N/A",
                 X: () => member?.displayHexColor.toString() || "#!N/A",
                 x: () => member?.displayColor.toString() || "#!N/A",
                 c: user.createdAt.toString() || "#!N/A",
@@ -124,7 +124,7 @@ export default {
             {
                 i: user.id || "#!N/A",
                 u: user.username || "#!N/A",
-                n: member.nickname || "#!N/A",
+                n: member.displayName || "#!N/A",
                 X: () => member?.displayHexColor.toString() || "#!N/A",
                 x: () => member?.displayColor.toString() || "#!N/A",
                 c: user.createdAt.toString() || "#!N/A",

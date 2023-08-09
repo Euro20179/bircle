@@ -1568,7 +1568,7 @@ until you put a 0 in the box`)
                                     let gain = netWorth * (data[player] / 100)
                                     gain += data_floor[player] > 0 ? data_floor[player] : 0
                                     if (member) {
-                                        e.addFields(efd([String(member.nickname || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`]))
+                                        e.addFields(efd([String(member.displayName || member.user.username), `$${gain} (${data[player]}% + ${data_floor[player]})`]))
                                     }
                                     else {
                                         e.addFields(efd([String(data[player]), `<@${player}>`]))
@@ -2207,7 +2207,7 @@ until you put a 0 in the box`)
                             let send = displayStack(playerData.get(player.id) as uno.Hand)
                             send += "\n-------------------------"
                             await m.channel.send(send)
-                            await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${(playerData.get(player.id) as uno.Hand).cards.length} cards**`, status: StatusCode.INFO })
+                            await handleSending(msg, { content: `**${player.displayName || player.user.username} has ${(playerData.get(player.id) as uno.Hand).cards.length} cards**`, status: StatusCode.INFO })
                             if (pile.cards.length)
                                 player.send({ content: `stack:\n${pile.cards[pile.cards.length - 1].display()}` })
                             return
@@ -2377,7 +2377,7 @@ until you put a 0 in the box`)
                                 await m.channel.send("You cannot play that card")
                             }
                         }
-                        await handleSending(msg, { content: `**${player.nickname || player.user.username} has ${(playerData.get(player.id) as uno.Hand).cards.length} cards**`, status: StatusCode.INFO })
+                        await handleSending(msg, { content: `**${player.displayName || player.user.username} has ${(playerData.get(player.id) as uno.Hand).cards.length} cards**`, status: StatusCode.INFO })
                         if ((playerData.get(player.id) as uno.Hand).cards.length <= 0) {
                             await handleSending(msg, { content: `${player} wins!!\n${cardsPlayed} cards were played\n${cardsDrawn} cards were drawn`, status: StatusCode.RETURN })
                             for (let player of players) {

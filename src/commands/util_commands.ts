@@ -4051,7 +4051,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                     {
                                         "{id}": user.id || "#!N/A",
                                         "{username}": user.username || "#!N/A",
-                                        "{nickname}": member.nickname || "#!N/A",
+                                        "{nickname}": member.displayName || "#!N/A",
                                         "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
                                         "{color}": member.displayColor.toString() || "#!N/A",
                                         "{created}": () => user.createdAt.toString() || "#!N/A",
@@ -4060,7 +4060,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                                         "{status}": platform_status,
                                         i: user.id || "#!N/A",
                                         u: user.username || "#!N/A",
-                                        n: member.nickname || "#!N/A",
+                                        n: member.displayName || "#!N/A",
                                         d: member.displayName,
                                         X: () => member.displayHexColor.toString() || "#!N/A",
                                         x: () => member.displayColor.toString() || "#!N/A",
@@ -4076,7 +4076,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                         let embed = new EmbedBuilder()
                         embed.setColor(member.displayColor)
                         embed.setThumbnail(user.avatarURL() || "")
-                        let fields = [{ name: "Id", value: user.id || "#!N/A", inline: true }, { name: "Username", value: user.username || "#!N/A", inline: true }, { name: "Nickname", value: member.nickname || "#!N/A", inline: true }, { name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true }, { name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true }, { name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true }, { name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true }, { name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true },]
+                        let fields = [{ name: "Id", value: user.id || "#!N/A", inline: true }, { name: "Username", value: user.username || "#!N/A", inline: true }, { name: "Nickname", value: member.displayName || "#!N/A", inline: true }, { name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true }, { name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true }, { name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true }, { name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true }, { name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true },]
                         embed.addFields(fields)
                         return {
                             embeds: [embed]
