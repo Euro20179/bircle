@@ -539,7 +539,7 @@ function cmdCatToStr(cat: number) {
         [CommandCategory.GAME]: "game",
         [CommandCategory.FUN]: "fun",
         [CommandCategory.META]: "meta",
-        [CommandCategory.IMAGES]: "image",
+        [CommandCategory.IMAGES]: "images",
         [CommandCategory.ECONOMY]: "economy",
         [CommandCategory.VOICE]: "voice",
         [CommandCategory.ADMIN]: "admin",

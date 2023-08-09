@@ -1,7 +1,5 @@
 import cheerio from 'cheerio'
 
-import { isBetween } from "./util"
-
 function renderElementChildren(elem: cheerio.Element, indentation = 0, baseUrl = "") {
     let text = ""
 

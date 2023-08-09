@@ -3,7 +3,7 @@ import { strToCommandCat } from "../util"
 
 
 export function init() {
-    for (let path of ["UTIL", "FUN", "GAME", "ADMIN", "VOICE", "ECONOMY", "META", "IMAGE"] as (keyof typeof CommandCategory)[]) {
+    for (let path of ["UTIL", "FUN", "GAME", "ADMIN", "VOICE", "ECONOMY", "META", "IMAGES"] as (keyof typeof CommandCategory)[]) {
         for (let [name, cmd] of require(`./${path.toLowerCase()}_commands`).default(strToCommandCat(path))) {
             registerCommand(name, cmd, strToCommandCat(path))
         }
