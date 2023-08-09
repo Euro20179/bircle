@@ -753,10 +753,15 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             return { embeds: [info_embed, first_time_embed, last_time_embed], status: StatusCode.RETURN }
         }, "Check whether or not a score has happened in the nfl", {
-            docs: "There is undocumented options and arguments, because i forgot how to use this command lmao",
             helpArguments: {
                 score1: createHelpArgument("The first score"),
                 score2: createHelpArgument("The second score"),
+            },
+            helpOptions: {
+                count: createHelpOption("Find a score that has happened this many times"),
+                "result-count": createHelpOption("Show this many results"),
+                "total-lt": createHelpOption("When using -count, make sure the total score is less than this"),
+                "total-gt": createHelpOption("When using -count, make sure the total score is greater than this")
             }
         }),
     ]
