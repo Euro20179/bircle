@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+    
+</body>
+<script>
+    let redirectURL;
+    const botCLIENT = '788871088674177034'
+    if(window.location.host.startsWith("localhost")){
+        redirectURL = encodeURI("http://localhost:8222")
+    }
+    else if(window.location.host.startsWith("192.168")){
+        redirectURL = encodeURI("http://192.168.0.145:8222")
+    }
+    else {
+        redirectURL = encodeURI("http://bircle.euro20179.com:8222")
+    }
+
+    //TODO: should probably implement ?state=
+    const url = `https://discord.com/oauth2/authorize?response_type=code&client_id=${botCLIENT}&scope=identify&redirect_uri=${redirectURL}`
+
+    window.location = url
+</script>
+</html>
