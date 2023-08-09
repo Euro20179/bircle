@@ -69,20 +69,20 @@ export default {
     parse_user: async (__, _, args, int) => {
         let fmt = args.join(" ") || "<@%i>"
         let member = int.getMessage().member
-        let user = member?.user
-        if (user === undefined || member === undefined || member === null) {
+        let user = member?.user || int.getMessage().author
+        if (user === undefined && member === undefined && member === null) {
             return `{${args.join(" ")}}`
         }
         return format(fmt,
             {
                 i: user.id || "#!N/A",
                 u: user.username || "#!N/A",
-                n: member.displayName || "#!N/A",
+                n: member?.displayName || "#!N/A",
                 X: () => member?.displayHexColor.toString() || "#!N/A",
                 x: () => member?.displayColor.toString() || "#!N/A",
-                c: user.createdAt.toString() || "#!N/A",
-                j: member.joinedAt?.toString() || "#!N/A",
-                b: member.premiumSince?.toString() || "#!N/A",
+                c: user.createdAt?.toString() || "#!N/A",
+                j: member?.joinedAt?.toString() || "#!N/A",
+                b: member?.premiumSince?.toString() || "#!N/A",
                 a: () => user?.avatarURL() || "#N/A"
             }
         )

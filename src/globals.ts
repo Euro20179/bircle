@@ -4,6 +4,7 @@ import fs = require("fs")
 export const token = fs.readFileSync("./data/TOKEN", "utf-8").trim()
 export const CLIENT_ID = fs.readFileSync("./data/CLIENT", "utf-8").trim()
 export const GUILD_ID = fs.readFileSync("./data/GUILD", "utf-8").trim()
+export const CLIENT_SECRET = fs.readFileSync("./data/CLIENTSECRET", "utf-8").trim()
 
 export let SPAM_ALLOWED = true
 

@@ -1,14 +1,15 @@
 import fs from 'fs'
 
-import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageMentions, MessageType, ReactionManager } from 'discord.js'
+import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageMentions, MessageType, ReactionManager, User } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
-import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory} from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory } from '../src/util'
 
 import common from '../src/common'
+import { CLIENT_SECRET, CLIENT_ID } from '../src/globals'
 
 let VALID_API_KEYS: string[] = []
 if (fs.existsSync("./data/valid-api-keys.key")) {
@@ -22,6 +23,10 @@ function sendFile(res: http.ServerResponse, fp: string, contentType?: string) {
     stream.pipe(res).on("finish", () => {
         res.end()
     })
+}
+
+let ACCESS_TOKENS: { [key: string]: { token: string, refresh: string, user_id?: string } } = {
+
 }
 
 export const server = http.createServer()
@@ -42,7 +47,127 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
     }
     let [_blank, mainPath, ..._subPaths] = path.split("/")
     switch (mainPath) {
+        case "discord-sign-in": {
+            let userCodeToken = urlParams?.get("code-token")
+            let host = urlParams?.get("host")
+
+            if (!userCodeToken) {
+                res.writeHead(403)
+                res.end(JSON.stringify({ error: "No code-token parameter" }))
+                return
+            }
+            if(!host){
+                res.writeHead(400)
+                res.end(JSON.stringify({error: "No host url given"}))
+                return
+            }
+
+            fetch(`https://discord.com/api/v10/oauth2/token`, {
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${userCodeToken}&redirect_uri=http://${host}&grant_type=authorization_code`,
+                method: "POST"
+            })
+                .then(r => r.json())
+                .then((json) => {
+                    res.writeHead(200)
+                    res.end()
+                    ACCESS_TOKENS[userCodeToken as string] = { token: json.access_token, refresh: json.refresh_token }
+                })
+            break
+        }
         case "run": {
+            function _run(author: User) {
+                common.client.channels.fetch(String(inChannel)).then((channel) => {
+                    if (!channel || channel.type !== ChannelType.GuildText) {
+                        res.writeHead(500)
+                        res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
+                        return
+                    }
+                    //@ts-ignore
+                    let msg: Message = {
+                        activity: null,
+                        applicationId: String(common.client.user?.id),
+                        id: "_1033110249244213260",
+                        attachments: new Collection(),
+                        author: author,
+                        channel: channel,
+                        channelId: channel.id,
+                        cleanContent: command as string,
+                        client: common.client,
+                        components: [],
+                        content: command as string,
+                        createdAt: new Date(Date.now()),
+                        createdTimestamp: Date.now(),
+                        crosspostable: false,
+                        deletable: false,
+                        editable: false,
+                        editedAt: null,
+                        editedTimestamp: null,
+                        embeds: [],
+                        flags: new MessageFlagsBitField(),
+                        groupActivityApplication: null,
+                        guild: channel.guild,
+                        guildId: channel.guild.id,
+                        hasThread: false,
+                        interaction: null,
+                        member: null,
+                        mentions: {
+                            parsedUsers: new Collection(),
+                            channels: new Collection(),
+                            crosspostedChannels: new Collection(),
+                            everyone: false,
+                            members: null,
+                            repliedUser: null,
+                            roles: new Collection(),
+                            users: new Collection(),
+                            has: (_data: any, _options: any) => false,
+                            _parsedUsers: new Collection(),
+                            _channels: null,
+                            _content: command as string,
+                            _members: null,
+                            client: common.client,
+                            guild: channel.guild,
+                            toJSON: () => {
+                                return {}
+                            }
+                        } as unknown as MessageMentions,
+                        nonce: null,
+                        partial: false,
+                        pinnable: false,
+                        pinned: false,
+                        position: null,
+                        reactions: new Object() as ReactionManager,
+                        reference: null,
+                        stickers: new Collection(),
+                        system: false,
+                        thread: null,
+                        tts: false,
+                        type: MessageType.Default,
+                        url: "http://localhost:8222/",
+                        webhookId: null,
+                        _cacheType: false,
+                        _patch: (_data: any) => { }
+                    }
+                    //prevents from sending to chat
+                    let oldSend = channel.send
+                    channel.send = (async () => msg as Message<true>).bind(channel)
+                    common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true, sendCallback: async () => msg }).then(rv => {
+                        res.writeHead(200)
+                        res.end(JSON.stringify(rv))
+                    }).catch(_err => {
+                        res.writeHead(500)
+                        console.log(_err)
+                        res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
+                    })
+                    channel.send = oldSend
+                }).catch((_err: any) => {
+                    res.writeHead(444)
+                    res.end(JSON.stringify({ error: "Channel not found" }))
+                })
+            }
+
             let command = body
             if (!command) {
                 res.writeHead(400)
@@ -53,94 +178,33 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 command = command.slice(common.prefix.length)
             }
             let inChannel = urlParams?.get("channel-id")
-            common.client.channels.fetch(String(inChannel)).then((channel) => {
-                if(!channel || channel.type !== ChannelType.GuildText) {
-                    res.writeHead(500)
-                    res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
+
+            let codeToken = urlParams?.get("code-token")
+
+            if (codeToken) {
+                let discordToken = ACCESS_TOKENS[codeToken]?.token
+                if (!discordToken) {
+                    res.writeHead(400)
+                    res.end(JSON.stringify({ error: "bad code token" }))
                     return
                 }
-                //@ts-ignore
-                let msg: Message = {
-                    activity: null,
-                    applicationId: String(common.client.user?.id),
-                    id: "_1033110249244213260",
-                    attachments: new Collection(),
-                    author: common.client.user as ClientUser,
-                    channel: channel,
-                    channelId: channel.id,
-                    cleanContent: command as string,
-                    client: common.client,
-                    components: [],
-                    content: command as string,
-                    createdAt: new Date(Date.now()),
-                    createdTimestamp: Date.now(),
-                    crosspostable: false,
-                    deletable: false,
-                    editable: false,
-                    editedAt: null,
-                    editedTimestamp: null,
-                    embeds: [],
-                    flags: new MessageFlagsBitField(),
-                    groupActivityApplication: null,
-                    guild: channel.guild,
-                    guildId: channel.guild.id,
-                    hasThread: false,
-                    interaction: null,
-                    member: null,
-                    mentions: {
-                        parsedUsers: new Collection(),
-                        channels: new Collection(),
-                        crosspostedChannels: new Collection(),
-                        everyone: false,
-                        members: null,
-                        repliedUser: null,
-                        roles: new Collection(),
-                        users: new Collection(),
-                        has: (_data: any, _options: any) => false,
-                        _parsedUsers: new Collection(),
-                        _channels: null,
-                        _content: command as string,
-                        _members: null,
-                        client: common.client,
-                        guild: channel.guild,
-                        toJSON: () => {
-                            return {}
-                        }
-                    } as unknown as MessageMentions,
-                    nonce: null,
-                    partial: false,
-                    pinnable: false,
-                    pinned: false,
-                    position: null,
-                    reactions: new Object() as ReactionManager,
-                    reference: null,
-                    stickers: new Collection(),
-                    system: false,
-                    thread: null,
-                    tts: false,
-                    type: MessageType.Default,
-                    url: "http://localhost:8222/",
-                    webhookId: null,
-                    _cacheType: false,
-                    _patch: (_data: any) => { }
-                }
-                //prevents from sending to chat
-                let oldSend = channel.send
-                channel.send = (async () => msg as Message<true>).bind(channel)
-                common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true, sendCallback: async() => msg}).then(rv => {
-                    res.writeHead(200)
-                    res.end(JSON.stringify(rv))
-                }).catch(_err => {
-                    res.writeHead(500)
-                    console.log(_err)
-                    res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
+                fetch('https://discord.com/api/v10/users/@me', {
+                    headers: {
+                        "Authorization": `Bearer ${discordToken}`
+                    }
+                }).then(res => {
+                    return res.json()
+                }).then(json => {
+                    ACCESS_TOKENS[codeToken as string].user_id = json.id
+                    json.toString = function(){
+                        return `<@${json.id}>`
+                    }
+                    _run(json)
                 })
-                channel.send = oldSend
-            }).catch((_err: any) => {
-                res.writeHead(444)
-                res.end(JSON.stringify({ error: "Channel not found" }))
-            })
-
+            }
+            else {
+                _run(common.client.user as User)
+            }
             break
         }
     }
@@ -162,13 +226,13 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
     switch (apiEndPoint) {
         case "resolve-ids": {
             let userIds = urlParams?.get("ids")?.split(",")
-            if(!userIds?.length){
+            if (!userIds?.length) {
                 res.writeHead(400)
                 res.end('{"error": "No user ids given"}')
                 break
             }
             let fetches = []
-            for(let user of userIds){
+            for (let user of userIds) {
                 fetches.push(common.client.users.fetch(user))
             }
             Promise.all(fetches).then(users => {
@@ -293,9 +357,9 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
         case "command-search": {
             let search = urlParams?.get("search")
             let category = urlParams?.get("category")
-            switch(subPaths.length){
+            switch (subPaths.length) {
                 case 1: {
-                    if(!search)
+                    if (!search)
                         search = subPaths[0]
                     else category = subPaths[0];
                     break;
@@ -312,12 +376,12 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             if (category && isCommandCategory(category.toUpperCase()))
                 commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category as keyof typeof CommandCategory))
 
-            if(hasAttr){
+            if (hasAttr) {
                 commands = commands.filter(([_name, cmd]) => {
                     let obj = cmd
-                    for(let prop of hasAttr?.split(".") || ""){
+                    for (let prop of hasAttr?.split(".") || "") {
                         obj = obj[prop as keyof typeof obj]
-                        if(obj === undefined) break;
+                        if (obj === undefined) break;
                     }
                     return obj ? true : false
                 })
@@ -340,7 +404,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             for (let [name, command] of commands) {
                 if (!command) continue
                 let resultPriority = ""
-                if(typeof name === 'object'){
+                if (typeof name === 'object') {
                     [name, resultPriority] = name
                 }
                 html += generateHTMLFromCommandHelp(name, command as Command | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
@@ -365,9 +429,9 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
 
             let inChannel = urlParams?.get("channel-id")
             common.client.channels.fetch(String(inChannel)).then((channel) => {
-                if(!channel || channel.type !== ChannelType.GuildText) {
+                if (!channel || channel.type !== ChannelType.GuildText) {
                     res.writeHead(445)
-                    res.end(JSON.stringify({error: "Bad channel id"}))
+                    res.end(JSON.stringify({ error: "Bad channel id" }))
                     return
                 }
                 channel.send({ content: text as string }).then((msg: any) => {
@@ -411,6 +475,10 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
     switch (mainPath) {
         case "": {
             sendFile(res, "./website/home.html")
+            break;
+        }
+        case "discord": {
+            sendFile(res, "./website/discord-login.html")
             break;
         }
         case "leaderboard": {

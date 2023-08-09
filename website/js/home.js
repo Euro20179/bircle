@@ -5,6 +5,18 @@ const runButton = document.getElementById("run-button")
 
 const commandOutput = document.getElementById("command-output")
 
+let urlParams = new URLSearchParams(window.location.href.slice(window.location.href.indexOf("?")))
+
+let codeToken = ""
+
+if(urlParams.get("code")){
+    codeToken = urlParams.get("code")
+    fetch(`http://${window.location.host}/discord-sign-in?code-token=${codeToken}&host=${window.location.host}`, {
+        method: "POST",
+
+    }).then(console.log)
+}
+
 class Embed {
     constructor({title, description, fields, color}) {
         this.title = title
@@ -102,7 +114,7 @@ runButton.addEventListener("click", async (e) => {
         return
     let cid = channelId.value
 
-    let res = await fetch(`/run?channel-id=${cid}`, { method: "POST", body: cmd })
+    let res = await fetch(`/run?channel-id=${cid}&code-token=${codeToken}`, { method: "POST", body: cmd })
     let data = await res.json()
     handleSending(data.rv)
 })
