@@ -3,6 +3,7 @@ import { MessageEmbed, Message, MessageMentionOptions, MessageCreateOptions, Mes
 import { ArgList, BADVALUE, Options } from './util'
 import { EconomyData } from "./economy"
 import { Interpreter } from "./common_to_commands"
+import { UserOption } from "./user-options"
 
 declare module "discord.js" {
     export interface User {
@@ -10,6 +11,7 @@ declare module "discord.js" {
         loan: number,
         economyData: EconomyData,
         netWorth: number
+        getBOpt<T>(opt: UserOption, fallback: T): string | T
     }
 
     export interface Message {

@@ -871,7 +871,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             useItem(msg.author.id, item)
             let feedAmount = pet.feedPet(msg.author.id, p[0], item)
             if (feedAmount) {
-                return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back`, status: StatusCode.RETURN }
+                return { content: `You fed ${petName} with a ${item} and  it got ${feedAmount} hunger back\n${petName} now has ${p[1].health} hunger`, status: StatusCode.RETURN }
             }
             return { contnet: "The feeding was unsuccessful", status: StatusCode.ERR }
 

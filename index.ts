@@ -16,13 +16,12 @@ import command_commons, { Interpreter } from './src/common_to_commands'
 import globals = require("./src/globals")
 import { defer, isMsgChannel } from "./src/util"
 import { Parser, format } from './src/parsing'
-import userOptions, { getOpt } from "./src/user-options"
+import { getOpt } from "./src/user-options"
 import common from './src/common'
 import timer from './src/timer'
 
 import economy from './src/economy'
 import { Message, } from 'discord.js'
-// const economy = require("./src/economy")
 
 import { saveItems, hasItem } from './src/shop'
 
@@ -51,6 +50,10 @@ Object.defineProperty(User.prototype, "netWorth", {
         return economy.playerLooseNetWorth(this.id)
     }
 });
+
+User.prototype.getBOpt = function(opt, fallback){
+    return user_options.getOpt(this.id, opt, fallback)
+}
 
 String.prototype.stripStart = function(chars) {
     for (var newStr = this; chars.includes(newStr[0]); newStr = newStr.slice(1));
@@ -164,7 +167,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         economy.setMoney(m.author.id, 0)
     }
 
-    let local_prefix = user_options.getOpt(m.author.id, "prefix", common.prefix)
+    let local_prefix = m.author.getBOpt("prefix", common.prefix)
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
