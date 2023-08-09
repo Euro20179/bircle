@@ -1,5 +1,3 @@
-import { Enum } from "../../src/util"
-
 let infoPerUser: {
     [key: string]: {
         tr: HTMLTableRowElement,
@@ -15,60 +13,66 @@ fetch("/api/economy").then(res => {
         const lb = document.querySelector("#leaderboard tbody")
         if (!lb) return
         let economyTotalNw = 0
-        for (let user in economyJson) {
-            const userData = economyJson[user]
+        fetch(`/api/resolve-ids?ids=${Object.keys(economyJson).join(",")}`)
+            .then(usersResp => usersResp.json())
+            .then(usersJson => {
+                let userJsonI = 0
+                for (let user in economyJson) {
 
-            let netWorth = userData.money
-            let stocks = userData.stocks
-            if (stocks) {
-                for (let stock in userData.stocks) {
-                    netWorth += stocks[stock].buyPrice * stocks[stock].shares
+                    const userData = economyJson[user]
+                    const userName = usersJson[userJsonI].username
+
+                    let netWorth = userData.money
+                    let stocks = userData.stocks
+                    if (stocks) {
+                        for (let stock in userData.stocks) {
+                            netWorth += stocks[stock].buyPrice * stocks[stock].shares
+                        }
+                    }
+
+                    if (userData.loanUsed) {
+                        netWorth -= userData.loanUsed
+                    }
+
+                    economyTotalNw += netWorth
+
+                    let tr = document.createElement("tr")
+
+                    let idTd = document.createElement("td")
+                    idTd.append(userName)
+
+                    let nwTd = document.createElement("td")
+                    nwTd.append(String(netWorth))
+
+                    let percent = document.createElement("td")
+
+                    infoPerUser[user] = {
+                        tr: tr,
+                        percentTd: percent,
+                        nwTd: nwTd,
+                        nw: netWorth
+                    }
+
+                    tr.append(idTd)
+                    tr.append(nwTd)
+                    tr.append(percent)
+
+                    lb.append(tr)
+                    userJsonI++
                 }
-            }
-
-            if (userData.loanUsed) {
-                netWorth -= userData.loanUsed
-            }
-
-            economyTotalNw += netWorth
-
-            let tr = document.createElement("tr")
-
-            let idTd = document.createElement("td")
-            idTd.append(user)
-
-            let nwTd = document.createElement("td")
-            nwTd.append(String(netWorth))
-
-            let percent = document.createElement("td")
-
-            infoPerUser[user] = {
-                tr: tr,
-                percentTd: percent,
-                nwTd: nwTd,
-                nw: netWorth
-            }
-
-            tr.append(idTd)
-            tr.append(nwTd)
-            tr.append(percent)
-
-            lb.append(tr)
-        }
-        for (let user in infoPerUser) {
-            infoPerUser[user].percentTd.append(String(infoPerUser[user].nw / economyTotalNw * 100) + "%")
-        }
+                for (let user in infoPerUser) {
+                    infoPerUser[user].percentTd.append(String(infoPerUser[user].nw / economyTotalNw * 100) + "%")
+                }
+            })
     })
 })
 
 
-const TableSort = Enum({
-    None: 0,
-    NetWorth: 1,
-    Percent: 2
-})
-
-type TableSort = Enumify<typeof TableSort>
+enum TableSort {
+    None,
+    NetWorth,
+    Percent
+}
 
 let tableIsSortedBy: TableSort = TableSort.None
 

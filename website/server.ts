@@ -158,7 +158,25 @@ function _handlePost(req: http.IncomingMessage, res: http.ServerResponse) {
 function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
     let [apiEndPoint] = subPaths
     subPaths = subPaths.splice(1)
+    res.setHeader("Content-Type", "application/json")
     switch (apiEndPoint) {
+        case "resolve-ids": {
+            let userIds = urlParams?.get("ids")?.split(",")
+            if(!userIds?.length){
+                res.writeHead(400)
+                res.end('{"error": "No user ids given"}')
+                break
+            }
+            let fetches = []
+            for(let user of userIds){
+                fetches.push(common.client.users.fetch(user))
+            }
+            Promise.all(fetches).then(users => {
+                res.writeHead(200)
+                res.end(JSON.stringify(users))
+            })
+            break
+        }
         case "option": {
             let userId = subPaths[0] ?? urlParams?.get("user-id")
             if (!userId) {
@@ -197,7 +215,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
             }
             res.writeHead(200)
-            res.end("Success")
+            res.end('"success"')
             break;
         }
         case "give-money": {
