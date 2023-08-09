@@ -101,10 +101,6 @@ function renderPElement(elem: cheerio.TagElement, indentation = 0, baseUrl = "")
 function renderHxElement(elem: cheerio.TagElement, indentation = 0, baseUrl = ""){
     return `\n${'\t'.repeat(indentation)}${'#'.repeat(Number(elem.name[1]))} ${renderElementChildren(elem, indentation, baseUrl)}\n`
 }
-//
-// function renderAElement(elem: cheerio.TagElement, indentation = 0){
-//     return `\n${'\t'.repeat(indentation)}[${renderElementChildren(elem, indentation)}](${elem.attribs['href'] || ""})`
-// }
 
 const ELEMENT_RENDERERS: {[key: string]: (elem: cheerio.TagElement, indentation: number, baseUrl: string) => string} = {
     br: (_, indentation) => `\n${"\t".repeat(indentation)}\n`,
