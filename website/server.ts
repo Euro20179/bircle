@@ -543,6 +543,15 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         case "api": {
             return _apiSubPath(req, res, subPaths, urlParams)
         }
+        case "custom": {
+            if(fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)){
+                sendFile(res, `./data/custom-endpoints/${subPaths[0]}.html`)
+            }
+            else {
+                sendFile(res, "./website/404.html", undefined, 404)
+            }
+            break
+        }
         default:
             sendFile(res, "./website/404.html", undefined, 404)
     }

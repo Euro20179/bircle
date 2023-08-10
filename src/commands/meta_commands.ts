@@ -10,7 +10,7 @@ import API = require("../api")
 import { Parser, parseBracketPair, formatPercentStr, format } from "../parsing"
 
 import common from '../common'
-import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy } from "../util"
+import { fetchUser, generateSafeEvalContextFromMessage, getContentFromResult, getImgFromMsgAndOpts, safeEval, choice, generateHTMLFromCommandHelp, cmdCatToStr, isSafeFilePath, BADVALUE, fetchUserFromClient, searchList, isMsgChannel, ArgList, fetchUserFromClientOrGuild, truthy, databaseFileToArray } from "../util"
 
 
 import { Guild, Message, EmbedBuilder, User } from "discord.js"
@@ -36,6 +36,55 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     }, "Runas", {
         permCheck: m => common.ADMINS.includes(m.author.id)
     })]
+
+    yield ['endpoint', ccmdV2(async function({opts, args, stdin, msg}){
+        if(opts.getBool("l", false)){
+            return crv(fs.readdirSync('./data/custom-endpoints').join("\n"))
+        }
+        let name = args[0]
+        if(!isSafeFilePath(name)){
+            return crv("Bad name", {status: StatusCode.ERR})
+        }
+        if(!name){
+            return crv("No name given", {status: StatusCode.ERR})
+        }
+        if(opts.getBool("d", false)){
+            if(!fs.existsSync(`./data/custom-endpoints/${name}.html`)){
+                return crv("Endpoint does not exist", {status: StatusCode.ERR})
+            }
+            let userEndpoints = common.usersEndpoints(msg.author.id)
+            if(userEndpoints.includes(name)){
+                common.removeEndPointFromUser(msg.author.id, name)
+                fs.rmSync(`./data/custom-endpoints/${name}.html`)
+                common.saveEndPointsDB()
+                return crv(`Endpoint, ${name}, deleted`)
+            }
+            return crv("You do not own this endpoint", {status: StatusCode.ERR})
+        }
+
+        if(fs.existsSync(`./data/custom-endpoints/${name}.html`)){
+            return crv("That endpoint already exists", {status: StatusCode.ERR})
+        }
+
+        let data = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
+
+        if(msg.attachments.at(0)){
+            data = await (await fetch(msg.attachments.at(0)!.url)).text()
+        }
+
+        if(!data){
+            return crv("No data to put on the page", {status: StatusCode.ERR})
+        }
+
+        fs.writeFileSync(`./data/custom-endpoints/${name}.html`, data)
+
+        common.addEndpointToUser(msg.author.id, name)
+
+        common.saveEndPointsDB()
+
+        return crv(`You can access the page [here](http://bircle.euro20179.com:8222/custom/${name})`)
+    }, "Create an endpoint on the website")]
+
     yield ["get-var", ccmdV2(async function({ args, opts, msg }) {
         let as = opts.getString("as", msg.author.id)
         let user: undefined | User = msg.author

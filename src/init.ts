@@ -8,6 +8,7 @@ function init(done?: Function){
     common.reloadBlackList()
     common.reloadWhiteList()
     common.reloadIDBlackLists()
+    common.loadEndpointsDB()
     loadItems()
     INITIALIZED = true
     done?.()

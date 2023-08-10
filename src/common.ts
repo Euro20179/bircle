@@ -7,7 +7,7 @@ const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
 
 const ADMINS = ["334538784043696130"]
 
-const VERSION = { major: 7, minor: 15, bug: 1, part: "", beta: false, alpha: false }
+const VERSION = { major: 7, minor: 16, bug: 0, part: "", beta: false, alpha: false }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildPresences, GatewayIntentBits.MessageContent], allowedMentions: { parse: ["users"] } })
 
@@ -17,6 +17,8 @@ let WHITELIST: { [key: string]: string[] } = {}
 let BLACKLIST: { [key: string]: string[] } = {}
 
 let USER_MATCH_COMMANDS: Map<string, Map<string, [RegExp, string]>> = new Map()
+
+let ENDPOINTS: {[key: string]: string[]} = {}
 
 function loadMatchCommands() {
     if (fs.existsSync("./data/match-commands")) {
@@ -104,6 +106,33 @@ function loadIDBlackList(type: "user" | "role") {
     return data.split("\n")
 }
 
+function loadEndpointsDB(){
+    if(fs.existsSync("./data/custom-endpoints.json"))
+        ENDPOINTS = JSON.parse(fs.readFileSync("./data/custom-endpoints.json", "utf-8"))
+    else ENDPOINTS = {}
+}
+
+function usersEndpoints(user: string){
+    return ENDPOINTS[user] || []
+}
+
+function addEndpointToUser(user: string, endpoint: string){
+        if(ENDPOINTS[user])
+            ENDPOINTS[user].push(endpoint)
+        else {
+            ENDPOINTS[user] = [endpoint]
+        }
+}
+
+function removeEndPointFromUser(user: string, endpoint: string){
+    ENDPOINTS[user] = ENDPOINTS[user].filter(v => v !== endpoint)
+}
+
+function saveEndPointsDB(){
+    fs.writeFileSync(`./data/custom-endpoints.json`, JSON.stringify(ENDPOINTS))
+    loadEndpointsDB()
+}
+
 function reloadIDBlackLists() {
     _BLACKLISTED_USERS = loadIDBlackList("user")
     _BLACKLISTED_ROLES = loadIDBlackList("role")
@@ -137,5 +166,11 @@ export default {
     addUserMatchCommand,
     removeUserMatchCommand,
     loadMatchCommands,
+    ENDPOINTS: () => ENDPOINTS,
+    loadEndpointsDB,
+    saveEndPointsDB,
+    usersEndpoints,
+    addEndpointToUser,
+    removeEndPointFromUser
 }
 

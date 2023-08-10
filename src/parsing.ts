@@ -703,6 +703,7 @@ function getOpts(args: ArgumentList): [Opts, ArgumentList] {
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             else break
         }
+        else { break }
     }
     return [opts, args.slice(i)]
 }
