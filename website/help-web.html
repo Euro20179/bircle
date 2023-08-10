@@ -695,15 +695,27 @@
 
     <h2 id='api-other'>Other endpoints</h2>
 
+    <h3 id="/profile">/profile</h3>
+    <code>/profile/&lt;user-id&gt;</code>
+    <br>
+    <code>/profile/by-name/&lt;discord-username&gt;</code>
+    <p>Gets all information about this user in the bot</p>
+
+    <hr class='soft-hr'>
+
     <h3 id="/option">/option</h3>
     <code>/option/&lt;user-id&gt;?option=&lt;option-name&gt;</code>
     <p>Gets the value of an option that user-id set</p>
 
-    <h3 id="/command-search">Command Search</h3>
+    <hr class='soft-hr'>
+
+    <h3 id="/command-search">/command-search</h3>
     <code>/command-search/search?category=cat&amp;cmd=cmd</code>
     <p>All parameters and subpaths are options, ie: the search, category, and cmd</p>
 
-    <h3 id="/resolve-ids">Resolve discord user ids</h3>
+    <hr class='soft-hr'>
+
+    <h3 id="/resolve-ids">/resolve-ids</h3>
     <code>/resolve-ids?id=id1,id2,id3</code>
     <p>Give as many ids as necessary seperated by commas</p>
 </body>

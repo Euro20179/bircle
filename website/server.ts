@@ -6,10 +6,13 @@ import common_to_commands, { CommandCategory } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
-import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory } from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient } from '../src/util'
 
 import common from '../src/common'
 import { CLIENT_SECRET, CLIENT_ID } from '../src/globals'
+import pets from '../src/pets'
+import timer from '../src/timer'
+import { getInventory } from '../src/shop'
 
 let VALID_API_KEYS: string[] = []
 if (fs.existsSync("./data/valid-api-keys.key")) {
@@ -56,9 +59,9 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 res.end(JSON.stringify({ error: "No code-token parameter" }))
                 return
             }
-            if(!host){
+            if (!host) {
                 res.writeHead(400)
-                res.end(JSON.stringify({error: "No host url given"}))
+                res.end(JSON.stringify({ error: "No host url given" }))
                 return
             }
 
@@ -196,7 +199,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     return res.json()
                 }).then(json => {
                     ACCESS_TOKENS[codeToken as string].user_id = json.id
-                    json.toString = function(){
+                    json.toString = function() {
                         return `<@${json.id}>`
                     }
                     _run(json)
@@ -237,12 +240,51 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             }
             Promise.all(fetches).then(users => {
                 let json: any = {}
-                for(let user of users){
+                for (let user of users) {
                     json[user.id] = user
                 }
                 res.writeHead(200)
                 res.end(JSON.stringify(json))
             })
+            break
+        }
+        case "profile": {
+            const sendJson = (userId: string) => {
+                let json = {
+                    economy: economy.getEconomy()[userId],
+                    pets: pets.getUserPets(userId),
+                    timers: timer.getTimersOfUser(userId),
+                    sandCounter: economy.getSandCounter(userId),
+                    inventory: getInventory()[userId]
+                }
+                res.writeHead(200)
+                res.end(JSON.stringify(json))
+            }
+            if (subPaths[0] === 'by-name') {
+                if (!subPaths[1]) {
+                    res.writeHead(404)
+                    res.end(JSON.stringify({ error: "No user given" }))
+                    return
+                }
+                fetchUserFromClient(common.client, subPaths[1]).then(user => {
+                    if (!user) {
+                        res.writeHead(404)
+                        res.end(JSON.stringify({ error: "User not found" }))
+                        return
+                    }
+                    sendJson(user.id)
+                })
+            }
+            else {
+                let userId = subPaths[0]
+                if (!userId) {
+                    res.writeHead(404)
+                    res.end(JSON.stringify({ error: "No user given" }))
+                }
+                else {
+                    sendJson(userId)
+                }
+            }
             break
         }
         case "option": {
@@ -502,6 +544,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         }
         default:
             res.writeHead(404)
+            res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify({ error: "Route not found" }))
     }
 }
