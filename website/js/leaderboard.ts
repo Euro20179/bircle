@@ -68,7 +68,10 @@ fetch("/api/economy").then(res => {
                     let tr = document.createElement("tr")
 
                     let idTd = document.createElement("td")
-                    idTd.append(userName)
+                    let idA = document.createElement("a")
+                    idA.append(userName)
+                    idA.href = `/api/profile/by-name/${userName}`
+                    idTd.append(idA)
 
                     let nwTd = document.createElement("td")
                     nwTd.append(String(netWorth))

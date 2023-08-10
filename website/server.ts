@@ -19,9 +19,9 @@ if (fs.existsSync("./data/valid-api-keys.key")) {
     VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
 }
 
-function sendFile(res: http.ServerResponse, fp: string, contentType?: string) {
+function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
-    res.writeHead(200, { content: contentType ?? "text/html", "Content-Length": stat.size })
+    res.writeHead(status ??200, { content: contentType ?? "text/html", "Content-Length": stat.size })
     let stream = fs.createReadStream(fp)
     stream.pipe(res).on("finish", () => {
         res.end()
@@ -255,7 +255,8 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                     pets: pets.getUserPets(userId),
                     timers: timer.getTimersOfUser(userId),
                     sandCounter: economy.getSandCounter(userId),
-                    inventory: getInventory()[userId]
+                    inventory: getInventory()[userId],
+                    id: userId
                 }
                 res.writeHead(200)
                 res.end(JSON.stringify(json))
@@ -543,9 +544,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             return _apiSubPath(req, res, subPaths, urlParams)
         }
         default:
-            res.writeHead(404)
-            res.setHeader("Content-Type", "application/json")
-            res.end(JSON.stringify({ error: "Route not found" }))
+            sendFile(res, "./website/404.html", undefined, 404)
     }
 }
 
