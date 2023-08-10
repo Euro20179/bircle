@@ -1,3 +1,7 @@
+const urlParams = new URLSearchParams(location.href.split("?").slice(1).join("?"))
+
+type SortType = "user" | "percentage" | "net-worth" | "none"
+
 let infoPerUser: {
     [key: string]: {
         tr: HTMLTableRowElement,
@@ -8,31 +12,56 @@ let infoPerUser: {
 } = {}
 
 
+function playerLooseNetWorth(ECONOMY: { [key: string]: any }, id: string) {
+    if (!ECONOMY[id])
+        return 0
+    return playerEconomyLooseTotal(ECONOMY, id) - (ECONOMY[id]?.loanUsed || 0)
+}
+
+function playerEconomyLooseTotal(ECONOMY: { [key: string]: any }, id: string) {
+    if (ECONOMY[id] === undefined)
+        return 0
+    let money = ECONOMY[id]?.money
+    let stocks = ECONOMY[id].stocks
+    if (stocks) {
+        for (let stock in ECONOMY[id].stocks) {
+            money += stocks[stock].buyPrice * stocks[stock].shares
+        }
+    }
+    return money
+}
+
 fetch("/api/economy").then(res => {
     res.json().then(economyJson => {
+        let sort: SortType = urlParams.get("sort") as SortType
+        let economyTotalNw = 0
+        let netWorths: { [key: string]: number } = {}
+        for (let user in economyJson) {
+            netWorths[user] = playerLooseNetWorth(economyJson, user)
+            economyTotalNw += netWorths[user]
+        }
+        switch (sort) {
+            case "user":
+                economyJson = Object.fromEntries(Object.entries(economyJson).sort((a, b) => a[0] > b[0] ? 1 : -1))
+                break
+            case "none": break
+            case "net-worth":
+                economyJson = Object.fromEntries(Object.entries(economyJson).sort((a, b) => netWorths[b[0]] - netWorths[a[0]]))
+                break
+            case "percentage":
+                economyJson = Object.fromEntries(Object.entries(economyJson).sort((a, b) => (netWorths[b[0]] / economyTotalNw) - (netWorths[a[0]] / economyTotalNw)))
+                break
+        }
         const lb = document.querySelector("#leaderboard tbody")
         if (!lb) return
-        let economyTotalNw = 0
         fetch(`/api/resolve-ids?ids=${Object.keys(economyJson).join(",")}`)
             .then(usersResp => usersResp.json())
             .then(usersJson => {
-                let userJsonI = 0
                 for (let user in economyJson) {
+                    console.table(user, usersJson[user])
+                    const userName = usersJson[user].username
 
-                    const userData = economyJson[user]
-                    const userName = usersJson[userJsonI].username
-
-                    let netWorth = userData.money
-                    let stocks = userData.stocks
-                    if (stocks) {
-                        for (let stock in userData.stocks) {
-                            netWorth += stocks[stock].buyPrice * stocks[stock].shares
-                        }
-                    }
-
-                    if (userData.loanUsed) {
-                        netWorth -= userData.loanUsed
-                    }
+                    let netWorth = playerLooseNetWorth(economyJson, user)
 
                     economyTotalNw += netWorth
 
@@ -58,7 +87,6 @@ fetch("/api/economy").then(res => {
                     tr.append(percent)
 
                     lb.append(tr)
-                    userJsonI++
                 }
                 for (let user in infoPerUser) {
                     infoPerUser[user].percentTd.append(String(infoPerUser[user].nw / economyTotalNw * 100) + "%")
@@ -67,18 +95,7 @@ fetch("/api/economy").then(res => {
     })
 })
 
-
-enum TableSort {
-    None,
-    NetWorth,
-    Percent
+function sortTable(by: SortType) {
+    //@ts-ignore
+    window.location = `${window.location.protocol}//${window.location.host}/leaderboard?sort=${by}`
 }
-
-let tableIsSortedBy: TableSort = TableSort.None
-
-const nwCol = document.getElementById("net-worth-col")
-const percentCol = document.getElementById("percent-col")
-
-nwCol?.addEventListener("click", e => {
-    tableIsSortedBy = TableSort.NetWorth
-})

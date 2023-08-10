@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="common.css" media="all">
+    <link rel="stylesheet" href="leaderboard.css" media="all">
     <title></title>
 </head>
 <body>
@@ -10,9 +11,9 @@
     <table id="leaderboard">
         <thead>
             <tr>
-                <th id="id-col">User id</th>
-                <th id="net-worth-col">Net worth</th>
-                <th id="percent-col">Percentage</th>
+                <th class="clickable-th" id="id-col" onclick='sortTable("user")'>User id</th>
+                <th class="clickable-th" id="net-worth-col" onclick="sortTable('net-worth')">Net worth</th>
+                <th class="clickable-th" id="percent-col" onclick="sortTable('percentage')">Percentage</th>
             </tr>
         </thead>
         <tbody>

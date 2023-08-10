@@ -236,8 +236,12 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 fetches.push(common.client.users.fetch(user))
             }
             Promise.all(fetches).then(users => {
+                let json: any = {}
+                for(let user of users){
+                    json[user.id] = user
+                }
                 res.writeHead(200)
-                res.end(JSON.stringify(users))
+                res.end(JSON.stringify(json))
             })
             break
         }
