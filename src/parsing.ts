@@ -695,19 +695,16 @@ function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
 
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts: Record<string, boolean | string> = {}
-    let arg, idxOfFirstRealArg = -1;
-    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
-        if (arg[1]) {
-            let [opt, ...value] = arg.slice(1).split("=")
-            if (opt === '-') {
-                //needs to be increased one more time
-                idxOfFirstRealArg++
-                break
-            }
-            opts[opt] = value[0] == undefined ? true : value.join("=");
+    let i;
+    for(i = 0; i < args.length; i++){
+        if(args[i][0] === "-"){
+            let [opt, ...value] = args[i].slice(1).split("=")
+            if(opt !== "-")
+                opts[opt] = value[0] == undefined ? true : value.join("=");
+            else break
         }
     }
-    return [opts, args.slice(idxOfFirstRealArg)]
+    return [opts, args.slice(i)]
 }
 
 function getOptsWithNegate(args: ArgumentList): [Opts, ArgumentList] {
