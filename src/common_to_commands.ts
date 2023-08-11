@@ -1010,6 +1010,11 @@ export class Interpreter {
                 break runnerIf
             }
 
+            if(!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.onWeb){
+                rv = {content: `This command cannot be run on the website`, status: StatusCode.ERR}
+                break runnerIf
+            }
+
             if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(cmd)) {
                 let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
                 if (!m || m.content.toLowerCase() !== 'y') {
@@ -1433,7 +1438,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     use_result_cache?: boolean,
     accepts_stdin?: CommandHelp['accepts_stdin'],
     prompt_before_run?: boolean,
-    argShape?: CommandV2['argShape']
+    argShape?: CommandV2['argShape'],
+    can_run_on_web?: boolean
 }): CommandV2 {
     return {
         run: cb,
@@ -1451,7 +1457,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         cmd_std_version: 2,
         use_result_cache: options?.use_result_cache,
         prompt_before_run: options?.prompt_before_run,
-        argShape: options?.argShape
+        argShape: options?.argShape,
+        can_run_on_web: options?.can_run_on_web
     }
 
 }

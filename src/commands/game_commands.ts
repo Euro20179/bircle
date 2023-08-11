@@ -2007,6 +2007,7 @@ until you put a 0 in the box`)
             return { content: `<@${msg.author.id}>\n**${status}**\n${stats}`, status: StatusCode.RETURN }
         }, "Play a round of blackjack",
             {
+                can_run_on_web: false,
                 helpArguments: { "hard": createHelpOption("You can only stand if you have 17+") },
             },
         ),

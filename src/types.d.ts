@@ -122,7 +122,8 @@ declare global {
         make_bot_type?: boolean,
         use_result_cache?: boolean
         cmd_std_version?: 1,
-        prompt_before_run?: boolean
+        prompt_before_run?: boolean,
+        can_run_on_web?: boolean
     }
 
     interface CommandV2RunArg {
@@ -156,6 +157,7 @@ declare global {
         cmd_std_version?: 2,
         prompt_before_run?: boolean,
         argShape?: (args: ArgList, msg: Message) => AsyncGenerator<[any | typeof BADVALUE, string, true?, any?]>,
+        can_run_on_web?: boolean
     }
 
     interface SlashCommand {
