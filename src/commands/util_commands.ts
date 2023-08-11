@@ -1897,7 +1897,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
                 let pageNo = Number(opts['page'] as string) || 1
 
-                let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}`)
+                let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}&type=video`)
                 let jsonData = await res.json()
 
                 let embeds: { embed: EmbedBuilder, button: ButtonBuilder, jsonButton: ButtonBuilder }[] = []
