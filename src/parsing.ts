@@ -96,52 +96,41 @@ class Token {
 }
 
 class Modifier {
+    repr = "X"
     modifyCmd({cmdObject, int, cmdName}: {cmdObject: Command | CommandV2 | AliasV2 | undefined, int: Interpreter, cmdName: string}): any {return cmdObject}
     modify(int: Interpreter): any { }
-    stringify(): string { return "W:" }
+    stringify(): string { return `${this.repr}:` }
 }
 
 class WebModifier extends Modifier {
+    repr = "W"
     modify(int: Interpreter) {
         int.onWeb = true
-    }
-    stringify(): string {
-        return "W:"
     }
 }
 
 class SkipModifier extends Modifier {
-    modify(int: Interpreter) {
-    }
-    stringify() {
-        return "n:"
-    }
+    repr = "n"
 }
 
 class SilentModifier extends Modifier {
+    repr = "s"
     modify(int: Interpreter) {
         int.sendCallback = async (_data) => int.getMessage()
-    }
-    stringify() {
-        return "s:"
     }
 }
 
 class TypingModifier extends Modifier {
+    repr = "t"
     modify(int: Interpreter) {
         int.setTyping()
-    }
-    stringify() {
-        return "t:"
     }
 }
 
 class DeleteModifier extends Modifier {
+    repr = "d"
     modify(int: Interpreter) {
         int.getMessage().deletable && int.getMessage().delete()
-    }
-    stringify() {
-        return "d:"
     }
 }
 

@@ -1,8 +1,8 @@
 import fs from 'fs'
 
-import { ChannelType, ClientUser, Collection, Message, MessageFlagsBitField, MessageMentions, MessageType, ReactionManager, User } from 'discord.js'
+import { AwaitMessagesOptions, Channel, ChannelType, ClientUser, Collection, DMChannel, Guild, GuildChannel, Message, MessageFlagsBitField, MessageMentions, MessageType, ReactionManager, TextChannel, User } from 'discord.js'
 import http from 'http'
-import common_to_commands, { CommandCategory } from '../src/common_to_commands'
+import common_to_commands, { CommandCategory, Interpreter } from '../src/common_to_commands'
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
@@ -14,9 +14,12 @@ import pets from '../src/pets'
 import timer from '../src/timer'
 import { getInventory } from '../src/shop'
 
+import ws from 'ws'
+
+
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
-    res.writeHead(status ??200, { content: contentType ?? "text/html", "Content-Length": stat.size })
+    res.writeHead(status ?? 200, { content: contentType ?? "text/html", "Content-Length": stat.size })
     let stream = fs.createReadStream(fp)
     stream.pipe(res).on("finish", () => {
         res.end()
@@ -73,136 +76,6 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     res.end()
                     ACCESS_TOKENS[userCodeToken as string] = { token: json.access_token, refresh: json.refresh_token }
                 })
-            break
-        }
-        case "run": {
-            function _run(author: User, inChannel: string) {
-                common.client.channels.fetch(inChannel).then((channel) => {
-                    if (!channel || channel.type !== ChannelType.GuildText) {
-                        res.writeHead(500)
-                        res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
-                        return
-                    }
-                    //@ts-ignore
-                    let msg: Message = {
-                        activity: null,
-                        applicationId: String(common.client.user?.id),
-                        id: "_1033110249244213260",
-                        attachments: new Collection(),
-                        author: author,
-                        channel: channel,
-                        channelId: channel.id,
-                        cleanContent: command as string,
-                        client: common.client,
-                        components: [],
-                        content: command as string,
-                        createdAt: new Date(Date.now()),
-                        createdTimestamp: Date.now(),
-                        crosspostable: false,
-                        deletable: false,
-                        editable: false,
-                        editedAt: null,
-                        editedTimestamp: null,
-                        embeds: [],
-                        flags: new MessageFlagsBitField(),
-                        groupActivityApplication: null,
-                        guild: channel.guild,
-                        guildId: channel.guild.id,
-                        hasThread: false,
-                        interaction: null,
-                        member: null,
-                        mentions: {
-                            parsedUsers: new Collection(),
-                            channels: new Collection(),
-                            crosspostedChannels: new Collection(),
-                            everyone: false,
-                            members: null,
-                            repliedUser: null,
-                            roles: new Collection(),
-                            users: new Collection(),
-                            has: (_data: any, _options: any) => false,
-                            _parsedUsers: new Collection(),
-                            _channels: null,
-                            _content: command as string,
-                            _members: null,
-                            client: common.client,
-                            guild: channel.guild,
-                            toJSON: () => {
-                                return {}
-                            }
-                        } as unknown as MessageMentions,
-                        nonce: null,
-                        partial: false,
-                        pinnable: false,
-                        pinned: false,
-                        position: null,
-                        reactions: new Object() as ReactionManager,
-                        reference: null,
-                        stickers: new Collection(),
-                        system: false,
-                        thread: null,
-                        tts: false,
-                        type: MessageType.Default,
-                        url: "http://localhost:8222/",
-                        webhookId: null,
-                        _cacheType: false,
-                        _patch: (_data: any) => { }
-                    }
-                    //prevents from sending to chat
-                    let oldSend = channel.send
-                    channel.send = (async () => msg as Message<true>).bind(channel)
-                    common_to_commands.cmd({ msg, command_excluding_prefix: command as string, returnJson: true, sendCallback: async () => msg }).then(rv => {
-                        res.writeHead(200)
-                        res.end(JSON.stringify(rv))
-                    }).catch(_err => {
-                        res.writeHead(500)
-                        console.log(_err)
-                        res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
-                    })
-                    channel.send = oldSend
-                }).catch((_err: any) => {
-                    res.writeHead(444)
-                    res.end(JSON.stringify({ error: "Channel not found" }))
-                })
-            }
-
-            let command = body
-            if (!command) {
-                res.writeHead(400)
-                res.end(JSON.stringify({ error: "No post body given" }))
-                break
-            }
-            if (command.startsWith(BOT_CONFIG.general.prefix)) {
-                command = command.slice(BOT_CONFIG.general.prefix.length)
-            }
-            let inChannel = urlParams?.get("channel-id") || getConfigValue("general.default-channel")
-
-            let codeToken = urlParams?.get("code-token")
-
-            if (codeToken) {
-                let discordToken = ACCESS_TOKENS[codeToken]?.token
-                if (!discordToken) {
-                    res.writeHead(400)
-                    res.end(JSON.stringify({ error: "bad code token" }))
-                    return
-                }
-                fetch('https://discord.com/api/v10/users/@me', {
-                    headers: {
-                        "Authorization": `Bearer ${discordToken}`
-                    }
-                }).then(res => {
-                    return res.json()
-                }).then(json => {
-                    ACCESS_TOKENS[codeToken as string].user_id = json.id
-                    json.toString = function() {
-                        return `<@${json.id}>`
-                    }
-                    _run(json, inChannel)
-                })
-            }
-            else {
-                _run(common.client.user as User, inChannel)
-            }
             break
         }
     }
@@ -540,7 +413,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             return _apiSubPath(req, res, subPaths, urlParams)
         }
         case "custom": {
-            if(fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)){
+            if (fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)) {
                 sendFile(res, `./data/custom-endpoints/${subPaths[0]}.html`)
             }
             else {
@@ -560,4 +433,177 @@ server.on("request", (req, res) => {
     else if (req.method === 'GET') {
         return handleGet(req, res)
     }
+})
+function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild = null) {
+    //@ts-ignore
+    let msg: Message = {
+        activity: null,
+        applicationId: String(common.client.user?.id),
+        id: "_1033110249244213260",
+        attachments: new Collection(),
+        author: author,
+        channel: channel,
+        channelId: channel.id,
+        cleanContent: content as string,
+        client: common.client,
+        components: [],
+        content: content as string,
+        createdAt: new Date(Date.now()),
+        createdTimestamp: Date.now(),
+        crosspostable: false,
+        deletable: false,
+        editable: false,
+        editedAt: null,
+        editedTimestamp: null,
+        embeds: [],
+        flags: new MessageFlagsBitField(),
+        groupActivityApplication: null,
+        guild: guild,
+        guildId: guild?.id,
+        hasThread: false,
+        interaction: null,
+        member: null,
+        mentions: {
+            parsedUsers: new Collection(),
+            channels: new Collection(),
+            crosspostedChannels: new Collection(),
+            everyone: false,
+            members: null,
+            repliedUser: null,
+            roles: new Collection(),
+            users: new Collection(),
+            has: (_data: any, _options: any) => false,
+            _parsedUsers: new Collection(),
+            _channels: null,
+            _content: content as string,
+            _members: null,
+            client: common.client,
+            guild: guild,
+            toJSON: () => {
+                return {}
+            }
+        } as unknown as MessageMentions,
+        nonce: null,
+        partial: false,
+        pinnable: false,
+        pinned: false,
+        position: null,
+        reactions: new Object() as ReactionManager,
+        reference: null,
+        stickers: new Collection(),
+        system: false,
+        thread: null,
+        tts: false,
+        type: MessageType.Default,
+        url: "http://localhost:8222/",
+        webhookId: null,
+        _cacheType: false,
+        _patch: (_data: any) => { }
+    }
+    return msg
+}
+function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string, handleReturn: (rv: { interpreter: Interpreter | undefined, rv: CommandReturn }) => any, handleError: (err: any) => any) {
+    common.client.channels.fetch(inChannel).then((channel) => {
+        if (!channel || channel.type !== ChannelType.GuildText) {
+            handleError("Channel not found")
+            return
+        }
+
+        //prevents from sending to chat
+        let oldSend = channel.send
+
+        let msg = createFakeMessage(author, channel, command, channel.guild)
+        
+        //instead of sending to chat, send to the client
+        channel.send = (async (data: object) => {
+            ws.send(JSON.stringify({event: "append-data", rv: data}))
+            return msg as Message<true>
+        }).bind(channel)
+
+        let prompt_replies: [string, Message][] = []
+        //listens for inputs from the client
+        ws.on("message", data => {
+            let result = JSON.parse(data.toString())
+            if (result['prompt-response']) {
+                prompt_replies.push([author.id, createFakeMessage(author, channel, result['prompt-response'], channel.guild)])
+            }
+        })
+
+        let oldAwaitMessage = channel.awaitMessages
+
+        //resets the input list every time we want to listen for inputs
+        channel.awaitMessages = async (data: AwaitMessagesOptions | undefined) => {
+            //tell the client we are ready for inputs
+            ws.send(JSON.stringify({ event: "prompt-user", }))
+            prompt_replies = []
+            await new Promise(res => setTimeout(res, data?.time || 30000))
+            //after the specified timeout (or 30 seconds if not given) return the collection
+            return new Collection(prompt_replies)
+        }
+
+        common_to_commands.cmd({
+            msg, command_excluding_prefix: command as string, returnJson: true, sendCallback: async (data) => {
+                //make sendcallback go to the client
+                ws.send(JSON.stringify({event: "append-data", rv: data}))
+                return msg as Message<true>
+            }
+        }).then((data) => {
+            channel.send = oldSend
+            channel.awaitMessages = oldAwaitMessage
+            return handleReturn(data)
+        }
+       ).catch((data) => {
+            channel.send = oldSend
+            channel.awaitMessages = oldAwaitMessage
+           return handleError(data)
+       })
+
+    }).catch(handleError)
+}
+
+
+const wsServer = new ws.WebSocketServer({ path: "/run", server })
+
+wsServer.on("connection", function(ws, req) {
+    let urlParams = new URLSearchParams(req.url?.split("?").slice(1).join("?"))
+    let inChannel = urlParams?.get("channel-id") || getConfigValue("general.default-channel")
+
+    let codeToken = urlParams?.get("code-token")
+
+    ws.on("error", console.error)
+
+    ws.on("message", data => {
+        let jsonData = JSON.parse(data.toString())
+        if (jsonData.event === "run") {
+            let cmd = jsonData.data
+            if (codeToken) {
+                let discordToken = ACCESS_TOKENS[codeToken]?.token
+                if (!discordToken) {
+                    ws.send(JSON.stringify({ error: "Bad code token" }))
+                    return
+                }
+                fetch('https://discord.com/api/v10/users/@me', {
+                    headers: {
+                        "Authorization": `Bearer ${discordToken}`
+                    }
+                }).then(res => {
+                    return res.json()
+                }).then(user =>
+                    _run(ws, cmd, user, inChannel, (rv) => {
+                        ws.send(JSON.stringify(rv))
+                        ws.close()
+                    }, err => console.log(err))
+                )
+            }
+            else {
+                _run(ws, cmd, common.client.user as User, inChannel, rv => {
+                    ws.send(JSON.stringify(rv))
+                    ws.close()
+                }, err => {
+                    console.log(err)
+                })
+            }
+        }
+    })
+    ws.send(JSON.stringify({ event: "ready" }))
 })

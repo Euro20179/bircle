@@ -44,7 +44,17 @@
         }
         /*prompt status*/
         #command-output[data-status-code="-2"]{
-            border-color: var(--link-color);
+            border-color: var(--selection);
+            animation: blink 500ms infinite alternate-reverse;
+        }
+
+        @keyframes blink{
+            0%{
+                filter: brightness(70%);
+            }
+            100%{
+                filter: brightness(100%);
+            }
         }
 
 
@@ -122,6 +132,10 @@
             font-size: 1.3rem;
             cursor: pointer;
         }
+
+        .hidden{
+            display: none
+        }
     </style>
 </head>
 
@@ -143,6 +157,7 @@
         <textarea type='text' id='command' placeholder='run a command' enterkeyhint='enter'></textarea>
         <br>
         <button id='run-button'>run</button>
+        <button id="submit-input" class="hidden">submit input</button>
     </div>
 
     <div id="command-output" contenteditable>

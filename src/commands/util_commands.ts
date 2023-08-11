@@ -208,7 +208,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         })
     ]
 
-    yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin }) {
+    yield ['imdb', ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
         const search = `https://www.imdb.com/find/?q=${stdin ? getContentFromResult(stdin) : args.join(" ")}`
         let results = await fetch.default(search, {
             headers: {
@@ -230,7 +230,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
         let ans: { content: string } | false =
             !opts.getBool("a", false)
-                ? await promptUser(msg, `Pick one\n${text}`, undefined, {
+                ? await promptUser(msg, `Pick one\n${text}`, sendCallback, {
                     filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
                 })
                 : { content: "1" }
