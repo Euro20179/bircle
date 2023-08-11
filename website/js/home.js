@@ -107,6 +107,10 @@ function handleSending(rv) {
         commandOutput.append(outputP)
     }
 
+    if(rv.delete){
+        command.value = ""
+    }
+
     if (rv.embeds?.length) {
         for (let embed of rv.embeds) {
             let e = new Embed(embed)
