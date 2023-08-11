@@ -9,15 +9,10 @@ import user_options from '../src/user-options'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient } from '../src/util'
 
 import common from '../src/common'
-import { CLIENT_SECRET, CLIENT_ID } from '../src/globals'
+import { CLIENT_SECRET, CLIENT_ID, BOT_CONFIG, getConfigValue } from '../src/globals'
 import pets from '../src/pets'
 import timer from '../src/timer'
 import { getInventory } from '../src/shop'
-
-let VALID_API_KEYS: string[] = []
-if (fs.existsSync("./data/valid-api-keys.key")) {
-    VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
-}
 
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
@@ -81,8 +76,8 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
             break
         }
         case "run": {
-            function _run(author: User) {
-                common.client.channels.fetch(String(inChannel)).then((channel) => {
+            function _run(author: User, inChannel: string) {
+                common.client.channels.fetch(inChannel).then((channel) => {
                     if (!channel || channel.type !== ChannelType.GuildText) {
                         res.writeHead(500)
                         res.end(JSON.stringify({ error: "Soething went wrong executing command" }))
@@ -177,10 +172,10 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                 res.end(JSON.stringify({ error: "No post body given" }))
                 break
             }
-            if (command.startsWith(common.prefix)) {
-                command = command.slice(common.prefix.length)
+            if (command.startsWith(BOT_CONFIG.general.prefix)) {
+                command = command.slice(BOT_CONFIG.general.prefix.length)
             }
-            let inChannel = urlParams?.get("channel-id")
+            let inChannel = urlParams?.get("channel-id") ?? getConfigValue("general.default-config")
 
             let codeToken = urlParams?.get("code-token")
 
@@ -202,11 +197,11 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
                     json.toString = function() {
                         return `<@${json.id}>`
                     }
-                    _run(json)
+                    _run(json, inChannel)
                 })
             }
             else {
-                _run(common.client.user as User)
+                _run(common.client.user as User, inChannel)
             }
             break
         }
@@ -317,14 +312,15 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 break;
             }
             let apiKey = urlParams.get("key") || ""
+
+            let VALID_API_KEYS = BOT_CONFIG.secrets['valid-api-keys'] || []
+
             if (!VALID_API_KEYS.includes(apiKey)) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;
             }
-            if (fs.existsSync("./data/valid-api-keys.key")) {
-                VALID_API_KEYS = JSON.parse(fs.readFileSync("./data/valid-api-keys.key", "utf-8"))
-            }
+
             res.writeHead(200)
             res.end('"success"')
             break;
@@ -336,7 +332,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 break;
             }
             let apiKey = urlParams.get("key") || ""
-            if (!VALID_API_KEYS.includes(apiKey)) {
+            if (!(BOT_CONFIG.secrets['valid-api-keys'] || []).includes(apiKey)) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;

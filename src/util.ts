@@ -14,6 +14,7 @@ import { AliasV2, CommandCategory } from "./common_to_commands"
 import events from './events'
 
 import { formatMoney, getOpt } from "./user-options"
+import { BOT_CONFIG } from "./globals"
 
 
 export type MimeType = `${string}/${string}`
@@ -69,7 +70,7 @@ function romanToBase10(roman: string) {
 }
 
 function getToolIp() {
-    return fs.existsSync("./data/ip.key") ? fs.readFileSync("./data/ip.key", "utf-8") : undefined
+    return BOT_CONFIG.secrets['twin-bot-ip']
 }
 
 //discord.js' isTextBased thing is absolutely useless

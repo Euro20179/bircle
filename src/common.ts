@@ -3,9 +3,6 @@ import fs from 'fs'
 import { User } from "discord.js";
 
 import { Client, GatewayIntentBits } from "discord.js"
-const prefix = fs.readFileSync("./data/prefix", "utf-8").trim()
-
-const ADMINS = ["334538784043696130"]
 
 const VERSION = { major: 7, minor: 16, bug: 2, part: "", beta: false, alpha: false }
 
@@ -145,8 +142,6 @@ const FILE_SHORTCUTS = { "distance": "distance-easter-egg", "8": "8ball" }
 const GLOBAL_CURRENCY_SIGN = "$"
 
 export default {
-    prefix,
-    ADMINS,
     FILE_SHORTCUTS,
     WHITELIST,
     BLACKLIST,

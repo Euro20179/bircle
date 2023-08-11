@@ -7,6 +7,8 @@ import user_options = require("../user-options")
 import vars from "../vars"
 import { DMChannel, Message } from "discord.js"
 
+import {PREFIX} from '../globals'
+
 export default function*(CAT: CommandCategory) {
     yield [createMatchCommand(async ({ msg, match }) => {
         let find = match[1]
@@ -42,9 +44,9 @@ export default function*(CAT: CommandCategory) {
             return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, common.prefix.length) === common.prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(common.prefix.length), recursion: 19, returnJson: true })).rv as CommandReturn)
-            if (signature.startsWith(common.prefix)) {
+        if (signature.slice(0, PREFIX.length) === PREFIX) {
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19, returnJson: true })).rv as CommandReturn)
+            if (signature.startsWith(PREFIX)) {
                 signature = "\\" + signature
             }
         }
@@ -103,10 +105,10 @@ export default function*(CAT: CommandCategory) {
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
-        if (user_options.getOpt(msg.author.id, "prefix", common.prefix) === common.prefix) {
+        if (user_options.getOpt(msg.author.id, "prefix", PREFIX) === PREFIX) {
             return { noSend: true, status: StatusCode.RETURN }
         }
-        user_options.setOpt(msg.author.id, "prefix", common.prefix)
+        user_options.setOpt(msg.author.id, "prefix", PREFIX)
         return (await cmd({ msg, command_excluding_prefix: match[1], returnJson: true })).rv
 
     }, /^s!(.*)/, "match:s!", {
@@ -131,9 +133,9 @@ export default function*(CAT: CommandCategory) {
             return { content: `${user.username} does not have mail enabled`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, common.prefix.length) === common.prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(common.prefix.length), recursion: 19, returnJson: true })).rv)
-            if (signature.startsWith(common.prefix)) {
+        if (signature.slice(0, PREFIX.length) === PREFIX) {
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19, returnJson: true })).rv)
+            if (signature.startsWith(PREFIX)) {
                 signature = "\\" + signature
             }
         }

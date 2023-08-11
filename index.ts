@@ -33,7 +33,7 @@ import pets from './src/pets'
 import init from './src/init'
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
-const rest = new REST({ version: "10" }).setToken(globals.token);
+const rest = new REST({ version: "10" }).setToken(globals.BOT_CONFIG.secrets.token);
 
 Object.defineProperty(User.prototype, "loan", {
     "get": function() {
@@ -167,15 +167,15 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         economy.setMoney(m.author.id, 0)
     }
 
-    let local_prefix = m.author.getBOpt("prefix", common.prefix)
+    let local_prefix = m.author.getBOpt("prefix", globals.PREFIX)
 
     if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
             let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id as string, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                if (command_commons.isCmd(pingresponse, common.prefix)) {
-                    await command_commons.cmd({ msg: m, command_excluding_prefix: pingresponse.slice(common.prefix.length), disable: command_commons.generateDefaultRecurseBans() })
+                if (command_commons.isCmd(pingresponse, globals.PREFIX)) {
+                    await command_commons.cmd({ msg: m, command_excluding_prefix: pingresponse.slice(globals.PREFIX.length), disable: command_commons.generateDefaultRecurseBans() })
                 }
                 else {
                     m.channel.send(pingresponse)
@@ -324,5 +324,5 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
     }
 })
 
-common.client.login(globals.token)
+common.client.login(globals.BOT_CONFIG.secrets.token)
 

@@ -962,7 +962,7 @@ until you put a 0 in the box`)
             let reqMoney = args.expectString(1)
             if (reqMoney === BADVALUE) {
                 globals.endCommand(msg.author.id, "roulette")
-                return crv(`Usage: \`${common.prefix}roulette <bet> <guess>\``)
+                return crv(`Usage: \`${globals.PREFIX}roulette <bet> <guess>\``)
             }
 
             let min = economy.calculateAmountFromNetWorth(msg.author.id, "0.02%")
@@ -1014,7 +1014,7 @@ until you put a 0 in the box`)
 
             if (guess === BADVALUE) {
                 globals.endCommand(msg.author.id, "roulette")
-                return crv(`Usage: \`${common.prefix}roulette <bet> <guess>\``)
+                return crv(`Usage: \`${globals.PREFIX}roulette <bet> <guess>\``)
             }
 
             let bets: { [key: string]: [number, string] } = { [msg.author.id]: [money, guess] }

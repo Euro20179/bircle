@@ -339,9 +339,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             return { content: `Could not create dm channel with ${toUser instanceof GuildMember ? toUser.displayName : toUser.username}`, status: StatusCode.ERR }
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
-        if (signature.slice(0, common.prefix.length) === common.prefix) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(common.prefix.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
-            if (signature.startsWith(common.prefix)) {
+        if (signature.slice(0, globals.PREFIX.length) === globals.PREFIX) {
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(globals.PREFIX.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
+            if (signature.startsWith(globals.PREFIX)) {
                 signature = "\\" + signature
             }
         }
@@ -769,7 +769,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield [
         "count", ccmdV2(async ({ msg, args, recursionCount: rec, commandBans: disable }) => {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode }
-            if (msg.channel.id !== '468874244021813258') {
+
+            if (msg.channel.id !== globals.BOT_CONFIG.general['counting-channel']) {
                 return { content: "You are not in the counting channel", status: StatusCode.ERR }
             }
 
@@ -791,8 +792,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 count_text = "{count}"
             }
             count_text = format(count_text, { count: `.${numeric}.` })
-            if (common_to_commands.isCmd(count_text, common.prefix)) {
-                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(common.prefix.length), recursion: rec, returnJson: true, disable })).rv
+            if (common_to_commands.isCmd(count_text, globals.PREFIX)) {
+                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(globals.PREFIX.length), recursion: rec, returnJson: true, disable })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
                 }
@@ -2674,7 +2675,7 @@ Valid formats:
                 return countries[text as keyof typeof countries] ? text : BADVALUE
             }) as keyof typeof countries | typeof BADVALUE
             if (userGoingTo === BADVALUE) {
-                return crv(`You must select a valid location: use \`${common.prefix}travel -l\` to see all locations`, { status: StatusCode.ERR })
+                return crv(`You must select a valid location: use \`${globals.PREFIX}travel -l\` to see all locations`, { status: StatusCode.ERR })
             }
 
             timer.createOrRestartTimer(msg.author.id, "%travel")

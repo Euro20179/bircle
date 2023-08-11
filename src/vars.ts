@@ -5,6 +5,8 @@ import common from './common'
 import economy from "./economy"
 import { allowedOptions, getOpt } from "./user-options"
 
+import {PREFIX} from './globals'
+
 export type VarName = `${string}:${string}` | string
 
 
@@ -65,7 +67,7 @@ class Variable<T extends keyof typeof VarType>{
 let defaultVars: Record<string, Variable<"function">> = {
     random: new Variable('function', () => String(Math.random())),
     rand: new Variable("function", () => String(Math.random())),
-    prefix: new Variable("function", (msg) => getOpt(msg.author.id, "prefix", common.prefix)),
+    prefix: new Variable("function", (msg) => getOpt(msg.author.id, "prefix", PREFIX)),
     sender: new Variable("function", (msg) => `<@${msg.author.id}>`),
     carson: new Variable("function", () => "The all legendary Carson Williams"),
     money: new Variable("function", msg => String(economy.calculateAmountFromString(msg.author.id, "100%"))),

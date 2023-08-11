@@ -13,6 +13,8 @@ import common from '../common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
 
+import {PREFIX} from '../globals'
+
 import vars from '../vars'
 
 export default function*(): Generator<[string, Command | CommandV2]> {
@@ -416,7 +418,7 @@ COMMANDS:
 **font** [font]:
 **font** [size] [font]:
     sets the font size to [size], and the font to [font]
-    for a list of fonts, run ${common.prefix}api getFonts
+    for a list of fonts, run ${PREFIX}api getFonts
 
 **text-align** <alignment>:
     alignment can be:

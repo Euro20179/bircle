@@ -13,7 +13,7 @@ import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, i
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
-import { DEVBOT } from '../globals'
+import { DEVBOT, PREFIX } from '../globals'
 import achievements from '../achievements'
 import amountParser from '../amount-parser'
 import { buyItem, hasItem, useItem, getInventory, getItems } from '../shop'
@@ -175,7 +175,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let type = args[0]
 
             if (!allowedTypes.includes(type)) {
-                return { content: `Usage: \`${common.prefix}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
+                return { content: `Usage: \`${PREFIX}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
             }
 
             let item = args.slice(1).join(" ")
@@ -226,7 +226,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                         return { content: "You do not have enough money to buy this pet", status: StatusCode.ERR }
                     }
                     if (pet.buyPet(msg.author.id, item)) {
-                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${common.prefix}sapet ${item}`, status: StatusCode.RETURN }
+                        return { content: `You have successfuly bought: ${item} for: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalCost}\nTo activate it run ${PREFIX}sapet ${item}`, status: StatusCode.RETURN }
                     }
                     return { content: "You already have this pet", status: StatusCode.ERR }
                 }
@@ -432,7 +432,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
                 embed.addFields(efd([`${pet}\n${user_options.formatMoney(msg.author.id, totalCost)}`, `${data.description}`, true]))
             }
-            embed.setFooter({ text: `To buy a pet, do ${common.prefix}buy pet <pet name>` })
+            embed.setFooter({ text: `To buy a pet, do ${PREFIX}buy pet <pet name>` })
             return { embeds: [embed], status: StatusCode.RETURN }
         }, "See the pet shop")
     ]
@@ -455,7 +455,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     e.addFields(efd([pets[pet].name, `${pets[pet].health} hunger`, true]))
                 }
                 if (!activePet) {
-                    e.setFooter({ text: `To set an active pet run: ${common.prefix}sapet <pet name>` })
+                    e.setFooter({ text: `To set an active pet run: ${PREFIX}sapet <pet name>` })
                 }
                 return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
             }, category: CommandCategory.ECONOMY,
@@ -655,7 +655,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let stock = args[0]
                 if (!stock)
                     return { content: "no stock given", status: StatusCode.ERR }
-                if (stock == common.prefix) {
+                if (stock == PREFIX) {
                     return { "content": "Looks like ur pulling a tool", status: StatusCode.ERR }
                 }
                 stock = stock.toUpperCase()
@@ -989,7 +989,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 let i = args.join(" ")
 
                 if (!user) {
-                    return { content: `Improper  command usage, \`${common.prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+                    return { content: `Improper  command usage, \`${PREFIX}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
 
                 let [count, ...item] = i.split(" ")
@@ -1000,7 +1000,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     count = "1"
                 }
                 else if (!itemstr) {
-                    return { content: `Improper  command usage, \`${common.prefix}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+                    return { content: `Improper  command usage, \`${PREFIX}give-item [count] <item> <user>\``, status: StatusCode.ERR }
                 }
 
 

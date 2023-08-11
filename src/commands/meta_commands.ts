@@ -34,7 +34,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         msg.author = oldId
         return rv
     }, "Runas", {
-        permCheck: m => common.ADMINS.includes(m.author.id)
+        permCheck: m => globals.ADMINS.includes(m.author.id)
     })]
 
     yield ['endpoint', ccmdV2(async function({opts, args, stdin, msg}){
@@ -359,7 +359,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             user_options.saveUserOptions()
             return { content: `<@${member.id}> unset ${optname}`, status: StatusCode.RETURN }
 
-        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => common.ADMINS.includes(m.author.id)),
+        }, CAT, "Lets me unset people's options :watching:", null, null, null, (m) => globals.ADMINS.includes(m.author.id)),
     ]
 
     yield [
@@ -709,7 +709,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return { content: `removed: ${args.join(" ")}`, status: StatusCode.RETURN }
             }
             return { content: `${args.join(" ")} not found`, status: StatusCode.ERR }
-        }, CAT, undefined, null, null, null, (m) => common.ADMINS.includes(m.author.id)),
+        }, CAT, undefined, null, null, null, (m) => globals.ADMINS.includes(m.author.id)),
     ]
 
     yield [
@@ -734,7 +734,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let fn = args.join(" ")
             if (!Object.keys(API.APICmds).includes(fn)) {
-                return { content: `${fn} is not a valid  api function\nrun \`${common.prefix}api -l\` to see api commands`, status: StatusCode.ERR }
+                return { content: `${fn} is not a valid  api function\nrun \`${globals.PREFIX}api -l\` to see api commands`, status: StatusCode.ERR }
             }
             let apiFn = API.APICmds[fn]
             let argsForFn: { [key: string]: any } = {}
@@ -1236,7 +1236,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 cmdToCheck = cmdToCheck.split(";end")[0]
                 let success;
-                if (condition.trim().startsWith(`(${common.prefix}`)) {
+                if (condition.trim().startsWith(`(${globals.PREFIX}`)) {
                     let command_to_run = ""
                     let check = ""
                     let expected = ""
@@ -1281,7 +1281,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                         }
                         expected += ch;
                     }
-                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(common.prefix.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
+                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
                     expected = expected.trim()
                     switch (check.trim().toLowerCase()) {
                         case "==": {
@@ -1354,7 +1354,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
                     return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
-                let elseCmd = args.join(" ").split(`${common.prefix}else;`).slice(1).join(`${common.prefix}else;`)?.trim()
+                let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
                 if (elseCmd) {
                     return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
@@ -1524,7 +1524,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 fs.rmSync(`./command-results/${file}`)
                 return { content: `${file} removed`, status: StatusCode.RETURN }
             }, category: CAT,
-            permCheck: m => common.ADMINS.includes(m.author.id),
+            permCheck: m => globals.ADMINS.includes(m.author.id),
             help: {
                 info: "Remove a database file"
             }
@@ -1942,8 +1942,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     if (!globals.SPAMS[id])
                         break
                     line = line.trim()
-                    if (line.startsWith(common.prefix)) {
-                        line = line.slice(common.prefix.length)
+                    if (line.startsWith(globals.PREFIX)) {
+                        line = line.slice(globals.PREFIX.length)
                     }
                     await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
                 }
@@ -2064,7 +2064,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 //gets a list of indecies of the items that the user can remove
                 let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
-                    return v.trim() === msg.author.id || common.ADMINS.includes(msg.author.id) ? i : undefined
+                    return v.trim() === msg.author.id || globals.ADMINS.includes(msg.author.id) ? i : undefined
                 }).filter(v => v !== undefined)
 
                 let options = data.map((value, i) => [i, value] as const).filter(v => allowedIndicies.includes(v[0]))
@@ -2482,7 +2482,7 @@ ${styles}
                 }
             },
             permCheck: msg => {
-                return common.ADMINS.includes(msg.author.id)
+                return globals.ADMINS.includes(msg.author.id)
             },
             help: {
                 info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
@@ -2497,7 +2497,7 @@ ${styles}
             globals.CMDUSE = globals.loadCmdUse()
             return { content: "cmd use reset", status: StatusCode.RETURN }
         }, "Resets cmduse", {
-            permCheck: m => common.ADMINS.includes(m.author.id)
+            permCheck: m => globals.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -2722,7 +2722,7 @@ ${styles}
                     return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
                 }
                 msg.content = lastCommand[msg.author.id]
-                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", common.prefix).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
+                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", globals.PREFIX).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
             },
             help: {
                 info: "Run the last command that was run",

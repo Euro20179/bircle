@@ -1,14 +1,18 @@
 import { User } from "discord.js"
 import fs = require("fs")
 
-export const token = fs.readFileSync("./data/TOKEN", "utf-8").trim()
-export const CLIENT_ID = fs.readFileSync("./data/CLIENT", "utf-8").trim()
-export const GUILD_ID = fs.readFileSync("./data/GUILD", "utf-8").trim()
-export const CLIENT_SECRET = fs.readFileSync("./data/CLIENTSECRET", "utf-8").trim()
+export const BOT_CONFIG = JSON.parse(fs.readFileSync("./CONFIG.json", "utf-8"))
+export const CLIENT_ID = BOT_CONFIG.secrets['client-id']
+export const GUILD_ID = BOT_CONFIG.secrets['guild']
+export const CLIENT_SECRET = BOT_CONFIG.secrets['client-secret']
 
 export let SPAM_ALLOWED = true
 
-export let DEVBOT = fs.existsSync("./data/IS-DEV-BOT")
+export let DEVBOT = BOT_CONFIG.general?.mode === "dev" ? true : false
+
+export let PREFIX = BOT_CONFIG.general.prefix
+
+export const ADMINS = BOT_CONFIG.general.admins
 
 export let BUTTONS: { [id: string]: string | (() => string) } = {}
 export let POLLS: { [id: string]: { title: string, votes: { [k: string]: string[] } } } = {}
@@ -138,6 +142,32 @@ export function loadEmoteUse() {
         emoteuse[emote] = parseInt(times)
     }
     return emoteuse
+}
+
+export function editConfig(path: string, newValue: any){
+    let WORKING_OBJ: any = BOT_CONFIG
+    let items =  path.split(".")
+    for(let i = 0; i < items.length - 1; i++){
+        WORKING_OBJ = WORKING_OBJ?.[items[i] as keyof typeof WORKING_OBJ]
+        if(WORKING_OBJ === undefined) throw new Error(`${path} is not a valid config item`)
+    }
+    if(WORKING_OBJ[items[items.length - 1] as keyof typeof WORKING_OBJ] === undefined) throw new Error(`${path} is not a valid config item`)
+    saveConfig()
+    return WORKING_OBJ[items[items.length - 1]] = newValue
+}
+
+export function getConfigValue(path: string){
+    let WORKING_OBJ: any = BOT_CONFIG
+    let items =  path.split(".")
+    for(let i = 0; i < items.length; i++){
+        WORKING_OBJ = WORKING_OBJ?.[items[i] as keyof typeof WORKING_OBJ]
+        if(WORKING_OBJ === undefined) throw new Error(`${path} is not a valid config item`)
+    }
+    return WORKING_OBJ
+}
+
+export function saveConfig(){
+    fs.writeFileSync('./CONFIG.json', JSON.stringify(BOT_CONFIG))
 }
 
 export let CMDUSE = loadCmdUse()

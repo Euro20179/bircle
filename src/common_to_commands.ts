@@ -777,8 +777,8 @@ export class Interpreter {
         let rv = await runCmd(token.data as string)
         let data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
 
-        if (rv && rv.recurse && rv.content && isCmd(rv.content, common.prefix) && this.recursion < 20) {
-            rv = await runCmd(rv.content.slice(common.prefix.length))
+        if (rv && rv.recurse && rv.content && isCmd(rv.content, globals.PREFIX) && this.recursion < 20) {
+            rv = await runCmd(rv.content.slice(globals.PREFIX.length))
             data = rv ? getContentFromResult(rv as CommandReturn, "\n").trim() : ""
         }
 
@@ -993,7 +993,7 @@ export class Interpreter {
         if (!cmdObject) {
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
-            if (cmd.startsWith(common.prefix)) {
+            if (cmd.startsWith(globals.PREFIX)) {
                 cmd = `\\${cmd}`
             }
             rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
@@ -1308,10 +1308,10 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         delete rv['content']
     }
     //only do this if content
-    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, common.prefix.length) === common.prefix) {
+    else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, globals.PREFIX.length) === globals.PREFIX) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(common.prefix.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(globals.PREFIX.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
 
         rv = ret.rv
 

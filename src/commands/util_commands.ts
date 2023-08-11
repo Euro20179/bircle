@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -445,12 +445,12 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     })]
 
     yield ['school-stats', ccmdV2(async function({ msg, opts }) {
-        let ip;
-        if (fs.existsSync("./data/ip.key")) {
-            ip = fs.readFileSync("./data/ip.key");
-        }
+        let ip = getToolIp()
+
         if (!ip) {
-            return { content: "Euro has yet to add a special file", status: StatusCode.ERR }
+            return crv("Euro has not added the special file", {
+                status: StatusCode.ERR
+            })
         }
 
         let toFetch = opts.getString("of", msg.author.id)
@@ -745,7 +745,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             })
             return crv("clearing logs", { status: StatusCode.INFO })
         }, "Clears logs", {
-            permCheck: m => common.ADMINS.includes(m.author.id)
+            permCheck: m => globals.ADMINS.includes(m.author.id)
         })
     ]
 
@@ -2429,7 +2429,7 @@ middle
             {
                 "instructions": createHelpArgument(`The way to create the embed, each line in the instructions should start with something to set for example:<br>
 <p>
-${common.prefix}embed title this is the title<br>
+${globals.PREFIX}embed title this is the title<br>
 url https://aurl.com<br>
 description the description<br>
 field name | value | (optional true or false)<br>
@@ -2482,7 +2482,7 @@ The order these are given does not matter, excpet for field, which will be added
             cmd.stdin.write(m.content + "\n")
         })
         return { noSend: true, status: StatusCode.ERR }
-    }, CommandCategory.UTIL, "Open a remote shell", undefined, undefined, undefined, m => common.ADMINS.includes(m.author.id))]
+    }, CommandCategory.UTIL, "Open a remote shell", undefined, undefined, undefined, m => globals.ADMINS.includes(m.author.id))]
 
     yield ["qalc", createCommandV2(async ({ msg, argList, opts, sendCallback }) => {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
@@ -3566,7 +3566,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 ], status: StatusCode.RETURN
             }
         }, "Gets messages", {
-            permCheck: m => common.ADMINS.includes(m.author.id)
+            permCheck: m => globals.ADMINS.includes(m.author.id)
         })
     ]
 
