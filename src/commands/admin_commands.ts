@@ -6,13 +6,14 @@ import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
 import timer from '../timer'
-import { giveItem, saveItems } from '../shop'
+import { getItems, giveItem, saveItems } from '../shop'
 import user_country from '../travel/user-country'
 import { Message, User } from 'discord.js'
 import { fetchUser, fetchUserFromClient, fetchUserFromClientOrGuild } from '../util'
 import achievements from '../achievements'
 import { server } from '../../website/server'
 import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
+import amountParser from '../amount-parser'
 
 export default function*(): Generator<[string, Command | CommandV2]> {
 
@@ -137,7 +138,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 }
 
             }, category: CommandCategory.ADMIN,
-            permCheck: (m) => common.ADMINS.includes(m.author.id) || Number(hasItem(m.author.id, "reset economy")) > 0,
+            permCheck: (m) => {
+                let { total } = economy.economyLooseGrandTotal(false)
+                let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
+
+                return common.ADMINS.includes(m.author.id) || economy.playerLooseNetWorth(m.author.id) >= necessary || Number(hasItem(m.author.id, "reset economy")) > 0
+            },
             help: {
                 info: "Resets the economy"
             }
