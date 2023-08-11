@@ -393,6 +393,11 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             sendFile(res, "./website/home.html")
             break;
         }
+        case "robots.txt": {
+            res.writeHead(200)
+            res.end("User-agent: ChatGPT-User\nDisallow: /")
+            break;
+        }
         case "discord": {
             sendFile(res, "./website/discord-login.html")
             break;
