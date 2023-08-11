@@ -8,7 +8,7 @@ import events from './events';
 import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
-import { Parser, Token, T, WebModifier, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier } from './parsing';
+import { Parser, Token, T, WebModifier, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier, CommandModifier } from './parsing';
 import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
@@ -673,7 +673,8 @@ export class Interpreter {
         "s:": SilentModifier,
         "n:": SkipModifier,
         "W:": WebModifier,
-        "a:": AliasModifier
+        "a:": AliasModifier,
+        "c:" : CommandModifier,
     }
 
     constructor(msg: Message, tokens: Token[], options: {
