@@ -33,7 +33,7 @@ import pets from './src/pets'
 import init from './src/init'
 init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
-const rest = new REST({ version: "10" }).setToken(globals.BOT_CONFIG.secrets.token);
+const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
 
 Object.defineProperty(User.prototype, "loan", {
     "get": function() {
@@ -324,5 +324,5 @@ common.client.on(Events.InteractionCreate, async (interaction) => {
     }
 })
 
-common.client.login(globals.BOT_CONFIG.secrets.token)
+common.client.login(globals.getConfigValue("secrets.token"))
 

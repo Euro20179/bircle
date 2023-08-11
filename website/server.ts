@@ -9,7 +9,7 @@ import user_options from '../src/user-options'
 import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient } from '../src/util'
 
 import common from '../src/common'
-import { CLIENT_SECRET, CLIENT_ID, BOT_CONFIG, getConfigValue } from '../src/globals'
+import { CLIENT_SECRET, CLIENT_ID, getConfigValue } from '../src/globals'
 import pets from '../src/pets'
 import timer from '../src/timer'
 import { getInventory } from '../src/shop'
@@ -186,7 +186,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             }
             let apiKey = urlParams.get("key") || ""
 
-            let VALID_API_KEYS = BOT_CONFIG.secrets['valid-api-keys'] || []
+            let VALID_API_KEYS = getConfigValue("secrets.valid-api-keys") || []
 
             if (!VALID_API_KEYS.includes(apiKey)) {
                 res.writeHead(403)
@@ -205,7 +205,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 break;
             }
             let apiKey = urlParams.get("key") || ""
-            if (!(BOT_CONFIG.secrets['valid-api-keys'] || []).includes(apiKey)) {
+            if (!(getConfigValue("secrets.valid-api-keys") || []).includes(apiKey)) {
                 res.writeHead(403)
                 res.end("Permission denied")
                 break;

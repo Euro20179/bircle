@@ -14,9 +14,20 @@ import achievements from '../achievements'
 import { server } from '../../website/server'
 import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '../shop'
 import amountParser from '../amount-parser'
-import { saveConfig, ADMINS } from '../globals'
+import { saveConfig, ADMINS, editConfig } from '../globals'
 
 export default function*(): Generator<[string, Command | CommandV2]> {
+
+    yield [
+        'CONFIG', ccmdV2(async function({args}){
+            let [path, value] = args
+            editConfig(path, value)
+            saveConfig()
+            return crv("Set value")
+        }, "Set a config value", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
+    ]
 
     yield [
         "RELOAD_BLACKLISTS", ccmdV2(async function(){
