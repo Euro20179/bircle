@@ -379,7 +379,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs, sendCallback, opts, args, recursionCount, commandBans, stdin, modifiers, context, returnJson }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], context: InterpreterContext, returnJson?: boolean }) {
+    async run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, context, returnJson }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], context: InterpreterContext, returnJson?: boolean }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -539,7 +539,7 @@ export async function cmd({
 
     let int, rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
 
-    if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch, recursion)) {
+    if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch)) {
         return { rv, interpreter: int }
     }
 
@@ -856,7 +856,7 @@ export class Interpreter {
         return Array.from(args, (arg, index) => new Token(T.str, index < args.length - 1 ? `${arg} ` : arg, token.argNo))
     }
 
-    async[T.pipe](token: Token): Promise<Token[] | false> {
+    async[T.pipe](_token: Token): Promise<Token[] | false> {
         //gets everything after the current pipe
         this.#pipeTo = this.#originalTokens.slice(this.#i + 1)
         return false
@@ -877,7 +877,7 @@ export class Interpreter {
         return [new Token(T.str, _var, token.argNo)]
     }
 
-    async [T.end_of_line](token: Token): Promise<false> {
+    async [T.end_of_line](_token: Token): Promise<false> {
         return false
     }
 
@@ -1191,7 +1191,7 @@ export class Interpreter {
         return this.args
     }
 
-    static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean, recursion?: number) {
+    static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean) {
 
         let matchCommands = getMatchCommands()
         for (let cmd in matchCommands) {

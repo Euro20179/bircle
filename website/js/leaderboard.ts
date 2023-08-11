@@ -31,14 +31,15 @@ function playerEconomyLooseTotal(ECONOMY: { [key: string]: any }, id: string) {
     return money
 }
 
-fetch("/api/economy").then(res => {
+fetch("/api/economy").then(async(res) => {
+    let totalRes = await fetch("/api/economy/total")
+    let totalJson = await totalRes.json()
+    let economyTotalNw = totalJson.total
     res.json().then(economyJson => {
         let sort: SortType = urlParams.get("sort") as SortType
-        let economyTotalNw = 0
         let netWorths: { [key: string]: number } = {}
         for (let user in economyJson) {
             netWorths[user] = playerLooseNetWorth(economyJson, user)
-            economyTotalNw += netWorths[user]
         }
         switch (sort) {
             case "user":
@@ -61,9 +62,7 @@ fetch("/api/economy").then(res => {
                     console.table(user, usersJson[user])
                     const userName = usersJson[user].username
 
-                    let netWorth = playerLooseNetWorth(economyJson, user)
-
-                    economyTotalNw += netWorth
+                    let netWorth = netWorths[user]
 
                     let tr = document.createElement("tr")
 
@@ -78,6 +77,8 @@ fetch("/api/economy").then(res => {
 
                     let percent = document.createElement("td")
 
+                    percent.append(String(netWorths[user] / economyTotalNw  * 100))
+
                     infoPerUser[user] = {
                         tr: tr,
                         percentTd: percent,
@@ -90,9 +91,6 @@ fetch("/api/economy").then(res => {
                     tr.append(percent)
 
                     lb.append(tr)
-                }
-                for (let user in infoPerUser) {
-                    infoPerUser[user].percentTd.append(String(infoPerUser[user].nw / economyTotalNw * 100) + "%")
                 }
             })
     })
