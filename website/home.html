@@ -6,6 +6,11 @@
     <title>Bircle</title>
     <link rel="stylesheet" href="/common.css" media="all">
     <style>
+:root{
+    --command-output-padding: 25px;
+    --command-output-border: 3px;
+    --max-width: 800px;
+}
         .soft-hr {
             border-style: dotted
         }
@@ -16,7 +21,8 @@
             border-radius: 3px;
             margin-top: 1rem;
             display: flex;
-            flex-direction: column
+            flex-direction: column;
+            max-width: var(--max-width);
         }
 
 
@@ -78,6 +84,7 @@
             display: flex;
             flex-direction: column;
             width: 50%;
+            max-width: calc(var(--max-width) + var(--command-output-border) * 2 + var(--command-output-padding) * 2)
         }
 
         textarea{
