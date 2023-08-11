@@ -1,5 +1,4 @@
 
-const channelId = document.getElementById("channel-id")
 const command = document.getElementById("command")
 const runButton = document.getElementById("run-button")
 
@@ -112,9 +111,17 @@ runButton.addEventListener("click", async (e) => {
     let cmd = command.value
     if (!cmd)
         return
-    let cid = channelId.value
 
-    let res = await fetch(`/run?channel-id=${cid}&code-token=${codeToken}`, { method: "POST", body: cmd })
+    let url = `/run?code-token=${codeToken}`
+
+    let channelId = cmd.match(/^channel:\s*(\d+)$/m)
+
+    if(channelId){
+        cmd = cmd.split("\n").slice(1).join("\n")
+        url += `&channel-id=${channelId[1]}`
+    }
+
+    let res = await fetch(`/run?code-token=${codeToken}`, { method: "POST", body: cmd })
     let data = await res.json()
     handleSending(data.rv)
 })
