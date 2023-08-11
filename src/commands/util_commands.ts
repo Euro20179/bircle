@@ -1900,9 +1900,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}&type=video`)
                 let jsonData = await res.json()
 
-                let embeds: { embed: EmbedBuilder, button: ButtonBuilder, jsonButton: ButtonBuilder }[] = []
-                let current_page = 0
-
                 let valid_thumbnail_qualities = [
                     "maxres",
                     "maxresdefault",
