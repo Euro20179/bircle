@@ -92,12 +92,17 @@ class Embed {
     }
 }
 
-function handleSending(rv, removeChildren=true) {
-    if(rv.noSend) return
-    if(removeChildren){
-        while (commandOutput.firstChild) {
-            commandOutput.removeChild(commandOutput.firstChild)
-        }
+function removeOutputChildren() {
+
+    while (commandOutput.firstChild) {
+        commandOutput.removeChild(commandOutput.firstChild)
+    }
+}
+
+function handleSending(rv, removeChildren = true) {
+    if (rv.noSend) return
+    if (removeChildren) {
+        removeOutputChildren()
     }
 
     if (rv.noSend) {
@@ -155,8 +160,8 @@ runButton.addEventListener("click", async (e) => {
 
     ws = new WebSocket(`ws://${window.location.host}/run?code-token=${codeToken}`)
 
-
     ws.addEventListener("open", function(e) {
+        removeOutputChildren()
 
         this.addEventListener("message", e => {
             let result = JSON.parse(e.data)
@@ -173,7 +178,7 @@ runButton.addEventListener("click", async (e) => {
                 }
                 submitInput.classList.remove("hidden")
             }
-            else if(result.event === "append-data"){
+            else if (result.event === "append-data") {
                 commandOutput.setAttribute("data-status-code", String(result.rv.status))
                 handleSending(result.rv, false)
             }
