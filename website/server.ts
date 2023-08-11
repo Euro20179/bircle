@@ -175,7 +175,7 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
             if (command.startsWith(BOT_CONFIG.general.prefix)) {
                 command = command.slice(BOT_CONFIG.general.prefix.length)
             }
-            let inChannel = urlParams?.get("channel-id") ?? getConfigValue("general.default-config")
+            let inChannel = urlParams?.get("channel-id") || getConfigValue("general.default-channel")
 
             let codeToken = urlParams?.get("code-token")
 
