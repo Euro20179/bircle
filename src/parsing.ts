@@ -101,6 +101,15 @@ class Modifier {
     stringify(): string { return "W:" }
 }
 
+class WebModifier extends Modifier {
+    modify(int: Interpreter) {
+        int.onWeb = true
+    }
+    stringify(): string {
+        return "W:"
+    }
+}
+
 class SkipModifier extends Modifier {
     modify(int: Interpreter) {
     }
@@ -745,6 +754,7 @@ export {
     SkipModifier,
     SilentModifier,
     AliasModifier,
+    WebModifier,
     getInnerPairsAndDeafultBasedOnRegex,
     format,
     formatPercentStr,

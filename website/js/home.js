@@ -103,7 +103,7 @@ function handleSending(rv) {
     if (rv.content) {
         let outputP = document.createElement("p")
         outputP.classList.add("output-content")
-        outputP.innerHTML = markdownToHTML(rv.content)
+        outputP.innerHTML = rv.mimetype === "text/html" ? rv.content :  markdownToHTML(rv.content)
         commandOutput.append(outputP)
     }
 
@@ -128,6 +128,9 @@ runButton.addEventListener("click", async (e) => {
         cmd = cmd.split("\n").slice(1).join("\n")
         url += `&channel-id=${channelId[1]}`
     }
+
+    //tell the interpreter that it's being run from web
+    cmd = `W:${cmd}`
 
     let res = await fetch(`/run?code-token=${codeToken}`, { method: "POST", body: cmd })
     let data = await res.json()

@@ -630,14 +630,35 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "help", createCommandV2(async ({ rawOpts: opts, args }) => {
+        "help", createCommandV2(async ({ rawOpts: opts, args, interpreter }) => {
+
+            let baseCommands = { ...Object.fromEntries(getCommands().entries()) }
+
+            if(interpreter.onWeb){
+                let commandsToUse = args.length ? {} : baseCommands
+                for(let arg of args){
+                    commandsToUse[arg] = baseCommands[arg]
+                }
+                let html = ''
+                for (let [name, command] of Object.entries(commandsToUse)) {
+                    if (!command) continue
+                    let resultPriority = ""
+                    html += generateHTMLFromCommandHelp(name, command as Command | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
+                }
+                html += ""
+                return crv(html, {
+                    mimetype: "text/html"
+                })
+            }
+
+            const matchCmds = getMatchCommands()
+
+            let commands = {...baseCommands, ...matchCmds}
+
 
             if (!opts['txt'] && !args.length) {
                 return crv("http://bircle.euro20179.com:8222/commands")
             }
-
-            const matchCmds = getMatchCommands()
-            let commands = { ...Object.fromEntries(getCommands().entries()), ...matchCmds }
             if (opts["g"]) {
                 let text = fs.readFileSync("./website/help-web.html", "utf-8")
                 return {
