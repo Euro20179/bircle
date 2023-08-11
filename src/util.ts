@@ -941,7 +941,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     if (helpData.arguments) {
         argInfo += htmlRenderer.renderHTML("<h1>Arguments</h1>") + "\n"
         for (let arg in helpData.arguments) {
-            argInfo += `\t* **${arg}**`
+            argInfo += `* **${arg}**`
             if (helpData.arguments[arg].required !== false) {
                 argInfo += " (required) "
             }
@@ -962,7 +962,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     if (helpData.options) {
         optInfo += htmlRenderer.renderHTML("<h1>Options</h1>") + "\n"
         for (let op in helpData.options) {
-            optInfo += `\t* **-${op}**`
+            optInfo += `* **-${op}**`
             if (helpData.options[op].default) {
                 optInfo += ` (default: ${helpData.options[op].default})`
             }

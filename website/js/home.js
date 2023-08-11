@@ -16,6 +16,14 @@ if(urlParams.get("code")){
     }).then(console.log)
 }
 
+/**
+    * @param text {string}
+*/
+function markdownToHTML(text){
+    let converter = new showdown.Converter()
+    return converter.makeHtml(text)
+}
+
 class Embed {
     constructor({title, description, fields, color}) {
         this.title = title
@@ -95,7 +103,7 @@ function handleSending(rv) {
     if (rv.content) {
         let outputP = document.createElement("p")
         outputP.classList.add("output-content")
-        outputP.append(rv.content)
+        outputP.innerHTML = markdownToHTML(rv.content)
         commandOutput.append(outputP)
     }
 

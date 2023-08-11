@@ -6,18 +6,19 @@
     <title>Bircle</title>
     <link rel="stylesheet" href="/common.css" media="all">
     <style>
-:root{
-    --command-output-padding: 25px;
-    --command-output-border: 3px;
-    --max-width: 800px;
-}
+        :root {
+            --command-output-padding: 25px;
+            --command-output-border: 3px;
+            --max-width: 800px;
+        }
+
         .soft-hr {
             border-style: dotted
         }
 
-        #command-output{
+        #command-output {
             padding: 25px;
-            border: 3px solid white;
+            border: 2px solid white;
             border-radius: 3px;
             margin-top: 1rem;
             display: flex;
@@ -26,35 +27,37 @@
         }
 
 
-        .embed{
+        .embed {
             display: grid;
             margin: 1ex 0;
             grid-template-columns: repeat(3, 1fr);
-            border: 3px solid #93969fff;
+            border-left: 3px solid #93969fff;
             border-radius: 3px;
+            background-color: rgba(0, 0, 0, 0.2)
         }
 
-        .embed-title{
+        .embed-title {
             grid-column: 1 / -1;
             font-size: 1.5rem;
             padding: 0 1rem;
             text-align: center;
             color: white;
         }
-        .embed-description{
+
+        .embed-description {
             grid-column: 1 / -1;
             font-size: 0.9rem;
             padding: 0 1rem;
             text-align: center;
         }
 
-        .embed hr{
+        .embed hr {
             min-width: 100%;
             grid-column: 1 / -1;
         }
 
 
-        .embed-fieldbox{
+        .embed-fieldbox {
             padding-left: 3em;
         }
 
@@ -66,7 +69,7 @@
             font-size: .7rem;
         }
 
-        .embed-field-name{
+        .embed-field-name {
             font-weight: bolder;
             font-size: 1.2rem;
         }
@@ -80,20 +83,20 @@
         /*     grid-template-rows: repeat(1fr, 2); */
         /* } */
 
-        #form{
+        #form {
             display: flex;
             flex-direction: column;
             width: 50%;
             max-width: calc(var(--max-width) + var(--command-output-border) * 2 + var(--command-output-padding) * 2)
         }
 
-        textarea{
+        textarea {
             display: inline-block;
             resize: vertical;
             margin: 1ex 0;
         }
 
-        #form  button{
+        #form button {
             padding: 0.5rem;
             font-size: 1.3rem;
             cursor: pointer;
@@ -122,11 +125,11 @@
     </div>
 
     <div id="command-output" contenteditable>
-        
+
     </div>
 
-<script src="/home.js">
-</script>
+    <script src="/home.js"></script>
+    <script src="https://unpkg.com/showdown/dist/showdown.min.js"></script>
 </body>
 
 </html>
