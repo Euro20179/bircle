@@ -130,3 +130,13 @@ table, th, td{
 td {
     padding: 1rem;
 }
+
+@media only screen and (max-device-width: 700px) and (orientation: portrait) and (hover: none) {
+    body {
+        font-size: 2rem;
+    }
+
+    button {
+        font-size: 2em !important;
+    }
+}
