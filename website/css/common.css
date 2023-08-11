@@ -4,6 +4,8 @@
     --selection: #96CDFB;
     --main: #1E1E2E;
     --secondary: #505053ff;
+    --error: #F28FAD;
+    --warn: #F8BD96;
 }
 
 ::selection {

@@ -134,5 +134,6 @@ runButton.addEventListener("click", async (e) => {
 
     let res = await fetch(`/run?code-token=${codeToken}`, { method: "POST", body: cmd })
     let data = await res.json()
+    commandOutput.setAttribute("data-status-code", String(data.rv.status))
     handleSending(data.rv)
 })

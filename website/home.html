@@ -26,6 +26,27 @@
             max-width: var(--max-width);
         }
 
+        /*error status*/
+        #command-output[data-status-code="2"]{
+            border-color: var(--error);
+        }
+        /*info status*/
+        #command-output[data-status-code="-1"]{
+            border-style: dashed;
+        }
+        /*warning status*/
+        #command-output[data-status-code="1"]{
+            border-color: var(--warning);
+        }
+        /*achievement status*/
+        #command-output[data-status-code="-3"]{
+            border-color: var(--highlight);
+        }
+        /*prompt status*/
+        #command-output[data-status-code="-2"]{
+            border-color: var(--link-color);
+        }
+
 
         .embed {
             display: grid;
