@@ -27,23 +27,49 @@ function markdownToHTML(text) {
 }
 
 class Embed {
-    constructor({ title, description, fields, color }) {
+    constructor({ title, description, fields, color, url, thumbnail }) {
         this.title = title
         this.description = description
         this.fields = fields
         this.color = color
+        this.url = url
+        this.thumbnail = thumbnail
     }
 
     render() {
         let embedBox = document.createElement("div")
         embedBox.classList.add('embed')
 
+        let headerArea = document.createElement("div")
+        headerArea.classList.add("embed-header")
+
         if (this.title) {
             let titleText = document.createElement("p")
             titleText.classList.add('embed-title')
-            titleText.append(this.title)
-            embedBox.append(titleText)
+            if (this.url) {
+                let titleA = document.createElement("a")
+                titleA.classList.add("embed-title-link")
+                titleA.append(this.title)
+                titleA.href = this.url
+                titleText.append(titleA)
+            }
+            else {
+                titleText.append(this.title)
+            }
+            headerArea.append(titleText)
         }
+
+        if (this.thumbnail) {
+            let img = document.createElement("img")
+            img.src = this.thumbnail.url
+            img.classList.add("embed-thumbnail")
+            headerArea.append(img)
+        }
+
+
+
+        embedBox.append(headerArea)
+
         if (this.color) {
             let color = this.color.toString(16)
             if (color.length < 6) {
@@ -59,9 +85,9 @@ class Embed {
             description.innerHTML = converter.makeHtml(this.description)
             embedBox.append(description)
 
-            let hr = document.createElement("hr")
-            embedBox.append(hr)
         }
+        let hr = document.createElement("hr")
+        embedBox.append(hr)
 
         if (this.fields?.length) {
             for (let field of this.fields) {
