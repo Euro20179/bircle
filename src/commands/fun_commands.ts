@@ -1511,7 +1511,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
         "sport",
-        ccmdV2(async function({ msg, args }) {
+        ccmdV2(async function({ msg, args, interpreter }) {
             let resp = await fetch.default(`https://www.google.com/search?q=${encodeURI(args.join(" "))}+game`)
             let html = await resp.text()
             let embed = new EmbedBuilder()
@@ -1555,7 +1555,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 homeScore = `***${homeScore}***`
                 embed.setColor("#00ff00")
             }
-            embed.addFields(efd(["Time", inning], [`${homeTeam}`, String(homeScore)], [`${awayTeam}`, String(awayScore)]))
+            embed.addFields(efd(["Time", inning, interpreter.onWeb], [`${homeTeam}`, String(homeScore), interpreter.onWeb], [`${awayTeam}`, String(awayScore), interpreter.onWeb]))
             return {
                 embeds: [embed],
                 status: StatusCode.RETURN

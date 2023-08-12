@@ -9,6 +9,8 @@ let urlParams = new URLSearchParams(window.location.href.slice(window.location.h
 
 let codeToken = ""
 
+let converter = new showdown.Converter()
+
 if (urlParams.get("code")) {
     codeToken = urlParams.get("code")
     fetch(`http://${window.location.host}/discord-sign-in?code-token=${codeToken}&host=${window.location.host}`, {
@@ -21,7 +23,6 @@ if (urlParams.get("code")) {
     * @param text {string}
 */
 function markdownToHTML(text) {
-    let converter = new showdown.Converter()
     return converter.makeHtml(text)
 }
 
@@ -55,7 +56,7 @@ class Embed {
         if (this.description) {
             let description = document.createElement("p")
             description.classList.add('embed-description')
-            description.append(this.description)
+            description.innerHTML = converter.makeHtml(this.description)
             embedBox.append(description)
 
             let hr = document.createElement("hr")
@@ -76,12 +77,12 @@ class Embed {
 
                 let name = document.createElement("p")
                 name.classList.add("embed-field-name")
-                name.append(field.name)
+                name.innerHTML = converter.makeHtml(field.name)
                 f.append(name)
 
                 let value = document.createElement("p")
                 value.classList.add("embed-field-value")
-                value.append(field.value)
+                value.innerHTML = converter.makeHtml(field.value)
                 f.append(value)
                 fieldBox.append(f)
                 embedBox.append(fieldBox)
