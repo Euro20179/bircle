@@ -27,13 +27,15 @@ function markdownToHTML(text) {
 }
 
 class Embed {
-    constructor({ title, description, fields, color, url, thumbnail }) {
+    constructor({ title, description, fields, color, url, thumbnail, footer, image }) {
         this.title = title
         this.description = description
         this.fields = fields
         this.color = color
         this.url = url
         this.thumbnail = thumbnail
+        this.footer = footer
+        this.image = image
     }
 
     render() {
@@ -113,6 +115,36 @@ class Embed {
                 fieldBox.append(f)
                 embedBox.append(fieldBox)
             }
+        }
+
+        if(this.image){
+            let image = document.createElement("img")
+            image.src = this.image.url
+            image.classList.add("embed-image")
+            embedBox.append(image)
+        }
+
+        if(this.footer){
+            let hr = document.createElement("hr")
+            embedBox.append(hr)
+            let footer = document.createElement("div")
+            footer.classList.add("embed-footer")
+
+            let footerP = document.createElement("p")
+            if(this.footer.icon_url){
+                let img = document.createElement("img")
+                img.src = this.footer.icon_url
+                let aspectRatio = img.width / img.height
+                //make the image smaller and keep aspect ratio, hard to do in css only without knowing the iamge size
+                img.width = 30
+                img.height = img.width / aspectRatio
+                img.classList.add("embed-footer-icon")
+                footer.append(img)
+            }
+            footerP.classList.add("embed-footer-text")
+            footerP.innerHTML = converter.makeHtml(this.footer.text)
+            footer.append(footerP)
+            embedBox.append(footer)
         }
 
         commandOutput.append(embedBox)
