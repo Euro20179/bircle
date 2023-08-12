@@ -375,7 +375,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "inventory", ccmdV2(async function({ msg, opts, args }) {
+        "inventory", ccmdV2(async function({ msg, opts, args, interpreter }) {
 
             let user = await fetchUserFromClient(common.client, args[0] ?? msg.author.id)
             if (!user)
@@ -405,6 +405,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 e.setDescription(`page: ${(chunk + 20) / 20} / ${totalPages}`)
                 e.setFooter({ text: `type n/p to go to the next/previous page\nor type a page number to go to that page` })
                 embedPages.push(e)
+            }
+
+            if(interpreter.onWeb){
+                return {embeds: embedPages, status: StatusCode.RETURN}
             }
 
             let paged = new PagedEmbed(msg, embedPages, "inventory")
