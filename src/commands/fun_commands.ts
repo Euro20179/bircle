@@ -2072,7 +2072,7 @@ Valid formats:
     ]
 
     yield [
-        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts }) {
+        "udict", ccmdV2(async function({ msg, argShapeResults, stdin, opts, interpreter }) {
             let req;
             if (opts.getBool("r", opts.getBool("rand", false))) {
                 req = await fetch.default(`https://api.urbandictionary.com/v0/random`)
@@ -2084,7 +2084,7 @@ Valid formats:
                 }
                 req = await fetch.default(`https://api.urbandictionary.com/v0/define?term=${search.replaceAll(" ", "+")}`)
             }
-            function createEmbedsFromUdictResults(results: any) {
+            function createEmbedsFromUdictResults(results: any, ratingLocation: "auto" | "footer" | "fields" = "auto") {
                 let embeds = []
                 let pageNo = 0
                 let pages = results.list.length
@@ -2104,7 +2104,7 @@ Valid formats:
                         embed.setAuthor({ name: `${def.author || "[[Unknown]]"} · ${date.getMonth() + 1}/${date.getDay() + 1}/${date.getFullYear()}\nThis definition is too long` })
                     }
                     embed.setDescription(definitionText)
-                    if (definition.length >= 380) {
+                    if (definition.length >= 380 || ratingLocation === "fields") {
                         embed
                             .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
                                 name: "👎", value: String(def.thumbs_down), inline: true
@@ -2121,6 +2121,9 @@ Valid formats:
                 return embeds
             }
             const json = await req.json()
+            if(interpreter.onWeb){
+                return {embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN}
+            }
             let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")
 
             paged.addButton("random", { label: "🔀", customId: `udict.random:${msg.author.id}`, style: ButtonStyle.Success }, function(_int, m) {
