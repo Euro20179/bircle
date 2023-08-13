@@ -8,8 +8,8 @@
     <style>
         :root {
             --command-output-padding: 25px;
-            --command-output-border: 3px;
-            --max-width: 800px;
+            --command-output-border: 2px;
+            --max-width: 50%;
         }
 
         .soft-hr {
@@ -17,8 +17,8 @@
         }
 
         #command-output {
-            padding: 25px;
-            border: 2px solid white;
+            padding: var(--command-output-padding);
+            border: var(--command-output-border) solid white;
             border-radius: 3px;
             margin-top: 1rem;
             display: flex;
@@ -27,32 +27,37 @@
         }
 
         /*error status*/
-        #command-output[data-status-code="2"]{
+        #command-output[data-status-code="2"] {
             border-color: var(--error);
         }
+
         /*info status*/
-        #command-output[data-status-code="-1"]{
+        #command-output[data-status-code="-1"] {
             border-style: dashed;
         }
+
         /*warning status*/
-        #command-output[data-status-code="1"]{
+        #command-output[data-status-code="1"] {
             border-color: var(--warning);
         }
+
         /*achievement status*/
-        #command-output[data-status-code="-3"]{
+        #command-output[data-status-code="-3"] {
             border-color: var(--highlight);
         }
+
         /*prompt status*/
-        #command-output[data-status-code="-2"]{
+        #command-output[data-status-code="-2"] {
             border-color: var(--selection);
             animation: blink 500ms infinite alternate-reverse;
         }
 
-        @keyframes blink{
-            0%{
+        @keyframes blink {
+            0% {
                 filter: brightness(70%);
             }
-            100%{
+
+            100% {
                 filter: brightness(100%);
             }
         }
@@ -156,53 +161,122 @@
 
         #form {
             display: flex;
-            flex-direction: column;
-            width: 50%;
-            max-width: calc(var(--max-width) + var(--command-output-border) * 2 + var(--command-output-padding) * 2)
+            flex-direction: row;
+            width: calc(var(--max-width) + var(--command-output-border) * 2 + var(--command-output-padding) * 2);
         }
 
         textarea {
             display: inline-block;
             resize: vertical;
             margin: 1ex 0;
+            width: 70%;
         }
 
         #form button {
-            padding: 0.5rem;
             font-size: 1.3rem;
             cursor: pointer;
+            flex-grow: 1;
+            margin: 1ex 5px;
+            transition: width 200ms;
         }
 
-        .hidden{
+        .hidden {
             display: none
+        }
+
+        header * {
+            display: inline;
+        }
+
+        header {
+            padding: 3%;
+        }
+
+        #nav-bar ul {
+            display: inline-flex;
+            gap: 1em;
+        }
+
+        #nav-bar li {
+            text-align: center;
+        }
+
+        body[data-logged-in="false"] [data-hide-if-logged-out] {
+            display: none;
+        }
+
+        @media (min-width: 1000px) {
+            header {
+                text-align: center;
+            }
+
+            main {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #form,
+            #command-output {
+                text-align: center;
+            }
+
+            #command-output {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            :root {
+                --max-width: 80%;
+            }
+
+            header h1 {
+                text-align: center;
+                display: block;
+            }
+
+            #nav-bar {
+                display: block;
+            }
+
+            #nav-bar ul {
+                display: flex;
+                text-align: center;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
 
-<body>
-    <h1>Welcome to Bircle</h1>
-    <a href="/discord">Login with discord</a>
+<body data-logged-in="false">
+    <header>
+        <h1>Welcome to Bircle</h1>
+        <nav id="nav-bar">
+            <ul>
+                <li><a href="/discord">Login with discord</a></li>
+                <li><a href="/leaderboard">Leaderboard</a></li>
+                <li><a href="/commands"> List of commands</a></li>
+                <li><a href="/help"> Bot usage </a></li>
+                <li data-hide-if-logged-out><a href="/options">Options</a></li>
+            </ul>
+        </nav>
+    </header>
+    <hr>
 
-    <ul>
-        <li><a href="/commands">
-                List of commands
-            </a></li>
-        <li><a href="/help">
-                Bot usage
-            </a></li>
-        <li><a href="/leaderboard">Leaderboard</a></li>
-    </ul>
+    <main>
+        <div id="form">
+            <textarea type='text' id='command' placeholder='run a command' enterkeyhint='enter'
+                style="resize: both"></textarea>
+            <br>
+            <button id='run-button'>run</button>
+            <button id="submit-input" class="hidden">submit input</button>
+        </div>
 
-    <div id="form">
-        <textarea type='text' id='command' placeholder='run a command' enterkeyhint='enter' style="resize: both"></textarea>
-        <br>
-        <button id='run-button'>run</button>
-        <button id="submit-input" class="hidden">submit input</button>
-    </div>
+        <div id="command-output" contenteditable spellcheck='false'></div>
+    </main>
 
-    <div id="command-output" contenteditable spellcheck='false'>
-
-    </div>
 
     <script src="https://unpkg.com/showdown/dist/showdown.min.js"></script>
     <script src="/home.js"></script>

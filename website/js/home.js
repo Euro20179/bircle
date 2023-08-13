@@ -16,7 +16,9 @@ if (urlParams.get("code")) {
     fetch(`http://${window.location.host}/discord-sign-in?code-token=${codeToken}&host=${window.location.host}`, {
         method: "POST",
 
-    }).then(console.log)
+    }).then(() => {
+        document.body.setAttribute("data-logged-in", "true")
+    })
 }
 
 /**
