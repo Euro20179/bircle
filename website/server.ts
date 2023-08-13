@@ -395,7 +395,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         }
         case "robots.txt": {
             res.writeHead(200)
-            res.end("User-agent: ChatGPT-User\nDisallow: /")
+            res.end("User-agent: *\nDisallow: /")
             break;
         }
         case "discord": {
