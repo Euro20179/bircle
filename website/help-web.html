@@ -659,6 +659,78 @@
     </ul>
     </p>
 
+    <hr>
+
+    <h1 id="/run">/run</h1>
+    <p>This endpoint does not start with /api/, and is also a websocket</p>
+    <h3>Client messages (messages the client sends to the server)</h3>
+    <ol>
+        <li>
+            <pre>
+            {
+                "event": "run",
+                "data": "command to run"
+            }
+            </pre>
+            This is the command to run
+        </li>
+        <li>
+            <pre>
+            {
+                "prompt-response": "string"
+            }
+            </pre>
+            This should be sent when the prompt-user event is recieved.
+        </li>
+    </ol>
+    <h3>Server messages (messges the server sends to the client)</h3>
+    <ol>
+        <li>
+            <pre>
+                {
+                    "event": "ready"
+                }
+            </pre>
+            The server is ready to listen for commands
+        </li>
+        <li>
+            <pre>
+                {
+                    "error": "string"
+                }
+            </pre>
+            Some error has occured
+        </li>
+        <li>
+            <pre>
+                {
+                    "prompt-user": "string"
+                }
+            </pre>
+            The server is asking for user input, send the input back with the "prompt-response" object
+        </li>
+        <li>
+            <pre>
+                {
+                    "event": "append-data",
+                    "rv": CommandReturn
+                }
+            </pre>
+            The server is asking to append results to previous results sent to the client
+        </li>
+        <li>
+            <pre>
+                {
+                    "rv": CommandReturn,
+                    "interpreter": Interpreter
+                }
+            </pre>
+            The final result of the command
+        </li>
+    </ol>
+
+    <hr>
+
     <h1 id="Api">API</h1>
     <p>
         All api endpoints start with /api/
