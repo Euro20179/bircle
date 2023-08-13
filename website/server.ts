@@ -398,6 +398,61 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             res.end("User-agent: *\nDisallow: /")
             break;
         }
+        case "options": {
+            if (!urlParams?.get("code")) {
+                res.writeHead(403)
+                res.end("<h1>You must be logged into discord to use this page</h1>")
+                return
+            }
+            let codeToken = urlParams.get("code") as string
+            let discordToken = ACCESS_TOKENS[codeToken]?.token
+            if (!discordToken) {
+                res.writeHead(403)
+                res.end("<h1>Bad code token</h1>")
+                return
+            }
+            fetch('https://discord.com/api/v10/users/@me', {
+                headers: {
+                    "Authorization": `Bearer ${discordToken}`
+                }
+            }).then(res => {
+                return res.json()
+            }).then((user) => {
+                let id = user.id
+                fs.readFile("./src/user-options.json", (err, data) => {
+                    let html = ""
+                    if(err){
+                        res.writeHead(500)
+                        res.end("Server error<br>Could not read user options file")
+                        return
+                    }
+                    let json = JSON.parse(data.toString())
+                    for(let option in json){
+                        let h = `<h1>${option}</h1>`
+                        let desc = `<p>${json[option].description || ""}</p>`
+                        let input
+                        if(json[option].type === 'textarea'){
+                            input = `<textarea type="${json[option].type || "text"}" placeholder="${json[option].placeholder || "text"}">${user_options.getOpt(id, option as any, "")}</textarea>`
+                        }
+                        else if(json[option].type === 'checkbox'){
+                            input = `<input type="checkbox" placeholder="${json[option].placeholder || "text"}" `
+                            if(user_options.getOpt(id, option as any, "")){
+                                input +=  "checked"
+                            }
+                            input += ">"
+                        }
+                        else {
+                            input = `<input  type="${json[option].type || "text"}"  value="${user_options.getOpt(id, option as any, "")}" placeholder="${json[option].placeholder || "text"}">`
+                        }
+                        html += `${h}${desc}${input}<hr>`
+                    }
+                    res.writeHead(200)
+                    res.end(html)
+                })
+                return
+            })
+            break;
+        }
         case "discord": {
             sendFile(res, "./website/discord-login.html")
             break;
@@ -518,10 +573,10 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         let oldSend = channel.send
 
         let msg = createFakeMessage(author, channel, command, channel.guild)
-        
+
         //instead of sending to chat, send to the client
         channel.send = (async (data: object) => {
-            ws.send(JSON.stringify({event: "append-data", rv: data}))
+            ws.send(JSON.stringify({ event: "append-data", rv: data }))
             return msg as Message<true>
         }).bind(channel)
 
@@ -549,7 +604,7 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         common_to_commands.cmd({
             msg, command_excluding_prefix: command as string, returnJson: true, sendCallback: async (data) => {
                 //make sendcallback go to the client
-                ws.send(JSON.stringify({event: "append-data", rv: data}))
+                ws.send(JSON.stringify({ event: "append-data", rv: data }))
                 return msg as Message<true>
             }
         }).then((data) => {
@@ -557,11 +612,11 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
             channel.awaitMessages = oldAwaitMessage
             return handleReturn(data)
         }
-       ).catch((data) => {
+        ).catch((data) => {
             channel.send = oldSend
             channel.awaitMessages = oldAwaitMessage
-           return handleError(data)
-       })
+            return handleError(data)
+        })
 
     }).catch(handleError)
 }

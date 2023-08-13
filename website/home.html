@@ -216,11 +216,6 @@
                 align-items: center;
             }
 
-            #form,
-            #command-output {
-                text-align: center;
-            }
-
             #command-output {
                 width: 100%;
             }
@@ -255,11 +250,11 @@
         <h1>Welcome to Bircle</h1>
         <nav id="nav-bar">
             <ul>
-                <li><a href="/discord">Login with discord</a></li>
+                <li><a href="/discord" onclick="document.cookie = ''">Login with discord</a></li>
                 <li><a href="/leaderboard">Leaderboard</a></li>
                 <li><a href="/commands"> List of commands</a></li>
                 <li><a href="/help"> Bot usage </a></li>
-                <li data-hide-if-logged-out><a href="/options">Options</a></li>
+                <li data-hide-if-logged-out><a href="/options" id="options-link">Options</a></li>
             </ul>
         </nav>
     </header>

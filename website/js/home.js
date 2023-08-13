@@ -5,20 +5,38 @@ const submitInput = document.getElementById("submit-input")
 
 const commandOutput = document.getElementById("command-output")
 
+const optionsLink = document.getElementById("options-link")
+
+optionsLink.addEventListener("click", e => {
+    window.location = `/options?code=${codeToken}`
+    e.preventDefault()
+})
+
 let urlParams = new URLSearchParams(window.location.href.slice(window.location.href.indexOf("?")))
 
 let codeToken = ""
 
 let converter = new showdown.Converter()
 
-if (urlParams.get("code")) {
+window.addEventListener("close", e => {
+    console.log("closed")
+    document.cookie = ""
+})
+
+if (urlParams.get("code") && !document.cookie) {
     codeToken = urlParams.get("code")
+    console.log(urlParams)
+    document.cookie = `${codeToken}`
     fetch(`http://${window.location.host}/discord-sign-in?code-token=${codeToken}&host=${window.location.host}`, {
         method: "POST",
 
     }).then(() => {
         document.body.setAttribute("data-logged-in", "true")
     })
+}
+else {
+    codeToken = document.cookie
+        document.body.setAttribute("data-logged-in", "true")
 }
 
 /**
