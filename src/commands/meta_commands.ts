@@ -363,7 +363,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "options", createCommandV2(async ({ msg, rawOpts: opts, args }) => {
+        "options", createCommandV2(async ({ msg, rawOpts: opts, args, interpreter }) => {
             let user: string = msg.author.id
             if (opts['of']) {
                 user = (await fetchUser(msg.guild as Guild, String(opts['of'])))?.id || msg.author.id
@@ -419,6 +419,13 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let validOpt = user_options.isValidOption(optionToCheck)
             if (validOpt) {
                 return { content: `**${optionToCheck}**\n${user_options.getOpt(user, validOpt, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
+            }
+            if(interpreter.onWeb){
+                let html = ""
+                for(let opt of user_options.allowedOptions){
+                    html += `<h3>${opt}</h3><br><p><pre>${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}</pre></p><hr><br>`
+                }
+                return crv(html)
             }
             let text = ""
             for (let opt of user_options.allowedOptions) {
