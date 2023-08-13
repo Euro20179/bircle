@@ -95,7 +95,7 @@ textarea{
     text-indent: 2px;
     background-color: var(--main);
     border-style: dashed;
-    font-size: 1.2em;
+    /* font-size: 1.2em; */
     border-radius: 5px;
     outline: none;
     background-color: #ffffff22;

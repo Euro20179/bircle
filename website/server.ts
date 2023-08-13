@@ -48,6 +48,41 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
     }
     let [_blank, mainPath, ..._subPaths] = path.split("/")
     switch (mainPath) {
+        case "set-option": {
+            if (!urlParams?.get("code")) {
+                res.writeHead(403)
+                res.end(JSON.stringify({error: "You must be logged into discord to access this page"}))
+                return
+            }
+            let codeToken = urlParams.get("code") as string
+            let discordToken = ACCESS_TOKENS[codeToken]?.token
+            if (!discordToken) {
+                res.writeHead(403)
+                res.end(JSON.stringify({error: "Bad code token"}))
+                return
+            }
+            if(!user_options.isValidOption(_subPaths[0])){
+                res.writeHead(404)
+                res.end(JSON.stringify({error: `${_subPaths[0]} is not a valid option`}))
+                return
+            }
+            fetch('https://discord.com/api/v10/users/@me', {
+                headers: {
+                    "Authorization": `Bearer ${discordToken}`
+                }
+            }).then(res => {
+                return res.json()
+            }).then((user) => {
+                if(!body){
+                    user_options.unsetOpt(user.id, _subPaths[0])
+                }
+                else user_options.setOpt(user.id, _subPaths[0], body)
+                res.writeHead(200)
+                res.end(JSON.stringify({success: `Set ${_subPaths[0]} to ${body}`}))
+            })
+            break;
+
+        }
         case "discord-sign-in": {
             let userCodeToken = urlParams?.get("code-token")
             let host = urlParams?.get("host")
@@ -177,6 +212,8 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             }
             res.end(JSON.stringify(user_options.getOpt(userId, validOption, null)))
             break;
+        }
+        case "set-option": {
         }
         case "reload-api-keys": {
             if (!urlParams) {
@@ -420,7 +457,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             }).then((user) => {
                 let id = user.id
                 fs.readFile("./src/user-options.json", (err, data) => {
-                    let html = ""
+                    let html = "<!DOCTYPE html><html><head><link rel='stylesheet' href='common.css'><link rel='stylesheet' href='options.css'></head><body><h1 id='saved-popup'>saved</h1>"
                     if(err){
                         res.writeHead(500)
                         res.end("Server error<br>Could not read user options file")
@@ -432,22 +469,22 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                         let desc = `<p>${json[option].description || ""}</p>`
                         let input
                         if(json[option].type === 'textarea'){
-                            input = `<textarea type="${json[option].type || "text"}" placeholder="${json[option].placeholder || "text"}">${user_options.getOpt(id, option as any, "")}</textarea>`
+                            input = `<textarea id="${option}" type="${json[option].type || "text"}" placeholder="${json[option].placeholder || "text"}">${user_options.getOpt(id, option as any, "")}</textarea>`
                         }
                         else if(json[option].type === 'checkbox'){
-                            input = `<input type="checkbox" placeholder="${json[option].placeholder || "text"}" `
+                            input = `<input type="checkbox" placeholder="${json[option].placeholder || "text"}" id="${option}" `
                             if(user_options.getOpt(id, option as any, "")){
                                 input +=  "checked"
                             }
                             input += ">"
                         }
                         else {
-                            input = `<input  type="${json[option].type || "text"}"  value="${user_options.getOpt(id, option as any, "")}" placeholder="${json[option].placeholder || "text"}">`
+                            input = `<input id="${option}"  type="${json[option].type || "text"}"  value="${user_options.getOpt(id, option as any, "")}" placeholder="${json[option].placeholder || "text"}">`
                         }
                         html += `${h}${desc}${input}<hr>`
                     }
                     res.writeHead(200)
-                    res.end(html)
+                    res.end(html + "</body><script src='/options.js'></script></html>")
                 })
                 return
             })
