@@ -1,0 +1,109 @@
+{
+    "prefix": {
+        "placeholder": "prefix"
+    },
+    "default-bj-bet": {
+        "description": "The default bet to use if no bet is given in blackjack",
+        "placeholder": "bet"
+    },
+    "bj-screen": {
+        "description": "The screen to use for blackjack, <code>{amount}</code> will be replaced with the amount won",
+        "type": "textarea"
+    },
+    "money-format": {
+        "description": "The text to send when someone checks your balance with [money<br>&nbsp;<b>{amount}</b> will be replaced with the amount of money you have",
+        "placeholder": "fmt",
+        "type": "textarea"
+    },
+    "pingresponse": {
+        "description": "When you are pinged the bot will say this (none by default)",
+        "type": "textarea"
+    },
+    "heist-join": {
+        "description": "What is said when you join a heist",
+        "type": "textarea"
+    },
+    "lottery-win": {
+        "description": "The text that is said when you get a winning ticket from [ticket<br><ul><li><b>{numbers}</b> will be replaced with the winning numbers</li><li><b>{amount}</b> will be replaced with the amount you won</li></ul>",
+            "type": "textarea"
+    },
+    "count-text": {
+        "description": "The text to send when running [count<br>&nbsp;<b>count</b> will be replaced with the current number ({count} by default)",
+        "type": "textarea"
+    },
+    "change-cmd-return": {
+        "description": "When something is sent to chat with the RETURN status, say this instead",
+        "type": "textarea"
+    },
+    "change-cmd-info": {
+        "description": "When something is sent to chat with the INFO status, say this instead",
+        "type": "textarea"
+    },
+    "change-cmd-prompt": {
+        "description": "When something is sent to chat with the PROMPT status, say this instead",
+        "type": "textarea"
+    },
+    "change-cmd-warning": {
+        "description": "When something is sent to chat with the WARNING status, say this instead",
+        "type": "textarea"
+    },
+    "change-cmd-error": {
+        "description": "When something is sent to chat with the ERROR status, say this instead",
+        "type": "textarea"
+    },
+    "dm-when-online": {
+        "description": "The text to send to dms when the bot comes online",
+        "type": "textarea"
+    },
+    "currency-sign": {
+        "description": "The symbol to use for your currency ('[' by default)"
+    },
+    "puffle-find": {
+        "description": "The text that is said when your puffle pet finds something<br><ul><li><b>{name}</b> will be replaced with your puffle's name</li><li><b>{stuff}</b> will be replaced with what the puffle finds</li></ul>",
+        "type": "textarea"
+    },
+    "enable-mail": {
+        "description": "Whether or not to enable the [mail command (true/false)",
+        "type": "checkbox"
+    },
+    "mail-signature": {
+        "description": "The text to append when you send mail to someone",
+        "type": "textarea"
+    },
+    "no-pingresponse": {
+        "description": "When pinging someone, do not show their pingresponse if they have one (default false)",
+        "type": "checkbox"
+    },
+    "pipe-symbol": {
+        "description": "The symbol to use for piping commands (>pipe> by default)"
+    },
+    "1-arg-string": {
+        "description": "Whether or not quoting text will count it as 1 argument (false by default)",
+        "type": "checkbox"
+    },
+    "warn-cmds": {
+        "description": "A list of commands that when you run, will confirm that you want to run them (none by default)",
+        "type": "textarea"
+    },
+    "connect4-win": {
+        "description": "The text to send when you win connect4",
+        "type": "textarea"
+    },
+    "connect4-symbol": {
+        "description": "Your default connect4 symbol"
+    },
+    "warn-categories": {
+        "description": "A list of categories that if a command belongs to, will warn you (none by default)",
+        "type": "textarea"
+    },
+    "error-on-no-cmd": {
+        "description": "Set to false so that the bot doesnt say `{cmd} does not exist`",
+        "type": "checkbox"
+    },
+    "opts-parser": {
+        "description": "There are 3 opts parsers, normal, with-negate, and unix, with-negate allows for +opt which sets opt to false, unix allows for more traditional unix option parsing"
+    },
+    "location": {
+        "description": "Your location"
+    }
+}
