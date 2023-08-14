@@ -718,25 +718,30 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
             return msg as Message<true>
         }).bind(channel)
 
-        let prompt_replies: [string, Message][] = []
-        //listens for inputs from the client
-        ws.on("message", data => {
-            let result = JSON.parse(data.toString())
-            if (result['prompt-response']) {
-                prompt_replies.push([author.id, createFakeMessage(author, channel, result['prompt-response'], channel.guild)])
-            }
-        })
-
         let oldAwaitMessage = channel.awaitMessages
 
         //resets the input list every time we want to listen for inputs
         channel.awaitMessages = async (data: AwaitMessagesOptions | undefined) => {
+
             //tell the client we are ready for inputs
             ws.send(JSON.stringify({ event: "prompt-user", }))
-            prompt_replies = []
-            await new Promise(res => setTimeout(res, data?.time || 30000))
+            let prompt_replies = await new Promise((res, rej) => {
+                let prompt_replies: [string, Message][] = []
+
+                new Promise(res => setTimeout(res, data?.time || 30000)).then(() => res(prompt_replies))
+                const wsMessageFn = (data: ws.RawData, isBinary: boolean) => {
+                    let result = JSON.parse(data.toString())
+                    if (result['prompt-response']) {
+                        prompt_replies.push([author.id, createFakeMessage(author, channel, result['prompt-response'], channel.guild)])
+                        ws.removeListener("message", wsMessageFn)
+                        res(prompt_replies)
+                    }
+                }
+                //listens for inputs from the client
+                ws.addListener("message", wsMessageFn)
+            })
             //after the specified timeout (or 30 seconds if not given) return the collection
-            return new Collection(prompt_replies)
+            return new Collection(prompt_replies as [])
         }
 
         common_to_commands.cmd({

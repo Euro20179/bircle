@@ -79,10 +79,13 @@ class Embed {
         if (this.thumbnail) {
             let img = document.createElement("img")
             img.src = this.thumbnail.url
-            let aspect = img.width / img.height
-            console.log(aspect)
-            img.width = 200
-            img.height = img.width / aspect
+            img.onload = function(_e){
+                let aspect = img.width / img.height
+                if (!isNaN(aspect)) {
+                    img.width = 200
+                    img.height = img.width / aspect
+                }
+            }
             img.classList.add("embed-thumbnail")
             headerArea.append(img)
         }
@@ -96,13 +99,13 @@ class Embed {
 
         embedBox.append(headerArea)
 
-        if(this.description || this.title){
+        if (this.description || this.title) {
             let hr = document.createElement("hr")
             embedBox.append(hr)
         }
     }
 
-    #renderColor(embedBox){
+    #renderColor(embedBox) {
         if (this.color) {
             let color = this.color.toString(16)
             if (color.length < 6) {
@@ -112,10 +115,10 @@ class Embed {
         }
     }
 
-    #renderDescription(embedBox){
+    #renderDescription(embedBox) {
     }
 
-    #renderFields(embedBox){
+    #renderFields(embedBox) {
         if (this.fields?.length) {
             for (let field of this.fields) {
                 let fieldBox = document.createElement("div")
@@ -143,7 +146,7 @@ class Embed {
         }
     }
 
-    #renderImage(embedBox){
+    #renderImage(embedBox) {
         if (this.image) {
             let image = document.createElement("img")
             image.src = this.image.url
@@ -152,7 +155,7 @@ class Embed {
         }
     }
 
-    #renderFooter(embedBox){
+    #renderFooter(embedBox) {
         if (this.footer) {
             let hr = document.createElement("hr")
             embedBox.append(hr)
@@ -239,8 +242,6 @@ submitInput.addEventListener("click", async (e) => {
     submitInput.classList.add("hidden")
     //send back to server
     ws.send(JSON.stringify({ "prompt-response": text }))
-    //we say this because the server will not continue until the timeout is over
-    alert("Your input has sent, this may take a while")
 })
 
 let ws;
