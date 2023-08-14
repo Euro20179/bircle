@@ -60,7 +60,7 @@ export class PagedEmbed {
         return this.embeds.length
     }
 
-    get currentPage () {
+    get currentPage() {
         return this.#currentPage
     }
 
@@ -76,21 +76,21 @@ export class PagedEmbed {
         this.#currentPage = 0
     }
 
-    removeButtonIfExists(action: string){
-        if(this.buttonExists(action)){
+    removeButtonIfExists(action: string) {
+        if (this.buttonExists(action)) {
             this.removeButton(action)
             return true
         }
         return false
     }
 
-    removeButton(action: string){
+    removeButton(action: string) {
         this.buttonOrder = this.buttonOrder.filter(v => v !== `${this.id}.${action}`)
         delete this.button_data[`${this.id}.${action}`]
     }
 
-    buttonExists(action: string){
-        if(this.button_data[`${this.id}.${action}`]){
+    buttonExists(action: string) {
+        if (this.button_data[`${this.id}.${action}`]) {
             return true
         }
         return false
@@ -105,7 +105,7 @@ export class PagedEmbed {
         }
     }
 
-    insertButton(spot: size_t, action: string, data: Partial<ButtonComponentData> | Partial<APIButtonComponent>, cb?: PagedEmbed['button_data'][string]['cb'], page?: number){
+    insertButton(spot: size_t, action: string, data: Partial<ButtonComponentData> | Partial<APIButtonComponent>, cb?: PagedEmbed['button_data'][string]['cb'], page?: number) {
         this.buttonOrder.splice(spot, 0, `${this.id}.${action}`)
         this.button_data[`${this.id}.${action}`] = {
             button_data: data,
@@ -128,16 +128,16 @@ export class PagedEmbed {
     async begin(_sendcallback?: CommandReturn['sendCallback']) {
         let m = await handleSending(this.msg, { components: [this.createActionRow()], embeds: [this.currentEmbed], status: StatusCode.INFO })
 
-        let msgCollector = m.channel.createMessageCollector({filter: newM => newM.author.id === this.msg.author.id})
+        let msgCollector = m.channel.createMessageCollector({ filter: newM => newM.author.id === this.msg.author.id })
         let mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
         msgCollector.on("collect", newM => {
             mCollectorTo = setTimeout(msgCollector.stop.bind(msgCollector), 60000)
             let n = Number(newM.content)
-            if(isNaN(n) || !isBetween(0, n, this.pages + 1)){
+            if (isNaN(n) || !isBetween(0, n, this.pages + 1)) {
                 return
             }
             this.#currentPage = n - 1
-            if(newM.deletable) newM.delete().catch(console.error)
+            if (newM.deletable) newM.delete().catch(console.error)
             m.edit({ components: [this.createActionRow()], embeds: [this.currentEmbed] }).catch(console.error)
         })
 
@@ -674,7 +674,7 @@ export class Interpreter {
         "n:": SkipModifier,
         "W:": WebModifier,
         "a:": AliasModifier,
-        "c:" : CommandModifier,
+        "c:": CommandModifier,
     }
 
     constructor(msg: Message, tokens: Token[], options: {
@@ -990,8 +990,8 @@ export class Interpreter {
 
         let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
-        for(let mod of this.modifiers){
-            cmdObject = mod.modifyCmd({cmdObject, int: this, cmdName: cmd})
+        for (let mod of this.modifiers) {
+            cmdObject = mod.modifyCmd({ cmdObject, int: this, cmdName: cmd })
         }
 
         if (!cmdObject) {
@@ -1011,8 +1011,8 @@ export class Interpreter {
                 break runnerIf
             }
 
-            if(!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.onWeb){
-                rv = {content: `This command cannot be run on the website`, status: StatusCode.ERR}
+            if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.onWeb) {
+                rv = { content: `This command cannot be run on the website`, status: StatusCode.ERR }
                 break runnerIf
             }
 
@@ -1090,7 +1090,7 @@ export class Interpreter {
                 Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
             }
             //if it is aliasV2 it will double count
-            if(!this.aliasV2)
+            if (!this.aliasV2)
                 globals.addToCmdUse(cmd)
 
         }
@@ -1296,8 +1296,8 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     if (!sendCallback) {
         sendCallback = rv.sendCallback ||
             rv.reply ? msg.reply.bind(msg) :
-                rv.channel?.send.bind(rv.channel) ||
-                msg.channel.send.bind(msg.channel)
+            rv.channel?.send.bind(rv.channel) ||
+            msg.channel.send.bind(msg.channel)
     }
 
     if (rv.delete) {
@@ -1392,7 +1392,8 @@ export function createCommandV2(
     tags?: string[] | null,
     permCheck?: (m: Message) => boolean,
     shouldType?: boolean,
-    use_result_cache?: boolean): CommandV2 {
+    use_result_cache?: boolean,
+    can_run_on_web?: boolean): CommandV2 {
     return {
         run: cb,
         help: {
@@ -1405,7 +1406,8 @@ export function createCommandV2(
         permCheck: permCheck,
         make_bot_type: shouldType,
         cmd_std_version: 2,
-        use_result_cache: use_result_cache
+        use_result_cache: use_result_cache,
+        can_run_on_web
     }
 }
 
