@@ -159,7 +159,8 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                     timers: timer.getTimersOfUser(userId),
                     sandCounter: economy.getSandCounter(userId),
                     inventory: getInventory()[userId],
-                    id: userId
+                    id: userId,
+                    options: user_options.USER_OPTIONS[userId]
                 }
                 res.writeHead(200)
                 res.end(JSON.stringify(json))
