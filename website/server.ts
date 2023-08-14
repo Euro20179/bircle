@@ -722,18 +722,23 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
 
         //resets the input list every time we want to listen for inputs
         channel.awaitMessages = async (data: AwaitMessagesOptions | undefined) => {
-
             //tell the client we are ready for inputs
             ws.send(JSON.stringify({ event: "prompt-user", }))
-            let prompt_replies = await new Promise((res, rej) => {
+            //we have to do this in a promise so res can be called during one of 2 async conditions
+            let prompt_replies = await new Promise((res, _rej) => {
                 let prompt_replies: [string, Message][] = []
-
+                //first condition, if the timeout has been reached, resolve with collected replies (which will be empty)
                 new Promise(res => setTimeout(res, data?.time || 30000)).then(() => res(prompt_replies))
-                const wsMessageFn = (data: ws.RawData, isBinary: boolean) => {
+                //create a listener function here so we have access to res
+                //it's a seperate variable so we can call ws.removeListener later
+                const wsMessageFn = (data: ws.RawData, _isBinary: boolean) => {
                     let result = JSON.parse(data.toString())
+                    //second condition, when reciving input, resolve with that input
                     if (result['prompt-response']) {
                         prompt_replies.push([author.id, createFakeMessage(author, channel, result['prompt-response'], channel.guild)])
+                        //remove listener to prevent memory leak
                         ws.removeListener("message", wsMessageFn)
+                        //rseolve with the replies
                         res(prompt_replies)
                     }
                 }
