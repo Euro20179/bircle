@@ -1,0 +1,251 @@
+/*keyframes*/
+
+@keyframes blink {
+    0% {
+        filter: brightness(70%);
+    }
+
+    100% {
+        filter: brightness(100%);
+    }
+}
+
+/*media queries*/
+
+@media (min-width: 1000px) {
+    header {
+        text-align: center;
+    }
+
+    main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #command-output {
+        width: 100%;
+    }
+}
+
+@media (max-width: 1000px) {
+    :root {
+        --max-width: 80%;
+    }
+
+    header h1 {
+        text-align: center;
+        display: block;
+    }
+
+    #nav-bar {
+        display: block;
+    }
+
+    #nav-bar ul {
+        display: flex;
+        text-align: center;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+/*basic*/
+
+:root {
+    --command-output-padding: 25px;
+    --command-output-border: 2px;
+    --max-width: 50%;
+}
+
+header * {
+    display: inline;
+}
+
+header {
+    padding: 3%;
+}
+
+textarea {
+    display: inline-block;
+    resize: vertical;
+    margin: 1ex 0;
+    width: 70%;
+    font-size: 1.2em;
+}
+
+/*util classes*/
+
+.soft-hr {
+    border-style: dotted
+}
+
+.hidden {
+    display: none
+}
+
+body[data-logged-in="false"] [data-hide-if-logged-out] {
+    display: none;
+}
+
+/*command output*/
+#command-output {
+    padding: var(--command-output-padding);
+    border: var(--command-output-border) solid white;
+    border-radius: 3px;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    max-width: var(--max-width);
+}
+
+/*error status*/
+#command-output[data-status-code="2"] {
+    border-color: var(--error);
+}
+
+/*info status*/
+#command-output[data-status-code="-1"] {
+    border-style: dashed;
+}
+
+/*warning status*/
+#command-output[data-status-code="1"] {
+    border-color: var(--warning);
+}
+
+/*achievement status*/
+#command-output[data-status-code="-3"] {
+    border-color: var(--highlight);
+}
+
+/*prompt status*/
+#command-output[data-status-code="-2"] {
+    border-color: var(--selection);
+    animation: blink 500ms infinite alternate-reverse;
+}
+
+
+/*embeds*/
+.embed {
+    display: grid;
+    margin: 1ex 0;
+    grid-template-columns: repeat(3, 1fr);
+    border-left: 3px solid #93969fff;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.2)
+}
+
+.embed-header {
+    grid-column: 1 / -1;
+    display: flex;
+}
+
+.embed-thumbnail {
+    margin: 5px;
+    max-height: 80%;
+    padding: 3px;
+    border: 1px solid var(--secondary);
+    border-radius: 3px;
+}
+
+.embed-title {
+    font-size: 1.5rem;
+    padding: 0 1rem;
+    padding-left: 3rem;
+    color: white;
+    width: 100%;
+}
+
+.embed-description {
+    grid-column: 1 / -1;
+    font-size: 0.9rem;
+    padding: 0 1rem;
+    padding-left: 3rem;
+}
+
+.embed hr {
+    min-width: 100%;
+    grid-column: 1 / -1;
+}
+
+
+.embed-fieldbox {
+    padding-left: 3rem;
+}
+
+.embed-fieldbox.full-grid-column {
+    grid-column: 1 / -1;
+}
+
+.embed-field {
+    font-size: .7rem;
+}
+
+.embed-field-name {
+    font-weight: bolder;
+    font-size: 1.2rem;
+}
+
+.embed-field-value {
+    font-size: 1rem;
+}
+
+.embed-image {
+    margin-left: 3rem;
+    padding: 3px;
+    border: 1px solid var(--secondary);
+    border-radius: 3px;
+}
+
+.embed-footer {
+    display: flex;
+    padding-left: 3rem;
+    font-size: 0.8em;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 20px;
+}
+
+.embed-footer-icon {
+    max-width: 30px;
+    padding: 3px;
+    border: 1px solid var(--secondary);
+    border-radius: 3px;
+}
+
+.embed-footer-text {
+    width: 100%;
+}
+
+/* .embed-field { */
+/*     display: grid; */
+/*     grid-template-rows: repeat(1fr, 2); */
+/* } */
+
+
+/*form*/
+#form {
+    display: flex;
+    flex-direction: row;
+    width: calc(var(--max-width) + var(--command-output-border) * 2 + var(--command-output-padding) * 2);
+}
+
+#form button {
+    font-size: 1.3rem;
+    cursor: pointer;
+    flex-grow: 1;
+    margin: 1ex 5px;
+    transition: width 200ms;
+}
+
+/*navbar*/
+#nav-bar ul {
+    display: inline-flex;
+    gap: 1em;
+}
+
+#nav-bar li {
+    text-align: center;
+}
+
