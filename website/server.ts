@@ -487,7 +487,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         }
         case "user-styles.css": {
             let id = urlParams?.get("user-id")
-            if(!id){
+            if (!id) {
                 sendFile(res, "./website/404.html", undefined, 404)
             }
             else {
@@ -571,17 +571,31 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         case "command-file": {
             if (!subPaths.length || !subPaths[0]) {
                 fs.readdir("./command-results", (err, files) => {
+                    let html = "<head><meta charset='utf-8'><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Command Files</h1><ul>"
                     if (err) {
                         res.writeHead(500)
-                        res.end({ error: "Could not read directory" })
+                        res.end("Internal server error")
                         return
                     }
-                    res.setHeader("Content-Type", "application/json")
-                    res.end(JSON.stringify(files))
+                    for (let file of files) {
+                        html += `<li><a href="/command-file/${file}">${file}</a></li>`
+                    }
+                    res.writeHead(200)
+                    res.end(html)
                 })
             }
             else if (isSafeFilePath(subPaths[0]) && fs.existsSync(`./command-results/${subPaths[0]}`)) {
-                sendFile(res, `./command-results/${subPaths[0]}`, "text/plain")
+                fs.readFile(`./command-results/${subPaths[0]}`, (err, data) => {
+                    if (err) {
+                        res.writeHead(500)
+                        res.end("Internal server error")
+                        return
+                    }
+                    let html = `<head><meta charset='utf-8'><link rel='stylesheet' href='/common.css'></head><pre>${data.toString("utf-8")}</pre>`
+                    res.writeHead(200)
+                    res.end(html)
+                })
+                break
             }
             break
         }
@@ -600,7 +614,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 break
             }
             fs.readdir("./garbage-files", (err, files) => {
-                let html = "<head><meta charset='utf-8'><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Custom Pages</h1><ul>"
+                let html = "<head><meta charset='utf-8'><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Garbage Files</h1><ul>"
                 if (err) {
                     res.writeHead(500)
                     res.end("Internal server error")
