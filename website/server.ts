@@ -164,6 +164,20 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 res.writeHead(200)
                 res.end(JSON.stringify(json))
             }
+            const sendPfp = (user: User) => {
+                let url = user.avatarURL()
+                if (!url) {
+                    sendFile(res, "./website/404.html", undefined, 404)
+                    return
+                }
+                fetch(url)
+                    .then(value => value.arrayBuffer())
+                    .then(buf => {
+                        res.setHeader("Content-Type", "image/png")
+                        res.writeHead(200)
+                        res.end(Buffer.from(buf))
+                    })
+            }
             if (subPaths[0] === 'by-name') {
                 if (!subPaths[1]) {
                     res.writeHead(404)
@@ -176,7 +190,10 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                         res.end(JSON.stringify({ error: "User not found" }))
                         return
                     }
-                    sendJson(user.id)
+                    if (subPaths[2] === 'pfp') {
+                        sendPfp(user)
+                    }
+                    else sendJson(user.id)
                 })
             }
             else {
@@ -184,6 +201,13 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 if (!userId) {
                     res.writeHead(404)
                     res.end(JSON.stringify({ error: "No user given" }))
+                }
+                else if (subPaths[1] === 'pfp') {
+                    common.client.users.fetch(userId).then(user => {
+                        sendPfp(user)
+                    }).catch(_reason => {
+                        sendFile(res, "./website/404.html", undefined, 404)
+                    })
                 }
                 else {
                     sendJson(userId)
