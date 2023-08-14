@@ -6,7 +6,7 @@ import common_to_commands, { CommandCategory, Interpreter } from '../src/common_
 
 import economy from '../src/economy'
 import user_options from '../src/user-options'
-import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient } from '../src/util'
+import { generateHTMLFromCommandHelp, strToCommandCat, searchList, isCommandCategory, fetchUserFromClient, isSafeFilePath } from '../src/util'
 
 import common from '../src/common'
 import { CLIENT_SECRET, CLIENT_ID, getConfigValue } from '../src/globals'
@@ -51,19 +51,19 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
         case "set-option": {
             if (!urlParams?.get("code")) {
                 res.writeHead(403)
-                res.end(JSON.stringify({error: "You must be logged into discord to access this page"}))
+                res.end(JSON.stringify({ error: "You must be logged into discord to access this page" }))
                 return
             }
             let codeToken = urlParams.get("code") as string
             let discordToken = ACCESS_TOKENS[codeToken]?.token
             if (!discordToken) {
                 res.writeHead(403)
-                res.end(JSON.stringify({error: "Bad code token"}))
+                res.end(JSON.stringify({ error: "Bad code token" }))
                 return
             }
-            if(!user_options.isValidOption(_subPaths[0])){
+            if (!user_options.isValidOption(_subPaths[0])) {
                 res.writeHead(404)
-                res.end(JSON.stringify({error: `${_subPaths[0]} is not a valid option`}))
+                res.end(JSON.stringify({ error: `${_subPaths[0]} is not a valid option` }))
                 return
             }
             fetch('https://discord.com/api/v10/users/@me', {
@@ -73,12 +73,12 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
             }).then(res => {
                 return res.json()
             }).then((user) => {
-                if(!body){
+                if (!body) {
                     user_options.unsetOpt(user.id, _subPaths[0])
                 }
                 else user_options.setOpt(user.id, _subPaths[0], body)
                 res.writeHead(200)
-                res.end(JSON.stringify({success: `Set ${_subPaths[0]} to ${body}`}))
+                res.end(JSON.stringify({ success: `Set ${_subPaths[0]} to ${body}` }))
             })
             break;
 
@@ -458,23 +458,23 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 let id = user.id
                 fs.readFile("./src/user-options.json", (err, data) => {
                     let html = "<!DOCTYPE html><html><head><link rel='stylesheet' href='common.css'><link rel='stylesheet' href='options.css'></head><body><h1 id='saved-popup'>saved</h1>"
-                    if(err){
+                    if (err) {
                         res.writeHead(500)
                         res.end("Server error<br>Could not read user options file")
                         return
                     }
                     let json = JSON.parse(data.toString())
-                    for(let option in json){
+                    for (let option in json) {
                         let h = `<h1>${option}</h1>`
                         let desc = `<p>${json[option].description || ""}</p>`
                         let input
-                        if(json[option].type === 'textarea'){
+                        if (json[option].type === 'textarea') {
                             input = `<textarea id="${option}" type="${json[option].type || "text"}" placeholder="${json[option].placeholder || "text"}">${user_options.getOpt(id, option as any, "")}</textarea>`
                         }
-                        else if(json[option].type === 'checkbox'){
+                        else if (json[option].type === 'checkbox') {
                             input = `<input type="checkbox" placeholder="${json[option].placeholder || "text"}" id="${option}" `
-                            if(user_options.getOpt(id, option as any, "")){
-                                input +=  "checked"
+                            if (user_options.getOpt(id, option as any, "")) {
+                                input += "checked"
                             }
                             input += ">"
                         }
@@ -509,22 +509,51 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         case "api": {
             return _apiSubPath(req, res, subPaths, urlParams)
         }
-        case "custom": {
-            if (fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)) {
-                sendFile(res, `./data/custom-endpoints/${subPaths[0]}.html`)
-            }
-            else if(subPaths.length){
-                sendFile(res, "./website/404.html", undefined, 404)
-            }
-            else {
-                let html = "<head><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Custom Pages</h1><ul>"
-                fs.readdir("./data/custom-endpoints", (err, files) => {
-                    if(err){
+        case "garbage": {
+            if (subPaths[0] && isSafeFilePath(subPaths[0]) && fs.existsSync(`./garbage-files/${subPaths[0]}`)) {
+                fs.readFile(`./garbage-files/${subPaths[0]}`, (err, data) => {
+                    if (err) {
                         res.writeHead(500)
                         res.end("Internal server error")
                         return
                     }
-                    for(let file of files){
+                    let html = `<head><meta charset='utf-8'><link rel='stylesheet' href='/common.css'></head><pre>${data.toString("utf-8")}</pre>`
+                    res.writeHead(200)
+                    res.end(html)
+                })
+                break
+            }
+            fs.readdir("./garbage-files", (err, files) => {
+                let html = "<head><meta charset='utf-8'><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Custom Pages</h1><ul>"
+                if (err) {
+                    res.writeHead(500)
+                    res.end("Internal server error")
+                    return
+                }
+                for (let file of files) {
+                    html += `<li><a href="/garbage/${file}">${file}</a></li>`
+                }
+                res.writeHead(200)
+                res.end(html)
+            })
+            break;
+        }
+        case "custom": {
+            if (subPaths[0] && isSafeFilePath(subPaths[0]) && fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)) {
+                sendFile(res, `./data/custom-endpoints/${subPaths[0]}.html`)
+            }
+            else if (subPaths.length) {
+                sendFile(res, "./website/404.html", undefined, 404)
+            }
+            else {
+                let html = "<head><meta charset='utf-8'><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Custom Pages</h1><ul>"
+                fs.readdir("./data/custom-endpoints", (err, files) => {
+                    if (err) {
+                        res.writeHead(500)
+                        res.end("Internal server error")
+                        return
+                    }
+                    for (let file of files) {
                         html += `<li><a href="/custom/${file.replace(".html", "")}">${file}</a></li>`
                     }
                     res.writeHead(200)

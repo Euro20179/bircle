@@ -77,7 +77,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         }
 
         if(!opts.getBool("no-head", false)){
-            data = "<!DOCTYPE html><head><link rel='stylesheet' href='/common.css'></link></head>" + data
+            data = "<!DOCTYPE html><head><meta charset='utf-8'><link rel='stylesheet' href='/common.css'></link></head>" + data
         }
 
         fs.writeFileSync(`./data/custom-endpoints/${name}.html`, data)
