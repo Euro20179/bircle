@@ -513,8 +513,23 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             if (fs.existsSync(`./data/custom-endpoints/${subPaths[0]}.html`)) {
                 sendFile(res, `./data/custom-endpoints/${subPaths[0]}.html`)
             }
-            else {
+            else if(subPaths.length){
                 sendFile(res, "./website/404.html", undefined, 404)
+            }
+            else {
+                let html = "<head><link rel=\"stylesheet\" href=\"/common.css\"></head><h1 style='text-align: center'>Custom Pages</h1><ul>"
+                fs.readdir("./data/custom-endpoints", (err, files) => {
+                    if(err){
+                        res.writeHead(500)
+                        res.end("Internal server error")
+                        return
+                    }
+                    for(let file of files){
+                        html += `<li><a href="/custom/${file.replace(".html", "")}">${file}</a></li>`
+                    }
+                    res.writeHead(200)
+                    res.end(html + "</ul>")
+                })
             }
             break
         }
