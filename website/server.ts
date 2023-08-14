@@ -19,7 +19,7 @@ import ws from 'ws'
 
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
-    res.writeHead(status ?? 200, { content: contentType ?? "text/html", "Content-Length": stat.size })
+    res.writeHead(status ?? 200, { "Content-Type": contentType ?? "text/html", "Content-Length": stat.size })
     let stream = fs.createReadStream(fp)
     stream.pipe(res).on("finish", () => {
         res.end()
@@ -565,6 +565,23 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         }
         case "api": {
             return _apiSubPath(req, res, subPaths, urlParams)
+        }
+        case "command-file": {
+            if(!subPaths.length || !subPaths[0]){
+                fs.readdir("./command-results", (err, files) => {
+                    if(err){
+                        res.writeHead(500)
+                        res.end({error: "Could not read directory"})
+                        return
+                    }
+                    res.setHeader("Content-Type", "application/json")
+                    res.end(JSON.stringify(files))
+                })
+            }
+            else if(isSafeFilePath(subPaths[0]) && fs.existsSync(`./command-results/${subPaths[0]}`)){
+                sendFile(res, `./command-results/${subPaths[0]}`, "text/plain")
+            }
+            break
         }
         case "garbage": {
             if (subPaths[0] && isSafeFilePath(subPaths[0]) && fs.existsSync(`./garbage-files/${subPaths[0]}`)) {
