@@ -99,6 +99,12 @@ body[data-logged-in="false"] [data-hide-if-logged-out] {
     max-width: var(--max-width);
 }
 
+#command-output:focus {
+    border-color: var(--selection);
+    outline: none;
+    caret-color: var(--selection);
+}
+
 /*error status*/
 #command-output[data-status-code="2"] {
     border-color: var(--error);
@@ -139,11 +145,12 @@ body[data-logged-in="false"] [data-hide-if-logged-out] {
 .embed-header {
     grid-column: 1 / -1;
     display: flex;
+    /*align thumbnail when it's by itself*/
+    justify-content: right;
 }
 
 .embed-thumbnail {
     margin: 5px;
-    max-height: 80%;
     padding: 3px;
     border: 1px solid var(--secondary);
     border-radius: 3px;
@@ -237,6 +244,7 @@ body[data-logged-in="false"] [data-hide-if-logged-out] {
     flex-grow: 1;
     margin: 1ex 5px;
     transition: width 200ms;
+    resize: both;
 }
 
 /*navbar*/

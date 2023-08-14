@@ -56,10 +56,7 @@ class Embed {
         this.image = image
     }
 
-    render() {
-        let embedBox = document.createElement("div")
-        embedBox.classList.add('embed')
-
+    #renderHeader(embedBox) {
         let headerArea = document.createElement("div")
         headerArea.classList.add("embed-header")
 
@@ -82,20 +79,12 @@ class Embed {
         if (this.thumbnail) {
             let img = document.createElement("img")
             img.src = this.thumbnail.url
+            let aspect = img.width / img.height
+            console.log(aspect)
+            img.width = 200
+            img.height = img.width / aspect
             img.classList.add("embed-thumbnail")
             headerArea.append(img)
-        }
-
-
-
-        embedBox.append(headerArea)
-
-        if (this.color) {
-            let color = this.color.toString(16)
-            if (color.length < 6) {
-                color = "0".repeat(6 - color.length) + color
-            }
-            embedBox.style.borderColor = `#${color}`
         }
 
         if (this.description) {
@@ -103,11 +92,30 @@ class Embed {
             description.classList.add('embed-description')
             description.innerHTML = converter.makeHtml(this.description)
             embedBox.append(description)
-
         }
-        let hr = document.createElement("hr")
-        embedBox.append(hr)
 
+        embedBox.append(headerArea)
+
+        if(this.description || this.title){
+            let hr = document.createElement("hr")
+            embedBox.append(hr)
+        }
+    }
+
+    #renderColor(embedBox){
+        if (this.color) {
+            let color = this.color.toString(16)
+            if (color.length < 6) {
+                color = "0".repeat(6 - color.length) + color
+            }
+            embedBox.style.borderColor = `#${color}`
+        }
+    }
+
+    #renderDescription(embedBox){
+    }
+
+    #renderFields(embedBox){
         if (this.fields?.length) {
             for (let field of this.fields) {
                 let fieldBox = document.createElement("div")
@@ -133,14 +141,18 @@ class Embed {
                 embedBox.append(fieldBox)
             }
         }
+    }
 
+    #renderImage(embedBox){
         if (this.image) {
             let image = document.createElement("img")
             image.src = this.image.url
             image.classList.add("embed-image")
             embedBox.append(image)
         }
+    }
 
+    #renderFooter(embedBox){
         if (this.footer) {
             let hr = document.createElement("hr")
             embedBox.append(hr)
@@ -163,6 +175,21 @@ class Embed {
             footer.append(footerP)
             embedBox.append(footer)
         }
+    }
+
+    render() {
+        let embedBox = document.createElement("div")
+        embedBox.classList.add('embed')
+
+        this.#renderHeader(embedBox)
+
+        this.#renderColor(embedBox)
+
+        this.#renderFields(embedBox)
+
+        this.#renderImage(embedBox)
+
+        this.#renderFooter(embedBox)
 
         commandOutput.append(embedBox)
     }

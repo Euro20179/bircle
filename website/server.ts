@@ -204,7 +204,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                     return
                 }
                 let token = subPaths[1]
-                let authToken = ACCESS_TOKENS[token].token
+                let authToken = ACCESS_TOKENS[token]?.token
                 if (!authToken) {
                     res.writeHead(403)
                     res.end(JSON.stringify({ error: "Invalid code token" }))
