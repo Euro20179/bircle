@@ -76,6 +76,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return crv("No data to put on the page", {status: StatusCode.ERR})
         }
 
+        if(!opts.getBool("no-head", false)){
+            data = "<!DOCTYPE html><head><link rel='stylesheet' href='/common.css'></link></head>" + data
+        }
+
         fs.writeFileSync(`./data/custom-endpoints/${name}.html`, data)
 
         common.addEndpointToUser(msg.author.id, name)
@@ -83,7 +87,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         common.saveEndPointsDB()
 
         return crv(`You can access the page [here](http://bircle.euro20179.com:8222/custom/${name})`)
-    }, "Create an endpoint on the website")]
+    }, "Create an endpoint on the website", {
+            accepts_stdin: "Can be used instead of the data argument",
+            helpArguments: {
+                name: createHelpArgument("The name of the endpoint", true),
+                data: createHelpArgument("The data to put on the website")
+            },
+            helpOptions: {
+                d: createHelpOption("Delete the endpoint"),
+                "no-head": createHelpOption("Do not add the default head which includes the default styling")
+            }
+        })]
 
     yield ["get-var", ccmdV2(async function({ args, opts, msg }) {
         let as = opts.getString("as", msg.author.id)
