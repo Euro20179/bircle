@@ -8,7 +8,7 @@ const commandOutput = document.getElementById("command-output")
 const optionsLink = document.getElementById("options-link")
 
 optionsLink.addEventListener("click", e => {
-    window.location = `/options?code=${codeToken}`
+    window.location = `/options?code=${document.cookie || codeToken}`
     e.preventDefault()
 })
 
