@@ -22,7 +22,6 @@ const favico = document.querySelector("link[rel='shortcut icon']")
 
 if (urlParams.get("code") && !document.cookie) {
     codeToken = urlParams.get("code")
-    console.log(urlParams)
     document.cookie = `${codeToken}`
     fetch(`http://${window.location.host}/discord-sign-in?code-token=${codeToken}&host=${window.location.host}`, {
         method: "POST",
@@ -96,7 +95,6 @@ class Embed {
             if (color.length < 6) {
                 color = "0".repeat(6 - color.length) + color
             }
-            console.log(color)
             embedBox.style.borderColor = `#${color}`
         }
 
