@@ -174,7 +174,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 fetch(url)
                     .then(value => value.arrayBuffer())
                     .then(buf => {
-                        res.setHeader("Content-Type", "image/png")
+                        res.setHeader("Content-Type", "image/webp")
                         res.writeHead(200)
                         res.end(Buffer.from(buf))
                     })
