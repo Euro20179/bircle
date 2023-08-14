@@ -197,6 +197,38 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                     else sendJson(user.id)
                 })
             }
+            else if (subPaths[0] === 'by-code-token') {
+                if (!subPaths[1]) {
+                    res.writeHead(404)
+                    res.end(JSON.stringify({ error: "No code token given" }))
+                    return
+                }
+                let token = subPaths[1]
+                let authToken = ACCESS_TOKENS[token].token
+                if (!authToken) {
+                    res.writeHead(403)
+                    res.end(JSON.stringify({ error: "Invalid code token" }))
+                    return
+                }
+                fetch('https://discord.com/api/v10/users/@me', {
+                    headers: {
+                        "Authorization": `Bearer ${authToken}`
+                    }
+                }).then(res => res.json())
+                    .then(json => {
+                        let id = json.id
+                        if (subPaths[2] === 'pfp') {
+                            common.client.users.fetch(id).then(user => {
+                                sendPfp(user)
+                            }).catch(_reason => {
+                                sendFile(res, "./website/404.html", undefined, 404)
+                            })
+                        }
+                        else {
+                            sendJson(id)
+                        }
+                    })
+            }
             else {
                 let userId = subPaths[0]
                 if (!userId) {

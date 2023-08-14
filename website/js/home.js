@@ -18,10 +18,7 @@ let codeToken = ""
 
 let converter = new showdown.Converter()
 
-window.addEventListener("close", e => {
-    console.log("closed")
-    document.cookie = ""
-})
+const favico = document.querySelector("link[rel='shortcut icon']")
 
 if (urlParams.get("code") && !document.cookie) {
     codeToken = urlParams.get("code")
@@ -32,11 +29,13 @@ if (urlParams.get("code") && !document.cookie) {
 
     }).then(() => {
         document.body.setAttribute("data-logged-in", "true")
+        favico.href = `/api/profile/by-code-token/${document.cookie}/pfp`
     })
 }
-else {
+else if (document.cookie) {
     codeToken = document.cookie
-        document.body.setAttribute("data-logged-in", "true")
+    document.body.setAttribute("data-logged-in", "true")
+    favico.href = `/api/profile/by-code-token/${document.cookie}/pfp`
 }
 
 /**
@@ -137,21 +136,21 @@ class Embed {
             }
         }
 
-        if(this.image){
+        if (this.image) {
             let image = document.createElement("img")
             image.src = this.image.url
             image.classList.add("embed-image")
             embedBox.append(image)
         }
 
-        if(this.footer){
+        if (this.footer) {
             let hr = document.createElement("hr")
             embedBox.append(hr)
             let footer = document.createElement("div")
             footer.classList.add("embed-footer")
 
             let footerP = document.createElement("p")
-            if(this.footer.icon_url){
+            if (this.footer.icon_url) {
                 let img = document.createElement("img")
                 img.src = this.footer.icon_url
                 let aspectRatio = img.width / img.height
