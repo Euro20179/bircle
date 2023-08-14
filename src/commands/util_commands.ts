@@ -172,7 +172,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!text) text = args.slice(2).join(" ")
             }
 
-            if(langCodes[to.toLowerCase()]) to = langCodes[to.toLowerCase()]
+            if (langCodes[to.toLowerCase()]) to = langCodes[to.toLowerCase()]
 
             if (msg.reference) {
                 text = (await msg.fetchReference()).content
@@ -224,22 +224,28 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             links[`https://www.imdb.com/title/${match[1]}`] = match[2].replaceAll(/&#x([^;]+);/g, (_, num) => String.fromCodePoint(parseInt(num, 16)))
         }
         let linkList = Object.keys(links)
-        let text = ""
-        for (let [i, link] of enumerate(linkList)) {
-            text += `${i + 1}: ${links[link]}\n`
-        }
-        let ans: { content: string } | false =
-            !opts.getBool("a", false)
-                ? await promptUser(msg, `Pick one\n${text}`, sendCallback, {
-                    filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
-                })
-                : { content: "1" }
+        let link
+        if (!opts.getBool("a", false)) {
+            let text = ""
+            for (let [i, link] of enumerate(linkList)) {
+                text += `${i + 1}: ${links[link]}\n`
+            }
+            let ans: { content: string } | false =
+                !opts.getBool("a", false)
+                    ? await promptUser(msg, `Pick one\n${text}`, sendCallback, {
+                        filter: m => !isNaN(Number(m.content)) && m.author.id === msg.author.id
+                    })
+                    : { content: "1" }
 
-        if (!ans) {
-            return crv("Did not respond", { status: StatusCode.ERR })
-        }
+            if (!ans) {
+                return crv("Did not respond", { status: StatusCode.ERR })
+            }
 
-        let link = linkList[Number(ans.content) - 1]
+            link = linkList[Number(ans.content) - 1]
+        }
+        else {
+            link = linkList[0]
+        }
 
         let showReq = await fetch.default(link, {
             headers: {
@@ -474,9 +480,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             return crv("Could not get json", { status: StatusCode.ERR })
         }
         let embed = new EmbedBuilder()
-                        .setTitle(`School stats of ${user.username}`)
-                        .setColor(msg.member?.displayColor || "NotQuiteBlack")
-                        .addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["job", String(data.job?.name ?? "None")], ["grade", String(data.grade)]))
+            .setTitle(`School stats of ${user.username}`)
+            .setColor(msg.member?.displayColor || "NotQuiteBlack")
+            .addFields(efd(["smarts", String(data.smarts)], ["charm", String(data.charm)], ["guts", String(data.guts)], ["money", String(data.money)], ["job", String(data.job?.name ?? "None")], ["grade", String(data.grade)]))
         return { embeds: [embed], status: StatusCode.RETURN }
     }, "School stats", {
         helpOptions: {
@@ -634,9 +640,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let baseCommands = { ...Object.fromEntries(getCommands().entries()) }
 
-            if(interpreter.onWeb){
+            if (interpreter.onWeb) {
                 let commandsToUse = args.length ? {} : baseCommands
-                for(let arg of args){
+                for (let arg of args) {
                     commandsToUse[arg] = baseCommands[arg]
                 }
                 let html = ''
@@ -653,7 +659,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             const matchCmds = getMatchCommands()
 
-            let commands = {...baseCommands, ...matchCmds}
+            let commands = { ...baseCommands, ...matchCmds }
 
 
             if (!opts['txt'] && !args.length) {
@@ -4254,10 +4260,10 @@ valid formats:<br>
         "non-assigned-roles", ccmdV2(async function({ msg }) {
             await msg.guild?.members.fetch()
             let roles = await msg.guild?.roles.fetch()
-            if(!roles) return crv("No roles found", {status: StatusCode.ERR})
+            if (!roles) return crv("No roles found", { status: StatusCode.ERR })
             let rolesNonAssigned: any[] = []
-            for(let role of roles){
-                if(role[1].members.size < 1)
+            for (let role of roles) {
+                if (role[1].members.size < 1)
                     rolesNonAssigned.push(role[1].name)
             }
             return { content: rolesNonAssigned.join("\n") + `\n${rolesNonAssigned.length} roles do not have any members`, status: StatusCode.RETURN }

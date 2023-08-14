@@ -166,7 +166,6 @@ body[data-logged-in="false"] [data-hide-if-logged-out] {
     grid-column: 1 / -1;
 }
 
-
 .embed-fieldbox {
     padding-left: 3rem;
 }
@@ -214,11 +213,6 @@ body[data-logged-in="false"] [data-hide-if-logged-out] {
 .embed-footer-text {
     width: 100%;
 }
-
-/* .embed-field { */
-/*     display: grid; */
-/*     grid-template-rows: repeat(1fr, 2); */
-/* } */
 
 
 /*form*/
