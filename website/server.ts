@@ -518,7 +518,7 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             }
             let id = ACCESS_TOKENS[codeToken].user_id
             fs.readFile("./src/user-options.json", (err, data) => {
-                let html = `<!DOCTYPE html><html><head><link rel='stylesheet' href='common.css'><link rel='stylesheet' href='options.css'><link rel='stylesheet' href='/user-styles.css?user-id=${id}'></head><body><h1 id='saved-popup'>saved</h1>`
+                let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel='stylesheet' href='common.css'><link rel='stylesheet' href='options.css'><link rel='stylesheet' href='/user-styles.css?user-id=${id}'></head><body><h1 id='saved-popup'>saved</h1>`
                 if (err) {
                     res.writeHead(500)
                     res.end("Server error<br>Could not read user options file")
