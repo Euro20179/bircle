@@ -105,5 +105,9 @@
     },
     "location": {
         "description": "Your location"
+    },
+    "css": {
+        "description": "Custom css to use on the website",
+        "type": "textarea"
     }
 }

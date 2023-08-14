@@ -5,6 +5,21 @@
     <meta charset="UTF-8">
     <title>List of Commands</title>
     <link rel="stylesheet" href="commands.css" media="all">
+    <script>
+        if (document.cookie) {
+            fetch(`/api/profile/by-code-token/${document.cookie}`).then(value => value.json()).then(value => {
+                let customCss = value.options?.css
+                if (!customCss) return
+                let head = document.head
+                let link = document.createElement("link")
+                link.rel = 'stylesheet'
+                link.type = 'text/css'
+                link.href = `/user-styles.css?user-id=${value.id}`
+                link.media = 'all'
+                head.appendChild(link)
+            })
+        }
+    </script>
 </head>
 
 <body>

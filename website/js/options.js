@@ -1,4 +1,4 @@
-let inputs = document.querySelectorAll("input")
+let inputs = [...document.querySelectorAll("input")].concat([...document.querySelectorAll("textarea")])
 
 const savedHeader = document.getElementById("saved-popup")
 

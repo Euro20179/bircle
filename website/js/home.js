@@ -20,6 +20,24 @@ let converter = new showdown.Converter()
 
 const favico = document.querySelector("link[rel='shortcut icon']")
 
+function startupWithCodeToken() {
+    document.body.setAttribute("data-logged-in", "true")
+    favico.href = `/api/profile/by-code-token/${document.cookie}/pfp`
+
+    fetch(`/api/profile/by-code-token/${document.cookie}`).then(value => value.json()).then(value => {
+        let customCss = value.options?.css
+        if (!customCss) return
+        let head = document.head
+        let link = document.createElement("link")
+        link.rel = 'stylesheet'
+        link.type = 'text/css'
+        link.href = `/user-styles.css?user-id=${value.id}`
+        link.media = 'all'
+        head.appendChild(link)
+    })
+
+}
+
 if (urlParams.get("code") && !document.cookie) {
     codeToken = urlParams.get("code")
     document.cookie = `${codeToken}`
@@ -27,14 +45,12 @@ if (urlParams.get("code") && !document.cookie) {
         method: "POST",
 
     }).then(() => {
-        document.body.setAttribute("data-logged-in", "true")
-        favico.href = `/api/profile/by-code-token/${document.cookie}/pfp`
+        startupWithCodeToken()
     })
 }
 else if (document.cookie) {
     codeToken = document.cookie
-    document.body.setAttribute("data-logged-in", "true")
-    favico.href = `/api/profile/by-code-token/${document.cookie}/pfp`
+    startupWithCodeToken()
 }
 
 /**
@@ -79,7 +95,7 @@ class Embed {
         if (this.thumbnail) {
             let img = document.createElement("img")
             img.src = this.thumbnail.url
-            img.onload = function(_e){
+            img.onload = function(_e) {
                 let aspect = img.width / img.height
                 if (!isNaN(aspect)) {
                     img.width = 200

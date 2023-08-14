@@ -26,7 +26,7 @@ function sendFile(res: http.ServerResponse, fp: string, contentType?: string, st
     })
 }
 
-let ACCESS_TOKENS: { [key: string]: { token: string, refresh: string, user_id?: string } } = {
+let ACCESS_TOKENS: { [key: string]: { token: string, refresh: string, user_id: string } } = {
 
 }
 
@@ -107,9 +107,16 @@ function handlePost(req: http.IncomingMessage, res: http.ServerResponse, body: s
             })
                 .then(r => r.json())
                 .then((json) => {
-                    res.writeHead(200)
-                    res.end()
-                    ACCESS_TOKENS[userCodeToken as string] = { token: json.access_token, refresh: json.refresh_token }
+                    fetch('https://discord.com/api/v10/users/@me', {
+                        headers: {
+                            "Authorization": `Bearer ${json.access_token}`
+                        }
+                    }).then(json => json.json())
+                        .then(userJson => {
+                            ACCESS_TOKENS[userCodeToken as string] = { token: json.access_token, refresh: json.refresh_token, user_id: userJson.id }
+                            res.writeHead(200)
+                            res.end()
+                        })
                 })
             break
         }
@@ -210,24 +217,17 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                     res.end(JSON.stringify({ error: "Invalid code token" }))
                     return
                 }
-                fetch('https://discord.com/api/v10/users/@me', {
-                    headers: {
-                        "Authorization": `Bearer ${authToken}`
-                    }
-                }).then(res => res.json())
-                    .then(json => {
-                        let id = json.id
-                        if (subPaths[2] === 'pfp') {
-                            common.client.users.fetch(id).then(user => {
-                                sendPfp(user)
-                            }).catch(_reason => {
-                                sendFile(res, "./website/404.html", undefined, 404)
-                            })
-                        }
-                        else {
-                            sendJson(id)
-                        }
+                let id = ACCESS_TOKENS[token].user_id
+                if (subPaths[2] === 'pfp') {
+                    common.client.users.fetch(id).then(user => {
+                        sendPfp(user)
+                    }).catch(_reason => {
+                        sendFile(res, "./website/404.html", undefined, 404)
                     })
+                }
+                else {
+                    sendJson(id)
+                }
             }
             else {
                 let userId = subPaths[0]
@@ -269,8 +269,6 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             }
             res.end(JSON.stringify(user_options.getOpt(userId, validOption, null)))
             break;
-        }
-        case "set-option": {
         }
         case "reload-api-keys": {
             if (!urlParams) {
@@ -487,6 +485,19 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             sendFile(res, "./website/home.html")
             break;
         }
+        case "user-styles.css": {
+            let id = urlParams?.get("user-id")
+            if(!id){
+                sendFile(res, "./website/404.html", undefined, 404)
+            }
+            else {
+                let css = user_options.getOpt(id, "css", "")
+                res.setHeader("Content-Type", "text/css")
+                res.writeHead(200)
+                res.end(css)
+            }
+            break
+        }
         case "robots.txt": {
             res.writeHead(200)
             res.end("User-agent: *\nDisallow: /")
@@ -505,47 +516,38 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 res.end("<h1>Bad code token</h1>")
                 return
             }
-            fetch('https://discord.com/api/v10/users/@me', {
-                headers: {
-                    "Authorization": `Bearer ${discordToken}`
+            let id = ACCESS_TOKENS[codeToken].user_id
+            fs.readFile("./src/user-options.json", (err, data) => {
+                let html = `<!DOCTYPE html><html><head><link rel='stylesheet' href='common.css'><link rel='stylesheet' href='options.css'><link rel='stylesheet' href='/user-styles.css?user-id=${id}'></head><body><h1 id='saved-popup'>saved</h1>`
+                if (err) {
+                    res.writeHead(500)
+                    res.end("Server error<br>Could not read user options file")
+                    return
                 }
-            }).then(res => {
-                return res.json()
-            }).then((user) => {
-                let id = user.id
-                fs.readFile("./src/user-options.json", (err, data) => {
-                    let html = "<!DOCTYPE html><html><head><link rel='stylesheet' href='common.css'><link rel='stylesheet' href='options.css'></head><body><h1 id='saved-popup'>saved</h1>"
-                    if (err) {
-                        res.writeHead(500)
-                        res.end("Server error<br>Could not read user options file")
-                        return
+                let json = JSON.parse(data.toString())
+                for (let option in json) {
+                    let h = `<h1>${option}</h1>`
+                    let desc = `<p>${json[option].description || ""}</p>`
+                    let input
+                    if (json[option].type === 'textarea') {
+                        input = `<textarea id="${option}" type="${json[option].type || "text"}" placeholder="${json[option].placeholder || "text"}">${user_options.getOpt(id, option as any, "")}</textarea>`
                     }
-                    let json = JSON.parse(data.toString())
-                    for (let option in json) {
-                        let h = `<h1>${option}</h1>`
-                        let desc = `<p>${json[option].description || ""}</p>`
-                        let input
-                        if (json[option].type === 'textarea') {
-                            input = `<textarea id="${option}" type="${json[option].type || "text"}" placeholder="${json[option].placeholder || "text"}">${user_options.getOpt(id, option as any, "")}</textarea>`
+                    else if (json[option].type === 'checkbox') {
+                        input = `<input type="checkbox" placeholder="${json[option].placeholder || "text"}" id="${option}" `
+                        if (user_options.getOpt(id, option as any, "")) {
+                            input += "checked"
                         }
-                        else if (json[option].type === 'checkbox') {
-                            input = `<input type="checkbox" placeholder="${json[option].placeholder || "text"}" id="${option}" `
-                            if (user_options.getOpt(id, option as any, "")) {
-                                input += "checked"
-                            }
-                            input += ">"
-                        }
-                        else {
-                            input = `<input id="${option}"  type="${json[option].type || "text"}"  value="${user_options.getOpt(id, option as any, "")}" placeholder="${json[option].placeholder || "text"}">`
-                        }
-                        html += `${h}${desc}${input}<hr>`
+                        input += ">"
                     }
-                    res.writeHead(200)
-                    res.end(html + "</body><script src='/options.js'></script></html>")
-                })
-                return
+                    else {
+                        input = `<input id="${option}"  type="${json[option].type || "text"}"  value="${user_options.getOpt(id, option as any, "")}" placeholder="${json[option].placeholder || "text"}">`
+                    }
+                    html += `${h}${desc}${input}<hr>`
+                }
+                res.writeHead(200)
+                res.end(html + "</body><script src='/options.js'></script></html>")
             })
-            break;
+            return
         }
         case "discord": {
             sendFile(res, "./website/discord-login.html")
@@ -567,18 +569,18 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             return _apiSubPath(req, res, subPaths, urlParams)
         }
         case "command-file": {
-            if(!subPaths.length || !subPaths[0]){
+            if (!subPaths.length || !subPaths[0]) {
                 fs.readdir("./command-results", (err, files) => {
-                    if(err){
+                    if (err) {
                         res.writeHead(500)
-                        res.end({error: "Could not read directory"})
+                        res.end({ error: "Could not read directory" })
                         return
                     }
                     res.setHeader("Content-Type", "application/json")
                     res.end(JSON.stringify(files))
                 })
             }
-            else if(isSafeFilePath(subPaths[0]) && fs.existsSync(`./command-results/${subPaths[0]}`)){
+            else if (isSafeFilePath(subPaths[0]) && fs.existsSync(`./command-results/${subPaths[0]}`)) {
                 sendFile(res, `./command-results/${subPaths[0]}`, "text/plain")
             }
             break

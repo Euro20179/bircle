@@ -94,9 +94,10 @@ textarea{
     color: var(--link-color);
     text-indent: 2px;
     background-color: var(--main);
-    border-style: dashed;
+    border-style: solid;
     /* font-size: 1.2em; */
     border-radius: 5px;
+    border-width: 2px;
     outline: none;
     background-color: #ffffff22;
 

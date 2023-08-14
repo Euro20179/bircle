@@ -4,7 +4,22 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="common.css" media="all">
     <link rel="stylesheet" href="leaderboard.css" media="all">
-    <title></title>
+    <script>
+        if (document.cookie) {
+            fetch(`/api/profile/by-code-token/${document.cookie}`).then(value => value.json()).then(value => {
+                let customCss = value.options?.css
+                if (!customCss) return
+                let head = document.head
+                let link = document.createElement("link")
+                link.rel = 'stylesheet'
+                link.type = 'text/css'
+                link.href = `/user-styles.css?user-id=${value.id}`
+                link.media = 'all'
+                head.appendChild(link)
+            })
+        }
+    </script>
+    <title>Leaderboard</title>
 </head>
 <body>
     <h1>Leaderboard</h1>
