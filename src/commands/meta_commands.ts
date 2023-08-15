@@ -1525,24 +1525,19 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "remove-file",
-        {
-            run: async (msg, args, sendCallback) => {
-                let file = args[0]
-                if (!file) {
-                    return { content: "No file specified", status: StatusCode.ERR }
-                }
-                if (!fs.existsSync(`./command-results/${file}`)) {
-                    return { content: `${file} does not exist`, status: StatusCode.ERR }
-                }
-                fs.rmSync(`./command-results/${file}`)
-                return { content: `${file} removed`, status: StatusCode.RETURN }
-            }, category: CAT,
-            permCheck: m => globals.ADMINS.includes(m.author.id),
-            help: {
-                info: "Remove a database file"
+        "remove-file", ccmdV2(async function({ args }) {
+            let file = args[0]
+            if (!file) {
+                return { content: "No file specified", status: StatusCode.ERR }
             }
-        },
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                return { content: `${file} does not exist`, status: StatusCode.ERR }
+            }
+            fs.rmSync(`./command-results/${file}`)
+            return { content: `${file} removed`, status: StatusCode.RETURN }
+        }, "Remove a database file", {
+            permCheck: m => globals.ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [
