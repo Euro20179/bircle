@@ -1745,7 +1745,7 @@ Valid formats:
 
     yield [
         "weather",
-        ccmdV2(async function({ msg, args, opts }) {
+        ccmdV2(async function({ msg, args, opts, interpreter }) {
             let [city, ...fmt] = args.resplit("|")
             if (!city) {
                 city = userOptions.getOpt(msg.author.id, "location", "Tokyo")
@@ -1939,6 +1939,11 @@ Valid formats:
                     .setTitle(name)
             }
 
+            if(interpreter.onWeb){
+                let embeds = opts.getBool("C", false) ? celciusEmbeds.concat(forecastCEmbeds) : fEmbeds.concat(forecastEmbeds)
+                return {embeds: embeds, status: StatusCode.RETURN}
+            }
+
             let paged = new common_to_commands.PagedEmbed(msg, fEmbeds, "weather", false)
 
             let currentUnit = "f"
@@ -2015,7 +2020,8 @@ Valid formats:
             },
             helpOptions: {
                 'above-the-fold-data': createHelpOption("Get the raw json"),
-                'no-round': createHelpOption("Dont round the numbers")
+                'no-round': createHelpOption("Dont round the numbers"),
+                "C": createHelpOption("When used on the website send celcius instead of fahrenheit")
             }
         })
     ]

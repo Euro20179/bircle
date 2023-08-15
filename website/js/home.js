@@ -245,6 +245,7 @@ function handleSending(rv, removeChildren = true) {
 
     if (rv.embeds?.length) {
         for (let embed of rv.embeds) {
+            console.log(embed)
             let e = new Embed(embed)
             e.render()
         }
