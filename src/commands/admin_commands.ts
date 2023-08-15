@@ -48,17 +48,11 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "eval",
-        {
-            run: async (msg, args, sendCallback) => {
-                return { content: JSON.stringify(eval(args.join(" "))), status: StatusCode.RETURN }
-            },
-            category: CommandCategory.ADMIN,
-            permCheck: v => ADMINS.includes(v.author.id) || v.author.id === "288904417036468225",
-            "help": {
-                info: "run javascript"
-            }
-        },
+        "eval", ccmdV2(async function({args}){
+            return crv(JSON.stringify(eval(args.join(" "))))
+        }, "Run javascript", {
+            permCheck: m => ADMINS.includes.includes(m.author.id)
+        })
     ]
 
     yield [
