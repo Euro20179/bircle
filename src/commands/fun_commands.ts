@@ -1713,7 +1713,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 embed.setTitle(town)
                 embed.setColor(color as ColorResolvable)
                 embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
-                embed.setFooter({ text: `For more info, visit ${url}/${encodeURI(town)}` })
+                embed.setFooter({ text: `For more info, visit [wttr.in](${url}/${encodeURI(town)})` })
                 if (opts['fmt']) {
                     return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
                 }
