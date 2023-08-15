@@ -350,28 +350,26 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "pay-loan", {
-            run: async (msg, args, sendCallback) => {
-                let amount = args[0] || "all!"
-                let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
-                if (!msg.author.loan) {
-                    return { content: "You have no loans to pay off", status: StatusCode.ERR }
-                }
-                if (!economy.canBetAmount(msg.author.id, nAmount)) {
-                    return { content: "U do not have enough money to pay that back", status: StatusCode.ERR }
-                }
-                if (economy.payLoan(msg.author.id, nAmount)) {
-                    return { content: "You have fully payed off your loan", status: StatusCode.RETURN }
-                }
-                return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left`, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Pay off your lown",
-                arguments: {
-                    amount: createHelpArgument("The amount to pay off", false, undefined, "100%")
-                }
+        "pay-loan", ccmdV2(async function({ msg, args }) {
+
+            let amount = args[0] || "all!"
+            let nAmount = economy.calculateLoanAmountFromString(msg.author.id, amount) * 1.01
+            if (!msg.author.loan) {
+                return { content: "You have no loans to pay off", status: StatusCode.ERR }
             }
-        },
+            if (!economy.canBetAmount(msg.author.id, nAmount)) {
+                return { content: "U do not have enough money to pay that back", status: StatusCode.ERR }
+            }
+            if (economy.payLoan(msg.author.id, nAmount)) {
+                return { content: "You have fully payed off your loan", status: StatusCode.RETURN }
+            }
+            return { content: `You have payed off ${nAmount} of your loan and have ${economy.getEconomy()[msg.author.id].loanUsed} left`, status: StatusCode.RETURN }
+        }, "Pay off your loan", {
+            helpArguments: {
+
+                amount: createHelpArgument("The amount to pay off", false, undefined, "100%")
+            }
+        })
     ]
 
     yield [
@@ -407,8 +405,8 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                 embedPages.push(e)
             }
 
-            if(interpreter.onWeb){
-                return {embeds: embedPages, status: StatusCode.RETURN}
+            if (interpreter.onWeb) {
+                return { embeds: embedPages, status: StatusCode.RETURN }
             }
 
             let paged = new PagedEmbed(msg, embedPages, "inventory")
