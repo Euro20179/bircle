@@ -1569,20 +1569,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "l-bl",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                return {
-                    content: fs.readFileSync("command-perms/blacklists", "utf-8"),
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CAT,
-            help: {
-                info: "List all blacklists"
-            }
-
-        },
+        "l-bl", ccmdV2(async function(){
+            return { files: [crvFile("command-perms/blacklists", "Blacklists")], status: StatusCode.RETURN }
+        }, "Lists all blacklists")
     ]
 
     yield [
