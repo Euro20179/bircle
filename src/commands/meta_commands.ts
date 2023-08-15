@@ -1575,19 +1575,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "l-wl",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                return {
-                    content: fs.readFileSync("command-perms/whitelists", "utf-8"),
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CAT,
-            help: {
-                info: "List all whitelists"
-            }
-        },
+        "l-wl", ccmdV2(async function(){
+            return {files: [crvFile("command-perms/whitelists", "Whitelists")], status: StatusCode.RETURN}
+        }, "Lists all whitelists")
     ]
 
     yield [
