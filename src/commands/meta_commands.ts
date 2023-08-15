@@ -37,46 +37,46 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         permCheck: m => globals.ADMINS.includes(m.author.id)
     })]
 
-    yield ['endpoint', ccmdV2(async function({opts, args, stdin, msg}){
-        if(opts.getBool("l", false)){
+    yield ['endpoint', ccmdV2(async function({ opts, args, stdin, msg }) {
+        if (opts.getBool("l", false)) {
             return crv(fs.readdirSync('./data/custom-endpoints').join("\n"))
         }
         let name = args[0]
-        if(!isSafeFilePath(name)){
-            return crv("Bad name", {status: StatusCode.ERR})
+        if (!isSafeFilePath(name)) {
+            return crv("Bad name", { status: StatusCode.ERR })
         }
-        if(!name){
-            return crv("No name given", {status: StatusCode.ERR})
+        if (!name) {
+            return crv("No name given", { status: StatusCode.ERR })
         }
-        if(opts.getBool("d", false)){
-            if(!fs.existsSync(`./data/custom-endpoints/${name}.html`)){
-                return crv("Endpoint does not exist", {status: StatusCode.ERR})
+        if (opts.getBool("d", false)) {
+            if (!fs.existsSync(`./data/custom-endpoints/${name}.html`)) {
+                return crv("Endpoint does not exist", { status: StatusCode.ERR })
             }
             let userEndpoints = common.usersEndpoints(msg.author.id)
-            if(userEndpoints.includes(name)){
+            if (userEndpoints.includes(name)) {
                 common.removeEndPointFromUser(msg.author.id, name)
                 fs.rmSync(`./data/custom-endpoints/${name}.html`)
                 common.saveEndPointsDB()
                 return crv(`Endpoint, ${name}, deleted`)
             }
-            return crv("You do not own this endpoint", {status: StatusCode.ERR})
+            return crv("You do not own this endpoint", { status: StatusCode.ERR })
         }
 
-        if(fs.existsSync(`./data/custom-endpoints/${name}.html`)){
-            return crv("That endpoint already exists", {status: StatusCode.ERR})
+        if (fs.existsSync(`./data/custom-endpoints/${name}.html`)) {
+            return crv("That endpoint already exists", { status: StatusCode.ERR })
         }
 
         let data = stdin ? getContentFromResult(stdin) : args.slice(1).join(" ")
 
-        if(msg.attachments.at(0)){
+        if (msg.attachments.at(0)) {
             data = await (await fetch(msg.attachments.at(0)!.url)).text()
         }
 
-        if(!data){
-            return crv("No data to put on the page", {status: StatusCode.ERR})
+        if (!data) {
+            return crv("No data to put on the page", { status: StatusCode.ERR })
         }
 
-        if(!opts.getBool("no-head", false)){
+        if (!opts.getBool("no-head", false)) {
             data = "<!DOCTYPE html><head><meta charset='utf-8'><link rel='stylesheet' href='/common.css'></link></head>" + data
         }
 
@@ -88,16 +88,16 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
         return crv(`You can access the page [here](http://bircle.euro20179.com:8222/custom/${name})`)
     }, "Create an endpoint on the website", {
-            accepts_stdin: "Can be used instead of the data argument",
-            helpArguments: {
-                name: createHelpArgument("The name of the endpoint", true),
-                data: createHelpArgument("The data to put on the website")
-            },
-            helpOptions: {
-                d: createHelpOption("Delete the endpoint"),
-                "no-head": createHelpOption("Do not add the default head which includes the default styling")
-            }
-        })]
+        accepts_stdin: "Can be used instead of the data argument",
+        helpArguments: {
+            name: createHelpArgument("The name of the endpoint", true),
+            data: createHelpArgument("The data to put on the website")
+        },
+        helpOptions: {
+            d: createHelpOption("Delete the endpoint"),
+            "no-head": createHelpOption("Do not add the default head which includes the default styling")
+        }
+    })]
 
     yield ["get-var", ccmdV2(async function({ args, opts, msg }) {
         let as = opts.getString("as", msg.author.id)
@@ -177,7 +177,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     }, "Gets the interpreter env")]
 
     yield ['ps', ccmdV2(async function() {
-        return crv(Array.from({length: PIDS.length}, (_, i) => `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}`).join("\n"))
+        return crv(Array.from({ length: PIDS.length }, (_, i) => `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}`).join("\n"))
     }, "Gets all running processes")]
 
     yield ['kill', ccmdV2(async function({ argShapeResults }) {
@@ -434,9 +434,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (validOpt) {
                 return { content: `**${optionToCheck}**\n${user_options.getOpt(user, validOpt, "\\_\\_unset\\_\\_")}`, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
             }
-            if(interpreter.onWeb){
+            if (interpreter.onWeb) {
                 let html = ""
-                for(let opt of user_options.allowedOptions){
+                for (let opt of user_options.allowedOptions) {
                     html += `<h3>${opt}</h3><br><p><pre>${userOpts?.[opt] ?? "\\_\\_unset\\_\\_"}</pre></p><hr><br>`
                 }
                 return crv(html)
@@ -1511,24 +1511,17 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "create-file",
-        {
-            run: async (_msg, args) => {
-                let file = args[0]
-                if (!file) {
-                    return { content: "No file specified", status: StatusCode.ERR }
-                }
-                if (!isSafeFilePath(file)) {
-                    return { content: `cannot create a file called ${file}`, status: StatusCode.ERR }
-                }
-                fs.writeFileSync(`./command-results/${file}`, "")
-                return { content: `${file} created`, status: StatusCode.RETURN }
-            },
-            category: CAT,
-            help: {
-                info: "Create a database file"
+        "create-file", ccmdV2(async function({ args }) {
+            let file = args[0]
+            if (!file) {
+                return { content: "No file specified", status: StatusCode.ERR }
             }
-        },
+            if (!isSafeFilePath(file)) {
+                return { content: `cannot create a file called ${file}`, status: StatusCode.ERR }
+            }
+            fs.writeFileSync(`./command-results/${file}`, "")
+            return { content: `${file} created`, status: StatusCode.RETURN }
+        }, "Create a database file")
     ]
 
     yield [
