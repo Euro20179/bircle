@@ -816,7 +816,7 @@ wsServer.on("connection", function(ws, req) {
     ws.on("message", data => {
         let jsonData = JSON.parse(data.toString())
         if (jsonData.event === "run") {
-            let cmd = jsonData.data
+            let cmd = `W:${jsonData.data}`
             if (codeToken) {
                 let discordToken = ACCESS_TOKENS[codeToken]?.token
                 if (!discordToken) {

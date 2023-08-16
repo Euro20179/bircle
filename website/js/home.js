@@ -276,9 +276,6 @@ runButton.addEventListener("click", async (e) => {
         url += `&channel-id=${channelId[1]}`
     }
 
-    //tell the interpreter that it's being run from web
-    cmd = `W:${cmd}`
-
     ws = new WebSocket(`ws://${window.location.host}/run?code-token=${codeToken}`)
 
     ws.addEventListener("open", function(e) {
