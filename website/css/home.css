@@ -12,7 +12,8 @@
 
 @media (max-width: 1000px) {
     :root {
-        --max-width: 80%;
+        --max-width: 90%;
+        font-size: 0.8rem;
     }
 
     header h1 {
@@ -29,6 +30,19 @@
         text-align: center;
         justify-content: center;
         flex-wrap: wrap;
+    }
+
+    div#command-output{
+        max-width: calc(100% - var(--command-output-border));
+        padding: var(--command-output-padding) 0;
+    }
+
+    #form {
+        width: 100%;
+    }
+
+    #form :is(#run-button, textarea){
+        margin: 0;
     }
 }
 
@@ -216,7 +230,7 @@ body[data-logged-in="false"] [data-hide-if-logged-out] {
 
 
 /*form*/
-#form {
+:where(#form) { /*no specificity for the media query for mobile*/
     display: flex;
     flex-direction: row;
     width: calc(var(--max-width) + var(--command-output-border) * 2 + var(--command-output-padding) * 2);
