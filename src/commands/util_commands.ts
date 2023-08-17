@@ -394,8 +394,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let { year: yS, month: mS, day: dS } = json.data.Media.startDate
             let { year: yE, month: mE, day: dE } = json.data.Media.endDate
 
-
-            embed.addFields({ name: "Start/End Date", value: `${mS}/${dS}/${yS} - ${mE}/${dE}/${yE}`, inline: true })
+            embed.addFields({name: "Rating", value: `${json.data.Media.meanScore} / 100`, inline: true})
 
             if (yE) {
                 embed.addFields({ name: `Favorites / Popularity`, value: `${json.data.Media.favourites} / ${json.data.Media.popularity}`, inline: true })
@@ -406,7 +405,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let rawHTML = htmlRenderer.renderHTML(json.data.Media.description).replaceAll("\n\n", "\n")
             let [html, note] = rawHTML.split("**Note:**")
             embed.setDescription(html || "No desecription")
-            embed.setFooter({ text: `**Note:** ${note}\n\nId: ${json.data.Media.id}\nType: ${titleStr(json.data.Media.type.toLowerCase())}` })
+            embed.setFooter({ text: `**Note:** ${note}\n\nStart/End date: ${mS}/${dS}/${yS} - ${mE}/${dE}/${yE}\n\nId: ${json.data.Media.id}\n\nType: ${titleStr(json.data.Media.type.toLowerCase())}` })
             embed.setImage(json.data.Media.coverImage.large)
             embed.setColor(json.data.Media.coverImage.color)
 
