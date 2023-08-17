@@ -307,7 +307,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             .setTitle(workingJson.name)
             .setDescription(workingJson.description.replaceAll(/&#x([^;]+);/g, (_: string, num: string) => String.fromCodePoint(parseInt(num, 16))))
             .setURL(workingJson.url)
-            .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating, inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
+            .setFields({ name: "Review Score", value: `${workingJson.aggregateRating.ratingValue} (${workingJson.aggregateRating.ratingCount})`, inline: true }, { name: "Rated", value: workingJson.contentRating || "Unrated", inline: true }, { name: "Runtime", value: `${h}:${m.replace("M", "")}:00`, inline: true }, { name: "Genre", value: workingJson.genre.join(", "), inline: true })
 
         e.setThumbnail(workingJson.image)
 

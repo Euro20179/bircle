@@ -41,7 +41,7 @@
         width: 100%;
     }
 
-    #form :is(#run-button, textarea){
+    #form :is(button[id], textarea){
         margin: 0;
     }
 }
