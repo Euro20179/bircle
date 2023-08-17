@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title></title>
     <link rel="stylesheet" href="common.css" media="all">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
         if (document.cookie) {
             fetch(`/api/profile/by-code-token/${document.cookie}`).then(value => value.json()).then(value => {
