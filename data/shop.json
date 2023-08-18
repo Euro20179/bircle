@@ -31,12 +31,6 @@
         "uses": 1,
         "cost": ["infinity"]
     },
-    "reset economy": {
-        "description": "Allows you to run RESET_ECONOMY",
-        "uses": 1,
-        "cost": ["99%+100"],
-        "puffle-banned": true
-    },
     "fishing rod": {
         "description": "Allows you to go fishing",
         "uses": 10,
