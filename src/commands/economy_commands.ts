@@ -383,6 +383,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let sortFunction = opts.getBool("n", false) ? ([_, count]: [string, number], [_2, count2]: [string, number]) => count2 - count : ([name, _]: [string, number], [name2, _2]: [string, number]) => name > name2 ? 1 : -1
 
+            if(!getInventory()[user.id]){
+                return crv(`${user.username} does not have any items`)
+            }
+
             const PLAYER_INV = Object.entries(getInventory()[user.id]).sort(sortFunction)
 
             const embedPages: EmbedBuilder[] = []
