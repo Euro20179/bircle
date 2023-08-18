@@ -394,7 +394,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let { year: yS, month: mS, day: dS } = json.data.Media.startDate
             let { year: yE, month: mE, day: dE } = json.data.Media.endDate
 
-            embed.addFields({name: "Rating", value: `${json.data.Media.meanScore} / 100`, inline: true})
+            embed.addFields({ name: "Rating", value: `${json.data.Media.meanScore} / 100`, inline: true })
 
             if (yE) {
                 embed.addFields({ name: `Favorites / Popularity`, value: `${json.data.Media.favourites} / ${json.data.Media.popularity}`, inline: true })
@@ -1916,102 +1916,102 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "yt", ccmdV2(async function({msg, rawOpts: opts, args, interpreter}){
-                let instance = 'https://vid.puffyan.us'
+        "yt", ccmdV2(async function({ msg, rawOpts: opts, args, interpreter }) {
+            let instance = 'https://vid.puffyan.us'
 
-                let pageNo = Number(opts['page'] as string) || 1
+            let pageNo = Number(opts['page'] as string) || 1
 
-                let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}&type=video`)
-                let jsonData = await res.json()
+            let res = await fetch.default(`${instance}/api/v1/search?q=${encodeURI(args.join(" "))}&page=${encodeURI(String(pageNo))}&type=video`)
+            let jsonData = await res.json()
 
-                let valid_thumbnail_qualities = [
-                    "maxres",
-                    "maxresdefault",
-                    "sddefault",
-                    "high",
-                    "medium",
-                    "default",
-                    "start",
-                    "middle",
-                    "end"
-                ]
-                let thumbnail_quality = valid_thumbnail_qualities.filter(v => v === opts['thumb-quality'])[0] || "high"
+            let valid_thumbnail_qualities = [
+                "maxres",
+                "maxresdefault",
+                "sddefault",
+                "high",
+                "medium",
+                "default",
+                "start",
+                "middle",
+                "end"
+            ]
+            let thumbnail_quality = valid_thumbnail_qualities.filter(v => v === opts['thumb-quality'])[0] || "high"
 
 
-                if (opts['list']) {
-                    let fmt = opts['list']
-                    if (fmt == true) {
-                        fmt = "%l\n"
-                    }
-
-                    let string = ""
-                    for (let res of jsonData) {
-                        string += format(fmt, { l: `https://www.youtube.com/watch?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A" })
-                    }
-
-                    return { content: string, status: StatusCode.RETURN }
+            if (opts['list']) {
+                let fmt = opts['list']
+                if (fmt == true) {
+                    fmt = "%l\n"
                 }
 
-                let pagedEmbed = new common_to_commands.PagedEmbed(msg, [], "yt")
-
-                let pages = jsonData.length
-                let i = 0
-
+                let string = ""
                 for (let res of jsonData) {
-                    i++;
-                    let e = new EmbedBuilder()
-                    e.setTitle(String(res['title']))
-                    e.setURL(`https://www.youtube.com/watch?v=${res.videoId}`)
-
-                    if (res.description) {
-                        e.setDescription(res.description)
-                    }
-
-                    e.setFooter({ text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}` })
-
-                    e.setImage(res.videoThumbnails?.filter((v: any) => v.quality == thumbnail_quality)[0].url)
-
-                    pagedEmbed.embeds.push(e)
-
-                    pagedEmbed.addButton(`json.${res.videoId}`, { label: "JSON", style: ButtonStyle.Secondary, customId: `yt.json.${res.videoId}:${msg.author.id}` }, (int) => {
-                        console.log(int, "clicked")
-                        //2 magic number because yt.json.<id>
-                        let yt_id = int.customId.split(":")[0].split(".")[2]
-                        let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
-                        const fn = cmdFileName`yt ${msg.author.id} json`
-                        fs.writeFileSync(fn, JSON.stringify(json_data))
-                        int.reply({
-                            files: [
-                                {
-                                    attachment: fn,
-                                    name: fn,
-                                }
-                            ]
-                        }).catch(console.error).then(_ => {
-                            fs.rmSync(fn)
-                        })
-                        return
-
-                    }, i - 1)
+                    string += format(fmt, { l: `https://www.youtube.com/watch?v=${res.videoId}` || "N/A", t: res.title || "N/A", c: res.author || "N/A", d: res.lengthSeconds || "N/A", v: res.viewCount || "N/A", u: res.publishedText || "N/A" })
                 }
 
-                if(interpreter.onWeb){
-                    return {embeds: pagedEmbed.embeds, status: StatusCode.RETURN}
+                return { content: string, status: StatusCode.RETURN }
+            }
+
+            let pagedEmbed = new common_to_commands.PagedEmbed(msg, [], "yt")
+
+            let pages = jsonData.length
+            let i = 0
+
+            for (let res of jsonData) {
+                i++;
+                let e = new EmbedBuilder()
+                e.setTitle(String(res['title']))
+                e.setURL(`https://www.youtube.com/watch?v=${res.videoId}`)
+
+                if (res.description) {
+                    e.setDescription(res.description)
                 }
 
-                await pagedEmbed.begin()
-                if (opts['json']) {
-                    return { content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN }
-                }
-                return { noSend: true, status: StatusCode.RETURN }
+                e.setFooter({ text: `https://www.youtube.com/watch?v=${res.videoId}\n${i}/${pages}` })
 
-           }, "Searches youtube", {
-               helpArguments: {
-                    "search": createHelpArgument("The search query", true)
-               },
-               helpOptions: {
-                    page: createHelpOption("The page to search"),
-                    "list": createHelpOption(`List the results
+                e.setImage(res.videoThumbnails?.filter((v: any) => v.quality == thumbnail_quality)[0].url)
+
+                pagedEmbed.embeds.push(e)
+
+                pagedEmbed.addButton(`json.${res.videoId}`, { label: "JSON", style: ButtonStyle.Secondary, customId: `yt.json.${res.videoId}:${msg.author.id}` }, (int) => {
+                    console.log(int, "clicked")
+                    //2 magic number because yt.json.<id>
+                    let yt_id = int.customId.split(":")[0].split(".")[2]
+                    let json_data = jsonData.filter((v: any) => v.videoId == yt_id)[0]
+                    const fn = cmdFileName`yt ${msg.author.id} json`
+                    fs.writeFileSync(fn, JSON.stringify(json_data))
+                    int.reply({
+                        files: [
+                            {
+                                attachment: fn,
+                                name: fn,
+                            }
+                        ]
+                    }).catch(console.error).then(_ => {
+                        fs.rmSync(fn)
+                    })
+                    return
+
+                }, i - 1)
+            }
+
+            if (interpreter.onWeb) {
+                return { embeds: pagedEmbed.embeds, status: StatusCode.RETURN }
+            }
+
+            await pagedEmbed.begin()
+            if (opts['json']) {
+                return { content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN }
+            }
+            return { noSend: true, status: StatusCode.RETURN }
+
+        }, "Searches youtube", {
+            helpArguments: {
+                "search": createHelpArgument("The search query", true)
+            },
+            helpOptions: {
+                page: createHelpOption("The page to search"),
+                "list": createHelpOption(`List the results
 <br>
 this can be set equal to a format which will be "%l\\n" by default
 %l: link
@@ -2021,8 +2021,8 @@ this can be set equal to a format which will be "%l\\n" by default
 %v: view count
 %u: upload date
 `),
-                    "json": createHelpOption("Send the resulting json result"),
-                    "thumb-quality": createHelpOption(`The quality of the thumbnail,
+                "json": createHelpOption("Send the resulting json result"),
+                "thumb-quality": createHelpOption(`The quality of the thumbnail,
 <br>
 Valid options:
 maxres
@@ -2034,29 +2034,23 @@ default
 start
 middle
 `)
-                   
-               }
+
+            }
         })
     ]
 
     yield [
-        'fetch-time',
-        {
-            run: async (msg, args) => {
-                let url = "https://www.duckduckgo.com"
-                try {
-                    let start = Date.now()
-                    await fetch.default(url, { timeout: 1500 })
-                    return { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }
-                }
-                catch (err) {
-                    return { content: "Problem fetching ".concat(url), status: StatusCode.ERR }
-                }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Getss the ping to an ip (timeout after 1.5s)"
+        'fetch-time', ccmdV2(async function() {
+            let url = "https://www.duckduckgo.com"
+            try {
+                let start = Date.now()
+                await fetch.default(url, { timeout: 1500 })
+                return { content: `${Date.now() - start}ms`, status: StatusCode.RETURN }
             }
-        },
+            catch (err) {
+                return { content: "Problem fetching ".concat(url), status: StatusCode.ERR }
+            }
+        }, "Gets the ping to an ip (timeout after 1.5s)")
     ]
 
     yield [
