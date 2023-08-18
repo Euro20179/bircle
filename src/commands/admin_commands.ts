@@ -130,7 +130,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     useItem(msg.author.id, "reset economy")
                 }
 
-                fs.cpSync("./database/economy.json", "economy-old.json")
+                fs.cpSync("./database/economy.json", "./database/economy-old.json")
 
                 economy.resetEconomy()
 
