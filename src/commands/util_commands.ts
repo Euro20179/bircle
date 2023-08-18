@@ -2043,7 +2043,7 @@ middle
         'fetch-time',
         {
             run: async (msg, args) => {
-                let url = args.join(" ") || "https://www.duckduckgo.com"
+                let url = "https://www.duckduckgo.com"
                 try {
                     let start = Date.now()
                     await fetch.default(url, { timeout: 1500 })
