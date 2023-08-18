@@ -175,7 +175,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             let type = args[0]
 
             if (!allowedTypes.includes(type)) {
-                return { content: `Usage: \`${PREFIX}buy <${allowedTypes.join("|")}> ...\``, status: StatusCode.ERR }
+                return { content: `Usage: \`${PREFIX}buy <${allowedTypes.join("|")}> ${args.join(" ")}\``, status: StatusCode.ERR }
             }
 
             let item = args.slice(1).join(" ")
