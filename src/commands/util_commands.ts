@@ -1916,9 +1916,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "yt",
-        {
-            run: async (msg, _, sc, opts, args) => {
+        "yt", ccmdV2(async function({msg, rawOpts: opts, args, interpreter}){
                 let instance = 'https://vid.puffyan.us'
 
                 let pageNo = Number(opts['page'] as string) || 1
@@ -1997,19 +1995,21 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }, i - 1)
                 }
 
+                if(interpreter.onWeb){
+                    return {embeds: pagedEmbed.embeds, status: StatusCode.RETURN}
+                }
+
                 await pagedEmbed.begin()
                 if (opts['json']) {
                     return { content: Buffer.from(JSON.stringify(jsonData)).toString("base64"), status: StatusCode.RETURN }
                 }
                 return { noSend: true, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Searches youtube with an invidious intance",
-                arguments: {
+
+           }, "Searches youtube", {
+               helpArguments: {
                     "search": createHelpArgument("The search query", true)
-                },
-                options: {
+               },
+               helpOptions: {
                     page: createHelpOption("The page to search"),
                     "list": createHelpOption(`List the results
 <br>
@@ -2034,10 +2034,9 @@ default
 start
 middle
 `)
-
-                }
-            }
-        },
+                   
+               }
+        })
     ]
 
     yield [
