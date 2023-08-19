@@ -114,9 +114,9 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             }).join("")).setFooter({ text: `${moveCount} guesses remaining` }).setAuthor({ name: msg.author.username, iconURL: msg.author.avatarURL() as string })
             await handleSending(msg, { content: msg.author.toString(), status: StatusCode.INFO, embeds: [e] })
         }
-        if(opts.getNumber("moves", 9) - moveCount === 1){
+        if (opts.getNumber("moves", 9) - moveCount === 1) {
             let ach = achievements.achievementGet(msg.author.id, "mind master")
-            if(ach) await handleSending(msg, ach)
+            if (ach) await handleSending(msg, ach)
         }
         globals.endCommand(msg.author.id, "mastermind")
         return crv(`${msg.author} won with ${moveCount + 1} guesses remaining`)
@@ -1088,13 +1088,13 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             const searchResp = await fetch.default(`${BASE}?action=opensearch&search=${search}&limit=${LIMIT}`)
             const searchResult = await searchResp.json()
             let title;
-            if(opts.getBool("a", false)){
+            if (opts.getBool("a", false)) {
                 title = searchResult[1][0]
             }
-            else if(opts.getBool("r", false)){
+            else if (opts.getBool("r", false)) {
                 title = choice(searchResult[1])
             }
-            else{
+            else {
                 let n = await promptUser(msg, searchResult[1].map((v: string, i: string) => `${i + 1}: ${v}`).join("\n"), sendCallback, {
                     timeout: 30000,
                     filter: m => {
@@ -1570,76 +1570,71 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "edit",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                if (opts['d'] && msg.deletable) await msg.delete()
-                let edits = args.join(" ").split("|")
-                let message
-                try {
-                    message = await handleSending(msg, { content: edits[0], status: StatusCode.INFO }, sendCallback)
+        "edit", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            if (opts['d'] && msg.deletable) await msg.delete()
+            let edits = args.join(" ").split("|")
+            let message
+            try {
+                message = await handleSending(msg, { content: edits[0], status: StatusCode.INFO }, sendCallback)
+            }
+            catch (err) {
+                return { content: "message too big", status: StatusCode.ERR }
+            }
+            edits = edits.slice(1)
+            let lastEdit = message.content
+            for (let edit of edits) {
+                if (edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))) {
+                    await new Promise(res => setTimeout(res, parseFloat(edit.slice(1, -1))))
+                    continue
                 }
-                catch (err) {
-                    return { content: "message too big", status: StatusCode.ERR }
+                else if (edit[0] == "-") {
+                    edit = lastEdit.replaceAll(edit.slice(1), "")
                 }
-                edits = edits.slice(1)
-                let lastEdit = message.content
-                for (let edit of edits) {
-                    if (edit.startsWith("!") && edit.endsWith("!") && !isNaN(parseFloat(edit.slice(1, -1)))) {
-                        await new Promise(res => setTimeout(res, parseFloat(edit.slice(1, -1))))
-                        continue
+                else if (edit[0] == "+") {
+                    edit = lastEdit + edit.slice(1)
+                }
+                else if (edit[0] == "*") {
+                    let times = parseInt(edit.slice(1))
+                    edit = lastEdit
+                    for (let i = 1; i < times; i++) {
+                        edit += lastEdit
                     }
-                    else if (edit[0] == "-") {
-                        edit = lastEdit.replaceAll(edit.slice(1), "")
-                    }
-                    else if (edit[0] == "+") {
-                        edit = lastEdit + edit.slice(1)
-                    }
-                    else if (edit[0] == "*") {
-                        let times = parseInt(edit.slice(1))
-                        edit = lastEdit
-                        for (let i = 1; i < times; i++) {
-                            edit += lastEdit
-                        }
-                    }
-                    else if (edit[0] == "/") {
-                        let divideBy = parseInt(edit.slice(1))
-                        edit = lastEdit.slice(0, lastEdit.length / divideBy)
-                    }
-                    else if (edit[0] == ";") {
-                        try {
-                            message = await handleSending(msg, { content: edit.slice(1), status: StatusCode.INFO }, sendCallback)
-                        }
-                        catch (err) {
-                            return { content: "message too big", status: StatusCode.ERR }
-                        }
-                        continue
-                    }
+                }
+                else if (edit[0] == "/") {
+                    let divideBy = parseInt(edit.slice(1))
+                    edit = lastEdit.slice(0, lastEdit.length / divideBy)
+                }
+                else if (edit[0] == ";") {
                     try {
-                        await message.edit({ content: edit })
+                        message = await handleSending(msg, { content: edit.slice(1), status: StatusCode.INFO }, sendCallback)
                     }
                     catch (err) {
-                        if (!message.deletable) {
-                            return { noSend: true, status: StatusCode.ERR }
-                        }
-                        await handleSending(msg, { content: `Could not edit message with: ${edit}`, status: StatusCode.ERR }, sendCallback)
+                        return { content: "message too big", status: StatusCode.ERR }
                     }
-                    await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
-                    lastEdit = message.content
+                    continue
                 }
-                return { noSend: true, status: StatusCode.INFO }
-            },
-            help: {
-                arguments: {
-                    texts: {
-                        description: "Seperate each edit with a |<br><b>Sepcial Operators:</b><ul><li><i>-</i>: remove letters from the last edit</li><li><i>+</i>: add to the previous edit instead of replacing it</li><li><i>*</i>: Multiply the last edit a certain number of times</li><li><i>/</i>: divide the last edit by a number</li><li><i>;</i>start a new message</li><li><i>!&lt;number&gt;!</i>: Wait &lt;number&gt; seconds before going to the next edit</li></ul>"
+                try {
+                    await message.edit({ content: edit })
+                }
+                catch (err) {
+                    if (!message.deletable) {
+                        return { noSend: true, status: StatusCode.ERR }
                     }
+                    await handleSending(msg, { content: `Could not edit message with: ${edit}`, status: StatusCode.ERR }, sendCallback)
                 }
-            },
-            category: CommandCategory.FUN
-        },
+                await new Promise(res => setTimeout(res, Math.random() * 800 + 200))
+                lastEdit = message.content
+            }
+            return { noSend: true, status: StatusCode.INFO }
+        }, "Send a message and do edits on it", {
+            arguments: {
+                texts: {
+                    description: "Seperate each edit with a |<br><b>Sepcial Operators:</b><ul><li><i>-</i>: remove letters from the last edit</li><li><i>+</i>: add to the previous edit instead of replacing it</li><li><i>*</i>: Multiply the last edit a certain number of times</li><li><i>/</i>: divide the last edit by a number</li><li><i>;</i>start a new message</li><li><i>!&lt;number&gt;!</i>: Wait &lt;number&gt; seconds before going to the next edit</li></ul>"
+                }
+            }
+        })
     ]
 
     yield [
@@ -1939,9 +1934,9 @@ Valid formats:
                     .setTitle(name)
             }
 
-            if(interpreter.onWeb){
+            if (interpreter.onWeb) {
                 let embeds = opts.getBool("C", false) ? celciusEmbeds.concat(forecastCEmbeds) : fEmbeds.concat(forecastEmbeds)
-                return {embeds: embeds, status: StatusCode.RETURN}
+                return { embeds: embeds, status: StatusCode.RETURN }
             }
 
             let paged = new common_to_commands.PagedEmbed(msg, fEmbeds, "weather", false)
@@ -2127,8 +2122,8 @@ Valid formats:
                 return embeds
             }
             const json = await req.json()
-            if(interpreter.onWeb){
-                return {embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN}
+            if (interpreter.onWeb) {
+                return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
             }
             let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")
 

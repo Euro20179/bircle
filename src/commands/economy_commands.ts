@@ -475,8 +475,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "shop", {
-            run: async (msg, args, sendCallback, opts) => {
+        "shop", ccmdV2(async function({msg, args, rawOpts: opts}){
                 let items = fs.readFileSync("./data/shop.json", "utf-8")
                 let user = msg.author
                 let userCheckingShop = user
@@ -522,11 +521,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     pages.push(e)
                 }
                 return { embeds: pages, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "List items in the shop",
-            }
-        },
+        },  "List items in the shop")
     ]
 
     yield [

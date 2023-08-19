@@ -1274,7 +1274,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     <li>list-types</li>
     <li>search (requires search query)</li>
 </ul>`, true),
-                search_query: createHelpArgument( "The search query if type is <code>search</code>", false, "type")
+                search_query: createHelpArgument("The search query if type is <code>search</code>", false, "type")
             }
         })
     ]
@@ -1440,96 +1440,84 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "abattle",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let text = args.join(" ")
-                let damageUsers = opts['damage'] || opts['d']
-                let healUsers = opts['heal'] || opts['h']
-                let amounts = ['huge', 'big', 'medium', 'small', 'tiny']
-                let givenAmount = opts['amount'] || opts['a']
-                if (typeof givenAmount !== 'string') {
-                    return { content: `You must provide an amount (${amounts.join(", ")})`, status: StatusCode.ERR }
+        "abattle", ccmdV2(async function({ msg, rawArgs: args }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let text = args.join(" ")
+            let damageUsers = opts['damage'] || opts['d']
+            let healUsers = opts['heal'] || opts['h']
+            let amounts = ['huge', 'big', 'medium', 'small', 'tiny']
+            let givenAmount = opts['amount'] || opts['a']
+            if (typeof givenAmount !== 'string') {
+                return { content: `You must provide an amount (${amounts.join(", ")})`, status: StatusCode.ERR }
+            }
+            if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
+                return { content: `You must provide a user to damage/heal`, status: StatusCode.ERR }
+            }
+            if (damageUsers !== undefined && typeof damageUsers !== 'string') {
+                return { content: "-damage must be a user number or all", status: StatusCode.ERR }
+            }
+            if (healUsers !== undefined && typeof healUsers !== 'string') {
+                return { content: "-heal must be a user number or all", status: StatusCode.ERR }
+            }
+            if (!amounts.includes(givenAmount)) {
+                return { content: `You did not provide a valid amount (${amounts.join(", ")})`, status: StatusCode.ERR }
+            }
+            let damageHealText = ""
+            if (damageUsers) {
+                if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
+                    return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
                 }
-                if (typeof damageUsers !== 'string' && typeof healUsers !== 'string') {
-                    return { content: `You must provide a user to damage/heal`, status: StatusCode.ERR }
+                damageHealText += ` DAMAGE=${damageUsers}`
+            }
+            if (healUsers) {
+                if (!healUsers.match(/(?:(\d+|all),?)+/)) {
+                    return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
                 }
-                if (damageUsers !== undefined && typeof damageUsers !== 'string') {
-                    return { content: "-damage must be a user number or all", status: StatusCode.ERR }
+                damageHealText += ` HEAL=${healUsers}`
+            }
+            fs.appendFileSync("./command-results/battle", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText};END\n`)
+            return { content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}`, status: StatusCode.RETURN }
+        }, "Add a battle command with a nice ui ™️", {
+            arguments: {
+                "text": {
+                    description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc..."
                 }
-                if (healUsers !== undefined && typeof healUsers !== 'string') {
-                    return { content: "-heal must be a user number or all", status: StatusCode.ERR }
-                }
-                if (!amounts.includes(givenAmount)) {
-                    return { content: `You did not provide a valid amount (${amounts.join(", ")})`, status: StatusCode.ERR }
-                }
-                let damageHealText = ""
-                if (damageUsers) {
-                    if (!damageUsers.match(/(?:(\d+|all),?)+/)) {
-                        return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
-                    }
-                    damageHealText += ` DAMAGE=${damageUsers}`
-                }
-                if (healUsers) {
-                    if (!healUsers.match(/(?:(\d+|all),?)+/)) {
-                        return { content: "Users must be numbers seperated by ,", status: StatusCode.ERR }
-                    }
-                    damageHealText += ` HEAL=${healUsers}`
-                }
-                fs.appendFileSync("./command-results/battle", `${msg.author.id}: ${text} AMOUNT=${givenAmount} ${damageHealText};END\n`)
-                return { content: `Added\n${text} AMOUNT=${givenAmount} ${damageHealText}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Add a battle command with a nice ui ™️",
-                arguments: {
-                    "text": {
-                        description: "The text to show<br>{user1} will be replaced with user1, {user2} with user2, etc..."
-                    }
+            },
+            options: {
+                "heal": {
+                    alternates: ['u'],
+                    description: "The user(s) to heal"
                 },
-                options: {
-                    "heal": {
-                        alternates: ['u'],
-                        description: "The user(s) to heal"
-                    },
-                    "damage": {
-                        alternates: ['d'],
-                        description: "The user(s) to damage"
-                    },
-                    "amount": {
-                        alternates: ["a"],
-                        description: "The amount to damage/heal, (huge, big, medium, small, tiny)"
-                    }
+                "damage": {
+                    alternates: ['d'],
+                    description: "The user(s) to damage"
+                },
+                "amount": {
+                    alternates: ["a"],
+                    description: "The amount to damage/heal, (huge, big, medium, small, tiny)"
                 }
             }
-        },
+        })
     ]
 
     yield [
-        "calcet",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
-                let reqAmount = args.join(" ") || "all!"
-                let { money, stocks, loan, total: _ } = economy.economyLooseGrandTotal()
-                let moneyAmount = amountParser.calculateAmountRelativeTo(money, reqAmount)
-                let stockAmount = amountParser.calculateAmountRelativeTo(stocks, reqAmount)
-                let loanAmount = amountParser.calculateAmountRelativeTo(loan, reqAmount)
-                let grandTotal = amountParser.calculateAmountRelativeTo(money + stocks - loan, reqAmount)
-                return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Calculate the net worth of the economy",
-                options: {
-                    "fmt": {
-                        description: "The format<br><ul><li>m: The money</li><li>s: The stocks</li><li>l: The loans</li><li>t: total</li>"
-                    }
+        "calcet", ccmdV2(async function({ args, rawOpts: opts }) {
+            let fmt = String(opts['fmt'] || "Money: %m\nStocks: %s\nLoans: %l\n---------------------\nGRAND TOTAL: %t")
+            let reqAmount = args.join(" ") || "all!"
+            let { money, stocks, loan, total: _ } = economy.economyLooseGrandTotal()
+            let moneyAmount = amountParser.calculateAmountRelativeTo(money, reqAmount)
+            let stockAmount = amountParser.calculateAmountRelativeTo(stocks, reqAmount)
+            let loanAmount = amountParser.calculateAmountRelativeTo(loan, reqAmount)
+            let grandTotal = amountParser.calculateAmountRelativeTo(money + stocks - loan, reqAmount)
+            return { content: format(fmt, { m: String(moneyAmount), s: String(stockAmount), l: String(loanAmount), t: String(grandTotal) }), status: StatusCode.RETURN }
+        }, "Calculate the net worth of the economy", {
+            options: {
+                "fmt": {
+                    description: "The format<br><ul><li>m: The money</li><li>s: The stocks</li><li>l: The loans</li><li>t: total</li>"
                 }
             }
-        },
+        })
     ]
 
     yield [
@@ -2529,21 +2517,19 @@ The order these are given does not matter, excpet for field, which will be added
     }, CommandCategory.UTIL, "Fancy calculator")]
 
     yield [
-        "calc",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let sep = opts['sep']
-                if (!sep) {
-                    sep = "\n"
-                } else sep = String(sep)
-                let stringifyFn = JSON.stringify
-                if (opts['s']) {
-                    stringifyFn = String
-                }
-                if (opts['python']) {
-                    let codeStr = `math = __import__("math")
+        "calc", ccmdV2(async function({ args, msg }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let sep = opts['sep']
+            if (!sep) {
+                sep = "\n"
+            } else sep = String(sep)
+            let stringifyFn = JSON.stringify
+            if (opts['s']) {
+                stringifyFn = String
+            }
+            if (opts['python']) {
+                let codeStr = `math = __import__("math")
 random = __import__("random")
 if(hasattr(random, "_os")):
     del random._os
@@ -2559,42 +2545,38 @@ null = None
 g = VarHolder(${JSON.stringify(vars.vars['__global__'])})
 u = VarHolder(${JSON.stringify(vars.vars[msg.author.id]) || "{}"})
 print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
-                    let moreDat = spawnSync("python3", ["-c", codeStr], {
-                        timeout: 3000
-                    })
-                    let sendText = ""
-                    if (moreDat.stderr.toString("utf-8")) {
-                        sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
-                    }
-                    if (moreDat.stdout.toString("utf-8")) {
-                        sendText += moreDat.stdout.toString("utf-8").trim()
-                    }
-                    return { content: sendText, status: StatusCode.RETURN }
+                let moreDat = spawnSync("python3", ["-c", codeStr], {
+                    timeout: 3000
+                })
+                let sendText = ""
+                if (moreDat.stderr.toString("utf-8")) {
+                    sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
                 }
-                let ret: string = ""
-                try {
-                    ret = stringifyFn(safeEval(args.join(" "), { args: args, lastCommand: lastCommand[msg.author.id], g: vars.vars["__global__"], u: vars.vars[msg.author.id], ...generateDefaultRecurseBans() || {} }, { timeout: 3000 }))
+                if (moreDat.stdout.toString("utf-8")) {
+                    sendText += moreDat.stdout.toString("utf-8").trim()
                 }
-                catch (err) {
-                    console.log(err)
-                }
-                return { content: ret, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Run a calculation",
-                arguments: {
-                    "...equations": {
-                        description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
-                    }
-                },
-                options: {
-                    sep: {
-                        description: "If multiple equations are given, this seperates each answer"
-                    }
+                return { content: sendText, status: StatusCode.RETURN }
+            }
+            let ret: string = ""
+            try {
+                ret = stringifyFn(safeEval(args.join(" "), { args: args, lastCommand: lastCommand[msg.author.id], g: vars.vars["__global__"], u: vars.vars[msg.author.id], ...generateDefaultRecurseBans() || {} }, { timeout: 3000 }))
+            }
+            catch (err) {
+                console.log(err)
+            }
+            return { content: ret, status: StatusCode.RETURN }
+        }, "Run a calculation", {
+            arguments: {
+                "...equations": {
+                    description: "The equation(s) to evaluate<br>Seperate each equation with a new line"
                 }
             },
-            category: CommandCategory.UTIL
-        },
+            options: {
+                sep: {
+                    description: "If multiple equations are given, this seperates each answer"
+                }
+            }
+        })
     ]
 
     yield [
@@ -2625,29 +2607,23 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "pcount",
-        {
-            run: async (_msg, args) => {
-                let id = args[0]
-                if (!id) {
-                    return { status: StatusCode.ERR, content: "no id given" }
+        "pcount", ccmdV2(async function({ rawArgs: args }) {
+            let id = args[0]
+            if (!id) {
+                return { status: StatusCode.ERR, content: "no id given" }
+            }
+            let str = ""
+            for (let key in globals.POLLS[`poll:${id}`]) {
+                str += `${key}: ${globals.POLLS[`poll:${id}`]["votes"][key].length}\n`
+            }
+            return { content: str, status: StatusCode.RETURN }
+        }, "Gets the id of a poll", {
+            arguments: {
+                "id": {
+                    description: "The id of the poll to get the count of"
                 }
-                let str = ""
-                for (let key in globals.POLLS[`poll:${id}`]) {
-                    str += `${key}: ${globals.POLLS[`poll:${id}`]["votes"][key].length}\n`
-                }
-                return { content: str, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Gets the id of a poll",
-                arguments: {
-                    "id": {
-                        description: "The id of the poll to get the count of"
-                    }
-                }
-            },
-            category: CommandCategory.UTIL
-        },
+            }
+        })
     ]
 
     yield [
@@ -3752,43 +3728,37 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        'blacklist',
-        {
-            run: async (msg, args, sendCallback) => {
-                let addOrRemove = args[0]
-                if (!["a", "r"].includes(addOrRemove)) {
-                    return {
-                        content: "did not specify, (a)dd or (r)emove",
-                        status: StatusCode.ERR
-                    }
+        'blacklist', ccmdV2(async function({ msg, args }) {
+            let addOrRemove = args[0]
+            if (!["a", "r"].includes(addOrRemove)) {
+                return {
+                    content: "did not specify, (a)dd or (r)emove",
+                    status: StatusCode.ERR
                 }
-                let cmds: string[] = args.slice(1)
-                if (!cmds.length) {
-                    return {
-                        content: "no cmd given",
-                        status: StatusCode.ERR
-                    }
-                }
-                cmds = cmds.filter(v => !commands.get(v))
-                if (addOrRemove == "a") {
-                    common.addToPermList(common.BLACKLIST, "blacklists", msg.author, cmds)
-
-                    return {
-                        content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`,
-                        status: StatusCode.RETURN
-                    }
-                } else {
-                    common.removeFromPermList(common.BLACKLIST, "blacklists", msg.author, cmds)
-                    return {
-                        content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`,
-                        status: StatusCode.RETURN
-                    }
-                }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Blacklist/unblacklist yourself from an alias"
             }
-        },
+            let cmds: string[] = args.slice(1)
+            if (!cmds.length) {
+                return {
+                    content: "no cmd given",
+                    status: StatusCode.ERR
+                }
+            }
+            cmds = cmds.filter(v => !commands.get(v))
+            if (addOrRemove == "a") {
+                common.addToPermList(common.BLACKLIST, "blacklists", msg.author, cmds)
+
+                return {
+                    content: `${msg.member} has been blacklisted from ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
+                }
+            } else {
+                common.removeFromPermList(common.BLACKLIST, "blacklists", msg.author, cmds)
+                return {
+                    content: `${msg.member} has been removed from the blacklist of ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
+                }
+            }
+        }, "Blacklist/unblacklist yourself from an alias")
     ]
 
     yield [
@@ -4131,60 +4101,53 @@ valid formats:<br>
     ]
 
     yield [
-        "rand-emote",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let amount = parseInt(String(opts['count'] || opts['c'])) || 1
-                let sep = opts['sep'] || opts['s'] || "\n"
-                sep = String(sep)
-                let send = ""
-                let emojis = await msg.guild?.emojis.fetch()
-                if (!emojis) {
-                    return { content: "Could not find emojis", status: StatusCode.ERR }
-                }
-                if (Boolean(opts['a'])) {
-                    emojis = emojis.filter(e => e.animated ? true : false)
+        "rand-emote", ccmdV2(async function({ rawArgs: args, msg }) {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let amount = parseInt(String(opts['count'] || opts['c'])) || 1
+            let sep = opts['sep'] || opts['s'] || "\n"
+            sep = String(sep)
+            let send = ""
+            let emojis = await msg.guild?.emojis.fetch()
+            if (!emojis) {
+                return { content: "Could not find emojis", status: StatusCode.ERR }
+            }
+            if (Boolean(opts['a'])) {
+                emojis = emojis.filter(e => e.animated ? true : false)
 
+            }
+            else if (Boolean(opts['A'])) {
+                emojis = emojis.filter(e => e.animated ? false : true)
+            }
+            else if (opts['f']) {
+                emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), { id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier }, { timeout: 1000 })))
+            }
+            for (let i = 0; i < amount; i++) {
+                send += String(emojis.random())
+                send += sep
+            }
+            return { content: send, status: StatusCode.RETURN }
+        }, "Gives a random server emoji", {
+            options: {
+                "c": {
+                    description: "The amount of emojis to send",
+                    alternates: ["count"]
+                },
+                "s": {
+                    description: "The character to seperate each emoji by",
+                    alternates: ["sep"]
+                },
+                "a": {
+                    description: "The emoji must be animated"
+                },
+                "A": {
+                    description: "The emoji can't be animated"
+                },
+                'f': {
+                    description: "Custom filter"
                 }
-                else if (Boolean(opts['A'])) {
-                    emojis = emojis.filter(e => e.animated ? false : true)
-                }
-                else if (opts['f']) {
-                    emojis = emojis.filter((e) => Boolean(safeEval(String(opts['f']), { id: e.id, animated: e.animated, url: e.url, createdAt: e.createdAt, createdTimeStamp: e.createdTimestamp, name: e.name, identifier: e.identifier }, { timeout: 1000 })))
-                }
-                for (let i = 0; i < amount; i++) {
-                    send += String(emojis.random())
-                    send += sep
-                }
-                return { content: send, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Gives a random server emoji",
-                options: {
-                    "c": {
-                        description: "The amount of emojis to send",
-                        alternates: ["count"]
-                    },
-                    "s": {
-                        description: "The character to seperate each emoji by",
-                        alternates: ["sep"]
-                    },
-                    "a": {
-                        description: "The emoji must be animated"
-                    },
-                    "A": {
-                        description: "The emoji can't be animated"
-                    },
-                    'f': {
-                        description: "Custom filter"
-                    }
-                }
-            },
-            category: CommandCategory.UTIL
-
-        },
+            }
+        })
     ]
 
     yield [

@@ -19,7 +19,7 @@ import { saveConfig, ADMINS, editConfig } from '../globals'
 export default function*(): Generator<[string, Command | CommandV2]> {
 
     yield [
-        'CONFIG', ccmdV2(async function({args}){
+        'CONFIG', ccmdV2(async function({ args }) {
             let [path, value] = args
             editConfig(path, value)
             saveConfig()
@@ -30,7 +30,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "RELOAD_BLACKLISTS", ccmdV2(async function(){
+        "RELOAD_BLACKLISTS", ccmdV2(async function() {
             common.reloadIDBlackLists()
             return crv("Blacklists reloaded")
         }, "Reloads user and role blacklists", {
@@ -48,7 +48,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "eval", ccmdV2(async function({args}){
+        "eval", ccmdV2(async function({ args }) {
             return crv(JSON.stringify(eval(args.join(" "))))
         }, "Run javascript", {
             permCheck: m => ADMINS.includes.includes(m.author.id)
@@ -80,14 +80,14 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         "TRASH_EMPTY", ccmdV2(async ({ msg, sendCallback, opts }) => {
             fs.readdir("./garbage-files", async (_err, files) => {
                 let deleteAll = opts.getBool('a', false)
-                if(deleteAll && !(common.WHITELIST[msg.author.id] || ADMINS.includes(msg.author.id))){
-                    return crv(`You are not allowed to delete all trash files`, {status:StatusCode.ERR})
+                if (deleteAll && !(common.WHITELIST[msg.author.id] || ADMINS.includes(msg.author.id))) {
+                    return crv(`You are not allowed to delete all trash files`, { status: StatusCode.ERR })
                 }
                 for (let file of files) {
-                    if(deleteAll || file.includes(msg.author.id))
+                    if (deleteAll || file.includes(msg.author.id))
                         fs.rmSync(`./garbage-files/${file}`)
                 }
-                if(deleteAll)
+                if (deleteAll)
                     await handleSending(msg, crv(`Deleted all files`), sendCallback)
                 else await handleSending(msg, crv(`Deleted all of your files`), sendCallback)
             })
@@ -189,22 +189,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "RESET_PLAYER_ITEMS",
-        {
-            run: async (msg, args, sendCallback) => {
-                if (!msg.guild) return crv("Not in aguild", { status: StatusCode.ERR })
-                let player = await fetchUser(msg.guild, args[0])
-                if (!player)
-                    return { content: "No player found", status: StatusCode.ERR }
-                resetPlayerItems(player.user.id)
-                return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.ADMIN,
+        "RESET_PLAYER_ITEMS", ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) return crv("Not in aguild", { status: StatusCode.ERR })
+            let player = await fetchUser(msg.guild, args[0])
+            if (!player)
+                return { content: "No player found", status: StatusCode.ERR }
+            resetPlayerItems(player.user.id)
+            return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
+        }, "Reset's a players inventory", {
             permCheck: m => ADMINS.includes(m.author.id),
-            help: {
-                info: "Reset's a players inventory"
-            }
-        },
+        })
     ]
 
     yield [
