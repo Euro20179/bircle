@@ -164,11 +164,11 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 from = opts.getString("from", "auto")
                 text = t.join(" ")
             }
-            else if (stdin) {
-                text = getContentFromResult(stdin)
-            }
-            else if(msg.reference){
+            if(msg.reference){
                 text = (await msg.fetchReference()).content
+            }
+            if (stdin) {
+                text = getContentFromResult(stdin)
             }
 
             if (!langs[to?.toLowerCase() as keyof typeof langs] && !langCodes[to?.toLowerCase()]) {
@@ -182,7 +182,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             if (langCodes[to?.toLowerCase()]) to = langCodes[to?.toLowerCase()]
 
-            if (!text.length) {
+            if (!text) {
                 let up = opts.getNumber("m", 1)
                 let msgs = await msg.channel.messages.fetch({ limit: up + 1 })
                 let req_msg = msgs.at(up)
