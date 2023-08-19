@@ -157,26 +157,31 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 return crv(htmlRenderer.renderHTML(`List of languages<br>${Object.entries(langs).map(v => `${v[0]}: ${v[1]}`).join("<br>")}`))
 
             }
-            let [to, ...t] = args
-            let from = opts.getString("from", "auto")
-            let text = t.join(" ")
-            if (stdin) {
+
+            let to, t, from = "auto", text
+            if (args.length) {
+                [to, ...t] = args
+                from = opts.getString("from", "auto")
+                text = t.join(" ")
+            }
+            else if (stdin) {
                 text = getContentFromResult(stdin)
             }
+            else if(msg.reference){
+                text = (await msg.fetchReference()).content
+            }
 
-            if (!langs[to.toLowerCase() as keyof typeof langs] && !langCodes[to.toLowerCase()]) {
-                text = to + text
+            if (!langs[to?.toLowerCase() as keyof typeof langs] && !langCodes[to?.toLowerCase()]) {
+                if(to)
+                    text = to + text
                 to = opts.getString("to", "en")
             }
             else {
                 if (!text) text = args.slice(2).join(" ")
             }
 
-            if (langCodes[to.toLowerCase()]) to = langCodes[to.toLowerCase()]
+            if (langCodes[to?.toLowerCase()]) to = langCodes[to?.toLowerCase()]
 
-            if (msg.reference) {
-                text = (await msg.fetchReference()).content
-            }
             if (!text.length) {
                 let up = opts.getNumber("m", 1)
                 let msgs = await msg.channel.messages.fetch({ limit: up + 1 })
