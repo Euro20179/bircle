@@ -155,7 +155,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         'translate', ccmdV2(async function({ msg, args, opts, stdin }) {
             if (opts.getBool("l", false)) {
                 return crv(htmlRenderer.renderHTML(`List of languages<br>${Object.entries(langs).map(v => `${v[0]}: ${v[1]}`).join("<br>")}`))
-
             }
 
             let to, t, from = "auto", text
@@ -164,7 +163,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 from = opts.getString("from", "auto")
                 text = t.join(" ")
             }
-            if(msg.reference){
+            if (msg.reference) {
                 text = (await msg.fetchReference()).content
             }
             if (stdin) {
@@ -172,7 +171,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             }
 
             if (!langs[to?.toLowerCase() as keyof typeof langs] && !langCodes[to?.toLowerCase()]) {
-                if(to)
+                if (to)
                     text = to + text
                 to = opts.getString("to", "en")
             }
@@ -1183,111 +1182,101 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "heist-info",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let action = args[0] || 'list-types'
-                let text = ""
-                let responses = fs.readFileSync("./command-results/heist", "utf-8").split("\n").map(v => v.split(":").slice(1).join(":").replace(/;END$/, "").trim())
-                switch (action) {
-                    case "list-responses": {
-                        text = responses.join("\n")
-                        break
-                    }
-                    case "locations":
-                    case "list-locations": {
-                        let locations: string[] = ["__generic__"]
-                        for (let resp of responses) {
-                            let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                            let locationText = location?.[1]
-                            if (locationText && !locations.includes(locationText)) {
-                                locations.push(locationText)
-                            }
-                        }
-                        text = `LOCATIONS:\n${locations.join("\n")}`
-                        break
-                    }
-                    case "stages":
-                    case "list-stages": {
-                        let stages: string[] = ["getting_in", "robbing", "escape", "end"]
-                        for (let resp of responses) {
-                            let stage = resp.match(/STAGE=([^ ]+)/)
-                            if (!stage?.[1]) continue;
-                            let stageText = stage[1]
-                            if (stageText && !stages.includes(stageText)) {
-                                stages.push(stageText)
-                            }
-                        }
-                        text = `STAGES:\n${stages.join("\n")}`
-                        break
-                    }
-
-                    case "list-types": {
-                        let locations: string[] = ["__generic__"]
-                        let stages: string[] = ["getting_in", "robbing", "escape", "end"]
-                        for (let resp of responses) {
-                            let stage = resp.match(/STAGE=([^ ]+)/)
-                            if (!stage?.[1]) continue;
-                            let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
-                            let locationText = location?.[1]
-                            let stageText = stage[1]
-                            if (locationText && !locations.includes(locationText)) {
-                                locations.push(locationText)
-                            }
-                            if (stageText && !stages.includes(stageText)) {
-                                stages.push(stageText)
-                            }
-                        }
-                        text = `LOCATIONS:\n${locations.join("\n")}\n---------------------\nSTAGES:\n${stages.join("\n")}`
-                        break
-                    }
-                    case "search": {
-                        let query = args[1]
-                        if (!query) {
-                            text = "No search query"
-                            break
-                        }
-                        let results = []
-                        for (let i = 0; i < responses.length; i++) {
-                            try {
-                                if (responses[i].match(query)) {
-                                    results.push([i + 1, responses[i]])
-                                }
-                            }
-                            catch (err) {
-                                return { content: `${query} is an invalid regular expression`, status: StatusCode.ERR }
-                            }
-                        }
-                        text = `RESULTS\n-------------------------\n${results.map(v => `${v[0]}: ${v[1]}`).join("\n")}`
-                        break
-                    }
-                    default: {
-                        text = `${action} is not a valid action`
-                        break
-                    }
+        "heist-info", ccmdV2(async function({ args }) {
+            let action = args[0] || 'list-types'
+            let text = ""
+            let responses = fs.readFileSync("./command-results/heist", "utf-8").split("\n").map(v => v.split(":").slice(1).join(":").replace(/;END$/, "").trim())
+            switch (action) {
+                case "list-responses": {
+                    text = responses.join("\n")
+                    break
                 }
-                return { content: text.replaceAll(/__/g, "\\_") || "nothing", status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Get information about heist responses",
-                arguments: {
-                    type: {
-                        description: `The type of information can be:<br>
+                case "locations":
+                case "list-locations": {
+                    let locations: string[] = ["__generic__"]
+                    for (let resp of responses) {
+                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        let locationText = location?.[1]
+                        if (locationText && !locations.includes(locationText)) {
+                            locations.push(locationText)
+                        }
+                    }
+                    text = `LOCATIONS:\n${locations.join("\n")}`
+                    break
+                }
+                case "stages":
+                case "list-stages": {
+                    let stages: string[] = ["getting_in", "robbing", "escape", "end"]
+                    for (let resp of responses) {
+                        let stage = resp.match(/STAGE=([^ ]+)/)
+                        if (!stage?.[1]) continue;
+                        let stageText = stage[1]
+                        if (stageText && !stages.includes(stageText)) {
+                            stages.push(stageText)
+                        }
+                    }
+                    text = `STAGES:\n${stages.join("\n")}`
+                    break
+                }
+
+                case "list-types": {
+                    let locations: string[] = ["__generic__"]
+                    let stages: string[] = ["getting_in", "robbing", "escape", "end"]
+                    for (let resp of responses) {
+                        let stage = resp.match(/STAGE=([^ ]+)/)
+                        if (!stage?.[1]) continue;
+                        let location = resp.match(/(?<!SET_)LOCATION=([^ ]+)/)
+                        let locationText = location?.[1]
+                        let stageText = stage[1]
+                        if (locationText && !locations.includes(locationText)) {
+                            locations.push(locationText)
+                        }
+                        if (stageText && !stages.includes(stageText)) {
+                            stages.push(stageText)
+                        }
+                    }
+                    text = `LOCATIONS:\n${locations.join("\n")}\n---------------------\nSTAGES:\n${stages.join("\n")}`
+                    break
+                }
+                case "search": {
+                    let query = args[1]
+                    if (!query) {
+                        text = "No search query"
+                        break
+                    }
+                    let results = []
+                    for (let i = 0; i < responses.length; i++) {
+                        try {
+                            if (responses[i].match(query)) {
+                                results.push([i + 1, responses[i]])
+                            }
+                        }
+                        catch (err) {
+                            return { content: `${query} is an invalid regular expression`, status: StatusCode.ERR }
+                        }
+                    }
+                    text = `RESULTS\n-------------------------\n${results.map(v => `${v[0]}: ${v[1]}`).join("\n")}`
+                    break
+                }
+                default: {
+                    text = `${action} is not a valid action`
+                    break
+                }
+            }
+            return { content: text.replaceAll(/__/g, "\\_") || "nothing", status: StatusCode.RETURN }
+        }, "Get information about heist responses", {
+            helpArguments: {
+                type: createHelpArgument(`The type of information can be:<br>
 <ul>
     <li>list-locations</li>
     <li>list-stages</li>
     <li>list-responses</li>
     <li>list-types</li>
     <li>search (requires search query)</li>
-</ul>`
-                    },
-                    search_query: {
-                        requires: "type",
-                        description: "The search query if type is <code>search</code>"
-                    }
-                }
+</ul>`, true),
+                search_query: createHelpArgument( "The search query if type is <code>search</code>", false, "type")
             }
-        },
+        })
     ]
 
     yield [
