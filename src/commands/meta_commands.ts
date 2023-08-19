@@ -1569,14 +1569,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "l-bl", ccmdV2(async function(){
+        "l-bl", ccmdV2(async function() {
             return { files: [crvFile("command-perms/blacklists", "Blacklists")], status: StatusCode.RETURN }
         }, "Lists all blacklists")
     ]
 
     yield [
-        "l-wl", ccmdV2(async function(){
-            return {files: [crvFile("command-perms/whitelists", "Whitelists")], status: StatusCode.RETURN}
+        "l-wl", ccmdV2(async function() {
+            return { files: [crvFile("command-perms/whitelists", "Whitelists")], status: StatusCode.RETURN }
         }, "Lists all whitelists")
     ]
 
@@ -2701,27 +2701,20 @@ ${styles}
     }, CAT, "Gets info about the process")]
 
     yield [
-        "!!",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback, opts, __, rec, bans) => {
-                if (opts['check'] || opts['print'] || opts['see'])
-                    return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
-                if (!lastCommand[msg.author.id]) {
-                    return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
-                }
-                msg.content = lastCommand[msg.author.id]
-                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id], recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
-            },
-            help: {
-                info: "Run the last command that was run",
-                options: {
-                    see: {
-                        description: "Just echo the last command that was run instead of running it"
-                    }
-                }
-            },
-            category: CAT
-        },
+        "!!", ccmdV2(async function({ msg, rawOpts: opts, recursionCount: rec, commandBans: bans, sendCallback }) {
+            if (opts['p'] || opts['check'] || opts['print'] || opts['see'])
+                return { content: `\`${lastCommand[msg.author.id]}\``, status: StatusCode.RETURN }
+            if (!lastCommand[msg.author.id]) {
+                return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
+            }
+            msg.content = lastCommand[msg.author.id]
+            return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id], recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
+
+        }, "Run the last command that was run", {
+            helpOptions: {
+                p: createHelpOption( "Just echo the last command that was run instead of running it", ["print", "check", "see"])
+            }
+        })
     ]
 
     yield ["ping", ccmdV2(async ({ msg }) => crv(`${(new Date()).getMilliseconds() - msg.createdAt.getMilliseconds()}ms`), "Gets the bot's ping (very accurate)")]
