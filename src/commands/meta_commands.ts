@@ -458,112 +458,107 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        'get-source',
-        {
-            run: async (_msg, _, sendCallback, opts, args) => {
+        'get-source', ccmdV2(async function({ rawOpts: opts, args }) {
 
-                let commands = getCommands()
-                if (opts['of-file']) {
-                    let file = opts['of-file']
-                    if (fs.existsSync(`./${file}.ts`)) {
+            let commands = getCommands()
+            if (opts['of-file']) {
+                let file = opts['of-file']
+                if (fs.existsSync(`./${file}.ts`)) {
 
-                        return {
-                            files: [
-                                {
-                                    attachment: `./${file}.ts`,
-                                    delete: false,
-                                    name: `${file}.ts`,
-                                }
-                            ],
-                            status: StatusCode.RETURN,
-                            mimetype: "application/typescript"
-                        }
-                    }
-                    return { content: `./${file}.ts not found`, status: StatusCode.ERR }
-                }
-                let cmd = args[0]
-
-                if (!cmd) {
-                    return { content: "No cmd  chosen", status: StatusCode.ERR }
-                }
-
-                if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
-                    return crv(`\`\`\`bircle\n${fs.readFileSync(`./src/bircle-bin/${cmd}.bircle`, "utf-8")}\`\`\``, {
-                        mimetype: 'application/bircle', onOver2kLimit: (_, rv) => {
-                            rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
-                            return rv
-
-                        }
-                    })
-                }
-
-                let attrs = args.slice(1)
-                if (attrs.length === 0) {
-                    attrs.push("run")
-                }
-
-                let command = commands.get(cmd)
-                if (!command)
-                    return { content: "no command found", status: StatusCode.ERR }
-
-                if (opts['ts']) {
-                    let category = command.category
-
-                    let data = fs.readFileSync(`./src/commands/${cmdCatToStr(category)}_commands.ts`, "utf-8")
-                    const regex = new RegExp(`yield\\s*\\[\\s*["']${cmd}["'],\\s*([\\s\\w\\W]+?)\\](?:[\\s\\n]*yield\\s*\\[|\\s*\\}\\s*$)`)
-                    return crv(`\`\`\`typescript\n${data.match(regex)?.[1]}\n\`\`\``, {
-                        mimetype: 'application/typescript',
-                        onOver2kLimit: (_, rv) => {
-                            rv.content = rv.content?.replace(/```typescript\n/, "")?.replace(/```$/, "")
-                            return rv
-                        }
-                    })
-                }
-
-                let results = []
-                let curAttr = command
-                for (let attr of attrs) {
-                    for (let subAttr of attr.split(".")) {
-                        curAttr = curAttr[subAttr as Exclude<keyof Command | keyof CommandV2, "argShape">]
-                        if (curAttr === undefined) break;
-                    }
-
-                    if (curAttr !== undefined) {
-                        if (typeof curAttr === 'object') {
-                            results.push(JSON.stringify(curAttr))
-                        }
-                        else {
-                            results.push(String(curAttr))
-                        }
+                    return {
+                        files: [
+                            {
+                                attachment: `./${file}.ts`,
+                                delete: false,
+                                name: `${file}.ts`,
+                            }
+                        ],
+                        status: StatusCode.RETURN,
+                        mimetype: "application/typescript"
                     }
                 }
+                return { content: `./${file}.ts not found`, status: StatusCode.ERR }
+            }
+            let cmd = args[0]
 
-                return {
-                    content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
-                        rv.content = rv.content?.replace(/```(?:type|java)script\n/, "")?.replace(/```$/, "")
+            if (!cmd) {
+                return { content: "No cmd  chosen", status: StatusCode.ERR }
+            }
+
+            if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
+                return crv(`\`\`\`bircle\n${fs.readFileSync(`./src/bircle-bin/${cmd}.bircle`, "utf-8")}\`\`\``, {
+                    mimetype: 'application/bircle', onOver2kLimit: (_, rv) => {
+                        rv.content = rv.content?.replace("```javascript\n", "")?.replace(/```$/, "")
+                        return rv
+
+                    }
+                })
+            }
+
+            let attrs = args.slice(1)
+            if (attrs.length === 0) {
+                attrs.push("run")
+            }
+
+            let command = commands.get(cmd)
+            if (!command)
+                return { content: "no command found", status: StatusCode.ERR }
+
+            if (opts['ts']) {
+                let category = command.category
+
+                let data = fs.readFileSync(`./src/commands/${cmdCatToStr(category)}_commands.ts`, "utf-8")
+                const regex = new RegExp(`yield\\s*\\[\\s*["']${cmd}["'],\\s*([\\s\\w\\W]+?)\\](?:[\\s\\n]*yield\\s*\\[|\\s*\\}\\s*$)`)
+                return crv(`\`\`\`typescript\n${data.match(regex)?.[1]}\n\`\`\``, {
+                    mimetype: 'application/typescript',
+                    onOver2kLimit: (_, rv) => {
+                        rv.content = rv.content?.replace(/```typescript\n/, "")?.replace(/```$/, "")
                         return rv
                     }
+                })
+            }
+
+            let results = []
+            let curAttr = command
+            for (let attr of attrs) {
+                for (let subAttr of attr.split(".")) {
+                    curAttr = curAttr[subAttr as Exclude<keyof Command | keyof CommandV2, "argShape">]
+                    if (curAttr === undefined) break;
                 }
-            }, category: CAT,
-            help: {
-                info: "Get the source code of a file, or a command",
-                arguments: {
-                    command: {
-                        description: "The command to get the source code  of",
-                        required: true
-                    },
-                    "...attributes": {
-                        description: "Get attributes of a command"
+
+                if (curAttr !== undefined) {
+                    if (typeof curAttr === 'object') {
+                        results.push(JSON.stringify(curAttr))
                     }
-                },
-                options: {
-                    'ts': createHelpOption("Return the uncompiled typescript code"),
-                    'of-file': {
-                        description: "If command is not given, use this to get the source of a file"
+                    else {
+                        results.push(String(curAttr))
                     }
                 }
             }
-        },
+
+            return {
+                content: `\`\`\`javascript\n${results.join("\n")}\n\`\`\``, status: StatusCode.RETURN, mimetype: "application/javascript", onOver2kLimit: (_, rv) => {
+                    rv.content = rv.content?.replace(/```(?:type|java)script\n/, "")?.replace(/```$/, "")
+                    return rv
+                }
+            }
+        }, "Get the source code of a file, or a command", {
+            helpArguments: {
+                command: {
+                    description: "The command to get the source code  of",
+                    required: true
+                },
+                "...attributes": {
+                    description: "Get attributes of a command"
+                }
+            },
+            helpOptions: {
+                'ts': createHelpOption("Return the uncompiled typescript code"),
+                'of-file': {
+                    description: "If command is not given, use this to get the source of a file"
+                }
+            }
+        })
     ]
 
     yield ["code-info", ccmdV2(async ({ opts }) => {
@@ -2712,7 +2707,7 @@ ${styles}
 
         }, "Run the last command that was run", {
             helpOptions: {
-                p: createHelpOption( "Just echo the last command that was run instead of running it", ["print", "check", "see"])
+                p: createHelpOption("Just echo the last command that was run instead of running it", ["print", "check", "see"])
             }
         })
     ]
