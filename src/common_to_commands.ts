@@ -234,7 +234,7 @@ class OrderedDict<TKey, TValue>{
     }
 }
 
-export const PIDS: OrderedDict<number, string> = new OrderedDict()
+export const PIDS: OrderedDict<number, Interpreter> = new OrderedDict()
 
 export type StatusCode = typeof StatusCode[keyof typeof StatusCode]
 
@@ -554,10 +554,8 @@ export async function cmd({
 
     context.export("PID", String(PID))
 
-    PIDS.set(PID, command_excluding_prefix)
-
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
-    while (parser.tokens.length > 0 && PIDS.keyExists(PID)) {
+    do {
         context.env.LINENO = String(++logicalLine)
 
         let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
@@ -570,8 +568,10 @@ export async function cmd({
 
         int = new Interpreter(msg, currentToks, {
             modifiers: parser.modifiers,
-            recursion, returnJson, disable, sendCallback, pipeData, context
+            recursion, returnJson, disable, sendCallback, pipeData, context,
         })
+
+        PIDS.set(PID, int)
 
         //this was previously ored to false
         rv = await int.run() ?? { noSend: true, status: StatusCode.RETURN };
@@ -583,7 +583,8 @@ export async function cmd({
         }
 
         context = int.context
-    }
+
+    } while(parser.tokens.length > 0 && PIDS.keyExists(PID))
 
     PIDS.delete(PID)
 
@@ -661,6 +662,8 @@ export class Interpreter {
 
     #shouldType: boolean
 
+    killed: boolean = false
+
     modifiers: Modifier[]
 
     static commandUndefined = new Object()
@@ -688,7 +691,7 @@ export class Interpreter {
         sendCallback?: (options: MessageCreateOptions | MessagePayload | string) => Promise<Message>,
         pipeData?: CommandReturn,
         programArgs?: string[],
-        context?: InterpreterContext
+        context?: InterpreterContext,
     }) {
         this.tokens = tokens
         this.#originalTokens = cloneDeep(tokens)
@@ -716,6 +719,12 @@ export class Interpreter {
         this.#interprated = false
 
         this.#shouldType = false
+
+    }
+
+    kill(){
+        this.killed = true
+        PIDS.delete(Number(this.context.env['PID']))
     }
 
     setTyping(bool?: boolean) {
@@ -1063,7 +1072,7 @@ export class Interpreter {
                     stdin: this.#pipeData,
                     pipeTo: this.#pipeTo,
                     interpreter: this,
-                    argShapeResults
+                    argShapeResults,
                 };
                 let cmdO = cmdObject as CommandV2
                 if (cmdO.argShape) {
@@ -1092,7 +1101,6 @@ export class Interpreter {
             //if it is aliasV2 it will double count
             if (!this.aliasV2)
                 globals.addToCmdUse(cmd)
-
         }
 
         //the point of explicit is to say which command is currently being run, and which "line number" it's on

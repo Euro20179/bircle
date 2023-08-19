@@ -177,7 +177,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     }, "Gets the interpreter env")]
 
     yield ['ps', ccmdV2(async function() {
-        return crv(Array.from({ length: PIDS.length }, (_, i) => `${PIDS.keyAt(i)}: ${PIDS.valueAt(i)}`).join("\n"))
+        return crv(Array.from({ length: PIDS.length }, (_, i) => `${PIDS.keyAt(i)}: ${PIDS.valueAt(i).args.join(" ")}`).join("\n"))
     }, "Gets all running processes")]
 
     yield ['kill', ccmdV2(async function({ argShapeResults }) {
@@ -185,7 +185,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         if (!PIDS.keyExists(pid)) {
             return crv(`No process with pid: ${pid}`)
         }
-        PIDS.delete(pid)
+        let i = PIDS.get(pid)
+        i.kill()
         return crv(`${pid} killed`)
     }, "Kill a process", {
         helpArguments: {
@@ -1639,7 +1640,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "spam", createCommandV2(async function({ msg, args, opts, sendCallback }) {
+        "spam", createCommandV2(async function({ msg, args, opts, sendCallback, interpreter }) {
             let times = parseInt(args[0])
             if (times) {
                 args.splice(0, 1)
@@ -1657,7 +1658,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             if (delay < 700 || delay > 0x7FFFFFFF) {
                 delay = null
             }
-            while (globals.SPAMS[id] && times--) {
+            while (!interpreter.killed && times--) {
                 await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
             }
