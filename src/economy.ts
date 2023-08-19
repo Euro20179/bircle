@@ -254,7 +254,8 @@ function work(id: string) {
     if (!ECONOMY[id])
         return false
     timer.createOrRestartTimer(id, "%work")
-    let minimumWage = .01 * (economyLooseGrandTotal().total)
+    let economyTotal = economyLooseGrandTotal().total
+    let minimumWage = (.01 * (economyLooseGrandTotal()).total) * (1 - (playerLooseNetWorth(id) / economyTotal))
     if (addMoney(id, minimumWage)) {
         return minimumWage
     }

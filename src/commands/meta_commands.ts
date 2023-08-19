@@ -2794,7 +2794,7 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             const mostRecentVersion = execSync("git tag --sort=committerdate | tail -n1").toString("utf-8").trim()
             const lastVersion = execSync("git tag --sort=committerdate | tail -n2 | sed 1q").toString("utf-8").trim()
 
-            if (start) start = `v${start}`
+            if (start && start !== "HEAD") start = `v${start}`
             if (stop && stop !== "HEAD") stop = `v${stop}`
 
             if (start === undefined) {
