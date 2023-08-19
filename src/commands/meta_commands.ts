@@ -2710,7 +2710,7 @@ ${styles}
                     return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
                 }
                 msg.content = lastCommand[msg.author.id]
-                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(user_options.getOpt(msg.author.id, "prefix", globals.PREFIX).length), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
+                return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id], recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
             },
             help: {
                 info: "Run the last command that was run",

@@ -1106,7 +1106,7 @@ export class Interpreter {
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
         if (!illegalLastCmds.includes(cmd)) {
             //this is for the !! command
-            lastCommand[this.#msg.author.id] = `[${cmd} ${this.args.join(" ")}`
+            lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
         }
         if (this.returnJson) {
             return rv
