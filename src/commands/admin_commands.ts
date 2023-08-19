@@ -1,7 +1,7 @@
 import fs from 'fs'
 import vars from '../vars'
 import common from '../common'
-import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
+import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, handleSending, Interpreter, registerCommand, StatusCode } from '../common_to_commands'
 import economy from '../economy'
 import user_options = require("../user-options")
 import pet from "../pets"
@@ -122,38 +122,25 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "RESET_ECONOMY",
-        {
-            run: async (msg, _args, sendCallback) => {
+        "RESET_ECONOMY", ccmdV2(async function({ msg }) {
+            if (hasItem(msg.author.id, "reset economy")) {
+                useItem(msg.author.id, "reset economy")
+            }
 
-                if (hasItem(msg.author.id, "reset economy")) {
-                    useItem(msg.author.id, "reset economy")
-                }
+            fs.cpSync("./database/economy.json", "./database/economy-old.json")
 
-                fs.cpSync("./database/economy.json", "./database/economy-old.json")
+            economy.resetEconomy()
 
-                economy.resetEconomy()
-
-                return {
-                    content: "Economy reset", status: StatusCode.RETURN, files: [
-                        {
-                            attachment: "./database/economy-old.json",
-                            name: "economy-old.json",
-                        }
-                    ],
-                }
-
-            }, category: CommandCategory.ADMIN,
+            return crv("Economy reset", {
+                files: [ crvFile("./database/economy-old.json", "economy-old.json", "The old economy",) ]
+            })
+        }, "Resets the economy", {
             permCheck: (m) => {
                 let { total } = economy.economyLooseGrandTotal(false)
                 let necessary = amountParser.calculateAmountRelativeTo(total, `99%+100`)
-
                 return ADMINS.includes(m.author.id) || economy.playerLooseNetWorth(m.author.id) >= necessary || Number(hasItem(m.author.id, "reset economy")) > 0
             },
-            help: {
-                info: "Resets the economy"
-            }
-        },
+        })
     ]
 
     yield ["RESET_LOTTERY",
