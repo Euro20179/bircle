@@ -9,7 +9,7 @@ import vars from '../vars'
 
 import common from '../common'
 import { ccmdV2, CommandCategory, createCommandV2, createHelpArgument, createHelpOption, crv, generateDefaultRecurseBans, handleSending, PagedEmbed, StatusCode } from '../common_to_commands'
-import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, isNumeric, fetchUserFromClientOrGuild, entriesOf } from '../util'
+import { fetchUser, efd, fetchUserFromClient, getToolIp, choice, isMsgChannel, isNumeric, fetchUserFromClientOrGuild, entriesOf, ArgList } from '../util'
 import { format } from '../parsing'
 import { EmbedBuilder, Guild, User } from 'discord.js'
 import { giveItem, saveItems } from '../shop'
@@ -383,7 +383,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
             let sortFunction = opts.getBool("n", false) ? ([_, count]: [string, number], [_2, count2]: [string, number]) => count2 - count : ([name, _]: [string, number], [name2, _2]: [string, number]) => name > name2 ? 1 : -1
 
-            if(!getInventory()[user.id]){
+            if (!getInventory()[user.id]) {
                 return crv(`${user.username} does not have any items`)
             }
 
@@ -971,70 +971,65 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "give-item", {
-            run: async (msg, args, sendCallback) => {
-                let user = msg.author;
-                if (msg.mentions.users.at(0)) {
-                    args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "").trim()).filter(v => v)
-                    user = msg.mentions.users.at(0) as User
+        "give-item", ccmdV2(async function({ msg, args }) {
+            let user = msg.author;
+            if (msg.mentions.users.at(0)) {
+                args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "").trim()).filter(v => v) as ArgList
+                user = msg.mentions.users.at(0) as User
+            }
+            else {
+                let search = args.slice(-1)[0]
+                if (msg.guild) {
+                    user = (await fetchUser(msg.guild as Guild, search))?.user as User
                 }
                 else {
-                    let search = args.slice(-1)[0]
-                    if (msg.guild) {
-                        user = (await fetchUser(msg.guild as Guild, search))?.user as User
-                    }
-                    else {
-                        user = (await fetchUserFromClient(common.client, search)) as User
-                    }
-                    if (!user) {
-                        return { content: `${user} not found`, status: StatusCode.ERR }
-                    }
-                    args = args.slice(0, -1)
+                    user = (await fetchUserFromClient(common.client, search)) as User
                 }
-
-                let i = args.join(" ")
-
                 if (!user) {
-                    return { content: `Improper  command usage, \`${PREFIX}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+                    return { content: `${user} not found`, status: StatusCode.ERR }
                 }
-
-                let [count, ...item] = i.split(" ")
-
-                let itemstr = item.join(" ")
-                if (!itemstr && isNaN(Number(count))) {
-                    itemstr = count
-                    count = "1"
-                }
-                else if (!itemstr) {
-                    return { content: `Improper  command usage, \`${PREFIX}give-item [count] <item> <user>\``, status: StatusCode.ERR }
-                }
-
-
-                let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
-                if (!itemData) {
-                    return { content: `You do not have ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
-                }
-
-                let countnum = Math.floor(amountParser.calculateAmountRelativeTo(itemData, count))
-                if (countnum <= 0 || countnum > itemData) {
-                    return { content: `You only have ${itemData} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
-                }
-
-                giveItem(user.id, itemstr.toLowerCase(), countnum)
-                useItem(msg.author.id, itemstr.toLowerCase(), countnum)
-
-                return { content: `<@${msg.author.id}> gave <@${user.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Give a player an item",
-                arguments: {
-                    count: createHelpArgument("The amount of the item to give", false, undefined, "1"),
-                    item: createHelpArgument("The item to give to another player", true),
-                    player: createHelpArgument("The player to give the item to", true)
-                }
+                args = args.slice(0, -1) as ArgList
             }
-        },
+
+            let i = args.join(" ")
+
+            if (!user) {
+                return { content: `Improper  command usage, \`${PREFIX}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+            }
+
+            let [count, ...item] = i.split(" ")
+
+            let itemstr = item.join(" ")
+            if (!itemstr && isNaN(Number(count))) {
+                itemstr = count
+                count = "1"
+            }
+            else if (!itemstr) {
+                return { content: `Improper  command usage, \`${PREFIX}give-item [count] <item> <user>\``, status: StatusCode.ERR }
+            }
+
+
+            let itemData = hasItem(msg.author.id, itemstr.toLowerCase())
+            if (!itemData) {
+                return { content: `You do not have ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
+            }
+
+            let countnum = Math.floor(amountParser.calculateAmountRelativeTo(itemData, count))
+            if (countnum <= 0 || countnum > itemData) {
+                return { content: `You only have ${itemData} of ${itemstr.toLowerCase()}`, status: StatusCode.ERR }
+            }
+
+            giveItem(user.id, itemstr.toLowerCase(), countnum)
+            useItem(msg.author.id, itemstr.toLowerCase(), countnum)
+
+            return { content: `<@${msg.author.id}> gave <@${user.id}> ${countnum} of ${itemstr.toLowerCase()}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+        }, "Give a player an item", {
+            arguments: {
+                count: createHelpArgument("The amount of the item to give", false, undefined, "1"),
+                item: createHelpArgument("The item to give to another player", true),
+                player: createHelpArgument("The player to give the item to", true)
+            }
+        })
     ]
 
     yield [

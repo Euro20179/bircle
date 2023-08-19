@@ -1433,7 +1433,9 @@ export function crvFile(fp: string, name: string, description?: string, delete_:
 export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     category?: CommandCategory,
     helpArguments?: CommandHelpArguments,
+    arguments?: CommandHelpArguments,
     helpOptions?: CommandHelpOptions,
+    options?: CommandHelpOptions,
     tags?: string[],
     docs?: string,
     permCheck?: (m: Message) => boolean,
@@ -1449,8 +1451,8 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         help: {
             info: helpInfo,
             docs: options?.docs,
-            arguments: options?.helpArguments,
-            options: options?.helpOptions,
+            arguments: options?.arguments || options?.helpArguments,
+            options: options?.options || options?.helpOptions,
             tags: options?.tags,
             accepts_stdin: options?.accepts_stdin
         },
