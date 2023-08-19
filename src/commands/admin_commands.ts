@@ -143,18 +143,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         })
     ]
 
-    yield ["RESET_LOTTERY",
-        {
-            run: async (msg, args, sb) => {
-                economy.newLottery()
-                return { content: "Lottery reset", status: StatusCode.RETURN }
-            },
-            category: CommandCategory.ADMIN,
-            help: {
-                info: "Resets the lottery"
-            }
-        },
-    ]
+    yield ["RESET_LOTTERY", ccmdV2(async () => { economy.newLottery(); return crv("Lottery reset") }, "Resets the lottery") ]
 
     yield [
         "RESET_PLAYER",
