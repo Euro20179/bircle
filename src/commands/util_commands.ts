@@ -174,9 +174,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 text = getContentFromResult(stdin)
             }
             if (!text || text === BADVALUE) {
-                let up = opts.getNumber("m", 1)
-                let msgs = await msg.channel.messages.fetch({ limit: up + 1 })
-                let req_msg = msgs.at(up)
+                let req_msg = (await msg.channel.messages.fetch({ limit: opts.getNumber("m", 1) + 1 })).at(0) //-m + 1 because 1 is the message the user just sent to chat
                 if (!req_msg) {
                     return crv("Could not get message", { status: StatusCode.ERR })
                 }
