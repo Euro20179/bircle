@@ -2482,11 +2482,13 @@ ${styles}
             if (aliasV2s[name]) {
                 let failed = false
                 if (aliasV2s[name].creator === msg.author.id || globals.ADMINS.includes(msg.author.id)) {
-                    let validRespones = ["yes", "y"]
-                    let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
-                        timeout: 30000
-                    })
-                    failed = !resp || !validRespones.includes(resp.content.toLowerCase())
+                    if (!opts.getBool("y", false)) {
+                        let validRespones = ["yes", "y"]
+                        let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
+                            timeout: 30000
+                        })
+                        failed = !resp || !validRespones.includes(resp.content.toLowerCase())
+                    }
                 }
                 else failed = true
                 if (failed)
@@ -2533,11 +2535,13 @@ ${styles}
                     if (getAliasesV2()[name]) {
                         let failed = false
                         if (aliasV2s[name].creator === msg.author.id || globals.ADMINS.includes(msg.author.id)) {
-                            let validRespones = ["yes", "y"]
-                            let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
-                                timeout: 30000
-                            })
-                            failed = !resp || !validRespones.includes(resp.content.toLowerCase())
+                            if (!opts.getBool("y", false)) {
+                                let validRespones = ["yes", "y"]
+                                let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
+                                    timeout: 30000
+                                })
+                                failed = !resp || !validRespones.includes(resp.content.toLowerCase())
+                            }
                         }
                         else failed = true
                         if (failed)
@@ -2639,7 +2643,8 @@ ${styles}
         "no-args": createHelpOption("Do not append user arguments to the end of exec (does not requre -no-easy)", undefined, "false"),
         "no-opts": createHelpOption("Do not append user opts to the end of exec (does not require -no-easy)", undefined, "false"),
         "no-easy": createHelpOption("Use the full argument list instead of [aliasv2 &lt;name&gt; &lt;command&gt;"),
-        "no-standardize": createHelpOption("Do not standardize the options, IFS, pipe-symbol, and 1-arg-string", undefined, "false")
+        "no-standardize": createHelpOption("Do not standardize the options, IFS, pipe-symbol, and 1-arg-string", undefined, "false"),
+        "y": createHelpOption("If the alias already exists and you create it, override the alias")
     })]
 
     yield ["process", createCommandV2(async ({ args }) => {
