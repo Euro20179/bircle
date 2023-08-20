@@ -69,9 +69,7 @@ createSlashCommand("ping", "Pings a user for some time", async (int) => {
     let user = int.options.get("user")?.value || `<@${int.user.id}>`
     let times = Number(int.options.get("evilness")?.value) || 1
     int.reply("Pinging...").catch(console.error)
-    globals.SPAM_ALLOWED = true
     for (let i = 0; i < times; i++) {
-        if (!globals.SPAM_ALLOWED) break
         await int.reply(`<@${user}> has been pinged`)
         await sleep(Math.random() * 700 + 200)
     }

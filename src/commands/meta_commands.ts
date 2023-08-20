@@ -847,7 +847,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "for", createCommandV2(async ({ msg, args, recursionCount, commandBans, sendCallback }) => {
+        "for", createCommandV2(async ({ msg, args, recursionCount, commandBans, sendCallback, interpreter }) => {
             const var_name = args[0]
             const range = args[1]
             let [startS, endS] = range.split("..")
@@ -861,23 +861,20 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 end = start + 1
             }
             let scriptLines = scriptWithoutBraces.split(";\n").map(v => v.trim()).filter(v => v)
-            let id = Math.floor(Math.random() * 100000000)
-            globals.SPAMS[id] = true
             outer: for (let i = start; i < end; i++) {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
                     await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
                     await new Promise(res => setTimeout(res, 1000))
-                    if (!globals.SPAMS[id]) {
+                    if (interpreter.killed) {
                         break outer
                     }
                 }
                 //this is here in case no lines of code should be run, and ]stop is run
-                if (!globals.SPAMS[id]) {
+                if (interpreter.killed) {
                     break outer
                 }
             }
-            delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "A for loop", {
             name: createHelpArgument("A variable name<br>can be used like any other bot variable in the commands", true),
@@ -1594,49 +1591,41 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "do",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback, opts, deopedArgs, recursion, bans) => {
-                if (recursion >= globals.RECURSION_LIMIT) {
-                    return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
-                }
-                let times = parseInt(args[0])
-                if (times) {
-                    args.splice(0, 1)
-                } else {
-                    times = 10
-                }
-                let cmdArgs = args.join(" ").trim()
-                if (cmdArgs == "") {
-                    cmdArgs = String(times)
-                }
-                let totalTimes = times
-                let id = String(Math.floor(Math.random() * 100000000))
-                await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
-                let cmdToDo = cmdArgs.split(" ")[0]
-                if (['run', 'do', 'spam'].includes(cmdToDo)) {
-                    return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
-                }
-                globals.SPAMS[id] = true
-                while (globals.SPAMS[id] && times--) {
-                    await cmd({ msg, command_excluding_prefix: format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), recursion: globals.RECURSION_LIMIT, disable: bans, sendCallback })
-                    await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
-                }
-                delete globals.SPAMS[id]
-                return {
-                    content: "done",
-                    status: StatusCode.INFO
-                }
-            },
-            category: CAT,
-            help: {
-                info: "Run a command a certain number of times",
-                arguments: {
-                    count: createHelpArgument("The number of times to run the command", false),
-                    "...command": createHelpArgument("The rest of the arguments are the command to run", true)
-                }
+        "do", ccmdV2(async function({ msg, rawArgs: args, sendCallback, recursionCount: recursion, commandBans: bans, interpreter }) {
+            if (recursion >= globals.RECURSION_LIMIT) {
+                return { content: "Cannot start do after reaching the recursion limit", status: StatusCode.ERR }
             }
-        },
+            let times = parseInt(args[0])
+            if (times) {
+                args.splice(0, 1)
+            } else {
+                times = 10
+            }
+            let cmdArgs = args.join(" ").trim()
+            if (cmdArgs == "") {
+                cmdArgs = String(times)
+            }
+            let totalTimes = times
+            await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
+            let cmdToDo = cmdArgs.split(" ")[0]
+            if (['run', 'do', 'spam'].includes(cmdToDo)) {
+                return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
+            }
+            while (!interpreter.killed && times--) {
+                await cmd({ msg, command_excluding_prefix: format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), recursion: globals.RECURSION_LIMIT, disable: bans, sendCallback })
+                await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
+            }
+            return {
+                content: "done",
+                status: StatusCode.INFO
+            }
+
+        }, "Run a command a certain number of times", {
+            arguments: {
+                count: createHelpArgument("The number of times to run the command", false),
+                "...command": createHelpArgument("The rest of the arguments are the command to run", true)
+            }
+        })
     ]
 
     yield [
@@ -1651,9 +1640,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 times = 10
             }
             let totalTimes = times
-            let id = String(Math.floor(Math.random() * 100000000))
-            await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
-            globals.SPAMS[id] = true
+            await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
             let delay: number | null = (opts.getNumber("delay", null) ?? 1) * 1000
             if (delay < 700 || delay > 0x7FFFFFFF) {
                 delay = null
@@ -1662,7 +1649,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 await handleSending(msg, { content: format(send, { "count": String(totalTimes - times), "rcount": String(times + 1) }), status: StatusCode.RETURN }, sendCallback)
                 await new Promise(res => setTimeout(res, delay ?? Math.random() * 700 + 200))
             }
-            delete globals.SPAMS[id]
             return {
                 content: "done",
                 status: StatusCode.INFO
@@ -1678,50 +1664,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
     yield [
         "stop", ccmdV2(async function({ msg, args }) {
-            if (!Object.hasEnumerableKeys(globals.SPAMS)) {
+            if (!PIDS.values.length) {
                 return { content: "no spams to stop", status: StatusCode.ERR }
             }
 
-            globals.SPAM_ALLOWED = false;
-
-            if (!args.length) {
-                for (let spam in globals.SPAMS) {
-                    delete globals.SPAMS[spam]
-                }
-                return {
-                    content: "stopping all",
-                    status: StatusCode.RETURN
-                }
+            for (let pid of PIDS.values) {
+                pid.kill()
             }
-
-            let invalidSpams = []
-            let clearedSpams = []
-            for (let arg of args) {
-                let spamNo = Number(args)
-                if (!isNaN(spamNo) && globals.SPAMS[arg]) {
-                    clearedSpams.push(arg)
-                    delete globals.SPAMS[arg]
-                }
-                else invalidSpams.push(arg)
-            }
-            let finalText = ""
-            if (invalidSpams.length) {
-                finalText += `Failed to stop the following spams:\n${invalidSpams.join(", ")}\n`
-            }
-            if (clearedSpams.length) {
-                finalText += `Stopped the following spams:\n${clearedSpams.join(", ")}\n`
-            }
-
             return {
-                content: finalText,
+                content: "stopping all",
                 status: StatusCode.RETURN
             }
-
-        }, "Stop spams", {
-            helpArguments: {
-                "...spams": createHelpArgument("The spams to stop<br>IF not given, will stop all spams", false)
-            }
-        })
+        }, "Stop all spams, and running commands")
     ]
 
     yield [
@@ -1839,9 +1793,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "run",
-        {
-            run: async (msg: Message, args, sendCallback, opts, _2, recursion, bans) => {
+        "run", ccmdV2(async function({msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter}){
                 if (recursion >= globals.RECURSION_LIMIT) {
                     return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
                 }
@@ -1864,10 +1816,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 if (!text) {
                     return { content: "No script", status: StatusCode.ERR }
                 }
-                let id = Math.floor(Math.random() * 10000000)
-                globals.SPAMS[id] = true
                 if (opts['s']) {
-                    await handleSending(msg, { content: `Starting id: ${id}`, status: StatusCode.INFO }, sendCallback)
+                    await handleSending(msg, { content: `Starting id: ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
                 }
                 function handleRunFn(fn: string, contents: string) {
                     switch (fn) {
@@ -1923,7 +1873,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return text
                 }
                 for (let line of text) {
-                    if (!globals.SPAMS[id])
+                    if (interpreter.killed)
                         break
                     line = line.trim()
                     if (line.startsWith(globals.PREFIX)) {
@@ -1931,13 +1881,9 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     }
                     await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
                 }
-                delete globals.SPAMS[id]
                 return { noSend: true, status: StatusCode.INFO }
-            }, category: CAT,
-            help: {
-                info: "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%"
-            }
-        },
+
+        },  "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%")
     ]
 
     yield [
@@ -2821,12 +2767,6 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
             }
         })
         ,
-    ]
-
-    yield [
-        "spams", createCommandV2(async function() {
-            return { content: Object.keys(globals.SPAMS).join("\n") || "No spams", status: StatusCode.RETURN }
-        }, CAT, "List the ongoing spam ids")
     ]
 
     yield [

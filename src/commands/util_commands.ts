@@ -2580,7 +2580,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "read-lines", ccmdV2(async function({ msg, args, sendCallback, stdin, pipeTo, opts }) {
+        "read-lines", ccmdV2(async function({ msg, args, sendCallback, stdin, pipeTo, opts, interpreter }) {
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
             let lines = text.split("\n")
             if (!pipeTo) {
@@ -2590,16 +2590,12 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             if (waitTime < 700) {
                 waitTime = 1000
             }
-            let id = Math.random()
-            globals.SPAMS[id] = true
             for (let line of lines) {
-                if (!globals.SPAMS[id])
+                if (interpreter.killed)
                     break;
-
                 await handleSending(msg, { content: line, status: StatusCode.INFO, do_change_cmd_user_expansion: false }, sendCallback)
                 await sleep(waitTime)
             }
-            delete globals.SPAMS[id]
             return { noSend: true, status: StatusCode.RETURN }
         }, "Read each line one at a time and send to sendCallback", {
             accepts_stdin: "The text to read one line at a time"
@@ -3215,66 +3211,62 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        'stackl',
-        {
-            run: async (msg, args, sendCallback) => {
-                const stackl = require("../stackl")
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let useStart = true
-                if (opts['no-start'] === true) {
-                    useStart = false
-                }
-                if (opts['docs'] === true) {
-                    return {
-                        files: [
-                            {
-                                name: "stackl.txt",
-                                description: "The stackl documentation",
-                                delete: false,
-                                attachment: "./data/stackl.norg"
-                            }
-                        ],
-                        status: StatusCode.RETURN
-                    }
-                }
-
-                let stack = await stackl.parse(args, useStart, msg, globals.SPAMS)
-                if (stack?.err) {
-                    return { content: stack.content, status: StatusCode.RETURN }
-                }
-
-                let embeds = []
-                let texts = []
-
-                type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder
-                for (let item of stack as Array<stackTypes>) {
-                    if (item instanceof EmbedBuilder) {
-                        embeds.push(item)
-                    }
-                    else {
-                        texts.push(item)
-                    }
-                }
-                return { content: texts.join(String(opts['join'] ?? " ")), embeds: embeds, noSend: (<Array<stackTypes>>stack).length > 0 ? false : true, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Welcome to stackl",
-                arguments: {
-                    code: {
-                        description: "The code to run"
-                    }
-                },
-                options: {
-                    "no-start": {
-                        description: "Remove the need for %start"
-                    },
-                    "docs": {
-                        description: "Post the documentation"
-                    }
+        'stackl', ccmdV2(async function({ msg, rawArgs: args, sendCallback, interpreter }) {
+            const stackl = require("../stackl")
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let useStart = true
+            if (opts['no-start'] === true) {
+                useStart = false
+            }
+            if (opts['docs'] === true) {
+                return {
+                    files: [
+                        {
+                            name: "stackl.txt",
+                            description: "The stackl documentation",
+                            delete: false,
+                            attachment: "./data/stackl.norg"
+                        }
+                    ],
+                    status: StatusCode.RETURN
                 }
             }
-        },
+
+            let stack = await stackl.parse(args, useStart, msg, interpreter)
+            if (stack?.err) {
+                return { content: stack.content, status: StatusCode.RETURN }
+            }
+
+            let embeds = []
+            let texts = []
+
+            type stackTypes = number | string | Message | GuildMember | Function | Array<stackTypes> | EmbedBuilder
+            for (let item of stack as Array<stackTypes>) {
+                if (item instanceof EmbedBuilder) {
+                    embeds.push(item)
+                }
+                else {
+                    texts.push(item)
+                }
+            }
+            return { content: texts.join(String(opts['join'] ?? " ")), embeds: embeds, noSend: (<Array<stackTypes>>stack).length > 0 ? false : true, status: StatusCode.RETURN }
+
+        }, "Welcome to stackl", {
+            arguments: {
+                code: {
+                    description: "The code to run"
+                }
+            },
+            options: {
+                "no-start": {
+                    description: "Remove the need for %start"
+                },
+                "docs": {
+                    description: "Post the documentation"
+                }
+            }
+        })
     ]
 
     yield [

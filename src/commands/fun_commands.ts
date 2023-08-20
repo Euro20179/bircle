@@ -2042,9 +2042,7 @@ Valid formats:
     ]
 
     yield [
-        "spasm",
-        {
-            run: async (msg, args, sendCallback) => {
+        "spasm", ccmdV2(async function({msg, args, sendCallback, interpreter}){
                 let [times, ...text] = args
                 let sendText = text.join(" ")
                 let timesToGo = 10
@@ -2054,22 +2052,15 @@ Valid formats:
                 else {
                     sendText = [times, ...text].join(" ")
                 }
-                let id = String(Math.floor(Math.random() * 100000000))
-                await handleSending(msg, { content: `starting ${id}`, status: StatusCode.INFO }, sendCallback)
-                globals.SPAMS[id] = true
+                await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
                 let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
-                while (globals.SPAMS[id] && timesToGo--) {
+                while (!interpreter.killed && timesToGo--) {
                     if (message.deletable) await message.delete()
                     message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
                     await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
                 }
-                delete globals.SPAMS[id]
                 return { content: "done", status: StatusCode.INFO }
-            }, category: CommandCategory.FUN,
-            help: {
-                info: "Repeatedly send and delete a message"
-            }
-        },
+        },  "Repeatedly send and delete a message")
     ]
 
     yield [
