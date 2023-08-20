@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="/common.css" media="all">
+    <link rel="stylesheet" href="/alias.css" media="all">
+</head>
+
+<body>
+    <h1>[aliasv2 Generator</h1>
+    <form action="javascript:void(0)" id="cmd-form">
+        <input name='cmd' type="text" required>
+        <label for="cmd">Command name</label>
+        <br>
+        <textarea id="cmd-to-run" name="cmd-to-run" cols="9" rows="2" name="exec"></textarea>
+        <label for="exec">Command to run</label>
+        <br>
+        <input name='help-info' type="text">
+        <label for="help-info">Help information</label>
+        <br>
+        <input type="text" name="tags" placeholder="all tags">
+        <label for="tags">All tags seperated by |</label>
+        <br>
+        <input name="+tag" type="button" value="+">
+        <label for="+tag">Add a tag</label>
+        <br>
+        <input name="+arg" type="button" value="+">
+        <label for="+arg">Add Argument</label>
+        <br>
+        <input name="+opt" type="button" value="+">
+        <label for="+opt">Add Option</label>
+        <br>
+        <input type="checkbox" name="append-arguments" checked>
+        <label for="append-arguments"><span title="Append user arguments to the end of the command to run" style="text-decoration: underline dotted">Append arguments?</span></label>
+        <br>
+        <input type="checkbox" name="append-opts" checked>
+        <label for="append-opts"><span title="Append user options to the end of the command to run" style="text-decoration: underline dotted">Append options?</span></label>
+        <br>
+        <input type="checkbox" name="standardize-opts" checked>
+        <label for="standardize-opts"><span title="makes IFS, pipe-symbol, and 1-arg-string standard" style="text-decoration: underline dotted">Standardize syntax options?</span></label>
+        <br>
+        <input type="submit" value="generate"></input>
+    </form>
+
+    <pre id="output"></pre>
+
+    <script src="/alias.js"></script>
+</body>
+
+</html>

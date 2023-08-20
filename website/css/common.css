@@ -109,7 +109,7 @@ textarea{
 }
 
 
-button {
+button, input[type='submit'] {
     color: var(--highlight);
     background-color: var(--main);
     border-color: var(--highlight);

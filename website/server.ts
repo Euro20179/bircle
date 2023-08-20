@@ -561,6 +561,10 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
             sendFile(res, "./website/commands.html")
             break;
         }
+        case "alias": {
+            sendFile(res, "./website/alias.html")
+            break;
+        }
         case "help": {
             sendFile(res, "./website/help-web.html")
             break;
