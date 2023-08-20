@@ -584,7 +584,7 @@ export async function cmd({
 
         context = int.context
 
-    } while(parser.tokens.length > 0 && PIDS.keyExists(PID))
+    } while (parser.tokens.length > 0 && PIDS.keyExists(PID))
 
     PIDS.delete(PID)
 
@@ -722,7 +722,7 @@ export class Interpreter {
 
     }
 
-    kill(){
+    kill() {
         this.killed = true
         PIDS.delete(Number(this.context.env['PID']))
     }
@@ -1106,9 +1106,9 @@ export class Interpreter {
         //the point of explicit is to say which command is currently being run, and which "line number" it's on
         if (this.context.options.explicit) {
             if (rv.content) {
-                rv.content = `${this.context.env.LINENO}\t${args.join(" ")}\n${rv.content}`
+                rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}\n${rv.content}`
             }
-            else rv.content = `${this.context.env.LINENO}\t${args.join(" ")}`
+            else rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}`
         }
 
         //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
