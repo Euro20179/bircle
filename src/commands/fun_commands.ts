@@ -2023,7 +2023,6 @@ Valid formats:
 
     yield [
         "ship", ccmdV2(async function({ argShapeResults, rawOpts: opts }) {
-            console.log(argShapeResults)
             let [user1Full, user2Full] = argShapeResults['users'] as [string, string]
             let user1 = user1Full.slice(0, Math.ceil(user1Full.length / 2))
             let user2 = user2Full.slice(Math.floor(user2Full.length / 2))

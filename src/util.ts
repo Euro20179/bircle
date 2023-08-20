@@ -14,7 +14,7 @@ import { AliasV2, CommandCategory } from "./common_to_commands"
 import events from './events'
 
 import { formatMoney, getOpt } from "./user-options"
-import { BOT_CONFIG, getConfigValue } from "./globals"
+import { getConfigValue } from "./globals"
 
 
 export type MimeType = `${string}/${string}`
@@ -97,24 +97,6 @@ function titleStr(str: string) {
 */
 async function defer(cb: Function) {
     cb()
-}
-
-function xInNum(x: number, num: number) {
-    //10 comes from the fact that we are working in base 10
-    //first we figure out how big the biggest place value in x is, for example 15's biggest place value is 1 because 10**1 == 10
-    for (var xPow = 0; 10 ** xPow < x; xPow++);
-    //next we go through each power of 10 until it's bigger than num's biggest place value
-    for (let i = 0; 10 ** i < num; i++) {
-        //chops off unwanted part of the number, example: if num is 105, and i is 1, 105 will be converted to 10 because we no longer want the 100s place
-        let workingNum = Math.floor(num / (10 ** i));
-        //checks if the remainder of (current number - x) / 10 ** xPow is 0
-        //this confirms if x is in num because for example, if x is 13 and num is 113,
-        //our workingNum will be 113, (113 - 13 % 10 ** 1) === (110 % 10) === 0
-        if ((workingNum - x) % (10 ** xPow) === 0) {
-            return true
-        }
-    }
-    return false
 }
 
 function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof T, string>]]> {
@@ -479,7 +461,6 @@ function generateSafeEvalContextFromMessage(msg: Message) {
 }
 
 function safeEval(code: string, context: { [key: string]: any }, opts: any) {
-
     let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
     context[resultKey] = {}
     context["Buffer"] = Buffer
@@ -509,7 +490,6 @@ function safeEval(code: string, context: { [key: string]: any }, opts: any) {
         searchList,
         renderHTML: htmlRenderer.renderHTML,
         generateCommandSummary,
-        xInNum,
         romanToBase10,
         user_options: {
             formatMoney: formatMoney,
@@ -1171,7 +1151,6 @@ export {
     entriesOf,
     valuesOf,
     keysOf,
-    xInNum,
     randomHexColorCode,
     getImgFromMsgAndOptsAndReply,
     titleStr,
