@@ -523,6 +523,18 @@ type CmdArguments = {
     context?: InterpreterContext
 }
 
+/*
+    Quick summary of how cmd() works
+
+    Give the command to the Interpeter which sends it to the Parser to get a list of tokens
+    The interpreter then takes the tokens and goes through each one and preforms a specific action depending on the token
+    the result of the action gets turned into an argument for the args list
+    for example the dofirst token will do the command inside of it and the arg becomes the result of that command
+    after the args list is generated the Interpreter.run function is called which runs the command with the desired arguments and opts
+
+    at any point the [kill command could be run which can run Interpreter.kill() which sets Interpreter.killed to true
+    commands can use this value to end what they're doing
+*/
 export async function cmd({
     msg,
     command_excluding_prefix,
@@ -600,6 +612,13 @@ type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
 
 type InterpreterEnv = Record<string, string>
 
+/*
+    This class is not simply part of Interpreter because it can be reused between Interpreters to keep specific information
+
+    information such as environment variables which should carry between interpreters if the interpreter spawns a subprocess or any othe reason.
+
+    the main use of this is for the cmd() function which carries the context between different commands
+*/
 class InterpreterContext {
     env: InterpreterEnv
     options: InterpreterOptions
