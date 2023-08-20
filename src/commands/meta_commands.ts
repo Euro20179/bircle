@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -1793,97 +1793,97 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "run", ccmdV2(async function({msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter}){
-                if (recursion >= globals.RECURSION_LIMIT) {
-                    return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
+        "run", ccmdV2(async function({ msg, rawArgs: args, sendCallback, rawOpts: opts, recursionCount: recursion, commandBans: bans, interpreter }) {
+            if (recursion >= globals.RECURSION_LIMIT) {
+                return { content: "Cannot run after reaching the recursion limit", status: StatusCode.ERR }
+            }
+            let file = msg.attachments.at(0)
+            let text;
+            if (!file) {
+                text = args.join(" ").replaceAll("```", "").split(";EOL")
+            }
+            else {
+                let k = msg.attachments.keyAt(0) as string
+                msg.attachments.delete(k)
+                let data = await fetch(file.url)
+                text = await data.text()
+                let bluecHeader = "%bluecircle37%\n"
+                if (text.slice(0, bluecHeader.length) !== bluecHeader) {
+                    return { content: "Does not appear to be a bluec script", status: StatusCode.ERR }
                 }
-                let file = msg.attachments.at(0)
-                let text;
-                if (!file) {
-                    text = args.join(" ").replaceAll("```", "").split(";EOL")
-                }
-                else {
-                    let k = msg.attachments.keyAt(0) as string
-                    msg.attachments.delete(k)
-                    let data = await fetch(file.url)
-                    text = await data.text()
-                    let bluecHeader = "%bluecircle37%\n"
-                    if (text.slice(0, bluecHeader.length) !== bluecHeader) {
-                        return { content: "Does not appear to be a bluec script", status: StatusCode.ERR }
+                text = text.slice(bluecHeader.length).split("[;")
+            }
+            if (!text) {
+                return { content: "No script", status: StatusCode.ERR }
+            }
+            if (opts['s']) {
+                await handleSending(msg, { content: `Starting id: ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
+            }
+            function handleRunFn(fn: string, contents: string) {
+                switch (fn) {
+                    case "RUN_FN_VAR": {
+                        return `\\v{${parseRunLine(contents)}}`
                     }
-                    text = text.slice(bluecHeader.length).split("[;")
-                }
-                if (!text) {
-                    return { content: "No script", status: StatusCode.ERR }
-                }
-                if (opts['s']) {
-                    await handleSending(msg, { content: `Starting id: ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
-                }
-                function handleRunFn(fn: string, contents: string) {
-                    switch (fn) {
-                        case "RUN_FN_VAR": {
-                            return `\\v{${parseRunLine(contents)}}`
-                        }
-                        case "RUN_FN_DOFIRST": {
-                            return `$(${parseRunLine(contents)})`
-                        }
-                        case "RUN_FN_FMT": {
-                            return `{${parseRunLine(contents)}}`
-                        }
-                        default: {
-                            return contents
-                        }
+                    case "RUN_FN_DOFIRST": {
+                        return `$(${parseRunLine(contents)})`
+                    }
+                    case "RUN_FN_FMT": {
+                        return `{${parseRunLine(contents)}}`
+                    }
+                    default: {
+                        return contents
                     }
                 }
-                function parseRunLine(line: string): string {
-                    let text = ""
-                    let currFn = ""
-                    let prefix = "RUN_FN_"
-                    for (let i = 0; i < line.length; i++) {
-                        let ch = line[i]
-                        if (ch == "(" && currFn.startsWith(prefix)) {
-                            let parenCount = 1
-                            let fnContents = ""
-                            for (i++; i < line.length; i++) {
-                                ch = line[i]
-                                if (ch == "(") {
-                                    parenCount++;
-                                }
-                                else if (ch == ")") {
-                                    parenCount--;
-                                }
-                                if (parenCount == 0)
-                                    break;
-                                fnContents += ch
+            }
+            function parseRunLine(line: string): string {
+                let text = ""
+                let currFn = ""
+                let prefix = "RUN_FN_"
+                for (let i = 0; i < line.length; i++) {
+                    let ch = line[i]
+                    if (ch == "(" && currFn.startsWith(prefix)) {
+                        let parenCount = 1
+                        let fnContents = ""
+                        for (i++; i < line.length; i++) {
+                            ch = line[i]
+                            if (ch == "(") {
+                                parenCount++;
                             }
-                            text += handleRunFn(currFn, fnContents)
-                            currFn = ""
+                            else if (ch == ")") {
+                                parenCount--;
+                            }
+                            if (parenCount == 0)
+                                break;
+                            fnContents += ch
                         }
-                        else if ("ABCDEFGHIJKLMNOPQRSTUVWXYZ_".includes(ch)) {
-                            currFn += ch
-                        }
-                        else {
-                            text += currFn + ch
-                            currFn = ""
-                        }
+                        text += handleRunFn(currFn, fnContents)
+                        currFn = ""
                     }
-                    if (currFn) {
-                        text += currFn
+                    else if ("ABCDEFGHIJKLMNOPQRSTUVWXYZ_".includes(ch)) {
+                        currFn += ch
                     }
-                    return text
+                    else {
+                        text += currFn + ch
+                        currFn = ""
+                    }
                 }
-                for (let line of text) {
-                    if (interpreter.killed)
-                        break
-                    line = line.trim()
-                    if (line.startsWith(globals.PREFIX)) {
-                        line = line.slice(globals.PREFIX.length)
-                    }
-                    await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
+                if (currFn) {
+                    text += currFn
                 }
-                return { noSend: true, status: StatusCode.INFO }
+                return text
+            }
+            for (let line of text) {
+                if (interpreter.killed)
+                    break
+                line = line.trim()
+                if (line.startsWith(globals.PREFIX)) {
+                    line = line.slice(globals.PREFIX.length)
+                }
+                await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
+            }
+            return { noSend: true, status: StatusCode.INFO }
 
-        },  "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%")
+        }, "Runs bluec scripts. If running from a file, the top line of the file must be %bluecircle37%")
     ]
 
     yield [
@@ -2448,7 +2448,7 @@ ${styles}
     })
     ]
 
-    yield ["alias", createCommandV2(async ({ msg, args, opts }) => {
+    yield ["alias", createCommandV2(async ({ msg, args, opts, sendCallback }) => {
 
         let appendArgs = !opts.getBool("no-args", false)
         let appendOpts = !opts.getBool("no-opts", false)
@@ -2479,8 +2479,18 @@ ${styles}
                 return { content: "No name given", status: StatusCode.RETURN }
             }
 
-            if (aliasV2s[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
-                return { content: `${name} already exists`, status: StatusCode.ERR }
+            if (aliasV2s[name]) {
+                let failed = false
+                if (aliasV2s[name].creator === msg.author.id || globals.ADMINS.includes(msg.author.id)) {
+                    let validRespones = ["yes", "y"]
+                    let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
+                        timeout: 30000
+                    })
+                    failed = !resp || !validRespones.includes(resp.content.toLowerCase())
+                }
+                else failed = true
+                if (failed)
+                    return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
             }
             let command = cmd.join(" ")
             const alias = new AliasV2(name, command, msg.author.id, { info: command }, appendArgs, appendOpts, standardizeOpts)
@@ -2520,8 +2530,18 @@ ${styles}
             switch (action) {
                 case "name": {
                     name = text
-                    if (getAliasesV2()[name] || fs.existsSync(`./src/bircle-bin/${name}.bircle`)) {
-                        return { content: `${name} already exists`, status: StatusCode.ERR }
+                    if (getAliasesV2()[name]) {
+                        let failed = false
+                        if (aliasV2s[name].creator === msg.author.id || globals.ADMINS.includes(msg.author.id)) {
+                            let validRespones = ["yes", "y"]
+                            let resp = await promptUser(msg, "This alias already exists, do you want to override it [y/N]", sendCallback, {
+                                timeout: 30000
+                            })
+                            failed = !resp || !validRespones.includes(resp.content.toLowerCase())
+                        }
+                        else failed = true
+                        if (failed)
+                            return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
                     }
                     break
                 }
@@ -2602,10 +2622,6 @@ ${styles}
         }
 
         const alias = new AliasV2(name, command, msg.author.id, helpMetaData, appendArgs, appendOpts, standardizeOpts)
-
-        if (getAliasesV2()[name]) {
-            return { content: `Failed to add ${name} it already exists as an aliasv2`, status: StatusCode.ERR }
-        }
         aliasesV2[name] = alias
         fs.writeFileSync("./command-results/aliasV2", JSON.stringify(aliasesV2))
         getAliasesV2(true)
