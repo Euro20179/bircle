@@ -2439,16 +2439,9 @@ Valid formats:
 
         }, "Gets the distance", {
             helpArguments: {
-                "city 1": {
-                    "description": "The starting city, seperate the cities with |",
-                    "required": true
-                },
-                "city 2": {
-                    "description": "The ending city, seperate the cities with |",
-                    required: true
-                }
+                "city 1": createHelpArgument( "The starting city, seperate the cities with |", true),
+                "city 2": createHelpArgument( "The ending city, seperate the cities with |", true) 
             }
-
         })
     ]
 
