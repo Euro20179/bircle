@@ -50,14 +50,8 @@ function strToTT(str: string) {
 }
 
 class Token {
-    type: T
-    data: string | string[]
-    argNo: number
     id: number
-    constructor(type: T, data: string | string[], argNo: number) {
-        this.type = type
-        this.data = data
-        this.argNo = argNo
+    constructor(public type: T, public data: string | string[], public argNo: number) {
         this.id = Math.random()
     }
     originalText() {
