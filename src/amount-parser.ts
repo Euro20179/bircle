@@ -100,19 +100,11 @@ type TokenDataType = {
 }
 
 class Token<TokenType extends TT> {
-    type: TokenType
-    data: TokenDataType[TokenType]
-    constructor(type: TokenType, data: TokenDataType[TokenType]) {
-        this.data = data
-        this.type = type
-    }
+    constructor(public type: TokenType, public data: TokenDataType[TokenType]) {}
 }
 
 class Lexer {
     tokens: Token<TT>[] = []
-    data: string
-
-    specialLiterals: string[]
 
     #curChar: string[number] | undefined
     #i: number = -1
@@ -121,10 +113,7 @@ class Lexer {
     #specialChars = `#,()+-*/÷${this.#whitespace};="'`
 
 
-    constructor(data: string, specialLiterals?: string[]) {
-        this.data = data
-        this.specialLiterals = specialLiterals ?? []
-    }
+    constructor(public data: string, public specialLiterals: string[] = []) { }
 
     advance() {
         if ((this.#curChar = this.data[++this.#i]) === undefined) {
@@ -583,15 +572,8 @@ class FunctionType extends Type<UserFunction> {
 }
 
 class UserFunction {
-    codeToks: Token<TT>[]
-    argIdents: string[]
-    name: string
     code: ProgramNode | undefined
-    constructor(name: string, codeToks: Token<any>[], argIdents: string[]) {
-        this.codeToks = codeToks
-        this.argIdents = argIdents
-        this.name = name
-    }
+    constructor(public name: string, public codeToks: Token<any>[], public argIdents: string[]) { }
     run(program: ProgramNode, args: Type<any>[], table: SymbolTable) {
         let argRecord: { [key: string]: any } = {}
         if (args.length < this.argIdents.length) {
@@ -622,11 +604,9 @@ function createTypeFromJSType<T extends ValidJSTypes>(jsType: T) {
 }
 
 class ProgramNode extends Node {
-    program: Node
     relativeTo: number
-    constructor(program: Node, rel: number){
+    constructor(public program: Node, rel: number){
         super()
-        this.program = program
         this.relativeTo = rel
     }
 
@@ -668,11 +648,8 @@ class MultiStatementNode extends Node {
 }
 
 class SetRelNode extends Node {
-    val: Node
-
-    constructor(val: Node) {
+    constructor(public val: Node) {
         super()
-        this.val = val
     }
 
     visit(program: ProgramNode, table: SymbolTable): Type<any> {
@@ -689,11 +666,9 @@ ${'\t'.repeat(indent)})`
 }
 
 class PipeNode extends Node {
-    start: Node
     chain: Node[]
-    constructor(start: Node) {
+    constructor(public start: Node) {
         super()
-        this.start = start
         this.chain = []
     }
 
@@ -721,10 +696,8 @@ class PipeNode extends Node {
 }
 
 class ExpressionNode extends Node {
-    node: Node
-    constructor(n: Node) {
+    constructor(public node: Node) {
         super()
-        this.node = n
     }
 
     visit(program: ProgramNode, table: SymbolTable): Type<any> {
@@ -739,14 +712,8 @@ ${'\t'.repeat(indent)})`
 }
 
 class VariableBinOpAssignNode extends Node {
-    name: Token<TT.ident>
-    op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>
-    value: Node
-    constructor(name: Token<TT.ident>, op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>, value: Node) {
+    constructor(public name: Token<TT.ident>, public op: Token<TT.muleq | TT.minuseq | TT.diveq | TT.poweq | TT.rooteq | TT.pluseq | TT.eq>, public value: Node) {
         super()
-        this.name = name
-        this.op = op
-        this.value = value
     }
 
     visit(program: ProgramNode, table: SymbolTable): Type<any> {
@@ -784,14 +751,12 @@ ${'\t'.repeat(indent)})`
 
 class VariableAssignNode extends Node {
     name: string
-    value: Node
-    constructor(name: Token<TT.ident>[], value: Node) {
+    constructor(name: Token<TT.ident>[], public value: Node) {
         super()
         this.name = name[0].data
         for(let i = 1; i < name.length; i++){
             this.name += ` ${name[i].data}`
         }
-        this.value = value
     }
 
     visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
@@ -810,12 +775,8 @@ ${'\t'.repeat(indent)})`
 }
 
 class WhileNode extends Node {
-    condition: Node
-    code: MultiStatementNode
-    constructor(condition: Node, code: MultiStatementNode) {
+    constructor(public condition: Node, public code: MultiStatementNode) {
         super()
-        this.condition = condition
-        this.code = code
     }
 
     visit(program: ProgramNode, table: SymbolTable): Type<any> {
@@ -834,15 +795,9 @@ class WhileNode extends Node {
 }
 
 class IfNode extends Node {
-    condition: Node
-    code: MultiStatementNode
     elifPrograms: [Node, MultiStatementNode][]
-    elseProgram?: MultiStatementNode
-    constructor(condition: Node, code: MultiStatementNode, elifPrograms?: [Node, MultiStatementNode][], elseProgram?: MultiStatementNode) {
+    constructor(public condition: Node, public code: MultiStatementNode, elifPrograms?: [Node, MultiStatementNode][], public elseProgram?: MultiStatementNode) {
         super()
-        this.condition = condition
-        this.code = code
-        this.elseProgram = elseProgram
         this.elifPrograms = elifPrograms ?? []
     }
 
@@ -976,12 +931,8 @@ class NumberNode extends Node {
 }
 
 class RightUnOpNode extends Node {
-    left: Node
-    operator: Token<TT.percent | TT.hash | TT.number_suffix>
-    constructor(left: Node, operator: Token<TT.percent | TT.hash | TT.number_suffix>) {
+    constructor(public left: Node, public operator: Token<TT.percent | TT.hash | TT.number_suffix>) {
         super()
-        this.left = left
-        this.operator = operator
     }
     visit(program: ProgramNode, table: SymbolTable): NumberType {
         let number = this.left.visit(program, table)
@@ -1011,12 +962,8 @@ ${'\t'.repeat(indent)})`
 }
 
 class LeftUnOpNode extends Node {
-    left: Node
-    operator: Token<TT.hash | TT.minus>
-    constructor(left: Node, operator: Token<TT.hash | TT.minus>) {
+    constructor(public left: Node, public operator: Token<TT.hash | TT.minus>) {
         super()
-        this.left = left
-        this.operator = operator
     }
     visit(program: ProgramNode, table: SymbolTable): NumberType {
         let number = this.left.visit(program, table).access()
@@ -1041,14 +988,8 @@ ${'\t'.repeat(indent)})`
 }
 
 class BinOpNode extends Node {
-    left: Node
-    operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>
-    right: Node
-    constructor(left: Node, operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>, right: Node) {
+    constructor(public left: Node, public operator: Token<TT.mul | TT.div | TT.plus | TT.minus | TT.pow | TT.root | TT.le | TT.ge | TT.lt | TT.gt | TT.eq>, public right: Node) {
         super()
-        this.left = left
-        this.operator = operator
-        this.right = right
     }
     visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
         let left = this.left.visit(program, table)
@@ -1081,14 +1022,12 @@ ${'\t'.repeat(indent)})`
 
 class FunctionNode extends Node {
     name: string
-    nodes: Node[]
-    constructor(name: Token<TT.ident>[], nodes: Node[]) {
+    constructor(name: Token<TT.ident>[], public nodes: Node[]) {
         super()
         this.name = name[0].data
         for(let i = 1; i < name.length; i++){
             this.name += ` ${name[i].data}`
         }
-        this.nodes = nodes
     }
     visit(program: ProgramNode, table: SymbolTable): NumberType | StringType | FunctionType {
         let values = this.nodes.map(v => v.visit(program, table)) ?? [new NumberType(0)]
@@ -1524,10 +1463,8 @@ class Parser {
 }
 
 class Interpreter {
-    program: ProgramNode
-    relativeTo: number
     symbolTable: SymbolTable
-    constructor(program: ProgramNode, relativeTo: number, baseEnv: EnvironBase | SymbolTable) {
+    constructor(public program: ProgramNode, public relativeTo: number, baseEnv: EnvironBase | SymbolTable) {
         this.program = program
         this.relativeTo = relativeTo
         if (!(baseEnv instanceof SymbolTable))
