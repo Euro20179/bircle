@@ -596,15 +596,13 @@ type AmountOfArgs = int_t | ((arg: string, index: number, argsUsed: number) => t
 class ArgList extends Array {
     #i: number
     #curArg: string | null
-    IFS: string
-    constructor(args: string[], IFS = " ") {
+    constructor(args: string[], public IFS = " ") {
         super(args.length)
         for (let index in args) {
             Reflect.set(this, index, args[index])
         }
         this.#i = NaN
         this.#curArg = null
-        this.IFS = IFS
     }
     resplit(newSplit: string) {
         return new ArgList(this.join(this.IFS).split(newSplit))
