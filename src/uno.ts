@@ -1,13 +1,8 @@
 const colors = ["red", "green", "blue", "yellow"]
 
 class Card {
-    color: string;
-    value: string
     type = "normal"
-    constructor(color: string, value: string) {
-        this.color = color;
-        this.value = value
-    }
+    constructor(public color: string, public value: string) {}
     canBePlayed(stack: Stack) {
         let latest = stack.top()
         if (!latest) return true
