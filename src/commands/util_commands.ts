@@ -15,7 +15,7 @@ import htmlRenderer from '../html-renderer'
 
 import { Collection, ColorResolvable, Guild, GuildEmoji, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, Role, TextChannel, User, ButtonStyle } from 'discord.js'
 import common_to_commands, { StatusCode, lastCommand, handleSending, CommandCategory, commands, createCommandV2, createHelpOption, createHelpArgument, getCommands, generateDefaultRecurseBans, getAliasesV2, getMatchCommands, AliasV2, aliasesV2, ccmdV2, cmd, crv, promptUser } from '../common_to_commands'
-import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON } from '../util'
+import { choice, cmdCatToStr, fetchChannel, fetchUser, generateFileName, generateTextFromCommandHelp, getContentFromResult, mulStr, Pipe, safeEval, BADVALUE, efd, generateCommandSummary, fetchUserFromClient, ArgList, MimeType, generateHTMLFromCommandHelp, mimeTypeToFileExtension, generateDocSummary, isMsgChannel, fetchUserFromClientOrGuild, cmdFileName, sleep, truthy, enumerate, romanToBase10, titleStr, getToolIp, prettyJSON, getImgFromMsgAndOptsAndReply } from '../util'
 
 import { format, getOpts, parseBracketPair } from '../parsing'
 
@@ -159,18 +159,18 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
 
             let to = opts.getString("to", "en").toLowerCase(), text, from = opts.getString("from", "auto")
 
-            if(args.length){
+            if (args.length) {
                 args.beginIter()
                 let translateTo = args.expect(1, ([string]) => langs[string as keyof typeof langs] || langCodes[string] ? string : BADVALUE);
-                if(translateTo !== BADVALUE){
+                if (translateTo !== BADVALUE) {
                     to = translateTo.toLowerCase()
                 }
                 text = args.expectString(truthy)
             }
-            if(msg.reference){
+            if (msg.reference) {
                 text = (await msg.fetchReference()).content
             }
-            if(stdin){
+            if (stdin) {
                 text = getContentFromResult(stdin)
             }
             if (!text || text === BADVALUE) {
@@ -2567,9 +2567,32 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             options: {
                 sep: {
                     description: "If multiple equations are given, this seperates each answer"
-                }
+                },
+                p: createHelpOption("prettify the json output")
             }
         })
+    ]
+
+    yield [
+        "format-json", ccmdV2(async function({ msg, args, stdin, opts }) {
+            let text = stdin ? getContentFromResult(stdin) : args.join(" ")
+            if (!text) {
+                let file = await getImgFromMsgAndOptsAndReply(opts, msg, stdin)
+                if(!file){
+                    return crv("No text, or file given", {status: StatusCode.ERR})
+                }
+                let req = await fetch.default(file)
+                text = await req.text()
+            }
+            let json
+            try{
+                json = JSON.parse(text)
+            }
+            catch(e){
+                return crv("Not a valid json", {status: StatusCode.ERR})
+            }
+            return crv(prettyJSON(json))
+        }, "Format the json")
     ]
 
     yield [

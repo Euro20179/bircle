@@ -107,9 +107,9 @@ function prettyJSON(obj: any, tab = 0) {
         case "string":
             return JSON.stringify(obj)
         case "boolean":
-            return obj
+            return `${obj}`
         case "undefined":
-            return null
+            return "null"
         default:
             return ""
     }
