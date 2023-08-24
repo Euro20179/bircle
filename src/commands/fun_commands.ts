@@ -2084,9 +2084,19 @@ Valid formats:
                     let date = new Date(def.written_on)
                     let definition = def.definition.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
                     let example = def.example.replaceAll(/\[([^\]]+)\]/g, (_: string, link: string) => `[${link}](https://www.urbandictionary.com/define.php?term=${link.replaceAll(" ", "%20")})`)
+
+                    let upPercent = Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100
+                    let downPercent = 100 - upPercent
+
+                    let red = Math.round(255 * (downPercent / 100))
+                    let green = Math.round(255 * (upPercent / 100))
+                    let blue = 0
+
+                    let color = rgbToHex(red, green, blue)
+
                     let definitionText = `### Definition\n${definition}\n### Example\n${example}`
                     let embed = new EmbedBuilder()
-                        .setColor(randomHexColorCode() as ColorResolvable)
+                        .setColor(color as ColorResolvable)
                         .setTitle(`${def.word}`)
                         .setURL(def.permalink)
                         .setAuthor({ name: `${def.author || "[[Unknown]]"} · ${date.getMonth() + 1}/${date.getDay() + 1}/${date.getFullYear()}` })
@@ -2100,7 +2110,7 @@ Valid formats:
                             .setFields({ name: "👍", value: String(def.thumbs_up), inline: true }, {
                                 name: "👎", value: String(def.thumbs_down), inline: true
                             }, {
-                                name: "👍%", value: `${Math.round(def.thumbs_up / (def.thumbs_up + def.thumbs_down) * 10000) / 100}%`, inline: true
+                                name: "👍%", value: `${upPercent}%`, inline: true
                             })
                             .setFooter({ text: `\npage: ${pageNo}/${pages}` })
                     }
