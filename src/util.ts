@@ -69,6 +69,54 @@ function romanToBase10(roman: string) {
     return ans
 }
 
+function prettyObject(obj: object, tab = 0) {
+    let text = `${"\t".repeat(tab)}{\n`
+    for (let key in obj) {
+        text += `${"\t".repeat(tab + 1)}"${key}": ${prettyJSON(obj[key as keyof typeof obj], tab + 1)},\n`
+    }
+    //only if there are keys, otherwise we remove the initial {
+    if(Object.keys(obj).length)
+        //remove the trailing comma and new line
+        text = text.slice(0, -2)
+    return text.trimStart() + `\n${"\t".repeat(tab)}}`
+}
+
+function prettyList(obj: Array<any>, tab = 0) {
+    let text = `${"\t".repeat(tab)}[\n`
+    for (let item of obj) {
+        text += `${"\t".repeat(tab + 1)}${prettyJSON(item, tab + 1)},\n`
+    }
+    if(obj.length)
+        //remove the trailing comma and new line
+        text = text.slice(0, -2)
+    return text.trimStart() + `\n${"\t".repeat(tab)}]`
+}
+
+function prettyJSON(obj: any, tab = 0) {
+    switch (typeof obj) {
+        case "object":
+            if ("length" in obj) {
+                return prettyList(obj, tab)
+            }
+            if(obj === null){
+                return `null`
+            }
+            return prettyObject(obj, tab)
+        case "number":
+            return String(obj)
+        case "string":
+            return JSON.stringify(obj)
+        case "boolean":
+            return obj
+        case "undefined":
+            return null
+        default:
+            return ""
+    }
+}
+
+console.log(prettyJSON({ "hi": "yes", "ok": [1, 2, 3], "more-objs": {"yes": "no"}, "excellent": 3 }))
+
 function getToolIp() {
     return getConfigValue("secrets.twin-bot-ip")
 }
@@ -1154,5 +1202,6 @@ export {
     titleStr,
     romanToBase10,
     countOf,
+    prettyJSON
 }
 
