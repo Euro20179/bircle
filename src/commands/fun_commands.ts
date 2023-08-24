@@ -2112,6 +2112,9 @@ Valid formats:
                 return embeds
             }
             const json = await req.json()
+            if(json.list?.length === 0){
+                return crv(`No results`, {status: StatusCode.ERR})
+            }
             if (interpreter.onWeb) {
                 return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
             }
