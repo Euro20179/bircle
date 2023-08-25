@@ -1646,7 +1646,8 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
         return crv(amountParser.runRelativeCalculator(0, text).toString())
     }, "Runs relscript", {
         helpOptions: {
-            s: createHelpOption("run a REPL<br>type <code>.exit</code> to exit the REPL")
+            s: createHelpOption("run a REPL<br>type <code>.exit</code> to exit the REPL"),
+            tree: createHelpOption("See the ast")
         }, helpArguments: {
             code: createHelpArgument("The code to run")
         },
