@@ -380,7 +380,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
             let cmdToGet = urlParams?.get("cmd")
             let hasAttr = urlParams?.get("has-attr")
             let cmds = common_to_commands.getCommands()
-            let commands: [(string | [string, string]), Command | CommandV2][] = Array.from(cmds.entries())
+            let commands: [(string | [string, string]), CommandV2][] = Array.from(cmds.entries())
             if (category && isCommandCategory(category.toUpperCase()))
                 commands = commands.filter(([_name, cmd]) => cmd.category === strToCommandCat(category as keyof typeof CommandCategory))
 
@@ -400,11 +400,11 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 let results = searchList(search, infos, true)
                 commands = Array.from(Object.entries(results).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]), (([name, strength]) => {
                     name = name.split("\n")[0]
-                    return [[name, `<span class='cmd-search-strength'>(${strength})</span>`], common_to_commands.getCommands().get(name) as Command | CommandV2]
+                    return [[name, `<span class='cmd-search-strength'>(${strength})</span>`], common_to_commands.getCommands().get(name) as CommandV2]
                 }))
             }
             else if (cmdToGet) {
-                commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as Command | CommandV2]]
+                commands = [[cmdToGet || "NO RESULTS", cmds.get(cmdToGet) as CommandV2]]
             }
 
             //the input only works nicely when it's inside of main for some reason
@@ -415,7 +415,7 @@ function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPat
                 if (typeof name === 'object') {
                     [name, resultPriority] = name
                 }
-                html += generateHTMLFromCommandHelp(name, command as Command | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
+                html += generateHTMLFromCommandHelp(name, command as CommandV2 | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
             }
             html += ""
             res.writeHead(200, { "Content-Type": "text/html" })
@@ -669,7 +669,7 @@ server.on("request", (req, res) => {
         return handleGet(req, res)
     }
 })
-function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild = null) {
+function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
     //@ts-ignore
     let msg: Message = {
         activity: null,
@@ -694,7 +694,7 @@ function createFakeMessage(author: User, channel: DMChannel | TextChannel, conte
         flags: new MessageFlagsBitField(),
         groupActivityApplication: null,
         guild: guild,
-        guildId: guild?.id,
+        guildId: guild?.id || null,
         hasThread: false,
         interaction: null,
         member: null,

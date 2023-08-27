@@ -21,7 +21,7 @@ import fetch from 'node-fetch'
 import htmlRenderer from '../html-renderer'
 
 
-export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     yield ['runas', ccmdV2(async function({ msg, args }) {
         let oldId = msg.author
         let user = await fetchUserFromClient(common.client, args[0])
@@ -298,9 +298,6 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 }
                 else if (cmds.get(cmd)) {
                     switch (cmds.get(cmd)?.cmd_std_version) {
-                        case 1:
-                            res.push("cmdv1")
-                            break
                         case 2:
                             res.push("cmdv2")
                             break
@@ -523,7 +520,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             let curAttr = command
             for (let attr of attrs) {
                 for (let subAttr of attr.split(".")) {
-                    curAttr = curAttr[subAttr as Exclude<keyof Command | keyof CommandV2, "argShape">]
+                    curAttr = curAttr[subAttr as Exclude<keyof CommandV2, "argShape">]
                     if (curAttr === undefined) break;
                 }
 
@@ -611,53 +608,48 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "del-var",
-        {
-            run: async (msg, args, sendCallback, opts) => {
-                let prefix = String(opts['prefix'] || "__global__")
-                if (opts['u']) {
-                    prefix = msg.author.id
-                }
-                let names = args
-                let delPrefix = opts['p'] ? true : false
-                let deleted = []
-                for (let name of names) {
-                    if (delPrefix && !name.startsWith("!")) {
-                        if (vars.delPrefix(name, msg.author.id)) {
-                            deleted.push(name)
-                        }
-                    }
-                    else if (!delPrefix) {
-                        if (vars.delVar(`${prefix}:${name}`, msg.author.id, false)) {
-                            deleted.push(name)
-                        }
+        "del-var", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+            let prefix = String(opts['prefix'] || "__global__")
+            if (opts['u']) {
+                prefix = msg.author.id
+            }
+            let names = args
+            let delPrefix = opts['p'] ? true : false
+            let deleted = []
+            for (let name of names) {
+                if (delPrefix && !name.startsWith("!")) {
+                    if (vars.delPrefix(name, msg.author.id)) {
+                        deleted.push(name)
                     }
                 }
-                return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
-            }, category: CAT,
-            help: {
-                info: "Delete a variable",
-                arguments: {
-                    "variables...": {
-                        description: "Delete each variable seperatted by a space",
-                        required: true
-                    }
-                },
-                options: {
-                    u: {
-                        description: "Delete a user variable"
-                    },
-                    p: createHelpOption("Delete a prefix instead of a var"),
-                    prefix: {
-                        description: "Delete  a variable from the specified prefix"
+                else if (!delPrefix) {
+                    if (vars.delVar(`${prefix}:${name}`, msg.author.id, false)) {
+                        deleted.push(name)
                     }
                 }
             }
-        },
+            return { content: `Deleted: \`${deleted.join(", ")}\``, status: StatusCode.RETURN }
+        }, "Delete a variable", {
+            arguments: {
+                "variables...": {
+                    description: "Delete each variable seperatted by a space",
+                    required: true
+                }
+            },
+            options: {
+                u: {
+                    description: "Delete a user variable"
+                },
+                p: createHelpOption("Delete a prefix instead of a var"),
+                prefix: {
+                    description: "Delete  a variable from the specified prefix"
+                }
+            }
+        })
     ]
 
     yield [
-        "savev", ccmdV2(async() => vars.saveVars() && crv("Variables saved"), "Save all variables")
+        "savev", ccmdV2(async () => vars.saveVars() && crv("Variables saved"), "Save all variables")
     ]
 
     yield [
@@ -1232,139 +1224,139 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "if", ccmdV2(async function({msg, rawArgs: args, recursionCount: recursion_count, commandBans: command_bans}){
-                let [condition, cmdToCheck] = args.join(" ").split(";")
-                if (!cmdToCheck) {
-                    return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
-                }
-                cmdToCheck = cmdToCheck.split(";end")[0]
-                let success;
-                if (condition.trim().startsWith(`(${globals.PREFIX}`)) {
-                    let command_to_run = ""
-                    let check = ""
-                    let expected = ""
-                    let parenCount = 1
+        "if", ccmdV2(async function({ msg, rawArgs: args, recursionCount: recursion_count, commandBans: command_bans }) {
+            let [condition, cmdToCheck] = args.join(" ").split(";")
+            if (!cmdToCheck) {
+                return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
+            }
+            cmdToCheck = cmdToCheck.split(";end")[0]
+            let success;
+            if (condition.trim().startsWith(`(${globals.PREFIX}`)) {
+                let command_to_run = ""
+                let check = ""
+                let expected = ""
+                let parenCount = 1
 
-                    let end_of_command = 0;
-                    let end_of_check = 0;
+                let end_of_command = 0;
+                let end_of_check = 0;
 
-                    for (let i = condition.indexOf("(") + 1; i < condition.length; i++) {
-                        let ch = condition[i]
-                        if (ch === "(") {
-                            parenCount++;
-                        }
-                        else if (ch === ")") {
-                            parenCount--;
-                        }
-                        if (parenCount === 0) {
-                            end_of_command = i + 1;
-                            break;
-                        }
-                        command_to_run += ch
+                for (let i = condition.indexOf("(") + 1; i < condition.length; i++) {
+                    let ch = condition[i]
+                    if (ch === "(") {
+                        parenCount++;
                     }
-                    for (let i = end_of_command; i < condition.length; i++) {
-                        if (condition[i] === "(") {
-                            end_of_check = i + 1;
-                            break;
-                        }
-                        check += condition[i];
+                    else if (ch === ")") {
+                        parenCount--;
                     }
-                    parenCount = 1;
-                    for (let i = end_of_check; i < condition.length; i++) {
-                        let ch = condition[i]
-                        if (ch === "(") {
-                            parenCount++;
-                        }
-                        else if (ch === ")") {
-                            parenCount--;
-                        }
-                        if (parenCount === 0) {
-                            end_of_command = i + 1;
-                            break;
-                        }
-                        expected += ch;
+                    if (parenCount === 0) {
+                        end_of_command = i + 1;
+                        break;
                     }
-                    let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
-                    expected = expected.trim()
-                    switch (check.trim().toLowerCase()) {
-                        case "==": {
-                            success = content === expected;
-                            break;
+                    command_to_run += ch
+                }
+                for (let i = end_of_command; i < condition.length; i++) {
+                    if (condition[i] === "(") {
+                        end_of_check = i + 1;
+                        break;
+                    }
+                    check += condition[i];
+                }
+                parenCount = 1;
+                for (let i = end_of_check; i < condition.length; i++) {
+                    let ch = condition[i]
+                    if (ch === "(") {
+                        parenCount++;
+                    }
+                    else if (ch === ")") {
+                        parenCount--;
+                    }
+                    if (parenCount === 0) {
+                        end_of_command = i + 1;
+                        break;
+                    }
+                    expected += ch;
+                }
+                let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
+                expected = expected.trim()
+                switch (check.trim().toLowerCase()) {
+                    case "==": {
+                        success = content === expected;
+                        break;
+                    }
+                    case ">": {
+                        success = Number(content) > Number(expected);
+                        break;
+                    }
+                    case "f>": {
+                        success = parseFloat(content) > parseFloat(expected);
+                        break;
+                    }
+                    case "i>": {
+                        success = parseInt(content) > parseInt(expected);
+                        break;
+                    }
+                    case "<": {
+                        success = Number(content) < Number(expected);
+                        break;
+                    }
+                    case "f<": {
+                        success = parseFloat(content) < parseFloat(expected);
+                        break;
+                    }
+                    case "i<": {
+                        success = parseInt(content) < parseInt(expected);
+                        break;
+                    }
+                    case ">=": {
+                        success = Number(content) >= Number(expected);
+                        break;
+                    }
+                    case "f>=": {
+                        success = parseFloat(content) >= parseFloat(expected);
+                        break;
+                    }
+                    case "i>=": {
+                        success = parseInt(content) >= parseInt(expected);
+                        break;
+                    }
+                    case "<=": {
+                        success = Number(content) <= Number(expected);
+                        break;
+                    }
+                    case "f<=": {
+                        success = parseFloat(content) <= parseFloat(expected);
+                        break;
+                    }
+                    case "i<=": {
+                        success = parseInt(content) <= parseInt(expected);
+                        break;
+                    }
+                    case ":": {
+                        try {
+                            success = !!content.match(expected);
                         }
-                        case ">": {
-                            success = Number(content) > Number(expected);
-                            break;
+                        catch (err) {
+                            success = false;
                         }
-                        case "f>": {
-                            success = parseFloat(content) > parseFloat(expected);
-                            break;
-                        }
-                        case "i>": {
-                            success = parseInt(content) > parseInt(expected);
-                            break;
-                        }
-                        case "<": {
-                            success = Number(content) < Number(expected);
-                            break;
-                        }
-                        case "f<": {
-                            success = parseFloat(content) < parseFloat(expected);
-                            break;
-                        }
-                        case "i<": {
-                            success = parseInt(content) < parseInt(expected);
-                            break;
-                        }
-                        case ">=": {
-                            success = Number(content) >= Number(expected);
-                            break;
-                        }
-                        case "f>=": {
-                            success = parseFloat(content) >= parseFloat(expected);
-                            break;
-                        }
-                        case "i>=": {
-                            success = parseInt(content) >= parseInt(expected);
-                            break;
-                        }
-                        case "<=": {
-                            success = Number(content) <= Number(expected);
-                            break;
-                        }
-                        case "f<=": {
-                            success = parseFloat(content) <= parseFloat(expected);
-                            break;
-                        }
-                        case "i<=": {
-                            success = parseInt(content) <= parseInt(expected);
-                            break;
-                        }
-                        case ":": {
-                            try {
-                                success = !!content.match(expected);
-                            }
-                            catch (err) {
-                                success = false;
-                            }
-                            break;
-                        }
-                        case "includes": {
-                            success = content.includes(expected)
-                            break;
-                        }
+                        break;
+                    }
+                    case "includes": {
+                        success = content.includes(expected)
+                        break;
                     }
                 }
-                if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                    return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn
-                }
-                let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
-                if (elseCmd) {
-                    return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
-                }
-                return { content: "?", status: StatusCode.ERR }
+            }
+            if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
+                return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn
+            }
+            let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
+            if (elseCmd) {
+                return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
+            }
+            return { content: "?", status: StatusCode.ERR }
 
         }, "Run commands conditionally", {
-            docs:  "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent"
+            docs: "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent"
         })
     ]
 
@@ -1383,16 +1375,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "argc",
-        {
-            run: async (_msg, args) => {
-                return { content: String(args.length), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Prints the number of arguments given to this command"
-            },
-            category: CAT
-        },
+        "argc", ccmdV2(async ({ args }) => crv(String(args.length)), "Prints the number of arguments given to this command")
     ]
 
     yield [
@@ -1414,20 +1397,14 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "opts",
-        {
-            run: async (_msg, _args, _sendCallback, opts) => {
-                let disp = ""
-                for (let key in opts) {
-                    disp += `**${key}**: \`${opts[key]}\`\n`
-                }
-                return { content: disp || "#!N/A", status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Print the opts given"
-            },
-            category: CAT
-        },
+        "opts", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+            let disp = ""
+            for (let key in opts) {
+                disp += `**${key}**: \`${opts[key]}\`\n`
+            }
+            return { content: disp || "#!N/A", status: StatusCode.RETURN }
+        }, "Print the opts given", {
+        }),
     ]
 
     yield [
@@ -1444,50 +1421,45 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "uptime",
-        {
-            run: async (_msg: Message, args: ArgumentList) => {
-                let uptime = common.client.uptime
-                if (!uptime) {
-                    return {
-                        content: "No uptime found",
-                        status: StatusCode.ERR
-                    }
-                }
-                let fmt = args[0] || "%d:%h:%m:%s.%M"
-                let days, hours, minutes, seconds, millis;
-                seconds = Math.floor(uptime / 1000)
-                millis = String(uptime / 1000).split(".")[1]
-                days = 0
-                hours = 0
-                minutes = 0
-                while (seconds >= 60) {
-                    seconds -= 60
-                    minutes += 1
-                }
-                while (minutes >= 60) {
-                    minutes -= 60
-                    hours += 1
-                }
-                while (hours >= 24) {
-                    hours -= 24
-                    days += 1
-                }
+        "uptime", ccmdV2(async function({ msg, args }) {
+            let uptime = common.client.uptime
+            if (!uptime) {
                 return {
-                    content: format(fmt, { "d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}` }),
-                    status: StatusCode.RETURN
+                    content: "No uptime found",
+                    status: StatusCode.ERR
                 }
-            },
-            help: {
-                "info": "gives up time of the bot",
+            }
+            let fmt = args[0] || "%d:%h:%m:%s.%M"
+            let days, hours, minutes, seconds, millis;
+            seconds = Math.floor(uptime / 1000)
+            millis = String(uptime / 1000).split(".")[1]
+            days = 0
+            hours = 0
+            minutes = 0
+            while (seconds >= 60) {
+                seconds -= 60
+                minutes += 1
+            }
+            while (minutes >= 60) {
+                minutes -= 60
+                hours += 1
+            }
+            while (hours >= 24) {
+                hours -= 24
+                days += 1
+            }
+            return {
+                content: format(fmt, { "d": `${days}`, "h": `${hours}`, "m": `${minutes}`, "s": `${seconds}`, "M": `${millis}` }),
+                status: StatusCode.RETURN
+            }
+        }, "gives up time of the bot",
+            {
                 arguments: {
                     fmt: {
                         "description": "the format to show the uptime in<br>%s: seconds, %m: minutes, %h: hours, %d: days<br>{s}: seconds, {m}: minutes, {h}: hours, {d}: days"
                     }
                 }
-            },
-            category: CAT
-        },
+            })
     ]
 
     yield [
@@ -1878,160 +1850,148 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "var",
-        {
-            run: async (msg: Message, _, sendCallback, opts, args) => {
-                let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
-                if (!value.length) {
-                    return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
-                }
-                let realVal: string | number = value.join("=")
-                let [prefix, realName] = name.split(":")
-                if (prefix && realName && prefix.startsWith("!")) {
-                    return { content: `prefix cannot start with !`, status: StatusCode.ERR }
-                }
-                else if (!realName) {
-                    realName = prefix
-                    prefix = "__global__"
-                }
-                let type = String(opts['type'] || "string")
-                if (type === 'function') {
-                    return crv("Cannot create functions", { status: StatusCode.ERR })
-                }
-                if (!Object.keys(vars.VarType).includes(type)) {
-                    return crv("Not a valid type", { status: StatusCode.ERR })
-                }
+        "var", ccmdV2(async function({ msg, sendCallback, rawOpts: opts, args }) {
+            let [name, ...value] = args.join(" ").split("=").map(v => v.trim())
+            if (!value.length) {
+                return { content: "no value given, syntax `[var x=value", status: StatusCode.ERR }
+            }
+            let realVal: string | number = value.join("=")
+            let [prefix, realName] = name.split(":")
+            if (prefix && realName && prefix.startsWith("!")) {
+                return { content: `prefix cannot start with !`, status: StatusCode.ERR }
+            }
+            else if (!realName) {
+                realName = prefix
+                prefix = "__global__"
+            }
+            let type = String(opts['type'] || "string")
+            if (type === 'function') {
+                return crv("Cannot create functions", { status: StatusCode.ERR })
+            }
+            if (!Object.keys(vars.VarType).includes(type)) {
+                return crv("Not a valid type", { status: StatusCode.ERR })
+            }
 
-                if (type === 'number') {
-                    realVal = Number(realVal)
-                }
+            if (type === 'number') {
+                realVal = Number(realVal)
+            }
 
-                if (opts['u']) {
-                    if (prefix !== '__global__') {
-                        return crv("Invalid prefix", { status: StatusCode.ERR })
+            if (opts['u']) {
+                if (prefix !== '__global__') {
+                    return crv("Invalid prefix", { status: StatusCode.ERR })
+                }
+                vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
+                if (!opts['silent'])
+                    return {
+                        content: vars.getVar(msg, `${msg.author.id}:${name}`),
+                        status: StatusCode.RETURN
                     }
-                    vars.createVar(type as VarType, `${msg.author.id}:${name}`, realVal)
-                    if (!opts['silent'])
-                        return {
-                            content: vars.getVar(msg, `${msg.author.id}:${name}`),
-                            status: StatusCode.RETURN
-                        }
-                }
-                else {
-                    vars.createVar(type as VarType, `${prefix}:${realName}`, realVal, msg.author.id)
-                    if (!opts['silent'])
-                        return {
-                            content: vars.getVar(msg, name),
-                            status: StatusCode.RETURN
-                        }
-                }
-                return { noSend: true, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Creates a variable",
-                options: {
-                    u: createHelpOption("Create a user variable")
-                },
-                arguments: {
-                    "[prefix:]name=value": {
-                        description: "name is the variable name, value is the value<br>prefix is optional, and can be anything that does not start with !<br>the <code>%</code> prefix will also create a user variable.",
-                        required: true
+            }
+            else {
+                vars.createVar(type as VarType, `${prefix}:${realName}`, realVal, msg.author.id)
+                if (!opts['silent'])
+                    return {
+                        content: vars.getVar(msg, name),
+                        status: StatusCode.RETURN
                     }
-                }
+            }
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Creates a variable", {
+            options: {
+                u: createHelpOption("Create a user variable")
             },
-            category: CAT
-        },
+            arguments: {
+                "[prefix:]name=value": {
+                    description: "name is the variable name, value is the value<br>prefix is optional, and can be anything that does not start with !<br>the <code>%</code> prefix will also create a user variable.",
+                    required: true
+                }
+            }
+        })
     ]
 
     yield [
-        "remove",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
+        "remove", ccmdV2(async function({ msg, args, sendCallback }) {
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+            const file = common.FILE_SHORTCUTS[args[0] as keyof typeof common.FILE_SHORTCUTS] || args[0]
 
-                if (!file) {
-                    return {
-                        content: "Nothing given to add to",
-                        status: StatusCode.ERR
-                    }
+            if (!file) {
+                return {
+                    content: "Nothing given to add to",
+                    status: StatusCode.ERR
+                }
+            }
+
+            if (!isSafeFilePath(file)) {
+                return {
+                    content: "invalid file",
+                    status: StatusCode.ERR
+                }
+            }
+
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                return {
+                    content: "file does not exist",
+                    status: StatusCode.ERR
+                }
+            }
+
+            let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
+            let users_data = data.map(v => v.split(":").map(v => v.trim()))
+            if (!users_data[0][0]?.match(/\d{18}/)) {
+                return { content: "Not a database file", status: StatusCode.ERR }
+            }
+            //gets a list of indecies of the items that the user can remove
+            let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
+                return v.trim() === msg.author.id || globals.ADMINS.includes(msg.author.id) ? i : undefined
+            }).filter(v => v !== undefined)
+
+            let options = data.map((value, i) => [i, value] as const).filter(v => allowedIndicies.includes(v[0]))
+
+            handleSending(msg, { content: options.map(v => `${v[0] + 1}: ${v[1].replace(/^\n/, "")}`).join("\n"), status: StatusCode.INFO }, sendCallback)
+
+            await handleSending(msg, { content: "Say the number of the items you want to remove", status: StatusCode.PROMPT })
+            let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id && !isNaN(Number(m.content)), time: 30000, max: 1 })
+            let responseMessage = msgs.at(0)
+            if (!responseMessage) {
+                return { content: "Timeout", status: StatusCode.ERR }
+            }
+            let removedList = []
+            for (let numStr of responseMessage.content.split(" ")) {
+                let num = parseInt(numStr)
+                if (isNaN(num)) {
+                    await handleSending(msg, { content: `${num} is not a valid number`, status: StatusCode.ERR }, sendCallback)
+                    continue;
                 }
 
-                if (!isSafeFilePath(file)) {
-                    return {
-                        content: "invalid file",
-                        status: StatusCode.ERR
-                    }
+                if (!allowedIndicies.includes(num - 1)) {
+                    await handleSending(msg, { content: `You do not have permissions to remove ${num}`, status: StatusCode.ERR }, sendCallback)
+                    continue;
                 }
 
-                if (!fs.existsSync(`./command-results/${file}`)) {
-                    return {
-                        content: "file does not exist",
-                        status: StatusCode.ERR
-                    }
+                let removal = data[num - 1]
+                if (!removal) {
+                    await handleSending(msg, { content: `Not a valid index`, status: StatusCode.ERR }, sendCallback)
+                    continue;
                 }
+                removedList.push(removal)
+                delete data[num - 1]
+            }
 
-                let data = fs.readFileSync(`./command-results/${file}`, "utf-8").split(";END")
-                let users_data = data.map(v => v.split(":").map(v => v.trim()))
-                if (!users_data[0][0]?.match(/\d{18}/)) {
-                    return { content: "Not a database file", status: StatusCode.ERR }
+            data = data.filter(v => typeof v != 'undefined')
+
+            fs.writeFileSync(`command-results/${file}`, data.join(";END"))
+
+            if (removedList.length)
+                return { content: `removed ${removedList.join("\n")} from file`, status: StatusCode.RETURN }
+            return { content: "Nothing removed from file", status: StatusCode.RETURN }
+        }, "Removes a line from a command file", {
+            arguments: {
+                file: {
+                    description: "The command file to remove from",
+                    required: true
                 }
-                //gets a list of indecies of the items that the user can remove
-                let allowedIndicies = data.map(val => val.split(":")).map(v => v[0].trim()).map((v, i) => {
-                    return v.trim() === msg.author.id || globals.ADMINS.includes(msg.author.id) ? i : undefined
-                }).filter(v => v !== undefined)
-
-                let options = data.map((value, i) => [i, value] as const).filter(v => allowedIndicies.includes(v[0]))
-
-                handleSending(msg, { content: options.map(v => `${v[0] + 1}: ${v[1].replace(/^\n/, "")}`).join("\n"), status: StatusCode.INFO }, sendCallback)
-
-                await handleSending(msg, { content: "Say the number of the items you want to remove", status: StatusCode.PROMPT })
-                let msgs = await msg.channel.awaitMessages({ filter: m => m.author.id === msg.author.id && !isNaN(Number(m.content)), time: 30000, max: 1 })
-                let responseMessage = msgs.at(0)
-                if (!responseMessage) {
-                    return { content: "Timeout", status: StatusCode.ERR }
-                }
-                let removedList = []
-                for (let numStr of responseMessage.content.split(" ")) {
-                    let num = parseInt(numStr)
-                    if (isNaN(num)) {
-                        await handleSending(msg, { content: `${num} is not a valid number`, status: StatusCode.ERR }, sendCallback)
-                        continue;
-                    }
-
-                    if (!allowedIndicies.includes(num - 1)) {
-                        await handleSending(msg, { content: `You do not have permissions to remove ${num}`, status: StatusCode.ERR }, sendCallback)
-                        continue;
-                    }
-
-                    let removal = data[num - 1]
-                    if (!removal) {
-                        await handleSending(msg, { content: `Not a valid index`, status: StatusCode.ERR }, sendCallback)
-                        continue;
-                    }
-                    removedList.push(removal)
-                    delete data[num - 1]
-                }
-
-                data = data.filter(v => typeof v != 'undefined')
-
-                fs.writeFileSync(`command-results/${file}`, data.join(";END"))
-
-                if (removedList.length)
-                    return { content: `removed ${removedList.join("\n")} from file`, status: StatusCode.RETURN }
-                return { content: "Nothing removed from file", status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Removes a line from a command file",
-                arguments: {
-                    file: {
-                        description: "The command file to remove from",
-                        required: true
-                    }
-                }
-            },
-            category: CAT
-        },
+            }
+        })
     ]
 
     yield [
@@ -2223,128 +2183,121 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     })]
 
     yield [
-        "ht", {
-            //help command
-            run: async (msg, args, sendCallback, opts) => {
-                let commands = getCommands()
-                let files = []
-                let commandsToUse = Object.fromEntries(commands.entries())
-                if (args[0] && args[0] !== "?") {
-                    commandsToUse = {}
-                    for (let cmd of args) {
-                        if (!commands.get(cmd)) continue
-                        commandsToUse[cmd] = commands.get(cmd) as Command | CommandV2
-                    }
+        "ht", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+            let commands = getCommands()
+            let files = []
+            let commandsToUse = Object.fromEntries(commands.entries())
+            if (args[0] && args[0] !== "?") {
+                commandsToUse = {}
+                for (let cmd of args) {
+                    if (!commands.get(cmd)) continue
+                    commandsToUse[cmd] = commands.get(cmd) as CommandV2
                 }
-                if (opts['json']) {
-                    return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
-                }
-                if (!Object.hasEnumerableKeys(commandsToUse)) {
-                    return {
-                        content: "No help can be given :(",
-                        status: StatusCode.ERR
-                    }
-                }
-                if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
-                    await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
-                    delete opts['n']
-                    let styles = fs.readFileSync("help-styles.css")
-                    let html = `<style>
-${styles}
-</style>`
-                    for (let command in commandsToUse) {
-                        html += generateHTMLFromCommandHelp(command, commands.get(command) as Command | CommandV2)
-                    }
-                    fs.writeFileSync("help.html", html)
-                }
-                if (opts["p"] || opts['t']) {
-                    opts["plain"] = true
-                }
-                if (opts["m"]) {
-                    opts["markdown"] = true
-                }
-                if (opts["h"] || opts["html"] || Object.keys(opts).length === 0) {
-                    files.push({
-                        attachment: "help.html",
-                        name: "help.html",
-                        description: "help",
-                        delete: false
-                    })
-                    if (opts["h"])
-                        delete opts["h"]
-                    if (opts["html"])
-                        delete opts["html"]
-                }
-                const exts = {
-                    "plain": "txt",
-                    "markdown": "md",
-                    "man": "1",
-                    "commonmark": "md"
-                }
-                for (let fmt in opts) {
-                    if (fmt.length == 1) continue
-                    if (!fmt.match(/^\w+$/)) continue
-                    const ext = exts[fmt as keyof typeof exts] || fmt
-                    try {
-                        execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
-                    }
-                    catch (err) {
-                        continue
-                    }
-                    files.push({
-                        attachment: `output.${ext}`,
-                        name: `help.${ext}`,
-                        description: "help"
-                    })
-                }
-                if (fs.existsSync(`output.txt`)) {
-                    let content = fs.readFileSync("output.txt", "utf-8")
-                    fs.rmSync('output.txt')
-                    return {
-                        content: `\`\`\`\n${content}\n\`\`\``,
-                        status: StatusCode.RETURN
-                    }
-                }
-                if (files.length > 0) {
-                    return {
-                        files: files,
-                        status: StatusCode.RETURN
-                    }
-                }
+            }
+            if (opts['json']) {
+                return { content: JSON.stringify(commandsToUse), status: StatusCode.RETURN }
+            }
+            if (!Object.hasEnumerableKeys(commandsToUse)) {
                 return {
-                    content: "cannot send an empty file",
+                    content: "No help can be given :(",
                     status: StatusCode.ERR
                 }
-            },
-            help: {
-                info: "A really funky help command",
-                options: {
-                    "json": {
-                        description: "return the json of help"
-                    },
-                    "l": {
-                        description: "List all commands<br>set this equal to a category to list commands in a specific category",
-                    },
-                    "p": {
-                        "description": "give a plain text file intead of html"
-                    },
-                    "m": {
-                        "description": "give a markdown file instead of html"
-                    },
-                    "n": {
-                        "description": "forcefully generate a new help file"
-                    },
-                    "g": {
-                        "description": "show the syntax of the bot"
-                    },
-                    "*": {
-                        "description": "any format that pandoc allows, if you're curious, look up \"pandoc formats\""
-                    }
+            }
+            if (!fs.existsSync("help.html") || opts["n"] || args.length > 0) {
+                await handleSending(msg, { content: "Generating new help file", status: StatusCode.INFO }, sendCallback)
+                delete opts['n']
+                let styles = fs.readFileSync("help-styles.css")
+                let html = `<style>
+${styles}
+</style>`
+                for (let command in commandsToUse) {
+                    html += generateHTMLFromCommandHelp(command, commands.get(command) as CommandV2)
                 }
-            },
-            category: CAT,
-
-        },
+                fs.writeFileSync("help.html", html)
+            }
+            if (opts["p"] || opts['t']) {
+                opts["plain"] = true
+            }
+            if (opts["m"]) {
+                opts["markdown"] = true
+            }
+            if (opts["h"] || opts["html"] || Object.keys(opts).length === 0) {
+                files.push({
+                    attachment: "help.html",
+                    name: "help.html",
+                    description: "help",
+                    delete: false
+                })
+                if (opts["h"])
+                    delete opts["h"]
+                if (opts["html"])
+                    delete opts["html"]
+            }
+            const exts = {
+                "plain": "txt",
+                "markdown": "md",
+                "man": "1",
+                "commonmark": "md"
+            }
+            for (let fmt in opts) {
+                if (fmt.length == 1) continue
+                if (!fmt.match(/^\w+$/)) continue
+                const ext = exts[fmt as keyof typeof exts] || fmt
+                try {
+                    execSync(`pandoc -o output.${ext} -fhtml -t${fmt} help.html`)
+                }
+                catch (err) {
+                    continue
+                }
+                files.push({
+                    attachment: `output.${ext}`,
+                    name: `help.${ext}`,
+                    description: "help"
+                })
+            }
+            if (fs.existsSync(`output.txt`)) {
+                let content = fs.readFileSync("output.txt", "utf-8")
+                fs.rmSync('output.txt')
+                return {
+                    content: `\`\`\`\n${content}\n\`\`\``,
+                    status: StatusCode.RETURN
+                }
+            }
+            if (files.length > 0) {
+                return {
+                    files: files,
+                    status: StatusCode.RETURN
+                }
+            }
+            return {
+                content: "cannot send an empty file",
+                status: StatusCode.ERR
+            }
+        }, "A really funky help command", {
+            options: {
+                "json": {
+                    description: "return the json of help"
+                },
+                "l": {
+                    description: "List all commands<br>set this equal to a category to list commands in a specific category",
+                },
+                "p": {
+                    "description": "give a plain text file intead of html"
+                },
+                "m": {
+                    "description": "give a markdown file instead of html"
+                },
+                "n": {
+                    "description": "forcefully generate a new help file"
+                },
+                "g": {
+                    "description": "show the syntax of the bot"
+                },
+                "*": {
+                    "description": "any format that pandoc allows, if you're curious, look up \"pandoc formats\""
+                }
+            }
+        })
     ]
 
     yield [
@@ -2354,55 +2307,46 @@ ${styles}
     ]
 
     yield [
-        "WHITELIST",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let user: string | undefined = args[0]
-                if (!user) {
-                    return {
-                        content: "no user given",
-                        status: StatusCode.ERR
-                    }
+        "WHITELIST", ccmdV2(async function({ msg, args}) {
+            let user: string | undefined = args[0]
+            if (!user) {
+                return {
+                    content: "no user given",
+                    status: StatusCode.ERR
                 }
-                let addOrRemove = args[1]
-                if (!["a", "r"].includes(addOrRemove)) {
-                    return {
-                        content: "did not specify, (a)dd or (r)emove",
-                        status: StatusCode.ERR
-                    }
+            }
+            let addOrRemove = args[1]
+            if (!["a", "r"].includes(addOrRemove)) {
+                return {
+                    content: "did not specify, (a)dd or (r)emove",
+                    status: StatusCode.ERR
                 }
-                let cmds = args.slice(2)
-                if (!cmds.length) {
-                    return {
-                        content: "no cmd given",
-                        status: StatusCode.ERR
-                    }
+            }
+            let cmds = args.slice(2)
+            if (!cmds.length) {
+                return {
+                    content: "no cmd given",
+                    status: StatusCode.ERR
                 }
-                let fetchedUser = (await fetchUserFromClientOrGuild(user, msg.guild))
-                if (!fetchedUser) return crv(`${user} not found`, { status: StatusCode.ERR })
-                if (addOrRemove == "a") {
-                    common.addToPermList(common.WHITELIST, "whitelists", fetchedUser, cmds)
+            }
+            let fetchedUser = (await fetchUserFromClientOrGuild(user, msg.guild))
+            if (!fetchedUser) return crv(`${user} not found`, { status: StatusCode.ERR })
+            if (addOrRemove == "a") {
+                common.addToPermList(common.WHITELIST, "whitelists", fetchedUser, cmds)
 
-                    return {
-                        content: `${user} has been whitelisted to use ${cmds.join(" ")}`,
-                        status: StatusCode.RETURN
-                    }
-                } else {
-                    common.removeFromPermList(common.WHITELIST, "whitelists", fetchedUser, cmds)
-                    return {
-                        content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`,
-                        status: StatusCode.RETURN
-                    }
+                return {
+                    content: `${user} has been whitelisted to use ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
-            },
-            permCheck: msg => {
-                return globals.ADMINS.includes(msg.author.id)
-            },
-            help: {
-                info: "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd"
-            },
-            category: CAT
-        },
+            } else {
+                common.removeFromPermList(common.WHITELIST, "whitelists", fetchedUser, cmds)
+                return {
+                    content: `${user} has been removed from the whitelist of ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
+                }
+            }
+            return globals.ADMINS.includes(msg.author.id)
+        }, "Whitelist, or unwhitelist a user from a command<br>syntax: [WHITELIST @user (a|r) cmd")
     ]
 
     yield [
@@ -2668,7 +2612,7 @@ ${styles}
 
     yield ["cmd-metadata", createCommandV2(async ({ args, opts }) => {
         let cmds = { ...Object.fromEntries(getCommands().entries()), ...getAliasesV2() }
-        let cmdObjs: [string, (Command | CommandV2 | AliasV2)][] = Array.from<string, [string, (Command | CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as Command | CommandV2 | AliasV2]).filter(v => v[1])
+        let cmdObjs: [string, (CommandV2 | AliasV2)][] = Array.from<string, [string, (CommandV2 | AliasV2)]>(args, (arg) => [arg, cmds[arg] as CommandV2 | AliasV2]).filter(v => v[1])
         if (opts.getBool("raw", false)) {
             return {
                 content: Array.from(cmdObjs, ([name, cmd]) => `\\["${name}", ${JSON.stringify(cmd)}]`).join("\n"),

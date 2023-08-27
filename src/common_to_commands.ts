@@ -1016,7 +1016,7 @@ export class Interpreter {
             this.aliasV2 = false
         }
 
-        let cmdObject: Command | CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
+        let cmdObject:  CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
         for (let mod of this.modifiers) {
             cmdObject = mod.modifyCmd({ cmdObject, int: this, cmdName: cmd })
@@ -1112,7 +1112,7 @@ export class Interpreter {
                 this.aliasV2 = cmdObject
             }
             else {
-                rv = await (cmdObject as Command).run(this.#msg, args, this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel), opts, args2, this.recursion, typeof rv.recurse === "object" ? rv.recurse : undefined)
+                throw new Error(`${cmd} is commandv1 which euro broke`)
             }
             if (cmdObject?.use_result_cache === true) {
                 Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
@@ -1499,10 +1499,10 @@ export function generateDefaultRecurseBans() {
     return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas", "archive-channel"] }
 }
 
-export let commands: Map<string, (Command | CommandV2)> = new Map()
+export let commands: Map<string, ( CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
-export function registerCommand(name: string, command: Command | CommandV2, cat: CommandCategory) {
+export function registerCommand(name: string, command:  CommandV2, cat: CommandCategory) {
     if (!command.category) {
         command.category = cat
     }

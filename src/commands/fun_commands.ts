@@ -41,7 +41,7 @@ let CHAT_LL: undefined | LLModel
 if (globals.DEVBOT)
     loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll).catch(console.error)
 
-export default function*(): Generator<[string, Command | CommandV2]> {
+export default function*(): Generator<[string, CommandV2]> {
 
     yield ['mastermind', ccmdV2(async function({ msg, opts }) {
         globals.startCommand(msg.author.id, "mastermind")
@@ -1454,41 +1454,35 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     })]
 
     yield [
-        "rt",
-        {
-            run: async (msg, _, sendCallback, opts) => {
-                if (opts['t']) {
-                    handleSending(msg, { content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1 }, sendCallback).then(_m => {
-                        if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                        try {
-                            let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
-                            let start = Date.now()
-                            collector.on("collect", async (_m) => {
-                                await handleSending(msg, { content: `${Date.now() - start} ms`, status: StatusCode.RETURN }, sendCallback)
-                                collector.stop()
-                            })
-                        }
-                        catch (err) {
-                        }
-                    })
-                }
-                else {
-                    let button = new ButtonBuilder({ customId: `button:${msg.author.id} `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: ButtonStyle.Danger })
-                    let row = new ActionRowBuilder<ButtonBuilder>({ components: [button] })
-                    let start = Date.now()
-                    let message = await handleSending(msg, { components: [row], status: StatusCode.PROMPT }, sendCallback)
-                    let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id} ` })
-                    collector.on("collect", async (interaction) => {
-                        await interaction.reply({ content: `${Date.now() - start} ms` })
-                    })
-                }
-                return { noSend: true, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Gets your truely 100% accurate reaction time"
-            },
-            category: CommandCategory.FUN
-        },
+        "rt", ccmdV2(async function({ msg, sendCallback, rawOpts: opts }) {
+            if (opts['t']) {
+                handleSending(msg, { content: "SEND A MESSAGE NOWWWWWWWWWWWWWWWWWWWWWWWWW", status: -1 }, sendCallback).then(_m => {
+                    if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+                    try {
+                        let collector = msg.channel.createMessageCollector({ filter: m => m.author.id == msg.author.id, time: 3000 })
+                        let start = Date.now()
+                        collector.on("collect", async (_m) => {
+                            await handleSending(msg, { content: `${Date.now() - start} ms`, status: StatusCode.RETURN }, sendCallback)
+                            collector.stop()
+                        })
+                    }
+                    catch (err) {
+                    }
+                })
+            }
+            else {
+                let button = new ButtonBuilder({ customId: `button:${msg.author.id} `, label: "CLICK THE BUTTON NOWWWWWWW !!!!!!!", style: ButtonStyle.Danger })
+                let row = new ActionRowBuilder<ButtonBuilder>({ components: [button] })
+                let start = Date.now()
+                let message = await handleSending(msg, { components: [row], status: StatusCode.PROMPT }, sendCallback)
+                let collector = message.createMessageComponentCollector({ filter: interaction => interaction.user.id === msg.author.id && interaction.customId === `button:${msg.author.id} ` })
+                collector.on("collect", async (interaction) => {
+                    await interaction.reply({ content: `${Date.now() - start} ms` })
+                })
+            }
+            return { noSend: true, status: StatusCode.RETURN }
+        }, "Gets your truely 100% accurate reaction time", {
+        }),
     ]
 
     yield [
@@ -1666,67 +1660,63 @@ export default function*(): Generator<[string, Command | CommandV2]> {
 
 
     yield [
-        "wttr.in",
-        {
-            run: async function(__: Message, _: ArgumentList, ___, opts, args) {
-                let url = "https://www.wttr.in"
-                let town = args.join(" ") || "tokyo"
+        "wttr.in", ccmdV2(async function({ rawOpts: opts, args }) {
+            let url = "https://www.wttr.in"
+            let town = args.join(" ") || "tokyo"
 
-                let data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
-                let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
-                if (!tempData) {
-                    return { content: "Could not find weather", status: StatusCode.ERR }
+            let data = await (await fetch.default(`${url}/${encodeURI(town)}?format=1`)).text()
+            let tempData = data.match(/(\S*)\s*[+-](\d+).(C|F)/)
+            if (!tempData) {
+                return { content: "Could not find weather", status: StatusCode.ERR }
+            }
+            let condition, temp, unit
+            try {
+                [condition, temp, unit] = tempData.slice(1, 4)
+            }
+            catch (err) {
+                return { content: "Could not find weather :(", status: StatusCode.ERR }
+            }
+            temp = Number(temp)
+            let tempC, tempF
+            if (unit == "C") {
+                tempF = temp * 9 / 5 + 32
+                tempC = temp
+            } else if (unit == "F") {
+                tempC = (temp - 32) * 5 / 9
+                tempF = temp
+            }
+            else {
+                tempC = 843902438
+                tempF = tempC * 9 / 5 + 32
+            }
+            let color = {
+                [110 < tempF ? 1 : 0]: "#aa0000",
+                [isBetween(100, tempF, 110) ? 1 : 0]: "#ff0000",
+                [isBetween(90, tempF, 100) ? 1 : 0]: "#ff412e",
+                [isBetween(75, tempF, 90) ? 1 : 0]: "Orange",
+                [isBetween(60, tempF, 75) ? 1 : 0]: "Yellow",
+                [isBetween(45, tempF, 60) ? 1 : 0]: "Green",
+                [isBetween(32, tempF, 45) ? 1 : 0]: "Blue",
+                [isBetween(0, tempF, 32) ? 1 : 0]: "#5be6ff",
+                [tempF <= 0 ? 1 : 0]: "Purple",
+            }[1] ?? "DarkButNotBlack"
+            let embed = new EmbedBuilder()
+            embed.setTitle(town)
+            embed.setColor(color as ColorResolvable)
+            embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
+            embed.setFooter({ text: `For more info, visit [wttr.in](${url}/${encodeURI(town)})` })
+            if (opts['fmt']) {
+                return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
+            }
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "Get weather for a specific place, default: tokyo", {
+            arguments: {
+                "location": {
+                    description: "Where do you want the weather for"
                 }
-                let condition, temp, unit
-                try {
-                    [condition, temp, unit] = tempData.slice(1, 4)
-                }
-                catch (err) {
-                    return { content: "Could not find weather :(", status: StatusCode.ERR }
-                }
-                temp = Number(temp)
-                let tempC, tempF
-                if (unit == "C") {
-                    tempF = temp * 9 / 5 + 32
-                    tempC = temp
-                } else if (unit == "F") {
-                    tempC = (temp - 32) * 5 / 9
-                    tempF = temp
-                }
-                else {
-                    tempC = 843902438
-                    tempF = tempC * 9 / 5 + 32
-                }
-                let color = {
-                    [110 < tempF ? 1 : 0]: "#aa0000",
-                    [isBetween(100, tempF, 110) ? 1 : 0]: "#ff0000",
-                    [isBetween(90, tempF, 100) ? 1 : 0]: "#ff412e",
-                    [isBetween(75, tempF, 90) ? 1 : 0]: "Orange",
-                    [isBetween(60, tempF, 75) ? 1 : 0]: "Yellow",
-                    [isBetween(45, tempF, 60) ? 1 : 0]: "Green",
-                    [isBetween(32, tempF, 45) ? 1 : 0]: "Blue",
-                    [isBetween(0, tempF, 32) ? 1 : 0]: "#5be6ff",
-                    [tempF <= 0 ? 1 : 0]: "Purple",
-                }[1] ?? "DarkButNotBlack"
-                let embed = new EmbedBuilder()
-                embed.setTitle(town)
-                embed.setColor(color as ColorResolvable)
-                embed.addFields(efd(["condition", condition, false], ["Temp F", `${tempF}F`, true], ["Temp C", `${tempC}C`, true]))
-                embed.setFooter({ text: `For more info, visit [wttr.in](${url}/${encodeURI(town)})` })
-                if (opts['fmt']) {
-                    return { content: format(String(opts['fmt']), { f: String(tempF), c: String(tempC), g: color, s: condition, l: town }), status: StatusCode.RETURN }
-                }
-                return { embeds: [embed], status: StatusCode.RETURN }
             },
-            help: {
-                info: "Get weather for a specific place, default: tokyo",
-                arguments: {
-                    "location": {
-                        description: "Where do you want the weather for"
-                    }
-                },
-                options: {
-                    fmt: createHelpOption(`The format to use instead of an embed
+            options: {
+                fmt: createHelpOption(`The format to use instead of an embed
 <br>
 Valid formats:
     %f: temp in F
@@ -1735,11 +1725,9 @@ Valid formats:
     %s: condition
     %l: town
 `)
-                }
+            }
 
-            },
-            category: CommandCategory.FUN
-        },
+        }),
     ]
 
     yield [
@@ -2045,25 +2033,25 @@ Valid formats:
     ]
 
     yield [
-        "spasm", ccmdV2(async function({msg, args, sendCallback, interpreter}){
-                let [times, ...text] = args
-                let sendText = text.join(" ")
-                let timesToGo = 10
-                if (!isNaN(parseInt(times))) {
-                    timesToGo = parseInt(times)
-                }
-                else {
-                    sendText = [times, ...text].join(" ")
-                }
-                await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
-                let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
-                while (!interpreter.killed && timesToGo--) {
-                    if (message.deletable) await message.delete()
-                    message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
-                    await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
-                }
-                return { content: "done", status: StatusCode.INFO }
-        },  "Repeatedly send and delete a message")
+        "spasm", ccmdV2(async function({ msg, args, sendCallback, interpreter }) {
+            let [times, ...text] = args
+            let sendText = text.join(" ")
+            let timesToGo = 10
+            if (!isNaN(parseInt(times))) {
+                timesToGo = parseInt(times)
+            }
+            else {
+                sendText = [times, ...text].join(" ")
+            }
+            await handleSending(msg, { content: `starting ${interpreter.context.env['PID']}`, status: StatusCode.INFO }, sendCallback)
+            let message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
+            while (!interpreter.killed && timesToGo--) {
+                if (message.deletable) await message.delete()
+                message = await handleSending(msg, { content: sendText, status: StatusCode.RETURN }, sendCallback)
+                await new Promise(res => setTimeout(res, Math.random() * 700 + 200))
+            }
+            return { content: "done", status: StatusCode.INFO }
+        }, "Repeatedly send and delete a message")
     ]
 
     yield [
@@ -2126,8 +2114,8 @@ Valid formats:
                 return embeds
             }
             const json = await req.json()
-            if(json.list?.length === 0){
-                return crv(`No results`, {status: StatusCode.ERR})
+            if (json.list?.length === 0) {
+                return crv(`No results`, { status: StatusCode.ERR })
             }
             if (interpreter.onWeb) {
                 return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
@@ -2456,8 +2444,8 @@ Valid formats:
 
         }, "Gets the distance", {
             helpArguments: {
-                "city 1": createHelpArgument( "The starting city, seperate the cities with |", true),
-                "city 2": createHelpArgument( "The ending city, seperate the cities with |", true) 
+                "city 1": createHelpArgument("The starting city, seperate the cities with |", true),
+                "city 2": createHelpArgument("The ending city, seperate the cities with |", true)
             }
         })
     ]
@@ -2480,74 +2468,62 @@ Valid formats:
     ]
 
     yield [
-        "psnipe",
-        {
-            run: async (_msg, _args) => {
-                if (!purgeSnipe) {
-                    return { content: "Nothing has been purged yet", status: StatusCode.ERR }
+        "psnipe", ccmdV2(async function({}) {
+            if (!purgeSnipe) {
+                return { content: "Nothing has been purged yet", status: StatusCode.ERR }
+            }
+            let content = ""
+            let files: CommandFile[] = []
+            let embeds: Embed[] = []
+            for (let m of purgeSnipe) {
+                if (m.content) {
+                    content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
                 }
-                let content = ""
-                let files: CommandFile[] = []
-                let embeds: Embed[] = []
-                for (let m of purgeSnipe) {
-                    if (m.content) {
-                        content += `${m.author} says: \`\`\`${m.content}\`\`\`\n`
-                    }
-                    let mAttachments = m.attachments?.toJSON()
-                    if (mAttachments) {
-                        files = files.concat(mAttachments as unknown as CommandFile[])
-                    }
-                    if (m.embeds) {
-                        embeds = embeds.concat(m.embeds)
-                    }
+                let mAttachments = m.attachments?.toJSON()
+                if (mAttachments) {
+                    files = files.concat(mAttachments as unknown as CommandFile[])
                 }
-                return { content: content ? content : undefined, files: files, embeds: embeds, status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Similar to snipe, but shows the messages deleted from commands such as !clear"
-            },
-            category: CommandCategory.FUN
-        },
+                if (m.embeds) {
+                    embeds = embeds.concat(m.embeds)
+                }
+            }
+            return { content: content ? content : undefined, files: files, embeds: embeds, status: StatusCode.RETURN }
+        }, "Similar to snipe, but shows the messages deleted from commands such as !clear", {
+        }),
     ]
 
     yield [
-        "snipe",
-        {
-            run: async (_msg: Message, args: ArgumentList) => {
-                let snipeC = ((parseInt(args[0]) - 1) || 0)
-                if (snipeC >= 5) {
-                    return { content: "it only goes back 5", status: StatusCode.ERR }
+        "snipe", ccmdV2(async function({ args}) {
+            let snipeC = ((parseInt(args[0]) - 1) || 0)
+            if (snipeC >= 5) {
+                return { content: "it only goes back 5", status: StatusCode.ERR }
+            }
+            if (snipeC > snipes.length) {
+                return { content: "Not that many messages have been deleted yet", status: StatusCode.ERR }
+            }
+            if (!snipes.length) {
+                return { content: "Nothing has been deleted", status: StatusCode.ERR }
+            }
+            let snipe = snipes[snipeC]
+            if (!snipe) {
+                return { content: "no snipe", status: StatusCode.ERR }
+            }
+            let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
+            let files = snipe.attachments?.toJSON()
+            if (files) {
+                rv["files"] = files as unknown as CommandFile[]
+            }
+            if (snipe.embeds) {
+                rv["embeds"] = snipe.embeds
+            }
+            return rv
+        }, "Give the most recently deleted message<br>It stores the 5 most recently deleted messages", {
+            arguments: {
+                number: {
+                    description: "the message you want to see"
                 }
-                if (snipeC > snipes.length) {
-                    return { content: "Not that many messages have been deleted yet", status: StatusCode.ERR }
-                }
-                if (!snipes.length) {
-                    return { content: "Nothing has been deleted", status: StatusCode.ERR }
-                }
-                let snipe = snipes[snipeC]
-                if (!snipe) {
-                    return { content: "no snipe", status: StatusCode.ERR }
-                }
-                let rv: CommandReturn = { deleteFiles: false, content: `${snipe.author} says:\`\`\`\n${snipe.content}\`\`\``, status: StatusCode.RETURN }
-                let files = snipe.attachments?.toJSON()
-                if (files) {
-                    rv["files"] = files as unknown as CommandFile[]
-                }
-                if (snipe.embeds) {
-                    rv["embeds"] = snipe.embeds
-                }
-                return rv
-            },
-            help: {
-                info: "Give the most recently deleted message<br>It stores the 5 most recently deleted messages",
-                arguments: {
-                    number: {
-                        description: "the message you want to see"
-                    }
-                }
-            },
-            category: CommandCategory.FUN
-        },
+            }
+        }),
     ]
 
     yield ['remove-travel-location', ccmdV2(async function({ msg, args }) {

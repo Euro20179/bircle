@@ -25,7 +25,7 @@ import amountParser from '../amount-parser'
 
 const { useItem, hasItem } = require("../shop")
 
-export default function*(): Generator<[string, Command | CommandV2]> {
+export default function*(): Generator<[string, CommandV2]> {
     yield ["connect4", ccmdV2(async function({ msg, args, opts }) {
         if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
 
@@ -1115,70 +1115,65 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "ticket",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let round = !opts['no-round']
-                let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
-                let numbers = args.slice(1, 4)
-                if (!amount) {
-                    return { content: "No amount given", status: StatusCode.ERR }
+        "ticket", ccmdV2(async function({ msg, rawArgs: args, rawOpts: opts }) {
+            [opts, args] = getOpts(args)
+            let round = !opts['no-round']
+            let amount = economy.calculateAmountFromString(msg.author.id, args[0], { min: (t: number, _a: string) => t * 0.005 })
+            let numbers = args.slice(1, 4)
+            if (!amount) {
+                return { content: "No amount given", status: StatusCode.ERR }
+            }
+            if (!economy.canBetAmount(msg.author.id, amount)) {
+                return { content: "You do not have enough money for this", status: StatusCode.ERR }
+            }
+            if (amount / msg.author.balance < 0.005) {
+                return { content: "You must bet at least 0.5%", status: StatusCode.ERR }
+            }
+            let ticket = economy.buyLotteryTicket(msg.author.id, amount)
+            if (!ticket) {
+                return { content: "Could not buy ticket", status: StatusCode.ERR }
+            }
+            if (numbers && numbers.length == 1) {
+                ticket = numbers[0].split("").map(v => Number(v))
+            }
+            else if (numbers && numbers.length == 3) {
+                ticket = numbers.map(v => Number(v))
+            }
+            let answer = economy.getLottery()
+            let e = new EmbedBuilder()
+            if (round) {
+                amount = Math.floor(amount * 100) / 100
+            }
+            e.setFooter({ text: `Cost: ${amount}` })
+            if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
+                let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
+                let winningAmount = answer.pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")
+                economy.addMoney(msg.author.id, winningAmount)
+                economy.newLottery()
+                if (userFormat !== "__default__") {
+                    return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
                 }
-                if (!economy.canBetAmount(msg.author.id, amount)) {
-                    return { content: "You do not have enough money for this", status: StatusCode.ERR }
-                }
-                if (amount / msg.author.balance < 0.005) {
-                    return { content: "You must bet at least 0.5%", status: StatusCode.ERR }
-                }
-                let ticket = economy.buyLotteryTicket(msg.author.id, amount)
-                if (!ticket) {
-                    return { content: "Could not buy ticket", status: StatusCode.ERR }
-                }
-                if (numbers && numbers.length == 1) {
-                    ticket = numbers[0].split("").map(v => Number(v))
-                }
-                else if (numbers && numbers.length == 3) {
-                    ticket = numbers.map(v => Number(v))
-                }
-                let answer = economy.getLottery()
-                let e = new EmbedBuilder()
-                if (round) {
-                    amount = Math.floor(amount * 100) / 100
-                }
-                e.setFooter({ text: `Cost: ${amount}` })
-                if (JSON.stringify(ticket) == JSON.stringify(answer.numbers)) {
-                    let userFormat = user_options.getOpt(msg.author.id, "lottery-win", "__default__")
-                    let winningAmount = answer.pool * 2 + amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "0.2%")
-                    economy.addMoney(msg.author.id, winningAmount)
-                    economy.newLottery()
-                    if (userFormat !== "__default__") {
-                        return { content: format(userFormat, { numbers: ticket.join(" "), amount: String(winningAmount) }), recurse: true, status: StatusCode.RETURN, do_change_cmd_user_expansion: false }
-                    }
-                    e.setTitle("WINNER!!!")
-                    e.setColor("Green")
-                    e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
-                }
-                else {
-                    e.setColor("Red")
-                    e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
-                    e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
-                }
-                return { embeds: [e], status: StatusCode.RETURN }
-            }, category: CommandCategory.GAME,
-            help: {
-                info: "Buy a lottery ticket",
-                arguments: {
-                    "amount": {
-                        description: "The amount to pay for the ticket (minimum of 0.5% of your money)",
-                    },
-                    "numbers": {
-                        description: "The numbers to buy seperated by spaces"
-                    }
+                e.setTitle("WINNER!!!")
+                e.setColor("Green")
+                e.setDescription(`<@${msg.author.id}> BOUGHT THE WINNING TICKET! ${ticket.join(" ")}, AND WON **${winningAmount}**`)
+            }
+            else {
+                e.setColor("Red")
+                e.setTitle(["Nope", "Loser"][Math.floor(Math.random() * 2)])
+                e.setDescription(`<@${msg.author.id}> bought the ticket: ${ticket.join(" ")}, for $${amount} and didnt win`)
+            }
+            return { embeds: [e], status: StatusCode.RETURN }
+
+        }, "Buy a lottery ticket", {
+            arguments: {
+                "amount": {
+                    description: "The amount to pay for the ticket (minimum of 0.5% of your money)",
+                },
+                "numbers": {
+                    description: "The numbers to buy seperated by spaces"
                 }
             }
-        },
+        })
     ]
 
     yield [
@@ -1604,86 +1599,79 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "last-run",
-        {
-            run: async (msg, args, sendCallback) => {
-                let lastRun;
-                let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
-                if (fs.existsSync("./command-results/last-run")) {
-                    let data = fs.readFileSync("./command-results/last-run", "utf-8")
-                    lastRun = new Date()
-                    lastRun.setTime(Number(data))
+        "last-run", ccmdV2(async function({ msg, args, sendCallback }) {
+            let lastRun;
+            let fmt = args.join(" ") || "%D days, %H hours, %M minutes, %S seconds, %i milliseconds ago"
+            if (fs.existsSync("./command-results/last-run")) {
+                let data = fs.readFileSync("./command-results/last-run", "utf-8")
+                lastRun = new Date()
+                lastRun.setTime(Number(data))
+            }
+            else {
+                lastRun = new Date(Date.now())
+            }
+            let diff = Date.now() - lastRun.getTime()
+            let milliseconds = Math.floor(diff % 1000).toString()
+            let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/, "0$1")
+            let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
+            let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
+            let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
+            let amount = 0
+
+            //solves a bug where the user has to run last-run once in order to create the timer
+            let bypassCheck = false
+            if (timer.getTimer(msg.author.id, "%last-run") === undefined) {
+                timer.createTimer(msg.author.id, "%last-run")
+                timer.saveTimers()
+                bypassCheck = true
+            }
+
+            if (timer.has_x_s_passed(msg.author.id, "%last-run", 60) || bypassCheck) {
+                timer.restartTimer(msg.author.id, "%last-run")
+                timer.saveTimers()
+                amount = diff / (1000 * 60 * 60)
+                if (hours == minutes) {
+                    amount *= 1.1
                 }
-                else {
-                    lastRun = new Date(Date.now())
+                if (minutes == seconds) {
+                    amount *= 1.1
                 }
-                let diff = Date.now() - lastRun.getTime()
-                let milliseconds = Math.floor(diff % 1000).toString()
-                let seconds = Math.floor(diff / 1000 % 60).toString().replace(/^(\d)$/, "0$1")
-                let minutes = Math.floor((diff / (1000 * 60)) % 60).toString().replace(/^(\d)$/, "0$1")
-                let hours = Math.floor((diff / (1000 * 60 * 60) % 24)).toString().replace(/^(\d)$/, "0$1")
-                let days = Math.floor((diff / (1000 * 60 * 60 * 24) % 7)).toString().replace(/^(\d)$/, "0$1")
-                let amount = 0
+                if (hours == minutes && minutes == seconds) {
+                    amount *= 1.5
+                }
+                if (pet.getActivePet(msg.author.id) == "bird") {
+                    amount *= 2
+                }
+                economy.addMoney(msg.author.id, amount)
 
-                //solves a bug where the user has to run last-run once in order to create the timer
-                let bypassCheck = false
-                if (timer.getTimer(msg.author.id, "%last-run") === undefined) {
-                    timer.createTimer(msg.author.id, "%last-run")
-                    timer.saveTimers()
-                    bypassCheck = true
+                if (Number(days) >= 1) {
+                    let ach = achievements.achievementGet(msg, "patience")
+                    if (ach) {
+                        await handleSending(msg, ach)
+                    }
                 }
 
-                if (timer.has_x_s_passed(msg.author.id, "%last-run", 60) || bypassCheck) {
-                    timer.restartTimer(msg.author.id, "%last-run")
-                    timer.saveTimers()
-                    amount = diff / (1000 * 60 * 60)
-                    if (hours == minutes) {
-                        amount *= 1.1
-                    }
-                    if (minutes == seconds) {
-                        amount *= 1.1
-                    }
-                    if (hours == minutes && minutes == seconds) {
-                        amount *= 1.5
-                    }
-                    if (pet.getActivePet(msg.author.id) == "bird") {
-                        amount *= 2
-                    }
-                    economy.addMoney(msg.author.id, amount)
-
-                    if (Number(days) >= 1) {
-                        let ach = achievements.achievementGet(msg, "patience")
-                        if (ach) {
-                            await handleSending(msg, ach)
-                        }
-                    }
-
-                    if (Number(days) === 0 && Number(hours) === 0 && Number(minutes) === 0 && Number(seconds) === 0) {
-                        let ach = achievements.achievementGet(msg, "impatient")
-                        if (ach) await handleSending(msg, ach)
-                    }
-
-                    vars.setVarEasy("!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1), msg.author.id)
-                    vars.setVarEasy("!stats:last-run.last", String(amount))
-                    vars.setVarEasy("!stats:last-run.total", String(Number(vars.getVar(msg, "!stats:last-run.total")) + amount), msg.author.id)
-                    vars.saveVars()
-
-                    fmt += `\n{earnings}`
-                    fs.writeFileSync("./command-results/last-run", String(Date.now()))
+                if (Number(days) === 0 && Number(hours) === 0 && Number(minutes) === 0 && Number(seconds) === 0) {
+                    let ach = achievements.achievementGet(msg, "impatient")
+                    if (ach) await handleSending(msg, ach)
                 }
-                return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
+
+                vars.setVarEasy("!stats:last-run.count", String(Number(vars.getVar(msg, "!stats:last-run.count")) + 1), msg.author.id)
+                vars.setVarEasy("!stats:last-run.last", String(amount))
+                vars.setVarEasy("!stats:last-run.total", String(Number(vars.getVar(msg, "!stats:last-run.total")) + amount), msg.author.id)
+                vars.saveVars()
+
+                fmt += `\n{earnings}`
+                fs.writeFileSync("./command-results/last-run", String(Date.now()))
+            }
+            return { content: format(fmt, { T: lastRun.toString(), t: `${days}:${hours}:${minutes}:${seconds}.${milliseconds}`, H: hours, M: minutes, S: seconds, D: days, i: milliseconds, f: String(diff), d: String(diff / (1000 * 60 * 60 * 24)), h: String(diff / (1000 * 60 * 60)), m: String(diff / (1000 * 60)), s: String(diff / 1000), hours: hours, minutes: minutes, seconds: seconds, millis: milliseconds, diff: String(diff), days: days, date: lastRun.toDateString(), time: lastRun.toTimeString(), earnings: `${msg.author} Earned: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${amount}` }), status: StatusCode.RETURN }
+        }, "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>", {
+            arguments: {
+                fmt: {
+                    description: "The format to show the time in"
+                }
             },
-            help: {
-                arguments: {
-                    fmt: {
-                        description: "The format to show the time in"
-                    }
-                },
-                info: "Formats:<ul><li>%H: hours</li><li>%M: minutes</li><li>%S: seconds</li><li>%D: days</li><li>%i: milliseconds</li><li>%f: total milliseconds</li><li>%d: total days</li><li>%h: total hours</li><li>%m: total minutes</li><li>%s: total seconds</li><li>%T: The full time it was last run</li><li>%t: the time ago it was run</li> <li>{date}: the date it was last run</li><li>{time}: las time it was run</li></ul>"
-            },
-            category: CommandCategory.GAME
-
-        },
+        })
     ]
 
     yield [
@@ -2014,7 +2002,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "coin", ccmdV2(async function({ msg, args }) {
+        "coin", ccmdV2(async function({ msg, rawArgs: args }) {
             if (!args.length) {
                 return crv(choice(['heads', 'tails']))
             }
@@ -2060,7 +2048,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "uno", ccmdV2(async function({ msg, opts, args }) {
+        "uno", ccmdV2(async function({ msg, rawOpts: opts, args, sendCallback }) {
             if (!msg.member || !msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
             let requestPlayers = args.join(" ").trim().split("|").map(v => v.trim()).filter(v => v.trim())
             let players: GuildMember[] = [msg.member]
@@ -2397,7 +2385,7 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "wordle", ccmdV2(async function({ msg, args, sendCallback }) {
+        "wordle", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
             if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
             let opts: Opts
             [opts, args] = getOpts(args)
@@ -2478,207 +2466,202 @@ until you put a 0 in the box`)
     ]
 
     yield [
-        "hangman",
-        {
-            run: async (msg, args, sendCallback) => {
-                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                if (!msg.guild || !msg.member) return crv("Not in a guild", { status: StatusCode.ERR })
-                let opponent: GuildMember | undefined = msg.member
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                let caseSensitive = opts['case']
-                let wordstr: string;
-                let everyone = false
-                let users: any[] = []
-                for (let arg of args) {
-                    if (['all', 'everyone'].includes(arg)) {
-                        users.push("Everyone")
-                        everyone = true
-                        break
-                    }
-                    opponent = await fetchUser(msg.guild, arg)
-                    if (opponent) {
-                        users.push(opponent)
-                    }
+        "hangman", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+            if (!msg.guild || !msg.member) return crv("Not in a guild", { status: StatusCode.ERR })
+            let opponent: GuildMember | undefined = msg.member
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            let caseSensitive = opts['case']
+            let wordstr: string;
+            let everyone = false
+            let users: any[] = []
+            for (let arg of args) {
+                if (['all', 'everyone'].includes(arg)) {
+                    users.push("Everyone")
+                    everyone = true
+                    break
                 }
-                if (users.length == 0) {
-                    users.push(msg.author)
+                opponent = await fetchUser(msg.guild, arg)
+                if (opponent) {
+                    users.push(opponent)
+                }
+            }
+            if (users.length == 0) {
+                users.push(msg.author)
+            }
+            try {
+                await msg.author.createDM()
+            }
+            catch (err) {
+                return { content: "Could not dm you", status: StatusCode.ERR }
+            }
+            let points = 0
+            let losingStreak = 0
+            let winningStreak = 0
+            let participants: { [key: string]: number } = {}
+            async function game(wordstr: string) {
+                let wordLength = strlen(wordstr)
+                if (!caseSensitive) {
+                    wordstr = wordstr.toLowerCase()
+                }
+                let guessed = ""
+                let disp = ""
+                let lives = parseInt(opts["lives"] as string) || 10
+                let _startingLives = lives
+                let word = [...wordstr]
+                for (let i = 0; i < wordLength; i++) {
+                    if (word[i] == " ") {
+                        disp += '   '
+                    }
+                    else {
+                        disp += "\\_ "
+                    }
                 }
                 try {
-                    await msg.author.createDM()
+                    await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess`, status: StatusCode.PROMPT })
                 }
                 catch (err) {
-                    return { content: "Could not dm you", status: StatusCode.ERR }
+                    return { content: "2K char limit reached", status: StatusCode.ERR }
                 }
-                let points = 0
-                let losingStreak = 0
-                let winningStreak = 0
-                let participants: { [key: string]: number } = {}
-                async function game(wordstr: string) {
-                    let wordLength = strlen(wordstr)
-                    if (!caseSensitive) {
-                        wordstr = wordstr.toLowerCase()
+                if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
+                let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
+                let gameIsGoing = true
+                collection.on("collect", async (m) => {
+                    if (!gameIsGoing) return
+                    if (m.content == '\\n' || m.content == "<enter>")
+                        m.content = '\n'
+                    if (m.content == "STOP") {
+                        await handleSending(msg, { content: "STOPPED", status: StatusCode.RETURN }, sendCallback)
+                        collection.stop()
+                        gameIsGoing = false
+                        return
                     }
-                    let guessed = ""
+                    if (!caseSensitive) {
+                        m.content = m.content.toLowerCase()
+                    }
+                    if (participants[m.author.id] === undefined && !m.author.bot) {
+                        participants[m.author.id] = .5
+                    }
+                    if ([...guessed].indexOf(m.content) > -1) {
+                        await handleSending(msg, { content: `You've already guessed ${m.content}`, status: StatusCode.ERR }, sendCallback)
+                        return
+                    }
+                    else if (m.content == wordstr) {
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`, status: StatusCode.RETURN })
+                        collection.stop()
+                        gameIsGoing = false
+                        return
+                    }
+                    else guessed += m.content
+                    if (word.indexOf(m.content) < 0) {
+                        losingStreak++
+                        winningStreak = 0
+                        points -= losingStreak ** 2
+                        participants[m.author.id] /= 1.2
+                        lives--
+                    }
+                    else {
+                        participants[m.author.id] *= 1.2
+                        winningStreak++
+                        losingStreak = 0
+                        points += winningStreak ** 2
+                    }
+                    if (lives < 1) {
+                        await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
+                        collection.stop()
+                        gameIsGoing = false
+                        return
+                    }
+                    let correctIndecies: { [k: number]: string } = {}
+                    for (let i = 0; i < strlen(guessed); i++) {
+                        let letter = [...guessed][i]
+                        let tempWord = [...word]
+                        let totalIdx = 0
+                        let idx;
+                        while ((idx = [...tempWord].indexOf(letter)) >= 0) {
+                            correctIndecies[idx + totalIdx] = letter
+                            totalIdx += idx + 1
+                            tempWord = tempWord.slice(idx + 1)
+                        }
+                    }
                     let disp = ""
-                    let lives = parseInt(opts["lives"] as string) || 10
-                    let _startingLives = lives
-                    let word = [...wordstr]
                     for (let i = 0; i < wordLength; i++) {
-                        if (word[i] == " ") {
+                        if (correctIndecies[i]) {
+                            disp += correctIndecies[i]
+                        }
+                        else if (word[i] == " ") {
                             disp += '   '
                         }
                         else {
                             disp += "\\_ "
                         }
                     }
-                    try {
-                        await handleSending(msg, { content: `${disp}\n${users.join(", ")}, guess`, status: StatusCode.PROMPT })
+                    if (disp.replaceAll("   ", " ") == wordstr) {
+                        await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
+                        collection.stop()
+                        gameIsGoing = false
+                        return
                     }
-                    catch (err) {
-                        return { content: "2K char limit reached", status: StatusCode.ERR }
-                    }
-                    if (!isMsgChannel(msg.channel)) return { noSend: true, status: StatusCode.ERR }
-                    let collection = msg.channel.createMessageCollector({ filter: m => (strlen(m.content) < 2 || m.content == wordstr || (m.content[0] == 'e' && strlen(m.content) > 2 && strlen(m.content) < 5) || ["<enter>", "STOP", "\\n"].includes(m.content)) && (users.map(v => v.id).includes(m.author.id) || everyone), idle: 40000 })
-                    let gameIsGoing = true
-                    collection.on("collect", async (m) => {
-                        if (!gameIsGoing) return
-                        if (m.content == '\\n' || m.content == "<enter>")
-                            m.content = '\n'
-                        if (m.content == "STOP") {
-                            await handleSending(msg, { content: "STOPPED", status: StatusCode.RETURN }, sendCallback)
-                            collection.stop()
-                            gameIsGoing = false
-                            return
-                        }
-                        if (!caseSensitive) {
-                            m.content = m.content.toLowerCase()
-                        }
-                        if (participants[m.author.id] === undefined && !m.author.bot) {
-                            participants[m.author.id] = .5
-                        }
-                        if ([...guessed].indexOf(m.content) > -1) {
-                            await handleSending(msg, { content: `You've already guessed ${m.content}`, status: StatusCode.ERR }, sendCallback)
-                            return
-                        }
-                        else if (m.content == wordstr) {
-                            await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}`, status: StatusCode.RETURN })
-                            collection.stop()
-                            gameIsGoing = false
-                            return
-                        }
-                        else guessed += m.content
-                        if (word.indexOf(m.content) < 0) {
-                            losingStreak++
-                            winningStreak = 0
-                            points -= losingStreak ** 2
-                            participants[m.author.id] /= 1.2
-                            lives--
-                        }
-                        else {
-                            participants[m.author.id] *= 1.2
-                            winningStreak++
-                            losingStreak = 0
-                            points += winningStreak ** 2
-                        }
-                        if (lives < 1) {
-                            await handleSending(msg, { content: `You lost, the word was:\n${wordstr}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
-                            collection.stop()
-                            gameIsGoing = false
-                            return
-                        }
-                        let correctIndecies: { [k: number]: string } = {}
-                        for (let i = 0; i < strlen(guessed); i++) {
-                            let letter = [...guessed][i]
-                            let tempWord = [...word]
-                            let totalIdx = 0
-                            let idx;
-                            while ((idx = [...tempWord].indexOf(letter)) >= 0) {
-                                correctIndecies[idx + totalIdx] = letter
-                                totalIdx += idx + 1
-                                tempWord = tempWord.slice(idx + 1)
-                            }
-                        }
-                        let disp = ""
-                        for (let i = 0; i < wordLength; i++) {
-                            if (correctIndecies[i]) {
-                                disp += correctIndecies[i]
-                            }
-                            else if (word[i] == " ") {
-                                disp += '   '
-                            }
-                            else {
-                                disp += "\\_ "
-                            }
-                        }
-                        if (disp.replaceAll("   ", " ") == wordstr) {
-                            await handleSending(msg, { content: `YOU WIN, it was\n${wordstr}\nscore: ${points}`, allowedMentions: { parse: [] }, status: StatusCode.RETURN })
-                            collection.stop()
-                            gameIsGoing = false
-                            return
-                        }
-                        await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)`, status: StatusCode.INFO })
-                    })
+                    await handleSending(msg, { content: `(score: ${points})\n${disp}\n${users.join(", ")}, guess (${lives} lives left)`, status: StatusCode.INFO })
+                })
+            }
+            if (opts["random"]) {
+                let channels = (await msg.guild?.channels.fetch())?.toJSON()
+                if (!channels) {
+                    return { content: "no channels found", status: StatusCode.ERR }
                 }
-                if (opts["random"]) {
-                    let channels = (await msg.guild?.channels.fetch())?.toJSON()
-                    if (!channels) {
-                        return { content: "no channels found", status: StatusCode.ERR }
-                    }
-                    let channel = choice(channels as NonThreadGuildBasedChannel[])
-                    if (!isMsgChannel(channel)) return { content: "Not a text channel", status: StatusCode.ERR }
-                    if (channel === null) {
-                        return { content: "Cannot do random in this non-channel", status: StatusCode.ERR }
-                    }
-                    while (!isMsgChannel(channel) || channel.type === ChannelType.GuildCategory)
-                        channel = choice(channels as NonThreadGuildBasedChannel[])
-                    if (!isMsgChannel(channel)) return { content: "Not a text channel", status: StatusCode.ERR }
-                    let messages
-                    try {
-                        messages = await channel?.messages.fetch({ limit: 100 })
-                    }
-                    catch (err) {
-                        messages = await msg.channel.messages.fetch({ limit: 100 })
-                    }
-                    let times = 0;
-                    while (!(wordstr = messages.random()?.content ?? "UNDEFINED")) {
-                        times++
-                        if (times > 20) break
-                    }
+                let channel = choice(channels as NonThreadGuildBasedChannel[])
+                if (!isMsgChannel(channel)) return { content: "Not a text channel", status: StatusCode.ERR }
+                if (channel === null) {
+                    return { content: "Cannot do random in this non-channel", status: StatusCode.ERR }
+                }
+                while (!isMsgChannel(channel) || channel.type === ChannelType.GuildCategory)
+                    channel = choice(channels as NonThreadGuildBasedChannel[])
+                if (!isMsgChannel(channel)) return { content: "Not a text channel", status: StatusCode.ERR }
+                let messages
+                try {
+                    messages = await channel?.messages.fetch({ limit: 100 })
+                }
+                catch (err) {
+                    messages = await msg.channel.messages.fetch({ limit: 100 })
+                }
+                let times = 0;
+                while (!(wordstr = messages.random()?.content ?? "UNDEFINED")) {
+                    times++
+                    if (times > 20) break
+                }
+                await game(wordstr)
+            }
+            else {
+                await msg.author.send("Type a word")
+                let collector = msg.author.dmChannel?.createMessageCollector({ time: 30000, max: 1 })
+                collector?.on("collect", async (m) => {
+                    wordstr = m.content
                     await game(wordstr)
-                }
-                else {
-                    await msg.author.send("Type a word")
-                    let collector = msg.author.dmChannel?.createMessageCollector({ time: 30000, max: 1 })
-                    collector?.on("collect", async (m) => {
-                        wordstr = m.content
-                        await game(wordstr)
-                    })
-                }
-                return {
-                    content: "STARTING HANGMAN, WOOOOOO",
-                    status: StatusCode.INFO
-                }
-            },
-            help: {
-                arguments: {
-                    users: {
-                        description: "List of users seperated by space to play against, or put all so everyone can play"
-                    },
+                })
+            }
+            return {
+                content: "STARTING HANGMAN, WOOOOOO",
+                status: StatusCode.INFO
+            }
+        }, "hangman", {
+            arguments: {
+                users: {
+                    description: "List of users seperated by space to play against, or put all so everyone can play"
                 },
-                options: {
-                    "random": {
-                        description: "Picks a random message from the channel and uses that as the word"
-                    },
-                    "case": {
-                        description: "Enabled case sensitive"
-                    },
-                    "lives": {
-                        description: "The amount of lives to have"
-                    }
-                }
             },
-            category: CommandCategory.GAME
-        },
+            options: {
+                "random": {
+                    description: "Picks a random message from the channel and uses that as the word"
+                },
+                "case": {
+                    description: "Enabled case sensitive"
+                },
+                "lives": {
+                    description: "The amount of lives to have"
+                }
+            }
+        })
     ]
 }

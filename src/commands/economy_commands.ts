@@ -18,7 +18,7 @@ import achievements from '../achievements'
 import amountParser from '../amount-parser'
 import { buyItem, hasItem, useItem, getInventory, getItems } from '../shop'
 
-export default function*(): Generator<[string, Command | CommandV2]> {
+export default function*(): Generator<[string, CommandV2]> {
 
     yield ["#calcet", ccmdV2(async function() {
         let ip = getToolIp()
@@ -320,33 +320,28 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "loan", {
-            run: async (msg, _args, sendCallback) => {
-                const userEconData = msg.author.economyData
-                if (userEconData?.loanUsed) {
-                    return { content: "U have not payed off your loan", status: StatusCode.ERR }
-                }
-                if (userEconData?.money >= 0) {
-                    return { content: "Ur not in debt", status: StatusCode.ERR }
-                }
-                const top = Object.values(economy.getEconomy()).sort((a, b) => b.money - a.money)[0]
-                let max = top?.money || 100
-                let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
-                if (needed > max) {
-                    needed = max
-                }
-                economy.addMoney(msg.author.id, needed)
-                economy.useLoan(msg.author.id, needed)
-                if (hasItem(msg.author.id, "loan")) {
-                    useItem(msg.author.id, "loan")
-                }
-                return { content: `<@${msg.author.id}> Used a loan and got ${needed}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: `Use a loan
-<br>A loan can only be used if you have payed off previous loans, and you are in debt`
+        "loan", ccmdV2(async function({ msg }) {
+            const userEconData = msg.author.economyData
+            if (userEconData?.loanUsed) {
+                return { content: "U have not payed off your loan", status: StatusCode.ERR }
             }
-        },
+            if (userEconData?.money >= 0) {
+                return { content: "Ur not in debt", status: StatusCode.ERR }
+            }
+            const top = Object.values(economy.getEconomy()).sort((a, b) => b.money - a.money)[0]
+            let max = top?.money || 100
+            let needed = Math.abs(economy.getEconomy()[msg.author.id].money) + 1
+            if (needed > max) {
+                needed = max
+            }
+            economy.addMoney(msg.author.id, needed)
+            economy.useLoan(msg.author.id, needed)
+            if (hasItem(msg.author.id, "loan")) {
+                useItem(msg.author.id, "loan")
+            }
+            return { content: `<@${msg.author.id}> Used a loan and got ${needed}`, status: StatusCode.RETURN }
+
+        }, `Use a loan <br>A loan can only be used if you have payed off previous loans, and you are in debt`)
     ]
 
     yield [
@@ -444,34 +439,30 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "pets", {
-            run: async (msg, args, sendCallback) => {
-                let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild)
-                if (!user)
-                    return { content: "User not found", status: StatusCode.ERR }
-                let pets = pet.getUserPets(user.id)
-                if (!pets) {
-                    return { content: `<@${user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
-                }
-                let e = new EmbedBuilder()
-                e.setTitle(`${user.username}'s pets`)
-                let activePet = pet.getActivePet(msg.author.id)
-                e.setDescription(`active pet: ${activePet}`)
-                for (let pet in pets) {
-                    e.addFields(efd([pets[pet].name, `${pets[pet].health} hunger`, true]))
-                }
-                if (!activePet) {
-                    e.setFooter({ text: `To set an active pet run: ${PREFIX}sapet <pet name>` })
-                }
-                return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Get the pets of a user",
-                arguments: {
-                    user: createHelpArgument("The user to get the pets of")
-                }
+        "pets", ccmdV2(async function({ args, msg }) {
+            let user = await fetchUserFromClientOrGuild(args[0] || msg.author.id, msg.guild)
+            if (!user)
+                return { content: "User not found", status: StatusCode.ERR }
+            let pets = pet.getUserPets(user.id)
+            if (!pets) {
+                return { content: `<@${user.id}> does not have pets`, allowedMentions: { parse: [] }, status: StatusCode.ERR }
             }
-        },
+            let e = new EmbedBuilder()
+            e.setTitle(`${user.username}'s pets`)
+            let activePet = pet.getActivePet(msg.author.id)
+            e.setDescription(`active pet: ${activePet}`)
+            for (let pet in pets) {
+                e.addFields(efd([pets[pet].name, `${pets[pet].health} hunger`, true]))
+            }
+            if (!activePet) {
+                e.setFooter({ text: `To set an active pet run: ${PREFIX}sapet <pet name>` })
+            }
+            return { embeds: [e], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
+        }, "Get the pets of a user", {
+            arguments: {
+                user: createHelpArgument("The user to get the pets of")
+            }
+        })
     ]
 
     yield [
@@ -525,126 +516,119 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "profits", {
-            run: async (msg, args, sendCallback, opts) => {
-                if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
-                    return { content: "You own no stocks", status: StatusCode.ERR }
-                }
-                let totalProfit = 0
-                let totalDailiyProfit = 0
-                let text = ""
-                let totalValue = 0
-                let promises = []
-                let fmt = args.join(" ") || "%i"
-                let ffmt = opts['ffmt'] || "%i\n%f"
-                for (let stock in economy.getEconomy()[msg.author.id].stocks) {
-                    stock = stock.replace(/\(.*/, "").toUpperCase().trim()
-                    promises.push(economy.getStockInformation(stock))
-                }
-                try {
-                    let rPromises = await Promise.all(promises)
-                    for (let stockInfo of rPromises) {
-                        if (!stockInfo) continue;
+        "profits", ccmdV2(async function({ msg, args, rawOpts: opts }) {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+                return { content: "You own no stocks", status: StatusCode.ERR }
+            }
+            let totalProfit = 0
+            let totalDailiyProfit = 0
+            let text = ""
+            let totalValue = 0
+            let promises = []
+            let fmt = args.join(" ") || "%i"
+            let ffmt = opts['ffmt'] || "%i\n%f"
+            for (let stock in economy.getEconomy()[msg.author.id].stocks) {
+                stock = stock.replace(/\(.*/, "").toUpperCase().trim()
+                promises.push(economy.getStockInformation(stock))
+            }
+            try {
+                let rPromises = await Promise.all(promises)
+                for (let stockInfo of rPromises) {
+                    if (!stockInfo) continue;
 
-                        let userStockData = economy.userHasStockSymbol(msg.author.id, stockInfo.name)
-                        if (!userStockData)
-                            continue
+                    let userStockData = economy.userHasStockSymbol(msg.author.id, stockInfo.name)
+                    if (!userStockData)
+                        continue
 
-                        let stockName = userStockData.name
+                    let stockName = userStockData.name
 
-                        let userStockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
-                        if (!userStockInfo) continue;
+                    let userStockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
+                    if (!userStockInfo) continue;
 
-                        let profit = (stockInfo.price - userStockInfo.buyPrice) * userStockInfo.shares
-                        totalProfit += profit
+                    let profit = (stockInfo.price - userStockInfo.buyPrice) * userStockInfo.shares
+                    totalProfit += profit
 
-                        let todaysProfit = (Number(stockInfo.change) * userStockInfo.shares)
-                        totalDailiyProfit += todaysProfit
+                    let todaysProfit = (Number(stockInfo.change) * userStockInfo.shares)
+                    totalDailiyProfit += todaysProfit
 
-                        totalValue += stockInfo.price * userStockInfo.shares
+                    totalValue += stockInfo.price * userStockInfo.shares
 
-                        text += format(fmt, {
-                            i: `**${stockName}**\nPrice: ${stockInfo.price}\nChange: ${stockInfo.change}\nProfit: ${profit}\nTodays profit: ${todaysProfit}\n---------------------------\n`,
-                            p: String(stockInfo.price),
-                            c: String(stockInfo.change),
-                            "+": String(profit),
-                            "^": String(todaysProfit),
-                            v: String(stockInfo.price * userStockInfo.shares),
-                            n: stockInfo.name,
-                            "N": stockName,
-                            d: "\n---------------------------\n"
-                        })
-                    }
-                }
-                catch (err) {
-                    return { content: "Something went wrong", status: StatusCode.ERR }
-                }
-                return { content: format(String(ffmt), { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }), status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                arguments: {
-                    format: createHelpArgument("The format to print each stock<br><lh>Format specifiers</lh><ul><li><b>i</b>: general information</li><li><b>p</b>: current price</li><li><b>c</b>: change</li><li><b>+</b>: profit</li><li><b>^</b>: today's profit</li><li><b>v</b>: value</li><li><b>n</b>: stock name</li><li><b>N</b>: name of stock used in this bot</li><li><b>d</b>: a generic dashed divider</li></ul>")
+                    text += format(fmt, {
+                        i: `**${stockName}**\nPrice: ${stockInfo.price}\nChange: ${stockInfo.change}\nProfit: ${profit}\nTodays profit: ${todaysProfit}\n---------------------------\n`,
+                        p: String(stockInfo.price),
+                        c: String(stockInfo.change),
+                        "+": String(profit),
+                        "^": String(todaysProfit),
+                        v: String(stockInfo.price * userStockInfo.shares),
+                        n: stockInfo.name,
+                        "N": stockName,
+                        d: "\n---------------------------\n"
+                    })
                 }
             }
-        },
+            catch (err) {
+                return { content: "Something went wrong", status: StatusCode.ERR }
+            }
+            return { content: format(String(ffmt), { i: text, f: `TOTAL TODAY: ${totalDailiyProfit}\nTOTAL PROFIT: ${totalProfit}\nTOTAL VALUE: ${totalValue}`, '^': String(totalDailiyProfit), '+': String(totalProfit), v: String(totalValue) }), status: StatusCode.RETURN }
+        }, "Gets the profits for each of your stocks", {
+            arguments: {
+                format: createHelpArgument("The format to print each stock<br><lh>Format specifiers</lh><ul><li><b>i</b>: general information</li><li><b>p</b>: current price</li><li><b>c</b>: change</li><li><b>+</b>: profit</li><li><b>^</b>: today's profit</li><li><b>v</b>: value</li><li><b>n</b>: stock name</li><li><b>N</b>: name of stock used in this bot</li><li><b>d</b>: a generic dashed divider</li></ul>")
+            }
+        })
     ]
 
     yield [
-        "profit", {
-            run: async (msg, args, sendCallback) => {
-                if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
-                    return { content: "You own no stocks", status: StatusCode.ERR }
-                }
-                let stock = args[0]
-                let fmt = args.slice(1).join(" ").trim() || "{embed}"
-                if (!stock) {
-                    return { content: "No stock given", status: StatusCode.ERR }
-                }
-                let data = await economy.getStockInformation(stock)
-                if (!data) {
-                    return { content: "No stock data found", status: StatusCode.ERR }
-                }
-                let embed = new EmbedBuilder()
-                let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
-                if (!stockInfo) {
-                    return { content: "You do not have this stock", status: StatusCode.ERR }
-                }
-                let stockName = stockInfo.name
-                let profit = (data.price - stockInfo.info.buyPrice) * stockInfo.info.shares
-                let todaysProfit = (Number(data.change) * stockInfo.info.shares)
-                embed.setTitle(stockName)
-                embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
-                if (profit > 0) {
-                    embed.setColor("Green")
-                }
-                else {
-                    embed.setColor("Red")
-                }
-                embed.addFields(efd(["Price", String(data.price), true], ["Change", String(data.change) || "N/A", true], ["Change %", String(data["%change"]) || "N/A", true], ["Profit", String(profit), true], ["Today's Profit", String(todaysProfit), true], ["Value", String(data.price * stockInfo.info.shares)]))
-                if (fmt == "{embed}") {
-                    return { embeds: [embed], status: StatusCode.ERR }
-                }
-                else {
-                    return {
-                        content: format(fmt, {
-                            p: String(data.price),
-                            c: String(data.change),
-                            C: String(data["%change"]),
-                            P: String(profit),
-                            T: String(todaysProfit),
-                            v: String(data.price * stockInfo.info.shares)
-                        }),
-                        status: StatusCode.RETURN
-                    }
-                }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Get the profit you have made on a specific stock",
-                arguments: {
-                    stock: createHelpArgument("The stock to get the profit of", true)
+        "profit", ccmdV2(async function({ msg, args }) {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+                return { content: "You own no stocks", status: StatusCode.ERR }
+            }
+            let stock = args[0]
+            let fmt = args.slice(1).join(" ").trim() || "{embed}"
+            if (!stock) {
+                return { content: "No stock given", status: StatusCode.ERR }
+            }
+            let data = await economy.getStockInformation(stock)
+            if (!data) {
+                return { content: "No stock data found", status: StatusCode.ERR }
+            }
+            let embed = new EmbedBuilder()
+            let stockInfo = economy.userHasStockSymbol(msg.author.id, stock)
+            if (!stockInfo) {
+                return { content: "You do not have this stock", status: StatusCode.ERR }
+            }
+            let stockName = stockInfo.name
+            let profit = (data.price - stockInfo.info.buyPrice) * stockInfo.info.shares
+            let todaysProfit = (Number(data.change) * stockInfo.info.shares)
+            embed.setTitle(stockName)
+            embed.setThumbnail(msg.member?.user.avatarURL()?.toString() || "")
+            if (profit > 0) {
+                embed.setColor("Green")
+            }
+            else {
+                embed.setColor("Red")
+            }
+            embed.addFields(efd(["Price", String(data.price), true], ["Change", String(data.change) || "N/A", true], ["Change %", String(data["%change"]) || "N/A", true], ["Profit", String(profit), true], ["Today's Profit", String(todaysProfit), true], ["Value", String(data.price * stockInfo.info.shares)]))
+            if (fmt == "{embed}") {
+                return { embeds: [embed], status: StatusCode.ERR }
+            }
+            else {
+                return {
+                    content: format(fmt, {
+                        p: String(data.price),
+                        c: String(data.change),
+                        C: String(data["%change"]),
+                        P: String(profit),
+                        T: String(todaysProfit),
+                        v: String(data.price * stockInfo.info.shares)
+                    }),
+                    status: StatusCode.RETURN
                 }
             }
-        },
+        }, "Get the profit you have made on a specific stock", {
+            arguments: {
+                stock: createHelpArgument("The stock to get the profit of", true)
+            }
+        }),
     ]
 
     yield [
@@ -785,119 +769,109 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "work",
-        {
-            run: async (msg, _args, sendCallback) => {
-                let canWork = economy.canWork(msg.author.id)
-                let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
-                let ip = getToolIp()
-                if (!ip) {
-                    return crv("No ip", { status: StatusCode.ERR })
-                }
-                let res = await fetch.default(`http://${ip}`)
-                let json = await res.json()
-                //0 means that it has been an hour, but they are not broke
-                if (canWork === 0 && json[msg.author.id]?.major === 'graduated') {
-                    let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
-                        fired: (amount) => {
-                            return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
-                        },
-                        murderer: (amount) => {
-                            return { message: `There was an asassin waiting for you at the door, luckily they missed your heart but you had to pay ${currency_sign}${amount * 2} at the hospital`, gain: 0, lose: amount * 2 }
-                        },
-                        toolbox: (amount) => {
-                            return { message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0 }
-                        },
-                        "back-ally-deal": amount => {
-                            let gain = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "25%")
-                            return { message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0 }
-                        }
-                    }
-                    let amount = economy.work(msg.author.id)
-                    if (Math.random() > .95 && amount) {
-                        let event = choice(Object.values(events))(amount)
-                        if (event) {
-                            economy.addMoney(msg.author.id, event.gain)
-                            economy.loseMoneyToBank(msg.author.id, event.lose)
-                            return { content: event.message, status: StatusCode.RETURN }
-                        }
-                    }
-                    return { content: `Congrats, you grad student, here's ${currency_sign}${amount} from your job`, status: StatusCode.RETURN }
-                }
-                if (canWork) {
-                    let amount = economy.work(msg.author.id)
-                    return { content: `You earned: ${currency_sign}${amount}`, status: StatusCode.RETURN }
-                }
-                return { content: "No working for you bubs", status: StatusCode.ERR }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: `Earn money (.1% of the economy) if your net worth is below 0 or if you graduated #school\nYou can work once per hour`
+        "work", ccmdV2(async function({ msg }) {
+            let canWork = economy.canWork(msg.author.id)
+            let currency_sign = user_options.getOpt(msg.author.id, "currency-sign", "$")
+            let ip = getToolIp()
+            if (!ip) {
+                return crv("No ip", { status: StatusCode.ERR })
             }
-        },
+            let res = await fetch.default(`http://${ip}`)
+            let json = await res.json()
+            //0 means that it has been an hour, but they are not broke
+            if (canWork === 0 && json[msg.author.id]?.major === 'graduated') {
+                let events: { [key: string]: (amount: number) => false | { message: string, gain: number, lose: number } } = {
+                    fired: (amount) => {
+                        return { message: `Looks like you got fired, the boss took ${currency_sign}${amount}`, gain: 0, lose: amount }
+                    },
+                    murderer: (amount) => {
+                        return { message: `There was an asassin waiting for you at the door, luckily they missed your heart but you had to pay ${currency_sign}${amount * 2} at the hospital`, gain: 0, lose: amount * 2 }
+                    },
+                    toolbox: (amount) => {
+                        return { message: `Toolbox does not like decimal points, so you gain an extra: ${currency_sign}${Math.ceil(amount) - amount} because of rounding errors!!!!!\n Gain a total of: ${currency_sign}${Math.ceil(amount)}!!`, gain: Math.ceil(amount), lose: 0 }
+                    },
+                    "back-ally-deal": amount => {
+                        let gain = amountParser.calculateAmountRelativeTo(economy.economyLooseGrandTotal().total, "25%")
+                        return { message: `Instead of going to work you made a back ally deal with the drug ring and they paid you: ${currency_sign}${gain}`, gain: gain, lose: 0 }
+                    }
+                }
+                let amount = economy.work(msg.author.id)
+                if (Math.random() > .95 && amount) {
+                    let event = choice(Object.values(events))(amount)
+                    if (event) {
+                        economy.addMoney(msg.author.id, event.gain)
+                        economy.loseMoneyToBank(msg.author.id, event.lose)
+                        return { content: event.message, status: StatusCode.RETURN }
+                    }
+                }
+                return { content: `Congrats, you grad student, here's ${currency_sign}${amount} from your job`, status: StatusCode.RETURN }
+            }
+            if (canWork) {
+                let amount = economy.work(msg.author.id)
+                return { content: `You earned: ${currency_sign}${amount}`, status: StatusCode.RETURN }
+            }
+            return { content: "No working for you bubs", status: StatusCode.ERR }
+        }, `Earn money (.1% of the economy) if your net worth is below 0 or if you graduated #school\nYou can work once per hour`)
     ]
 
     yield [
-        "give", {
-            run: async (msg, args, sendCallback) => {
+        "give", ccmdV2(async function({ msg, rawArgs: args}) {
 
-                if (!hasItem(msg.author.id, "donation card")) {
-                    return crv("You must have the donation card", { status: StatusCode.ERR })
+            if (!hasItem(msg.author.id, "donation card")) {
+                return crv("You must have the donation card", { status: StatusCode.ERR })
+            }
+            let user: User = msg.author;
+            let amount;
+            if (msg.mentions.users.at(0)) {
+                args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "")).filter(v => v)
+                user = msg.mentions.users.at(0) as User
+                amount = args[0]
+            }
+            else {
+                let searchUser;
+                [amount, ...searchUser] = args
+
+                let userSearch = searchUser.join(" ")
+                if (!userSearch) {
+                    return { content: "No user to search for", status: StatusCode.ERR }
                 }
-                let user: User = msg.author;
-                let amount;
-                if (msg.mentions.users.at(0)) {
-                    args = args.map(v => v.replaceAll(msg.mentions.users.at(0)?.toString() as string, "")).filter(v => v)
-                    user = msg.mentions.users.at(0) as User
-                    amount = args[0]
+                if (msg.guild) {
+                    user = (await fetchUser(msg.guild as Guild, userSearch))?.user as User
                 }
                 else {
-                    let searchUser;
-                    [amount, ...searchUser] = args
+                    user = await fetchUserFromClient(common.client, userSearch) as User
+                }
+                if (!user)
+                    return { content: `${userSearch} not found`, status: StatusCode.ERR }
+            }
 
-                    let userSearch = searchUser.join(" ")
-                    if (!userSearch) {
-                        return { content: "No user to search for", status: StatusCode.ERR }
-                    }
-                    if (msg.guild) {
-                        user = (await fetchUser(msg.guild as Guild, userSearch))?.user as User
-                    }
-                    else {
-                        user = await fetchUserFromClient(common.client, userSearch) as User
-                    }
-                    if (!user)
-                        return { content: `${userSearch} not found`, status: StatusCode.ERR }
-                }
+            let realAmount = economy.calculateAmountFromString(msg.author.id, amount)
 
-                let realAmount = economy.calculateAmountFromString(msg.author.id, amount)
+            if (!realAmount) {
+                return { content: "Nothing to give", status: StatusCode.ERR }
+            }
 
-                if (!realAmount) {
-                    return { content: "Nothing to give", status: StatusCode.ERR }
-                }
+            if (realAmount < 0) {
+                return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
+            }
 
-                if (realAmount < 0) {
-                    return { content: "What are you trying to pull <:Watching1:697677860336304178>", status: StatusCode.ERR }
-                }
-
-                if (economy.getEconomy()[user.id] === undefined) {
-                    return { content: `${user.id} is not in the economy`, status: StatusCode.ERR }
-                }
-                if (economy.canBetAmount(msg.author.id, realAmount) && !user.bot) {
-                    economy.loseMoneyToPlayer(msg.author.id, realAmount, user.id)
-                    return { content: `You gave ${realAmount} to ${user.username}`, status: StatusCode.RETURN }
-                }
-                else {
-                    return { content: `You cannot give away ${realAmount}`, status: StatusCode.ERR }
-                }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Give a user money",
-                arguments: {
-                    amount: createHelpArgument("The amount to give"),
-                    "...user": createHelpArgument("The user to give the money to")
-                }
-            },
-            prompt_before_run: true
-        },
+            if (economy.getEconomy()[user.id] === undefined) {
+                return { content: `${user.id} is not in the economy`, status: StatusCode.ERR }
+            }
+            if (economy.canBetAmount(msg.author.id, realAmount) && !user.bot) {
+                economy.loseMoneyToPlayer(msg.author.id, realAmount, user.id)
+                return { content: `You gave ${realAmount} to ${user.username}`, status: StatusCode.RETURN }
+            }
+            else {
+                return { content: `You cannot give away ${realAmount}`, status: StatusCode.ERR }
+            }
+        }, "Give a user money", {
+            prompt_before_run: true,
+            arguments: {
+                amount: createHelpArgument("The amount to give"),
+                "...user": createHelpArgument("The user to give the money to")
+            }
+        })
     ]
 
     yield [
@@ -1116,117 +1090,108 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "leaderboard", {
-            run: async (msg, args, sendCallback, opts) => {
-                let place = Number(args[0]) || 10
-                if (opts['top']) {
-                    place = parseInt(String(opts['top']))
-                    if (isNaN(place)) {
-                        place = 10
-                    }
+        "leaderboard", ccmdV2(async function({ msg, args, sendCallback, rawOpts: opts }) {
+            let place = Number(args[0]) || 10
+            if (opts['top']) {
+                place = parseInt(String(opts['top']))
+                if (isNaN(place)) {
+                    place = 10
                 }
-                let embed = new EmbedBuilder()
-                let text = ""
-                let sortedEconomy: [string, EconomyData][] = []
-                let econ = economy.getEconomy()
+            }
+            let embed = new EmbedBuilder()
+            let text = ""
+            let sortedEconomy: [string, EconomyData][] = []
+            let econ = economy.getEconomy()
+            if (opts['nw']) {
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => economy.playerLooseNetWorth(b[0]) - economy.playerLooseNetWorth(a[0]))
+            }
+            else if (opts['loan']) {
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => (b[1].loanUsed || 0) - (a[1].loanUsed || 0))
+            }
+            else {
+                sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()
+            }
+            sortedEconomy = sortedEconomy.slice(0, place)
+            let totalEconomy = 0
+            if (opts['nw']) {
+                for (let id in econ) {
+                    totalEconomy += economy.playerLooseNetWorth(id)
+                }
+            }
+            else if (opts['loan']) {
+                for (let id in econ) {
+                    let value = econ[id]
+                    totalEconomy += value.loanUsed || 0
+                }
+            }
+            else {
+                for (let id in econ) {
+                    let value = econ[id]
+                    totalEconomy += value.money
+                }
+            }
+            let excludeNeg = opts['no-neg'] ? true : false
+            place = 0
+            for (let user of sortedEconomy) {
+                let id = user[0]
+                let money = econ[id].money
                 if (opts['nw']) {
-                    sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => economy.playerLooseNetWorth(b[0]) - economy.playerLooseNetWorth(a[0]))
+                    money = economy.playerLooseNetWorth(id)
                 }
                 else if (opts['loan']) {
-                    sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => (b[1].loanUsed || 0) - (a[1].loanUsed || 0))
+                    money = econ[id].loanUsed || 0
+                }
+                if (money < 0 && excludeNeg) continue;
+                let percent = money / totalEconomy * 100
+                if (!opts['no-round']) {
+                    money = Math.round(money * 100) / 100
+                    percent = Math.round(percent * 100) / 100
+                }
+                if (opts['text']) {
+                    text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)\n`
                 }
                 else {
-                    sortedEconomy = Object.entries(economy.getEconomy()).sort((a, b) => a[1].money - b[1].money).reverse()
+                    embed.addFields(efd([`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true]))
                 }
-                sortedEconomy = sortedEconomy.slice(0, place)
-                let totalEconomy = 0
-                if (opts['nw']) {
-                    for (let id in econ) {
-                        totalEconomy += economy.playerLooseNetWorth(id)
-                    }
-                }
-                else if (opts['loan']) {
-                    for (let id in econ) {
-                        let value = econ[id]
-                        totalEconomy += value.loanUsed || 0
-                    }
-                }
-                else {
-                    for (let id in econ) {
-                        let value = econ[id]
-                        totalEconomy += value.money
-                    }
-                }
-                let excludeNeg = opts['no-neg'] ? true : false
-                place = 0
-                for (let user of sortedEconomy) {
-                    let id = user[0]
-                    let money = econ[id].money
-                    if (opts['nw']) {
-                        money = economy.playerLooseNetWorth(id)
-                    }
-                    else if (opts['loan']) {
-                        money = econ[id].loanUsed || 0
-                    }
-                    if (money < 0 && excludeNeg) continue;
-                    let percent = money / totalEconomy * 100
-                    if (!opts['no-round']) {
-                        money = Math.round(money * 100) / 100
-                        percent = Math.round(percent * 100) / 100
-                    }
-                    if (opts['text']) {
-                        text += `**${place + 1}**: <@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)\n`
-                    }
-                    else {
-                        embed.addFields(efd([`${place + 1}`, `<@${id}>: ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${money} (${percent}%)`, true]))
-                    }
-                    place++
-                }
-                if (opts['text'])
-                    return { content: text, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                embed.setTitle(`Leaderboard`)
-                embed.setURL("http://bircle.euro20179.com:8222/leaderboard")
-                if (opts['no-round'])
-                    embed.setDescription(`Total wealth: ${totalEconomy}`)
-                else
-                    embed.setDescription(`Total wealth: ${Math.round(totalEconomy * 100) / 100}`)
-                return { embeds: [embed], status: StatusCode.RETURN }
-
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Get the top players in the economy",
-                arguments: {
-                    amount: {
-                        description: "Show the  top x players",
-                        required: false
-                    }
-                },
-                options: {
-                    "text": {
-                        description: "Show text instead of an embed"
-                    },
-                    "loan": {
-                        description: "Show the loan leaderboard",
-                    },
-                    "nw": {
-                        description: "Show the net worth  leaderboard"
-                    }
-                },
+                place++
             }
-        },
+            if (opts['text'])
+                return { content: text, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+            embed.setTitle(`Leaderboard`)
+            embed.setURL("http://bircle.euro20179.com:8222/leaderboard")
+            if (opts['no-round'])
+                embed.setDescription(`Total wealth: ${totalEconomy}`)
+            else
+                embed.setDescription(`Total wealth: ${Math.round(totalEconomy * 100) / 100}`)
+            return { embeds: [embed], status: StatusCode.RETURN }
+
+        }, "Get the top players in the economy", {
+            arguments: {
+                amount: {
+                    description: "Show the  top x players",
+                    required: false
+                }
+            },
+            options: {
+                "text": {
+                    description: "Show text instead of an embed"
+                },
+                "loan": {
+                    description: "Show the loan leaderboard",
+                },
+                "nw": {
+                    description: "Show the net worth  leaderboard"
+                }
+            },
+        })
     ]
 
-    yield [
-        "savee", {
-            run: async (_msg, _args, sendCallback) => {
-                economy.saveEconomy()
-                saveItems()
-                pet.savePetData()
-                return { content: "Economy saved", status: StatusCode.RETURN }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Saves the economy (by default, on every message send, there is a 45% chance to save the economy)"
-            }
-        },
-    ]
+yield[
+    "savee", ccmdV2(async function() {
+        economy.saveEconomy()
+        saveItems()
+        pet.savePetData()
+        return { content: "Economy saved", status: StatusCode.RETURN }
+    }, "Saves the economy (by default, on every message send, there is a 45% chance to save the economy)")
+]
 }

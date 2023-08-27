@@ -13,66 +13,62 @@ import common from '../common'
 import { Message } from 'discord.js'
 import sharp = require('sharp')
 
-import {PREFIX} from '../globals'
+import { PREFIX } from '../globals'
 
 import vars from '../vars'
 
-export default function*(): Generator<[string, Command | CommandV2]> {
+export default function*(): Generator<[string, CommandV2]> {
     yield [
-        "img-diff",
-        {
-            run: async (msg, args) => {
-                let [img1, img2] = args
-                if (!img1 || !img2) {
-                    return { content: "Must provide 2 image links", status: StatusCode.ERR }
-                }
-                let image1 = await canvas.loadImage(img1 as string)
-                if (image1.width * image1.height > 1000000) {
-                    return { content: "Image 1 is too large", status: StatusCode.ERR }
-                }
-                let canv = new canvas.Canvas(image1.width, image1.height)
-                let ctx = canv.getContext("2d")
-                ctx.drawImage(image1, 0, 0)
-                let data1 = ctx.getImageData(0, 0, canv.width, canv.height)
-
-                let image2 = await canvas.loadImage(img2 as string)
-                canv = new canvas.Canvas(image1.width, image1.height)
-                ctx = canv.getContext("2d")
-                ctx.scale(image1.width / image2.width, image1.height / image2.height)
-                ctx.drawImage(image2, 0, 0)
-                let data2 = ctx.getImageData(0, 0, canv.width, canv.height)
-                if (image2.width * image2.height > 1000000) {
-                    return { content: "Image 2 is too large", status: StatusCode.ERR }
-                }
-
-                let diffData = data1.data.map((v, idx) => {
-                    let mod = idx % 4 == 3 ? 1 : 0
-                    return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod ^ 1))
-                })
-
-                //console.log(diffData)
-                ctx.putImageData(new canvas.ImageData(diffData, data1.width, data1.height), 0, 0)
-                const fn = cmdFileName`img-diff ${msg.author.id} png`
-                fs.writeFileSync(fn, canv.toBuffer())
-                return {
-                    files: [
-                        {
-                            attachment: fn,
-                            name: fn,
-                            delete: true
-                        }
-                    ],
-                    status: StatusCode.RETURN
-                }
-            }, category: CommandCategory.IMAGES,
-            help: {
-                info: "Creatte an image that is the result of the difference of 2 images",
-                arguments: {
-                    img1: createHelpArgument("Link to image", true),
-                    img2: createHelpArgument("Link to 2nd imge", true, "img1")
-                }
+        "img-diff", ccmdV2(async function({ msg, args }) {
+            let [img1, img2] = args
+            if (!img1 || !img2) {
+                return { content: "Must provide 2 image links", status: StatusCode.ERR }
             }
-        },
+            let image1 = await canvas.loadImage(img1 as string)
+            if (image1.width * image1.height > 1000000) {
+                return { content: "Image 1 is too large", status: StatusCode.ERR }
+            }
+            let canv = new canvas.Canvas(image1.width, image1.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(image1, 0, 0)
+            let data1 = ctx.getImageData(0, 0, canv.width, canv.height)
+
+            let image2 = await canvas.loadImage(img2 as string)
+            canv = new canvas.Canvas(image1.width, image1.height)
+            ctx = canv.getContext("2d")
+            ctx.scale(image1.width / image2.width, image1.height / image2.height)
+            ctx.drawImage(image2, 0, 0)
+            let data2 = ctx.getImageData(0, 0, canv.width, canv.height)
+            if (image2.width * image2.height > 1000000) {
+                return { content: "Image 2 is too large", status: StatusCode.ERR }
+            }
+
+            let diffData = data1.data.map((v, idx) => {
+                let mod = idx % 4 == 3 ? 1 : 0
+                return (mod * 255) + (Math.abs(v - (data2.data.at(idx) ?? v)) * (mod ^ 1))
+            })
+
+            //console.log(diffData)
+            ctx.putImageData(new canvas.ImageData(diffData, data1.width, data1.height), 0, 0)
+            const fn = cmdFileName`img-diff ${msg.author.id} png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ],
+                status: StatusCode.RETURN
+            }
+
+        }, "Creatte an image that is the result of the difference of 2 images", {
+            arguments: {
+                img1: createHelpArgument("Link to image", true),
+                img2: createHelpArgument("Link to 2nd imge", true, "img1")
+            }
+        })
     ]
 
     yield [
@@ -113,114 +109,104 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        'invert',
-        {
-            run: async (msg, args) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let channel = args.map(v => v.toLowerCase())
-                let above = parseInt(opts['above'] as string) || 0
-                let below = parseInt(opts['below'] as string) || 255
-                if (!channel.length) {
-                    channel = ["red", "green", "blue"]
-                }
-                let img = getImgFromMsgAndOpts(opts, msg)
-                let image = await canvas.loadImage(img as string)
-                if (image.width * image.height > 1000000) {
-                    return { content: "Image is too large", status: StatusCode.ERR }
-                }
-                let canv = new canvas.Canvas(image.width, image.height)
-                let ctx = canv.getContext("2d")
-                ctx.drawImage(image, 0, 0)
-                let rgba_cycle = cycle<string>(["red", "green", "blue", "alpha"])
-                let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
-                    let cur_channel = rgba_cycle.next().value as string
-                    if (idx % 4 === 3)
-                        return v
-                    if (channel.includes(cur_channel) && (v >= above && v <= below)) {
-                        return 255 - v
-                    }
+        'invert', ccmdV2(async function({ msg, rawArgs: args }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let channel = args.map(v => v.toLowerCase())
+            let above = parseInt(opts['above'] as string) || 0
+            let below = parseInt(opts['below'] as string) || 255
+            if (!channel.length) {
+                channel = ["red", "green", "blue"]
+            }
+            let img = getImgFromMsgAndOpts(opts, msg)
+            let image = await canvas.loadImage(img as string)
+            if (image.width * image.height > 1000000) {
+                return { content: "Image is too large", status: StatusCode.ERR }
+            }
+            let canv = new canvas.Canvas(image.width, image.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(image, 0, 0)
+            let rgba_cycle = cycle<string>(["red", "green", "blue", "alpha"])
+            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
+                let cur_channel = rgba_cycle.next().value as string
+                if (idx % 4 === 3)
                     return v
-                })
-                ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
-                const fn = cmdFileName`img-channel ${msg.author.id} png`
-                fs.writeFileSync(fn, canv.toBuffer())
-                return {
-                    files: [
-                        {
-                            attachment: fn,
-                            name: fn,
-                            delete: true
-                        }
-                    ],
-                    status: StatusCode.RETURN
+                if (channel.includes(cur_channel) && (v >= above && v <= below)) {
+                    return 255 - v
                 }
-            }, category: CommandCategory.IMAGES,
-            help: {
-                info: "Inverts colors on an image",
-                arguments: {
-                    channel: {
-                        description: "The channel to invert, defaults to all",
-                        required: false
+                return v
+            })
+            ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
+            const fn = cmdFileName`img-channel ${msg.author.id} png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
                     }
+                ],
+                status: StatusCode.RETURN
+            }
+        }, "Inverts colors on an image", {
+            arguments: {
+                channel: {
+                    description: "The channel to invert, defaults to all",
+                    required: false
+                }
+            },
+            options: {
+                "above": {
+                    description: "Above what value to invert for the channel"
                 },
-                options: {
-                    "above": {
-                        description: "Above what value to invert for the channel"
-                    },
-                    below: {
-                        description: "Below what value to invert for the channel"
-                    }
+                below: {
+                    description: "Below what value to invert for the channel"
                 }
             }
-        },
+        })
     ]
 
     yield [
-        "img-channel",
-        {
-            run: async (msg, args) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let channel = args.map(v => v.toLowerCase())
-                if (!channel.length) {
-                    return { content: "No channel", status: StatusCode.ERR }
-                }
-                let img = getImgFromMsgAndOpts(opts, msg)
-                let image = await canvas.loadImage(img as string)
-                let canv = new canvas.Canvas(image.width, image.height)
-                let ctx = canv.getContext("2d")
-                ctx.drawImage(image, 0, 0)
-                let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
-                let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
-                    let cur_channel = rgba_cycle.next().value
-                    if (idx % 4 === 3 && !channel.includes("alpha"))
-                        return v
-                    if (channel.includes(cur_channel)) {
-                        return v
-                    }
-                    return 0
-                })
-                ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
-                let fn = cmdFileName`img-channel ${msg.author.id} png`
-                fs.writeFileSync(fn, canv.toBuffer())
-                return {
-                    files: [
-                        {
-                            attachment: fn,
-                            name: fn,
-                            delete: true
-                        }
-                    ], status: StatusCode.RETURN
-                }
-            }, category: CommandCategory.IMAGES,
-            help: {
-                info: "Get a specific color channel from an image",
-                arguments: {
-                    channel: createHelpArgument("The channel<br><b>can be</b><ul><li>red</li><li>green</li><li>blue</li><li>alpha</li>")
-                }
+        "img-channel", ccmdV2(async function({ msg, rawArgs: args }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let channel = args.map(v => v.toLowerCase())
+            if (!channel.length) {
+                return { content: "No channel", status: StatusCode.ERR }
             }
-        },
+            let img = getImgFromMsgAndOpts(opts, msg)
+            let image = await canvas.loadImage(img as string)
+            let canv = new canvas.Canvas(image.width, image.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(image, 0, 0)
+            let rgba_cycle = cycle(["red", "green", "blue", "alpha"])
+            let data = ctx.getImageData(0, 0, canv.width, canv.height).data.map((v, idx) => {
+                let cur_channel = rgba_cycle.next().value
+                if (idx % 4 === 3 && !channel.includes("alpha"))
+                    return v
+                if (channel.includes(cur_channel)) {
+                    return v
+                }
+                return 0
+            })
+            ctx.putImageData(new canvas.ImageData(data, canv.width, canv.height), 0, 0)
+            let fn = cmdFileName`img-channel ${msg.author.id} png`
+            fs.writeFileSync(fn, canv.toBuffer())
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
+                    }
+                ], status: StatusCode.RETURN
+            }
+        }, "Get a specific color channel from an image", {
+            arguments: {
+                channel: createHelpArgument("The channel<br><b>can be</b><ul><li>red</li><li>green</li><li>blue</li><li>alpha</li>")
+            }
+        })
     ]
 
     yield [
@@ -811,306 +797,288 @@ The commands below, only work after **path** has been run:
     ]
 
     yield [
-        "polygon",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let color = opts['color'] || "white"
-                let img_link = getImgFromMsgAndOpts(opts, msg)
-                if (!img_link) {
-                    return {
-                        content: "no img found",
-                        status: StatusCode.ERR
-                    }
-                }
-                let coords = args.join(" ")
-                let positions: [string, string][] = []
-                for (let pos of coords.split('|')) {
-                    let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
-                    positions.push([x, y])
-                }
-                let img_data = await fetch.default(String(img_link))
-                let fn = cmdFileName`polygon ${msg.author.id} png`
-                fs.writeFileSync(fn, await img_data.buffer())
-                let img = await canvas.loadImage(fn)
-                fs.rmSync(fn)
-                let canv = new canvas.Canvas(img.width, img.height)
-                let ctx = canv.getContext("2d")
-                ctx.drawImage(img, 0, 0, img.width, img.height)
-                ctx.beginPath()
-
-                let startX = Number(parsePosition(positions[0][0], img.width))
-                let startY = Number(parsePosition(positions[0][1], img.height))
-                ctx.moveTo(startX, startY)
-                let minX = startX, minY = startY
-                let maxX = startX, maxY = startY
-                for (let pos of positions.slice(1)) {
-                    let x = Number(parsePosition(pos[0], img.width))
-                    let y = Number(parsePosition(pos[1], img.width))
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y
-                    ctx.lineTo(x, y)
-                }
-                ctx.fillStyle = String(color)
-                ctx.fill()
-                const buffer = canv.toBuffer("image/png")
-                fs.writeFileSync(fn, buffer)
-                handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(res => {
-                    fs.rmSync(fn)
-                })
+        "polygon", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let color = opts['color'] || "white"
+            let img_link = getImgFromMsgAndOpts(opts, msg)
+            if (!img_link) {
                 return {
-                    content: "generating img",
-                    status: StatusCode.INFO
-                }
-            },
-            category: CommandCategory.IMAGES,
-            help: {
-                info: "Create a polygon",
-                arguments: {
-                    "positions": {
-                        description: "a list of <x> <y> positions seperated by |",
-                        required: true
-                    }
-                },
-                options: {
-                    color: {
-                        description: "The color of the polygon"
-                    }
+                    content: "no img found",
+                    status: StatusCode.ERR
                 }
             }
-        },
+            let coords = args.join(" ")
+            let positions: [string, string][] = []
+            for (let pos of coords.split('|')) {
+                let [x, y] = pos.trim().split(" ").map(v => v.replace(/[\(\),]/g, ""))
+                positions.push([x, y])
+            }
+            let img_data = await fetch.default(String(img_link))
+            let fn = cmdFileName`polygon ${msg.author.id} png`
+            fs.writeFileSync(fn, await img_data.buffer())
+            let img = await canvas.loadImage(fn)
+            fs.rmSync(fn)
+            let canv = new canvas.Canvas(img.width, img.height)
+            let ctx = canv.getContext("2d")
+            ctx.drawImage(img, 0, 0, img.width, img.height)
+            ctx.beginPath()
+
+            let startX = Number(parsePosition(positions[0][0], img.width))
+            let startY = Number(parsePosition(positions[0][1], img.height))
+            ctx.moveTo(startX, startY)
+            let minX = startX, minY = startY
+            let maxX = startX, maxY = startY
+            for (let pos of positions.slice(1)) {
+                let x = Number(parsePosition(pos[0], img.width))
+                let y = Number(parsePosition(pos[1], img.width))
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y
+                ctx.lineTo(x, y)
+            }
+            ctx.fillStyle = String(color)
+            ctx.fill()
+            const buffer = canv.toBuffer("image/png")
+            fs.writeFileSync(fn, buffer)
+            handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(res => {
+                fs.rmSync(fn)
+            })
+            return {
+                content: "generating img",
+                status: StatusCode.INFO
+            }
+        }, "Create a polygon", {
+            arguments: {
+                "positions": {
+                    description: "a list of <x> <y> positions seperated by |",
+                    required: true
+                }
+            },
+            options: {
+                color: {
+                    description: "The color of the polygon"
+                }
+            }
+        })
     ]
 
     yield [
-        "rect",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
+        "rect", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let color: string = <string>opts['color'] || "white"
+            let img = getImgFromMsgAndOpts(opts, msg)
+            if (!img) {
+                return {
+                    content: "no img found",
+                    status: StatusCode.ERR
+                }
+            }
+            let gradient: Array<string> | undefined
+            if (typeof opts["gradient"] == 'string')
+                gradient = opts['gradient'].split(">")
+            let [x, y, width, height] = args.slice(0, 4)
+            if (!x) {
+                x = typeof opts['x'] === 'string' ? opts['x'] : "0"
+            }
+            if (!y) {
+                y = typeof opts['y'] === 'string' ? opts['y'] : "0"
+            }
+            if (!width) {
+                width = String(opts['w'] || opts['width'] || opts['size'] || "50")
+            }
+            if (!height) {
+                height = String(opts['h'] || opts['height'] || opts['size'] || width || "50")
+            }
+            let intWidth = parseInt(width as string) || 50
+            let intHeight = parseInt(height as string) || 50
+            https.request(img, resp => {
+                let data = new Stream.Transform()
+                resp.on("data", chunk => {
+                    data.push(chunk)
+                })
+                resp.on("end", async () => {
+                    let fn = cmdFileName`rect ${msg.author.id} png`
+                    fs.writeFileSync(fn, data.read())
+                    let oldImg = sharp(fn).png()
+                    let oldMeta = await oldImg.metadata()
+                    let [oldWidth, oldHeight] = [oldMeta.width, oldMeta.height]
+
+                    let newImg
+                    if (gradient) {
+                        newImg = sharp(await createGradient(gradient, intWidth, intHeight))
+                    }
+                    else {
+                        let trueColor
+                        if (typeof color === 'boolean') {
+                            trueColor = 'black'
+                        } else {
+                            trueColor = color;
+                        }
+                        newImg = sharp({
+                            create: {
+                                width: intWidth,
+                                height: intHeight,
+                                channels: 4,
+                                background: trueColor
+                            }
+                        })
+                    }
+                    let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: Number(parsePosition(y, oldHeight as number, intHeight)), left: Number(parsePosition(x, oldWidth as number, intWidth)) }]).png().toBuffer()
+                    /*
+                            if(outline){
+                                let [color, lineWidth] = outline.split(":")
+                                ctx.lineWidth = parseInt(lineWidth || opts['o-width'] || "1")
+                                let outline_gradient = color.split(">")
+                                if((outline_gradient?.length || 0) <= 1)
+                                    outline_gradient = opts['o-gradient']?.split(">")
+                                if(outline_gradient){
+                                    let grad_angle = (opts['o-grad-angle'] || 0.0) * Math.PI / 180
+                                    ctx.strokeStyle = await createGradient(outline_gradient, grad_angle, x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth, msg, ctx)
+                                }
+                                else ctx.strokeStyle = color || opts['o-color'] || 'white'
+                                ctx.strokeRect(x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth)
+                            }
+                    */
+                    fs.writeFileSync(fn, composedImg)
+                    handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(_res => {
+                        fs.rmSync(fn)
+                    }).catch(_err => {
+                    })
+                })
+            }).end()
+            return {
+                content: "generating img",
+                status: StatusCode.INFO
+            }
+        }, "Generate rectangles :))", {
+            arguments: {
+                x: {
+                    description: "x position of rectangle",
+                    required: false
+                },
+                y: {
+                    description: "y position of rectangle",
+                    requires: "x"
+                },
+                width: {
+                    description: "width of rectangle",
+                    requires: "y"
+                },
+                height: {
+                    description: "height of rectangle",
+                    requires: "width"
+                }
+            },
+            options: {
+                color: {
+                    description: "color of the rectangle, if color is 'transparent', it will make that section of the image transparent"
+                },
+                gradient: {
+                    description: "Use a gradient, syntax: <code>-gradient=color1>color2...[:angle]</code>"
+                },
+                "grad-angle": {
+                    description: "The angle of the gradient, in degrees"
+                },
+                "outline": {
+                    description: "Outline of the rectangle, syntax: <code>-outline=color[>color2][:size]</code>"
+                },
+                "o-color": {
+                    description: "Color of the outline, overrides outline-color"
+                },
+                "o-width": {
+                    description: "Width of the outline, overrides outline-width"
+                },
+                "o-gradient": {
+                    description: "Same as outline-gradient, and overrides it"
+                },
+                "o-grad-angle": {
+                    description: "Outline gradient angle, overrides outline-grad-angle"
+                },
+                "width": {
+                    description: "The width of the rectangle"
+                },
+                "w": {
+                    description: "The width of the rectangle, overrides -width"
+                },
+                "height": {
+                    description: "The height of the rectangle"
+                },
+                "h": {
+                    description: "The height of the rectangle, overrides -height"
+                },
+                "size": {
+                    description: "The width, and height of the rectangle, given as 1 number"
+                },
+                "img": {
+                    description: "A link to the image to use"
+                }
+            }
+        })
+    ]
+
+    yield [
+        "scale", ccmdV2(async function({}) {
+            /*
                 let opts;
                 [opts, args] = getOpts(args)
-                let color: string = <string>opts['color'] || "white"
-                let _outline = opts['outline']
+                let xScale = args[0] || "2.0"
+                let yScale = args[1] || "2.0"
                 let img = getImgFromMsgAndOpts(opts, msg)
-                if (!img) {
-                    return {
-                        content: "no img found",
-                        status: StatusCode.ERR
-                    }
+                if(!img){
+                    return {content: "no img found"}
                 }
-                let gradient: Array<string> | undefined
-                if (typeof opts["gradient"] == 'string')
-                    gradient = opts['gradient'].split(">")
-                let [x, y, width, height] = args.slice(0, 4)
-                if (!x) {
-                    x = typeof opts['x'] === 'string' ? opts['x'] : "0"
-                }
-                if (!y) {
-                    y = typeof opts['y'] === 'string' ? opts['y'] : "0"
-                }
-                if (!width) {
-                    width = String(opts['w'] || opts['width'] || opts['size'] || "50")
-                }
-                if (!height) {
-                    height = String(opts['h'] || opts['height'] || opts['size'] || width || "50")
-                }
-                let intWidth = parseInt(width as string) || 50
-                let intHeight = parseInt(height as string) || 50
                 https.request(img, resp => {
                     let data = new Stream.Transform()
                     resp.on("data", chunk => {
                         data.push(chunk)
                     })
-                    resp.on("end", async () => {
-                        let fn = cmdFileName`rect ${msg.author.id} png`
+                    let fn = `${generateFileName("scale", msg.author.id)}.png`
+                    resp.on("end", async() => {
                         fs.writeFileSync(fn, data.read())
-                        let oldImg = sharp(fn).png()
-                        let oldMeta = await oldImg.metadata()
-                        let [oldWidth, oldHeight] = [oldMeta.width, oldMeta.height]
-
-                        let newImg
-                        if (gradient) {
-                            newImg = sharp(await createGradient(gradient, intWidth, intHeight))
+                        let img = await canvas.loadImage(fn)
+                        fs.rmSync(fn)
+                        xScale = Math.min(parsePosition(xScale, img.width, img.width, parseFloat), 2000)
+                        yScale = Math.min(parsePosition(yScale, img.height, img.height, parseFloat), 2000)
+                        let canv = new canvas.Canvas(img.width * xScale, img.height * yScale)
+                        let ctx = canv.getContext("2d")
+                        ctx.drawImage(img, 0, 0, img.width * xScale, img.height * yScale)
+                        let buffer
+                        try{
+                            buffer = canv.toBuffer("image/png")
                         }
-                        else {
-                            let trueColor
-                            if (typeof color === 'boolean') {
-                                trueColor = 'black'
-                            } else {
-                                trueColor = color;
-                            }
-                            newImg = sharp({
-                                create: {
-                                    width: intWidth,
-                                    height: intHeight,
-                                    channels: 4,
-                                    background: trueColor
-                                }
-                            })
+                        catch(err){
+                            await sendCallback("Could not generate image")
+                            return
                         }
-                        let composedImg = await oldImg.composite([{ input: await newImg.png().toBuffer(), top: Number(parsePosition(y, oldHeight as number, intHeight)), left: Number(parsePosition(x, oldWidth as number, intWidth)) }]).png().toBuffer()
-                        /*
-                                if(outline){
-                                    let [color, lineWidth] = outline.split(":")
-                                    ctx.lineWidth = parseInt(lineWidth || opts['o-width'] || "1")
-                                    let outline_gradient = color.split(">")
-                                    if((outline_gradient?.length || 0) <= 1)
-                                        outline_gradient = opts['o-gradient']?.split(">")
-                                    if(outline_gradient){
-                                        let grad_angle = (opts['o-grad-angle'] || 0.0) * Math.PI / 180
-                                        ctx.strokeStyle = await createGradient(outline_gradient, grad_angle, x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth, msg, ctx)
-                                    }
-                                    else ctx.strokeStyle = color || opts['o-color'] || 'white'
-                                    ctx.strokeRect(x - ctx.lineWidth / 2, y - ctx.lineWidth / 2, width + ctx.lineWidth, height + ctx.lineWidth)
-                                }
-                        */
-                        fs.writeFileSync(fn, composedImg)
-                        handleSending(msg, { files: [{ attachment: fn, name: fn }], status: StatusCode.RETURN }, sendCallback).then(_res => {
+                        fs.writeFileSync(fn, buffer)
+                        sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
                             fs.rmSync(fn)
-                        }).catch(_err => {
+                        }).catch(err => {
                         })
                     })
                 }).end()
-                return {
-                    content: "generating img",
-                    status: StatusCode.INFO
-                }
-            },
-            help: {
-                info: "Generate rectangles :))",
-                arguments: {
-                    x: {
-                        description: "x position of rectangle",
-                        required: false
-                    },
-                    y: {
-                        description: "y position of rectangle",
-                        requires: "x"
-                    },
-                    width: {
-                        description: "width of rectangle",
-                        requires: "y"
-                    },
-                    height: {
-                        description: "height of rectangle",
-                        requires: "width"
-                    }
+            */
+            return {
+                content: "generating img",
+                status: StatusCode.INFO
+            }
+        }, "scale (broken)", {
+            arguments: {
+                "scale-width": {
+                    description: "The amount to scale the width by"
                 },
-                options: {
-                    color: {
-                        description: "color of the rectangle, if color is 'transparent', it will make that section of the image transparent"
-                    },
-                    gradient: {
-                        description: "Use a gradient, syntax: <code>-gradient=color1>color2...[:angle]</code>"
-                    },
-                    "grad-angle": {
-                        description: "The angle of the gradient, in degrees"
-                    },
-                    "outline": {
-                        description: "Outline of the rectangle, syntax: <code>-outline=color[>color2][:size]</code>"
-                    },
-                    "o-color": {
-                        description: "Color of the outline, overrides outline-color"
-                    },
-                    "o-width": {
-                        description: "Width of the outline, overrides outline-width"
-                    },
-                    "o-gradient": {
-                        description: "Same as outline-gradient, and overrides it"
-                    },
-                    "o-grad-angle": {
-                        description: "Outline gradient angle, overrides outline-grad-angle"
-                    },
-                    "width": {
-                        description: "The width of the rectangle"
-                    },
-                    "w": {
-                        description: "The width of the rectangle, overrides -width"
-                    },
-                    "height": {
-                        description: "The height of the rectangle"
-                    },
-                    "h": {
-                        description: "The height of the rectangle, overrides -height"
-                    },
-                    "size": {
-                        description: "The width, and height of the rectangle, given as 1 number"
-                    },
-                    "img": {
-                        description: "A link to the image to use"
-                    }
+                'scale-height': {
+                    description: 'The amount to scale the height by'
                 }
-            },
-            category: CommandCategory.IMAGES
-        },
+            }
+        })
     ]
 
     yield [
-        "scale",
-        {
-            run: async (_msg: Message, _args: ArgumentList, sendCallback) => {
-                /*
-                    let opts;
-                    [opts, args] = getOpts(args)
-                    let xScale = args[0] || "2.0"
-                    let yScale = args[1] || "2.0"
-                    let img = getImgFromMsgAndOpts(opts, msg)
-                    if(!img){
-                        return {content: "no img found"}
-                    }
-                    https.request(img, resp => {
-                        let data = new Stream.Transform()
-                        resp.on("data", chunk => {
-                            data.push(chunk)
-                        })
-                        let fn = `${generateFileName("scale", msg.author.id)}.png`
-                        resp.on("end", async() => {
-                            fs.writeFileSync(fn, data.read())
-                            let img = await canvas.loadImage(fn)
-                            fs.rmSync(fn)
-                            xScale = Math.min(parsePosition(xScale, img.width, img.width, parseFloat), 2000)
-                            yScale = Math.min(parsePosition(yScale, img.height, img.height, parseFloat), 2000)
-                            let canv = new canvas.Canvas(img.width * xScale, img.height * yScale)
-                            let ctx = canv.getContext("2d")
-                            ctx.drawImage(img, 0, 0, img.width * xScale, img.height * yScale)
-                            let buffer
-                            try{
-                                buffer = canv.toBuffer("image/png")
-                            }
-                            catch(err){
-                                await sendCallback("Could not generate image")
-                                return
-                            }
-                            fs.writeFileSync(fn, buffer)
-                            sendCallback({files: [{attachment: fn, name: fn,}]}).then(res => {
-                                fs.rmSync(fn)
-                            }).catch(err => {
-                            })
-                        })
-                    }).end()
-                */
-                return {
-                    content: "generating img",
-                    status: StatusCode.INFO
-                }
-            },
-            help: {
-                arguments: {
-                    "scale-width": {
-                        description: "The amount to scale the width by"
-                    },
-                    'scale-height': {
-                        description: 'The amount to scale the height by'
-                    }
-                }
-            },
-            category: CommandCategory.IMAGES
-        },
-    ]
-
-    yield [
-        "img-info", createCommandV2(async ({ opts, msg, sendCallback }) => {
+        "img-info", createCommandV2(async ({ opts, msg }) => {
             let img = getImgFromMsgAndOpts(opts, msg)
             if (!img) {
                 return { content: "No image given", status: StatusCode.ERR }
@@ -1188,170 +1156,166 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "text", {
-            //text command
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
+        "text", ccmdV2(async function( { msg, rawArgs: args}) {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
 
-                let img;
-                let resize = true
-                if (opts['img'] || msg.attachments.at(0)) {
-                    img = getImgFromMsgAndOpts(opts, msg)
-                    resize = false
-                }
+            let img;
+            let resize = true
+            if (opts['img'] || msg.attachments.at(0)) {
+                img = getImgFromMsgAndOpts(opts, msg)
+                resize = false
+            }
 
-                let width = Number(opts['w']) || 0
-                let height = Number(opts['h']) || 0
+            let width = Number(opts['w']) || 0
+            let height = Number(opts['h']) || 0
 
-                let text = args.join(" ")
-                if (!text) {
-                    return { content: "No text", status: StatusCode.ERR }
-                }
+            let text = args.join(" ")
+            if (!text) {
+                return { content: "No text", status: StatusCode.ERR }
+            }
 
-                let lineCount = text.split("\n").length
+            let lineCount = text.split("\n").length
 
-                let font_size = String(opts['size'] || "10") + "px"
-                let font = String(opts['font'] || "serif")
+            let font_size = String(opts['size'] || "10") + "px"
+            let font = String(opts['font'] || "serif")
 
-                if ((width === 0 || height === 0) && resize) {
-                    let c = new canvas.Canvas(1000, 1000)
-                    let ctx = c.getContext("2d")
-                    ctx.font = `${font_size} ${font}`
-                    let textInfo = ctx.measureText(text)
-                    width ||= textInfo.width
-                    height ||= parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
-                }
-
-                let canv, ctx;
-                if (img) {
-                    let image = await canvas.loadImage(img as string)
-                    width = width || image.width
-                    height = height || image.height
-                    if (width * height > 4000000) {
-                        return { content: "Too large", status: StatusCode.ERR }
-                    }
-                    try {
-                        canv = new canvas.Canvas(width, height, "image")
-                    }
-                    catch (err) {
-                        return { content: "Invalid value (typically too big) for size", status: StatusCode.ERR }
-                    }
-                    ctx = canv.getContext("2d")
-                    ctx.drawImage(image, 0, 0)
-                }
-                else {
-                    width = width || 100
-                    height = height || 100
-                    if (width * height > 4000000) {
-                        return { content: "Too large", status: StatusCode.ERR }
-                    }
-                    try {
-                        canv = new canvas.Canvas(width, height, "image")
-                    }
-                    catch (err) {
-                        return { content: "Invalid value (typically too big) for size", status: StatusCode.ERR }
-                    }
-                    ctx = canv.getContext("2d")
-                }
-
-
+            if ((width === 0 || height === 0) && resize) {
+                let c = new canvas.Canvas(1000, 1000)
+                let ctx = c.getContext("2d")
                 ctx.font = `${font_size} ${font}`
                 let textInfo = ctx.measureText(text)
+                width ||= textInfo.width
+                height ||= parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent
+            }
 
-                if (opts['measure']) {
-                    if (opts['measure'] !== true && opts['measure'] in textInfo) {
-                        return { content: String(textInfo[opts['measure'] as keyof TextMetrics]), status: StatusCode.RETURN }
-                    }
-                    return { content: JSON.stringify(textInfo), status: StatusCode.RETURN }
+            let canv, ctx;
+            if (img) {
+                let image = await canvas.loadImage(img as string)
+                width = width || image.width
+                height = height || image.height
+                if (width * height > 4000000) {
+                    return { content: "Too large", status: StatusCode.ERR }
                 }
-
-                ctx.textBaseline = Pipe.start(opts['baseline']).default("top").next((v: string) => String(v)).done()
-
-                let req_x = String(opts['x'] || 0)
-                let x = parsePosition(req_x, width, textInfo.width)
-                let req_y = String(opts['y'] || 0)
-                let y = parsePosition(req_y, width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
-
-                let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
-                if (bg_colors.length == 1) {
-                    if (bg_colors[0] !== 'transparent') {
-                        ctx.fillStyle = bg_colors[0]
-                        ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
-                    }
+                try {
+                    canv = new canvas.Canvas(width, height, "image")
                 }
-                else {
-                    let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
-                    let interval = 1 / (bg_colors.length - 1)
-                    for (let i = 0; i < bg_colors.length; i++) {
-                        grad.addColorStop(interval * i, bg_colors[i])
-                    }
-                    ctx.fillStyle = grad
+                catch (err) {
+                    return { content: "Invalid value (typically too big) for size", status: StatusCode.ERR }
+                }
+                ctx = canv.getContext("2d")
+                ctx.drawImage(image, 0, 0)
+            }
+            else {
+                width = width || 100
+                height = height || 100
+                if (width * height > 4000000) {
+                    return { content: "Too large", status: StatusCode.ERR }
+                }
+                try {
+                    canv = new canvas.Canvas(width, height, "image")
+                }
+                catch (err) {
+                    return { content: "Invalid value (typically too big) for size", status: StatusCode.ERR }
+                }
+                ctx = canv.getContext("2d")
+            }
+
+
+            ctx.font = `${font_size} ${font}`
+            let textInfo = ctx.measureText(text)
+
+            if (opts['measure']) {
+                if (opts['measure'] !== true && opts['measure'] in textInfo) {
+                    return { content: String(textInfo[opts['measure'] as keyof TextMetrics]), status: StatusCode.RETURN }
+                }
+                return { content: JSON.stringify(textInfo), status: StatusCode.RETURN }
+            }
+
+            ctx.textBaseline = Pipe.start(opts['baseline']).default("top").next((v: string) => String(v)).done()
+
+            let req_x = String(opts['x'] || 0)
+            let x = parsePosition(req_x, width, textInfo.width)
+            let req_y = String(opts['y'] || 0)
+            let y = parsePosition(req_y, width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+
+            let bg_colors = intoColorList(String(opts['bg'] || "transparent"))
+            if (bg_colors.length == 1) {
+                if (bg_colors[0] !== 'transparent') {
+                    ctx.fillStyle = bg_colors[0]
                     ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
                 }
-
-                let colors = intoColorList(String(opts['color'] || "red"))
-                if (colors.length == 1) {
-                    ctx.fillStyle = colors[0]
+            }
+            else {
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+                let interval = 1 / (bg_colors.length - 1)
+                for (let i = 0; i < bg_colors.length; i++) {
+                    grad.addColorStop(interval * i, bg_colors[i])
                 }
-                else {
-                    let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + ((textInfo as any).emHeightDescent / lineCount))
-                    let interval = 1 / (colors.length - 1)
-                    console.log(colors)
-                    for (let i = 0; i < colors.length; i++) {
-                        grad.addColorStop(interval * i, colors[i])
+                ctx.fillStyle = grad
+                ctx.fillRect(x, y, textInfo.width, parseFloat(font_size) * (72 / 96) + ((textInfo as any).emHeightDescent / lineCount) + textInfo.actualBoundingBoxDescent)
+            }
+
+            let colors = intoColorList(String(opts['color'] || "red"))
+            if (colors.length == 1) {
+                ctx.fillStyle = colors[0]
+            }
+            else {
+                let grad = ctx.createLinearGradient(x, y, x + textInfo.width, y + parseFloat(font_size) * (72 / 96) + textInfo.actualBoundingBoxDescent + ((textInfo as any).emHeightDescent / lineCount))
+                let interval = 1 / (colors.length - 1)
+                console.log(colors)
+                for (let i = 0; i < colors.length; i++) {
+                    grad.addColorStop(interval * i, colors[i])
+                }
+                ctx.fillStyle = grad
+            }
+
+            ctx.fillText(text, Number(x), Number(y), width)
+
+            let fn = cmdFileName`text ${msg.author.id} png`
+            fs.writeFileSync(fn, canv.toBuffer("image/png"))
+
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: fn,
+                        delete: true
                     }
-                    ctx.fillStyle = grad
-                }
-
-                ctx.fillText(text, Number(x), Number(y), width)
-
-                let fn = cmdFileName`text ${msg.author.id} png`
-                fs.writeFileSync(fn, canv.toBuffer("image/png"))
-
-                return {
-                    files: [
-                        {
-                            attachment: fn,
-                            name: fn,
-                            delete: true
-                        }
-                    ],
-                    status: StatusCode.RETURN
+                ],
+                status: StatusCode.RETURN
+            }
+        }, "Put text on an image", {
+            arguments: {
+                text: {
+                    description: "The text to put",
+                    required: true
                 }
             },
-            help: {
-                info: "Put text on an image",
-                arguments: {
-                    text: {
-                        description: "The text to put",
-                        required: true
-                    }
+            options: {
+                img: {
+                    description: "Whether or not to use an existing image, either pulled from chat, or the message sent"
                 },
-                options: {
-                    img: {
-                        description: "Whether or not to use an existing image, either pulled from chat, or the message sent"
-                    },
-                    size: {
-                        description: "Size of the text"
-                    },
-                    font: {
-                        description: "Font of text (restricted to fonts i have installed)"
-                    },
-                    color: {
-                        description: "Color of the text"
-                    },
-                    x: {
-                        description: "x of the text"
-                    },
-                    y: {
-                        description: "y of the text"
-                    },
-                    bg: {
-                        description: "The color behind the text"
-                    },
-                    measure: {
-                        description: `Sends information about the text size
+                size: {
+                    description: "Size of the text"
+                },
+                font: {
+                    description: "Font of text (restricted to fonts i have installed)"
+                },
+                color: {
+                    description: "Color of the text"
+                },
+                x: {
+                    description: "x of the text"
+                },
+                y: {
+                    description: "y of the text"
+                },
+                bg: {
+                    description: "The color behind the text"
+                },
+                measure: {
+                    description: `Sends information about the text size
             <br>
             Possible values for this option:
             <ul>
@@ -1365,11 +1329,9 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                 <li>emHeightDescent</li>
                 <li>alphabeticBaseline</li>
             </ul>`
-                    }
                 }
-            },
-            category: CommandCategory.IMAGES
-        },
+            }
+        }),
     ]
 
     yield [
@@ -1420,91 +1382,83 @@ If an image is not provided it will be pulled from chat, or an image you gave it
     ]
 
     yield [
-        "color",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let stringArgs = args.join(" ")
-                let color = stringArgs || "RANDOM"
-                let colors = stringArgs.split(">")
+        "color", ccmdV2(async function({ msg, rawArgs: args}) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let stringArgs = args.join(" ")
+            let color = stringArgs || "RANDOM"
+            let colors = stringArgs.split(">")
 
-                const width = Math.min(parseInt(opts['w'] as string) || 250, 2000)
-                const height = Math.min(parseInt(opts['h'] as string) || 250, 2000)
+            const width = Math.min(parseInt(opts['w'] as string) || 250, 2000)
+            const height = Math.min(parseInt(opts['h'] as string) || 250, 2000)
 
-                let content = color
-                let fn = cmdFileName`color ${msg.author.id} png`
-                let buffer
-                if (colors.length > 1) {
-                    let gradient = []
-                    let colorStrings = []
-                    for (let i = 0; i < Math.min(colors.length, 1e9); i++) {
-                        let R, G, B
-                        if (colors[i]) {
-                            colorStrings.push(colors[i])
-                            gradient.push(colors[i])
-                        }
-                        else {
-                            colorStrings.push(randomHexColorCode())
-                        }
+            let content = color
+            let fn = cmdFileName`color ${msg.author.id} png`
+            let buffer
+            if (colors.length > 1) {
+                let gradient = []
+                let colorStrings = []
+                for (let i = 0; i < Math.min(colors.length, 1e9); i++) {
+                    if (colors[i]) {
+                        colorStrings.push(colors[i])
+                        gradient.push(colors[i])
                     }
-                    try {
-                        buffer = await sharp(await createGradient(gradient, width, height)).png().toBuffer()
-                    }
-                    catch (err) {
-                        return { content: "error making color", status: StatusCode.ERR }
-                    }
-                    content = colorStrings.join(" > ")
-                }
-                else {
-                    if (color == "RANDOM") {
-                        content = randomHexColorCode()
-                    }
-                    try {
-                        buffer = await sharp({
-                            create: {
-                                width: width,
-                                height: height,
-                                channels: 4,
-                                background: color
-                            }
-                        }).png().toBuffer()
-                    }
-                    catch (err) {
-                        return { content: "error making color", status: StatusCode.ERR }
+                    else {
+                        colorStrings.push(randomHexColorCode())
                     }
                 }
-                fs.writeFileSync(fn, buffer)
-                return {
-                    files: [
-                        {
-                            attachment: fn,
-                            name: `file.png`,
-                            description: "why can i describe this"
+                try {
+                    buffer = await sharp(await createGradient(gradient, width, height)).png().toBuffer()
+                }
+                catch (err) {
+                    return { content: "error making color", status: StatusCode.ERR }
+                }
+                content = colorStrings.join(" > ")
+            }
+            else {
+                if (color == "RANDOM") {
+                    content = randomHexColorCode()
+                }
+                try {
+                    buffer = await sharp({
+                        create: {
+                            width: width,
+                            height: height,
+                            channels: 4,
+                            background: color
                         }
-                    ],
-                    content: content,
-                    status: StatusCode.RETURN
+                    }).png().toBuffer()
+                }
+                catch (err) {
+                    return { content: "error making color", status: StatusCode.ERR }
+                }
+            }
+            fs.writeFileSync(fn, buffer)
+            return {
+                files: [
+                    {
+                        attachment: fn,
+                        name: `file.png`,
+                        description: "why can i describe this"
+                    }
+                ],
+                content: content,
+                status: StatusCode.RETURN
+            }
+        }, "Generate a random color", {
+            arguments: {
+                "color": {
+                    description: "The color to generate, can also be >, which will create a gradient"
                 }
             },
-            help: {
-                info: "Generate a random color",
-                arguments: {
-                    "color": {
-                        description: "The color to generate, can also be >, which will create a gradient"
-                    }
+            options: {
+                "w": {
+                    description: "width of image"
                 },
-                options: {
-                    "w": {
-                        description: "width of image"
-                    },
-                    "h": {
-                        description: "height of image"
-                    }
+                "h": {
+                    description: "height of image"
                 }
-            },
-            category: CommandCategory.IMAGES
-
-        },
+            }
+        })
     ]
 }

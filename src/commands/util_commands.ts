@@ -138,7 +138,7 @@ const langs = {
 const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]] = [v[1].toLowerCase(), v[0]]))
 
 
-export default function*(CAT: CommandCategory): Generator<[string, Command | CommandV2]> {
+export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "roman-numerals", ccmdV2(async function({ args, opts }) {
@@ -645,7 +645,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 for (let [name, command] of Object.entries(commandsToUse)) {
                     if (!command) continue
                     let resultPriority = ""
-                    html += generateHTMLFromCommandHelp(name, command as Command | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
+                    html += generateHTMLFromCommandHelp(name, command as CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
                 }
                 html += ""
                 return crv(html, {
@@ -701,7 +701,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                 commandsToUse = {}
                 for (let cmd of args) {
                     if (commands[cmd]) {
-                        commandsToUse[cmd] = commands[cmd] as Command | CommandV2
+                        commandsToUse[cmd] = commands[cmd] as CommandV2
                     }
                     else if (matchCmds[cmd]) {
                         commandsToUse[cmd] = matchCmds[cmd]
@@ -1514,115 +1514,99 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "calcm",
-        {
-            run: async (msg, args) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let dollarSign = opts['sign'] || ""
-                let as = opts['as'] || msg.author.id
-                if (as && typeof as === 'string') {
-                    as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
-                }
-                if (typeof as !== 'string' || !as)
-                    as = msg.author.id
+        "calcm", ccmdV2(async function({ msg, rawArgs: args }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let dollarSign = opts['sign'] || ""
+            let as = opts['as'] || msg.author.id
+            if (as && typeof as === 'string') {
+                as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
+            }
+            if (typeof as !== 'string' || !as)
+                as = msg.author.id
 
-                if (opts['tree']) {
-                    return crv(amountParser.calculateAmountRelativeToInternals(economy.calculateAmountFromString(String(as), "100%"), args.join(" "), {
-                        ticketmin: (total, _k) => total * 0.005,
-                        battlemin: (total, _k) => total * 0.002
-                    }).expression.repr(0))
-                }
-
-                let amount = economy.calculateAmountFromString(String(as), args.join(" "), {
+            if (opts['tree']) {
+                return crv(amountParser.calculateAmountRelativeToInternals(economy.calculateAmountFromString(String(as), "100%"), args.join(" "), {
                     ticketmin: (total, _k) => total * 0.005,
                     battlemin: (total, _k) => total * 0.002
-                })
-                if (dollarSign === true) {
-                    return { content: `${amount}`, status: StatusCode.RETURN }
-                }
-                return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Calculate balance",
-                arguments: {
-                    amount: createHelpArgument("The amount to calculate", true),
-                },
-                options: {
-                    sign: createHelpOption("The currency symbol"),
-                    as: createHelpOption("Get the balance of a different user")
-                }
+                }).expression.repr(0))
             }
-        },
+
+            let amount = economy.calculateAmountFromString(String(as), args.join(" "), {
+                ticketmin: (total, _k) => total * 0.005,
+                battlemin: (total, _k) => total * 0.002
+            })
+            if (dollarSign === true) {
+                return { content: `${amount}`, status: StatusCode.RETURN }
+            }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
+        }, "Calculate balance", {
+            arguments: {
+                amount: createHelpArgument("The amount to calculate", true),
+            },
+            options: {
+                sign: createHelpOption("The currency symbol"),
+                as: createHelpOption("Get the balance of a different user")
+            }
+        })
     ]
 
     yield [
-        "calcl",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let dollarSign = opts['sign'] || ""
-                let as = opts['as'] || msg.author.id
-                if (as && typeof as === 'string') {
-                    as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
-                }
-                if (typeof as !== 'string' || !as)
-                    as = msg.author.id
-                let amount = economy.calculateLoanAmountFromString(String(as), args.join(" "))
-                if (!amount) {
-                    return { content: "None", status: StatusCode.RETURN }
-                }
-                if (dollarSign === true) {
-                    return { content: `${amount}`, status: StatusCode.RETURN }
-                }
-                return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Calculate loan",
-                arguments: {
-                    amount: createHelpArgument("The amount to calculate", true),
-                },
-                options: {
-                    sign: createHelpOption("The currency symbol"),
-                    as: createHelpOption("Get the loan of a different user")
-                }
+        "calcl", ccmdV2(async function({ msg, rawArgs: args}) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let dollarSign = opts['sign'] || ""
+            let as = opts['as'] || msg.author.id
+            if (as && typeof as === 'string') {
+                as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
             }
-        },
+            if (typeof as !== 'string' || !as)
+                as = msg.author.id
+            let amount = economy.calculateLoanAmountFromString(String(as), args.join(" "))
+            if (!amount) {
+                return { content: "None", status: StatusCode.RETURN }
+            }
+            if (dollarSign === true) {
+                return { content: `${amount}`, status: StatusCode.RETURN }
+            }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
+        }, "Calculate loan", {
+            arguments: {
+                amount: createHelpArgument("The amount to calculate", true),
+            },
+            options: {
+                sign: createHelpOption("The currency symbol"),
+                as: createHelpOption("Get the loan of a different user")
+            }
+        })
     ]
 
 
     yield [
-        "calcms",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let dollarSign = opts['sign'] || ""
-                let as = opts['as'] || msg.author.id
-                if (as && typeof as === 'string') {
-                    as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
-                }
-                if (typeof as === 'boolean' || !as)
-                    as = msg.author.id
-                let amount = economy.calculateAmountFromNetWorth(String(as), args.join(" ").trim())
-                if (dollarSign === true) {
-                    return { content: `${amount}`, status: StatusCode.RETURN }
-                }
-                return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Calculate total worth",
-                arguments: {
-                    amount: createHelpArgument("The amount to calculate", true),
-                },
-                options: {
-                    sign: createHelpOption("The currency symbol"),
-                    as: createHelpOption("Get the total worth of a different user")
-                }
+        "calcms", ccmdV2(async function({ msg, rawArgs: args }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let dollarSign = opts['sign'] || ""
+            let as = opts['as'] || msg.author.id
+            if (as && typeof as === 'string') {
+                as = (await fetchUserFromClientOrGuild(as, msg.guild))?.id || msg.author.id
             }
-
-        },
+            if (typeof as === 'boolean' || !as)
+                as = msg.author.id
+            let amount = economy.calculateAmountFromNetWorth(String(as), args.join(" ").trim())
+            if (dollarSign === true) {
+                return { content: `${amount}`, status: StatusCode.RETURN }
+            }
+            return { content: `${dollarSign}${amount}`, status: StatusCode.RETURN }
+        }, "Calculate total worth", {
+            arguments: {
+                amount: createHelpArgument("The amount to calculate", true),
+            },
+            options: {
+                sign: createHelpOption("The currency symbol"),
+                as: createHelpOption("Get the total worth of a different user")
+            }
+        })
     ]
 
     yield ["relscript", ccmdV2(async function({ msg, args, opts, stdin, sendCallback }) {
@@ -1655,40 +1639,35 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     })]
 
     yield [
-        "calcam",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let [moneyStr, ...reqAmount] = args
-                let amountStr = reqAmount.join(" ")
-                let money = Number(moneyStr)
-                if (isNaN(money)) {
-                    return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
-                }
-                let dollarSign = opts['sign'] || ""
-                if (opts['tree']) {
-                    return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
-                }
-                let amount = [NaN];
-                amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
-                if (dollarSign === true) {
-                    return { content: `${amount.join("\n")}`, status: StatusCode.RETURN }
-                }
-                return { content: amount.map(v => `${dollarSign}${v}`).join("\n"), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Calculate an amount",
-                arguments: {
-                    total: createHelpArgument("The total to start with", true),
-                    amount: createHelpArgument("The amount of the total to calculate", true)
-                },
-                options: {
-                    sign: createHelpOption("The currency symbol", undefined, ""),
-                    tree: createHelpOption("See the calculation syntax tree")
-                }
+        "calcam", ccmdV2(async function({ rawArgs: args}) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let [moneyStr, ...reqAmount] = args
+            let amountStr = reqAmount.join(" ")
+            let money = Number(moneyStr)
+            if (isNaN(money)) {
+                return { content: `${moneyStr} is not a number`, status: StatusCode.ERR }
             }
-        },
+            let dollarSign = opts['sign'] || ""
+            if (opts['tree']) {
+                return crv(amountParser.calculateAmountRelativeToInternals(money, amountStr).expression.repr(0))
+            }
+            let amount = [NaN];
+            amount = [amountParser.calculateAmountRelativeTo(money, amountStr)]
+            if (dollarSign === true) {
+                return { content: `${amount.join("\n")}`, status: StatusCode.RETURN }
+            }
+            return { content: amount.map(v => `${dollarSign}${v}`).join("\n"), status: StatusCode.RETURN }
+        }, "Calculate an amount", {
+            arguments: {
+                total: createHelpArgument("The total to start with", true),
+                amount: createHelpArgument("The amount of the total to calculate", true)
+            },
+            options: {
+                sign: createHelpOption("The currency symbol", undefined, ""),
+                tree: createHelpOption("See the calculation syntax tree")
+            }
+        })
     ]
 
     yield [
@@ -1785,98 +1764,93 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "periodic-table",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+        "periodic-table", ccmdV2(async function({rawArgs: args}) {
+            let opts;
+            [opts, args] = getOpts(args)
 
 
-                let reqElem = args.join(" ")
+            let reqElem = args.join(" ")
 
-                if (opts['an'] || opts['n']) {
-                    reqElem += `AtomicNumber=${opts['n']}`
+            if (opts['an'] || opts['n']) {
+                reqElem += `AtomicNumber=${opts['n']}`
+            }
+
+            if (!reqElem && !opts['r']) {
+                return { content: "No element requesed", status: StatusCode.ERR }
+            }
+
+            if (opts['refresh']) {
+                let data = await fetch.default("https://www.rsc.org/periodic-table/")
+                let text = await data.text()
+                let elementsData = text.match(/var elementsData = (.*);/)
+                if (!elementsData?.[1]) {
+                    return { content: "Could not fetch data", status: StatusCode.ERR }
                 }
+                fs.writeFileSync("./data/elements.json", elementsData[1])
+            }
 
-                if (!reqElem && !opts['r']) {
-                    return { content: "No element requesed", status: StatusCode.ERR }
-                }
+            let elementsData = fs.readFileSync("./data/elements.json", "utf-8")
+            let elementsJSON = JSON.parse(elementsData)["Elements"]
 
-                if (opts['refresh']) {
-                    let data = await fetch.default("https://www.rsc.org/periodic-table/")
-                    let text = await data.text()
-                    let elementsData = text.match(/var elementsData = (.*);/)
-                    if (!elementsData?.[1]) {
-                        return { content: "Could not fetch data", status: StatusCode.ERR }
-                    }
-                    fs.writeFileSync("./data/elements.json", elementsData[1])
-                }
-
-                let elementsData = fs.readFileSync("./data/elements.json", "utf-8")
-                let elementsJSON = JSON.parse(elementsData)["Elements"]
-
-                let [attr, value] = reqElem.split("=").map(v => v.trim())
-                let reqElementData;
-                if (opts['r']) {
-                    let count = Number(opts['r']) || 1
-                    reqElementData = []
-                    for (let i = 0; i < count; i++) {
-                        reqElementData.push(choice(elementsJSON))
-                    }
-                }
-                else {
-                    reqElementData = elementsJSON.filter((v: any) => {
-                        if (v[attr] !== undefined && String(v[attr]).trim().toLowerCase() === value.trim().toLowerCase()) {
-                            return true
-                        }
-                        return v.Symbol.toLowerCase() === reqElem.toLowerCase() || v.Name.toLowerCase() === reqElem.toLowerCase()
-                    })
-                }
-                if (!reqElementData.length) {
-                    return { content: "No  element  found", status: StatusCode.ERR }
-                }
-
-                if (opts['list-attributes']) {
-                    let text = ""
-                    for (let attr in reqElementData[0]) {
-                        text += `**${attr}**: ${reqElementData[0][attr]}\n`
-                    }
-                    return { content: text, status: StatusCode.RETURN }
-                }
-
-
-                let embeds = []
-                let elementsNamesList = []
-                for (let element of reqElementData) {
-                    let embed = new EmbedBuilder()
-                    elementsNamesList.push(`${element.Name} (${element.Symbol})`)
-                    embed.setTitle(`${element.Name} (${element.Symbol})`)
-                    embed.setDescription(`Discovered in ${element.DiscoveryYear == "0" ? "Unknown" : element.DiscoveryYear} by ${element.DiscoveredBy == "-" ? "Unknown" : element.DiscoveredBy}`)
-                    embed.addFields(efd(["Atomic Number", String(element.AtomicNumber),], ["Atomic Mass", String(element.RelativeAtomicMass)], ["Melting Point C", String(element.MeltingPointC) || "N/A", true], ["Boiling Point C", String(element.BoilingPointC) || "N/A", true]))
-                    embeds.push(embed)
-                }
-                if (embeds.length > 10 || opts['list-names']) {
-                    return { content: elementsNamesList.join("\n"), status: StatusCode.RETURN }
-                }
-                return { embeds: embeds, status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Get information on elements",
-                arguments: {
-                    "element_or_search": {
-                        description: "Can either be a search, eg: ElementID=1<br>or an element, eg: h",
-                        required: true
-                    }
-                },
-                options: {
-                    n: createHelpOption("Get the element with an atomic number", ["an"]),
-                    "list-names": createHelpOption("List the names of all found elements"),
-                    "r": createHelpOption("get n random elements", undefined, "if -r is used: 1"),
-                    "list-attributes": createHelpOption("List all attributes of an element"),
-                    refresh: createHelpOption("Refresh the periodic table")
+            let [attr, value] = reqElem.split("=").map(v => v.trim())
+            let reqElementData;
+            if (opts['r']) {
+                let count = Number(opts['r']) || 1
+                reqElementData = []
+                for (let i = 0; i < count; i++) {
+                    reqElementData.push(choice(elementsJSON))
                 }
             }
-        },
+            else {
+                reqElementData = elementsJSON.filter((v: any) => {
+                    if (v[attr] !== undefined && String(v[attr]).trim().toLowerCase() === value.trim().toLowerCase()) {
+                        return true
+                    }
+                    return v.Symbol.toLowerCase() === reqElem.toLowerCase() || v.Name.toLowerCase() === reqElem.toLowerCase()
+                })
+            }
+            if (!reqElementData.length) {
+                return { content: "No  element  found", status: StatusCode.ERR }
+            }
+
+            if (opts['list-attributes']) {
+                let text = ""
+                for (let attr in reqElementData[0]) {
+                    text += `**${attr}**: ${reqElementData[0][attr]}\n`
+                }
+                return { content: text, status: StatusCode.RETURN }
+            }
+
+
+            let embeds = []
+            let elementsNamesList = []
+            for (let element of reqElementData) {
+                let embed = new EmbedBuilder()
+                elementsNamesList.push(`${element.Name} (${element.Symbol})`)
+                embed.setTitle(`${element.Name} (${element.Symbol})`)
+                embed.setDescription(`Discovered in ${element.DiscoveryYear == "0" ? "Unknown" : element.DiscoveryYear} by ${element.DiscoveredBy == "-" ? "Unknown" : element.DiscoveredBy}`)
+                embed.addFields(efd(["Atomic Number", String(element.AtomicNumber),], ["Atomic Mass", String(element.RelativeAtomicMass)], ["Melting Point C", String(element.MeltingPointC) || "N/A", true], ["Boiling Point C", String(element.BoilingPointC) || "N/A", true]))
+                embeds.push(embed)
+            }
+            if (embeds.length > 10 || opts['list-names']) {
+                return { content: elementsNamesList.join("\n"), status: StatusCode.RETURN }
+            }
+            return { embeds: embeds, status: StatusCode.RETURN }
+        }, "Get information on elements", {
+            arguments: {
+                "element_or_search": {
+                    description: "Can either be a search, eg: ElementID=1<br>or an element, eg: h",
+                    required: true
+                }
+            },
+            options: {
+                n: createHelpOption("Get the element with an atomic number", ["an"]),
+                "list-names": createHelpOption("List the names of all found elements"),
+                "r": createHelpOption("get n random elements", undefined, "if -r is used: 1"),
+                "list-attributes": createHelpOption("List all attributes of an element"),
+                refresh: createHelpOption("Refresh the periodic table")
+            }
+        })
     ]
 
     yield [
@@ -2190,7 +2164,7 @@ middle
     ]
 
     yield [
-        "render-html", createCommandV2(async ({ msg, args }) => {
+        "render-html", createCommandV2(async ({ args }) => {
             return { content: htmlRenderer.renderHTML(args.join(" "), 0), status: StatusCode.RETURN }
         }, CommandCategory.UTIL, "Renders <code>html</code>", {
             html: {
@@ -2274,9 +2248,9 @@ middle
                 "member": async () => await msg.guild?.members.fetch(),
                 "user": async () => (await msg.guild?.members.fetch())?.mapValues(v => v.user),
                 "bot": async () => (await msg.guild?.members.fetch())?.filter(u => u.user.bot),
-                "command": async () => new Collection<string, Command | CommandV2>(getCommands().entries()),
+                "command": async () => new Collection<string, CommandV2>(getCommands().entries()),
                 "aliasv2": async () => new Collection<string, AliasV2>(Object.entries(aliasesV2)),
-                "cmd+av2": async () => new Collection<string, AliasV2 | Command | CommandV2>(Object.entries({ ...Object.fromEntries(getCommands().entries()), ...aliasesV2 })),
+                "cmd+av2": async () => new Collection<string, AliasV2 | CommandV2>(Object.entries({ ...Object.fromEntries(getCommands().entries()), ...aliasesV2 })),
             }[object as "channel" | "role" | "member" | "user" | "bot" | "command"]()
             data = data?.filter(filter)
             if (!data) {
@@ -2499,7 +2473,7 @@ The order these are given does not matter, excpet for field, which will be added
     }, CommandCategory.UTIL, "Fancy calculator")]
 
     yield [
-        "calc", ccmdV2(async function({ args, msg }) {
+        "calc", ccmdV2(async function({ rawArgs: args, msg }) {
             let opts;
             [opts, args] = getOpts(args)
             let sep = opts['sep']
@@ -2657,223 +2631,200 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         })]
 
     yield [
-        "roles",
-        {
-            run: async (msg, args) => {
-                if (!msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
-                let users = []
-                for (let arg of args) {
-                    users.push(await fetchUser(msg.guild, arg))
-                }
-                if (users.length == 0) {
-                    users.push(await fetchUser(msg.guild, msg.author.id))
-                }
-                let embeds = []
-                for (let user of users) {
-                    let roles = user?.roles
-                    if (!roles) {
-                        return {
-                            content: "Could not find roles",
-                            status: StatusCode.ERR
-                        }
-                    }
-                    let embed = new EmbedBuilder()
-                    embed.setTitle(`Roles for: ${user?.user.username}`)
-                    embed.addFields(efd(["Role count", String(roles.cache.size)]))
-                    let text = roles.cache.toJSON().join(" ")
-                    let backup_text = roles.cache.map(v => v.name).join(" ")
-                    if (text.length <= 1024) {
-                        embed.addFields(efd(["Roles", roles.cache.toJSON().join(" ")]))
-                    }
-                    else if (backup_text.length <= 1024) {
-                        embed.addFields(efd(["Roles", backup_text]))
-                    }
-                    else {
-                        embed.addFields(efd(["Roles", "Too many to list"]))
-                    }
-                    embeds.push(embed)
-                }
-                return {
-                    embeds: embeds,
-                    status: StatusCode.RETURN
-                }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Gets the roles of a user",
-                arguments: {
-                    "user": createHelpArgument("The user to get the roles of", true)
-                }
+        "roles", ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
+            let users = []
+            for (let arg of args) {
+                users.push(await fetchUser(msg.guild, arg))
             }
-        },
-    ]
-
-    yield [
-        "search-cmd-file",
-        {
-            run: async (_msg, _, sendCallback, opts, args) => {
-                let file = args[0]
-                let search = args.slice(1).join(" ")
-                if (!file) {
-                    return { content: "No file specified", status: StatusCode.ERR }
-                }
-                if (file.match(/\./)) {
-                    return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
-                }
-                if (!fs.existsSync(`./command-results/${file}`)) {
+            if (users.length == 0) {
+                users.push(await fetchUser(msg.guild, msg.author.id))
+            }
+            let embeds = []
+            for (let user of users) {
+                let roles = user?.roles
+                if (!roles) {
                     return {
-                        content: "file does not exist",
+                        content: "Could not find roles",
                         status: StatusCode.ERR
                     }
                 }
-                const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
-                let lines = text.split(";END")
-                if (opts['arg']) {
-                    let argNo = Number(opts['args'])
-                    if (isNaN(argNo)) {
-                        argNo = 1
-                    }
-                    lines = lines.map(v => v.split(" ")[argNo])
-                }
-                let final = []
-                for (let i = 0; i < lines.length; i++) {
-                    let line = lines[i]
-                    try {
-                        if (line.match(search)) {
-                            final.push(`${i + 1}: ${line}`)
-                        }
-                    }
-                    catch (err) {
-                        return { content: "Invalid regex", status: StatusCode.ERR }
-                    }
-                }
-                return { content: final.join("\n"), status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Searches a command file",
-                arguments: {
-                    file: createHelpArgument("The file to search", true),
-                    "...search": createHelpArgument("The regex to search for in the file", true)
-                }
-            }
-        },
-    ]
-
-    yield [
-        "comp-roles",
-        {
-            run: async (msg, args, sendCallback) => {
-                if (!msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
-                let [user1, user2] = args.join(" ").split("|")
-                user1 = user1.trim()
-                user2 = user2.trim()
-                if (!user1) {
-                    return { content: "No users given", status: StatusCode.ERR }
-                }
-                if (!user2) {
-                    return { content: "2 users must be given", status: StatusCode.ERR }
-                }
-                let realUser1 = await fetchUser(msg.guild, user1)
-                if (!realUser1) {
-                    return { content: `${user1} not found`, status: StatusCode.ERR }
-                }
-                let realUser2 = await fetchUser(msg.guild, user2)
-                if (!realUser2) {
-                    return { content: `${user2} not found`, status: StatusCode.ERR }
-                }
-                let user1Roles = realUser1.roles.cache.toJSON()
-                let user2Roles = realUser2.roles.cache.toJSON()
-                let user1RoleIds = user1Roles.map(v => v.id)
-                let user2RoleIds = user2Roles.map(v => v.id)
-                let sameRoles = user1Roles.filter(v => user2RoleIds.includes(v.id))
-                let user1Unique = user1Roles.filter(v => !user2RoleIds.includes(v.id))
-                let user2Unique = user2Roles.filter(v => !user1RoleIds.includes(v.id))
                 let embed = new EmbedBuilder()
-                let same = sameRoles.reduce((prev, cur) => `${prev} ${cur}`, "")
-                let user1U = user1Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
-                let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
-                let u1Net = user1RoleIds.length - user2RoleIds.length
-                embed.setTitle("roles")
-                if (u1Net > 0) {
-                    embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
+                embed.setTitle(`Roles for: ${user?.user.username}`)
+                embed.addFields(efd(["Role count", String(roles.cache.size)]))
+                let text = roles.cache.toJSON().join(" ")
+                let backup_text = roles.cache.map(v => v.name).join(" ")
+                if (text.length <= 1024) {
+                    embed.addFields(efd(["Roles", roles.cache.toJSON().join(" ")]))
                 }
-                else if (u1Net < 0) {
-                    embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
+                else if (backup_text.length <= 1024) {
+                    embed.addFields(efd(["Roles", backup_text]))
                 }
                 else {
-                    embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
+                    embed.addFields(efd(["Roles", "Too many to list"]))
                 }
-                embed.addFields(efd(["Same Roles", same || "No same"], [`${realUser1.displayName} unique roles`, user1U || "No unique roles"], [`${realUser2.displayName} unique roles`, user2U || "No unique roles"]))
-                return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Compare 2 user's roles",
-                arguments: {
-                    user1: {
-                        description: "The first user",
-                    },
-                    "|": {
-                        description: "Seperates the users",
-                    },
-                    user2: {
-                        description: "The second user"
-                    }
-                }
+                embeds.push(embed)
             }
-        },
+            return {
+                embeds: embeds,
+                status: StatusCode.RETURN
+            }
+        }, "Gets the roles of a user", {
+            arguments: {
+                "user": createHelpArgument("The user to get the roles of", true)
+            }
+        })
     ]
 
     yield [
-        "most-roles",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let times = parseInt(args[0]) || 10
-                await msg.guild?.members.fetch()
-                let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
-                let embed = new EmbedBuilder()
-                embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
-                if (sortedMembers?.at(0)?.displayColor) {
-                    embed.setColor(sortedMembers?.at(0)?.displayColor || "Red")
+        "search-cmd-file", ccmdV2(async function({ rawOpts: opts, args }) {
+            let file = args[0]
+            let search = args.slice(1).join(" ")
+            if (!file) {
+                return { content: "No file specified", status: StatusCode.ERR }
+            }
+            if (file.match(/\./)) {
+                return { content: "<:Watching1:697677860336304178>", status: StatusCode.ERR }
+            }
+            if (!fs.existsSync(`./command-results/${file}`)) {
+                return {
+                    content: "file does not exist",
+                    status: StatusCode.ERR
                 }
-                let ret = ""
-                for (let i = 0; i < times; i++) {
-                    let member = sortedMembers?.at(i)
-                    ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
-                    embed.addFields(efd([String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true]))
+            }
+            const text = fs.readFileSync(`./command-results/${file}`, "utf-8")
+            let lines = text.split(";END")
+            if (opts['arg']) {
+                let argNo = Number(opts['args'])
+                if (isNaN(argNo)) {
+                    argNo = 1
                 }
-                let rv: CommandReturn = { allowedMentions: { parse: [] }, status: StatusCode.RETURN }
-                if (!opts['E'] && !opts['c!'])
-                    rv.embeds = [embed]
-                if (opts['c'] || opts['c!']) {
-                    rv.content = ret
-                }
-                return rv
-            },
-            help: {
-                info: "Display a list of users with the most roles",
-                arguments: {
-                    top: {
-                        description: "The top x users to display",
-                        required: false,
+                lines = lines.map(v => v.split(" ")[argNo])
+            }
+            let final = []
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i]
+                try {
+                    if (line.match(search)) {
+                        final.push(`${i + 1}: ${line}`)
                     }
+                }
+                catch (err) {
+                    return { content: "Invalid regex", status: StatusCode.ERR }
+                }
+            }
+            return { content: final.join("\n"), status: StatusCode.RETURN }
+        }, "Searches a command file", {
+            arguments: {
+                file: createHelpArgument("The file to search", true),
+                "...search": createHelpArgument("The regex to search for in the file", true)
+            }
+        })
+    ]
+
+    yield [
+        "comp-roles", ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) return crv("Not in a guild", { status: StatusCode.ERR })
+            let [user1, user2] = args.join(" ").split("|")
+            user1 = user1.trim()
+            user2 = user2.trim()
+            if (!user1) {
+                return { content: "No users given", status: StatusCode.ERR }
+            }
+            if (!user2) {
+                return { content: "2 users must be given", status: StatusCode.ERR }
+            }
+            let realUser1 = await fetchUser(msg.guild, user1)
+            if (!realUser1) {
+                return { content: `${user1} not found`, status: StatusCode.ERR }
+            }
+            let realUser2 = await fetchUser(msg.guild, user2)
+            if (!realUser2) {
+                return { content: `${user2} not found`, status: StatusCode.ERR }
+            }
+            let user1Roles = realUser1.roles.cache.toJSON()
+            let user2Roles = realUser2.roles.cache.toJSON()
+            let user1RoleIds = user1Roles.map(v => v.id)
+            let user2RoleIds = user2Roles.map(v => v.id)
+            let sameRoles = user1Roles.filter(v => user2RoleIds.includes(v.id))
+            let user1Unique = user1Roles.filter(v => !user2RoleIds.includes(v.id))
+            let user2Unique = user2Roles.filter(v => !user1RoleIds.includes(v.id))
+            let embed = new EmbedBuilder()
+            let same = sameRoles.reduce((prev, cur) => `${prev} ${cur}`, "")
+            let user1U = user1Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
+            let user2U = user2Unique.reduce((prev, cur) => `${prev} ${cur}`, "")
+            let u1Net = user1RoleIds.length - user2RoleIds.length
+            embed.setTitle("roles")
+            if (u1Net > 0) {
+                embed.setDescription(`${realUser1.displayName} has ${u1Net} more roles than ${realUser2.displayName}`)
+            }
+            else if (u1Net < 0) {
+                embed.setDescription(`${realUser1.displayName} has ${-u1Net} less roles than ${realUser2.displayName}`)
+            }
+            else {
+                embed.setDescription(`${realUser1.displayName} has the same amount of roles as ${realUser2.displayName}`)
+            }
+            embed.addFields(efd(["Same Roles", same || "No same"], [`${realUser1.displayName} unique roles`, user1U || "No unique roles"], [`${realUser2.displayName} unique roles`, user2U || "No unique roles"]))
+            return { embeds: [embed], status: StatusCode.RETURN, allowedMentions: { parse: [] } }
+        }, "Compare 2 user's roles", {
+            arguments: {
+                user1: {
+                    description: "The first user",
                 },
-                options: {
-                    E: {
-                        description: "Don't display an embed"
-                    },
-                    c: {
-                        description: "Display the results as a list"
-                    },
-                    "c!": {
-                        description: "Display the results as a list instead of an embed"
-                    }
+                "|": {
+                    description: "Seperates the users",
+                },
+                user2: {
+                    description: "The second user"
+                }
+            }
+        })
+    ]
+
+    yield [
+        "most-roles", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let times = parseInt(args[0]) || 10
+            await msg.guild?.members.fetch()
+            let sortedMembers = msg.guild?.members.cache.sorted((ua, ub) => ub.roles.cache.size - ua.roles.cache.size)
+            let embed = new EmbedBuilder()
+            embed.setTitle(`${sortedMembers?.at(0)?.user.username} has the most roles`)
+            if (sortedMembers?.at(0)?.displayColor) {
+                embed.setColor(sortedMembers?.at(0)?.displayColor || "Red")
+            }
+            let ret = ""
+            for (let i = 0; i < times; i++) {
+                let member = sortedMembers?.at(i)
+                ret += `${i + 1}: ${member}: ${member?.roles.cache.size}\n`
+                embed.addFields(efd([String(i + 1), `**${member}**\n${member?.roles.cache.size}`, true]))
+            }
+            let rv: CommandReturn = { allowedMentions: { parse: [] }, status: StatusCode.RETURN }
+            if (!opts['E'] && !opts['c!'])
+                rv.embeds = [embed]
+            if (opts['c'] || opts['c!']) {
+                rv.content = ret
+            }
+            return rv
+        }, "Display a list of users with the most roles", {
+            arguments: {
+                top: {
+                    description: "The top x users to display",
+                    required: false,
                 }
             },
-            category: CommandCategory.UTIL
-        },
+            options: {
+                E: {
+                    description: "Don't display an embed"
+                },
+                c: {
+                    description: "Display the results as a list"
+                },
+                "c!": {
+                    description: "Display the results as a list instead of an embed"
+                }
+            }
+        }),
     ]
 
     yield [
@@ -3197,22 +3148,17 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     })]
 
     yield [
-        "pollify",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts: Opts;
-                [opts, args] = getOpts(args)
-                if (msg.deletable && opts['d']) await msg.delete()
-                let message = await handleSending(msg, { content: args.join(" ") || "poll", status: StatusCode.RETURN }, sendCallback)
-                await message.react("<:Blue_check:608847324269248512>")
-                await message.react("<:neutral:716078457880051734>")
-                await message.react("❌")
-                return { noSend: true, status: StatusCode.INFO }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Idk it pollifies what do you want"
-            }
-        },
+        "pollify", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts: Opts;
+            [opts, args] = getOpts(args)
+            if (msg.deletable && opts['d']) await msg.delete()
+            let message = await handleSending(msg, { content: args.join(" ") || "poll", status: StatusCode.RETURN }, sendCallback)
+            await message.react("<:Blue_check:608847324269248512>")
+            await message.react("<:neutral:716078457880051734>")
+            await message.react("❌")
+            return { noSend: true, status: StatusCode.INFO }
+        }, "Idk it pollifies what do you want", {
+        })
     ]
 
     yield [
@@ -3275,128 +3221,121 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "expr",
-        {
-            run: async (msg, args, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
+        "expr", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts;
+            [opts, args] = getOpts(args)
 
-                let prefix = ""
-                if (opts['u']) {
-                    prefix = msg.author.id
-                }
+            let prefix = ""
+            if (opts['u']) {
+                prefix = msg.author.id
+            }
 
-                let left = args[0]
+            let left = args[0]
 
-                let convFn = opts['s'] ? String : Number
+            let convFn = opts['s'] ? String : Number
 
-                let isBad = opts['s'] ? (s: string) => s ? false : true : isNaN
+            let isBad = opts['s'] ? (s: string) => s ? false : true : isNaN
 
-                let leftVal = convFn(left)
-                if (isBad(leftVal)) {
-                    leftVal = convFn(vars.getVar(msg, `${prefix}:${left}`))
-                }
-                if (isBad(leftVal)) {
-                    return crv(`${left} did not pass the ${convFn.name} check`, { status: StatusCode.ERR })
-                }
+            let leftVal = convFn(left)
+            if (isBad(leftVal)) {
+                leftVal = convFn(vars.getVar(msg, `${prefix}:${left}`))
+            }
+            if (isBad(leftVal)) {
+                return crv(`${left} did not pass the ${convFn.name} check`, { status: StatusCode.ERR })
+            }
 
-                let op = args[1]
+            let op = args[1]
 
-                let right = args[2]
+            let right = args[2]
 
-                let rightVal = convFn(right)
-                if (right && isBad(rightVal)) {
-                    rightVal = convFn(vars.getVar(msg, `${prefix}:${right}`))
-                }
-                if (right && isBad(rightVal)) {
-                    return crv(`${right} is not a number`, { status: StatusCode.ERR })
-                }
+            let rightVal = convFn(right)
+            if (right && isBad(rightVal)) {
+                rightVal = convFn(vars.getVar(msg, `${prefix}:${right}`))
+            }
+            if (right && isBad(rightVal)) {
+                return crv(`${right} is not a number`, { status: StatusCode.ERR })
+            }
 
-                let ans: any
-                switch (op) {
-                    case "++":
-                        ans = typeof leftVal === 'string' ? leftVal.repeat(2) : leftVal + 1
-                        break
-                    case "--":
-                        if (typeof leftVal === 'string') {
-                            ans = NaN
-                        }
-                        else ans = leftVal - 1
-                        break
-                    case "floor":
-                        ans = typeof leftVal === 'string' ? NaN : Math.floor(leftVal)
-                        break;
-                    case "ceil":
-                        ans = typeof leftVal === 'string' ? NaN : Math.ceil(leftVal)
-                        break;
-                    case ",":
-                        ans = ""
-                        for (let i = 0; i < String(leftVal).length; i++) {
-                            if (i % 3 == 0 && i != 0) {
-                                ans += ","
-                            }
-                            ans += left[left.length - i - 1]
-                        }
-                        let newAns = ""
-                        for (let i = ans.length - 1; i >= 0; i--) {
-                            newAns += ans[i]
-                        }
-                        ans = newAns
-                        break;
-                    case "+":
-                        ans = (leftVal as string) + rightVal
-                        break
-                    case "-":
-                        if (typeof leftVal === 'string' && typeof rightVal === 'string') {
-                            ans = leftVal.replaceAll(rightVal, "")
-                        }
-                        else if (typeof leftVal === 'number' && typeof rightVal == 'number') ans = leftVal - rightVal
-                        break
-                    case "*":
-                        if (!isNaN(Number(rightVal)) && typeof leftVal === 'string') {
-                            ans = leftVal.repeat(Number(rightVal))
-                        }
-                        else if (typeof leftVal === 'number' && typeof rightVal === 'number')
-                            ans = leftVal * rightVal
-                        break
-                    case "/":
-                        if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
-                        else ans = leftVal / rightVal
-                        break
-                    case "^":
-                        if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
-                        else ans = leftVal ^ rightVal
-                        break;
-                    case "%":
-                        if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
-                        else ans = leftVal % rightVal
-                        break;
-                }
-                if (prefix === msg.author.id) prefix = "%"
-                vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
-                return { content: String(ans), status: StatusCode.RETURN }
-            },
-            help: {
-                info: "Modify a variable",
-                arguments: {
-                    "num1": {
-                        description: "Number 1 (can be a variable)"
-                    },
-                    "operator": {
-                        description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li><li>/</li><li>^</li><li>%</li></ul>"
-                    },
-                    "num2": {
-                        description: "The other number (can be a variable)"
+            let ans: any
+            switch (op) {
+                case "++":
+                    ans = typeof leftVal === 'string' ? leftVal.repeat(2) : leftVal + 1
+                    break
+                case "--":
+                    if (typeof leftVal === 'string') {
+                        ans = NaN
                     }
+                    else ans = leftVal - 1
+                    break
+                case "floor":
+                    ans = typeof leftVal === 'string' ? NaN : Math.floor(leftVal)
+                    break;
+                case "ceil":
+                    ans = typeof leftVal === 'string' ? NaN : Math.ceil(leftVal)
+                    break;
+                case ",":
+                    ans = ""
+                    for (let i = 0; i < String(leftVal).length; i++) {
+                        if (i % 3 == 0 && i != 0) {
+                            ans += ","
+                        }
+                        ans += left[left.length - i - 1]
+                    }
+                    let newAns = ""
+                    for (let i = ans.length - 1; i >= 0; i--) {
+                        newAns += ans[i]
+                    }
+                    ans = newAns
+                    break;
+                case "+":
+                    ans = (leftVal as string) + rightVal
+                    break
+                case "-":
+                    if (typeof leftVal === 'string' && typeof rightVal === 'string') {
+                        ans = leftVal.replaceAll(rightVal, "")
+                    }
+                    else if (typeof leftVal === 'number' && typeof rightVal == 'number') ans = leftVal - rightVal
+                    break
+                case "*":
+                    if (!isNaN(Number(rightVal)) && typeof leftVal === 'string') {
+                        ans = leftVal.repeat(Number(rightVal))
+                    }
+                    else if (typeof leftVal === 'number' && typeof rightVal === 'number')
+                        ans = leftVal * rightVal
+                    break
+                case "/":
+                    if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
+                    else ans = leftVal / rightVal
+                    break
+                case "^":
+                    if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
+                    else ans = leftVal ^ rightVal
+                    break;
+                case "%":
+                    if (typeof leftVal === 'string' || typeof rightVal === 'string') ans = NaN
+                    else ans = leftVal % rightVal
+                    break;
+            }
+            if (prefix === msg.author.id) prefix = "%"
+            vars.setVarEasy(`${prefix}:${left}`, String(ans), msg.author.id)
+            return { content: String(ans), status: StatusCode.RETURN }
+        }, "Modify a variable", {
+            arguments: {
+                "num1": {
+                    description: "Number 1 (can be a variable)"
                 },
-                options: {
-                    s: createHelpOption("Treat each value as a string, and do not do variable lookup"),
-                    u: createHelpOption("Treat each word as a user variable")
+                "operator": {
+                    description: "The operator<ul><li>++</li><li>--</li><li>floor</li><li>ceil</li><li>,</li><li>:</li><li>+</li><li>-</li><li>*</li><li>/</li><li>^</li><li>%</li></ul>"
+                },
+                "num2": {
+                    description: "The other number (can be a variable)"
                 }
             },
-            category: CommandCategory.UTIL
-
-        },
+            options: {
+                s: createHelpOption("Treat each value as a string, and do not do variable lookup"),
+                u: createHelpOption("Treat each word as a user variable")
+            }
+        }),
     ]
 
     yield [
@@ -3759,68 +3698,62 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "rand-user",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let opts;
-                [opts, args] = getOpts(args)
-                let member
-                if (!opts['f'])
-                    member = (msg.channel as TextChannel).guild.members.cache.random()
-                if (!member)
-                    member = (await (msg.channel as TextChannel).guild.members.fetch()).random()
-                let fmt = args.join(" ") || "%u (%n)"
-                return Pipe.start(member)
-                    .default({ content: "No member found" })
-                    .next(function(member: any) {
-                        if (!member?.user) {
-                            return
-                        }
-                        return [member, member.user]
-                    })
-                    .default({ content: "No user found" })
-                    .next(function(member: GuildMember, user: User) {
-                        return {
-                            content: format(fmt,
-                                {
-                                    id: user.id || "#!N/A",
-                                    username: user.username || "#!N/A",
-                                    nickname: member.nickname || "#!N/A",
-                                    "0xcolor": member.displayHexColor.toString() || "#!N/A",
-                                    color: member.displayColor.toString() || "#!N/A",
-                                    created: user.createdAt.toString() || "#!N/A",
-                                    joined: member.joinedAt?.toString() || "#!N/A",
-                                    boost: member.premiumSince?.toString() || "#!N/A",
-                                    i: user.id || "#!N/A",
-                                    u: user.username || "#!N/A",
-                                    n: member.nickname || "#!N/A",
-                                    d: member.displayName,
-                                    X: member.displayHexColor.toString() || "#!N/A",
-                                    x: member.displayColor.toString() || "#!N/A",
-                                    c: user.createdAt.toString() || "#!N/A",
-                                    j: member.joinedAt?.toString() || "#!N/A",
-                                    b: member.premiumSince?.toString() || "#!N/A",
-                                    a: user.avatarURL() || "#!N/A"
-                                }
-                            )
-                        }
-                    }).done()
-            },
-            help: {
-                info: "Gives a random server member",
-                arguments: {
-                    "fmt": {
-                        description: "The format to print the user, default: \"%u (%n)\"<br>Formats:<br>%i: user id<br>%u: username<br>%n: nickname<br>%X: hex color<br>%x: color<br>%c: Created at<br>%j: Joined at<br>%b: premium since"
+        "rand-user", ccmdV2(async function({ msg, rawArgs: args, sendCallback }) {
+            let opts;
+            [opts, args] = getOpts(args)
+            let member
+            if (!opts['f'])
+                member = (msg.channel as TextChannel).guild.members.cache.random()
+            if (!member)
+                member = (await (msg.channel as TextChannel).guild.members.fetch()).random()
+            let fmt = args.join(" ") || "%u (%n)"
+            return Pipe.start(member)
+                .default({ content: "No member found" })
+                .next(function(member: any) {
+                    if (!member?.user) {
+                        return
                     }
-                },
-                options: {
-                    "f": {
-                        description: "Fetch all members in guild, instead of using preloaded members"
+                    return [member, member.user]
+                })
+                .default({ content: "No user found" })
+                .next(function(member: GuildMember, user: User) {
+                    return {
+                        content: format(fmt,
+                            {
+                                id: user.id || "#!N/A",
+                                username: user.username || "#!N/A",
+                                nickname: member.nickname || "#!N/A",
+                                "0xcolor": member.displayHexColor.toString() || "#!N/A",
+                                color: member.displayColor.toString() || "#!N/A",
+                                created: user.createdAt.toString() || "#!N/A",
+                                joined: member.joinedAt?.toString() || "#!N/A",
+                                boost: member.premiumSince?.toString() || "#!N/A",
+                                i: user.id || "#!N/A",
+                                u: user.username || "#!N/A",
+                                n: member.nickname || "#!N/A",
+                                d: member.displayName,
+                                X: member.displayHexColor.toString() || "#!N/A",
+                                x: member.displayColor.toString() || "#!N/A",
+                                c: user.createdAt.toString() || "#!N/A",
+                                j: member.joinedAt?.toString() || "#!N/A",
+                                b: member.premiumSince?.toString() || "#!N/A",
+                                a: user.avatarURL() || "#!N/A"
+                            }
+                        )
                     }
+                }).done()
+        }, "Gives a random server member", {
+            arguments: {
+                "fmt": {
+                    description: "The format to print the user, default: \"%u (%n)\"<br>Formats:<br>%i: user id<br>%u: username<br>%n: nickname<br>%X: hex color<br>%x: color<br>%c: Created at<br>%j: Joined at<br>%b: premium since"
                 }
             },
-            category: CommandCategory.UTIL
-        },
+            options: {
+                "f": {
+                    description: "Fetch all members in guild, instead of using preloaded members"
+                }
+            }
+        })
     ]
 
     yield [
@@ -3841,71 +3774,59 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
         })]
 
     yield [
-        "channel-info",
-        {
-            run: async (msg, args) => {
-                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
-                let channel
-                if (!args.join(" ").trim().length)
-                    channel = msg.channel
-                else channel = await fetchChannel(msg.guild, args.join(" ").trim())
-                if (!channel)
-                    return { content: "Channel not found", status: StatusCode.ERR }
-                let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
-                let embed = new EmbedBuilder()
-                embed.setTitle("name" in channel ? channel.name : "Unknown name")
-                let pinned
-                if ("messages" in channel && (pinned = await channel.messages.fetchPinned())) {
-                    let pinCount = pinned.size
-                    let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
-                    embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", String(daysTillFull), true]))
-                }
-                embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type.toString(), true]))
-                if ("topic" in channel && channel.topic) {
-                    embed.addFields(efd(["Topic", channel.topic, true]))
-                }
-                if ("nsfw" in channel) {
-                    embed.addFields(efd(["NSFW?", String(channel.nsfw), true]))
-                }
-                if ("position" in channel) {
-                    embed.addFields(efd(["Position", channel.position.toString(), true]))
-                }
-                return { embeds: [embed], status: StatusCode.RETURN }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Gets info about a channel"
+        "channel-info", ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
+            let channel
+            if (!args.join(" ").trim().length)
+                channel = msg.channel
+            else channel = await fetchChannel(msg.guild, args.join(" ").trim())
+            if (!channel)
+                return { content: "Channel not found", status: StatusCode.ERR }
+            let daysSinceCreation = (Date.now() - (new Date(channel.createdTimestamp as number)).getTime()) / (1000 * 60 * 60 * 24)
+            let embed = new EmbedBuilder()
+            embed.setTitle("name" in channel ? channel.name : "Unknown name")
+            let pinned
+            if ("messages" in channel && (pinned = await channel.messages.fetchPinned())) {
+                let pinCount = pinned.size
+                let daysTillFull = (daysSinceCreation / pinCount) * (50 - pinCount)
+                embed.addFields(efd(["Pin Count", String(pinCount), true], ["Days till full", String(daysTillFull), true]))
             }
-        },
+            embed.addFields(efd(["Created", channel.createdAt?.toString() || "N/A", true], ["Days since Creation", String(daysSinceCreation), true], ["Id", channel.id.toString(), true], ["Type", channel.type.toString(), true]))
+            if ("topic" in channel && channel.topic) {
+                embed.addFields(efd(["Topic", channel.topic, true]))
+            }
+            if ("nsfw" in channel) {
+                embed.addFields(efd(["NSFW?", String(channel.nsfw), true]))
+            }
+            if ("position" in channel) {
+                embed.addFields(efd(["Position", channel.position.toString(), true]))
+            }
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "Gets info about a channel")
     ]
 
     yield [
-        "emote-info",
-        {
-            run: async (msg, args, sendCallback) => {
-                let emote = args[0].split(":")[2].slice(0, -1)
-                let e
-                try {
-                    e = await msg.guild?.emojis.fetch(emote)
-                }
-                catch (err) {
-                    return { content: "No emoji found", status: StatusCode.ERR }
-                }
-                if (!e) {
-                    return { content: "No emoji foudn", status: StatusCode.ERR }
-                }
-                let embed = new EmbedBuilder()
-                embed.setTitle(String(e.name))
-                embed.addFields(efd(["id", e.id, true], ["created Date", e?.createdAt.toDateString(), true], ["Creation time", e?.createdAt.toTimeString(), true], ["THE CREATOR", String(e?.author), true]))
-                if (e.url)
-                    embed.setThumbnail(e.url)
-                embed.addFields(efd(["URL", e?.url, true]))
-                return { embeds: [embed], status: StatusCode.RETURN }
-            }, category: CommandCategory.UTIL,
-            help: {
-                info: "Get a random emote"
+        "emote-info", ccmdV2(async function({ msg, args, sendCallback }) {
+            let emote = args[0].split(":")[2].slice(0, -1)
+            let e
+            try {
+                e = await msg.guild?.emojis.fetch(emote)
             }
-        },
+            catch (err) {
+                return { content: "No emoji found", status: StatusCode.ERR }
+            }
+            if (!e) {
+                return { content: "No emoji foudn", status: StatusCode.ERR }
+            }
+            let embed = new EmbedBuilder()
+            embed.setTitle(String(e.name))
+            embed.addFields(efd(["id", e.id, true], ["created Date", e?.createdAt.toDateString(), true], ["Creation time", e?.createdAt.toTimeString(), true], ["THE CREATOR", String(e?.author), true]))
+            if (e.url)
+                embed.setThumbnail(e.url)
+            embed.addFields(efd(["URL", e?.url, true]))
+            return { embeds: [embed], status: StatusCode.RETURN }
+        }, "Get a random emote", {
+        })
     ]
 
     yield ["sticker-info", ccmdV2(async ({ msg, opts, args }) => {
@@ -3950,7 +3871,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     },)]
 
     yield [
-        "user-info!", ccmdV2(async function({ msg, args, argShapeResults }) {
+        "user-info!", ccmdV2(async function({ argShapeResults }) {
             let search = argShapeResults['user'] as string
             let user = await fetchUserFromClient(common.client, search)
 
@@ -3995,74 +3916,70 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
     ]
 
     yield [
-        "user-info",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                if (!args[0]) {
-                    return {
-                        content: "no member given!",
-                        status: StatusCode.ERR
-                    }
+        "user-info", ccmdV2(async function({ args, msg }) {
+            if (!args[0]) {
+                return {
+                    content: "no member given!",
+                    status: StatusCode.ERR
                 }
-                let member = msg.guild
-                    ? await fetchUser(msg.guild, args[0])
-                    : await fetchUserFromClient(common.client, args[0])
-                return Pipe.start(member)
-                    .default({ content: "member not found", status: StatusCode.ERR })
-                    .next((member: GuildMember) => {
-                        if (!member.user) {
-                            return
-                        }
-                        return [member, member.user]
-                    })
-                    .next((member: GuildMember, user: User) => {
-                        if (args[1]) {
-                            let status = (() => {
-                                return member.presence?.clientStatus?.desktop ?? member.presence?.clientStatus?.web ?? member.presence?.clientStatus?.mobile
-                            })() ?? "invisible"
-                            let platform = member.presence?.clientStatus && Object.keys(member.presence.clientStatus)[0] || "offline"
-                            let platform_status = `${platform}/${status}`
-                            const fmt = args.slice(1).join(" ")
-                            return {
-                                content: format(fmt,
-                                    {
-                                        "{id}": user.id || "#!N/A",
-                                        "{username}": user.username || "#!N/A",
-                                        "{nickname}": member.displayName || "#!N/A",
-                                        "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
-                                        "{color}": member.displayColor.toString() || "#!N/A",
-                                        "{created}": () => user.createdAt.toString() || "#!N/A",
-                                        "{joined}": () => member.joinedAt?.toString() || "#!N/A",
-                                        "{boost}": member.premiumSince?.toString() || "#!N/A",
-                                        "{status}": platform_status,
-                                        i: user.id || "#!N/A",
-                                        u: user.username || "#!N/A",
-                                        n: member.displayName || "#!N/A",
-                                        d: member.displayName,
-                                        X: () => member.displayHexColor.toString() || "#!N/A",
-                                        x: () => member.displayColor.toString() || "#!N/A",
-                                        c: user.createdAt.toString() || "#!N/A",
-                                        j: member.joinedAt?.toString() || "#!N/A",
-                                        b: member.premiumSince?.toString() || "#!N/A",
-                                        a: user.avatarURL() || "#!N/A",
-                                        s: platform_status
-                                    }
-                                )
-                            }
-                        }
-                        let embed = new EmbedBuilder()
-                        embed.setColor(member.displayColor)
-                        embed.setThumbnail(user.avatarURL() || "")
-                        let fields = [{ name: "Id", value: user.id || "#!N/A", inline: true }, { name: "Username", value: user.username || "#!N/A", inline: true }, { name: "Nickname", value: member.displayName || "#!N/A", inline: true }, { name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true }, { name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true }, { name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true }, { name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true }, { name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true },]
-                        embed.addFields(fields)
+            }
+            let member = msg.guild
+                ? await fetchUser(msg.guild, args[0])
+                : await fetchUserFromClient(common.client, args[0])
+            return Pipe.start(member)
+                .default({ content: "member not found", status: StatusCode.ERR })
+                .next((member: GuildMember) => {
+                    if (!member.user) {
+                        return
+                    }
+                    return [member, member.user]
+                })
+                .next((member: GuildMember, user: User) => {
+                    if (args[1]) {
+                        let status = (() => {
+                            return member.presence?.clientStatus?.desktop ?? member.presence?.clientStatus?.web ?? member.presence?.clientStatus?.mobile
+                        })() ?? "invisible"
+                        let platform = member.presence?.clientStatus && Object.keys(member.presence.clientStatus)[0] || "offline"
+                        let platform_status = `${platform}/${status}`
+                        const fmt = args.slice(1).join(" ")
                         return {
-                            embeds: [embed]
+                            content: format(fmt,
+                                {
+                                    "{id}": user.id || "#!N/A",
+                                    "{username}": user.username || "#!N/A",
+                                    "{nickname}": member.displayName || "#!N/A",
+                                    "{0xcolor}": member.displayHexColor.toString() || "#!N/A",
+                                    "{color}": member.displayColor.toString() || "#!N/A",
+                                    "{created}": () => user.createdAt.toString() || "#!N/A",
+                                    "{joined}": () => member.joinedAt?.toString() || "#!N/A",
+                                    "{boost}": member.premiumSince?.toString() || "#!N/A",
+                                    "{status}": platform_status,
+                                    i: user.id || "#!N/A",
+                                    u: user.username || "#!N/A",
+                                    n: member.displayName || "#!N/A",
+                                    d: member.displayName,
+                                    X: () => member.displayHexColor.toString() || "#!N/A",
+                                    x: () => member.displayColor.toString() || "#!N/A",
+                                    c: user.createdAt.toString() || "#!N/A",
+                                    j: member.joinedAt?.toString() || "#!N/A",
+                                    b: member.premiumSince?.toString() || "#!N/A",
+                                    a: user.avatarURL() || "#!N/A",
+                                    s: platform_status
+                                }
+                            )
                         }
-                    }).done()
-            },
-            help: {
-                info: `Gets info on a member<br>[user-info &lt;user&gt; [format]<br>
-valid formats:<br>
+                    }
+                    let embed = new EmbedBuilder()
+                    embed.setColor(member.displayColor)
+                    embed.setThumbnail(user.avatarURL() || "")
+                    let fields = [{ name: "Id", value: user.id || "#!N/A", inline: true }, { name: "Username", value: user.username || "#!N/A", inline: true }, { name: "Nickname", value: member.displayName || "#!N/A", inline: true }, { name: "0xColor", value: member.displayHexColor.toString() || "#!N/A", inline: true }, { name: "Color", value: member.displayColor.toString() || "#!N/A", inline: true }, { name: "Created at", value: user.createdAt.toString() || "#!N/A", inline: true }, { name: "Joined at", value: member.joinedAt?.toString() || "#!N/A", inline: true }, { name: "Boosting since", value: member.premiumSince?.toString() || "#!N/A", inline: true },]
+                    embed.addFields(fields)
+                    return {
+                        embeds: [embed]
+                    }
+                }).done()
+        }, "Gets info on a member", {
+            docs: `valid formats:
 <ul>
     <li>
     <code>{id}</code> or <code>{i}</code> or <code>%i</code>: user id
@@ -4090,11 +4007,8 @@ valid formats:<br>
     </li>
     <li>
     <code>{status}</code> or <code>{s}</code> or <code>%s</code>: gets the platform/status of the user
-</ul>`,
-            },
-            category: CommandCategory.UTIL
-
-        },
+</ul>`
+        })
     ]
 
     yield [
@@ -4186,20 +4100,13 @@ valid formats:<br>
     ]
 
     yield [
-        "invite",
-        {
-            run: async (msg, _args, sendCallback) => {
-                let invites = await msg.guild?.invites.fetch()
-                if (invites?.at(0)?.url) {
-                    return { content: invites.at(0)?.url, status: StatusCode.RETURN }
-                }
-                return { content: "No invite found", status: StatusCode.ERR }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Gets an invite link for the server"
+        "invite", ccmdV2(async function({ msg }) {
+            let invites = await msg.guild?.invites.fetch()
+            if (invites?.at(0)?.url) {
+                return { content: invites.at(0)?.url, status: StatusCode.RETURN }
             }
-        },
+            return { content: "No invite found", status: StatusCode.ERR }
+        }, "Gets an invite link for the server")
     ]
 
     yield [

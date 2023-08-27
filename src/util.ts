@@ -903,13 +903,13 @@ function getContentFromResult(result: CommandReturn, end = "") {
 }
 
 
-function generateDocSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+function generateDocSummary(name: string, command: CommandV2 | AliasV2 | MatchCommand) {
     let summary = generateCommandSummary(name, command)
     summary += htmlRenderer.renderHTML(`<br><br><b>docs</b><br>${command['help']?.['docs'] || ""}`)
     return summary
 }
 
-function generateCommandSummary(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+function generateCommandSummary(name: string, command: CommandV2 | AliasV2 | MatchCommand) {
     let summary = `***${name}***`
 
     if (command.help?.accepts_stdin) {
@@ -935,7 +935,7 @@ function generateCommandSummary(name: string, command: Command | CommandV2 | Ali
     return summary
 }
 
-function generateTextFromCommandHelp(name: string, command: Command | CommandV2 | AliasV2 | MatchCommand) {
+function generateTextFromCommandHelp(name: string, command: CommandV2 | AliasV2 | MatchCommand) {
     let helpData = command.help
 
     let nameInfo = htmlRenderer.renderHTML("<h1>Usage</h1>") + "\n" + generateCommandSummary(name, command)
@@ -1005,7 +1005,7 @@ function generateTextFromCommandHelp(name: string, command: Command | CommandV2 
     return (nameInfo + "\n\n" + textInfo + aliasInfo + argInfo + optInfo + tagInfo).replace("\n\n\n", "\n")
 }
 
-function generateHTMLFromCommandHelp(name: string, command: Command | CommandV2) {
+function generateHTMLFromCommandHelp(name: string, command: CommandV2) {
     let html = `<div class="command-section" tabindex=0><h1 class="command-title" id="${name}">${name}</h1>`
     let help = command["help"]
     if (help) {

@@ -91,7 +91,7 @@ class Token {
 
 class Modifier {
     repr = "X"
-    modifyCmd({cmdObject, int, cmdName}: {cmdObject: Command | CommandV2 | AliasV2 | undefined, int: Interpreter, cmdName: string}): any {return cmdObject}
+    modifyCmd({cmdObject, int, cmdName}: {cmdObject: CommandV2 | AliasV2 | undefined, int: Interpreter, cmdName: string}): any {return cmdObject}
     modify(int: Interpreter): any { }
     stringify(): string { return `${this.repr}:` }
 }
@@ -129,7 +129,7 @@ class DeleteModifier extends Modifier {
 }
 
 class CommandModifier extends Modifier {
-    modifyCmd({ cmdObject, int, cmdName }: { cmdObject: Command | CommandV2 | AliasV2 | undefined; int: Interpreter; cmdName: string }) {
+    modifyCmd({ cmdObject, int, cmdName }: { cmdObject: CommandV2 | AliasV2 | undefined; int: Interpreter; cmdName: string }) {
         int.modifiers = int.modifiers.filter(v => v !== this)
         int.aliasV2 = false
         return getCommands().get(cmdName)

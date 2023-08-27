@@ -16,7 +16,7 @@ import { hasItem, useItem, resetPlayerItems, resetItems, getInventory } from '..
 import amountParser from '../amount-parser'
 import { saveConfig, ADMINS, editConfig } from '../globals'
 
-export default function*(): Generator<[string, Command | CommandV2]> {
+export default function*(): Generator<[string, CommandV2]> {
 
     yield [
         'CONFIG', ccmdV2(async function({ args }) {
@@ -146,22 +146,16 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     yield ["RESET_LOTTERY", ccmdV2(async () => { economy.newLottery(); return crv("Lottery reset") }, "Resets the lottery")]
 
     yield [
-        "RESET_PLAYER",
-        {
-            run: async (msg, args, sendCallback) => {
-                if (!msg.guild) return crv("Not in aguild", { status: StatusCode.ERR })
-                let player = await fetchUser(msg.guild, args[0])
-                if (!player)
-                    return { content: "No player found", status: StatusCode.ERR }
-                economy.resetPlayer(player.user.id)
-                return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
-            },
-            category: CommandCategory.ADMIN,
+        "RESET_PLAYER", ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) return crv("Not in aguild", { status: StatusCode.ERR })
+            let player = await fetchUser(msg.guild, args[0])
+            if (!player)
+                return { content: "No player found", status: StatusCode.ERR }
+            economy.resetPlayer(player.user.id)
+            return { content: `Reset: <@${player.user.id}>`, status: StatusCode.RETURN }
+        }, "Resets a player's money", {
             permCheck: m => ADMINS.includes(m.author.id),
-            help: {
-                info: "Resets a player's money"
-            }
-        },
+        })
     ]
 
     yield [
@@ -243,26 +237,21 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "SETMONEY",
-        {
-            run: async (msg, args, sendCallback) => {
-                if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
-                let user = await fetchUser(msg.guild, args[0])
-                if (!user) {
-                    return { content: "user not found", status: StatusCode.ERR }
-                }
-                let amount = economy.calculateAmountFromString(msg.author.id, args[1])
-                if (amount) {
-                    economy.setMoney(user.id, amount)
-                    return { content: `${user.id} now has ${amount}`, status: StatusCode.RETURN }
-                }
-                return { content: "nothing happened", status: StatusCode.ERR }
-            }, category: CommandCategory.ADMIN,
-            permCheck: (m) => ADMINS.includes(m.author.id),
-            help: {
-                info: "Sets a player's money to an amount"
+        "SETMONEY", ccmdV2(async function({ msg, args }) {
+            if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
+            let user = await fetchUser(msg.guild, args[0])
+            if (!user) {
+                return { content: "user not found", status: StatusCode.ERR }
             }
-        },
+            let amount = economy.calculateAmountFromString(msg.author.id, args[1])
+            if (amount) {
+                economy.setMoney(user.id, amount)
+                return { content: `${user.id} now has ${amount}`, status: StatusCode.RETURN }
+            }
+            return { content: "nothing happened", status: StatusCode.ERR }
+        }, "Sets a player's money to an amount", {
+            permCheck: (m) => ADMINS.includes(m.author.id),
+        })
     ]
 
     yield [

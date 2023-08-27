@@ -112,20 +112,6 @@ declare global {
 
     type FileArray = Array<CommandFile>
 
-    type CommandRun = (msg: Message, args: ArgumentList, sendCallback: (data: MessageOptions | MessagePayload | string) => Promise<Message>, opts: Opts, deopedArgs: ArgumentList, recursion_count: number, command_bans?: { categories?: CommandCategory[], commands?: string[] }) => Promise<CommandReturn>
-
-    interface Command {
-        run: CommandRun;
-        permCheck?: (msg: Message) => boolean;
-        help?: CommandHelp
-        category: CommandCategory,
-        make_bot_type?: boolean,
-        use_result_cache?: boolean
-        cmd_std_version?: 1,
-        prompt_before_run?: boolean,
-        can_run_on_web?: boolean
-    }
-
     interface CommandV2RunArg {
         msg: Message<boolean>,
         rawArgs: ArgumentList,
