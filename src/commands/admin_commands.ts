@@ -234,18 +234,12 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "RESET_ITEMS",
-        {
-            run: async (_msg, _args, sendCallback) => {
+        "RESET_ITEMS", ccmdV2(async function(){
                 resetItems()
                 return { content: "Items reset", status: StatusCode.RETURN }
-            },
-            permCheck: (m) => ADMINS.includes(m.author.id),
-            category: CommandCategory.ADMIN,
-            help: {
-                info: "Resets all inventories"
-            }
-        },
+        },  "Resets all inventories", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
     ]
 
     yield [

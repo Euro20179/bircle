@@ -88,7 +88,7 @@ let vars: { [key: string]: { [key: string]: Variable<any> | VarPrefix } } = {
     }
 }
 
-function saveVars() {
+function saveVars(): true {
     for (let vname in vars['__global__']) {
         if (Object.keys(defaultVars).includes(vname)) {
             delete vars['__global__'][vname]
@@ -96,6 +96,7 @@ function saveVars() {
     }
     fs.writeFileSync("./data/vars", JSON.stringify(vars))
     vars['__global__'] = { ...vars['__global__'], ...defaultVars }
+    return true
 }
 
 function readVars() {

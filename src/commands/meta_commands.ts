@@ -657,16 +657,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "savev",
-        {
-            run: async (_msg, _args, sendCallback) => {
-                vars.saveVars()
-                return { content: "Variables saved", status: StatusCode.RETURN }
-            }, category: CAT,
-            help: {
-                info: "Save all variables"
-            }
-        },
+        "savev", ccmdV2(async() => vars.saveVars() && crv("Variables saved"), "Save all variables")
     ]
 
     yield [
@@ -1241,9 +1232,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "if",
-        {
-            run: async (msg, args, sendCallback, opts, deopedArgs, recursion_count, command_bans) => {
+        "if", ccmdV2(async function({msg, rawArgs: args, recursionCount: recursion_count, commandBans: command_bans}){
                 let [condition, cmdToCheck] = args.join(" ").split(";")
                 if (!cmdToCheck) {
                     return { content: "You are missing a ; after the condition", status: StatusCode.ERR }
@@ -1373,12 +1362,10 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
                     return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
                 }
                 return { content: "?", status: StatusCode.ERR }
-            },
-            category: CAT,
-            help: {
-                info: "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent",
-            }
-        },
+
+        }, "Run commands conditionally", {
+            docs:  "Evaluate bircle commands conditionally!<br>There are 2 versions of the if statement<ul><li><b>1</b>: standard javascript expression</li><li><b>2</b>:([bircle-command) &lt;operator&gt; (value)</ul><br><b>For the 2nd version</b>, the first set of parentheses indicate a command to run, the operator may be one of the standard comparison operators<br>In addition, the <code>:</code> operator may be used to check if the result of the commands includes the regex expression provided in  the second set of parentheses.<br>Lastly, the <code>includes</code> operator may be used to check if the expected value is in the result of the command.<br>After the condition must be a ;<br><br>after the ; must be  a command  to run followed by <code>;end</code><br>lastly <code>[else;</code> &lt;command&gt; may optionally be added on a new line<br>If  the condition is false and an <code[else;</code> is not provided a ? will be sent"
+        })
     ]
 
     yield [

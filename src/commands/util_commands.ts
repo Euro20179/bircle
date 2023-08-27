@@ -2134,71 +2134,59 @@ middle
     ]
 
     yield [
-        "time",
-        {
-            run: async (_msg, args, sendCallback) => {
-                let fmt = args.join(" ")
+        "time", ccmdV2(async function({ args }) {
+            let fmt = args.join(" ")
 
-                const date = new Date()
-                let hours = date.getHours()
-                let AMPM = hours < 12 ? "AM" : "PM"
-                return {
-                    content: fmt
-                        .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
-                        .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
-                        .replaceAll("date", `${date.getDate()}`)
-                        .replaceAll("hour", `${hours}`)
-                        .replaceAll("min", `${date.getMinutes()}`)
-                        .replaceAll("sec", `${date.getSeconds()}`)
-                        .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
-                        .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
-                        .replaceAll("milli", `${date.getMilliseconds()}`)
-                        .replaceAll("millis", `${date.getMilliseconds()}`)
-                        .replaceAll("tz", `${date.getTimezoneOffset()}`)
-                        .replaceAll("timezone", `${date.getTimezoneOffset()}`)
-                        .replaceAll("ampm", AMPM)
-                        .replaceAll("month", `${date.getMonth() + 1}`)
-                        .replaceAll("year", `${date.getFullYear()}`)
-                        .replaceAll("day", `${date.getDay()}`)
-                        .replaceAll("unix", String(Date.now() / 1000)),
-                    status: StatusCode.RETURN
+            const date = new Date()
+            let hours = date.getHours()
+            let AMPM = hours < 12 ? "AM" : "PM"
+            return {
+                content: fmt
+                    .replaceAll("fdate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                    .replaceAll("fulldate", `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`)
+                    .replaceAll("date", `${date.getDate()}`)
+                    .replaceAll("hour", `${hours}`)
+                    .replaceAll("min", `${date.getMinutes()}`)
+                    .replaceAll("sec", `${date.getSeconds()}`)
+                    .replaceAll("time", `${hours}:${date.getMinutes()}:${date.getSeconds()}`)
+                    .replaceAll("time-s", `${hours}:${date.getMinutes()}`)
+                    .replaceAll("milli", `${date.getMilliseconds()}`)
+                    .replaceAll("millis", `${date.getMilliseconds()}`)
+                    .replaceAll("tz", `${date.getTimezoneOffset()}`)
+                    .replaceAll("timezone", `${date.getTimezoneOffset()}`)
+                    .replaceAll("ampm", AMPM)
+                    .replaceAll("month", `${date.getMonth() + 1}`)
+                    .replaceAll("year", `${date.getFullYear()}`)
+                    .replaceAll("day", `${date.getDay()}`)
+                    .replaceAll("unix", String(Date.now() / 1000)),
+                status: StatusCode.RETURN
+            }
+        }, "Gets the time", {
+            arguments: {
+                format: {
+                    description: "the format to use for the time<br><lh>formats:</lh><br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li><li>unix: unix time</li></ul>"
                 }
-            },
-            help: {
-                info: "Gets the time",
-                arguments: {
-                    format: {
-                        description: "the format to use for the time<br><lh>formats:</lh><br><ul><li>date: the date</li><li>hour: the hour of the day</li><li>min: minute of the day</li><li>time: hours:minutes:seconds</li><li>time-s hours:minutes</li><li>millis: milliseconds</li><li>tz: timezone</li><li>ampm: am or pm</li><li>fdate: full date (monthy/day/year)</li><li>month: month of the year</li><li>year: year of the year</li><li>day: day of the year</li><li>unix: unix time</li></ul>"
-                    }
-                }
-            },
-            category: CommandCategory.UTIL
-        },
+            }
+        })
     ]
 
     yield [
-        "rand-role",
-        {
-            run: async (msg, args, sendCallback) => {
-                let roles = await msg.guild?.roles.fetch()
-                let role = roles?.random()
-                if (!role) {
-                    return { content: "Couldn't get random role", status: StatusCode.ERR }
-                }
-                let fmt = args.join(" ") || "%n"
-                return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: String(role.color), C: String(role.createdAt), hc: role.hexColor, u: String(role.unicodeEmoji), p: String(role.position), I: String(role.icon) }), status: StatusCode.ERR }
-            },
-            category: CommandCategory.UTIL,
-            help: {
-                info: "Get information on a random role",
-                arguments: {
-                    "...format": {
-                        description: "The format to show<br><b>formats</b><ul><li>%n: the name</li><li>%i: the id</li><li>%c: the color</li><li>%C: created at</li><li>{hc}: the hex color</li><li>%u: the emoji</li><li>%p: the position number</li><li>%I: the icon</li></ul>",
-                        default: "%n"
-                    }
+        "rand-role", ccmdV2(async function({ msg, args }) {
+            let roles = await msg.guild?.roles.fetch()
+            let role = roles?.random()
+            if (!role) {
+                return { content: "Couldn't get random role", status: StatusCode.ERR }
+            }
+            let fmt = args.join(" ") || "%n"
+            return { allowedMentions: { parse: [] }, content: format(fmt, { n: role.name, i: role.id, c: String(role.color), C: String(role.createdAt), hc: role.hexColor, u: String(role.unicodeEmoji), p: String(role.position), I: String(role.icon) }), status: StatusCode.ERR }
+        }, "Get information on a random role", {
+            arguments: {
+                "...format": {
+                    description: "The format to show<br><b>formats</b><ul><li>%n: the name</li><li>%i: the id</li><li>%c: the color</li><li>%C: created at</li><li>{hc}: the hex color</li><li>%u: the emoji</li><li>%p: the position number</li><li>%I: the icon</li></ul>",
+                    default: "%n"
                 }
             }
-        },
+        })
     ]
 
     yield [
@@ -2579,18 +2567,18 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             let text = stdin ? getContentFromResult(stdin) : args.join(" ")
             if (!text) {
                 let file = await getImgFromMsgAndOptsAndReply(opts, msg, stdin)
-                if(!file){
-                    return crv("No text, or file given", {status: StatusCode.ERR})
+                if (!file) {
+                    return crv("No text, or file given", { status: StatusCode.ERR })
                 }
                 let req = await fetch.default(file)
                 text = await req.text()
             }
             let json
-            try{
+            try {
                 json = JSON.parse(text)
             }
-            catch(e){
-                return crv("Not a valid json", {status: StatusCode.ERR})
+            catch (e) {
+                return crv("Not a valid json", { status: StatusCode.ERR })
             }
             return crv(prettyJSON(json))
         }, "Format the json")
