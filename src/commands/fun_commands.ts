@@ -409,6 +409,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
                     ]
                 })
             },
+            "grandkids visit": async () => {
+                economy.addMoney(msg.author.id, -5)
+                return crv("Your grandchild visits and you give them $5")
+            },
             "getting a retirement massage": async () => crv(choice(["Now that's relaxing", "That really chilled out my bone structure",]))
         }
 
