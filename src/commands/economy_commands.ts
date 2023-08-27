@@ -475,53 +475,53 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "shop", ccmdV2(async function({msg, args, rawOpts: opts}){
-                let items = fs.readFileSync("./data/shop.json", "utf-8")
-                let user = msg.author
-                let userCheckingShop = user
-                let itemJ = JSON.parse(items)
-                let pages = []
-                let i = 0
-                let e = new EmbedBuilder()
-                let au = msg.author.avatarURL()
-                if (au) {
-                    e.setThumbnail(au)
+        "shop", ccmdV2(async function({ msg, args, rawOpts: opts }) {
+            let items = fs.readFileSync("./data/shop.json", "utf-8")
+            let user = msg.author
+            let userCheckingShop = user
+            let itemJ = JSON.parse(items)
+            let pages = []
+            let i = 0
+            let e = new EmbedBuilder()
+            let au = msg.author.avatarURL()
+            if (au) {
+                e.setThumbnail(au)
+            }
+            let userShopAu = userCheckingShop.avatarURL()
+            if (userShopAu)
+                e.setFooter({ text: `Viewing shop as: ${userCheckingShop.username}`, iconURL: userShopAu })
+            else {
+                e.setFooter({ text: `Viewing shop as: ${userCheckingShop.username}` })
+            }
+            let round = !opts['no-round']
+            for (let item in itemJ) {
+                i++;
+                let totalCost = 0
+                let { total } = economy.economyLooseGrandTotal(false)
+                for (let cost of itemJ[item].cost) {
+                    totalCost += amountParser.calculateAmountRelativeTo(total, cost)
                 }
-                let userShopAu = userCheckingShop.avatarURL()
-                if (userShopAu)
-                    e.setFooter({ text: `Viewing shop as: ${userCheckingShop.username}`, iconURL: userShopAu })
-                else {
-                    e.setFooter({ text: `Viewing shop as: ${userCheckingShop.username}` })
+                if (round) {
+                    totalCost = Math.floor(totalCost * 100) / 100
                 }
-                let round = !opts['no-round']
-                for (let item in itemJ) {
-                    i++;
-                    let totalCost = 0
-                    let { total } = economy.economyLooseGrandTotal(false)
-                    for (let cost of itemJ[item].cost) {
-                        totalCost += amountParser.calculateAmountRelativeTo(total, cost)
-                    }
-                    if (round) {
-                        totalCost = Math.floor(totalCost * 100) / 100
-                    }
-                    let text = `**${totalCost == Infinity ? "puffle only" : `${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalCost}`}**\n${itemJ[item].description}`
-                    if (itemJ[item]['puffle-banned']) {
-                        text += '\n**buy only**'
-                    }
-                    e.addFields(efd([item.toUpperCase(), text, true]))
-                    if (i % 25 == 0) {
-                        pages.push(e)
-                        e = new EmbedBuilder()
-                        if (au)
-                            e.setThumbnail(au)
-                        i = 0
-                    }
+                let text = `**${totalCost == Infinity ? "puffle only" : `${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${totalCost}`}**\n${itemJ[item].description}`
+                if (itemJ[item]['puffle-banned']) {
+                    text += '\n**buy only**'
                 }
-                if ((e.data.fields?.length || 0) > 0) {
+                e.addFields(efd([item.toUpperCase(), text, true]))
+                if (i % 25 == 0) {
                     pages.push(e)
+                    e = new EmbedBuilder()
+                    if (au)
+                        e.setThumbnail(au)
+                    i = 0
                 }
-                return { embeds: pages, status: StatusCode.RETURN }
-        },  "List items in the shop")
+            }
+            if ((e.data.fields?.length || 0) > 0) {
+                pages.push(e)
+            }
+            return { embeds: pages, status: StatusCode.RETURN }
+        }, "List items in the shop")
     ]
 
     yield [
@@ -648,78 +648,74 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "sell", {
-            run: async (msg, args, sendCallback) => {
-                if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
-                    return { content: "You own no stocks", status: StatusCode.ERR }
-                }
-                let stock = args[0]
-                if (!stock)
-                    return { content: "no stock given", status: StatusCode.ERR }
-                if (stock == PREFIX) {
-                    return { "content": "Looks like ur pulling a tool", status: StatusCode.ERR }
-                }
-                stock = stock.toUpperCase()
-                let amount = args[1]
-                let data
-                try {
-                    data = await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
-                }
-                catch (err) {
-                    return { content: "Could not fetch data", status: StatusCode.ERR }
-                }
-                let text = await data.text()
-                if (!text) {
-                    return { content: "No data found", status: StatusCode.ERR }
-                }
-                let stockData = text.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
-                let jsonStockInfo: { [key: string]: string } = {}
-                //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
-                for (let stockInfo of stockData) {
-                    if (!stockInfo[1]) continue;
-                    let field = stockInfo[1].match(/data-field="([^"]+)"/)
-                    let value = stockInfo[1].match(/value="([^"]+)"/)
-                    if (!value || !field) continue
-                    jsonStockInfo[field[1]] = value[1]
-                }
-                if (Object.keys(jsonStockInfo).length < 1) {
-                    return { content: "This does not appear to be a stock", status: StatusCode.ERR }
-                }
-                let nPrice = Number(jsonStockInfo["regularMarketPrice"])
-                let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
-                let stockName = stock
-                if (realStockInfo)
-                    stockName = realStockInfo.name
-                if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
-                    return { content: "You do not own this stock", status: StatusCode.ERR }
-                }
-                else {
-                    let stockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
-                    if (!stockInfo) return crv("Could not get stock info", { status: StatusCode.ERR })
-                    let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
-                    if (!sellAmount || sellAmount <= 0) {
-                        return { content: "You must sell a number of shares of your stock", status: StatusCode.ERR }
-                    }
-                    if (sellAmount > stockInfo.shares) {
-                        return { content: "YOu do not own that many shares", status: StatusCode.ERR }
-                    }
-                    if (sellAmount <= 0) {
-                        return { content: "Must sell more than 0", status: StatusCode.ERR }
-                    }
-                    let profit = (nPrice - stockInfo.buyPrice) * sellAmount
-                    economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
-                    economy.addMoney(msg.author.id, profit)
-                    return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
-                }
-            }, category: CommandCategory.ECONOMY,
-            help: {
-                info: "Sell a stock",
-                arguments: {
-                    stock: createHelpArgument("The stock to sell", true),
-                    amount: createHelpArgument("The amount of shares to sell", true, "stock")
-                }
+        "sell", ccmdV2(async function({ msg, args }) {
+            if (!economy.getEconomy()[msg.author.id] || !economy.getEconomy()[msg.author.id].stocks) {
+                return { content: "You own no stocks", status: StatusCode.ERR }
             }
-        },
+            let stock = args[0]
+            if (!stock)
+                return { content: "no stock given", status: StatusCode.ERR }
+            if (stock == PREFIX) {
+                return { "content": "Looks like ur pulling a tool", status: StatusCode.ERR }
+            }
+            stock = stock.toUpperCase()
+            let amount = args[1]
+            let data
+            try {
+                data = await fetch.default(`https://finance.yahoo.com/quote/${encodeURI(args[0])}`)
+            }
+            catch (err) {
+                return { content: "Could not fetch data", status: StatusCode.ERR }
+            }
+            let text = await data.text()
+            if (!text) {
+                return { content: "No data found", status: StatusCode.ERR }
+            }
+            let stockData = text.matchAll(new RegExp(`data-symbol="${args[0].toUpperCase().trim().replace("^", ".")}"([^>]+)>`, "g"))
+            let jsonStockInfo: { [key: string]: string } = {}
+            //sample: {"regularMarketPrice":"52.6","regularMarketChange":"-1.1000023","regularMarketChangePercent":"-0.020484215","regularMarketVolume":"459,223"}
+            for (let stockInfo of stockData) {
+                if (!stockInfo[1]) continue;
+                let field = stockInfo[1].match(/data-field="([^"]+)"/)
+                let value = stockInfo[1].match(/value="([^"]+)"/)
+                if (!value || !field) continue
+                jsonStockInfo[field[1]] = value[1]
+            }
+            if (Object.keys(jsonStockInfo).length < 1) {
+                return { content: "This does not appear to be a stock", status: StatusCode.ERR }
+            }
+            let nPrice = Number(jsonStockInfo["regularMarketPrice"])
+            let realStockInfo = economy.userHasStockSymbol(msg.author.id, stock)
+            let stockName = stock
+            if (realStockInfo)
+                stockName = realStockInfo.name
+            if (!economy.getEconomy()[msg.author.id].stocks?.[stockName]) {
+                return { content: "You do not own this stock", status: StatusCode.ERR }
+            }
+            else {
+                let stockInfo = economy.getEconomy()[msg.author.id].stocks?.[stockName]
+                if (!stockInfo) return crv("Could not get stock info", { status: StatusCode.ERR })
+                let sellAmount = economy.calculateStockAmountFromString(msg.author.id, stockInfo.shares, amount)
+                if (!sellAmount || sellAmount <= 0) {
+                    return { content: "You must sell a number of shares of your stock", status: StatusCode.ERR }
+                }
+                if (sellAmount > stockInfo.shares) {
+                    return { content: "YOu do not own that many shares", status: StatusCode.ERR }
+                }
+                if (sellAmount <= 0) {
+                    return { content: "Must sell more than 0", status: StatusCode.ERR }
+                }
+                let profit = (nPrice - stockInfo.buyPrice) * sellAmount
+                economy.sellStock(msg.author.id, stockName, sellAmount, nPrice)
+                economy.addMoney(msg.author.id, profit)
+                return { content: `You sold: ${stockName} and made ${user_options.getOpt(msg.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${profit} in total`, status: StatusCode.RETURN }
+            }
+        }, "Sell a stock", {
+            arguments: {
+                stock: createHelpArgument("The stock to sell", true),
+                amount: createHelpArgument("The amount of shares to sell", true, "stock")
+            }
+        })
     ]
 
     yield [

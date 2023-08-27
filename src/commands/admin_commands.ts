@@ -132,7 +132,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
             economy.resetEconomy()
 
             return crv("Economy reset", {
-                files: [ crvFile("./database/economy-old.json", "economy-old.json", "The old economy",) ]
+                files: [crvFile("./database/economy-old.json", "economy-old.json", "The old economy",)]
             })
         }, "Resets the economy", {
             permCheck: (m) => {
@@ -143,7 +143,7 @@ export default function*(): Generator<[string, Command | CommandV2]> {
         })
     ]
 
-    yield ["RESET_LOTTERY", ccmdV2(async () => { economy.newLottery(); return crv("Lottery reset") }, "Resets the lottery") ]
+    yield ["RESET_LOTTERY", ccmdV2(async () => { economy.newLottery(); return crv("Lottery reset") }, "Resets the lottery")]
 
     yield [
         "RESET_PLAYER",
@@ -234,10 +234,10 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "RESET_ITEMS", ccmdV2(async function(){
-                resetItems()
-                return { content: "Items reset", status: StatusCode.RETURN }
-        },  "Resets all inventories", {
+        "RESET_ITEMS", ccmdV2(async function() {
+            resetItems()
+            return { content: "Items reset", status: StatusCode.RETURN }
+        }, "Resets all inventories", {
             permCheck: m => ADMINS.includes(m.author.id)
         })
     ]
@@ -266,58 +266,50 @@ export default function*(): Generator<[string, Command | CommandV2]> {
     ]
 
     yield [
-        "BLACKLIST",
-        {
-            run: async (msg: Message, args: ArgumentList, sendCallback) => {
-                let user = args[0]
-                if (!user) {
-                    return {
-                        content: "no user given",
-                        status: StatusCode.ERR
-                    }
+        "BLACKLIST", ccmdV2(async function({ msg, rawArgs: args }) {
+            let user = args[0]
+            if (!user) {
+                return {
+                    content: "no user given",
+                    status: StatusCode.ERR
                 }
-                let addOrRemove = args[1]
-                if (!["a", "r"].includes(addOrRemove)) {
-                    return {
-                        content: "did not specify, (a)dd or (r)emove",
-                        status: StatusCode.ERR
-                    }
+            }
+            let addOrRemove = args[1]
+            if (!["a", "r"].includes(addOrRemove)) {
+                return {
+                    content: "did not specify, (a)dd or (r)emove",
+                    status: StatusCode.ERR
                 }
-                let cmds = args.slice(2)
-                if (!cmds.length) {
-                    return {
-                        content: "no cmd given",
-                        status: StatusCode.ERR
-                    }
+            }
+            let cmds = args.slice(2)
+            if (!cmds.length) {
+                return {
+                    content: "no cmd given",
+                    status: StatusCode.ERR
                 }
-                let member = await fetchUserFromClientOrGuild(user, msg.guild)
-                if (!member) {
-                    return crv("Member not found", { status: StatusCode.ERR })
-                }
-                if (addOrRemove == "a") {
-                    common.addToPermList(common.BLACKLIST, "blacklists", member, cmds)
+            }
+            let member = await fetchUserFromClientOrGuild(user, msg.guild)
+            if (!member) {
+                return crv("Member not found", { status: StatusCode.ERR })
+            }
+            if (addOrRemove == "a") {
+                common.addToPermList(common.BLACKLIST, "blacklists", member, cmds)
 
-                    return {
-                        content: `${user} has been blacklisted from ${cmds.join(" ")}`,
-                        status: StatusCode.RETURN
-                    }
-                } else {
-                    common.removeFromPermList(common.BLACKLIST, "blacklists", member, cmds)
-                    return {
-                        content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`,
-                        status: StatusCode.RETURN
-                    }
+                return {
+                    content: `${user} has been blacklisted from ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
                 }
-            },
-            permCheck: msg => {
-                return ADMINS.includes(msg.author.id)
-            },
-            help: {
-                info: "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd"
-            },
-            category: CommandCategory.ADMIN
+            } else {
+                common.removeFromPermList(common.BLACKLIST, "blacklists", member, cmds)
+                return {
+                    content: `${user} has been removed from the blacklist of ${cmds.join(" ")}`,
+                    status: StatusCode.RETURN
+                }
+            }
 
-        },
+        }, "Blacklist, or unblacklist a user from a command<br>syntax: [BLACKLIST @user (a|r) cmd", {
+            permCheck: msg => ADMINS.includes(msg.author.id)
+        })
     ]
 
     yield [
