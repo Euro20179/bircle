@@ -4,6 +4,10 @@ lol
 
 ## Setup
 
+Run `setup.py`
+
+or
+
 Create a file calle `CONFIG.json`, the json must have the following items
 
 ```json
