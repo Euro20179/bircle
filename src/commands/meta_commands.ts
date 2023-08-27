@@ -1663,7 +1663,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
     ]
 
     yield [
-        "stop", ccmdV2(async function({ msg, args }) {
+        "stop", ccmdV2(async function() {
             if (!PIDS.values.length) {
                 return { content: "no spams to stop", status: StatusCode.ERR }
             }
@@ -1671,10 +1671,7 @@ export default function*(CAT: CommandCategory): Generator<[string, Command | Com
             for (let pid of PIDS.values) {
                 pid.kill()
             }
-            return {
-                content: "stopping all",
-                status: StatusCode.RETURN
-            }
+            return crv("stopping all")
         }, "Stop all spams, and running commands")
     ]
 
