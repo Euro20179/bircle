@@ -81,6 +81,8 @@ function createFakeMessage(author: User, channel: DMChannel | TextChannel, conte
         type: MessageType.Default,
         url: "http://localhost:8222/",
         webhookId: null,
+        bulkDeletable: false,
+        roleSubscriptionData: null,
         _cacheType: false,
         _patch: (_data: any) => { }
     }

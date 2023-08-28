@@ -1,5 +1,5 @@
 ///<reference path="src/types.d.ts" />
-import { User, ChannelType, Events, ChatInputCommandInteraction } from "discord.js"
+import { ChannelType, Events, ChatInputCommandInteraction } from "discord.js"
 
 import { REST } from '@discordjs/rest'
 

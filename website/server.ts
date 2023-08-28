@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-import { AwaitMessagesOptions, Channel, ChannelType, ClientUser, Collection, DMChannel, Guild, GuildChannel, Message, MessageFlagsBitField, MessageMentions, MessageType, ReactionManager, TextChannel, User } from 'discord.js'
+import { AwaitMessagesOptions, ChannelType, Collection, Message, User } from 'discord.js'
 import http from 'http'
 import common_to_commands, { CommandCategory, Interpreter } from '../src/common_to_commands'
 
@@ -131,7 +131,7 @@ function _handlePost(req: http.IncomingMessage, res: http.ServerResponse) {
     })
 }
 
-function _apiSubPath(req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
+function _apiSubPath(_req: http.IncomingMessage, res: http.ServerResponse, subPaths: string[], urlParams: URLSearchParams | null) {
     let [apiEndPoint] = subPaths
     subPaths = subPaths.splice(1)
     res.setHeader("Content-Type", "application/json")
