@@ -727,7 +727,7 @@ export class Interpreter {
 
     context: InterpreterContext
 
-    onWeb: boolean = false
+    altClient: boolean = false
 
     #originalTokens: Token[]
 
@@ -1076,8 +1076,8 @@ export class Interpreter {
                 break runnerIf
             }
 
-            if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.onWeb) {
-                rv = { content: `This command cannot be run on the website`, status: StatusCode.ERR }
+            if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.altClient) {
+                rv = { content: `This command cannot be run outside of discord`, status: StatusCode.ERR }
                 break runnerIf
             }
 
@@ -1173,12 +1173,6 @@ export class Interpreter {
             lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
         }
         return rv
-        // if (this.returnJson) {
-        //     return rv
-        // }
-        //TODO: make it so that Interpreter.run always return's json
-        //handles the rv protocol
-        await handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
 
     async interprateAsToken(token: Token, t: T) {

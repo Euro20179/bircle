@@ -636,7 +636,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             let baseCommands = { ...Object.fromEntries(getCommands().entries()) }
 
-            if (interpreter.onWeb) {
+            if (interpreter.altClient) {
                 let commandsToUse = args.length ? {} : baseCommands
                 for (let arg of args) {
                     commandsToUse[arg] = baseCommands[arg]
@@ -1945,7 +1945,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }, i - 1)
             }
 
-            if (interpreter.onWeb) {
+            if (interpreter.altClient) {
                 return { embeds: pagedEmbed.embeds, status: StatusCode.RETURN }
             }
 

@@ -1553,7 +1553,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 homeScore = `***${homeScore}***`
                 embed.setColor("#00ff00")
             }
-            embed.addFields(efd(["Time", inning, interpreter.onWeb], [`${homeTeam}`, String(homeScore), interpreter.onWeb], [`${awayTeam}`, String(awayScore), interpreter.onWeb]))
+            embed.addFields(efd(["Time", inning, interpreter.altClient], [`${homeTeam}`, String(homeScore), interpreter.altClient], [`${awayTeam}`, String(awayScore), interpreter.altClient]))
             return {
                 embeds: [embed],
                 status: StatusCode.RETURN
@@ -1926,7 +1926,7 @@ Valid formats:
                     .setTitle(name)
             }
 
-            if (interpreter.onWeb) {
+            if (interpreter.altClient) {
                 let embeds = opts.getBool("C", false) ? celciusEmbeds.concat(forecastCEmbeds) : fEmbeds.concat(forecastEmbeds)
                 return { embeds: embeds, status: StatusCode.RETURN }
             }
@@ -2117,7 +2117,7 @@ Valid formats:
             if (json.list?.length === 0) {
                 return crv(`No results`, { status: StatusCode.ERR })
             }
-            if (interpreter.onWeb) {
+            if (interpreter.altClient) {
                 return { embeds: createEmbedsFromUdictResults(json, "fields"), status: StatusCode.RETURN }
             }
             let paged = new PagedEmbed(msg, createEmbedsFromUdictResults(json), "udict")

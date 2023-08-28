@@ -404,7 +404,7 @@ export default function*(): Generator<[string, CommandV2]> {
                 embedPages.push(e)
             }
 
-            if (interpreter.onWeb) {
+            if (interpreter.altClient) {
                 return { embeds: embedPages, status: StatusCode.RETURN }
             }
 

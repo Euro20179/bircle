@@ -99,7 +99,7 @@ class Modifier {
 class WebModifier extends Modifier {
     repr = "W"
     modify(int: Interpreter) {
-        int.onWeb = true
+        int.altClient = true
     }
 }
 
