@@ -448,7 +448,7 @@ export class AliasV2 {
         return tempExec
     }
 
-    async run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, context, returnJson }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], context: InterpreterContext, returnJson?: boolean }) {
+    async run({ msg, rawArgs: _rawArgs, sendCallback, opts, args, recursionCount, commandBans: _commandBans, stdin, modifiers, context }: { msg: Message<boolean>, rawArgs: ArgumentList, sendCallback?: (data: MessageCreateOptions | MessagePayload | string) => Promise<Message>, opts: Opts, args: ArgumentList, recursionCount: number, commandBans?: { categories?: CommandCategory[], commands?: string[] }, stdin?: CommandReturn, modifiers?: Modifier[], context: InterpreterContext }) {
 
         if (common.BLACKLIST[msg.author.id]?.includes(this.name)) {
             return { content: `You are blacklisted from ${this.name}`, status: StatusCode.ERR }
@@ -498,7 +498,7 @@ export class AliasV2 {
         //
         //The fact that we are returning json here means that if a command in an alias exceeds the 2k limit, it will not be put in a file
         //the reason for this is that handleSending is never called, and handleSending puts it in a file
-        let { rv } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, returnJson, pipeData: stdin, sendCallback: sendCallback, context })
+        let { rv } = await cmd({ msg, command_excluding_prefix: `${modifierText}${tempExec}`, recursion: recursionCount + 1, pipeData: stdin, sendCallback: sendCallback, context })
 
         //MIGHT BE IMPORTANT IF RANDOM ALIAS ISSUES HAPPEN
         //IT IS COMMENTED OUT BECAUSE ALIAISES CAUSE DOUBLE PIPING
@@ -578,7 +578,6 @@ type CmdArguments = {
     msg: Message,
     command_excluding_prefix: string,
     recursion?: number,
-    returnJson?: boolean,
     disable?: {
         categories?: CommandCategory[],
         commands?: string[]
@@ -608,7 +607,6 @@ export async function cmd({
     msg,
     command_excluding_prefix,
     recursion = 0,
-    returnJson = false,
     disable,
     sendCallback,
     pipeData,
@@ -648,7 +646,7 @@ export async function cmd({
 
         int = new Interpreter(msg, currentToks, {
             modifiers: parser.modifiers,
-            recursion, returnJson, disable, sendCallback, pipeData, context,
+            recursion, disable, sendCallback, pipeData, context,
         })
 
         PIDS.set(PID, int)
@@ -658,9 +656,7 @@ export async function cmd({
         //we handle piping for command return here, and not interpreter because when the interpreter handles this itself, it leads to double piping
         //  double piping is when the result pipes into itself
         //  this happens essentially because handlePipes gets called twice, once in handlePipes and when handlePipes requests json from interpreter
-        if (returnJson) {
-            rv = await int.handlePipes(rv)
-        }
+        rv = await int.handlePipes(rv)
 
         context = int.context
 
@@ -725,7 +721,6 @@ export class Interpreter {
     tokens: Token[]
     args: string[]
     recursion: number
-    returnJson: boolean
     disable: { categories?: CommandCategory[], commands?: string[] }
     sendCallback: ((options: MessageCreateOptions | MessagePayload | string) => Promise<Message>) | undefined
     aliasV2: false | AliasV2
@@ -770,7 +765,6 @@ export class Interpreter {
     constructor(msg: Message, tokens: Token[], options: {
         modifiers?: Modifier[],
         recursion?: number,
-        returnJson?: boolean,
         disable?: {
             categories?: CommandCategory[],
             commands?: string[]
@@ -784,7 +778,6 @@ export class Interpreter {
         this.#originalTokens = cloneDeep(tokens)
         this.args = []
         this.recursion = options.recursion ?? 0
-        this.returnJson = options.returnJson ?? false
         this.disable = options.disable ?? {}
         this.sendCallback = options.sendCallback
         this.aliasV2 = false
@@ -870,7 +863,6 @@ export class Interpreter {
             command_excluding_prefix: data,
             disable: this.disable,
             recursion: this.recursion + 1,
-            returnJson: true,
             pipeData: this.getPipeData()
         })).rv
 
@@ -1011,7 +1003,6 @@ export class Interpreter {
             msg: this.#msg,
             command_excluding_prefix: data,
             programArgs: args,
-            returnJson: this.returnJson
         })).rv
     }
 
@@ -1021,8 +1012,6 @@ export class Interpreter {
         args[0] = args[0].trim()
 
         if (this.context.options.dryRun) {
-            if (this.returnJson)
-                return { noSend: true, status: StatusCode.RETURN }
             if (this.getPipeTo().length)
                 return void await handleSending(this.#msg, crv("PLACEHOLDER_DATA"), this.sendCallback, this.recursion + 1)
         }
@@ -1156,7 +1145,7 @@ export class Interpreter {
                 rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
             }
             else if (cmdObject instanceof AliasV2) {
-                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context, returnJson: this.returnJson }) as CommandReturn
+                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context}) as CommandReturn
                 this.aliasV2 = cmdObject
             }
             else {
@@ -1183,9 +1172,11 @@ export class Interpreter {
             //this is for the !! command
             lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
         }
-        if (this.returnJson) {
-            return rv
-        }
+        return rv
+        // if (this.returnJson) {
+        //     return rv
+        // }
+        //TODO: make it so that Interpreter.run always return's json
         //handles the rv protocol
         await handleSending(this.#msg, rv, this.sendCallback, this.recursion + 1)
     }
@@ -1217,7 +1208,6 @@ export class Interpreter {
             let int = new Interpreter(this.#msg, tks, {
                 modifiers: this.modifiers,
                 recursion: this.recursion,
-                returnJson: true,
                 disable: this.disable,
                 pipeData: commandReturn,
                 context: this.context
@@ -1398,7 +1388,7 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
     else if (recursion < globals.RECURSION_LIMIT && rv.recurse && rv.content.slice(0, globals.PREFIX.length) === globals.PREFIX) {
         let do_change_cmd_user_expansion = rv.do_change_cmd_user_expansion
 
-        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(globals.PREFIX.length), recursion: recursion + 1, returnJson: true, disable: rv.recurse === true ? undefined : rv.recurse })
+        let ret = await cmd({ msg, command_excluding_prefix: rv.content.slice(globals.PREFIX.length), recursion: recursion + 1, disable: rv.recurse === true ? undefined : rv.recurse })
 
         rv = ret.rv
 

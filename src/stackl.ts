@@ -516,7 +516,7 @@ async function parseArg(arg: string, argNo: number, argCount: number, args: stri
             if (typeof text !== 'string') {
                 return { err: true, content: "Cannot run a non-string" }
             }
-            let data = (await cmd({ msg, command_excluding_prefix: text, recursion: 19, returnJson: true })).rv
+            let data = (await cmd({ msg, command_excluding_prefix: text, recursion: 19 })).rv
             if (data === undefined) {
                 stack.push(0)
             }

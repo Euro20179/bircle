@@ -340,7 +340,7 @@ export default function*(): Generator<[string, CommandV2]> {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, globals.PREFIX.length) === globals.PREFIX) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(globals.PREFIX.length), recursion: recursionCount, returnJson: true, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(globals.PREFIX.length), recursion: recursionCount, disable: { ...(commandBans || {}), ...generateDefaultRecurseBans() } })).rv as CommandReturn)
             if (signature.startsWith(globals.PREFIX)) {
                 signature = "\\" + signature
             }
@@ -797,7 +797,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             count_text = format(count_text, { count: `.${numeric}.` })
             if (common_to_commands.isCmd(count_text, globals.PREFIX)) {
-                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(globals.PREFIX.length), recursion: rec, returnJson: true, disable })).rv
+                let rv = (await cmd({ msg, command_excluding_prefix: count_text.slice(globals.PREFIX.length), recursion: rec, disable })).rv
                 if (!rv) {
                     return { delete: true, noSend: true, status: StatusCode.RETURN }
                 }

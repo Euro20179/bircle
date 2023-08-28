@@ -75,14 +75,16 @@ Object.hasEnumerableKeys = function(o){
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     if (!isMsgChannel(msg.channel)) return false
+        let rv;
     try {
-        await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
+        rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
     }
     catch (err) {
         console.error(err)
         await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\`` })
     }
     globals.writeCmdUse()
+    return rv
 }
 
 Message.prototype.execCommand = async function(local_prefix: string) {
@@ -245,11 +247,17 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         })
         await int.interprate()
 
-        await execCommand(m, await res.text(), int.args)
+        let rv = await execCommand(m, await res.text(), int.args)
+        if(rv){
+            await command_commons.handleSending(m, rv.rv)
+        }
     }
 
     if (command_commons.isCmd(content, local_prefix)) {
-        await m.execCommand(local_prefix)
+        let rv = await m.execCommand(local_prefix)
+        if(rv){
+            await command_commons.handleSending(m, rv.rv)
+        }
     }
     else {
         await command_commons.Interpreter.handleMatchCommands(m, m.content, true)

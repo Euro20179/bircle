@@ -1026,7 +1026,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                         for (let i = 0; i < commandLines.length; i++) {
                             let textAtLine = text[commandLines[i]]
                             vars.setVar("__ed_line", textAtLine, msg.author.id)
-                            let rv = (await cmd({ msg, command_excluding_prefix: args, recursion: rec, returnJson: true, disable: bans })).rv
+                            let rv = (await cmd({ msg, command_excluding_prefix: args, recursion: rec, disable: bans })).rv
                             let t = getContentFromResult(rv, "\n").trim()
                             vars.delVar("__ed_line", msg.author.id)
                             text[commandLines[i]] = t

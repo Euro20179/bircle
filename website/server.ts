@@ -718,7 +718,7 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         }
 
         common_to_commands.cmd({
-            msg, command_excluding_prefix: command as string, returnJson: true, sendCallback: async (data) => {
+            msg, command_excluding_prefix: command as string, sendCallback: async (data) => {
                 //make sendcallback go to the client
                 ws.send(JSON.stringify({ event: "append-data", rv: data }))
                 return msg as Message<true>

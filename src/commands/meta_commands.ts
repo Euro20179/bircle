@@ -254,7 +254,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             if (args[args.length - 1] !== ")") {
                 return { content: "The last argument to ( must be )", status: StatusCode.ERR }
             }
-            return { content: JSON.stringify((await cmd({ msg, command_excluding_prefix: args.slice(0, -1).join(" "), recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv), status: StatusCode.RETURN }
+            return { content: JSON.stringify((await cmd({ msg, command_excluding_prefix: args.slice(0, -1).join(" "), recursion: rec + 1, disable: bans, sendCallback })).rv), status: StatusCode.RETURN }
         }, CAT),
     ]
 
@@ -794,7 +794,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             text = text.slice(command.length + 2)
 
-            let rv = (await cmd({ msg, command_excluding_prefix: command, recursion: rec + 1, returnJson: true, disable: bans, sendCallback: sc })).rv
+            let rv = (await cmd({ msg, command_excluding_prefix: command, recursion: rec + 1, disable: bans, sendCallback: sc })).rv
             for (let line of text.split("\n")) {
                 line = line.trim()
                 if (!line) continue
@@ -955,7 +955,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
             async function handleBranch(command: string, code: StatusCode) {
                 if (command)
-                    return (await cmd({ msg, command_excluding_prefix: command, sendCallback, returnJson: true, disable: commandBans, recursion: recursionCount + 1 })).rv as CommandReturn
+                    return (await cmd({ msg, command_excluding_prefix: command, sendCallback, disable: commandBans, recursion: recursionCount + 1 })).rv as CommandReturn
                 return { content: code === StatusCode.RETURN ? "true" : "false", status: code }
 
             }
@@ -1051,7 +1051,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         "if-cmd", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans }) => {
 
             async function runIf(c: string, operator: string, value: string) {
-                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, returnJson: true, disable: bans })).rv as CommandReturn
+                let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, disable: bans })).rv as CommandReturn
                 let isTrue = false
                 switch (operator) {
                     case "==": {
@@ -1276,7 +1276,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     }
                     expected += ch;
                 }
-                let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn).trim()
+                let content = getContentFromResult((await cmd({ msg, command_excluding_prefix: command_to_run.slice(globals.PREFIX.length), recursion: recursion_count + 1, disable: command_bans })).rv as CommandReturn).trim()
                 expected = expected.trim()
                 switch (check.trim().toLowerCase()) {
                     case "==": {
@@ -1347,11 +1347,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 }
             }
             if ((success !== undefined && success) || (success === undefined && safeEval(condition, { ...generateSafeEvalContextFromMessage(msg), args: args, lastCommand: lastCommand[msg.author.id] }, { timeout: 3000 }))) {
-                return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, returnJson: true, disable: command_bans })).rv as CommandReturn
+                return (await cmd({ msg, command_excluding_prefix: cmdToCheck.trim(), recursion: recursion_count + 1, disable: command_bans })).rv as CommandReturn
             }
             let elseCmd = args.join(" ").split(`${globals.PREFIX}else;`).slice(1).join(`${globals.PREFIX}else;`)?.trim()
             if (elseCmd) {
-                return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, returnJson: true, disable: command_bans })).rv as CommandReturn
+                return (await cmd({ msg, command_excluding_prefix: elseCmd.trim(), recursion: recursion_count, disable: command_bans })).rv as CommandReturn
             }
             return { content: "?", status: StatusCode.ERR }
 
@@ -1535,7 +1535,6 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     yield [
         "timeit", ccmdV2(async function({ msg, args, sendCallback, recursionCount: rec, commandBans: bans, opts }) {
 
-            let returnJson = opts.getBool("no-chat", false)
 
             let start = performance.now()
             await cmd({ msg, command_excluding_prefix: args.join(" ").trim(), recursion: rec + 1, disable: bans, sendCallback })
@@ -1844,7 +1843,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
     yield [
         "silent", ccmdV2(async function({ args, msg, recursionCount, commandBans }) {
-            await cmd({ msg, command_excluding_prefix: args.join(" "), recursion: recursionCount, returnJson: true, disable: commandBans, sendCallback: async () => msg })
+            await cmd({ msg, command_excluding_prefix: args.join(" "), recursion: recursionCount, disable: commandBans, sendCallback: async () => msg })
             return { noSend: true, status: StatusCode.RETURN }
         }, "Run a command silently")
     ]
@@ -2599,7 +2598,7 @@ ${styles}
                 return { content: "You ignorance species, there have not been any commands run.", status: StatusCode.ERR }
             }
             msg.content = lastCommand[msg.author.id]
-            return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id], recursion: rec + 1, returnJson: true, disable: bans, sendCallback })).rv as CommandReturn
+            return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id], recursion: rec + 1, disable: bans, sendCallback })).rv as CommandReturn
 
         }, "Run the last command that was run", {
             helpOptions: {

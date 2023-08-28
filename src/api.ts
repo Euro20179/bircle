@@ -65,7 +65,7 @@ export const APICmds: {[key: string]: {requirements: string[], exec: (data?: any
         requirements: ["cmd"],
         extra: ['msg'],
         exec: async({msg, cmd: command}: {msg: Message, cmd: string}) => {
-            return JSON.stringify((await cmd({msg, command_excluding_prefix: command, recursion: RECURSION_LIMIT - 1, returnJson: true})).rv)
+            return JSON.stringify((await cmd({msg, command_excluding_prefix: command, recursion: RECURSION_LIMIT - 1 })).rv)
         }
     },
     economyLooseGrandTotal: {

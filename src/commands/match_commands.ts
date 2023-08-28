@@ -16,7 +16,7 @@ export default function*(CAT: CommandCategory) {
         if(!lastCommand[msg.author.id])
             return crv("You have not ran a command")
         lastCommand[msg.author.id] = lastCommand[msg.author.id].replaceAll(find, replace)
-        return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1, returnJson: true })).rv as CommandReturn
+        return (await cmd({ msg, command_excluding_prefix: lastCommand[msg.author.id].slice(1), recursion: 1 })).rv as CommandReturn
 
     }, /^\^([^\^]+)\^(.*)$/, "match:run-replace", {
         info: "^&lt;find&gt;^&lt;replace&gt;",
@@ -45,7 +45,7 @@ export default function*(CAT: CommandCategory) {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, PREFIX.length) === PREFIX) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19, returnJson: true })).rv as CommandReturn)
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19})).rv as CommandReturn)
             if (signature.startsWith(PREFIX)) {
                 signature = "\\" + signature
             }
@@ -67,27 +67,27 @@ export default function*(CAT: CommandCategory) {
     }, /^@([^\s]+) (.*)/, "match:send-mail-from-dms")]
 
     yield [createMatchCommand(async function({ msg, match }) {
-        return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`, returnJson: true })).rv as CommandReturn
+        return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`})).rv as CommandReturn
     }, /u!stop(.*)/, "match:u!stop", {
         info: "same as [stop"
     })]
 
     yield [createMatchCommand(async function({ msg, match }) {
-        return (await cmd({ msg, command_excluding_prefix: `calc -python ${match[1] ?? ""}`, returnJson: true })).rv as CommandReturn
+        return (await cmd({ msg, command_excluding_prefix: `calc -python ${match[1] ?? ""}`})).rv as CommandReturn
     }, /u!eval(.*)/, "match:u!eval", {
         info: "same as [calc -python"
     })]
 
     yield [createMatchCommand(async function({ msg, match }) {
         user_options.unsetOpt(msg.author.id, 'prefix')
-        return (await cmd({ msg, command_excluding_prefix: match[1] ?? "echo -D prefix unset", returnJson: true })).rv as CommandReturn
+        return (await cmd({ msg, command_excluding_prefix: match[1] ?? "echo -D prefix unset"})).rv as CommandReturn
 
     }, /s!(.*)/, "match:s!", {
         info: "In case of a bad prefix, unsets it"
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
-        return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`, returnJson: true })).rv
+        return (await cmd({ msg, command_excluding_prefix: `stop${match[1] ?? ""}`})).rv
     }, /^u!stop(.*)/, "match:u!stop", {
         info: "same as [stop",
         arguments: {
@@ -96,7 +96,7 @@ export default function*(CAT: CommandCategory) {
     })]
 
     yield [createMatchCommand(async ({ msg, match }) => {
-        return (await cmd({ msg, command_excluding_prefix: `calc -python${match[1] ?? ""}`, returnJson: true })).rv
+        return (await cmd({ msg, command_excluding_prefix: `calc -python${match[1] ?? ""}`})).rv
     }, /^u!eval(.*)/, "match:u!eval", {
         info: "same as <code>[calc -python</code>",
         arguments: {
@@ -109,7 +109,7 @@ export default function*(CAT: CommandCategory) {
             return { noSend: true, status: StatusCode.RETURN }
         }
         user_options.setOpt(msg.author.id, "prefix", PREFIX)
-        return (await cmd({ msg, command_excluding_prefix: match[1], returnJson: true })).rv
+        return (await cmd({ msg, command_excluding_prefix: match[1]})).rv
 
     }, /^s!(.*)/, "match:s!", {
         info: "run <code>s!</code> in case you mess up the prefix"
@@ -134,7 +134,7 @@ export default function*(CAT: CommandCategory) {
         }
         let signature = user_options.getOpt(msg.author.id, "mail-signature", "")
         if (signature.slice(0, PREFIX.length) === PREFIX) {
-            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19, returnJson: true })).rv)
+            signature = getContentFromResult((await cmd({ msg, command_excluding_prefix: signature.slice(PREFIX.length), recursion: 19})).rv)
             if (signature.startsWith(PREFIX)) {
                 signature = "\\" + signature
             }
@@ -243,7 +243,7 @@ export default function*(CAT: CommandCategory) {
                 return m as Message<true>
             }
             for (let c of cmds) {
-                let {rv} = await cmd({ msg: m, command_excluding_prefix: `${c} ${result}`, returnJson: true })
+                let {rv} = await cmd({ msg: m, command_excluding_prefix: `${c} ${result}` })
                 if (rv?.content) result = rv.content
             }
             m.channel.send = oldSend

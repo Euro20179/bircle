@@ -15,7 +15,7 @@ declare module "discord.js" {
     }
 
     export interface Message {
-        execCommand: (prefix: string) => Promise<false | void>
+        execCommand: (prefix: string) => Promise<false | void | {rv: CommandReturn, interpreter: Interpreter | undefined}>
     }
 }
 
