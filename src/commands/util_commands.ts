@@ -3396,7 +3396,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 status: StatusCode.RETURN
             }
 
-        }, "Creates a file with data")
+        }, "Creates a file with data", {
+            options: {
+                mime: createHelpOption("The mimetype of the file", undefined, "plain/text")
+            }
+        })
     ]
 
     yield [
@@ -3452,7 +3456,7 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         "archive-channel",
-        ccmdV2(async function({ msg, args }) {
+        ccmdV2(async function({ msg, args, interpreter, sendCallback }) {
             if (!msg.guild) {
                 return crv("Must be in a guild", { status: StatusCode.ERR })
             }
@@ -3465,10 +3469,9 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 return crv("Could not get latest message", { status: StatusCode.ERR })
             }
             let fn = generateFileName("archive-channel", msg.author.id, "txt")
-            //clear the file in case it exists
-            fs.writeFileSync(fn, "")
+            let stream = fs.createWriteStream(fn, "utf8")
             let mesageCount = 0
-            while (true) {
+            while (!interpreter.killed) {
                 let messages = await channel.messages.fetch({ before: curMsg, limit: 100 })
                 mesageCount += messages.size
                 if (!messages.size)
@@ -3478,12 +3481,15 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
                 for (let message of msgList) {
                     text += `(${new Date(message.createdTimestamp)}) @${message.author.username}: ${message.content}\n`
                 }
-                fs.appendFileSync(fn, text)
+                stream.write(text)
+
+                await handleSending(msg, crv(`${mesageCount} messages have been archived`), sendCallback)
 
                 await sleep(Math.random() * 3000)
 
                 curMsg = msgList[msgList.length - 1].id
             }
+            stream.end()
 
             return {
                 files: [
