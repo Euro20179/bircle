@@ -637,7 +637,7 @@ export async function cmd({
 
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     do {
-        context.env.LINENO = String(++logicalLine)
+        context.export("LINENO", String(++logicalLine))
 
         let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
         let currentToks = parser.tokens.slice(0, eolIdx)
@@ -645,7 +645,6 @@ export async function cmd({
 
         //happens if there is some kind of empty statement
         if (currentToks.length === 0) continue
-
 
         int = new Interpreter(msg, currentToks, {
             modifiers: parser.modifiers,
@@ -984,28 +983,6 @@ export class Interpreter {
 
     hasModifier(mod: typeof Modifier) {
         return this.modifiers.filter(v => v instanceof mod).length > 0
-    }
-
-    async sendDataToVariable(place: string, name: string, _data: CommandReturn | string | MessagePayload | MessageCreateOptions) {
-        let data;
-        if (typeof _data === 'string') {
-            data = _data
-        }
-        else if ("content" in _data) {
-            data = _data.content
-        }
-        else {
-            data = "__BIRCLE_UNDEFINED__"
-        }
-        if (data) {
-            let oldData = vars.getVar(this.#msg, name, place)
-            if (oldData === false) {
-                vars.setVar(`${place}:${name}`, data, this.#msg.author.id)
-            }
-            else vars.setVar(`${place}:${name}`, oldData + "\n" + data, this.#msg.author.id)
-        }
-        return this.#msg
-
     }
 
     getModifiersFromCmd(cmd: string) {
