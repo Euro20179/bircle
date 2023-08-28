@@ -697,10 +697,7 @@ function getOptsUnix(args: ArgumentList, shortOpts: string, longOpts: [string, "
                         }
                     }
                     else {
-                        while(!args[++i].match(/\s/)){
-                            value += args[i] || ""
-                        }
-                        if(!value) value = true
+                        value = args[++i] || true
                     }
                     opts[ch] = value
                 }

@@ -3346,37 +3346,37 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
 
     yield [
         "cut", ccmdV2(async function({ args, opts, stdin }) {
-            let fields = opts.getString("f", opts.getString("fields", ""))
+            let fields = opts.getString("f", opts.getString("fields", "1-"))
             let delimiter = opts.getString("d", opts.getString("delimiter", " "))
             let join = opts.getString("j", opts.getString("join", "\t"))
             let text = stdin ? getContentFromResult(stdin, "\n") : args.join(delimiter)
             let numberField = Number(fields)
             let [start, end] = fields.split("-")
-            let [startN, endN] = [Number(start), Number(end)]
-            let columns = Array.from(text.split("\n"), (i) => i.split(delimiter))
+            let [startN, endN] = [Number(start || NaN), Number(end || NaN)]
+            let rows = Array.from(text.split("\n"), (i) => i.split(delimiter))
             if (!isNaN(numberField)) {
-                return crv(columns.map(v => v[numberField - 1]).join("\n"))
+                return crv(rows.map(v => v[numberField - 1]).join("\n"))
             }
 
             if (isNaN(startN)) {
                 startN = 1
             }
             if (isNaN(endN)) {
-
-                return crv(columns.map(v => v.slice(startN - 1).join(join)).join("\n"))
+                return crv(rows.map(v => v.slice(startN - 1).join(join)).join("\n"))
             }
-            return crv(columns.map(v => v.slice(startN - 1, endN - 1).join(join)).join("\n"))
+            return crv(rows.map(v => v.slice(startN - 1, endN).join(join)).join("\n"))
 
         }, "Cuts a string my seperator, and says the requested fields", {
             helpArguments: {
                 "...text": createHelpArgument("The text to cut", false)
             },
             helpOptions: {
-                "d": createHelpOption("The delimiter", ["delimiter"], "<space>"),
-                f: createHelpOption("The fields to get in the format of <code>start[-[end]]</code>", ["fields"], "0-"),
-                j: createHelpOption("The text to join the fields by", ["join"], "\\t")
+                "d": createHelpOption("The delimiter", ["delimiter"], "<space>", true),
+                f: createHelpOption("The fields to get in the format of <code>start[-[end]]</code>", ["fields"], "1-", true),
+                j: createHelpOption("The text to join the fields by", ["join"], "\\t", true)
             },
-            accepts_stdin: "Can be used instead of <code>...text</code>"
+            accepts_stdin: "Can be used instead of <code>...text</code>",
+            gen_opts: true
         })
     ]
 
