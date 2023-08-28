@@ -1074,9 +1074,6 @@ export class Interpreter {
             normal: getOpts
         }[optParser] ?? getOpts)(args);
 
-        if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
-            return this.runBircleFile(cmd, args)
-        }
 
         if (opts['?']) {
             args = [cmd]
@@ -1092,6 +1089,11 @@ export class Interpreter {
         }
 
         if (!cmdObject) {
+            //only run the bircle file if the cmdObject doesn't exist
+            if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
+                return this.runBircleFile(cmd, args)
+            }
+
             //We dont want to keep running commands if the command doens't exist
             //fixes the [[[[[[[[[[[[[[[[[ exploit
             if (cmd.startsWith(globals.PREFIX)) {
