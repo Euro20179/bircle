@@ -288,32 +288,32 @@ export default function*(): Generator<[string, CommandV2]> {
         f: createHelpOption("Fetch user based on your current guild instead of the bot's known users (only works in servers)")
     })]
 
-    yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
-        if (!globals.DEVBOT) {
-            return crv("This command is only available on devbot", { status: StatusCode.ERR })
-        }
-        if (!CHAT_LL) {
-            return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
-        }
-        let messages: PromptMessage[] = []
-
-        let sysMsg = opts.getString("sys-msg", null)
-        if (sysMsg) messages.push({ role: "system", content: sysMsg })
-
-        let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
-
-        messages.push({ role: "user", content: content })
-
-        createCompletion(CHAT_LL, messages, {
-            hasDefaultHeader: false,
-        }).then(response => {
-            handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
-        }).catch(error => {
-            handleSending(msg, crv(error.toString())).catch(console.error)
-        })
-
-        return { noSend: true, status: StatusCode.RETURN }
-    }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
+    // yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
+    //     if (!globals.DEVBOT) {
+    //         return crv("This command is only available on devbot", { status: StatusCode.ERR })
+    //     }
+    //     if (!CHAT_LL) {
+    //         return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
+    //     }
+    //     let messages: PromptMessage[] = []
+    //
+    //     let sysMsg = opts.getString("sys-msg", null)
+    //     if (sysMsg) messages.push({ role: "system", content: sysMsg })
+    //
+    //     let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
+    //
+    //     messages.push({ role: "user", content: content })
+    //
+    //     createCompletion(CHAT_LL, messages, {
+    //         hasDefaultHeader: false,
+    //     }).then(response => {
+    //         handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
+    //     }).catch(error => {
+    //         handleSending(msg, crv(error.toString())).catch(console.error)
+    //     })
+    //
+    //     return { noSend: true, status: StatusCode.RETURN }
+    // }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {

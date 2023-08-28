@@ -940,7 +940,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "[", ccmdV2(async function({ args, opts, sendCallback, commandBans, recursionCount, msg }) {
+        "[", ccmdV2(async function({ args, opts, sendCallback, commandBans, recursionCount, msg, interpreter }) {
             if (args.indexOf("]") < 0) {
                 return { content: `You must end the check with ]`, status: StatusCode.ERR }
             }
@@ -954,8 +954,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
 
             async function handleBranch(command: string, code: StatusCode) {
+                let context = opts.getBool("s", false) ? undefined : interpreter.context
                 if (command)
-                    return (await cmd({ msg, command_excluding_prefix: command, sendCallback, disable: commandBans, recursion: recursionCount + 1 })).rv as CommandReturn
+                    return (await cmd({ msg, command_excluding_prefix: command, sendCallback, disable: commandBans, recursion: recursionCount + 1, context })).rv as CommandReturn
                 return { content: code === StatusCode.RETURN ? "true" : "false", status: code }
 
             }
@@ -1034,7 +1035,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 u: createHelpOption("Test if first argument is a user in bot's cache"),
                 U: createHelpOption("Test if first argument is a user"),
                 n: createHelpOption("Test if there is text"),
-                z: createHelpOption("Test if there is not text")
+                z: createHelpOption("Test if there is not text"),
+                s: createHelpOption("Do not use the parent interpreter context")
             },
             helpArguments: {
                 "value 1": createHelpArgument("The first value", true),
