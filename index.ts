@@ -77,7 +77,7 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     if (!isMsgChannel(msg.channel)) return {rv: {noSend: true, status: StatusCode.RETURN}, interpreter: undefined}
         let rv;
     try {
-        rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
+        rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs})
     }
     catch (err) {
         console.error(err)

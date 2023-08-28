@@ -1284,7 +1284,7 @@ export class Interpreter {
             }
 
             try {
-                await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })
+                await handleSending(msg, (await cmd({ msg, command_excluding_prefix: tempExec, recursion: 0 })).rv)
             }
             catch (err) {
                 console.error(err)
@@ -1294,7 +1294,6 @@ export class Interpreter {
     }
 
     static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean) {
-
         let matchCommands = getMatchCommands()
         for (let obj of valuesOf(matchCommands)) {
             let match = content.match(obj.match)
