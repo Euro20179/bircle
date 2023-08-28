@@ -527,7 +527,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             r: createHelpOption("Reverse order of the lines"),
             g: createHelpOption("Open a file from garbage-files folder instead of command-results")
         },
-        accepts_stdin: "Instead of files, act on the text from pipe"
+        accepts_stdin: "Instead of files, act on the text from pipe",
+        gen_opts: true
     })]
 
     yield ["rev", ccmdV2(async ({ stdin, args, opts }) => {
@@ -554,7 +555,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         helpOptions: {
             r: createHelpOption("reverse the order of the lines")
         },
-        accepts_stdin: "Instead of files, reverse content from stdin"
+        accepts_stdin: "Instead of files, reverse content from stdin",
+        gen_opts: true
     })]
 
     yield ["pet-info", createCommandV2(async ({ msg, args }) => {
@@ -586,7 +588,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             }
             return { content: String(member.roles.cache.has(role.id)), status: StatusCode.RETURN }
         }, "Check if a user has a role", {
-            helpOptions: {
+            helpArguments: {
                 user: createHelpArgument("The user to checK", true),
                 role: createHelpArgument("The role to check", true)
             },
@@ -631,7 +633,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             unit2: createHelpArgument("The unit to convert to (use -l to see a list of units)")
         }, {
             l: createHelpOption("List units and compare them to a unit", undefined, "yd"),
-            "round-to": createHelpOption("Round to a certain number of decimals", undefined, "10")
+            "round-to": createHelpOption("Round to a certain number of decimals", undefined, "10", true),
         })
     ]
 
