@@ -35,44 +35,6 @@ init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
 
-Object.defineProperty(User.prototype, "loan", {
-    "get": function() {
-        return economy.getEconomy()[this.id]?.loanUsed
-    },
-});
-Object.defineProperty(User.prototype, "economyData", {
-    "get": function() {
-        return economy.getEconomy()[this.id]
-    }
-});
-Object.defineProperty(User.prototype, "netWorth", {
-    "get": function() {
-        return economy.playerLooseNetWorth(this.id)
-    }
-});
-
-User.prototype.getBOpt = function(opt, fallback){
-    return user_options.getOpt(this.id, opt, fallback)
-}
-
-String.prototype.stripStart = function(chars) {
-    for (var newStr = this; chars.includes(newStr[0]); newStr = newStr.slice(1));
-    return newStr.valueOf()
-}
-
-String.prototype.stripEnd = function(chars) {
-    for (var newStr = this; chars.includes(newStr[newStr.length - 1]); newStr = newStr.slice(0, -1));
-    return newStr.valueOf()
-}
-
-Object.hasEnumerableKeys = function(o){
-    for(let key in o){
-        if(o.hasOwnProperty(key))
-            return true
-    }
-    return false
-}
-
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
     if (!isMsgChannel(msg.channel)) return {rv: {noSend: true, status: StatusCode.RETURN}, interpreter: undefined}
         let rv;
