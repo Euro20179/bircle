@@ -659,7 +659,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
 
 
             if (!opts['txt'] && !args.length) {
-                return crv("http://bircle.euro20179.com:8222/commands")
+                return crv("http://bircle.euro20179.com:8080/commands")
             }
             if (opts["g"]) {
                 let text = fs.readFileSync("./website/help-web.html", "utf-8")

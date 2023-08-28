@@ -1158,7 +1158,7 @@ export default function*(): Generator<[string, CommandV2]> {
             if (opts['text'])
                 return { content: text, allowedMentions: { parse: [] }, status: StatusCode.RETURN }
             embed.setTitle(`Leaderboard`)
-            embed.setURL("http://bircle.euro20179.com:8222/leaderboard")
+            embed.setURL("http://bircle.euro20179.com:8080/leaderboard")
             if (opts['no-round'])
                 embed.setDescription(`Total wealth: ${totalEconomy}`)
             else

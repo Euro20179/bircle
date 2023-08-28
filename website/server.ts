@@ -480,10 +480,6 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
         return
     }
     switch (mainPath) {
-        case "": {
-            sendFile(res, "./website/home.html")
-            break;
-        }
         case "user-styles.css": {
             let id = urlParams?.get("user-id")
             if (!id) {
@@ -496,11 +492,6 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 res.end(css)
             }
             break
-        }
-        case "robots.txt": {
-            res.writeHead(200)
-            res.end("User-agent: *\nDisallow: /")
-            break;
         }
         case "options": {
             if (!urlParams?.get("code")) {
@@ -547,26 +538,6 @@ function handleGet(req: http.IncomingMessage, res: http.ServerResponse) {
                 res.end(html + "</body><script src='/options.js'></script></html>")
             })
             return
-        }
-        case "discord": {
-            sendFile(res, "./website/discord-login.html")
-            break;
-        }
-        case "leaderboard": {
-            sendFile(res, "./website/leaderboard.html")
-            break;
-        }
-        case "commands": {
-            sendFile(res, "./website/commands.html")
-            break;
-        }
-        case "alias": {
-            sendFile(res, "./website/alias.html")
-            break;
-        }
-        case "help": {
-            sendFile(res, "./website/help-web.html")
-            break;
         }
         case "api": {
             return _apiSubPath(req, res, subPaths, urlParams)
