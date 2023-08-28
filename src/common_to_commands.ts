@@ -1,4 +1,4 @@
-import { APIButtonComponent, ActionRowBuilder, AwaitMessagesOptions, ButtonBuilder, ButtonComponentData, ButtonInteraction, ButtonStyle, EmbedBuilder, Message, MessageCreateOptions, MessagePayload, PartialMessage } from 'discord.js';
+import { APIButtonComponent, ActionRowBuilder, AwaitMessagesOptions, ButtonBuilder, ButtonComponentData, ButtonInteraction, ButtonStyle, Collection, DMChannel, EmbedBuilder, Guild, Message, MessageCreateOptions, MessageFlagsBitField, MessageMentions, MessagePayload, MessageType, PartialMessage, ReactionManager, TextChannel, User } from 'discord.js';
 import fs from 'fs'
 
 import vars from './vars';
@@ -17,6 +17,75 @@ import { cloneDeep, isNaN } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
+
+function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
+    //@ts-ignore
+    let msg: Message = {
+        activity: null,
+        applicationId: String(common.client.user?.id),
+        id: "_1033110249244213260",
+        attachments: new Collection(),
+        author: author,
+        channel: channel,
+        channelId: channel.id,
+        cleanContent: content as string,
+        client: common.client,
+        components: [],
+        content: content as string,
+        createdAt: new Date(Date.now()),
+        createdTimestamp: Date.now(),
+        crosspostable: false,
+        deletable: false,
+        editable: false,
+        editedAt: null,
+        editedTimestamp: null,
+        embeds: [],
+        flags: new MessageFlagsBitField(),
+        groupActivityApplication: null,
+        guild: guild,
+        guildId: guild?.id || null,
+        hasThread: false,
+        interaction: null,
+        member: null,
+        mentions: {
+            parsedUsers: new Collection(),
+            channels: new Collection(),
+            crosspostedChannels: new Collection(),
+            everyone: false,
+            members: null,
+            repliedUser: null,
+            roles: new Collection(),
+            users: new Collection(),
+            has: (_data: any, _options: any) => false,
+            _parsedUsers: new Collection(),
+            _channels: null,
+            _content: content as string,
+            _members: null,
+            client: common.client,
+            guild: guild,
+            toJSON: () => {
+                return {}
+            }
+        } as unknown as MessageMentions,
+        nonce: null,
+        partial: false,
+        pinnable: false,
+        pinned: false,
+        position: null,
+        reactions: new Object() as ReactionManager,
+        reference: null,
+        stickers: new Collection(),
+        system: false,
+        thread: null,
+        tts: false,
+        type: MessageType.Default,
+        url: "http://localhost:8222/",
+        webhookId: null,
+        _cacheType: false,
+        _patch: (_data: any) => { }
+    }
+    return msg
+}
 
 export class PagedEmbed {
     msg: Message
@@ -1227,19 +1296,7 @@ export class Interpreter {
         return this.args
     }
 
-    static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean) {
-
-        let matchCommands = getMatchCommands()
-        for (let cmd in matchCommands) {
-            let obj = matchCommands[cmd]
-            let match = content.match(obj.match)
-            if (match?.[0]) {
-                return handleSending(msg, await obj.run({ msg, match }))
-            }
-        }
-        if (!enableUserMatch) {
-            return false
-        }
+    static async handleUserMatchCommands(msg: Message, content: string){
         let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
         for (let [name, [regex, run]] of userMatchCmds) {
             let m = content.match(regex);
@@ -1265,6 +1322,22 @@ export class Interpreter {
                 if (isMsgChannel(msg.channel)) await msg.channel.send({ content: `Command failure: **${name}**\n\`\`\`${censor_error(err as Error)}\`\`\`` })
             }
         }
+    }
+
+    static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean) {
+
+        let matchCommands = getMatchCommands()
+        for (let cmd in matchCommands) {
+            let obj = matchCommands[cmd]
+            let match = content.match(obj.match)
+            if (match?.[0]) {
+                return handleSending(msg, await obj.run({ msg, match }))
+            }
+        }
+        if (enableUserMatch) {
+            return this.handleUserMatchCommands(msg, content)
+        }
+        return false
     }
 }
 
@@ -1561,5 +1634,6 @@ export default {
     Interpreter,
     PIDS,
     censor_error,
-    PagedEmbed
+    PagedEmbed,
+    createFakeMessage
 }

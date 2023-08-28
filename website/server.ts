@@ -16,7 +16,6 @@ import { getInventory } from '../src/shop'
 
 import ws from 'ws'
 
-
 function sendFile(res: http.ServerResponse, fp: string, contentType?: string, status?: number) {
     let stat = fs.statSync(fp)
     res.writeHead(status ?? 200, { "Content-Type": contentType ?? "text/html", "Content-Length": stat.size })
@@ -669,74 +668,6 @@ server.on("request", (req, res) => {
         return handleGet(req, res)
     }
 })
-function createFakeMessage(author: User, channel: DMChannel | TextChannel, content: string, guild: Guild | null = null) {
-    //@ts-ignore
-    let msg: Message = {
-        activity: null,
-        applicationId: String(common.client.user?.id),
-        id: "_1033110249244213260",
-        attachments: new Collection(),
-        author: author,
-        channel: channel,
-        channelId: channel.id,
-        cleanContent: content as string,
-        client: common.client,
-        components: [],
-        content: content as string,
-        createdAt: new Date(Date.now()),
-        createdTimestamp: Date.now(),
-        crosspostable: false,
-        deletable: false,
-        editable: false,
-        editedAt: null,
-        editedTimestamp: null,
-        embeds: [],
-        flags: new MessageFlagsBitField(),
-        groupActivityApplication: null,
-        guild: guild,
-        guildId: guild?.id || null,
-        hasThread: false,
-        interaction: null,
-        member: null,
-        mentions: {
-            parsedUsers: new Collection(),
-            channels: new Collection(),
-            crosspostedChannels: new Collection(),
-            everyone: false,
-            members: null,
-            repliedUser: null,
-            roles: new Collection(),
-            users: new Collection(),
-            has: (_data: any, _options: any) => false,
-            _parsedUsers: new Collection(),
-            _channels: null,
-            _content: content as string,
-            _members: null,
-            client: common.client,
-            guild: guild,
-            toJSON: () => {
-                return {}
-            }
-        } as unknown as MessageMentions,
-        nonce: null,
-        partial: false,
-        pinnable: false,
-        pinned: false,
-        position: null,
-        reactions: new Object() as ReactionManager,
-        reference: null,
-        stickers: new Collection(),
-        system: false,
-        thread: null,
-        tts: false,
-        type: MessageType.Default,
-        url: "http://localhost:8222/",
-        webhookId: null,
-        _cacheType: false,
-        _patch: (_data: any) => { }
-    }
-    return msg
-}
 function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string, handleReturn: (rv: { interpreter: Interpreter | undefined, rv: CommandReturn }) => any, handleError: (err: any) => any) {
     common.client.channels.fetch(inChannel).then((channel) => {
         if (!channel || channel.type !== ChannelType.GuildText) {
@@ -747,7 +678,7 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
         //prevents from sending to chat
         let oldSend = channel.send
 
-        let msg = createFakeMessage(author, channel, command, channel.guild)
+        let msg = common_to_commands.createFakeMessage(author, channel, command, channel.guild)
 
         //instead of sending to chat, send to the client
         channel.send = (async (data: object) => {
@@ -772,7 +703,7 @@ function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string
                     let result = JSON.parse(data.toString())
                     //second condition, when reciving input, resolve with that input
                     if (result['prompt-response']) {
-                        prompt_replies.push([author.id, createFakeMessage(author, channel, result['prompt-response'], channel.guild)])
+                        prompt_replies.push([author.id, common_to_commands.createFakeMessage(author, channel, result['prompt-response'], channel.guild)])
                         //remove listener to prevent memory leak
                         ws.removeListener("message", wsMessageFn)
                         //rseolve with the replies
