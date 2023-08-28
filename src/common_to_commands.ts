@@ -13,7 +13,7 @@ import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFro
 
 import { parseBracketPair, getOpts } from './parsing'
 
-import { cloneDeep, isNaN } from 'lodash';
+import { cloneDeep } from 'lodash';
 
 import parse_escape from './parse_escape';
 import parse_format from './parse_format';
@@ -1036,20 +1036,6 @@ export class Interpreter {
 
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
-        let [opts, args2] = ({
-            "with-negate": getOptsWithNegate,
-            unix: getOptsUnix,
-            normal: getOpts
-        }[optParser] ?? getOpts)(args);
-
-
-        if (opts['?']) {
-            args = [cmd]
-            args2 = [cmd]
-            cmd = "help"
-            this.aliasV2 = false
-        }
-
         let cmdObject:  CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
         for (let mod of this.modifiers) {
@@ -1072,6 +1058,13 @@ export class Interpreter {
                 { noSend: true, status: StatusCode.ERR }
         }
         else runnerIf: {
+
+            let [opts, args2] = ({
+                "with-negate": getOptsWithNegate,
+                unix: getOptsUnix,
+                normal: getOpts
+            }[optParser] ?? getOpts)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
+
             //make sure it passes the command's perm check if it has one
             if (!(cmdObject instanceof AliasV2) && !common.WHITELIST[this.#msg.author.id]?.includes(cmd) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
                 rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
@@ -1428,11 +1421,12 @@ export function createHelpArgument(description: string, required?: boolean, requ
     }
 }
 
-export function createHelpOption(description: string, alternatives?: string[], default_?: string) {
+export function createHelpOption(description: string, alternatives?: string[], default_?: string, takes_value?: boolean) {
     return {
         description: description,
         alternatives: alternatives,
-        default: default_
+        default: default_,
+        takes_value
     }
 }
 
@@ -1507,8 +1501,32 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     accepts_stdin?: CommandHelp['accepts_stdin'],
     prompt_before_run?: boolean,
     argShape?: CommandV2['argShape'],
-    can_run_on_web?: boolean
+    can_run_on_web?: boolean,
+    short_opts?: string,
+    long_opts?: [string, ":"?][],
+    gen_opts?: boolean
 }): CommandV2 {
+    if(options?.gen_opts){
+        let short_opts = options?.short_opts || ""
+        let long_opts = options?.long_opts || []
+        for(let opt in options.helpOptions || {}){
+            if(opt.length === 1){
+                if(options.helpOptions?.[opt].takes_value){
+                    short_opts += `${opt}:`
+                }
+                else short_opts += opt
+
+            }
+            else {
+                if(options.helpOptions?.[opt].takes_value){
+                    long_opts.push([opt, ":"])
+                }
+                else long_opts.push([opt])
+            }
+        }
+        options.short_opts = short_opts
+        options.long_opts = long_opts
+    }
     return {
         run: cb,
         help: {
@@ -1526,7 +1544,9 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
         use_result_cache: options?.use_result_cache,
         prompt_before_run: options?.prompt_before_run,
         argShape: options?.argShape,
-        can_run_on_web: options?.can_run_on_web
+        can_run_on_web: options?.can_run_on_web,
+        short_opts: options?.short_opts,
+        long_opts: options?.long_opts,
     }
 
 }

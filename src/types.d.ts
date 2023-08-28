@@ -143,7 +143,9 @@ declare global {
         cmd_std_version?: 2,
         prompt_before_run?: boolean,
         argShape?: (args: ArgList, msg: Message) => AsyncGenerator<[any | typeof BADVALUE, string, true?, any?]>,
-        can_run_on_web?: boolean
+        can_run_on_web?: boolean,
+        short_opts?: string,
+        long_opts?: [string, ":"?][]
     }
 
     interface SlashCommand {
@@ -179,6 +181,7 @@ declare global {
     interface CommandHelpOptions {
         [key: string]: {
             description: string,
+            takes_value?: boolean,
             alternates?: string[],
             default?: string
         }

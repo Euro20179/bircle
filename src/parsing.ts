@@ -91,7 +91,7 @@ class Token {
 
 class Modifier {
     repr = "X"
-    modifyCmd({cmdObject, int, cmdName}: {cmdObject: CommandV2 | AliasV2 | undefined, int: Interpreter, cmdName: string}): any {return cmdObject}
+    modifyCmd({ cmdObject, int, cmdName }: { cmdObject: CommandV2 | AliasV2 | undefined, int: Interpreter, cmdName: string }): any { return cmdObject }
     modify(int: Interpreter): any { }
     stringify(): string { return `${this.repr}:` }
 }
@@ -140,8 +140,8 @@ class CommandModifier extends Modifier {
     }
 }
 
-class AliasModifier extends Modifier{
-    modifyCmd({cmdName, int}: {cmdName: string, int: Interpreter}){
+class AliasModifier extends Modifier {
+    modifyCmd({ cmdName, int }: { cmdName: string, int: Interpreter }) {
         int.modifiers = int.modifiers.filter(v => v !== this)
         int.aliasV2 = getAliasesV2()[cmdName]
         console.log(int.modifiers)
@@ -209,7 +209,7 @@ class Parser {
     async parse() {
         let lastWasspace = false
         while (this.advance()) {
-            if(this.#i === 0 && this.#curChar === 'n' && this.string[1] === ':'){
+            if (this.#i === 0 && this.#curChar === 'n' && this.string[1] === ':') {
                 this.tokens = Array.from(this.string.split(" "), item => new Token(T.str, item, this.#curArgNo++))
                 break
             }
@@ -673,38 +673,54 @@ function format(str: string, formats: Replacements, recursion = false) {
     return formatPercentStr(formatBracePairs(str, formats, "{}", recursion), formats)
 }
 
-function getOptsUnix(args: ArgumentList): [Opts, ArgumentList] {
+function getOptsUnix(args: ArgumentList, shortOpts: string, longOpts: [string, ":"?][]): [Opts, ArgumentList] {
     let opts: Opts = {}
-    let arg, idxOfFirstRealArg = -1
-    while ((arg = args[++idxOfFirstRealArg])?.startsWith("-")) {
-        if (arg === '--') {
-            idxOfFirstRealArg++;
-            break;
-        }
-        else if (arg.startsWith("--")) {
-            let name = arg.slice(2)
-            let value = args[++idxOfFirstRealArg];
-            opts[name] = value ?? true
-        }
-        else if (arg.startsWith("-")) {
-            for (let char of arg.slice(1)) {
-                opts[char] = true
+    let i: number;
+    for (i = 0; i < args.length; i++) {
+        if(args[i] === "--") break
+        else if(args[i][0] === "-" && args[i][1] === "-"){
+            if(longOpts.find(v => v[0] === args[i].slice(2))?.[1]){
+                opts[args[i].slice(2)] = args[++i]
+            }
+            else {
+                opts[args[i].slice(2)] = true
             }
         }
-        else {
-            break;
+        else if (args[i][0] === "-") {
+            for(let chN = 1; chN < args[i].length; chN++){
+                let ch = args[i][chN]
+                let value: string | boolean = ""
+                if (shortOpts[shortOpts.indexOf(ch) + 1] === ":"){
+                    if(args[i][++chN]){
+                        for(let ch of args[i].slice(chN)){
+                            value += ch
+                        }
+                    }
+                    else {
+                        while(!args[++i].match(/\s/)){
+                            value += args[i] || ""
+                        }
+                        if(!value) value = true
+                    }
+                    opts[ch] = value
+                }
+                else {
+                    opts[ch] = true
+                }
+            }
         }
+        else break
     }
-    return [opts, args.slice(idxOfFirstRealArg)]
+    return [opts, args.slice(i)]
 }
 
 function getOpts(args: ArgumentList): [Opts, ArgumentList] {
     let opts: Record<string, boolean | string> = {}
     let i;
-    for(i = 0; i < args.length; i++){
-        if(args[i][0] === "-"){
+    for (i = 0; i < args.length; i++) {
+        if (args[i][0] === "-") {
             let [opt, ...value] = args[i].slice(1).split("=")
-            if(opt !== "-")
+            if (opt !== "-")
                 opts[opt] = value[0] == undefined ? true : value.join("=");
             else break
         }

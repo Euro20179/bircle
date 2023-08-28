@@ -147,7 +147,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             docs: "5000 = B or V-<br>10000 = K OR X-<br>50000 = R OR L-<br>100000 = G OR C-<br>500000 = T D-<br>1000000 = F OR M-",
             helpArguments: {
                 '...roman numerals': createHelpArgument("The numerals to convert to aribic numerals")
-            }
+            },
         })
     ]
 
@@ -174,7 +174,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 text = getContentFromResult(stdin)
             }
             if (!text || text === BADVALUE) {
-                let req_msg = (await msg.channel.messages.fetch({ limit: opts.getNumber("m", 1) + 1 })).at(0) //-m + 1 because 1 is the message the user just sent to chat
+                let m = opts.getNumber("m", 1) + 1
+                let req_msg = (await msg.channel.messages.fetch({ limit: m })).at(m - 1) //-m + 1 because 1 is the message the user just sent to chat
                 if (!req_msg) {
                     return crv("Could not get message", { status: StatusCode.ERR })
                 }
@@ -197,11 +198,12 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 text: createHelpArgument("The text to translate")
             },
             helpOptions: {
-                to: createHelpOption("The language to translate to"),
-                from: createHelpOption("The language to translate from"),
-                m: createHelpOption("Translate the message <b>m</b> messages up"),
+                to: createHelpOption("The language to translate to", undefined, "en", true),
+                from: createHelpOption("The language to translate from", undefined, "auto", true),
+                m: createHelpOption("Translate the message <b>m</b> messages up", undefined, undefined, true),
                 l: createHelpOption("List valid languages")
-            }
+            },
+            gen_opts: true
         })
     ]
 
@@ -319,10 +321,11 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         },
         helpOptions: {
             json: createHelpOption("Return the json result raw"),
-            fmt: createHelpOption("a format specifier where you can access json properties in {}"),
+            fmt: createHelpOption("a format specifier where you can access json properties in {}", undefined, undefined, true),
             a: createHelpOption("Automatically select the first search result"),
             "above-the-fold-data": createHelpOption("Get data from above the fold :smirk:")
-        }
+        },
+        gen_opts: true
     })]
 
     yield [
@@ -443,7 +446,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         helpOptions: {
             n: createHelpOption("Sort numerically"),
             r: createHelpOption("Reverse sort")
-        }
+        },
+        short_opts: "nr",
     })]
 
     yield ['school-stats', ccmdV2(async function({ msg, opts }) {
