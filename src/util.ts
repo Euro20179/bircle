@@ -994,8 +994,8 @@ function generateTextFromCommandHelp(name: string, command: CommandV2 | AliasV2 
             }
             optInfo += ': '
             optInfo += htmlRenderer.renderHTML(helpData.options[op].description, 1).trim() + "\n"
-            if (helpData.options[op].alternates) {
-                optInfo += `\t\t-- alternatives: ${helpData.options[op].alternates?.join(" ")}\n`
+            if (helpData.options[op].alternatives) {
+                optInfo += `\t\t-- alternatives: ${helpData.options[op].alternatives?.join(" ")}\n`
             }
         }
     }
@@ -1049,7 +1049,7 @@ function generateHTMLFromCommandHelp(name: string, command: CommandV2) {
             html += `<h2 class="command-options">Options</h2><ul class="command-option-list">`
             for (let option in options) {
                 let desc = options[option].description || ""
-                let alternates = options[option].alternates
+                let alternates = options[option].alternatives
                 // let requiresValue = options[option].requiresValue || false
                 let default_ = options[option]["default"] || ""
                 html += `<li class="command-option">

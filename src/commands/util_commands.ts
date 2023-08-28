@@ -1485,15 +1485,15 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             },
             options: {
                 "heal": {
-                    alternates: ['u'],
+                    alternatives: ['u'],
                     description: "The user(s) to heal"
                 },
                 "damage": {
-                    alternates: ['d'],
+                    alternatives: ['d'],
                     description: "The user(s) to damage"
                 },
                 "amount": {
-                    alternates: ["a"],
+                    alternatives: ["a"],
                     description: "The amount to damage/heal, (huge, big, medium, small, tiny)"
                 }
             }
@@ -4054,11 +4054,11 @@ print(eval("""${args.join(" ").replaceAll('"', "'")}"""))`
             options: {
                 "c": {
                     description: "The amount of emojis to send",
-                    alternates: ["count"]
+                    alternatives: ["count"]
                 },
                 "s": {
                     description: "The character to seperate each emoji by",
-                    alternates: ["sep"]
+                    alternatives: ["sep"]
                 },
                 "a": {
                     description: "The emoji must be animated"

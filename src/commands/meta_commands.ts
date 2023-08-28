@@ -2440,7 +2440,7 @@ ${styles}
 
         let attrs = {
             "odesc": (name: string, value: string) => commandHelpOptions[name].description = value,
-            "oalt": (name: string, value: string) => commandHelpOptions[name].alternates = value.split(","),
+            "oalt": (name: string, value: string) => commandHelpOptions[name].alternatives = value.split(","),
             "odefault": (name: string, value: string) => commandHelpOptions[name].default = value,
             "adesc": (name: string, value: string) => commandHelpArgs[name].description = value,
             "adefault": (name: string, value: string) => commandHelpArgs[name].default = value,
