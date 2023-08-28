@@ -243,7 +243,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             for (let line of args.join(" ").replace(/```$/, "").trim().split(";EOL")) {
                 line = line.trim()
                 if (!line) continue
-                await cmd({ msg, command_excluding_prefix: line, recursion: globals.RECURSION_LIMIT - 1, disable: bans, sendCallback })
+                await handleSending(msg, (await cmd({ msg, command_excluding_prefix: line, recursion: globals.RECURSION_LIMIT - 1, disable: bans, sendCallback })).rv)
             }
             return { noSend: true, status: StatusCode.RETURN }
         }, CAT, "Run some commands"),
@@ -1834,7 +1834,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (line.startsWith(globals.PREFIX)) {
                     line = line.slice(globals.PREFIX.length)
                 }
-                await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })
+                await handleSending(msg, (await cmd({ msg, command_excluding_prefix: parseRunLine(line), recursion: recursion + 1, disable: bans, sendCallback })).rv)
             }
             return { noSend: true, status: StatusCode.INFO }
 

@@ -11,7 +11,7 @@ require("./src/commands/commands").init()
 
 import { slashCmds } from "./src/slashCommands"
 
-import command_commons, { Interpreter } from './src/common_to_commands'
+import command_commons, { Interpreter, StatusCode } from './src/common_to_commands'
 
 import globals = require("./src/globals")
 import { defer, isMsgChannel } from "./src/util"
@@ -74,7 +74,7 @@ Object.hasEnumerableKeys = function(o){
 }
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
-    if (!isMsgChannel(msg.channel)) return false
+    if (!isMsgChannel(msg.channel)) return {rv: {noSend: true, status: StatusCode.RETURN}, interpreter: undefined}
         let rv;
     try {
         rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
@@ -84,7 +84,7 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\`` })
     }
     globals.writeCmdUse()
-    return rv
+    return rv || {rv: {noSend: true, status: StatusCode.RETURN}, interpreter: undefined}
 }
 
 Message.prototype.execCommand = async function(local_prefix: string) {
@@ -247,17 +247,11 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         })
         await int.interprate()
 
-        let rv = await execCommand(m, await res.text(), int.args)
-        if(rv){
-            await command_commons.handleSending(m, rv.rv)
-        }
+        await command_commons.handleSending(m, (await execCommand(m, await res.text(), int.args)).rv)
     }
 
     if (command_commons.isCmd(content, local_prefix)) {
-        let rv = await m.execCommand(local_prefix)
-        if(rv){
-            await command_commons.handleSending(m, rv.rv)
-        }
+        await command_commons.handleSending(m, (await m.execCommand(local_prefix)).rv)
     }
     else {
         await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
