@@ -1036,7 +1036,7 @@ export class Interpreter {
 
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
-        let cmdObject:  CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
+        let cmdObject: CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
 
         for (let mod of this.modifiers) {
             cmdObject = mod.modifyCmd({ cmdObject, int: this, cmdName: cmd })
@@ -1140,7 +1140,7 @@ export class Interpreter {
                 rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
             }
             else if (cmdObject instanceof AliasV2) {
-                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context}) as CommandReturn
+                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
                 this.aliasV2 = cmdObject
             }
             else {
@@ -1254,7 +1254,7 @@ export class Interpreter {
         return this.args
     }
 
-    static async handleUserMatchCommands(msg: Message, content: string){
+    static async handleUserMatchCommands(msg: Message, content: string) {
         let userMatchCmds = common.getUserMatchCommands()?.get(msg.author.id) ?? []
         for (let [name, [regex, run]] of userMatchCmds) {
             let m = content.match(regex);
@@ -1421,7 +1421,7 @@ export function createHelpArgument(description: string, required?: boolean, requ
     }
 }
 
-export function createHelpOption(description: string, alternatives?: string[], default_?: string, takes_value?: boolean) {
+export function createHelpOption(description: string, alternatives?: string[], default_?: string, takes_value?: boolean): CommandHelpOptions[string] {
     return {
         description: description,
         alternatives: alternatives,
@@ -1506,22 +1506,28 @@ export function ccmdV2(cb: CommandV2Run, helpInfo: string, options?: {
     long_opts?: [string, ":"?][],
     gen_opts?: boolean
 }): CommandV2 {
-    if(options?.gen_opts){
+    if (options?.gen_opts) {
         let short_opts = options?.short_opts || ""
         let long_opts = options?.long_opts || []
-        for(let opt in options.helpOptions || {}){
-            if(opt.length === 1){
-                if(options.helpOptions?.[opt].takes_value){
+        const addOpt = (opt: string, takes_value: boolean) => {
+            if (opt.length === 1) {
+                if (takes_value) {
                     short_opts += `${opt}:`
                 }
                 else short_opts += opt
-
             }
             else {
-                if(options.helpOptions?.[opt].takes_value){
+                if (takes_value) {
                     long_opts.push([opt, ":"])
                 }
                 else long_opts.push([opt])
+            }
+        }
+        for (let opt in options.helpOptions || {}) {
+            let takes_value = options.helpOptions?.[opt].takes_value
+            addOpt(opt, takes_value || false)
+            for (let alt of options.helpOptions?.[opt].alternatives || []) {
+                addOpt(alt, takes_value || false)
             }
         }
         options.short_opts = short_opts
@@ -1555,10 +1561,10 @@ export function generateDefaultRecurseBans() {
     return { categories: [CommandCategory.GAME, CommandCategory.ADMIN], commands: ["sell", "buy", "bitem", "bstock", "bpet", "option", "!!", "rccmd", "var", "expr", "do", "runas", "archive-channel"] }
 }
 
-export let commands: Map<string, ( CommandV2)> = new Map()
+export let commands: Map<string, (CommandV2)> = new Map()
 export let matchCommands: { [key: string]: MatchCommand } = {}
 
-export function registerCommand(name: string, command:  CommandV2, cat: CommandCategory) {
+export function registerCommand(name: string, command: CommandV2, cat: CommandCategory) {
     if (!command.category) {
         command.category = cat
     }

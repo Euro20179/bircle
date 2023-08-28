@@ -182,7 +182,7 @@ declare global {
         [key: string]: {
             description: string,
             takes_value?: boolean,
-            alternates?: string[],
+            alternatives?: string[],
             default?: string
         }
     }
