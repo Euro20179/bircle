@@ -9,7 +9,7 @@ import globals = require("./globals")
 import user_options = require("./user-options")
 import common from './common';
 import { Parser, Token, T, WebModifier, Modifier, TypingModifier, SkipModifier, getInnerPairsAndDeafultBasedOnRegex, DeleteModifier, SilentModifier, getOptsWithNegate, getOptsUnix, AliasModifier, CommandModifier } from './parsing';
-import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf } from './util';
+import { ArgList, cmdCatToStr, generateSafeEvalContextFromMessage, getContentFromResult, Options, safeEval, mimeTypeToFileExtension, isMsgChannel, isBetween, BADVALUE, generateCommandSummary, getToolIp, keysOf, valuesOf } from './util';
 
 import { parseBracketPair, getOpts } from './parsing'
 
@@ -1327,8 +1327,7 @@ export class Interpreter {
     static async handleMatchCommands(msg: Message, content: string, enableUserMatch?: boolean) {
 
         let matchCommands = getMatchCommands()
-        for (let cmd in matchCommands) {
-            let obj = matchCommands[cmd]
+        for (let obj of valuesOf(matchCommands)) {
             let match = content.match(obj.match)
             if (match?.[0]) {
                 return handleSending(msg, await obj.run({ msg, match }))
