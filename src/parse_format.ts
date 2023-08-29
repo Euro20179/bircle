@@ -12,11 +12,11 @@ export default {
     ["parse_%"]: async (_token, _char, args, int) => {
         let data = int.getPipeData()
         if (data) {
-            if(!args.length)
+            if (!args.length)
                 return getContentFromResult(int.getPipeData() as CommandReturn)
-            else if(args[0] === "?")
+            else if (args[0] === "?")
                 return data.status
-            else if(args[0] === "raw")
+            else if (args[0] === "raw")
                 return JSON.stringify(data)
             else {
                 return `{%|${args.join("|")}}`
@@ -173,14 +173,14 @@ export default {
             "N!": `${(() => {
 
                 let ch = int.getMessage().channel
-                if(ch.type === ChannelType.GuildText)
+                if (ch.type === ChannelType.GuildText)
                     return ch.nsfw
                 return "IsNotText"
             })()}`,
             "n": `${(() => {
                 let ch = int.getMessage().channel
-                if(ch.type !== ChannelType.DM)
-                    return ch.name 
+                if (ch.type !== ChannelType.DM)
+                    return ch.name
                 return "IsDM"
             })()}`,
             "c": `${int.getMessage().channel.createdAt}`

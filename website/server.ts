@@ -738,14 +738,14 @@ wsServer.on("connection", function(ws, req) {
                 }).then(user =>
                     _run(ws, cmd, user, inChannel, (rv) => {
                         ws.send(JSON.stringify(rv))
-                        ws.close()
+                        ws.close(1000)
                     }, err => console.log(err))
                 )
             }
             else {
                 _run(ws, cmd, common.client.user as User, inChannel, rv => {
                     ws.send(JSON.stringify(rv))
-                    ws.close()
+                    ws.close(1000)
                 }, err => {
                     console.log(err)
                 })
