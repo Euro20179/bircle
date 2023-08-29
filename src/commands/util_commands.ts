@@ -1,4 +1,5 @@
 import fs from 'fs'
+import vm from 'vm'
 import https from 'https'
 import cheerio from 'cheerio'
 
@@ -1558,7 +1559,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "calcl", ccmdV2(async function({ msg, rawArgs: args}) {
+        "calcl", ccmdV2(async function({ msg, rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
             let dollarSign = opts['sign'] || ""
@@ -1645,7 +1646,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     })]
 
     yield [
-        "calcam", ccmdV2(async function({ rawArgs: args}) {
+        "calcam", ccmdV2(async function({ rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
             let [moneyStr, ...reqAmount] = args
@@ -1770,7 +1771,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "periodic-table", ccmdV2(async function({rawArgs: args}) {
+        "periodic-table", ccmdV2(async function({ rawArgs: args }) {
             let opts;
             [opts, args] = getOpts(args)
 
@@ -2477,6 +2478,64 @@ The order these are given does not matter, excpet for field, which will be added
         const cmd = spawnSync("qalc", ["-t"].concat(argList))
         return { content: cmd.stdout.toString("utf-8"), status: StatusCode.RETURN }
     }, CommandCategory.UTIL, "Fancy calculator")]
+
+    yield [
+        "pyjs", ccmdV2(async function({ msg, args }) {
+            let text = args.join(" ")
+            let context: { [key: string]: any } = {}
+            while (text) {
+                let lang = text.trim().startsWith("js") ? "javascript" : "python"
+                let code = parseBracketPair(text, "{}")
+                text = text.slice(text.indexOf("{") + code.length + 2)
+                let resultKey = 'SAFE_EVAL_' + Math.floor(Math.random() * 1000000)
+                context[resultKey] = {}
+                if (lang === "javascript") {
+                    context["Buffer"] = Buffer
+                    let clearContext = `
+            Function = undefined;
+            require = undefined;
+            WebAssembly.constructor = undefined;
+            fetch = undefined;
+            `
+                    //let clearContext = 'Function = undefined;'
+                    code = clearContext + resultKey + '=' + code
+                    vm.runInNewContext(code, context, {})
+                }
+                else {
+                    code = `math = __import__("math")
+random = __import__("random")
+if(hasattr(random, "_os")):
+    del random._os
+if(hasattr(random, "os")):
+    del random.os
+__import__ = None
+
+null = None
+context = ${JSON.stringify(context)}
+for key in context:
+    globals()[key] = context[key]
+del context
+eval("""${code.trim()}""")
+import json
+print(json.dumps({k: v for k, v in filter(lambda x: isinstance(x[1], str | int | float | list | dict), globals().items())}))`
+                    let moreDat = spawnSync("python3", ["-c", code], {
+                        timeout: 3000
+                    })
+                    let sendText = ""
+                    if (moreDat.stderr.toString("utf-8")) {
+                        sendText += moreDat.stderr.toString("utf-8").trim() + '\n'
+                    }
+                    if (moreDat.stdout.toString("utf-8")) {
+                        sendText += moreDat.stdout.toString("utf-8").trim()
+                    }
+                    context = JSON.parse(sendText)
+                }
+            }
+            return crv(String(context["rv"]) ?? "You must set the rv variable to the result")
+        }, "Write js/python code", {
+            docs: "All variables are accessible between languages<br>the final result of your code should be in the <code>rv</code> variable<br>Example<br><code>js { x = 3 } python { (rv := x * 10) }</code>"
+        })
+    ]
 
     yield [
         "calc", ccmdV2(async function({ rawArgs: args, msg }) {
