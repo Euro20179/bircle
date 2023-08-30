@@ -671,7 +671,7 @@ export async function cmd({
     PIDS.delete(PID)
 
     return {
-        rv: rv,
+        rv: rv || {noSend: true, status: StatusCode.RETURN},
         interpreter: int
     }
 }
