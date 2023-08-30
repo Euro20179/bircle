@@ -7,7 +7,8 @@ import { Routes } from "discord-api-types/v9"
 
 import pet from './src/pets'
 
-require("./src/commands/commands").init()
+import commands from './src/commands/commands'
+commands()
 
 import { slashCmds } from "./src/slashCommands"
 
@@ -36,17 +37,19 @@ init.init(() => console.log("\x1b[33mINITLIZED\x1b[0m"))
 const rest = new REST({ version: "10" }).setToken(globals.getConfigValue("secrets.token"));
 
 async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
-    if (!isMsgChannel(msg.channel)) return {rv: {noSend: true, status: StatusCode.RETURN}, interpreter: undefined}
-        let rv;
+    if (!isMsgChannel(msg.channel)) return { rv: { noSend: true, status: StatusCode.RETURN }, interpreter: undefined }
+    let rv;
     try {
-        rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs})
+        rv = await command_commons.cmd({ msg: msg, command_excluding_prefix: cmd, programArgs })
     }
     catch (err) {
         console.error(err)
-        await msg.channel.send({ content: `Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\`` })
+        await command_commons.handleSending(
+            msg, command_commons.crv(`Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\``, { status: StatusCode.ERR })
+        )
     }
     globals.writeCmdUse()
-    return rv || {rv: {noSend: true, status: StatusCode.RETURN}, interpreter: undefined}
+    return rv || { rv: { noSend: true, status: StatusCode.RETURN }, interpreter: undefined }
 }
 
 Message.prototype.execCommand = async function(local_prefix: string) {
@@ -62,7 +65,7 @@ defer(() => {
         { body: slashCmds },
     ).then(
         _res => console.log("Successfully reloaded application (/) commands.")
-    ).catch(console.log)
+    ).catch(console.error)
 })
 
 common.client.on(Events.GuildMemberAdd, async (member) => {
@@ -72,7 +75,7 @@ common.client.on(Events.GuildMemberAdd, async (member) => {
             member.roles.add(role)
     }
     catch (err) {
-        console.log(err)
+        console.error(err)
     }
 })
 

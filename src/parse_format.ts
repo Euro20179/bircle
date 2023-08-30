@@ -171,7 +171,6 @@ export default {
         return format(args.join("|"), {
             "i": `${int.getMessage().channel.id}`,
             "N!": `${(() => {
-
                 let ch = int.getMessage().channel
                 if (ch.type === ChannelType.GuildText)
                     return ch.nsfw
