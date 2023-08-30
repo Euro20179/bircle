@@ -79,7 +79,7 @@ function createFakeMessage(author: User, channel: DMChannel | TextChannel, conte
         thread: null,
         tts: false,
         type: MessageType.Default,
-        url: "http://localhost:8222/",
+        url: "http://0.0.0.0",
         webhookId: null,
         bulkDeletable: false,
         roleSubscriptionData: null,
@@ -234,9 +234,9 @@ export class PagedEmbed {
                 }
             }
             else {
-                let cb = this.button_data[int.customId.split(":")[0]]
-                if (cb) {
-                    cb.cb?.bind(this)(int as ButtonInteraction, m)
+                let bd = this.button_data[int.customId.split(":")[0]]
+                if (bd) {
+                    bd.cb?.bind(this)(int as ButtonInteraction, m)
                 }
             }
 
@@ -246,7 +246,7 @@ export class PagedEmbed {
             }
             catch (err) {
                 //interaction agknowledged
-                console.log(err)
+                console.error(err)
             }
         })
     }

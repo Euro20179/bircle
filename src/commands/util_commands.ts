@@ -448,7 +448,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             n: createHelpOption("Sort numerically"),
             r: createHelpOption("Reverse sort")
         },
-        short_opts: "nr",
+        gen_opts: true
     })]
 
     yield ['school-stats', ccmdV2(async function({ msg, opts }) {
@@ -487,8 +487,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
         return { embeds: [embed], status: StatusCode.RETURN }
     }, "School stats", {
         helpOptions: {
-            of: createHelpOption("The user to get stats of")
-        }
+            of: createHelpOption("The user to get stats of", undefined, "{user}", true)
+        },
+        gen_opts: true
     })]
 
     yield ["cat", ccmdV2(async ({ msg, stdin, opts, args }) => {
