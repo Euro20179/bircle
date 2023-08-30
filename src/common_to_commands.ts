@@ -618,7 +618,7 @@ export async function cmd({
     context
 }: CmdArguments) {
 
-    let int, rv: CommandReturn | false = { noSend: true, status: StatusCode.RETURN };
+    let int, rv: CommandReturn | false | null= null;
 
     if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch)) {
         return { rv, interpreter: int }
@@ -637,6 +637,10 @@ export async function cmd({
 
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     do {
+        //if this is not here, and the user uses ;;, only the last result gets sent
+        if(rv){
+            await handleSending(msg, rv, sendCallback)
+        }
         context.export("LINENO", String(++logicalLine))
 
         let eolIdx = parser.tokens.findIndex(v => v.type === T.end_of_line)
