@@ -92,6 +92,9 @@ function prettyList(obj: Array<any>, tab = 0) {
     return text.trimStart() + `\n${"\t".repeat(tab)}]`
 }
 
+/**
+    * @description stringifies and formats a javascript objects
+*/
 function prettyJSON(obj: any, tab = 0) {
     switch (typeof obj) {
         case "object":
@@ -120,6 +123,9 @@ function getToolIp() {
 }
 
 //discord.js' isTextBased thing is absolutely useless
+/**
+    * @description checks if the channel has `channel.send`
+*/
 function isMsgChannel(channel: BaseChannel | PartialDMChannel): channel is Exclude<Channel, { type: ChannelType.GuildStageVoice }> {
     return channel.type !== ChannelType.GuildStageVoice
 }
@@ -134,6 +140,9 @@ function Enum<const T>(data: T) {
     return data
 }
 
+/**
+    * @description similar to python's str.title()
+*/
 function titleStr(str: string) {
     return str.split(" ").map(v => v[0].toUpperCase() + v.slice(1)).join(" ")
 }
@@ -145,6 +154,9 @@ async function defer(cb: Function) {
     cb()
 }
 
+/**
+    * @description as apposed to Object.entries, this function is a generator
+*/
 function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof T, string>]]> {
     for (let prop in o) {
         if (o.hasOwnProperty(prop)) {
@@ -153,6 +165,9 @@ function* entriesOf<T extends Object>(o: T): Generator<[string, T[Extract<keyof 
     }
 }
 
+/**
+    * @description as apposed to Object.values, this function is a generator
+*/
 function* valuesOf<T extends Object>(o: T): Generator<T[Extract<keyof T, string>]> {
     for (let key in o) {
         if (o.hasOwnProperty(key)) {
@@ -161,6 +176,9 @@ function* valuesOf<T extends Object>(o: T): Generator<T[Extract<keyof T, string>
     }
 }
 
+/**
+    * @description as apposed to Object.keys, this function is a generator
+*/
 function* keysOf<T extends Object>(o: T): Generator<string> {
     for (let key in o) {
         if (o.hasOwnProperty(key)) {
@@ -180,6 +198,9 @@ function mimeTypeToFileExtension(mime: MimeType) {
     }[specific] ?? "dat"
 }
 
+/**
+    * @description checks if the file path is alphanumeric + ".,-" only
+*/
 function isSafeFilePath(fp: string) {
     return !(
         fp.match(/\/?\.\.\//) ||
@@ -256,6 +277,9 @@ function getFonts() {
     return Array.from(new Set(fonts))
 }
 
+/**
+    * @description uses an array to treat a string as utf8, because javascript strings are utf-16
+*/
 class UTF8String {
     text: string[]
     constructor(text: string) {
@@ -269,6 +293,9 @@ class UTF8String {
     }
 }
 
+/**
+    * @description similar to python's enumerate() function
+*/
 function* enumerate<T>(iterable: Iterable<T>): Generator<[number, T]> {
     let i = 0
     for (let item of iterable) {
@@ -284,6 +311,9 @@ function countOf<T>(list: T[] | string, item: T): number {
     return count
 }
 
+/**
+    * @description similar to python's range() function
+*/
 function range(start: number, end: number, step: number = 1) {
     return new Proxy(function*() {
         for (let i = 0; i < end; i += step) {
@@ -407,6 +437,9 @@ const generateFileName = (cmd: string, userId: string, ext: string = "txt") => `
 
 const cmdFileName = (data: TemplateStringsArray, ...template: string[]) => generateFileName(data[0]?.trim() ?? "CMD", template[0] ?? String(Math.random()), data[1]?.trim())
 
+/**
+    * @description escapes all special characters in a regex
+*/
 function escapeRegex(str: string) {
     let finalString = ""
     let escaped = false
@@ -1200,6 +1233,7 @@ export {
     titleStr,
     romanToBase10,
     countOf,
-    prettyJSON
+    prettyJSON,
+    escapeRegex
 }
 
