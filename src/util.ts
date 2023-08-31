@@ -115,8 +115,6 @@ function prettyJSON(obj: any, tab = 0) {
     }
 }
 
-console.log(prettyJSON({ "hi": "yes", "ok": [1, 2, 3], "more-objs": {"yes": "no"}, "excellent": 3 }))
-
 function getToolIp() {
     return getConfigValue("secrets.twin-bot-ip")
 }
