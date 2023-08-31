@@ -16,7 +16,7 @@ import command_commons, { Interpreter, StatusCode } from './src/common_to_comman
 
 import globals = require("./src/globals")
 import { defer, isMsgChannel } from "./src/util"
-import { Parser, format } from './src/parsing'
+import { Parser, format, getOptsUnix } from './src/parsing'
 import { getOpt } from "./src/user-options"
 import common from './src/common'
 import timer from './src/timer'
@@ -47,11 +47,14 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         await command_commons.handleSending(
             msg, command_commons.crv(`Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\``, { status: StatusCode.ERR })
         )
-        return {rv: {noSend: true, status: 0}, interpreter: undefined}
+        return { rv: { noSend: true, status: 0 }, interpreter: undefined }
     }
     globals.writeCmdUse()
     return rv
 }
+
+const PROCESS_OPTS = getOptsUnix(process.argv.slice(2), "", [["headless"]])
+const HEADLESS = PROCESS_OPTS[0]['headless']
 
 Message.prototype.execCommand = async function(local_prefix: string) {
     let c = this.content.slice(local_prefix.length)
@@ -82,17 +85,19 @@ common.client.on(Events.GuildMemberAdd, async (member) => {
 
 common.client.on(Events.ClientReady, async () => {
     economy.loadEconomy()
-    defer(() => {
-        for (let v in user_options.USER_OPTIONS) {
-            if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
-                common.client.users.fetch(v).then((u) => {
-                    u.createDM().then((channel) => {
-                        channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
-                    })
-                }).catch(console.log)
+    if (!HEADLESS) {
+        defer(() => {
+            for (let v in user_options.USER_OPTIONS) {
+                if (user_options.getOpt(v, "dm-when-online", "false") !== "false") {
+                    common.client.users.fetch(v).then((u) => {
+                        u.createDM().then((channel) => {
+                            channel.send(user_options.getOpt(v, "dm-when-online", "ONLINE")).catch(console.log)
+                        })
+                    }).catch(console.log)
+                }
             }
-        }
-    })
+        })
+    }
     console.log("ONLINE")
 })
 
@@ -137,7 +142,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
 
     let local_prefix = m.author.getBOpt("prefix", globals.PREFIX)
 
-    if (!m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
+    if (!HEADLESS && !m.author.bot && (m.mentions.members?.size || 0) > 0 && getOpt(m.author.id, "no-pingresponse", "false") === "false") {
         for (let i = 0; i < (m.mentions.members?.size || 0); i++) {
             let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id as string, "pingresponse", null)
             if (pingresponse) {
@@ -152,7 +157,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
         }
     }
 
-    if (m.content === `<@${common.client.user?.id}>`) {
+    if (!HEADLESS && m.content === `<@${common.client.user?.id}>`) {
         await command_commons.handleSending(m, { content: `The prefix is: ${local_prefix}`, status: 0 })
     }
 
@@ -192,7 +197,7 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
 
         if (ap == 'puffle') {
             let stuff = await pet.PETACTIONS['puffle'](m)
-            if (stuff) {
+            if (!HEADLESS && stuff) {
                 let findMessage = user_options.getOpt(m.author.id, "puffle-find", "{user}'s {name} found: {stuff}")
                 await command_commons.handleSending(m, { content: format(findMessage, { user: `<@${m.author.id}>`, name: pet.hasPet(m.author.id, ap)?.name, stuff: stuff.money ? `${user_options.getOpt(m.author.id, "currency-sign", common.GLOBAL_CURRENCY_SIGN)}${stuff.money}` : stuff.items.join(", ") }), status: command_commons.StatusCode.INFO, recurse: command_commons.generateDefaultRecurseBans() })
             }
@@ -200,27 +205,29 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
 
     }
 
-    let att = m.attachments.at(0)
-    if (att?.name?.endsWith(".bircle")) {
-        let res = await fetch(att.url)
-        m.attachments.delete(m.attachments.keyAt(0) as string)
+    if (!HEADLESS) {
+        let att = m.attachments.at(0)
+        if (att?.name?.endsWith(".bircle")) {
+            let res = await fetch(att.url)
+            m.attachments.delete(m.attachments.keyAt(0) as string)
 
-        let p = new Parser(m, m.content)
-        await p.parse()
-        let int = new Interpreter(m, p.tokens, {
-            modifiers: p.modifiers,
-            recursion: 0
-        })
-        await int.interprate()
+            let p = new Parser(m, m.content)
+            await p.parse()
+            let int = new Interpreter(m, p.tokens, {
+                modifiers: p.modifiers,
+                recursion: 0
+            })
+            await int.interprate()
 
-        await command_commons.handleSending(m, (await execCommand(m, await res.text(), int.args)).rv)
-    }
+            await command_commons.handleSending(m, (await execCommand(m, await res.text(), int.args)).rv)
+        }
 
-    if (command_commons.isCmd(content, local_prefix)) {
-        await command_commons.handleSending(m, (await m.execCommand(local_prefix)).rv)
-    }
-    else {
-        await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
+        if (command_commons.isCmd(content, local_prefix)) {
+            await command_commons.handleSending(m, (await m.execCommand(local_prefix)).rv)
+        }
+        else {
+            await command_commons.Interpreter.handleMatchCommands(m, m.content, true)
+        }
     }
 })
 
