@@ -160,7 +160,9 @@ export function getConfigValue(path: string){
     let items =  path.split(".")
     for(let i = 0; i < items.length; i++){
         WORKING_OBJ = WORKING_OBJ?.[items[i] as keyof typeof WORKING_OBJ]
-        if(WORKING_OBJ === undefined) throw new Error(`${path} is not a valid config item`)
+        if(WORKING_OBJ === undefined) {
+            return false
+        }
     }
     return WORKING_OBJ
 }

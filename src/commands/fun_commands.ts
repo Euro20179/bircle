@@ -38,8 +38,10 @@ import { shuffle } from 'lodash';
 import userOptions from '../user-options';
 
 let CHAT_LL: undefined | LLModel
-if (globals.DEVBOT)
-    loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll).catch(console.error)
+if(globals.getConfigValue("general.enable-chat")){
+    if (globals.DEVBOT)
+        loadModel("nous-hermes-13b.ggmlv3.q4_0.bin").then((ll) => CHAT_LL = ll).catch(console.error)
+}
 
 export default function*(): Generator<[string, CommandV2]> {
 
@@ -288,32 +290,32 @@ export default function*(): Generator<[string, CommandV2]> {
         f: createHelpOption("Fetch user based on your current guild instead of the bot's known users (only works in servers)")
     })]
 
-    // yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
-    //     if (!globals.DEVBOT) {
-    //         return crv("This command is only available on devbot", { status: StatusCode.ERR })
-    //     }
-    //     if (!CHAT_LL) {
-    //         return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
-    //     }
-    //     let messages: PromptMessage[] = []
-    //
-    //     let sysMsg = opts.getString("sys-msg", null)
-    //     if (sysMsg) messages.push({ role: "system", content: sysMsg })
-    //
-    //     let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
-    //
-    //     messages.push({ role: "user", content: content })
-    //
-    //     createCompletion(CHAT_LL, messages, {
-    //         hasDefaultHeader: false,
-    //     }).then(response => {
-    //         handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
-    //     }).catch(error => {
-    //         handleSending(msg, crv(error.toString())).catch(console.error)
-    //     })
-    //
-    //     return { noSend: true, status: StatusCode.RETURN }
-    // }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
+    yield ["chat", createCommandV2(async ({ msg, opts, args }) => {
+        if (!globals.getConfigValue("general.enable-chat")) {
+            return crv("This command is not enabled", { status: StatusCode.ERR })
+        }
+        if (!CHAT_LL) {
+            return crv("The chat language model has not  loaded yet", { status: StatusCode.ERR })
+        }
+        let messages: PromptMessage[] = []
+
+        let sysMsg = opts.getString("sys-msg", null)
+        if (sysMsg) messages.push({ role: "system", content: sysMsg })
+
+        let content = opts.getBool("no-fmt", false) ? args.join(" ") : `### Instruction:\n${args.join(" ")}\n### Response:\n`
+
+        messages.push({ role: "user", content: content })
+
+        createCompletion(CHAT_LL, messages, {
+            hasDefaultHeader: false,
+        }).then(response => {
+            handleSending(msg, crv(response.choices[0].message.content, { reply: true })).catch(console.error)
+        }).catch(error => {
+            handleSending(msg, crv(error.toString())).catch(console.error)
+        })
+
+        return { noSend: true, status: StatusCode.RETURN }
+    }, CommandCategory.FUN, "Use the openai chatbot", undefined, undefined, undefined, undefined, true)]
 
     yield ["mail", ccmdV2(async ({ msg, args: argList, recursionCount, commandBans }) => {
         if (user_options.getOpt(msg.author.id, "enable-mail", "false").toLowerCase() !== "true") {

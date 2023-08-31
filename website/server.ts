@@ -639,7 +639,7 @@ server.on("request", (req, res) => {
         return handleGet(req, res)
     }
 })
-function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string, handleReturn: (rv: { interpreter: Interpreter | undefined, rv: CommandReturn }) => any, handleError: (err: any) => any) {
+function _run(ws: ws.WebSocket, command: string, author: User, inChannel: string, handleReturn: (rv: { interpreter?: Interpreter, rv: CommandReturn }) => any, handleError: (err: any) => any) {
     common.client.channels.fetch(inChannel).then((channel) => {
         if (!channel || channel.type !== ChannelType.GuildText) {
             handleError("Channel not found")
