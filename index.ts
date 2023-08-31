@@ -47,9 +47,10 @@ async function execCommand(msg: Message, cmd: string, programArgs?: string[]) {
         await command_commons.handleSending(
             msg, command_commons.crv(`Command failure: **${cmd}**\n\`\`\`${command_commons.censor_error(err as Error)}\`\`\``, { status: StatusCode.ERR })
         )
+        return {rv: {noSend: true, status: 0}, interpreter: undefined}
     }
     globals.writeCmdUse()
-    return rv || { rv: { noSend: true, status: StatusCode.RETURN }, interpreter: undefined }
+    return rv
 }
 
 Message.prototype.execCommand = async function(local_prefix: string) {

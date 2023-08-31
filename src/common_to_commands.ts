@@ -621,7 +621,7 @@ export async function cmd({
     let int, rv: CommandReturn | false | null= null;
 
     if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch)) {
-        return { rv, interpreter: int }
+        return { rv: rv || {noSend: true, status: StatusCode.RETURN}, interpreter: int }
     }
 
     let parser = new Parser(msg, command_excluding_prefix)
@@ -673,7 +673,7 @@ export async function cmd({
     return {
         rv: rv || {noSend: true, status: StatusCode.RETURN},
         interpreter: int
-    }
+    } as {rv: CommandReturn, interpreter?: Interpreter}
 }
 
 
