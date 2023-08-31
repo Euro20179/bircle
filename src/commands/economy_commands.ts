@@ -1029,6 +1029,9 @@ export default function*(): Generator<[string, CommandV2]> {
             if (user.user.bot) {
                 return { content: "Looks like ur taxing a fake person", status: StatusCode.ERR }
             }
+            if(!economy.getEconomy()[user.id]){
+                return crv("This person is not currently in the economy", {status: StatusCode.ERR})
+            }
             let ct = economy.canTax(user.id)
             if (hasItem(user.id, "tax evasion")) {
                 ct = economy.canTax(user.id, getInventory()[user.id]['tax evasion'] * 60)
