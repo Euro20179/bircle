@@ -1,0 +1,13 @@
+{
+    "entryPoints": [
+        "index.ts",
+        "src/init.ts",
+        "website/server.ts",
+        "src/util.ts",
+        "src/common_to_commands.ts",
+        "src/globals.ts",
+        "src/common.ts",
+        "src/parsing.ts"
+    ],
+    "out": "docs"
+}

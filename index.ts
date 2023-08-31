@@ -12,10 +12,10 @@ commands()
 
 import { slashCmds } from "./src/slashCommands"
 
-import command_commons, { Interpreter, StatusCode } from './src/common_to_commands'
+import command_commons, { Interpreter, StatusCode, handleSending } from './src/common_to_commands'
 
 import globals = require("./src/globals")
-import { defer, isMsgChannel } from "./src/util"
+import { defer, isMsgChannel, getContentFromResult } from "./src/util"
 import { Parser, format, getOptsUnix } from './src/parsing'
 import { getOpt } from "./src/user-options"
 import common from './src/common'
@@ -147,12 +147,15 @@ common.client.on(Events.MessageCreate, async (m: Message) => {
             let pingresponse = user_options.getOpt(m.mentions.members?.at(i)?.user.id as string, "pingresponse", null)
             if (pingresponse) {
                 pingresponse = pingresponse.replaceAll("{pinger}", `<@${m.author.id}>`)
-                if (command_commons.isCmd(pingresponse, globals.PREFIX)) {
-                    await command_commons.cmd({ msg: m, command_excluding_prefix: pingresponse.slice(globals.PREFIX.length), disable: command_commons.generateDefaultRecurseBans() })
-                }
-                else {
-                    m.channel.send(pingresponse)
-                }
+                command_commons.isCmd(pingresponse, globals.PREFIX)
+                    ? await handleSending(m,
+                        (await command_commons.cmd({
+                            msg: m,
+                            command_excluding_prefix: pingresponse.slice(globals.PREFIX.length),
+                            disable: command_commons.generateDefaultRecurseBans()
+                        })).rv
+                    )
+                    : m.channel.send(pingresponse)
             }
         }
     }
