@@ -10,6 +10,7 @@ REDDIT
 data/*.key
 
 
+
 ###############
 #   BOT DAT   #
 ###############
@@ -31,6 +32,18 @@ petinventory.json
 user-options.json
 timers.json
 vars
+
+data/custom-endpoints
+data/achievements.json
+data/custom-endpoints.json
+data/match-commands
+data/travel.json
+
+database
+
+website/server.d.ts
+
+
 
 ###############
 #   CONFIGS   #
@@ -67,6 +80,12 @@ out
 *.bircle
 tags
 garbage-files/*
+*.html
+TODO
+history
+yarn.lock
+CONFIG.json
+economy-old.json
 
 ###############
 #   INCLUDE   #
