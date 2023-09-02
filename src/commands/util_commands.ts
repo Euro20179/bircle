@@ -834,6 +834,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (Number(range)) {
                     return [Number(range)]
                 }
+                else if(range === ".") {
+                    return [currentLine]
+                }
                 else if (range === "$") {
                     return [text.length]
                 }
