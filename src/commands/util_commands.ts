@@ -166,6 +166,9 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 if (translateTo !== BADVALUE) {
                     to = translateTo.toLowerCase()
                 }
+                else {
+                    args.back()
+                }
                 text = args.expectString(truthy)
             }
             if (msg.reference) {
