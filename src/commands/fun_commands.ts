@@ -34,7 +34,7 @@ import achievements from '../achievements';
 import htmlRenderer from '../html-renderer';
 import { slashCmds } from '../slashCommands';
 import amountParser from '../amount-parser';
-import { shuffle } from 'lodash';
+import { isNaN, shuffle } from 'lodash';
 import userOptions from '../user-options';
 
 let CHAT_LL: undefined | LLModel
@@ -2085,6 +2085,9 @@ Valid formats:
                     let red = Math.round(255 * (downPercent / 100))
                     let green = Math.round(255 * (upPercent / 100))
                     let blue = 0
+
+                    if(isNaN(red)) red = 255
+                    if(isNaN(green)) green = 255
 
                     let color = rgbToHex(red, green, blue)
 
