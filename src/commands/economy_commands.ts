@@ -808,6 +808,7 @@ export default function*(): Generator<[string, CommandV2]> {
             }
             if (canWork) {
                 let amount = economy.work(msg.author.id)
+                vars.setVarEasy("%:!w", `${amount}`, msg.author.id)
                 return { content: `You earned: ${currency_sign}${amount}`, status: StatusCode.RETURN }
             }
             return { content: "No working for you bubs", status: StatusCode.ERR }
