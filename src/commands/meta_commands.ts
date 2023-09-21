@@ -1572,7 +1572,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 return { content: "Cannot run do, spam, or run", status: StatusCode.ERR }
             }
             while (!interpreter.killed && times--) {
-                await cmd({ msg, command_excluding_prefix: format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), recursion: globals.RECURSION_LIMIT, disable: bans, sendCallback })
+                let rv = await cmd({ msg, command_excluding_prefix: format(cmdArgs, { "number": String(totalTimes - times), "rnumber": String(times + 1) }), recursion: globals.RECURSION_LIMIT, disable: bans, sendCallback })
+                await handleSending(msg, rv.rv, sendCallback)
                 await new Promise(res => setTimeout(res, Math.random() * 1000 + 200))
             }
             return {
