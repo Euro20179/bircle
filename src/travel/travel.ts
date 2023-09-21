@@ -76,20 +76,22 @@ class Country {
 
         await sleep(900)
 
-        await handleSending(msg, crv(`Please choose an activity :grin:\n${activitiesText}`, { status: StatusCode.PROMPT }))
-        let msgs: Collection<string, Message<boolean>> = new Collection()
+        let msgs: Message | false;
         if (msg.channel.type !== ChannelType.GuildStageVoice) {
-            msgs = await msg.channel.awaitMessages({
-                filter: m => {
-                    return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && Number(m.content) in range(0, this.activityNameList.length + 1))
-                }, max: 1, time: 60000
+            msgs = await promptUser(msg, `Please choose an activity :grin:\n${activitiesText}`, undefined, {
+                timeout: 60000, filter: m => {
+                    return this.activityNameList.includes(m.content.toLowerCase()) || (!isNaN(Number(m.content)) && isBetween(0, Number(m.content), this.activityNameList.length + 1))
+                }
             })
         }
-        if (msgs.size < 1) {
+        else {
+            return crv("Bad channel", {status: StatusCode.ERR})
+        }
+        if (!msgs) {
             return crv("You did not chose an activity in time", { status: StatusCode.ERR })
         }
 
-        let activityOfChoice = msgs.at(0)?.content.toLowerCase() as string
+        let activityOfChoice = msgs.content.toLowerCase()
 
         let activity = this.activities.get(activityOfChoice) || Array.from(this.activities.values())[Number(activityOfChoice) - 1]
 
@@ -445,7 +447,7 @@ class UnitedStates extends Country {
     }
 
     async go({ msg }: CommandV2RunArg): Promise<CommandReturn> {
-        if(hasItem(msg.author.id, "hammer and sickle")){
+        if (hasItem(msg.author.id, "hammer and sickle")) {
             useItem(msg.author.id, "hammer and sickle")
             let amount = economy.calculateAmountFromNetWorth(msg.author.id, "5%")
             economy.addMoney(msg.author.id, amount)

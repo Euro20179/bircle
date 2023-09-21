@@ -214,6 +214,19 @@ export default function*(): Generator<[string, CommandV2]> {
     ]
 
     yield [
+        "DELETE_TIMER", ccmdV2(async function({msg, args}){
+            let timerToReset = args[0]
+            if(!timerToReset){
+                return crv("No timer to reset given", {status: StatusCode.ERR})
+            }
+            timer.deleteTimer(msg.author.id, timerToReset)
+            return crv(`Reset timer: ${timerToReset}`)
+        }, "Resets your travel timer", {
+            permCheck: m => ADMINS.includes(m.author.id)
+        })
+    ]
+
+    yield [
         "GIVE_ITEM", ccmdV2(async function({ msg, args, opts }) {
             if (!msg.guild) return crv("Must be run in a guild", { status: StatusCode.ERR })
             let player = await fetchUser(msg.guild, args[0])
