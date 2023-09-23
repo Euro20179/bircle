@@ -1051,7 +1051,7 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
     ]
 
     yield [
-        "if-cmd", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans }) => {
+        "if-cmd", createCommandV2(async ({ msg, args, recursionCount: rec, commandBans: bans, sendCallback }) => {
 
             async function runIf(c: string, operator: string, value: string) {
                 let rv = (await cmd({ msg, command_excluding_prefix: c, recursion: rec + 1, disable: bans })).rv as CommandReturn
@@ -1175,7 +1175,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for (let line of trueBlock.split(";\n")) {
                     line = line.trim()
                     if (!line || line.startsWith("}")) continue
-                    await cmd({ msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans })
+                    let rv = await cmd({ msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans })
+                    await handleSending(msg, rv.rv, sendCallback)
                 }
                 return { noSend: true, status: StatusCode.RETURN }
             }
@@ -1184,7 +1185,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                 for (let elif of elifBlocks) {
                     if (await runIf(elif.cmd, elif.operator, elif.value)) {
                         if (!elif.block.trim() || elif.block.trim().startsWith("}")) continue
-                        await cmd({ msg, command_excluding_prefix: elif.block.trim(), recursion: rec + 1, disable: bans })
+                        let rv = await cmd({ msg, command_excluding_prefix: elif.block.trim(), recursion: rec + 1, disable: bans })
+                        await handleSending(msg, rv.rv, sendCallback)
                         foundElse = true
                         break;
                     }
@@ -1193,7 +1195,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
                     for (let line of falseBlock.split(";\n")) {
                         line = line.trim()
                         if (!line || line.startsWith("}")) continue
-                        await cmd({ msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans })
+                        let rv = await cmd({ msg, command_excluding_prefix: line, recursion: rec + 1, disable: bans })
+                        await handleSending(msg, rv.rv, sendCallback)
                     }
                 }
                 return { noSend: true, status: StatusCode.RETURN }
@@ -2310,7 +2313,7 @@ ${styles}
     ]
 
     yield [
-        "WHITELIST", ccmdV2(async function({ msg, args}) {
+        "WHITELIST", ccmdV2(async function({ msg, args }) {
             let user: string | undefined = args[0]
             if (!user) {
                 return {
