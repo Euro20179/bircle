@@ -417,7 +417,7 @@ function _apiSubPath(_req: http.IncomingMessage, res: http.ServerResponse, subPa
                 html += generateHTMLFromCommandHelp(name, command as CommandV2 | CommandV2).replace(`>${name}</h1>`, `>${name} ${resultPriority}</h1>`)
             }
             html += ""
-            res.writeHead(200, { "Content-Type": "text/html" })
+            res.writeHead(200, { "Content-Type": "text/html", "Access-Control-Allow-Origin": "*"})
             res.end(html)
             break;
         }
