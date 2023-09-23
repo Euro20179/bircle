@@ -847,7 +847,8 @@ export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
             outer: for (let i = start; i < end; i++) {
                 vars.setVarEasy(`%:${var_name}`, String(i), msg.author.id)
                 for (let line of scriptLines) {
-                    await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
+                    let rv = await cmd({ msg, command_excluding_prefix: line, recursion: recursionCount + 1, disable: commandBans, sendCallback })
+                    await handleSending(msg, rv.rv, sendCallback)
                     await new Promise(res => setTimeout(res, 1000))
                     if (interpreter.killed) {
                         break outer

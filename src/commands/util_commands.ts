@@ -28,6 +28,7 @@ import units from '../units'
 import amountParser from '../amount-parser'
 
 import translate from '@iamtraction/google-translate'
+import { attach } from 'neovim'
 
 const langs = {
     auto: 'Automatic',
@@ -140,6 +141,27 @@ const langCodes = Object.fromEntries(Object.entries(langs).map(v => [v[0], v[1]]
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
+
+    yield [
+        "vim", ccmdV2(async function({msg, args, opts}){
+            const nvim_proc = spawn("nvim", ["-u", "NONE", "-N", "--embed"], {})
+            const nvim = attach({proc: nvim_proc})
+            try {
+                await nvim.command(`redir => var | sandbox ${args.join(" ")} | redir END`)
+            }
+            catch(err){
+                return {content: `${err}`, status: StatusCode.ERR}
+            }
+            let res = await nvim.getVar("var")
+            try{
+                nvim_proc.kill()
+            }
+            catch(err){
+                console.error("Could not kill nvim")
+            }
+            return crv(res.toString())
+        }, "vim")
+    ]
 
     yield [
         "roman-numerals", ccmdV2(async function({ args, opts }) {
