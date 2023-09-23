@@ -3,6 +3,8 @@ import cheerio from 'cheerio'
 
 import { LemmyHttp, ListingType } from 'lemmy-js-client'
 
+import { cloneDeep } from 'lodash'
+
 import lemmy from 'lemmy-js-client'
 
 import { ColorResolvable, DMChannel, Guild, GuildMember, Message, ActionRowBuilder, ButtonBuilder, EmbedBuilder, User, StringSelectMenuBuilder, ChannelType, ButtonStyle, ComponentType, Embed, CacheType, ButtonInteraction } from "discord.js";

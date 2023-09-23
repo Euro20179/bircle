@@ -1099,6 +1099,7 @@ export class Interpreter {
                 !isMsgChannel(this.#msg.channel)
 
             ) {
+                rv = {content: "This command cannot be run in this context", status: StatusCode.ERR}
                 break runnerIf;
             }
 
