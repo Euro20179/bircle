@@ -2747,7 +2747,8 @@ aruments: ${cmd.help?.arguments ? Object.keys(cmd.help.arguments).join(", ") : "
                     return
                 }
 
-                await cmd({ msg: m, command_excluding_prefix: m.content, recursion: recursionCount + 1, disable: commandBans, sendCallback })
+                let rv = await cmd({ msg: m, command_excluding_prefix: m.content, recursion: recursionCount + 1, disable: commandBans, sendCallback })
+                await handleSending(msg, rv.rv, sendCallback)
             })
 
             collector.on("end", () => {
