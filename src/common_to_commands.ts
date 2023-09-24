@@ -774,6 +774,10 @@ function getOptsParserFromName(name: string) {
     }[name] ?? getOpts
 }
 
+function userCanRunCommand(msg: Message, cmd_name: string, cmdObject: CommandV2 | AliasV2){
+    return !common.WHITELIST[msg.author.id]?.includes(cmd_name) && !(cmdObject as CommandV2)?.permCheck?.(msg)
+}
+
 export class Interpreter {
     tokens: Token[]
     args: string[]
@@ -1076,7 +1080,7 @@ export class Interpreter {
         else runnerIf: {
             let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
             //make sure it passes the command's perm check if it has one
-            if (!(cmdObject instanceof AliasV2) && !common.WHITELIST[this.#msg.author.id]?.includes(cmd) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
+            if (!(cmdObject instanceof AliasV2) && userCanRunCommand(this.#msg, cmd, cmdObject)) {
                 rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
                 break runnerIf
             }
