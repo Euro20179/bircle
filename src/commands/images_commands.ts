@@ -1417,7 +1417,8 @@ If an image is not provided it will be pulled from chat, or an image you gave it
             }
             else {
                 if (color == "RANDOM") {
-                    content = randomHexColorCode()
+                    color = randomHexColorCode()
+                    content = color
                 }
                 try {
                     buffer = await sharp({
@@ -1430,6 +1431,7 @@ If an image is not provided it will be pulled from chat, or an image you gave it
                     }).png().toBuffer()
                 }
                 catch (err) {
+                    console.error(err)
                     return { content: "error making color", status: StatusCode.ERR }
                 }
             }
