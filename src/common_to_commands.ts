@@ -756,6 +756,15 @@ function getModifiersFromCmd(cmd: string) {
     return [modifiers, cmd] as const
 
 }
+async function runBircleFile(msg: Message, cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
+    let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
+    return (await cmd({
+        msg: msg,
+        command_excluding_prefix: data,
+        programArgs: args,
+    })).rv
+}
+
 
 export class Interpreter {
     tokens: Token[]
@@ -1007,15 +1016,6 @@ export class Interpreter {
         return this.modifiers.filter(v => v instanceof mod).length > 0
     }
 
-    async runBircleFile(cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
-        let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
-        return (await cmd({
-            msg: this.#msg,
-            command_excluding_prefix: data,
-            programArgs: args,
-        })).rv
-    }
-
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
 
@@ -1053,7 +1053,7 @@ export class Interpreter {
         if (!cmdObject) {
             //only run the bircle file if the cmdObject doesn't exist
             if (fs.existsSync(`./src/bircle-bin/${cmd}.bircle`)) {
-                return this.runBircleFile(cmd, args)
+                return runBircleFile(this.#msg, cmd, args)
             }
 
             //We dont want to keep running commands if the command doens't exist
