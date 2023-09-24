@@ -119,7 +119,6 @@ setInterval(() => {
 }, 30000)
 
 common.client.on(Events.MessageCreate, async (m: Message) => {
-    console.log(m.member?.nickname)
     if (!isMsgChannel(m.channel)) return
     if (m.member?.roles.cache.find((v: any) => common.BLACKLISTED_ROLES()?.includes(v.id)) || common.BLACKLISTED_USERS().includes(m.author.id)) {
         return
