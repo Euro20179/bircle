@@ -1241,8 +1241,6 @@ export default function*(): Generator<[string, CommandV2]> {
                 else {
                     rv['content'] = user_options.getOpt(msg.author.id, "mail-signature", "")
                 }
-
-                //TODO: finish this
             }
             if (files.length) {
                 rv["files"] = files as unknown as CommandFile[]

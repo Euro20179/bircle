@@ -985,7 +985,7 @@ export class Interpreter {
             }
             return [new Token(T.str, text, token.argNo)]
         }
-        //TODO: %{...} spreads  args into  multiple arguments
+        //TODO: %{...} spreads args into  multiple arguments
         return []
     }
     async[T.syntax](token: Token): Promise<Token[] | false> {

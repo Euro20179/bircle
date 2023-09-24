@@ -525,6 +525,7 @@ function getInnerPairsAndDeafultBasedOnRegex(string: string, validStartsWithValu
             }
             curPair = ""
             currentOr = ""
+            buildingOr = false
             continue
         }
         else if (ch === "|" && string[i + 1] === "|") {
