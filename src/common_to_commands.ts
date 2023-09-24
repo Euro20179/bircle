@@ -766,6 +766,14 @@ async function runBircleFile(msg: Message, cmd_to_run: string, args: string[]): 
 }
 
 
+function getOptsParserFromName(name: string) {
+    return {
+        "with-negate": getOptsWithNegate,
+        unix: getOptsUnix,
+        normal: getOpts
+    }[name] ?? getOpts
+}
+
 export class Interpreter {
     tokens: Token[]
     args: string[]
@@ -1066,13 +1074,7 @@ export class Interpreter {
                 { noSend: true, status: StatusCode.ERR }
         }
         else runnerIf: {
-
-            let [opts, args2] = ({
-                "with-negate": getOptsWithNegate,
-                unix: getOptsUnix,
-                normal: getOpts
-            }[optParser] ?? getOpts)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
-
+            let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
             //make sure it passes the command's perm check if it has one
             if (!(cmdObject instanceof AliasV2) && !common.WHITELIST[this.#msg.author.id]?.includes(cmd) && cmdObject?.permCheck && !cmdObject.permCheck(this.#msg)) {
                 rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
