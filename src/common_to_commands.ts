@@ -774,7 +774,7 @@ function getOptsParserFromName(name: string) {
     }[name] ?? getOpts
 }
 
-function userCanRunCommand(msg: Message, cmd_name: string, cmdObject: CommandV2 | AliasV2){
+function userCanRunCommand(msg: Message, cmd_name: string, cmdObject: CommandV2 | AliasV2) {
     return !common.WHITELIST[msg.author.id]?.includes(cmd_name) && !(cmdObject as CommandV2)?.permCheck?.(msg)
 }
 
@@ -1061,6 +1061,7 @@ export class Interpreter {
         for (let mod of this.modifiers) {
             cmdObject = mod.modifyCmd({ cmdObject, int: this, cmdName: cmd })
         }
+        let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
 
         if (!cmdObject) {
             //only run the bircle file if the cmdObject doesn't exist
@@ -1077,97 +1078,105 @@ export class Interpreter {
                 { content: `${cmd} does not exist`, status: StatusCode.ERR } :
                 { noSend: true, status: StatusCode.ERR }
         }
-        else runnerIf: {
-            let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
-            //make sure it passes the command's perm check if it has one
-            if (!(cmdObject instanceof AliasV2) && userCanRunCommand(this.#msg, cmd, cmdObject)) {
-                rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
-                break runnerIf
-            }
-
-            if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.altClient) {
-                rv = { content: `This command cannot be run outside of discord`, status: StatusCode.ERR }
-                break runnerIf
-            }
-
-            if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(cmd)) {
-                let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
-                if (!m || m.content.toLowerCase() !== 'y') {
-                    rv = { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
-                    break runnerIf
-                }
-            }
-
-            //if any are true, the user cannot run the command
-            if (
-                //is blacklisted
-                common.BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
-                //is disabled from the caller
-                this.disable?.commands && this.disable.commands.includes(cmd) ||
-                this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
-                //is a stage channel
-                !isMsgChannel(this.#msg.channel)
-
-            ) {
-                rv = { content: "This command cannot be run in this context", status: StatusCode.ERR }
-                break runnerIf;
-            }
-
-            events.botEvents.emit(events.CmdRun, this)
-
-            if (this.#shouldType || cmdObject.make_bot_type)
-                await this.#msg.channel.sendTyping()
-
-            if (!this.context.options['no-int-cache'] && cmdObject.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
-                rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
-            }
-
-            else if (cmdObject?.cmd_std_version == 2) {
-                let argList = new ArgList(args2)
-                let argShapeResults: Record<string, any> = {}
-                let obj: CommandV2RunArg = {
-                    msg: this.#msg,
-                    rawArgs: args,
-                    args: argList,
-                    sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
-                    recursionCount: this.recursion,
-                    commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
-                    opts: new Options(opts),
-                    rawOpts: opts,
-                    argList: argList,
-                    stdin: this.#pipeData,
-                    pipeTo: this.#pipeTo,
-                    interpreter: this,
-                    argShapeResults,
-                };
-                let cmdO = cmdObject as CommandV2
-                if (cmdO.argShape) {
-                    argList.beginIter()
-                    for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
-                        if (result === BADVALUE && !optional) {
-                            rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
-                            break runnerIf;
-                        }
-                        else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
-                        else argShapeResults[type] = result
-                    }
-                }
-                rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
-            }
-            else if (cmdObject instanceof AliasV2) {
-                rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
-                this.aliasV2 = cmdObject
-            }
-            else {
-                throw new Error(`${cmd} is commandv1 which euro broke`)
-            }
-            if (cmdObject?.use_result_cache === true) {
-                Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
-            }
-            //if it is aliasV2 it will double count
-            if (!this.aliasV2)
-                globals.addToCmdUse(cmd)
+        else if (!(cmdObject instanceof AliasV2) && userCanRunCommand(this.#msg, cmd, cmdObject)) {
+            rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
         }
+        else if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.altClient) {
+            rv = { content: `This command cannot be run outside of discord`, status: StatusCode.ERR }
+        }
+        //if any are true, the user cannot run the command
+        else if (
+            //is blacklisted
+            common.BLACKLIST[this.#msg.author.id]?.includes(cmd) ||
+            //is disabled from the caller
+            this.disable?.commands && this.disable.commands.includes(cmd) ||
+            this.disable?.commands && this.disable.categories?.includes(cmdObject?.category) ||
+            //is a stage channel
+            !isMsgChannel(this.#msg.channel)
+
+        ) {
+            rv = { content: "You are blacklisted from this command, or the command has been disabled", status: StatusCode.ERR }
+        }
+        else if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(cmd)) {
+            let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
+            if (!m || m.content.toLowerCase() !== 'y') {
+                rv = { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
+                //the point of explicit is to say which command is currently being run, and which "line number" it's on
+                if (this.context.options.explicit) {
+                    if (rv.content) {
+                        rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}\n${rv.content}`
+                    }
+                    else rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}`
+                }
+
+                //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
+                if (!illegalLastCmds.includes(cmd)) {
+                    //this is for the !! command
+                    lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
+                }
+                return rv
+            }
+        }
+
+        //make sure it passes the command's perm check if it has one
+
+        events.botEvents.emit(events.CmdRun, this)
+
+        if (this.#shouldType || cmdObject.make_bot_type)
+            await this.#msg.channel.sendTyping()
+
+        if (!this.context.options['no-int-cache'] && cmdObject.use_result_cache === true && Interpreter.resultCache.get(`${cmd} ${this.args}`)) {
+            rv = Interpreter.resultCache.get(`${cmd} ${this.args}`)
+        }
+
+        else if (cmdObject?.cmd_std_version == 2) {
+            let argList = new ArgList(args2)
+            let argShapeResults: Record<string, any> = {}
+            let obj: CommandV2RunArg = {
+                msg: this.#msg,
+                rawArgs: args,
+                args: argList,
+                sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
+                recursionCount: this.recursion,
+                commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
+                opts: new Options(opts),
+                rawOpts: opts,
+                argList: argList,
+                stdin: this.#pipeData,
+                pipeTo: this.#pipeTo,
+                interpreter: this,
+                argShapeResults,
+            };
+            let cmdO = cmdObject as CommandV2
+            let argShapePass = true
+            if (cmdO.argShape) {
+                argList.beginIter()
+                for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
+                    if (result === BADVALUE && !optional) {
+                        rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
+                        argShapePass = false
+                        break;
+                    }
+                    else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
+                    else argShapeResults[type] = result
+                }
+            }
+            if(argShapePass)
+                rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+        }
+        else if (cmdObject instanceof AliasV2) {
+            rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
+            this.aliasV2 = cmdObject
+        }
+        else {
+            throw new Error(`${cmd} is commandv1 which euro broke`)
+        }
+        if (cmdObject?.use_result_cache === true) {
+            Interpreter.resultCache.set(`${cmd} ${this.args}`, rv)
+        }
+        //if it is aliasV2 it will double count
+        if (!this.aliasV2)
+            globals.addToCmdUse(cmd)
 
         //the point of explicit is to say which command is currently being run, and which "line number" it's on
         if (this.context.options.explicit) {
