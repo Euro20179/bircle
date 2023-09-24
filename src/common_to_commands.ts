@@ -1045,6 +1045,42 @@ export class Interpreter {
         return rv
     }
 
+    async runCmdV2(cmd: string, cmdObject: CommandV2, rv: CommandReturn, opts: Opts, args: string[], args2: ArgumentList) {
+        let argList = new ArgList(args2)
+        let argShapeResults: Record<string, any> = {}
+        let obj: CommandV2RunArg = {
+            msg: this.#msg,
+            rawArgs: args,
+            args: argList,
+            sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
+            recursionCount: this.recursion,
+            commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
+            opts: new Options(opts),
+            rawOpts: opts,
+            argList: argList,
+            stdin: this.#pipeData,
+            pipeTo: this.#pipeTo,
+            interpreter: this,
+            argShapeResults,
+        };
+        let cmdO = cmdObject as CommandV2
+        let argShapePass = true
+        if (cmdO.argShape) {
+            argList.beginIter()
+            for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
+                if (result === BADVALUE && !optional) {
+                    rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
+                    argShapePass = false
+                    break;
+                }
+                else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
+                else argShapeResults[type] = result
+            }
+        }
+        if (argShapePass)
+            return await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+    }
+
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
 
@@ -1138,39 +1174,7 @@ export class Interpreter {
         }
 
         else if (cmdObject?.cmd_std_version == 2) {
-            let argList = new ArgList(args2)
-            let argShapeResults: Record<string, any> = {}
-            let obj: CommandV2RunArg = {
-                msg: this.#msg,
-                rawArgs: args,
-                args: argList,
-                sendCallback: this.sendCallback ?? this.#msg.channel.send.bind(this.#msg.channel),
-                recursionCount: this.recursion,
-                commandBans: typeof rv.recurse === 'object' ? rv.recurse : undefined,
-                opts: new Options(opts),
-                rawOpts: opts,
-                argList: argList,
-                stdin: this.#pipeData,
-                pipeTo: this.#pipeTo,
-                interpreter: this,
-                argShapeResults,
-            };
-            let cmdO = cmdObject as CommandV2
-            let argShapePass = true
-            if (cmdO.argShape) {
-                argList.beginIter()
-                for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
-                    if (result === BADVALUE && !optional) {
-                        rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
-                        argShapePass = false
-                        break;
-                    }
-                    else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
-                    else argShapeResults[type] = result
-                }
-            }
-            if (argShapePass)
-                rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+            return await this.runCmdV2(cmd, cmdObject, rv, opts, args, args2)
         }
         else if (cmdObject instanceof AliasV2) {
             rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
