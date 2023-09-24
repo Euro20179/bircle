@@ -775,7 +775,7 @@ function getOptsParserFromName(name: string) {
 }
 
 function userCanRunCommand(msg: Message, cmd_name: string, cmdObject: CommandV2 | AliasV2) {
-    return !common.WHITELIST[msg.author.id]?.includes(cmd_name) && !(cmdObject as CommandV2)?.permCheck?.(msg)
+    return !common.WHITELIST[msg.author.id]?.includes(cmd_name) && ((cmdObject as CommandV2).permCheck && !(cmdObject as CommandV2)?.permCheck?.(msg))
 }
 
 export class Interpreter {
@@ -1028,6 +1028,23 @@ export class Interpreter {
         return this.modifiers.filter(v => v instanceof mod).length > 0
     }
 
+    applyFinalityToRv(cmd: string, args: string[], rv: CommandReturn) {
+        //the point of explicit is to say which command is currently being run, and which "line number" it's on
+        if (this.context.options.explicit) {
+            if (rv.content) {
+                rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}\n${rv.content}`
+            }
+            else rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}`
+        }
+
+        //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
+        if (!illegalLastCmds.includes(cmd)) {
+            //this is for the !! command
+            lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
+        }
+        return rv
+    }
+
     async run(): Promise<CommandReturn | undefined> {
         let args = await this.interprate()
 
@@ -1077,12 +1094,15 @@ export class Interpreter {
             rv = user_options.getOpt(this.#msg.author.id, "error-on-no-cmd", "true") === "true" ?
                 { content: `${cmd} does not exist`, status: StatusCode.ERR } :
                 { noSend: true, status: StatusCode.ERR }
+            return this.applyFinalityToRv(cmd, args, rv)
         }
         else if (!(cmdObject instanceof AliasV2) && userCanRunCommand(this.#msg, cmd, cmdObject)) {
             rv = { content: "You do not have permissions to run this command", status: StatusCode.ERR }
+            return this.applyFinalityToRv(cmd, args, rv)
         }
         else if (!(cmdObject instanceof AliasV2) && cmdObject.can_run_on_web === false && this.altClient) {
             rv = { content: `This command cannot be run outside of discord`, status: StatusCode.ERR }
+            return this.applyFinalityToRv(cmd, args, rv)
         }
         //if any are true, the user cannot run the command
         else if (
@@ -1101,20 +1121,7 @@ export class Interpreter {
             let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
             if (!m || m.content.toLowerCase() !== 'y') {
                 rv = { content: `Declined to run ${cmd}`, status: StatusCode.RETURN }
-                //the point of explicit is to say which command is currently being run, and which "line number" it's on
-                if (this.context.options.explicit) {
-                    if (rv.content) {
-                        rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}\n${rv.content}`
-                    }
-                    else rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}`
-                }
-
-                //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
-                if (!illegalLastCmds.includes(cmd)) {
-                    //this is for the !! command
-                    lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
-                }
-                return rv
+                return this.applyFinalityToRv(cmd, args, rv)
             }
         }
 
@@ -1161,7 +1168,7 @@ export class Interpreter {
                     else argShapeResults[type] = result
                 }
             }
-            if(argShapePass)
+            if (argShapePass)
                 rv = await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
         }
         else if (cmdObject instanceof AliasV2) {
@@ -1178,20 +1185,7 @@ export class Interpreter {
         if (!this.aliasV2)
             globals.addToCmdUse(cmd)
 
-        //the point of explicit is to say which command is currently being run, and which "line number" it's on
-        if (this.context.options.explicit) {
-            if (rv.content) {
-                rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}\n${rv.content}`
-            }
-            else rv.content = `${this.context.env.LINENO}\t${cmd} ${args.join(" ")}`
-        }
-
-        //illegalLastCmds is a list that stores commands that shouldn't be counted as last used, !!, and spam
-        if (!illegalLastCmds.includes(cmd)) {
-            //this is for the !! command
-            lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
-        }
-        return rv
+        return this.applyFinalityToRv(cmd, args, rv)
     }
 
     async interprateAsToken(token: Token, t: T) {
