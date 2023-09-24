@@ -1070,7 +1070,6 @@ export class Interpreter {
 
         let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
         let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
-
         let optParser = user_options.getOpt(this.#msg.author.id, "opts-parser", "normal")
 
         let cmdObject: CommandV2 | AliasV2 | undefined = commands.get(cmd) || getAliasesV2()[cmd]
@@ -1078,7 +1077,6 @@ export class Interpreter {
         for (let mod of this.modifiers) {
             cmdObject = mod.modifyCmd({ cmdObject, int: this, cmdName: cmd })
         }
-        let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
 
         if (!cmdObject) {
             //only run the bircle file if the cmdObject doesn't exist
@@ -1116,6 +1114,7 @@ export class Interpreter {
 
         ) {
             rv = { content: "You are blacklisted from this command, or the command has been disabled", status: StatusCode.ERR }
+            return this.applyFinalityToRv(cmd, args, rv)
         }
         else if (warn_categories.includes(cmdCatToStr(cmdObject?.category)) || (!(cmdObject instanceof AliasV2) && cmdObject?.prompt_before_run === true) || warn_cmds.includes(cmd)) {
             let m = await promptUser(this.#msg, `You are about to run the \`${cmd}\` command with args \`${this.args.join(" ")}\`\nAre you sure you want to do this **(y/n)**`)
@@ -1128,6 +1127,8 @@ export class Interpreter {
         //make sure it passes the command's perm check if it has one
 
         events.botEvents.emit(events.CmdRun, this)
+
+        let [opts, args2] = getOptsParserFromName(optParser)(args, (cmdObject as CommandV2).short_opts || "", (cmdObject as CommandV2).long_opts || []);
 
         if (this.#shouldType || cmdObject.make_bot_type)
             await this.#msg.channel.sendTyping()
