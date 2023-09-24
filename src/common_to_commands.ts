@@ -555,7 +555,7 @@ export class AliasV2 {
 
 export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
-export function clearSnipes(){
+export function clearSnipes() {
     snipes = []
 }
 export let purgeSnipe: (Message | PartialMessage)[] = [];
@@ -621,10 +621,10 @@ export async function cmd({
     context
 }: CmdArguments) {
 
-    let int, rv: CommandReturn | false | null= null;
+    let int, rv: CommandReturn | false | null = null;
 
     if (await Interpreter.handleMatchCommands(msg, command_excluding_prefix, enableUserMatch)) {
-        return { rv: rv || {noSend: true, status: StatusCode.RETURN}, interpreter: int }
+        return { rv: rv || { noSend: true, status: StatusCode.RETURN }, interpreter: int }
     }
 
     let parser = new Parser(msg, command_excluding_prefix)
@@ -641,7 +641,7 @@ export async function cmd({
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     do {
         //if this is not here, and the user uses ;;, only the last result gets sent
-        if(rv){
+        if (rv) {
             await handleSending(msg, rv, sendCallback)
         }
         context.export("LINENO", String(++logicalLine))
@@ -674,9 +674,9 @@ export async function cmd({
     PIDS.delete(PID)
 
     return {
-        rv: rv || {noSend: true, status: StatusCode.RETURN},
+        rv: rv || { noSend: true, status: StatusCode.RETURN },
         interpreter: int
-    } as {rv: CommandReturn, interpreter?: Interpreter}
+    } as { rv: CommandReturn, interpreter?: Interpreter }
 }
 
 
@@ -726,6 +726,37 @@ class InterpreterContext {
     }
 }
 
+function getModifiersFromCmd(cmd: string) {
+    const modMap = {
+        "d:": DeleteModifier,
+        "t:": TypingModifier,
+        "s:": SilentModifier,
+        "n:": SkipModifier,
+        "W:": WebModifier,
+        "a:": AliasModifier,
+        "c:": CommandModifier,
+    }
+
+    let modifiers = []
+    let foundMatch = true
+    while (foundMatch) {
+        for (let mod of keysOf(modMap)) {
+            if (!cmd.startsWith(mod)) {
+                foundMatch = false
+                continue;
+            }
+            modifiers.push(
+                new modMap[mod as keyof typeof modMap]()
+            )
+            cmd = cmd.slice(mod.length)
+            foundMatch = true
+            break;
+        }
+    }
+    return [modifiers, cmd] as const
+
+}
+
 export class Interpreter {
     tokens: Token[]
     args: string[]
@@ -760,16 +791,6 @@ export class Interpreter {
     static commandUndefined = new Object()
 
     static resultCache = new Map()
-
-    private modMap = {
-        "d:": DeleteModifier,
-        "t:": TypingModifier,
-        "s:": SilentModifier,
-        "n:": SkipModifier,
-        "W:": WebModifier,
-        "a:": AliasModifier,
-        "c:": CommandModifier,
-    }
 
     constructor(msg: Message, tokens: Token[], options: {
         modifiers?: Modifier[],
@@ -986,26 +1007,6 @@ export class Interpreter {
         return this.modifiers.filter(v => v instanceof mod).length > 0
     }
 
-    getModifiersFromCmd(cmd: string) {
-        let modifiers = []
-        let foundMatch = true
-        while (foundMatch) {
-            for (let mod of keysOf(this.modMap)) {
-                if (!cmd.startsWith(mod)) {
-                    foundMatch = false
-                    continue;
-                }
-                modifiers.push(
-                    new this.modMap[mod as keyof typeof this.modMap]()
-                )
-                cmd = cmd.slice(mod.length)
-                foundMatch = true
-                break;
-            }
-        }
-        return [modifiers, cmd] as const
-    }
-
     async runBircleFile(cmd_to_run: string, args: string[]): Promise<CommandReturn | undefined> {
         let data = fs.readFileSync(`./src/bircle-bin/${cmd_to_run}.bircle`, 'utf-8')
         return (await cmd({
@@ -1027,7 +1028,7 @@ export class Interpreter {
 
         let cmd = args[0];
 
-        [this.modifiers, cmd] = this.getModifiersFromCmd(cmd)
+        [this.modifiers, cmd] = getModifiersFromCmd(cmd)
 
         for (let mod of this.modifiers) {
             mod.modify(this)
@@ -1036,7 +1037,7 @@ export class Interpreter {
         args = args.slice(1)
 
         //The return  value from this function
-        let rv: CommandReturn = { status: StatusCode.RETURN };
+        let rv: CommandReturn = { status: StatusCode.RETURN, content: "Nothing happened" };
 
         let warn_cmds = user_options.getOpt(this.#msg.author.id, "warn-cmds", "").split(" ")
         let warn_categories = user_options.getOpt(this.#msg.author.id, "warn-categories", "").split(" ")
@@ -1102,7 +1103,7 @@ export class Interpreter {
                 !isMsgChannel(this.#msg.channel)
 
             ) {
-                rv = {content: "This command cannot be run in this context", status: StatusCode.ERR}
+                rv = { content: "This command cannot be run in this context", status: StatusCode.ERR }
                 break runnerIf;
             }
 
