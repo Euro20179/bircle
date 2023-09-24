@@ -363,11 +363,6 @@ abstract class Node {
     abstract repr(indent: number): string
 }
 
-abstract class Program {
-    abstract visit(relativeTo: number, table: SymbolTable): Type<any>
-    abstract repr(indent: number): string
-}
-
 type ValidJSTypes = string | number | UserFunction
 
 abstract class Type<JSType extends ValidJSTypes>{
@@ -537,21 +532,21 @@ class FunctionType extends Type<UserFunction> {
         return this.mul(other)
     }
 
-    div(other: Type<any>): Type<UserFunction> {
+    div(_other: Type<any>): Type<UserFunction> {
         throw new OperatorError("Cannot use / with function")
     }
     idiv(other: Type<any>): Type<UserFunction> {
         return this.div(other)
     }
 
-    sub(other: Type<any>): Type<UserFunction> {
+    sub(_other: Type<any>): Type<UserFunction> {
         throw new OperatorError("Cannot use - with function")
     }
     isub(other: Type<any>): Type<UserFunction> {
         return this.sub(other)
     }
 
-    add(other: Type<any>): Type<UserFunction> {
+    add(_other: Type<any>): Type<UserFunction> {
         throw new OperatorError("Cannot use + with function")
     }
     iadd(other: Type<any>): Type<UserFunction> {
@@ -789,7 +784,7 @@ class WhileNode extends Node {
         return res ?? new NumberType(0)
     }
 
-    repr(indent: number): string {
+    repr(_indent: number): string {
         return 'loop'
     }
 }
@@ -853,7 +848,7 @@ class FuncCreateNode extends Node {
         this.parameterNames = parameterNames
     }
 
-    visit(program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
+    visit(_program: ProgramNode, table: SymbolTable): Type<ValidJSTypes> {
         let fn = new FunctionType(new UserFunction(this.name, this.code, this.parameterNames.map(v => v.data)))
         table.set(this.name, fn)
         return fn
@@ -891,7 +886,7 @@ class VarAccessNode extends Node {
         return val ?? new NumberType(0)
     }
 
-    repr(indent: number): string {
+    repr(_indent: number): string {
         return `VarAccess(${this.name})`
     }
 }
@@ -905,11 +900,11 @@ class StringNode extends Node {
         this.data = n
     }
 
-    visit(program: ProgramNode, table: SymbolTable): StringType {
+    visit(_program: ProgramNode, _table: SymbolTable): StringType {
         return new StringType(this.data.data)
     }
 
-    repr(indent: number): string {
+    repr(_indent: number): string {
         return `String(${JSON.stringify(this.data.data)})`
     }
 }
