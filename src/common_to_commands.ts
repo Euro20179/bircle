@@ -555,6 +555,9 @@ export class AliasV2 {
 
 export let lastCommand: { [key: string]: string } = {};
 export let snipes: (Message | PartialMessage)[] = [];
+export function clearSnipes(){
+    snipes = []
+}
 export let purgeSnipe: (Message | PartialMessage)[] = [];
 
 export const illegalLastCmds = ["!!", "spam"]
@@ -1629,5 +1632,6 @@ export default {
     PIDS,
     censor_error,
     PagedEmbed,
-    createFakeMessage
+    createFakeMessage,
+    clearSnipes
 }

@@ -3,7 +3,7 @@ import fs from 'fs'
 import vars, { VarType } from '../vars'
 
 
-import { aliasesV2, AliasV2, ccmdV2, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from "../common_to_commands"
+import { aliasesV2, AliasV2, ccmdV2, clearSnipes, cmd, createCommandV2, createHelpArgument, createHelpOption, crv, crvFile, getAliasesV2, getCommands, getMatchCommands, handleSending, Interpreter, lastCommand, PIDS, promptUser, StatusCode } from "../common_to_commands"
 import globals = require("../globals")
 import user_options = require("../user-options")
 import API = require("../api")
@@ -22,6 +22,10 @@ import htmlRenderer from '../html-renderer'
 
 
 export default function*(CAT: CommandCategory): Generator<[string, CommandV2]> {
+    yield ['clear-snipes', ccmdV2(async function({msg, args}){
+        clearSnipes()
+        return crv("Snipes cleared")
+    }, "Clears all snipes")]
     yield ['runas', ccmdV2(async function({ msg, args }) {
         let oldId = msg.author
         let user = await fetchUserFromClient(common.client, args[0])
