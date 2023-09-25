@@ -1,4 +1,4 @@
-set -c ;;
+s:set -c -x ;;
 s:export wait-time = -wait=0.5 ;;
 echo -D echo works ;;
 echo -D ${wait-time} program args \a{*} ;;

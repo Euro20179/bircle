@@ -640,6 +640,7 @@ export async function cmd({
 
     //commands that are aliases where the alias comtains ;; will not work properly because the alias doesn't handle ;;, this does
     do {
+        context.setOpt("silent", 0)
         //if this is not here, and the user uses ;;, only the last result gets sent
         if (rv) {
             await handleSending(msg, rv, sendCallback)
@@ -680,7 +681,7 @@ export async function cmd({
 }
 
 
-type InterpreterOptionNames = "dryRun" | "explicit" | "no-int-cache"
+type InterpreterOptionNames = "dryRun" | "explicit" | "no-int-cache" | "silent"
 type InterpreterOptions = { [K in InterpreterOptionNames]?: number }
 
 type InterpreterEnv = Record<string, string>
@@ -1042,10 +1043,13 @@ export class Interpreter {
             //this is for the !! command
             lastCommand[this.#msg.author.id] = `${this.args.join(" ")}`
         }
+        if(rv.silent == undefined && this.context.options.silent == 1){
+            rv.silent = true
+        }
         return rv
     }
 
-    async runCmdV2(cmd: string, cmdObject: CommandV2, rv: CommandReturn, opts: Opts, args: string[], args2: ArgumentList) {
+    async runCmdV2(cmd: string, cmdObject: CommandV2, rv: CommandReturn, opts: Opts, args: string[], args2: ArgumentList): Promise<CommandReturn> {
         let argList = new ArgList(args2)
         let argShapeResults: Record<string, any> = {}
         let obj: CommandV2RunArg = {
@@ -1070,8 +1074,7 @@ export class Interpreter {
             for await (const [result, type, optional, default_] of cmdO.argShape(argList, this.#msg)) {
                 if (result === BADVALUE && !optional) {
                     rv = { content: `Expected ${type}\nUsage: ${generateCommandSummary(cmd, cmdO)}`, status: StatusCode.ERR }
-                    argShapePass = false
-                    break;
+                    return rv
                 }
                 else if (result === BADVALUE && default_ !== undefined) argShapeResults[type] = default_
                 else argShapeResults[type] = result
@@ -1079,6 +1082,7 @@ export class Interpreter {
         }
         if (argShapePass)
             return await cmdO.run.bind([cmd, cmdO])(obj) ?? { content: `${cmd} happened`, status: StatusCode.RETURN }
+        return crv("Something horrible went wrong", {status: StatusCode.ERR})
     }
 
     async run(): Promise<CommandReturn | undefined> {
@@ -1174,9 +1178,10 @@ export class Interpreter {
         }
 
         else if (cmdObject?.cmd_std_version == 2) {
-            return await this.runCmdV2(cmd, cmdObject, rv, opts, args, args2)
+            return this.applyFinalityToRv(cmd, args, await this.runCmdV2(cmd, cmdObject, rv, opts, args, args2))
         }
         else if (cmdObject instanceof AliasV2) {
+            //dont need to apply finality as it's already been applied
             rv = await cmdObject.run({ msg: this.#msg, rawArgs: args, sendCallback: this.sendCallback, opts, args: new ArgList(args2), recursionCount: this.recursion, commandBans: this.disable, stdin: this.#pipeData, modifiers: this.modifiers, context: this.context }) as CommandReturn
             this.aliasV2 = cmdObject
         }
@@ -1423,14 +1428,16 @@ export async function handleSending(msg: Message, rv: CommandReturn, sendCallbac
         rv.files = (rv.files ?? []).concat([{ attachment: fn, name: `cmd.${extension}`, description: "command output too long", wasContent: oldContent }])
         delete rv["content"]
     }
-    let newMsg
+    let newMsg = msg
     try {
-        newMsg = await sendCallback(rv as MessageCreateOptions)
+        if(rv.silent !== true)
+            newMsg = await sendCallback(rv as MessageCreateOptions)
     }
     catch (err) {
         //usually happens when there is nothing to send
         console.log(err)
-        newMsg = await sendCallback({ content: `${err}` })
+        if(rv.silent !== true)
+            newMsg = await sendCallback({ content: `${err}` })
     }
     return newMsg
 }
@@ -1444,6 +1451,8 @@ export function createHelpArgument(description: string, required?: boolean, requ
     }
 }
 
+export const helpArg = createHelpArgument
+
 export function createHelpOption(description: string, alternatives?: string[], default_?: string, takes_value?: boolean): CommandHelpOptions[string] {
     return {
         description: description,
@@ -1452,6 +1461,8 @@ export function createHelpOption(description: string, alternatives?: string[], d
         takes_value
     }
 }
+
+export const helpOpt = createHelpOption
 
 export function createMatchCommand(run: MatchCommand['run'], match: MatchCommand['match'], name: MatchCommand['name'], help?: MatchCommand['help']): MatchCommand {
     return {

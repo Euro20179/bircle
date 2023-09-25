@@ -110,7 +110,8 @@ class SkipModifier extends Modifier {
 class SilentModifier extends Modifier {
     repr = "s"
     modify(int: Interpreter) {
-        int.sendCallback = async (_data) => int.getMessage()
+        int.context.setOpt("silent", 1)
+        // int.sendCallback = async (_data) => int.getMessage()
     }
 }
 
